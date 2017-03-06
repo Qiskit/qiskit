@@ -1,6 +1,6 @@
 # Python SDK
 
-Python software development kit (SDK) and Jupyter notebooks for working with OPENQASM and the IBM Quantum Experience (QE).
+Python software development kit (SDK) and Jupyter notebooks for working with OPENQASM and the IBM Quantum Experience (QX).
 
 Related external projects:
 
