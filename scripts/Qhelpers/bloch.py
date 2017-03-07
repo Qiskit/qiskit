@@ -5,9 +5,8 @@ Author: Andrew Cross
 """
 import copy
 import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.QasmBackends as QasmBackends
-import qiskit_sdk.QasmInterpreters as QasmInterpreters
-from .BlochError import BlochError
+import qiskit_sdk.unroll as Unroll
+from .blocherror import BlochError
 
 
 def ez(data, j):
@@ -29,8 +28,8 @@ def make_unrolled_circuit(qasm, basis):
     """
     q = Qasm.Qasm(data=qasm)
     ast = q.parse()
-    be = QasmBackends.CircuitBackend(basis)
-    u = QasmInterpreters.Unroller(ast, be)
+    be = Unroll.CircuitBE(basis)
+    u = Unroll.Unroller(ast, be)
     u.execute()
     return be.cg
 

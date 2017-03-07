@@ -1,1 +1,1 @@
-from ._CouplingGraph import CouplingGraph
+from ._coupling import Coupling

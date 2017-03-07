@@ -10,10 +10,10 @@ Author: Andrew Cross
 """
 import networkx as nx
 import numpy as np
-from ._CouplingGraphError import CouplingGraphError
+from ._couplingerror import CouplingError
 
 
-class CouplingGraph:
+class Coupling:
     """
     Directed graph specifying fixed coupling.
 
@@ -60,7 +60,7 @@ class CouplingGraph:
         name = tuple (regname,idx) for qubit
         """
         if name in self.qubits:
-            raise CouplingGraphError("%s already in coupling graph" % name)
+            raise CouplingError("%s already in coupling graph" % name)
 
         self.node_counter += 1
         self.G.add_node(self.node_counter)
@@ -69,7 +69,7 @@ class CouplingGraph:
 
     def add_edge(self, s_name, d_name):
         """
-        Add directed edge to connectivity graph.
+        Add directed edge to coupling graph.
 
         s_name = source qubit tuple
         d_name = destination qubit tuple
@@ -104,7 +104,7 @@ class CouplingGraph:
         Sergey Bravyi's randomization heuristic.
         """
         if not self.connected():
-            raise CouplingGraphError("coupling graph not connected")
+            raise CouplingError("coupling graph not connected")
         lengths = nx.all_pairs_shortest_path_length(self.G.to_undirected())
         self.dist = {}
         self.hdist = {}
@@ -129,11 +129,11 @@ class CouplingGraph:
         if h is True.
         """
         if self.dist is None:
-            raise CouplingGraphError("distance has not been computed")
+            raise CouplingError("distance has not been computed")
         if q1 not in self.qubits:
-            raise CouplingGraphError("%s not in coupling graph" % q1)
+            raise CouplingError("%s not in coupling graph" % q1)
         if q2 not in self.qubits:
-            raise CouplingGraphError("%s not in coupling graph" % q2)
+            raise CouplingError("%s not in coupling graph" % q2)
         if h:
             return self.hdist[q1][q2]
         else:

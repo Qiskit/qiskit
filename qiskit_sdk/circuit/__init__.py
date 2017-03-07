@@ -1,1 +1,1 @@
-from ._CircuitGraph import CircuitGraph
+from ._circuit import Circuit

@@ -1,11 +1,11 @@
 """
-Exception for errors raised by the CouplingGraph object.
+Exception for errors raised by the Coupling object.
 
 Author: Andrew Cross
 """
 
 
-class CouplingGraphError(Exception):
+class CouplingError(Exception):
     """Base class for errors raised by the coupling graph object."""
 
     def __init__(self, *msg):

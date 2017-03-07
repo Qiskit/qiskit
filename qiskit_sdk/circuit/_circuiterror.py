@@ -1,12 +1,12 @@
 """
-Exception for errors raised by the CircuitGraph object.
+Exception for errors raised by the Circuit object.
 
 Author: Andrew Cross
 """
 
 
-class CircuitGraphError(Exception):
-    """Base class for errors raised by the circuit graph object."""
+class CircuitError(Exception):
+    """Base class for errors raised by the circuit object."""
 
     def __init__(self, *msg):
         """Set the error message."""
