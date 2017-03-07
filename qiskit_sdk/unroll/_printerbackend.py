@@ -4,9 +4,9 @@ Backend for the unroller that prints OPENQASM.
 Author: Andrew Cross
 """
 from ._backendexception import BackendException
+from ._unrollerbackend import UnrollerBackend
 
-
-class PrinterBackend(object):
+class PrinterBackend(UnrollerBackend):
     """Backend for the unroller that prints OPENQASM.
 
     This backend also serves as a base class for other unroller backends.
@@ -28,7 +28,7 @@ class PrinterBackend(object):
         self.printed_gates = []
 
     def set_comments(self, comments):
-        """TODO."""
+        """Set comments to True to enable."""
         self.comments = comments
 
     def set_basis(self, basis):
@@ -47,7 +47,10 @@ class PrinterBackend(object):
         return fmt.format(f)
 
     def version(self, v):
-        """Print the version string."""
+        """Print the version string.
+
+        v is a version number.
+        """
         print("OPENQASM %s;" % v)
 
     def new_qreg(self, name, sz):
