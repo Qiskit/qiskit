@@ -10,12 +10,12 @@ import time
 from collections import Counter
 
 
-def getData(results, i):
+def get_data(results, i):
     """Get the dict of labels and counts from the output of getJob."""
     return results['qasms'][i]['result']['data']['counts']
 
 
-def getJobListStatus(jobids, api):
+def get_job_list_status(jobids, api):
     """Given a list of job ids, return a list of job status.
 
     jobids is a list of id strings.
@@ -27,7 +27,7 @@ def getJobListStatus(jobids, api):
     return status_list
 
 
-def waitForJobs(jobids, api, wait=5, timeout=60):
+def wait_for_jobs(jobids, api, wait=5, timeout=60):
     """Wait until all status results are 'COMPLETED'.
 
     jobids is a list of id strings.
@@ -37,7 +37,7 @@ def waitForJobs(jobids, api, wait=5, timeout=60):
 
     Returns an list of results that correspond to the jobids.
     """
-    status = dict(Counter(getJobListStatus(jobids, api)))
+    status = dict(Counter(get_job_list_status(jobids, api)))
     t = 0
     print("status = %s (%d seconds)" % (status, t))
     while 'COMPLETED' not in status or status['COMPLETED'] < len(jobids):
@@ -45,7 +45,7 @@ def waitForJobs(jobids, api, wait=5, timeout=60):
             break
         time.sleep(wait)
         t += wait
-        status = dict(Counter(getJobListStatus(jobids, api)))
+        status = dict(Counter(get_job_list_status(jobids, api)))
         print("status = %s (%d seconds)" % (status, t))
     # Get the results
     results = []
@@ -54,8 +54,8 @@ def waitForJobs(jobids, api, wait=5, timeout=60):
     return results
 
 
-def combineJobs(jobids, api, wait=5, timeout=60):
-    """Like waitForJobs but with a different return format.
+def combine_jobs(jobids, api, wait=5, timeout=60):
+    """Like wait_for_jobs but with a different return format.
 
     jobids is a list of id strings.
     api is an IBMQuantumExperience object.
@@ -66,7 +66,7 @@ def combineJobs(jobids, api, wait=5, timeout=60):
     jobids so it works with _getData_.
     """
     results = list(map(lambda x: x['qasms'],
-                       waitForJobs(jobids, api, wait, timeout)))
+                       wait_for_jobs(jobids, api, wait, timeout)))
     flattened = []
     for sublist in results:
         for val in sublist:
@@ -76,7 +76,7 @@ def combineJobs(jobids, api, wait=5, timeout=60):
     return {'qasms': flattened}
 
 
-def averageData(data, observable):
+def average_data(data, observable):
     """Compute the mean value of an observable.
 
     Takes in the data counts(i) and a corresponding observable in dict

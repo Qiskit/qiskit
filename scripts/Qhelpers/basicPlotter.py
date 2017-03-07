@@ -28,7 +28,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plotRBData(xdata, ydatas, yavg, fit, survival_prob):
+def plot_rb_data(xdata, ydatas, yavg, fit, survival_prob):
     """Plot randomized benchmarking data.
 
     xdata = list of subsequence lengths
@@ -47,7 +47,7 @@ def plotRBData(xdata, ydatas, yavg, fit, survival_prob):
     plt.show()
 
 
-def plotBlochVector(bloch, title=""):
+def plot_bloch_vector(bloch, title=""):
     """Plot a Bloch vector.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -106,7 +106,7 @@ def plotBlochVector(bloch, title=""):
     plt.show()
 
 
-def plotHistogram(data):
+def plot_histogram(data):
     """Plot a histogram of data."""
     labels = sorted(data)
     values = np.array([data[key] for key in labels], dtype=float)

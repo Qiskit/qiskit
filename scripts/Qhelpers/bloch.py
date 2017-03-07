@@ -3,10 +3,10 @@ Module for generating "bloch"-type experiments from an annotated QASM source.
 
 Author: Andrew Cross
 """
-import qx_sdk.Qasm as Qasm
-import qx_sdk.QasmBackends as QasmBackends
-import qx_sdk.QasmInterpreters as QasmInterpreters
 import copy
+import qiskit_sdk.Qasm as Qasm
+import qiskit_sdk.QasmBackends as QasmBackends
+import qiskit_sdk.QasmInterpreters as QasmInterpreters
 from .BlochError import BlochError
 
 
