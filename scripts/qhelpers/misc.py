@@ -11,7 +11,7 @@ from collections import Counter
 
 
 def get_data(results, i):
-    """Get the dict of labels and counts from the output of getJob."""
+    """Get the dict of labels and counts from the output of get_job."""
     return results['qasms'][i]['result']['data']['counts']
 
 
@@ -23,7 +23,7 @@ def get_job_list_status(jobids, api):
     """
     status_list = []
     for i in jobids:
-        status_list.append(api.getJob(i)['status'])
+        status_list.append(api.get_job(i)['status'])
     return status_list
 
 
@@ -50,7 +50,7 @@ def wait_for_jobs(jobids, api, wait=5, timeout=60):
     # Get the results
     results = []
     for i in jobids:
-        results.append(api.getJob(i))
+        results.append(api.get_job(i))
     return results
 
 
