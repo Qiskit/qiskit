@@ -98,3 +98,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
+
+*.xml
+
+*.iml

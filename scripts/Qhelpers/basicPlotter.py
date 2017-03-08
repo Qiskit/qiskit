@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d import proj3d
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 import numpy as np
-
+from collections import Counter
 
 class Arrow3D(FancyArrowPatch):
     """Standard 3D arrow."""
@@ -28,7 +28,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plotRBData(xdata, ydatas, yavg, fit, survival_prob):
+def plot_rb_data(xdata, ydatas, yavg, fit, survival_prob):
     """Plot randomized benchmarking data.
 
     xdata = list of subsequence lengths
@@ -47,7 +47,7 @@ def plotRBData(xdata, ydatas, yavg, fit, survival_prob):
     plt.show()
 
 
-def plotBlochVector(bloch, title=""):
+def plot_bloch_vector(bloch, title=""):
     """Plot a Bloch vector.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -106,8 +106,13 @@ def plotBlochVector(bloch, title=""):
     plt.show()
 
 
-def plotHistogram(data):
+def plot_histogram(data,numbertokeep=None):
     """Plot a histogram of data."""
+    if numbertokeep!=None:
+        datatemp=dict(Counter(data).most_common(numbertokeep))
+        datatemp["rest"]=sum(data.values())-sum(datatemp.values())
+        data=datatemp
+
     labels = sorted(data)
     values = np.array([data[key] for key in labels], dtype=float)
     pvalues = values / sum(values)
@@ -117,9 +122,9 @@ def plotHistogram(data):
     fig, ax = plt.subplots()
     rects = ax.bar(ind, pvalues, width, color='seagreen')
     # add some text for labels, title and axes ticks
-    ax.set_ylabel('Probabilities', fontsize=20)
+    ax.set_ylabel('Probabilities', fontsize=12)
     ax.set_xticks(ind)
-    ax.set_xticklabels(labels, fontsize=20)
+    ax.set_xticklabels(labels, fontsize=12)
     ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
     # attach some text labels
     for rect in rects:

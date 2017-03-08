@@ -12,7 +12,7 @@ Author: Andrew Cross
 """
 import random
 import copy
-import Qhelpers.misc as misc
+import qhelpers.misc as misc
 
 
 def prob_0(data, j):
@@ -61,7 +61,7 @@ def process_results(results, total_sequences, total_length, step, qubit):
         # For each subsequence length, compute survival probability
         for seq_len in range(step, total_length + step, step):
             j = int((seq_len - step)/step)
-            data = misc.getData(results[seq_num], j)
+            data = misc.get_data(results[seq_num], j)
             ydatas[-1].append(prob_0(data, qubit))
     # Compute the mean survival probability over all sequences
     yavg = []
