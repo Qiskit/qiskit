@@ -1,4 +1,4 @@
-IBMQASM 2.0;
+OPENQASM 2.0;
 qreg r0[1];
 qreg r1[1];
 creg c[2];

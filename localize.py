@@ -12,28 +12,24 @@ Author: Andrew Cross
 """
 
 import sys
-import qx_sdk.Qasm as Qasm
-import qx_sdk.QasmBackends as QasmBackends
-import qx_sdk.QasmInterpreters as QasmInterpreters
-import qx_sdk.Localize as Localize
+import qiskit_sdk.Qasm as Qasm
+import qiskit_sdk.unroll as Unroll
+import qiskit_sdk.localize as Localize
 
 
 def make_unrolled_circuit(fname, basis):
     """
     Create a graph representation of the QASM circuit.
 
-    The circuit is unrolled to gates in the input basis.
+    basis is a comma separated list of operation names.
+    The circuit is unrolled to gates in the basis.
     """
-    q = Qasm.Qasm(filename=fname)
-    ast = q.parse()
-    be = QasmBackends.CircuitBackend()
-    be.set_basis(basis.split(","))
-    u = QasmInterpreters.Unroller(ast, be)
+    ast = Qasm.Qasm(filename=fname).parse()
+    u = Unroll.Unroller(ast, Unroll.CircuitBackend(basis.split(",")))
     u.execute()
-    return be.cg
+    return u.be.C
 
 
-# Check the command line for a QASM file name
 if len(sys.argv) < 2:
     print("localize.py <qasm>\n")
     print("  qasm = main circuit")
@@ -51,7 +47,7 @@ couplingstr = "q,0:q,4;q,1:q,4;q,2:q,4;q,3:q,4"
 c = make_unrolled_circuit(sys.argv[1], basis)
 
 # Second, create the coupling graph
-coupling = Localize.CouplingGraph(couplingstr)
+coupling = Localize.Coupling(couplingstr)
 
 print("CouplingGraph is = \n%s" % coupling)
 
@@ -62,7 +58,7 @@ if not coupling.connected():
 print("input circuit is = \n%s" % c.qasm())
 print("circuit depth = %d" % c.depth())
 
-# Here down is hacking for now
+# Here down is hacking for now; not done
 
 coupling.compute_distance()
 for q1 in coupling.qubits.keys():
@@ -70,9 +66,11 @@ for q1 in coupling.qubits.keys():
         print("%s[%d] -> %s[%d]: %f" % (q1[0], q1[1], q2[0], q2[1],
                                         coupling.distance(q1, q2)))
 
-l = c.layers()
-print("len(l) = %d" % len(l))
-for i in range(len(l)):
-    print("i = %d" % i)
-    print("layer = \n%s" % l[i]["graph"].qasm())
-    print("partition = %s" % l[i]["partition"])
+layerlist = c.layers()
+print("len(layerlist) = %d" % len(layerlist))
+print("partition:")
+for i in range(len(layerlist)):
+    print("    %d: %s" % (i, layerlist[i]["partition"]))
+for i in range(len(layerlist)):
+    print("------------ layer %d ------------" % i)
+    print("%s" % layerlist[i]["graph"].qasm())

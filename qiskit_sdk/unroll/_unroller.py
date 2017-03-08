@@ -102,9 +102,9 @@ class Unroller(object):
                                  [self.bit_stack[-1][s] for s in gbits])
                 self.arg_stack.pop()
                 self.bit_stack.pop()
-            else:
-                raise UnrollerException("internal error undefined gate:",
-                                        "line=%s" % n.line, "file=%s" % n.file)
+        else:
+            raise UnrollerException("internal error undefined gate:",
+                                    "line=%s" % n.line, "file=%s" % n.file)
 
     def _process_gate(self, n, opaque=False):
         """Process a gate node n.
@@ -272,10 +272,10 @@ class Unroller(object):
             return [self._process_node(m) for m in n.children]
 
         elif n.type == "binop":
-            self._process_binop(n)
+            return self._process_binop(n)
 
         elif n.type == "prefix":
-            self._process_prefix(n)
+            return self._process_prefix(n)
 
         elif n.type == "measure":
             self._process_measure(n)
@@ -300,7 +300,7 @@ class Unroller(object):
             self._process_gate(n, opaque=True)
 
         elif n.type == "external":
-            self._process_external(n)
+            return self._process_external(n)
 
         else:
             raise UnrollerException("internal error: undefined node type",

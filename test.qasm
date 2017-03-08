@@ -1,4 +1,4 @@
-IBMQASM 2.0;
+OPENQASM 2.0;
 gate v x,y,z
 {
   U(0,0,0) x;

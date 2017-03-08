@@ -1,4 +1,4 @@
-IBMQASM 2.0;
+OPENQASM 2.0;
 gate cx a,b { CX a,b; }
 gate u1(a) b { U(0,0,a) b; }
 gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }

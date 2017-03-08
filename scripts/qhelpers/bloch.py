@@ -26,12 +26,10 @@ def make_unrolled_circuit(qasm, basis):
     qasm - string containing QASM source
     basis - list of gate name strings
     """
-    q = Qasm.Qasm(data=qasm)
-    ast = q.parse()
-    be = Unroll.CircuitBE(basis)
-    u = Unroll.Unroller(ast, be)
+    ast = Qasm.Qasm(data=qasm).parse()
+    u = Unroll.Unroller(ast, Unroll.CircuitBackend(basis))
     u.execute()
-    return be.cg
+    return u.be.C
 
 
 # Register names to use for state tomography subcircuits
@@ -41,7 +39,7 @@ bloch_creg = "c"
 
 # State tomography subcircuit for X-basis measurement
 blochxcirc = """
-IBMQASM 2.0;
+OPENQASM 2.0;
 gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
 qreg %(bqreg)s[1];
 creg %(bcreg)s[5];
@@ -52,7 +50,7 @@ measure %(bqreg)s[0] -> %(bcreg)s[0];
 
 # State tomography subcircuit for Y-basis measurement
 blochycirc = """
-IBMQASM 2.0;
+OPENQASM 2.0;
 gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
 gate u1(lambda) q { U(0,0,lambda) q; }
 qreg %(bqreg)s[1];
@@ -65,7 +63,7 @@ measure %(bqreg)s[0] -> %(bcreg)s[0];
 
 # State tomography subcircuit for Z-basis measurement
 blochzcirc = """
-IBMQASM 2.0;
+OPENQASM 2.0;
 qreg %(bqreg)s[1];
 creg %(bcreg)s[5];
 measure %(bqreg)s[0] -> %(bcreg)s[0];

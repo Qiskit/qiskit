@@ -237,7 +237,7 @@ class Gate(Node):
         s += " " + self.bitlist.qasm() + "\n"
         s += "{\n"  + self.body.qasm() + "}"
         return s
-        
+
 class CustomUnitary(Node):
     def __init__(self, children):
         Node.__init__(self, 'custom_unitary', children, None)
@@ -306,7 +306,7 @@ class Magic(Node):
     def __init__(self, children):
         Node.__init__(self, 'magic', children, None)
     def qasm(self):
-        return "IBMQASM %.1f;"%self.children[0]
+        return "OPENQASM %.1f;"%self.children[0]
 
 class Barrier(Node):
     def __init__(self, children):
@@ -361,7 +361,7 @@ class Opaque(Node):
 class External(Node):
     def __init__(self, children):
         Node.__init__(self, 'external', children, None)
-    
+
 class QasmLexer(object):
     '''
        This is a wrapper around the ply lexer to support the "include" statement
@@ -397,7 +397,7 @@ class QasmLexer(object):
         self.lexer.qasm_file = self.filename
         self.lexer.qasm_line = self.lineno
         self.stack.append(self.lexer)
-        self.__mklexer__(filename)   
+        self.__mklexer__(filename)
         self.data = open(filename).read()
         self.lexer.input(self.data)
 
@@ -426,7 +426,7 @@ class QasmLexer(object):
         'ID',
         'STRING',
         )
-    
+
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
@@ -490,7 +490,7 @@ class QasmLexer(object):
         Now eat up the next two tokens which must be
         1 - the name of the include file, and
         2 - a terminating semocolon
-        
+
         Then push the current lexer onto the stack, create a new one from the include file,
         and push it onto the stack.
 
@@ -510,15 +510,15 @@ class QasmLexer(object):
 
         if not os.path.exists(incfile):
             raise QasmException('Include file', incfile, 'cannot be found, line', str(next.lineno), ', file', self.filename)
-            
- 
+
+
         self.push(incfile)
 
         return self.lexer.token()
 
 
     def t_MAGIC(self, t):
-        'IBMQASM'
+        'OPENQASM'
         return t
 
     def t_COMMENT(self, t):
@@ -554,7 +554,7 @@ class QasmLexer(object):
             return self.lexer.token()
         else:
             return None
-        
+
     t_ignore = ' \t\r'
 
     def t_error(self, t):
@@ -565,7 +565,7 @@ class QasmLexer(object):
 class QasmParser(object):
 
     def __init__(self, filename):
-        self.lexer = QasmLexer(filename)        
+        self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         self.parser = yacc.yacc(module=self, debug=True)
         self.qasm = None
@@ -585,7 +585,7 @@ class QasmParser(object):
         #
         if ( obj.name in self.current_symtab ):
             prev = self.current_symtab[obj.name]
-            raise QasmException("Duplicate declaretion for", obj.type + " '" + obj.name + "' at line", str(obj.line) + ', file', 
+            raise QasmException("Duplicate declaretion for", obj.type + " '" + obj.name + "' at line", str(obj.line) + ', file',
                                 obj.file + '.\nPrevious occurance at line', str(prev.line) + ', file', prev.file)
         self.current_symtab[obj.name] = obj
 
@@ -618,7 +618,7 @@ class QasmParser(object):
         # current stack.
         #
         # I believe we only have to look at the current symtab.
-        
+
         if obj.children != None:
             for child in obj.children:
                 if ( isinstance(child, Id) ):
@@ -628,7 +628,7 @@ class QasmParser(object):
                     if ( not child.name in self.current_symtab ):
                         raise QasmException("Argument '" + child.name + "' in expression cannot be found, line", str(child.line), "file", child.file)
                 else:
-                    if hasattr(child, "children"): 
+                    if hasattr(child, "children"):
                         self.verify_exp_list(child)
 
 
@@ -639,15 +639,15 @@ class QasmParser(object):
         if ( not (( g.type == 'gate') or ( g.type == 'opaque')) ):
             raise QasmException("'" + obj.name + "' is used as a gate or opaque call but the symbol is neither it is a '" + g.type + "' line",
                                 str(obj.line), 'file', obj.file)
-        
+
         if ( g.n_bits() != bitlist.size() ):
-            raise QasmException("Gate or opaque call to '" + obj.name + "' uses", str(bitlist.size()), "qubits but is declared for", 
+            raise QasmException("Gate or opaque call to '" + obj.name + "' uses", str(bitlist.size()), "qubits but is declared for",
                                 str(g.n_bits()), "qubits", "line", str(obj.line), 'file', obj.file)
 
         if ( arglist ):
             if ( g.n_args() != arglist.size() ):
-                raise QasmException("Gate or opaque call to '" + obj.name + "' uses", str(arglist.size()), 
-                                    "qubits but is declared for", 
+                raise QasmException("Gate or opaque call to '" + obj.name + "' uses", str(arglist.size()),
+                                    "qubits but is declared for",
                                     str(g.n_args()), "qubits", "line", str(obj.line), 'file', obj.file)
         else:
             if ( g.n_args() > 0 ):
@@ -667,13 +667,13 @@ class QasmParser(object):
         if ( sym.type != typ ):
             raise QasmException("Type for '" + sym.name + "' should be '" + typ + "' but was found to be '" + sym.type + "'",
                                 "line", str(obj.line), "file", obj.file)
-        
+
         if ( obj.type == 'indexed_id' ):
             bound = sym.index
             ndx = obj.index
             if ( (ndx < 0) or ( ndx >= bound ) ):
-                raise QasmException("Register index for '" + sym.name + "' out of bounds. Index is", str(ndx), 
-                                    "bound is 0 <= index <", str(bound), 
+                raise QasmException("Register index for '" + sym.name + "' out of bounds. Index is", str(ndx),
+                                    "bound is 0 <= index <", str(bound),
                                     "at line", str(obj.line), "file", obj.file);
 
     def verify_reg_list(self, obj, typ):
@@ -683,7 +683,7 @@ class QasmParser(object):
         #
         for b in obj.children:
             self.verify_reg(b, typ)
-                
+
     #def verify_declared_id(self, obj):
     #    #
     #    # We are verifying gate args against the formal parameters of a gate prototype.
@@ -721,7 +721,7 @@ class QasmParser(object):
     # ----------------------------------------
     def p_program_0(self, p):
         '''
-           program : statement                   
+           program : statement
         '''
         #print("------- make a program 0")
 
@@ -729,7 +729,7 @@ class QasmParser(object):
 
     def p_program_1(self, p):
         '''
-           program : program statement                   
+           program : program statement
         '''
         #print("------- make a program 1")
         p[0] = p[1]
@@ -760,13 +760,13 @@ class QasmParser(object):
     def p_magic(self, p):
         '''
            magic : MAGIC REAL
-        '''                         
+        '''
         p[0] = Magic( [p[2]] )
 
     def p_magic_0(self, p):
         '''
            magic : MAGIC error
-        '''                         
+        '''
         magic = "2.0;"
         raise QasmException("Invalid magic string. Expected '" + magic + "'.  Is the semocolon missing?")
 
@@ -775,14 +775,14 @@ class QasmParser(object):
     # ----------------------------------------
     def p_id(self, p):
         '''
-           id : ID              
+           id : ID
         '''
-        #print('------ make an id, type is', type(p[1]))        
+        #print('------ make an id, type is', type(p[1]))
         p[0] = p[1]
 
     def p_id_e(self, p):
         '''
-           id : error        
+           id : error
         '''
         raise QasmException("Expected an ID, received '" + str(p[1].value) + "'")
 
@@ -802,7 +802,7 @@ class QasmParser(object):
             raise QasmException("Missing ']' in indexed ID; received", str(p[4].value))
         p[0] = IndexedId( [ p[1], p[3] ] )
 
-    
+
     # ----------------------------------------
     #  primary : id
     #          | indexed_id
@@ -926,7 +926,7 @@ class QasmParser(object):
            qreg_decl : QREG indexed_id
         '''
         # print("------- make a qreg from", p[2])
-        p[0] = Qreg( [p[2]] )        
+        p[0] = Qreg( [p[2]] )
         self.update_symtab(p[0])
 
     def p_qreg_decl_e(self, p):
@@ -970,7 +970,7 @@ class QasmParser(object):
         p[0] = Gate( [ p[2], p[4], p[5] ] )
         self.pop_scope()
         self.update_symtab(p[0])
-        
+
 
     def p_gate_decl_1(self, p):
         '''
@@ -990,7 +990,7 @@ class QasmParser(object):
         p[0] = Gate ( [ p[2], p[5], p[7], p[8] ] )
         self.pop_scope()
         self.update_symtab(p[0])
-    
+
     def p_gate_scope(self, p):
         '''
            gate_scope :
@@ -1032,7 +1032,7 @@ class QasmParser(object):
         #print("------- make a gate_body_1")
         p[0] = GateBody( p[2] )
 
-        
+
 
     # ----------------------------------------
     #  gate_op_list : gate_op
@@ -1043,7 +1043,7 @@ class QasmParser(object):
     # ----------------------------------------
     def p_gate_op_list_0(self, p):
         '''
-            gate_op_list : gate_op 
+            gate_op_list : gate_op
         '''
         p[0] = [ p[1] ]
 
@@ -1067,7 +1067,7 @@ class QasmParser(object):
     # Note that it might not be unitary - this is the mechanism that is also used
     # to invoke calls to 'opaque'
     # ----------------------------------------
-    def p_unitary_op_0(self, p):    
+    def p_unitary_op_0(self, p):
        '''
           unitary_op : U '(' exp_list ')' primary
        '''
@@ -1077,7 +1077,7 @@ class QasmParser(object):
        self.verify_exp_list(p[3])
 
 
-    def p_unitary_op_1(self, p):    
+    def p_unitary_op_1(self, p):
        '''
        unitary_op : CX primary ',' primary
        '''
@@ -1087,16 +1087,16 @@ class QasmParser(object):
        self.verify_reg(p[4], 'qreg')
 
 
-    def p_unitary_op_2(self, p):    
+    def p_unitary_op_2(self, p):
        '''
           unitary_op : id primary_list
        '''
        #print("------- make a unitary_op_2")
        p[0] = CustomUnitary( [ p[1], p[2] ] )
-       self.verify_as_gate(p[1], p[2])       
+       self.verify_as_gate(p[1], p[2])
        self.verify_reg_list(p[2], 'qreg')
 
-    def p_unitary_op_3(self, p):    
+    def p_unitary_op_3(self, p):
        '''
           unitary_op : id '(' ')' primary_list
        '''
@@ -1106,7 +1106,7 @@ class QasmParser(object):
        self.verify_reg_list(p[4], 'qreg')
 
 
-    def p_unitary_op_4(self, p):    
+    def p_unitary_op_4(self, p):
        '''
           unitary_op : id '(' exp_list ')' primary_list
        '''
@@ -1128,7 +1128,7 @@ class QasmParser(object):
     #         | id '(' exp_list ')' id_list    ';'
     #         | BARRIER id_list                ';'
     # ----------------------------------------
-    def p_gate_op_0(self, p):    
+    def p_gate_op_0(self, p):
        '''
           gate_op : U '(' exp_list ')' id ';'
        '''
@@ -1137,19 +1137,19 @@ class QasmParser(object):
        self.verify_declared_bit(p[5])
        self.verify_exp_list(p[3])
 
-    def p_gate_op_0e1(self, p):    
+    def p_gate_op_0e1(self, p):
        '''
           gate_op : U '(' exp_list ')' error
        '''
        raise QasmException("Invalid U inside gate definition.  Missing bit id or ';'");
 
-    def p_gate_op_0e2(self, p):    
+    def p_gate_op_0e2(self, p):
        '''
           gate_op : U '(' exp_list error
        '''
        raise QasmException("Missing ')' in U invocation in gate definition.");
 
-    def p_gate_op_1(self, p):    
+    def p_gate_op_1(self, p):
        '''
        gate_op : CX id ',' id ';'
        '''
@@ -1158,21 +1158,21 @@ class QasmParser(object):
        self.verify_declared_bit(p[2])
        self.verify_declared_bit(p[4])
 
-    def p_gate_op_1e1(self, p):    
+    def p_gate_op_1e1(self, p):
        '''
        gate_op : CX error
        '''
        raise QasmException("Invalid CX inside gate definition.  Expectedn an ID or '.', received '" + str(p[2].value) + "'");
 
 
-    def p_gate_op_1e2(self, p):    
+    def p_gate_op_1e2(self, p):
        '''
        gate_op : CX id ',' error
        '''
        raise QasmException("Invalid CX inside gate definition.  Expectedn an ID or ';', received '" + str(p[4].value) + "'");
 
 
-    def p_gate_op_2(self, p):    
+    def p_gate_op_2(self, p):
        '''
           gate_op : id id_list ';'
        '''
@@ -1184,13 +1184,13 @@ class QasmParser(object):
        self.verify_as_gate(p[1], p[2])
        self.verify_bit_list(p[2])
 
-    def p_gate_op_2e(self, p):    
+    def p_gate_op_2e(self, p):
        '''
           gate_op : id  id_list error
        '''
        raise QasmException("Invalid gate invocation inside gate definition.");
 
-    def p_gate_op_3(self, p):            
+    def p_gate_op_3(self, p):
        '''
           gate_op : id '(' ')' id_list ';'
        '''
@@ -1199,7 +1199,7 @@ class QasmParser(object):
        self.verify_as_gate(p[1], p[4])
        self.verify_bit_list(p[4])
 
-    def p_gate_op_4(self, p):    
+    def p_gate_op_4(self, p):
        '''
           gate_op : id '(' exp_list ')' id_list ';'
        '''
@@ -1209,19 +1209,19 @@ class QasmParser(object):
        self.verify_bit_list(p[5])
        self.verify_exp_list(p[3])
 
-    def p_gate_op_4e0(self, p):    
+    def p_gate_op_4e0(self, p):
        '''
           gate_op : id '(' ')'  error
        '''
        raise QasmException("Invalid bit list inside gate definition or missing ';'");
 
-    def p_gate_op_4e1(self, p):    
+    def p_gate_op_4e1(self, p):
        '''
           gate_op : id '('   error
         '''
        raise QasmException("Unmatched () for gate invocation inside gate invocation.");
 
-    def p_gate_op_5(self, p):    
+    def p_gate_op_5(self, p):
        '''
            gate_op : BARRIER id_list ';'
        '''
@@ -1231,7 +1231,7 @@ class QasmParser(object):
        self.verify_bit_list(p[2])
 
 
-    def p_gate_op_5e(self, p):    
+    def p_gate_op_5e(self, p):
        '''
            gate_op : BARRIER error
        '''
@@ -1329,8 +1329,8 @@ class QasmParser(object):
     def p_if(self, p):
        '''
           if : IF '(' id MATCHES NNINTEGER ')' quantum_op
-          if : IF '(' id error 
-          if : IF '(' id MATCHES error 
+          if : IF '(' id error
+          if : IF '(' id MATCHES error
           if : IF '(' id MATCHES NNINTEGER error
           if : IF error
 
@@ -1346,7 +1346,7 @@ class QasmParser(object):
 
        #print("------- make an if")
        p[0] = If( [ p[3], p[5], p[7] ] )
-     
+
     # ----------------------------------------
     # These are all the things you can have outside of a gate declaration
     #        quantum_op : unitary_op
@@ -1355,7 +1355,7 @@ class QasmParser(object):
     #                   | reset
     #                   | barrier
     #                   | if
-    # 
+    #
     # ----------------------------------------
     def p_quantum_op(self, p):
         '''
@@ -1375,7 +1375,7 @@ class QasmParser(object):
     #       | ID
     #       | '(' expression ')'
     #       | id '(' expression ')'
-    #  
+    #
     # We will trust 'expression' to throw before we have to handle it here
     # ----------------------------------------
     def p_unary_0(self, p):
@@ -1526,7 +1526,7 @@ class QasmParser(object):
         col = self.find_column(self.lexer.data, p)
         print("Error near line", str(self.lexer.lineno),  'Column', col)
 
-    # Compute column. 
+    # Compute column.
     #     input is the input text string
     #     token is a token instance
     def find_column(self, input, token):
@@ -1554,7 +1554,7 @@ class QasmParser(object):
         except QasmException as e:
             print('C--------------------------------------------------------------------------------')
             print('Exception tokenizing qasm file:', e.msg)
-            print('C--------------------------------------------------------------------------------')            
+            print('C--------------------------------------------------------------------------------')
         except:
             print('C--------------------------------------------------------------------------------')
             print(sys.exc_info()[0], 'Exception tokenizing qasm file')
@@ -1582,7 +1582,7 @@ class QasmParser(object):
         else:
             print("No parsed qasm to print")
 
-        
+
     # ----------------------------------------
     #  Parser runner, to use this module stand-alone
     # ----------------------------------------

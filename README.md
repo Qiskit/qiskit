@@ -14,27 +14,30 @@ The *scripts* directory contains Jupyter notebooks showing how to use the
 [Python API](https://github.com/IBM/qiskit-api-py) with [OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
 *Under development*; There are Jupyter notebooks demonstrating components of
-the SDK.
+the SDK in the *scripts* directory. There are also command line test scripts
+in the *testscripts* directory.
 
 *Under development*; Ismael has refactored the parser on a branch of qx-sdk
-but not committed yet. We want to reorganize the SDK so that is has a
-comfortable and intuitive interface for developers.
+but not committed yet. For this reason, I am leaving the Qasm module as is
+for now, except to change it to accept OPENQASM. We want to reorganize the
+SDK so that is has a comfortable and intuitive interface for developers.
 
 Here is the current organization. The *qiskit_sdk* directory is a Python
 module. It contains a *Qasm* module for parsing OPENQASM circuits,
-a *QasmInterpreters* module for unrolling to a backend, and a *QasmBackends*
-module implementing collections of backend methods. A *CircuitGraph* module
-represents, transforms, and computes properties of OPENQASM circuits as
-directed acyclic graphs.
+an *unroll* module for unrolling QASM to a circuit object, a *circuit* module
+for representing, transforming, and computeing properties of OPENQASM circuits
+as directed acyclic graphs, and a *localize* module for mapping all-to-all
+circuits to run on machines with fixed couplings.
 
 Quantum circuits flow through the components as follows. **OPENQASM** source,
-as a file or string, is passed into a *QasmParser*, which produces an abstract
-syntax tree (**AST**). The **AST** is passed to a *QasmInterpreter* that is
-attached to a *QasmBackend*. The *QasmInterpreter* makes calls into the
-*QasmBackend* and does whatever that backend is defined to do. The
-*BaseBackend* simply prints calls into itself and is useful for debugging
-**QASM** circuits. The *CircuitBackend* creates a *CircuitGraph* object that
-represents the **OPENQASM** circuit as a directed acyclic graph (**DAG**). The *CircuitGraph* provides methods for working with circuits.
+as a file or string, is passed into a *Qasm* object, whose *parse* method
+produces an abstract syntax tree (**AST**) representation. The **AST** is
+passed to an *Unroller* that is attached to an *UnrollerBackend*. There is
+an unimplemented base class, a *PrinterBackend* for outputting text, and
+a *CircuitBackend* for constructing *circuit* objects. The *circuit* object
+represents an unrolled **OPENQASM** circuit as a directed acyclic graph
+(**DAG**). The *circuit* provides methods for working with circuits and
+outputting **OPENQASM**.
 
 ## Setup Python Virtual Enviroment
 
