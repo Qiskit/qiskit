@@ -4,9 +4,11 @@ Unroll to a circuit and display results.
 Author: Andrew Cross
 """
 import sys
+sys.path.append("..")
 import qiskit_sdk.Qasm as Qasm
 import qiskit_sdk.unroll as Unroll
 import networkx as nx
+
 
 if len(sys.argv) < 2:
     print("circuitunroll.py <qasmfile>\n")

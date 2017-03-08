@@ -4,6 +4,7 @@ Unroll to a text printer.
 Author: Andrew Cross
 """
 import sys
+sys.path.append("..")
 import traceback
 import qiskit_sdk.Qasm as Qasm
 import qiskit_sdk.unroll as Unroll

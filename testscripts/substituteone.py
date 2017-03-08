@@ -1,17 +1,18 @@
 """
-Circuit substitution example, substituting all at once.
+Circuit substitution example, substituting one at a time.
 
-Substitute the input circuit file2 in place of every occurence of the
-operation opname in the main circuit file1. Each file is unrolled to the
-given basis and the mapping from input wires of opname to wires of the
-main circuit is given by the wire order w1, w2, ..., wn.
+Substitute the input circuit file2 in place of each occurence of the
+operation opname in the main circuit file1, one at a time, generating output
+QASM each time. Each file is unrolled to the given basis and the mapping
+from input wires of opname to wires of the main circuit is given by the wire
+order w1, w2, ..., wn.
 
 Author: Andrew Cross
 """
 import sys
+sys.path.append("..")
 import qiskit_sdk.Qasm as Qasm
 import qiskit_sdk.unroll as Unroll
-import networkx as nx
 
 
 def build_circuit(fname, basis):
@@ -23,7 +24,7 @@ def build_circuit(fname, basis):
 
 
 if len(sys.argv) < 3:
-    print("substituteall.py <file1> <basis1> <file2> <basis2> ", end="")
+    print("substituteone.py <file1> <basis1> <file2> <basis2> ", end="")
     print("<opname> <w1> <w2> ... <wn>\n")
     print("  file1 = main circuit")
     print("  basis1 = basis for main circuit, \"gate,gate,...\" format")
@@ -31,7 +32,7 @@ if len(sys.argv) < 3:
     print("  basis2 = basis for input circuit, \"gate,gate,...\" format")
     print("  opname = operation to replace")
     print("  w1 ... = wire order for opname, \"q,0\" format\n")
-    print("Replaces all instances of opname in file1")
+    print("Generates a circuit for each opname in file1")
     sys.exit(1)
 
 basis1 = sys.argv[2].split(",")
@@ -50,15 +51,16 @@ for j in sys.argv[6:]:
     wires.append((q[0], int(q[1])))
 print("got wires = %s" % wires)
 
-# print("c1.G.nodes(data=True) = \n%s\n" % c1.G.nodes(data=True))
-# print("c1.G.edges(data=True) = \n%s\n" % c1.G.edges(data=True))
+nlist = c1.get_named_nodes(opname)
+print("%d operations in c1 named %s" % (len(nlist), opname))
 
-c1.substitute_circuit_all(opname, c2, wires)
-
-# print("c1.G.nodes(data=True) = \n%s\n" % c1.G.nodes(data=True))
-# print("c1.G.edges(data=True) = \n%s\n" % c1.G.edges(data=True))
-
-print("View out.gml in a graph viewer such as Gephi")
-nx.write_gml(c1.G, "out.gml", stringizer=str)
-
-print("circuit after substitution:\n%s" % c1.qasm())
+for i in range(len(nlist)):
+    n = nlist[i]
+    nd = c1.G.node[n]
+    # ignoring nd["condition"]
+    print("%d -- %s %s %s %s %s" % (i, nd["name"], nd["type"], nd["qargs"],
+                                    nd["cargs"], nd["params"]))
+    c1p = c1.deepcopy()
+    c1p.remove_descendants_of(n)
+    c1p.substitute_circuit_one(n, c2, wires)
+    print(c1p.qasm())

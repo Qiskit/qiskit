@@ -12,6 +12,7 @@ Author: Andrew Cross
 """
 
 import sys
+sys.path.append("..")
 import qiskit_sdk.Qasm as Qasm
 import qiskit_sdk.unroll as Unroll
 import qiskit_sdk.localize as Localize
