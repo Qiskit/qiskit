@@ -11,26 +11,27 @@ Related external projects:
 ## Organization
 
 The *scripts* directory contains Jupyter notebooks showing how to use the
-[Python API](https://github.com/IBM/qiskit-api-py) with [OPENQASM](https://github.com/IBM/qiskit-openqasm).
+[Python API](https://github.com/IBM/qiskit-api-py) with
+[OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
 *Under development*; There are Jupyter notebooks demonstrating components of
 the SDK in the *scripts* directory. There are also command line test scripts
 in the *testscripts* directory.
 
-*Under development*; Ismael has refactored the parser on a branch of qx-sdk
-but not committed yet. For this reason, I am leaving the Qasm module as is
-for now, except to change it to accept OPENQASM. We want to reorganize the
-SDK so that is has a comfortable and intuitive interface for developers.
+*Under development*; We want to reorganize the SDK so that it has a
+comfortable and intuitive interface for developers. I will learn from
+Ismael, Fran, Jorge, and Paco what architecture makes sense and try to
+implement that architecture.
 
 Here is the current organization. The *qiskit_sdk* directory is a Python
-module. It contains a *Qasm* module for parsing OPENQASM circuits,
+module. It contains a *qasm* module for parsing OPENQASM circuits,
 an *unroll* module for unrolling QASM to a circuit object, a *circuit* module
 for representing, transforming, and computeing properties of OPENQASM circuits
 as directed acyclic graphs, and a *localize* module for mapping all-to-all
 circuits to run on machines with fixed couplings.
 
 Quantum circuits flow through the components as follows. **OPENQASM** source,
-as a file or string, is passed into a *Qasm* object, whose *parse* method
+as a file or string, is passed into a *qasm* object, whose *parse* method
 produces an abstract syntax tree (**AST**) representation. The **AST** is
 passed to an *Unroller* that is attached to an *UnrollerBackend*. There is
 an unimplemented base class, a *PrinterBackend* for outputting text, and
