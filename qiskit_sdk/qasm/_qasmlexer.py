@@ -176,16 +176,16 @@ class QasmLexer(object):
         r'//.*'
         pass
 
+    def t_CX(self, t):
+        'CX'
+        return t
+
+    def t_U(self, t):
+        'U'
+        return t
+
     def t_ID(self, t):
         r'[a-z][a-zA-Z0-9_]*'
-
-        if t.value == 'U':
-            t.type = 'U'
-            return t
-
-        if t.value == 'CX':
-            t.type = 'CX'
-            return t
 
         if t.value == 'pi':
             t.type = 'PI'
