@@ -9,7 +9,7 @@ Author: Jim Challenger
 import os
 import ply.lex as lex
 from ._qasmexception import QasmException
-from . import _node as Node
+from . import _node as node
 
 
 class QasmLexer(object):
@@ -177,7 +177,7 @@ class QasmLexer(object):
         pass
 
     def t_ID(self, t):
-        r'[a-zA-Z_][a-zA-Z0-9_]*'
+        r'[a-z][a-zA-Z0-9_]*'
 
         if t.value == 'U':
             t.type = 'U'
@@ -191,7 +191,7 @@ class QasmLexer(object):
             t.type = 'PI'
             return t
 
-        t.value = Node.Id(t.value, self.lineno, self.filename)
+        t.value = node.Id(t.value, self.lineno, self.filename)
         return t
 
     def t_newline(self, t):
