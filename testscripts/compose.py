@@ -5,15 +5,15 @@ Author: Andrew Cross
 """
 import sys
 sys.path.append("..")
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
+from qiskit_sdk.qasm import Qasm
+import qiskit_sdk.unroll as unroll
 import networkx as nx
 
 
 def build_circuit(fname):
     """Build circuit."""
-    ast = Qasm.Qasm(filename=fname).parse()
-    u = Unroll.Unroller(ast, Unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
+    ast = Qasm(filename=fname).parse()
+    u = unroll.Unroller(ast, unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
     u.execute()
     return u.be.C
 

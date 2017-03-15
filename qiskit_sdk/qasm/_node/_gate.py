@@ -1,0 +1,54 @@
+"""
+Node for an OPENQASM gate definition.
+
+Author: Jim Challenger
+"""
+from ._node import Node
+
+
+class Gate(Node):
+    """Node for an OPENQASM gate definition.
+
+    children[0] is an id node.
+    If len(children) is 3, children[1] is an idlist node,
+    and children[2] is a gatebody node.
+    Otherwise, children[1] is an expressionlist node,
+    children[2] is an idlist node, and children[3] is a gatebody node.
+    """
+
+    def __init__(self, children):
+        """Create the gate node."""
+        Node.__init__(self, 'gate', children, None)
+        self.id = children[0]
+        # The next three fields are required by the symbtab
+        self.name = self.id.name
+        self.line = self.id.line
+        self.file = self.id.file
+
+        if len(children) == 3:
+            self.arguments = None
+            self.bitlist = children[1]
+            self.body = children[2]
+        else:
+            self.arguments = children[1]
+            self.bitlist = children[2]
+            self.body = children[3]
+
+    def n_args(self):
+        """Return the number of parameter expressions."""
+        if self.arguments:
+            return self.arguments.size()
+        return 0
+
+    def n_bits(self):
+        """Return the number of qubit arguments."""
+        return self.bitlist.size()
+
+    def qasm(self):
+        """Return the corresponding OPENQASM string."""
+        s = "gate " + self.name
+        if self.arguments is not None:
+            s += "(" + self.arguments.qasm() + ")"
+        s += " " + self.bitlist.qasm() + "\n"
+        s += "{\n" + self.body.qasm() + "}"
+        return s

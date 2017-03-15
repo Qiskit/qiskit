@@ -11,14 +11,14 @@ Author: Andrew Cross
 """
 import sys
 sys.path.append("..")
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
+from qiskit_sdk.qasm import Qasm
+import qiskit_sdk.unroll as unroll
 
 
 def build_circuit(fname, basis):
     """Return a circuit given a QASM file."""
-    ast = Qasm.Qasm(filename=fname).parse()
-    u = Unroll.Unroller(ast, Unroll.CircuitBackend(basis))
+    ast = Qasm(filename=fname).parse()
+    u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
     u.execute()
     return u.be.C
 

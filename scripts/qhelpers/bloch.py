@@ -4,8 +4,8 @@ Module for generating "bloch"-type experiments from an annotated QASM source.
 Author: Andrew Cross
 """
 import copy
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
+from qiskit_sdk.qasm import Qasm
+import qiskit_sdk.unroll as unroll
 from .blocherror import BlochError
 
 
@@ -26,8 +26,8 @@ def make_unrolled_circuit(qasm, basis):
     qasm - string containing QASM source
     basis - list of gate name strings
     """
-    ast = Qasm.Qasm(data=qasm).parse()
-    u = Unroll.Unroller(ast, Unroll.CircuitBackend(basis))
+    ast = Qasm(data=qasm).parse()
+    u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
     u.execute()
     return u.be.C
 

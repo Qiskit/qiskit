@@ -1,0 +1,41 @@
+"""
+Node for an OPENQASM custom gate statement.
+
+Author: Jim Challenger
+"""
+from ._node import Node
+
+
+class CustomUnitary(Node):
+    """Node for an OPENQASM custom gate statement.
+
+    children[0] is an id node.
+    children[1] is an exp_list (if len==3) or primary_list.
+    children[2], if present, is a primary_list.
+
+    Has properties:
+    .id = id node
+    .name = gate name string
+    .arguments = None or exp_list node
+    .bitlist = primary_list node
+    """
+
+    def __init__(self, children):
+        """Create the custom gate node."""
+        Node.__init__(self, 'custom_unitary', children, None)
+        self.id = children[0]
+        self.name = self.id.name
+        if len(children) == 3:
+            self.arguments = children[1]
+            self.bitlist = children[2]
+        else:
+            self.arguments = None
+            self.bitlist = children[1]
+
+    def qasm(self):
+        """Return the corresponding OPENQASM string."""
+        s = self.name
+        if self.arguments is not None:
+            s += "(" + self.arguments.qasm() + ")"
+        s += " " + self.bitlist.qasm() + ";"
+        return s

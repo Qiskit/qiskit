@@ -6,8 +6,9 @@ Author: Andrew Cross
 import sys
 sys.path.append("..")
 import traceback
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
+from qiskit_sdk.qasm import Qasm
+from qiskit_sdk.qasm._qasmexception import QasmException
+import qiskit_sdk.unroll as unroll
 
 if len(sys.argv) < 2:
     print("textunroll.py <file> [basis]\n")
@@ -17,8 +18,8 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 try:
-    ast = Qasm.Qasm(filename=sys.argv[1]).parse()
-except Qasm.qasm.QasmException as e:
+    ast = Qasm(filename=sys.argv[1]).parse()
+except QasmException as e:
     print(e.msg)
 except Exception as e:
     print(sys.exc_info()[0], 'Exception parsing qasm file')
@@ -32,5 +33,5 @@ if len(sys.argv) > 2:
 else:
     basis = []
 
-unroller = Unroll.Unroller(ast, Unroll.PrinterBackend(basis))
+unroller = unroll.Unroller(ast, unroll.PrinterBackend(basis))
 unroller.execute()

@@ -13,9 +13,9 @@ Author: Andrew Cross
 
 import sys
 sys.path.append("..")
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
-import qiskit_sdk.localize as Localize
+from qiskit_sdk.qasm import Qasm
+import qiskit_sdk.unroll as unroll
+import qiskit_sdk.localize as localize
 
 
 def make_unrolled_circuit(fname, basis):
@@ -25,8 +25,8 @@ def make_unrolled_circuit(fname, basis):
     basis is a comma separated list of operation names.
     The circuit is unrolled to gates in the basis.
     """
-    ast = Qasm.Qasm(filename=fname).parse()
-    u = Unroll.Unroller(ast, Unroll.CircuitBackend(basis.split(",")))
+    ast = Qasm(filename=fname).parse()
+    u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
     return u.be.C
 
@@ -48,7 +48,7 @@ couplingstr = "q,0:q,4;q,1:q,4;q,2:q,4;q,3:q,4"
 c = make_unrolled_circuit(sys.argv[1], basis)
 
 # Second, create the coupling graph
-coupling = Localize.Coupling(couplingstr)
+coupling = localize.Coupling(couplingstr)
 
 print("CouplingGraph is = \n%s" % coupling)
 

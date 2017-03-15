@@ -5,8 +5,8 @@ Author: Andrew Cross
 """
 import sys
 sys.path.append("..")
-import qiskit_sdk.Qasm as Qasm
-import qiskit_sdk.unroll as Unroll
+from qiskit_sdk.qasm import Qasm
+import qiskit_sdk.unroll as unroll
 import networkx as nx
 
 
@@ -15,7 +15,7 @@ if len(sys.argv) < 2:
     print("basis = u1, u2, u3, cx")
     sys.exit(1)
 
-ast = Qasm.Qasm(filename=sys.argv[1]).parse()
+ast = Qasm(filename=sys.argv[1]).parse()
 
 print("AST")
 print("-----------------------------------------")
@@ -27,7 +27,7 @@ print(ast.qasm())
 print("-----------------------------------------")
 
 basis = ["u1", "u2", "u3", "cx"]
-unroller = Unroll.Unroller(ast, Unroll.CircuitBackend(basis))
+unroller = unroll.Unroller(ast, unroll.CircuitBackend(basis))
 unroller.execute()
 C = unroller.be.C
 
