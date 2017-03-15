@@ -509,6 +509,7 @@ class QasmParser(object):
         p[0] = node.Cnot([p[2], p[4]])
         self.verify_reg(p[2], 'qreg')
         self.verify_reg(p[4], 'qreg')
+        # TODO: check that p[2] and p[4] are distinct
 
     def p_unitary_op_2(self, p):
         '''
@@ -517,6 +518,7 @@ class QasmParser(object):
         p[0] = node.CustomUnitary([p[1], p[2]])
         self.verify_as_gate(p[1], p[2])
         self.verify_reg_list(p[2], 'qreg')
+        # TODO: check that primary_list elements are distinct
 
     def p_unitary_op_3(self, p):
         '''
@@ -525,6 +527,7 @@ class QasmParser(object):
         p[0] = node.CustomUnitary([p[1], p[4]])
         self.verify_as_gate(p[1], p[4])
         self.verify_reg_list(p[4], 'qreg')
+        # TODO: check that primary_list elements are distinct
 
     def p_unitary_op_4(self, p):
         '''
@@ -534,6 +537,7 @@ class QasmParser(object):
         self.verify_as_gate(p[1], p[5], arglist=p[3])
         self.verify_reg_list(p[5], 'qreg')
         self.verify_exp_list(p[3])
+        # TODO: check that primary_list elements are distinct
 
     # ----------------------------------------
     # This is a restricted set of "quantum_op" which also
@@ -574,6 +578,7 @@ class QasmParser(object):
         p[0] = node.Cnot([p[2], p[4]])
         self.verify_declared_bit(p[2])
         self.verify_declared_bit(p[4])
+        # TODO: check that p[2] and p[4] are distinct
 
     def p_gate_op_1e1(self, p):
         '''
@@ -601,6 +606,7 @@ class QasmParser(object):
         # 2. everything in the id_list is declared as a bit in local scope
         self.verify_as_gate(p[1], p[2])
         self.verify_bit_list(p[2])
+        # TODO: check that elements of id_list are distinct
 
     def p_gate_op_2e(self, p):
         '''
@@ -615,6 +621,7 @@ class QasmParser(object):
         p[0] = node.CustomUnitary([p[1], p[4]])
         self.verify_as_gate(p[1], p[4])
         self.verify_bit_list(p[4])
+        # TODO: check that elements of id_list are distinct
 
     def p_gate_op_4(self, p):
         '''
@@ -624,6 +631,7 @@ class QasmParser(object):
         self.verify_as_gate(p[1], p[5], arglist=p[3])
         self.verify_bit_list(p[5])
         self.verify_exp_list(p[3])
+        # TODO: check that elements of id_list are distinct
 
     def p_gate_op_4e0(self, p):
         '''
@@ -645,6 +653,7 @@ class QasmParser(object):
         '''
         p[0] = node.Barrier([p[2]])
         self.verify_bit_list(p[2])
+        # TODO: check that elements of id_list are distinct
 
     def p_gate_op_5e(self, p):
         '''
@@ -718,6 +727,7 @@ class QasmParser(object):
         '''
         p[0] = node.Barrier([p[2]])
         self.verify_reg_list(p[2], 'qreg')
+        # TODO: check that elements of primary_list are distinct
 
     # ----------------------------------------
     # reset : RESET primary
@@ -751,6 +761,11 @@ class QasmParser(object):
                                 + "received '" + str(p[5].value))
         if len(p) == 7:
             raise QasmException("Ill-formed IF statement, unmatched '('")
+
+        if p[7].type == 'if':
+            raise QasmException("Nested IF statements not allowed")
+        if p[7].type == 'barrier':
+            raise QasmException("barrier not permitted in IF statement")
 
         p[0] = node.If([p[3], p[5], p[7]])
 

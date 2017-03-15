@@ -85,7 +85,7 @@ class QasmLexer(object):
         return t
 
     def t_NNINTEGER(self, t):
-        r'\d+'
+        r'[1-9]+[0-9]*|0'
         t.value = int(t.value)
         return t
 
