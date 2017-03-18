@@ -23,6 +23,7 @@ class QasmParser(object):
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
+        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt']
 
     def update_symtab(self, obj):
         """Update a node in the symbol table.
@@ -35,10 +36,10 @@ class QasmParser(object):
         """
         if obj.name in self.current_symtab:
             prev = self.current_symtab[obj.name]
-            raise QasmException("Duplicate declaretion for", obj.type + " '"
+            raise QasmException("Duplicate declaration for", obj.type + " '"
                                 + obj.name + "' at line", str(obj.line)
                                 + ', file', obj.file
-                                + '.\nPrevious occurance at line',
+                                + '.\nPrevious occurence at line',
                                 str(prev.line) + ', file', prev.file)
         self.current_symtab[obj.name] = obj
 
@@ -76,8 +77,7 @@ class QasmParser(object):
         if obj.children is not None:
             for child in obj.children:
                 if isinstance(child, node.Id):
-                    if child.name in ['sin', 'cos', 'tan', 'exp',
-                                      'ln', 'sqrt']:
+                    if child.name in self.external_functions:
                         continue
 
                     if child.name not in self.current_symtab:
@@ -370,6 +370,11 @@ class QasmParser(object):
            qreg_decl : QREG indexed_id
         '''
         p[0] = node.Qreg([p[2]])
+        if p[2].name in self.external_functions:
+            raise QasmException("QREG names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
+        if p[2].index == 0:
+            raise QasmException("QREG size must be positive")
         self.update_symtab(p[0])
 
     def p_qreg_decl_e(self, p):
@@ -387,6 +392,11 @@ class QasmParser(object):
            creg_decl : CREG indexed_id
         '''
         p[0] = node.Creg([p[2]])
+        if p[2].name in self.external_functions:
+            raise QasmException("CREG names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
+        if p[2].index == 0:
+            raise QasmException("CREG size must be positive")
         self.update_symtab(p[0])
 
     def p_creg_decl_e(self, p):
@@ -411,6 +421,9 @@ class QasmParser(object):
            gate_decl : GATE id gate_scope bit_list gate_body
         '''
         p[0] = node.Gate([p[2], p[4], p[5]])
+        if p[2].name in self.external_functions:
+            raise QasmException("GATE names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
         self.pop_scope()
         self.update_symtab(p[0])
 
@@ -419,6 +432,9 @@ class QasmParser(object):
            gate_decl : GATE id gate_scope '(' ')' bit_list gate_body
         '''
         p[0] = node.Gate([p[2], p[6], p[7]])
+        if p[2].name in self.external_functions:
+            raise QasmException("GATE names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
         self.pop_scope()
         self.update_symtab(p[0])
 
@@ -427,6 +443,9 @@ class QasmParser(object):
         gate_decl : GATE id gate_scope '(' gate_id_list ')' bit_list gate_body
         '''
         p[0] = node.Gate([p[2], p[5], p[7], p[8]])
+        if p[2].name in self.external_functions:
+            raise QasmException("GATE names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
         self.pop_scope()
         self.update_symtab(p[0])
 
@@ -673,6 +692,9 @@ class QasmParser(object):
            opaque : OPAQUE id gate_scope bit_list
         '''
         p[0] = Opaque([p[2], p[4]])
+        if p[2].name in self.external_functions:
+            raise QasmException("OPAQUE names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
         self.pop_scope()
         self.update_symtab(p[0])
 
@@ -689,6 +711,9 @@ class QasmParser(object):
            opaque : OPAQUE id gate_scope '(' gate_id_list ')' bit_list
         '''
         p[0] = node.Opaque([p[2], p[5], p[7]])
+        if p[2].name in self.external_functions:
+            raise QasmException("OPAQUE names cannot be reserved words. "
+                                + "Received '" + p[2].name + "'")
         self.pop_scope()
         self.update_symtab(p[0])
 
@@ -835,7 +860,7 @@ class QasmParser(object):
            unary : id '(' expression ')'
         '''
         # note this is a semantic check, not syntactic
-        if p[1].name not in ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt']:
+        if p[1].name not in self.external_functions:
             raise QasmException("Illegal external function call: ",
                                 str(p[1].name))
         p[0] = node.External([p[1], p[3]])
