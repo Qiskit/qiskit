@@ -6,7 +6,7 @@ Author: Andrew Cross
 from qiskit_sdk import QuantumRegister
 from qiskit_sdk import Program
 from qiskit_sdk import Gate
-from qiskit_sdk import GateSet
+from qiskit_sdk import InstructionSet
 
 
 class HGate(Gate):
@@ -14,7 +14,7 @@ class HGate(Gate):
 
     def __init__(self, qubit):
         """Create new Hadamard gate."""
-        super(Gate, self).__init__("h", [], [qubit])
+        super(HGate, self).__init__("h", [], [qubit])
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -24,14 +24,17 @@ class HGate(Gate):
 
 def h(self, j=-1):
     """Apply Hadamard to jth qubit in this register (or all)."""
+    self._check_bound()
+    gs = InstructionSet()
     if j == -1:
-        gs = GateSet()
-        for k in range(self.sz):
-            gs.add(self.h(k))
-        return gs
+        for p in self.bound_to:
+            for k in range(self.sz):
+                gs.add(p.h((self, k)))
     else:
-        self._check_range(j)
-        return self._attach(HGate((self, j)))
+        self.check_range(j)
+        for p in self.bound_to:
+            gs.add(p.h((self, j)))
+    return gs
 
 
 QuantumRegister.h = h
@@ -41,7 +44,7 @@ def h(self, q):
     """Apply Hadamard to q."""
     self._check_qreg(q[0])
     q[0].check_range(q[1])
-    return self._attach(HGate(q), q)
+    return self._attach(HGate(q))
 
 
 Program.h = h

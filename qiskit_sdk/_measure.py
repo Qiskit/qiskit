@@ -11,7 +11,7 @@ class Measure(Instruction):
 
     def __init__(self, qubit, bit):
         """Create new measurement instruction."""
-        super(Instruction, self).__init__("measure", [], [qubit, bit])
+        super(Measure, self).__init__("measure", [], [qubit, bit])
 
     def qasm(self):
         """Return OPENQASM string."""

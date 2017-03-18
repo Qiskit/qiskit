@@ -1,5 +1,5 @@
 """
-Classical register object.
+Classical register reference object.
 
 Author: Andrew Cross
 """

@@ -15,7 +15,7 @@ class UBase(Gate):
         """Create new reset instruction."""
         if len(param) != 3:
             raise QISKitException("expected 3 parameters")
-        super(Instruction, self).__init__("U", param, [qubit])
+        super(UBase, self).__init__("U", param, [qubit])
 
     def qasm(self):
         """Return OPENQASM string."""

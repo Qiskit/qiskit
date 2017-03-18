@@ -11,7 +11,7 @@ class Barrier(Instruction):
 
     def __init__(self, *args):
         """Create new barrier instruction."""
-        super(Instruction, self).__init__("barrier", [], list(args))
+        super(Barrier, self).__init__("barrier", [], list(args))
 
     def qasm(self):
         """Return OPENQASM string."""

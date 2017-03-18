@@ -11,7 +11,7 @@ class Reset(Instruction):
 
     def __init__(self, qubit):
         """Create new reset instruction."""
-        super(Instruction, self).__init__("reset", [], [qubit])
+        super(Reset, self).__init__("reset", [], [qubit])
 
     def qasm(self):
         """Return OPENQASM string."""
