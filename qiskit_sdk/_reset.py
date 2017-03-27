@@ -16,4 +16,4 @@ class Reset(Instruction):
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        return "reset %s[%d];" % (qubit[0].name, qubit[1])
+        return self._qasmif("reset %s[%d];" % (qubit[0].name, qubit[1]))

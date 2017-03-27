@@ -27,6 +27,7 @@ class Program(object):
 
     def _attach(self, g):
         """Attach a gate."""
+        g.set_program(self)
         self.data.append(g)
         return g
 
@@ -61,9 +62,10 @@ class Program(object):
         s = "OPENQASM 2.0;\n"
         # TODO: need to decide how to handle gate definitions
         s += "include \"qelib.inc\";\n"
+        for r in self.regs:
+            s += r.qasm() + "\n"
         for i in self.data:
-            s += i.qasm()
-            s += "\n"
+            s += i.qasm() + "\n"
         return s
 
     def measure(self, q, c):

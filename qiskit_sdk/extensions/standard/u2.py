@@ -23,7 +23,9 @@ class U2Gate(Gate):
         qubit = self.arg[0]
         phi = self.param[0]
         lam = self.param[1]
-        return "u2(%.15f,%.15f) %s[%d];" % (phi, lam, qubit[0].name, qubit[1])
+        return self._qasmif("u2(%.15f,%.15f) %s[%d];" % (phi, lam,
+                                                         qubit[0].name,
+                                                         qubit[1]))
 
     def inverse(self):
         """Invert this gate.

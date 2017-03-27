@@ -28,4 +28,4 @@ class Barrier(Instruction):
             if j != len(self.arg) - 1:
                 s += ","
         s += ";"
-        return s
+        return s  # no c_if on barrier instructions

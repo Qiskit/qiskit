@@ -23,3 +23,25 @@ class Instruction(object):
         self.name = name
         self.param = param
         self.arg = arg
+        self.control = None
+        self.program = None
+
+    def set_program(self, p):
+        """Point back to the program that contains this instruction."""
+        self.program = p
+
+    def c_if(self, c, val):
+        """Add classical control on register c and value val."""
+        if self.program is None:
+            raise QISKitException("gate is not associated to a program")
+        self.program._check_creg(c)
+        if val < 0:
+            raise QISKitException("control value should be non-negative")
+        self.control = (c, val)
+
+    def _qasmif(self, s):
+        """Print an if statement if needed."""
+        if self.control is None:
+            return s
+        else:
+            return "if(%s==%d) " % (self.control[0].name, self.control[1]) + s

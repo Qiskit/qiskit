@@ -20,7 +20,7 @@ class IdGate(Gate):
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        return "id %s[%d];" % (qubit[0].name, qubit[1])
+        return self._qasmif("id %s[%d];" % (qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""

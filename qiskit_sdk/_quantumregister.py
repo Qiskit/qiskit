@@ -13,6 +13,10 @@ from ._instructionset import InstructionSet
 class QuantumRegister(Register):
     """Implement a quantum register."""
 
+    def qasm(self):
+        """Return OPENQASM string for this register."""
+        return "qreg %s[%d];" % (self.name, self.sz)
+
     def reset(self, j=-1):
         """Reset the jth qubit of this register (or all)."""
         self._check_bound()

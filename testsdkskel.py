@@ -15,8 +15,7 @@ from qiskit_sdk.extensions.standard import t, ccx
 # QASM before transmitting it through the web API.
 
 # Issues
-# - .doif is not implemented
-#   .control is not implemented
+#   .q_if is not implemented
 
 # What other features do we need?
 # - Think about how we run programs and get results.
@@ -31,6 +30,9 @@ p = Program(q, c)
 pp = Program(q, r, c)  # it would be easy to bail here if that's preferred
 q.reset()
 q.h(0)  # this gets applied to q in p and pp
+q.h(1).c_if(c, 5)
+ppp = Program(q)
+#q.h(2).c_if(c, 5)  # raise exception
 q.u1(math.pi/4.0).inverse().inverse()
 q.u2(math.pi/8.0, math.pi/8.0)
 q.u3(math.pi/4.0, math.pi/8.0, math.pi/16.0)

@@ -27,14 +27,14 @@ class InstructionSet(object):
             g.inverse()
         return self
 
-    def control(self, *qregs):
+    def q_if(self, *qregs):
         """Add controls to all instructions."""
         for g in self.gs:
-            g.control(*qregs)
+            g.q_if(*qregs)
         return self
 
-    def doif(self, c, val):
+    def c_if(self, c, val):
         """Add classical control register to all instructions."""
         for g in self.gs:
-            g.doif(c, val)
+            g.c_if(c, val)
         return self
