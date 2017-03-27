@@ -10,7 +10,7 @@ from ._qiskitexception import QISKitException
 class Gate(Instruction):
     """Unitary gate."""
 
-    def invert(self):
+    def inverse(self):
         """Invert this gate."""
         raise QISKitException("inverse not implemented")
 

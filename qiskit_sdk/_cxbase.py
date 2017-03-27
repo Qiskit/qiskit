@@ -20,3 +20,7 @@ class CXBase(Gate):
         tgt = self.arg[1]
         return "CX %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
                                       tgt[0].name, tgt[1])
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse

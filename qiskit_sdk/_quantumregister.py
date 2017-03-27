@@ -64,5 +64,5 @@ class QuantumRegister(Register):
                 bl.append((self, j))
         gs = InstructionSet()
         for p in self.bound_to:
-            gs.add(p.barrier(bl))
+            gs.add(p.barrier(*bl))
         return gs

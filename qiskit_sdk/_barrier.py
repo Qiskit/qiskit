@@ -13,15 +13,19 @@ class Barrier(Instruction):
         """Create new barrier instruction."""
         super(Barrier, self).__init__("barrier", [], list(args))
 
+    def inverse(self):
+        """Special case. Return self."""
+        return self
+
     def qasm(self):
         """Return OPENQASM string."""
         s = "barrier "
-        for j in range(len(self.args)):
-            if len(self.args[j]) == 1:
-                s += "%s" % self.args[j].name
+        for j in range(len(self.arg)):
+            if len(self.arg[j]) == 1:
+                s += "%s" % self.arg[j].name
             else:
-                s += "%s[%d]" % (self.args[j][0].name, self.args[j][1])
-            if j != len(self.args) - 1:
+                s += "%s[%d]" % (self.arg[j][0].name, self.arg[j][1])
+            if j != len(self.arg) - 1:
                 s += ","
         s += ";"
         return s

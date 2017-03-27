@@ -82,7 +82,7 @@ class Program(object):
 
     def u_base(self, tpl, q):
         """Apply U to q."""
-        self._check_qreg(q)
+        self._check_qreg(q[0])
         q[0].check_range(q[1])
         return self._attach(UBase(tpl, q))
 
@@ -101,4 +101,4 @@ class Program(object):
             self._check_qreg(t[0])
             t[0].check_range(t[1])
         # self._check_dups(tup)
-        return self._attach(Barrier(tup))
+        return self._attach(Barrier(*tup))

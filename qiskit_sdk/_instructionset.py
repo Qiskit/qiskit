@@ -21,17 +21,20 @@ class InstructionSet(object):
                                   " to InstructionSet")
         self.gs.add(g)
 
-    def invert(self):
+    def inverse(self):
         """Invert all instructions."""
         for g in self.gs:
-            g.invert()
+            g.inverse()
+        return self
 
     def control(self, *qregs):
         """Add controls to all instructions."""
         for g in self.gs:
             g.control(*qregs)
+        return self
 
     def doif(self, c, val):
         """Add classical control register to all instructions."""
         for g in self.gs:
             g.doif(c, val)
+        return self
