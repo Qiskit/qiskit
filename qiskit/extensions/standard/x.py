@@ -3,21 +3,29 @@ Pauli X (bit-flip) gate.
 
 Author: Andrew Cross
 """
-import math
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import u3
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
 
 
-class XGate(CompositeGate):
+class XGate(Gate):
     """Pauli X (bit-flip) gate."""
 
     def __init__(self, qubit):
         """Create new X gate."""
         super(XGate, self).__init__("x", [], [qubit])
-        self.u3(math.pi, 0.0, math.pi, qubit)
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubit = self.arg[0]
+        return self._qasmif("x %s[%d];" % (qubit[0].name, qubit[1]))
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse
 
 
 def x(self, j=-1):
@@ -45,7 +53,7 @@ def x(self, q):
     return self._attach(XGate(q))
 
 
-Program.x = x
+QuantumCircuit.x = x
 
 
 def x(self, q):

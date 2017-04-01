@@ -3,11 +3,12 @@ Two-pulse single qubit gate.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import Gate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk import CompositeGate
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import InstructionSet
+from qiskit import CompositeGate
+from qiskit.extensions.standard import header
 
 
 class U3Gate(Gate):
@@ -64,7 +65,7 @@ def u3(self, theta, phi, lam, q):
     return self._attach(U3Gate(theta, phi, lam, q))
 
 
-Program.u3 = u3
+QuantumCircuit.u3 = u3
 
 
 def u3(self, theta, phi, lam, q):

@@ -3,15 +3,14 @@ Quantum teleportation example based on OPENQASM example.
 
 Author: Andrew Cross
 """
-import math
-from qiskit_sdk import QuantumRegister, ClassicalRegister, Program
-from qiskit_sdk.extensions.standard import h, cx, u3, x, z
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.extensions.standard import h, cx, u3, x, z
 
 q = QuantumRegister("q", 3)
 c0 = ClassicalRegister("c0", 1)
 c1 = ClassicalRegister("c1", 1)
 c2 = ClassicalRegister("c2", 1)
-p = Program(q, c0, c1, c2)
+p = QuantumCircuit(q, c0, c1, c2)
 q.u3(0.3, 0.2, 0.1, 0)
 q.h(1)
 q.cx(1, 2)

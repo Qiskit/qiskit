@@ -139,7 +139,7 @@ class QasmLexer(object):
         '''
         Now eat up the next two tokens which must be
         1 - the name of the include file, and
-        2 - a terminating semocolon
+        2 - a terminating semicolon
 
         Then push the current lexer onto the stack, create a new one from
         the include file, and push it onto the stack.
@@ -163,7 +163,6 @@ class QasmLexer(object):
             raise QasmException('Include file', incfile,
                                 'cannot be found, line', str(next.lineno),
                                 ', file', self.filename)
-
         self.push(incfile)
         return self.lexer.token()
 

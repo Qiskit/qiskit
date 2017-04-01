@@ -659,7 +659,7 @@ class Circuit:
         and only generate gate code for gates not in qelib1.
         """
         printed_gates = []
-        out = "IBMQASM 2.0;\n"
+        out = "OPENQASM 2.0;\n"
         if qeflag:
             out += "include \"qelib1.inc\";\n"
         for k, v in sorted(self.qregs.items()):

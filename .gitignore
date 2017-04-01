@@ -1,6 +1,10 @@
 # SDK config file
 Qconfig.py
 
+# ply outputs
+qiskit/qasm/parser.out
+qiskit/qasm/parsetab.py
+
 #standard python ignores follow
 
 # Byte-compiled / optimized / DLL files

@@ -3,22 +3,31 @@ controlled-Y gate.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import s, cx
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
 
 
-class CyGate(CompositeGate):
-    """CY gate."""
+class CyGate(Gate):
+    """controlled-Y gate."""
 
     def __init__(self, ctl, tgt):
         """Create new CY gate."""
         super(CyGate, self).__init__("cy", [], [ctl, tgt])
-        self.s(tgt).inverse()
-        self.cx(ctl, tgt)
-        self.s(tgt)
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        ctl = self.arg[0]
+        tgt = self.arg[1]
+        return self._qasmif("cy %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
+                                                   tgt[0].name, tgt[1]))
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse
 
 
 def cy(self, i, j):
@@ -36,7 +45,7 @@ QuantumRegister.cy = cy
 
 
 def cy(self, ctl, tgt):
-    """Apply CY to program."""
+    """Apply CY to circuit."""
     self._check_qreg(ctl[0])
     ctl[0].check_range(ctl[1])
     self._check_qreg(tgt[0])
@@ -44,7 +53,7 @@ def cy(self, ctl, tgt):
     return self._attach(CyGate(ctl, tgt))
 
 
-Program.cy = cy
+QuantumCircuit.cy = cy
 
 
 def cy(self, ctl, tgt):

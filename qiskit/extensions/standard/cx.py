@@ -3,11 +3,12 @@ controlled-NOT gate.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import Gate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk import CompositeGate
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import InstructionSet
+from qiskit import CompositeGate
+from qiskit.extensions.standard import header
 
 
 class CnotGate(Gate):
@@ -52,7 +53,7 @@ def cx(self, ctl, tgt):
     return self._attach(CnotGate(ctl, tgt))
 
 
-Program.cx = cx
+QuantumCircuit.cx = cx
 
 
 def cx(self, ctl, tgt):

@@ -14,19 +14,25 @@ The *scripts* directory contains Jupyter notebooks showing how to use the
 [Python API](https://github.com/IBM/qiskit-api-py) with
 [OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
-*Under development*; There are Jupyter notebooks demonstrating components of
+There are Jupyter notebooks demonstrating components of
 the SDK in the *scripts* directory. There are also command line test scripts
-in the *testscripts* directory.
+in the *testscripts* directory. There are what will eventually be whole-SDK
+example scripts in the root directory.
 
-*Under development*; We want to reorganize the SDK so that it has a
+We want to reorganize the SDK so that it has a
 comfortable and intuitive interface for developers. I will learn from
 Ismael, Fran, Jorge, and Paco what architecture makes sense and try to
-implement that architecture.
+implement that architecture. This is meant as a place for us to try ideas
+until we settle on something that makes sense for everyone. Right now, users
+can create instances of *QuantumRegister* and *ClassicalRegister*, and bind
+these to *QuantumCircuit*. They can then call methods of these objects to
+apply gates within the circuit. The *extensions* directory extends these
+objects as needed to support new gate sets and algorithms.
 
-Here is the current organization. The *qiskit_sdk* directory is a Python
+The *qiskit* directory is a Python
 module. It contains a *qasm* module for parsing OPENQASM circuits,
 an *unroll* module for unrolling QASM to a circuit object, a *circuit* module
-for representing, transforming, and computeing properties of OPENQASM circuits
+for representing, transforming, and computing properties of OPENQASM circuits
 as directed acyclic graphs, and a *localize* module for mapping all-to-all
 circuits to run on machines with fixed couplings.
 

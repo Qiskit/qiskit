@@ -1,5 +1,5 @@
 """
-Quantum program object (quantum circuit).
+Quantum circuit object.
 
 Author: Andrew Cross
 """
@@ -13,21 +13,24 @@ from ._ubase import UBase
 from ._cxbase import CXBase
 
 
-class Program(object):
-    """Quantum program (circuit)."""
+class QuantumCircuit(object):
+    """Quantum circuit."""
+
+    # Class variable OPENQASM header
+    header = "OPENQASM 2.0;"
 
     def __init__(self, *regs):
-        """Create a new program."""
+        """Create a new circuit."""
         # Data contains a list of instructions in the order they were applied.
         self.data = []
-        # This is a list of register references bound to this program.
+        # This is a list of register references bound to this circuit.
         self.regs = list(regs)
         for r in regs:
             r.bind_to(self)
 
     def _attach(self, g):
         """Attach a gate."""
-        g.set_program(self)
+        g.set_circuit(self)
         self.data.append(g)
         return g
 
@@ -42,26 +45,24 @@ class Program(object):
                 r.bind_to(self)
 
     def _check_qreg(self, r):
-        """Raise exception if r is not bound to this program or not qreg."""
+        """Raise exception if r is not bound to this circuit or not qreg."""
         if type(r) is not QuantumRegister:
             raise QISKitException("expected quantum register")
         if r not in self.regs:
-            raise QISKitException("register '%s' not bound to this program"
+            raise QISKitException("register '%s' not bound to this circuit"
                                   % r.name)
 
     def _check_creg(self, r):
-        """Raise exception if r is not bound to this program or not creg."""
+        """Raise exception if r is not bound to this circuit or not creg."""
         if type(r) is not ClassicalRegister:
             raise QISKitException("expected classical register")
         if r not in self.regs:
-            raise QISKitException("register '%s' not bound to this program"
+            raise QISKitException("register '%s' not bound to this circuit"
                                   % r.name)
 
     def qasm(self):
         """Return OPENQASM string."""
-        s = "OPENQASM 2.0;\n"
-        # TODO: need to decide how to handle gate definitions
-        s += "include \"qelib.inc\";\n"
+        s = self.header + "\n"
         for r in self.regs:
             s += r.qasm() + "\n"
         for i in self.data:

@@ -3,21 +3,29 @@ Pauli Z (phase-flip) gate.
 
 Author: Andrew Cross
 """
-import math
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import u1
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
 
 
-class ZGate(CompositeGate):
+class ZGate(Gate):
     """Pauli Z (phase-flip) gate."""
 
     def __init__(self, qubit):
         """Create new Z gate."""
         super(ZGate, self).__init__("z", [], [qubit])
-        self.u1(math.pi, qubit)
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubit = self.arg[0]
+        return self._qasmif("z %s[%d];" % (qubit[0].name, qubit[1]))
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse
 
 
 def z(self, j=-1):
@@ -45,7 +53,7 @@ def z(self, q):
     return self._attach(ZGate(q))
 
 
-Program.z = z
+QuantumCircuit.z = z
 
 
 def z(self, q):

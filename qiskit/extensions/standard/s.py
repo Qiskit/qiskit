@@ -4,11 +4,12 @@ S=diag(1,i) Clifford phase gate.
 Author: Andrew Cross
 """
 import math
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import u1
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
+from qiskit.extensions.standard import u1
 
 
 class SGate(CompositeGate):
@@ -45,7 +46,7 @@ def s(self, q):
     return self._attach(SGate(q))
 
 
-Program.s = s
+QuantumCircuit.s = s
 
 
 def s(self, q):

@@ -4,11 +4,12 @@ One-pulse single qubit gate.
 Author: Andrew Cross
 """
 import math
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import Gate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk import CompositeGate
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import InstructionSet
+from qiskit import CompositeGate
+from qiskit.extensions.standard import header
 
 
 class U2Gate(Gate):
@@ -63,7 +64,7 @@ def u2(self, phi, lam, q):
     return self._attach(U2Gate(phi, lam, q))
 
 
-Program.u2 = u2
+QuantumCircuit.u2 = u2
 
 
 def u2(self, phi, lam, q):

@@ -6,9 +6,9 @@ Author: Andrew Cross
 import sys
 sys.path.append("..")
 import traceback
-from qiskit_sdk.qasm import Qasm
-from qiskit_sdk.qasm._qasmexception import QasmException
-import qiskit_sdk.unroll as unroll
+from qiskit.qasm import Qasm
+from qiskit.qasm._qasmexception import QasmException
+import qiskit.unroll as unroll
 
 if len(sys.argv) < 2:
     print("textunroll.py <file> [basis]\n")

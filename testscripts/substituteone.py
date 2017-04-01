@@ -11,8 +11,8 @@ Author: Andrew Cross
 """
 import sys
 sys.path.append("..")
-from qiskit_sdk.qasm import Qasm
-import qiskit_sdk.unroll as unroll
+from qiskit.qasm import Qasm
+import qiskit.unroll as unroll
 
 
 def build_circuit(fname, basis):

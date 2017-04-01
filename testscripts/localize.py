@@ -13,9 +13,9 @@ Author: Andrew Cross
 
 import sys
 sys.path.append("..")
-from qiskit_sdk.qasm import Qasm
-import qiskit_sdk.unroll as unroll
-import qiskit_sdk.localize as localize
+from qiskit.qasm import Qasm
+import qiskit.unroll as unroll
+import qiskit.localize as localize
 
 
 def make_unrolled_circuit(fname, basis):

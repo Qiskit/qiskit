@@ -1,9 +1,6 @@
 """
 Quantum register reference object.
 
-Calling an instruction member function applies the gate to all
-program instances the register is bound to.
-
 Author: Andrew Cross
 """
 from ._register import Register

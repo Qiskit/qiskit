@@ -3,34 +3,36 @@ Toffoli gate. Controlled-Controlled-X.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import h, cx, t
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
 
 
-class ToffoliGate(CompositeGate):
+class ToffoliGate(Gate):
     """Toffoli gate."""
 
     def __init__(self, ctl1, ctl2, tgt):
         """Create new Toffoli gate."""
         super(ToffoliGate, self).__init__("ccx", [], [ctl1, ctl2, tgt])
-        self.h(tgt)
-        self.cx(ctl2, tgt)
-        self.t(tgt).inverse()
-        self.cx(ctl1, tgt)
-        self.t(tgt)
-        self.cx(ctl2, tgt)
-        self.t(tgt).inverse()
-        self.cx(ctl1, tgt)
-        self.t(ctl2)
-        self.t(tgt)
-        self.h(tgt)
-        self.cx(ctl1, ctl2)
-        self.t(ctl1)
-        self.t(ctl2).inverse()
-        self.cx(ctl1, ctl2)
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        ctl1 = self.arg[0]
+        ctl2 = self.arg[1]
+        tgt = self.arg[2]
+        return self._qasmif("ccx %s[%d],%s[%d],%s[%d];" % (ctl1[0].name,
+                                                           ctl1[1],
+                                                           ctl2[0].name,
+                                                           ctl2[1],
+                                                           tgt[0].name,
+                                                           tgt[1]))
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse
 
 
 def ccx(self, i, j, k):
@@ -49,7 +51,7 @@ QuantumRegister.ccx = ccx
 
 
 def ccx(self, ctl1, ctl2, tgt):
-    """Apply Toffoli to program."""
+    """Apply Toffoli to circuit."""
     self._check_qreg(ctl1[0])
     ctl1[0].check_range(ctl1[1])
     self._check_qreg(ctl2[0])
@@ -59,7 +61,7 @@ def ccx(self, ctl1, ctl2, tgt):
     return self._attach(ToffoliGate(ctl1, ctl2, tgt))
 
 
-Program.ccx = ccx
+QuantumCircuit.ccx = ccx
 
 
 def ccx(self, ctl1, ctl2, tgt):

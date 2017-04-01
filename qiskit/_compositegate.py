@@ -30,11 +30,11 @@ class CompositeGate(Gate):
         self.data.append(g)
         return g
 
-    def set_program(self, p):
-        """Point back to the program containing this composite gate."""
-        super(CompositeGate, self).set_program(p)
+    def set_circuit(self, p):
+        """Point back to the circuit containing this composite gate."""
+        super(CompositeGate, self).set_circuit(p)
         for g in self.data:
-            g.set_program(p)
+            g.set_circuit(p)
 
     def _check_qubit(self, r):
         """Raise exception if r is not an argument or not qreg."""

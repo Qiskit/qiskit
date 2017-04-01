@@ -3,11 +3,12 @@ Diagonal single qubit gate.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import Gate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk import CompositeGate
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import InstructionSet
+from qiskit import CompositeGate
+from qiskit.extensions.standard import header
 
 
 class U1Gate(Gate):
@@ -55,7 +56,7 @@ def u1(self, theta, q):
     return self._attach(U1Gate(theta, q))
 
 
-Program.u1 = u1
+QuantumCircuit.u1 = u1
 
 
 def u1(self, theta, q):

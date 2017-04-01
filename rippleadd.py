@@ -3,17 +3,21 @@ Ripple adder example based on OPENQASM example.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister, ClassicalRegister, Program
-from qiskit_sdk.extensions.standard import x, cx, ccx
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.extensions.standard import x, cx, ccx
 
-n = 4
+from qiskit.qasm import Qasm
+import qiskit.unroll as unroll
+
+n = 8
 
 cin = QuantumRegister("cin", 1)
 a = QuantumRegister("a", n)
 b = QuantumRegister("b", n)
 cout = QuantumRegister("cout", 1)
 ans = ClassicalRegister("ans", n+1)
-p = Program(cin, a, b, cout, ans)
+
+p = QuantumCircuit(cin, a, b, cout, ans)
 
 
 def majority(p, a, b, c):
@@ -46,4 +50,25 @@ for j in range(n):
     p.measure((b, j), (ans, j))
 p.measure((cout, 0), (ans, n))
 
+print("QuantumCircuit OPENQASM")
+print("-----------------------")
 print(p.qasm())
+
+basis = "u1,u2,u3,cx"  # QE target basis
+ast = Qasm(data=p.qasm()).parse()
+u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
+u.execute()
+C = u.be.C  # circuit directed graph object
+
+#  TODO: do circuit optimizations, mapping
+print("")
+print("size    = %d" % C.size())
+print("depth   = %d" % C.depth())
+print("width   = %d" % C.width())
+print("bits    = %d" % C.num_cbits())
+print("factors = %d" % C.num_tensor_factors())
+
+print("")
+print("Unrolled OPENQASM")
+print("-----------------------")
+print(C.qasm(qeflag=True))

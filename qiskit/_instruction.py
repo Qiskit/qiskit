@@ -24,17 +24,17 @@ class Instruction(object):
         self.param = param
         self.arg = arg
         self.control = None
-        self.program = None
+        self.circuit = None
 
-    def set_program(self, p):
-        """Point back to the program that contains this instruction."""
-        self.program = p
+    def set_circuit(self, p):
+        """Point back to the circuit that contains this instruction."""
+        self.circuit = p
 
     def c_if(self, c, val):
         """Add classical control on register c and value val."""
-        if self.program is None:
-            raise QISKitException("gate is not associated to a program")
-        self.program._check_creg(c)
+        if self.circuit is None:
+            raise QISKitException("gate is not associated to a circuit")
+        self.circuit._check_creg(c)
         if val < 0:
             raise QISKitException("control value should be non-negative")
         self.control = (c, val)

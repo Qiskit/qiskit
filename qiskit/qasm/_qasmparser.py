@@ -15,6 +15,8 @@ class QasmParser(object):
 
     def __init__(self, filename):
         """Create the parser."""
+        if filename is None:
+            filename = ""
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         self.parser = yacc.yacc(module=self, debug=True)

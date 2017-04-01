@@ -3,22 +3,31 @@ controlled-Phase gate.
 
 Author: Andrew Cross
 """
-from qiskit_sdk import QuantumRegister
-from qiskit_sdk import Program
-from qiskit_sdk import CompositeGate
-from qiskit_sdk import InstructionSet
-from qiskit_sdk.extensions.standard import h, cx
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
+from qiskit import Gate
+from qiskit import CompositeGate
+from qiskit import InstructionSet
+from qiskit.extensions.standard import header
 
 
-class CzGate(CompositeGate):
-    """CZ gate."""
+class CzGate(Gate):
+    """controlled-Z gate."""
 
     def __init__(self, ctl, tgt):
         """Create new CZ gate."""
         super(CzGate, self).__init__("cz", [], [ctl, tgt])
-        self.h(tgt)
-        self.cx(ctl, tgt)
-        self.h(tgt)
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        ctl = self.arg[0]
+        tgt = self.arg[1]
+        return self._qasmif("cz %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
+                                                   tgt[0].name, tgt[1]))
+
+    def inverse(self):
+        """Invert this gate."""
+        return self  # self-inverse
 
 
 def cz(self, i, j):
@@ -36,7 +45,7 @@ QuantumRegister.cz = cz
 
 
 def cz(self, ctl, tgt):
-    """Apply CZ to program."""
+    """Apply CZ to circuit."""
     self._check_qreg(ctl[0])
     ctl[0].check_range(ctl[1])
     self._check_qreg(tgt[0])
@@ -44,7 +53,7 @@ def cz(self, ctl, tgt):
     return self._attach(CzGate(ctl, tgt))
 
 
-Program.cz = cz
+QuantumCircuit.cz = cz
 
 
 def cz(self, ctl, tgt):
