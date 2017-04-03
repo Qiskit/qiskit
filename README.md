@@ -23,15 +23,19 @@ We want to reorganize the SDK so that it has a
 comfortable and intuitive interface for developers. I will learn from
 Ismael, Fran, Jorge, and Paco what architecture makes sense and try to
 implement that architecture. This is meant as a place for us to try ideas
-until we settle on something that makes sense for everyone. Right now, users
-can create instances of *QuantumRegister* and *ClassicalRegister*, and bind
+until we settle on something that makes sense for everyone.
+
+Right now, users can create instances of *QuantumRegister* and *ClassicalRegister*, and bind
 these to *QuantumCircuit*. They can then call methods of these objects to
 apply gates within the circuit. The *extensions* directory extends these
-objects as needed to support new gate sets and algorithms.
+objects as needed to support new gate sets and algorithms. The "cswap" gate in
+the standard extension shows how to build gates that are sequences of other
+unitary gates. The Python file "header.py" shows how we append OPENQASM gate
+definitions as we import extensions.
 
-The *qiskit* directory is a Python
+The *qiskit* directory is the main Python
 module. It contains a *qasm* module for parsing OPENQASM circuits,
-an *unroll* module for unrolling QASM to a circuit object, a *circuit* module
+an *unroll* module to flatten QASM for a target gate basis, a *circuit* module
 for representing, transforming, and computing properties of OPENQASM circuits
 as directed acyclic graphs, and a *localize* module for mapping all-to-all
 circuits to run on machines with fixed couplings.

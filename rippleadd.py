@@ -39,16 +39,16 @@ a.x(0)  # a = 0...0001
 b.x()   # b = 1...1111
 
 # Add a to b, storing result in b
-majority(p, (cin, 0), (b, 0), (a, 0))
+majority(p, cin[0], b[0], a[0])
 for j in range(n-1):
-    majority(p, (a, j), (b, j+1), (a, j+1))
-p.cx((a, n-1), (cout, 0))
+    majority(p, a[j], b[j+1], a[j+1])
+p.cx(a[n-1], cout[0])
 for j in reversed(range(n-1)):
-    unmajority(p, (a, j), (b, j+1), (a, j+1))
-unmajority(p, (cin, 0), (b, 0), (a, 0))
+    unmajority(p, a[j], b[j+1], a[j+1])
+unmajority(p, cin[0], b[0], a[0])
 for j in range(n):
-    p.measure((b, j), (ans, j))
-p.measure((cout, 0), (ans, n))
+    p.measure(b[j], ans[j])
+p.measure(cout[0], ans[n])
 
 print("QuantumCircuit OPENQASM")
 print("-----------------------")

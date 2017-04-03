@@ -36,3 +36,10 @@ class Register(object):
         """Check that j is a valid index into self."""
         if j < 0 or j >= self.sz:
             raise QISKitException("register index out of range")
+
+    def __getitem__(self, key):
+        """Return tuple (self, key) if key is valid."""
+        if not isinstance(key, int):
+            raise QISKitException("expected integer index into register")
+        self.check_range(key)
+        return (self, key)

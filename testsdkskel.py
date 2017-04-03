@@ -40,9 +40,9 @@ r.reset(0)
 for i in range(n-1):
     q.cx(i, i+1)
 for i in range(n):
-    p.u1(math.pi / (i+1), (q, i))
-    p.h((q, i))
-    p.measure((q, i), (c, i))
+    p.u1(math.pi / (i+1), q[i])
+    p.h(q[i])
+    p.measure(q[i], c[i])
 q.ccx(0, 1, 2)
 print(p.qasm())
 print(pp.qasm())
