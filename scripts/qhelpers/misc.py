@@ -8,6 +8,8 @@ Author: Andrew Cross, Jay Gambetta
 """
 import time
 from collections import Counter
+import qiskit.unroll as unroll
+from qiskit.qasm import Qasm
 
 
 def get_data(results, i):
@@ -25,6 +27,30 @@ def get_job_list_status(jobids, api):
     for i in jobids:
         status_list.append(api.get_job(i)['status'])
     return status_list
+
+
+def run_program(program, api, device, shots, max_credits=3):
+    """Run a program (array of quantum circuits).
+
+    program is a list of quantum_circuits
+    api the api for the device
+    device is a string for real or simulator
+    shots is the number of shots
+    max_credits is the credits of the experiments.
+    """
+    jobs = []
+    for p in program:
+        basis = "u1,u2,u3,cx"  # QE target basis
+        u = unroll.Unroller(Qasm(data=p.qasm()).parse(), unroll.CircuitBackend(
+                            basis.split(",")))
+        u.execute()
+        C = u.be.C  # circuit DAG
+
+        # Do stuff to circuit (not done yet)
+        # this is what you send into the API
+        jobs.append({'qasm': C.qasm(qeflag=True)})
+    out = api.run_job(jobs, device, shots, max_credits)
+    return out
 
 
 def wait_for_jobs(jobids, api, wait=5, timeout=60):
