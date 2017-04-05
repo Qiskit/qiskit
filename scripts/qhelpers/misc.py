@@ -53,6 +53,22 @@ def run_program(program, api, device, shots, max_credits=3):
     return out
 
 
+def program_to_text(program):
+    """prints a program (array of quantum circuits).
+
+    program is a list of quantum_circuits
+    """
+    jobs = ""
+    for p in program:
+        basis = "u1,u2,u3,cx"  # QE target basis
+        u = unroll.Unroller(Qasm(data=p.qasm()).parse(), unroll.CircuitBackend(
+                            basis.split(",")))
+        u.execute()
+        C = u.be.C  # circuit DAG
+        jobs = jobs + C.qasm(qeflag=True) + "\n\n"
+    return jobs
+
+
 def wait_for_jobs(jobids, api, wait=5, timeout=60):
     """Wait until all status results are 'COMPLETED'.
 
