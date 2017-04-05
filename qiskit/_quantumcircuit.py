@@ -46,11 +46,11 @@ class QuantumCircuit(object):
                     return s
         return None
 
-    def __add__(self, rhs):
+    def concatenate(self, rhs):
         """
         Append rhs to self if self contains rhs's registers.
 
-        Return self + rhs as a new object.
+        Return self + rhs as a  new object.
         """
         for r in rhs.regs.values():
             if self.map_register(r) is None:
@@ -60,7 +60,7 @@ class QuantumCircuit(object):
             g.reapply(p)
         return p
 
-    def __iadd__(self, rhs):
+    def extend(self, rhs):
         """
         Append rhs to self if self contains rhs's registers.
 
@@ -72,6 +72,14 @@ class QuantumCircuit(object):
         for g in rhs.data:
             g.reapply(self)
         return self
+
+    def __add__(self, rhs):
+        """Overload + to implement self.concatenate."""
+        return self.concatenate(rhs)
+
+    def __iadd__(self, rhs):
+        """Overload += to implement self.extend."""
+        return self.extend(rhs)
 
     def _attach(self, g):
         """Attach a gate."""

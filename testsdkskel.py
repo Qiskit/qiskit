@@ -13,6 +13,21 @@ from qiskit.extensions.standard import t, ccx, cswap
 
 # Ismael advice - keep it simple
 
+# how do add registers as I go?
+
+# q = qr("new",5)
+# p.add(q)
+# use q
+
+# q.barrier()
+# q.h(0)
+# q.h(3)
+# q.barrier()
+
+# q.h(0)
+# q.id(0)
+# q.h(0)
+
 n = 5
 q = QuantumRegister("q", n)
 r = QuantumRegister("r", 2*n)

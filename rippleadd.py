@@ -31,6 +31,8 @@ def make_adder(n):
     b = QuantumRegister("b", n)
     cout = QuantumRegister("cout", 1)
     adder = QuantumCircuit(cin, a, b, cout)
+    # dynamic registers?
+    # one import statement
     # Add a to b, storing result in b
     majority(adder, cin[0], b[0], a[0])
     for j in range(n-1):
@@ -41,6 +43,17 @@ def make_adder(n):
     unmajority(adder, cin[0], b[0], a[0])
     return adder
 
+# circ.add_quantum_register("a", n)
+# circ["a"]
+
+# p = QP()
+# c = p.C()
+
+#c.add(QR())
+#c.add(b)
+
+# qr = p.c.qr()
+# cr = p.c.cr()
 
 n = 8
 a = QuantumRegister("a", n)
@@ -48,7 +61,17 @@ b = QuantumRegister("b", n)
 cin = QuantumRegister("cin", 1)
 cout = QuantumRegister("cout", 1)
 ans = ClassicalRegister("ans", n+1)
+# change p to c for circuit
 p = QuantumCircuit(cin, a, b, cout, ans)
+
+# p = QuantumCircuit(QuantumRegister("cin", 1),
+#                     QuantumRegister("a", n),
+#                     ...)
+# p.regs["cin"].x()
+
+# something like p = Program(c1, c2, c3)
+
+# circ.QuantumRegister("a", n)
 # Set the input states
 a.x(0)  # a = 0...0001
 b.x()   # b = 1...1111
