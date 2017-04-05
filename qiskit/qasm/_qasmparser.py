@@ -19,7 +19,8 @@ class QasmParser(object):
             filename = ""
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
-        self.parser = yacc.yacc(module=self, debug=True)
+        # For yacc, also, write_tables = Bool and optimize = Bool
+        self.parser = yacc.yacc(module=self, debug=False)
         self.qasm = None
         self.parseDeb = False
         self.global_symtab = {}                          # global symtab

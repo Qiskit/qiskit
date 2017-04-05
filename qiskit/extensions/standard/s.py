@@ -20,6 +20,15 @@ class SGate(CompositeGate):
         super(SGate, self).__init__("s", [], [qubit])
         self.u1(math.pi/2.0, qubit)
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.s(rearg[0]))
+
 
 def s(self, j=-1):
     """Apply S to jth qubit in this register (or all)."""

@@ -29,6 +29,15 @@ class CnotGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.cx(rearg[0], rearg[1]))
+
 
 def cx(self, i, j):
     """Apply CNOT from i to j in this register."""
@@ -50,6 +59,7 @@ def cx(self, ctl, tgt):
     ctl[0].check_range(ctl[1])
     self._check_qreg(tgt[0])
     tgt[0].check_range(tgt[1])
+    self._check_dups([ctl, tgt])
     return self._attach(CnotGate(ctl, tgt))
 
 
@@ -62,6 +72,7 @@ def cx(self, ctl, tgt):
     self._check_qubit(tgt)
     ctl[0].check_range(ctl[1])
     tgt[0].check_range(tgt[1])
+    self._check_dups([ctl, tgt])
     return self._attach(CnotGate(ctl, tgt))
 
 

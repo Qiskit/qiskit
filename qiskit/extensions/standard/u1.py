@@ -30,6 +30,15 @@ class U1Gate(Gate):
         self.param[0] = -self.param[0]
         return self
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.u1(self.param[0], rearg[0]))
+
 
 def u1(self, theta, j=-1):
     """Apply u1 with angle theta to jth qubit in this register (or all)."""

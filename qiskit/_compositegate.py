@@ -25,6 +25,12 @@ class CompositeGate(Gate):
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
 
+    def _modifiers(self, g):
+        """Apply any modifiers of this gate to another composite g."""
+        if self.inverse_flag:
+            g.inverse()
+        super(Gate, self)._modifiers(g)
+
     def _attach(self, g):
         """Attach a gate."""
         self.data.append(g)
@@ -43,6 +49,12 @@ class CompositeGate(Gate):
         if r not in self.arg:
             raise QISKitException("qubit '%s[%d]' not argument of gate"
                                   % (r[0].name, r[1]))
+
+    def _check_dups(self, qubits):
+        """Raise exception if list of qubits contains duplicates."""
+        squbits = set(qubits)
+        if len(squbits) != len(qubits):
+            raise QISKitException("duplicate qubit arguments")
 
     def qasm(self):
         """Return OPENQASM string."""

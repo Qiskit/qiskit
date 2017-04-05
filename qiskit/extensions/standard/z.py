@@ -27,6 +27,15 @@ class ZGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.z(rearg[0]))
+
 
 def z(self, j=-1):
     """Apply Z to jth qubit in this register (or all)."""

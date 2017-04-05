@@ -38,6 +38,15 @@ class U2Gate(Gate):
         self.param[1] = -phi + math.pi
         return self
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.u2(self.param[0], self.param[1], rearg[0]))
+
 
 def u2(self, phi, lam, j=-1):
     """Apply u2 to jth qubit in this register (or all)."""

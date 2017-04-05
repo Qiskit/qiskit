@@ -19,3 +19,12 @@ class Measure(Instruction):
         bit = self.arg[1]
         return self._qasmif("measure %s[%d] -> %s[%d];" % (qubit[0].name,
                             qubit[1], bit[0].name, bit[1]))
+
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.measure(rearg[0], rearg[1]))

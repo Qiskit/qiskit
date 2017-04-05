@@ -6,12 +6,12 @@ Author: Andrew Cross
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, cx, u1, u2, u3, iden, x, y, z, s
-from qiskit.extensions.standard import t, ccx
+from qiskit.extensions.standard import t, ccx, cswap
 
 # Issues
-#   .q_if is not implemented
+#   .q_if is not implemented, store controls on each gate, two methods
 
-# Ismael - keep it simple
+# Ismael advice - keep it simple
 
 n = 5
 q = QuantumRegister("q", n)
@@ -39,6 +39,7 @@ r.t()
 r.reset(0)
 for i in range(n-1):
     q.cx(i, i+1)
+#    q.cx(i, i)  # this raises exception
 for i in range(n):
     p.u1(math.pi / (i+1), q[i])
     p.h(q[i])
@@ -46,3 +47,20 @@ for i in range(n):
 q.ccx(0, 1, 2)
 print(p.qasm())
 print(pp.qasm())
+
+pq1 = QuantumRegister("q", n)
+pc1 = ClassicalRegister("c", n)
+p1 = QuantumCircuit(pq1, pc1)
+pq2 = QuantumRegister("q", n)
+# pq2 = QuantumRegister("qq", n)  # this raises exception
+# pq2 = QuantumRegister("q", n-1)  # this raises exception
+p2 = QuantumCircuit(pq2)
+pq2.barrier()
+pq1.s(0).inverse()
+pq2.s(1)
+pq2.cswap(0, 1, 2)
+p1.measure(pq1[0], pc1[0]).c_if(pc1, 3)
+p1 += p2
+p3 = p1 + p2
+print(p1.qasm())
+print(p3.qasm())

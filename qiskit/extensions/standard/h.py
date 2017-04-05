@@ -26,6 +26,15 @@ class HGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.h(rearg[0]))
+
 
 def h(self, j=-1):
     """Apply H to jth qubit in this register (or all)."""

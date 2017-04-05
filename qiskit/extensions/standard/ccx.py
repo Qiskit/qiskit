@@ -34,6 +34,15 @@ class ToffoliGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.ccx(rearg[0], rearg[1], rearg[2]))
+
 
 def ccx(self, i, j, k):
     """Apply Toffoli from i,j to k in this register."""
@@ -58,6 +67,7 @@ def ccx(self, ctl1, ctl2, tgt):
     ctl2[0].check_range(ctl2[1])
     self._check_qreg(tgt[0])
     tgt[0].check_range(tgt[1])
+    self._check_dups([ctl1, ctl2, tgt])
     return self._attach(ToffoliGate(ctl1, ctl2, tgt))
 
 
@@ -72,6 +82,7 @@ def ccx(self, ctl1, ctl2, tgt):
     ctl2[0].check_range(ctl2[1])
     self._check_qubit(tgt)
     tgt[0].check_range(tgt[1])
+    self._check_dups([ctl1, ctl2, tgt])
     return self._attach(ToffoliGate(ctl1, ctl2, tgt))
 
 

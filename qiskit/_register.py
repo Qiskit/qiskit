@@ -20,6 +20,10 @@ class Register(object):
         if sz <= 0:
             raise QISKitException("register size must be positive")
 
+    def unbound_copy(self):
+        """Return a new register that is not bound to any circuit."""
+        return self.__class__(self.name, self.sz)
+
     def bind_to(self, prog):
         """Bind register to quantum circuit."""
         # Raise an exception if we are already bound to a circuit

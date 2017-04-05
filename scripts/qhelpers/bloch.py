@@ -4,8 +4,8 @@ Module for generating "bloch"-type experiments from an annotated QASM source.
 Author: Andrew Cross
 """
 import copy
-from qiskit_sdk.qasm import Qasm
-import qiskit_sdk.unroll as unroll
+from qiskit.qasm import Qasm
+import qiskit.unroll as unroll
 from .blocherror import BlochError
 
 

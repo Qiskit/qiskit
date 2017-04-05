@@ -35,3 +35,12 @@ class UBase(Gate):
         self.param[1] = -self.param[2]
         self.param[2] = -phi
         return self
+
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.ubase(rearg[0]))

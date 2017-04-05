@@ -21,6 +21,15 @@ class FredkinGate(CompositeGate):
         self.ccx(ctl, tgt1, tgt2)
         self.cx(tgt2, tgt1)
 
+    def reapply(self, circ):
+        """
+        Reapply this gate to corresponding qubits in circ.
+
+        Register index bounds checked by the gate method.
+        """
+        rearg = self._remap_arg(circ)
+        self._modifiers(circ.cswap(rearg[0], rearg[1], rearg[2]))
+
 
 def cswap(self, i, j, k):
     """Apply Fredkin from i to j, k in this register."""
@@ -45,6 +54,7 @@ def cswap(self, ctl, tgt1, tgt2):
     tgt1[0].check_range(tgt1[1])
     self._check_qreg(tgt2[0])
     tgt2[0].check_range(tgt2[1])
+    self._check_dups([ctl, tgt1, tgt2])
     return self._attach(FredkinGate(ctl, tgt1, tgt2))
 
 
@@ -59,6 +69,7 @@ def cswap(self, ctl, tgt1, tgt2):
     tgt1[0].check_range(tgt1[1])
     self._check_qubit(tgt2)
     tgt2[0].check_range(tgt2[1])
+    self._check_dups([ctl, tgt1, tgt2])
     return self._attach(FredkinGate(ctl, tgt1, tgt2))
 
 
