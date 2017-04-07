@@ -13,28 +13,12 @@ class Register(object):
         """Create a new generic register."""
         self.name = name
         self.sz = sz
-        # Implemented as a list to allow the possibility that register
-        # references are bound to qubits in multiple quantum circuits,
-        # but we have implemented a bind_to that only allows one circuit.
-        self.bound_to = []
         if sz <= 0:
             raise QISKitException("register size must be positive")
 
-    def unbound_copy(self):
-        """Return a new register that is not bound to any circuit."""
-        return self.__class__(self.name, self.sz)
-
-    def bind_to(self, prog):
-        """Bind register to quantum circuit."""
-        # Raise an exception if we are already bound to a circuit
-        if len(self.bound_to) > 0 and self.bound_to[0] != prog:
-            raise QISKitException("register already bound to a circuit")
-        self.bound_to.append(prog)
-
-    def _check_bound(self):
-        """Check that the register is bound to a circuit."""
-        if len(self.bound_to) == 0:
-            raise QISKitException("register not bound to circuit")
+    def __str__(self):
+        """Return a string representing the register."""
+        return "Register(%s,%d)" % (self.name, self.sz)
 
     def check_range(self, j):
         """Check that j is a valid index into self."""

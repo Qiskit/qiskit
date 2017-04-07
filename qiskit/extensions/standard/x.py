@@ -14,9 +14,9 @@ from qiskit.extensions.standard import header
 class XGate(Gate):
     """Pauli X (bit-flip) gate."""
 
-    def __init__(self, qubit):
+    def __init__(self, qubit, circ=None):
         """Create new X gate."""
-        super(XGate, self).__init__("x", [], [qubit])
+        super(XGate, self).__init__("x", [], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -28,48 +28,21 @@ class XGate(Gate):
         return self  # self-inverse
 
     def reapply(self, circ):
-        """
-        Reapply this gate to corresponding qubits in circ.
-
-        Register index bounds checked by the gate method.
-        """
-        rearg = self._remap_arg(circ)
-        self._modifiers(circ.x(rearg[0]))
-
-
-def x(self, j=-1):
-    """Apply X to jth qubit in this register (or all)."""
-    self._check_bound()
-    gs = InstructionSet()
-    if j == -1:
-        for p in self.bound_to:
-            for k in range(self.sz):
-                gs.add(p.x((self, k)))
-    else:
-        self.check_range(j)
-        for p in self.bound_to:
-            gs.add(p.x((self, j)))
-    return gs
-
-
-QuantumRegister.x = x
+        """Reapply this gate to corresponding qubits in circ."""
+        self._modifiers(circ.x(self.arg[0]))
 
 
 def x(self, q):
     """Apply X to q."""
-    self._check_qreg(q[0])
-    q[0].check_range(q[1])
-    return self._attach(XGate(q))
+    if isinstance(q, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(q.sz):
+            gs.add(self.x((q, j)))
+        return gs
+    else:
+        self._check_qubit(q)
+        return self._attach(XGate(q, self))
 
 
 QuantumCircuit.x = x
-
-
-def x(self, q):
-    """Apply X to q."""
-    self._check_qubit(q)
-    q[0].check_range(q[1])
-    return self._attach(XGate(q))
-
-
 CompositeGate.x = x

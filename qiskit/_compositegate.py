@@ -4,26 +4,28 @@ Composite gate, a container for a sequence of unitary gates.
 Author: Andrew Cross
 """
 from ._gate import Gate
-from ._quantumregister import QuantumRegister
 from ._qiskitexception import QISKitException
-from ._ubase import UBase
-from ._cxbase import CXBase
-from ._barrier import Barrier
 
 
 class CompositeGate(Gate):
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, param, arg):
+    def __init__(self, name, param, arg, circ=None):
         """Create a new composite gate.
 
         name = instruction name string
         param = list of real parameters
         arg = list of pairs (Register, index)
+        circ = QuantumCircuit or CompositeGate containing this gate
         """
-        super(Gate, self).__init__(name, param, arg)
+        super(Gate, self).__init__(name, param, arg, circ)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
+
+    def has_register(self, r):
+        """Test if this gate's circuit has the register r."""
+        self.check_circuit()
+        return self.circuit.has_register(r)
 
     def _modifiers(self, g):
         """Apply any modifiers of this gate to another composite g."""
@@ -36,19 +38,23 @@ class CompositeGate(Gate):
         self.data.append(g)
         return g
 
-    def set_circuit(self, p):
-        """Point back to the circuit containing this composite gate."""
-        super(CompositeGate, self).set_circuit(p)
-        for g in self.data:
-            g.set_circuit(p)
-
-    def _check_qubit(self, r):
-        """Raise exception if r is not an argument or not qreg."""
-        if type(r[0]) is not QuantumRegister:
-            raise QISKitException("expected quantum register")
-        if r not in self.arg:
+    def _check_qubit(self, q):
+        """Raise exception if q is not an argument or not qreg in circuit."""
+        self.check_circuit()
+        self.circuit._check_qubit(q)
+        if (q[0].name, q[1]) not in map(lambda x: (x[0].name, x[1]), self.arg):
             raise QISKitException("qubit '%s[%d]' not argument of gate"
-                                  % (r[0].name, r[1]))
+                                  % (q[0].name, q[1]))
+
+    def _check_qreg(self, r):
+        """Raise exception if r is not in this gate's circuit."""
+        self.check_circuit()
+        self.circuit._check_qreg(r)
+
+    def _check_creg(self, r):
+        """Raise exception if r is not in this gate's circuit."""
+        self.check_circuit()
+        self.circuit._check_creg(r)
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
@@ -75,26 +81,3 @@ class CompositeGate(Gate):
         """Add classical control register."""
         self.seq = [g.c_if(c, val) for g in self.data]
         return self
-
-    def u_base(self, tpl, q):
-        """Apply U to q in this composite gate."""
-        self._check_qubit(q)
-        q[0].check_range(q[1])
-        return self._attach(UBase(tpl, q))
-
-    def cx_base(self, ctl, tgt):
-        """Apply CX ctl, tgt."""
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        ctl[0].check_range(ctl[1])
-        tgt[0].check_range(tgt[1])
-        # self._check_dups([ctl, tgt])
-        return self._attach(CXBase(ctl, tgt))
-
-    def barrier(self, *tup):
-        """Apply barrier to tuples (reg, idx)."""
-        for t in tup:
-            self._check_qubit(t)
-            t[0].check_range(t[1])
-        # self._check_dups(tup)
-        return self._attach(Barrier(*tup))

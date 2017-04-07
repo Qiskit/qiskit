@@ -9,9 +9,9 @@ from ._instruction import Instruction
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self, qubit, bit):
+    def __init__(self, qubit, bit, circ=None):
         """Create new measurement instruction."""
-        super(Measure, self).__init__("measure", [], [qubit, bit])
+        super(Measure, self).__init__("measure", [], [qubit, bit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -21,10 +21,5 @@ class Measure(Instruction):
                             qubit[1], bit[0].name, bit[1]))
 
     def reapply(self, circ):
-        """
-        Reapply this gate to corresponding qubits in circ.
-
-        Register index bounds checked by the gate method.
-        """
-        rearg = self._remap_arg(circ)
-        self._modifiers(circ.measure(rearg[0], rearg[1]))
+        """Reapply this gate to corresponding qubits."""
+        self._modifiers(circ.measure(self.arg[0], self.arg[1]))

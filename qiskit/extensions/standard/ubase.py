@@ -3,18 +3,20 @@ Element of SU(2).
 
 Author: Andrew Cross
 """
-from ._gate import Gate
-from ._qiskitexception import QISKitException
+from qiskit import Gate
+from qiskit import QISKitException
+from qiskit import QuantumCircuit
+from qiskit import CompositeGate
 
 
 class UBase(Gate):
     """Element of SU(2)."""
 
-    def __init__(self, param, qubit):
+    def __init__(self, param, qubit, circ=None):
         """Create new reset instruction."""
         if len(param) != 3:
             raise QISKitException("expected 3 parameters")
-        super(UBase, self).__init__("U", param, [qubit])
+        super(UBase, self).__init__("U", param, [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -37,10 +39,15 @@ class UBase(Gate):
         return self
 
     def reapply(self, circ):
-        """
-        Reapply this gate to corresponding qubits in circ.
+        """Reapply this gate to corresponding qubits in circ."""
+        self._modifiers(circ.ubase(self.arg[0]))
 
-        Register index bounds checked by the gate method.
-        """
-        rearg = self._remap_arg(circ)
-        self._modifiers(circ.ubase(rearg[0]))
+
+def u_base(self, tpl, q):
+    """Apply U to q."""
+    self._check_qubit(q)
+    return self._attach(UBase(tpl, q, self))
+
+
+QuantumCircuit.u_base = u_base
+CompositeGate.u_base = u_base
