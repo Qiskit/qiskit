@@ -7,6 +7,7 @@ from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
+from qiskit import QISKitException
 
 
 class Barrier(Instruction):
@@ -40,6 +41,14 @@ class Barrier(Instruction):
 
 def barrier(self, *tup):
     """Apply barrier to tuples (reg, idx)."""
+    tup = list(tup)
+    if len(tup) == 0:  # TODO: implement this for all single qubit gates
+        if isinstance(self, QuantumCircuit):
+            for r in self.regs.values():
+                if isinstance(r, QuantumRegister):
+                    tup.append(r)
+    if len(tup) == 0:
+        raise QISKitException("no arguments passed")
     qubits = []
     for t in tup:
         if isinstance(t, QuantumRegister):

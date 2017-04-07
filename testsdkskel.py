@@ -28,12 +28,13 @@ qc = QuantumCircuit(q, c)
 # or this:
 # qc = QuantumCircuit(QuantumRegister("q", n),
 #                     ClassicalRegister("c", n))
-# q = qc.reg["q"]
-# c = qc.reg["c"]
+# q = qc.regs["q"]
+# c = qc.regs["c"]
 qc2 = QuantumCircuit(q, r, c)  # this is OK, q just refers to any "qreg q[n];"
 qc3 = QuantumCircuit(r, cc)
 
 qc.reset(q)
+qc.barrier()  # barrier on all qubits in qc
 qc.h(q[0])
 qc.h(q[1]).c_if(c, 5)
 
