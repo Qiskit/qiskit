@@ -54,7 +54,7 @@ def run_program(program, api, device, shots, max_credits=3):
 
 
 def program_to_text(program):
-    """prints a program (array of quantum circuits).
+    """Print a program (array of quantum circuits).
 
     program is a list of quantum_circuits
     """
