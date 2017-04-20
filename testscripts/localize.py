@@ -15,7 +15,7 @@ import sys
 sys.path.append("..")
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
-import qiskit.localize as localize
+import qiskit.mapper as mapper
 
 
 def make_unrolled_circuit(fname, basis):
@@ -42,15 +42,22 @@ if len(sys.argv) < 2:
 basis = "u1,u2,u3,cx"
 
 # This is the star graph
-couplingstr = "q,0:q,4;q,1:q,4;q,2:q,4;q,3:q,4"
+# couplingstr = "q,0:q,4;q,1:q,4;q,2:q,4;q,3:q,4"
+
+# This is the 2 by 8
+couplingstr = "q,0:q,1;q,1:q,2;q,2:q,3;q,3:q,4;q,4:q,5;q,5:q,6;q,6:q,7" + \
+              ";q,8:q,9;q,9:q,10;q,10:q,11;q,11:q,12;q,12:q,13;q,13:q,14" + \
+              ";q,14:q,15" + \
+              ";q,0:q,8;q,1:q,9;q,2:q,10;q,3:q,11;q,4:q,12;q,5:q,13" + \
+              ";q,6:q,14;q,7:q,15"
 
 # First, unroll the input circuit
 c = make_unrolled_circuit(sys.argv[1], basis)
 
 # Second, create the coupling graph
-coupling = localize.Coupling(couplingstr)
+coupling = mapper.Coupling(couplingstr)
 print("coupling = \n%s" % coupling)
 
 # Third, do the mapping
-c_prime = localize.swap_mapper(c, coupling)
+c_prime, layout = mapper.swap_mapper(c, coupling)
 print("c_prime.qasm() = \n%s" % c_prime.qasm(qeflag=True))

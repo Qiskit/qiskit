@@ -9,6 +9,7 @@ from qiskit.extensions.standard import x, cx, ccx
 
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
+import qiskit.mapper as mapper
 
 
 def majority(p, a, b, c):
@@ -24,21 +25,8 @@ def unmajority(p, a, b, c):
     p.cx(c, a)
     p.cx(a, b)
 
-# p = QP()
-# c = p.C()
-# c.add(QR())
-# c.add(b)
-# qr = p.c.qr()
-# cr = p.c.cr()
-# p = QuantumCircuit(QuantumRegister("cin", 1),
-#                     QuantumRegister("a", n),
-#                     ...)
-# p.regs["cin"].x()
-# something like p = Program(c1, c2, c3)
-# circ.QuantumRegister("a", n)
 
-
-n = 8
+n = 4
 
 a = QuantumRegister("a", n)
 b = QuantumRegister("b", n)
@@ -88,3 +76,39 @@ print("")
 print("Unrolled OPENQASM")
 print("-----------------------")
 print(C.qasm(qeflag=True))
+
+# This is the 2 by 8
+couplingstr = "q,0:q,1;q,1:q,2;q,2:q,3;q,3:q,4;q,4:q,5;q,5:q,6;q,6:q,7" + \
+              ";q,8:q,9;q,9:q,10;q,10:q,11;q,11:q,12;q,12:q,13;q,13:q,14" + \
+              ";q,14:q,15" + \
+              ";q,0:q,8;q,1:q,9;q,2:q,10;q,3:q,11;q,4:q,12;q,5:q,13" + \
+              ";q,6:q,14;q,7:q,15"
+
+coupling = mapper.Coupling(couplingstr)
+print("")
+print("2x8 coupling graph = \n%s" % coupling)
+
+C_mapped, layout = mapper.swap_mapper(C, coupling)
+rev_layout = {b: a for a, b in layout.items()}
+
+print("")
+print("2x8 layout:")
+for i in range(8):
+    qubit = ("q", i)
+    if qubit in rev_layout:
+        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
+    else:
+        print("XXXX ", end="")
+print("")
+for i in range(8, 16):
+    qubit = ("q", i)
+    if qubit in rev_layout:
+        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
+    else:
+        print("XXXX ", end="")
+print("")
+
+print("")
+print("Mapped OPENQASM")
+print("-----------------------")
+print(C_mapped.qasm(qeflag=True))

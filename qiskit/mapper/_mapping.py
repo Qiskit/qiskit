@@ -1,5 +1,5 @@
 """
-Layout object to represent placement of data qubits onto physical qubits.
+Layout module to assist with mapping circuit qubits onto physical qubits.
 
 Author: Andrew Cross
 """
@@ -136,6 +136,21 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
         return True, best_circ, best_d, best_layout
 
 
+def direction_mapper(circuit_graph, coupling_graph, verbose=False):
+    """Change the direction of CNOT gates to conform to CouplingGraph.
+
+    circuit_graph = input Circuit
+    coupling_graph = corresponding CouplingGraph
+    verbose = optional flag to print more information
+
+    Returns a Circuit object containing a circuit equivalent to
+    circuit_graph but with CNOT gate directions matching the edges
+    of coupling_graph. Raises an exception if the circuit_graph
+    does not conform to the coupling_graph.
+    """
+    pass
+
+
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
                 basis="cx,u1,u2,u3", verbose=False):
@@ -149,7 +164,11 @@ def swap_mapper(circuit_graph, coupling_graph,
     verbose = optional flag to print more information
 
     Returns a Circuit object containing a circuit equivalent to
-    circuit_graph that respects couplings in coupling_graph.
+    circuit_graph that respects couplings in coupling_graph, and
+    a layout dict mapping qubits of circuit_graph into qubits
+    of coupling_graph. The layout may differ from the initial_layout
+    if the first layer of gates cannot be executed on the
+    initial_layout.
     """
     if circuit_graph.width() > coupling_graph.size():
         raise QISKitException("Not enough qubits in CouplingGraph")
@@ -247,4 +266,4 @@ def swap_mapper(circuit_graph, coupling_graph,
     ast = Qasm(data=openqasm_output).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
-    return u.be.C
+    return u.be.C, initial_layout
