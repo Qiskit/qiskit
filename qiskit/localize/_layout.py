@@ -17,6 +17,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     The goal is to swap qubits such that qubits in the same two qubit gates
     are adjacent.
 
+    Based on Sergey Bravyi's MATLAB code.
+
     The layer_partition is a list of (qu)bit lists and each qubit is a
     tuple (qreg, index).
     The layout is a dict mapping qubits in the circuit to qubits in the
