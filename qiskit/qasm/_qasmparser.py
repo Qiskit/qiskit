@@ -694,7 +694,7 @@ class QasmParser(object):
         '''
            opaque : OPAQUE id gate_scope bit_list
         '''
-        p[0] = Opaque([p[2], p[4]])
+        p[0] = node.Opaque([p[2], p[4]])
         if p[2].name in self.external_functions:
             raise QasmException("OPAQUE names cannot be reserved words. "
                                 + "Received '" + p[2].name + "'")

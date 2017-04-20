@@ -9,7 +9,6 @@ onto a device with this coupling.
 Author: Andrew Cross
 """
 import networkx as nx
-import numpy as np
 from ._couplingerror import CouplingError
 
 
@@ -32,6 +31,8 @@ class Coupling:
         """
         # self.qubits is dict from qubit (regname,idx) tuples to node indices
         self.qubits = {}
+        # self.index_to_qubit is a dict from node indices to qubits
+        self.index_to_qubit = {}
         # self.node_counter is integer counter for labeling nodes
         self.node_counter = 0
         # self.G is the coupling digraph
@@ -39,9 +40,6 @@ class Coupling:
         # self.dist is a dict of dicts from node pairs to distances
         # it must be computed, it is the distance on the digraph
         self.dist = None
-        # self.hdist is a dict of dicts from node pairs to distances
-        # it must be computed, it is a heuristic distance function
-        self.hdist = None
         # Add edges to the graph if the couplingstr is present
         if couplingstr is not None:
             edge_list = couplingstr.split(';')
@@ -52,6 +50,23 @@ class Coupling:
                 vtuple0 = (vertex0[0], int(vertex0[1]))
                 vtuple1 = (vertex1[0], int(vertex1[1]))
                 self.add_edge(vtuple0, vtuple1)
+            self.compute_distance()
+
+    def size(self):
+        """Return the number of qubits in this graph."""
+        return len(self.qubits)
+
+    def get_qubits(self):
+        """Return the qubits in this graph as (qreg, index) tuples."""
+        return list(self.qubits.keys())
+
+    def get_edges(self):
+        """Return a list of edges in the coupling graph.
+
+        Each edge is a pair of qubits and each qubit is a tuple (qreg, index).
+        """
+        return list(map(lambda x: (self.index_to_qubit[x[0]],
+                                   self.index_to_qubit[x[1]]), self.G.edges()))
 
     def add_qubit(self, name):
         """
@@ -66,6 +81,7 @@ class Coupling:
         self.G.add_node(self.node_counter)
         self.G.node[self.node_counter]["name"] = name
         self.qubits[name] = self.node_counter
+        self.index_to_qubit[self.node_counter] = name
 
     def add_edge(self, s_name, d_name):
         """
@@ -75,15 +91,9 @@ class Coupling:
         d_name = destination qubit tuple
         """
         if s_name not in self.qubits:
-            self.node_counter += 1
-            self.G.add_node(self.node_counter)
-            self.G.node[self.node_counter]["name"] = s_name
-            self.qubits[s_name] = self.node_counter
+            self.add_qubit(s_name)
         if d_name not in self.qubits:
-            self.node_counter += 1
-            self.G.add_node(self.node_counter)
-            self.G.node[self.node_counter]["name"] = d_name
-            self.qubits[d_name] = self.node_counter
+            self.add_qubit(d_name)
         self.G.add_edge(self.qubits[s_name], self.qubits[d_name])
 
     def connected(self):
@@ -94,53 +104,38 @@ class Coupling:
         """
         return nx.is_weakly_connected(self.G)
 
-    def compute_distance(self, randomize=False):
+    def compute_distance(self):
         """
         Compute the distance function on pairs of nodes.
 
         The distance map self.dist is computed from the graph using
-        all_pairs_shortest_path_length. The distance map self.hdist is also
-        computed. If randomize is False, we use self.dist. Otherwise, we use
-        Sergey Bravyi's randomization heuristic.
+        all_pairs_shortest_path_length.
         """
         if not self.connected():
             raise CouplingError("coupling graph not connected")
         lengths = nx.all_pairs_shortest_path_length(self.G.to_undirected())
         self.dist = {}
-        self.hdist = {}
         for i in self.qubits.keys():
             self.dist[i] = {}
-            self.hdist[i] = {}
             for j in self.qubits.keys():
                 self.dist[i][j] = lengths[self.qubits[i]][self.qubits[j]]
-                self.hdist[i][j] = self.dist[i][j]
-        if randomize:
-            for i in self.qubits.keys():
-                for j in self.qubits.keys():
-                    scale = (1.0 + np.random.normal(0.0, 1.0/len(self.qubits)))
-                    self.hdist[i][j] = scale * self.dist[i][j]**2
-                    self.hdist[j][i] = self.hdist[i][j]
 
-    def distance(self, q1, q2, h=False):
-        """
-        Return the distance between qubit q1 to qubit q2.
-
-        We look this up in self.dist if h is False and in self.hdist
-        if h is True.
-        """
+    def distance(self, q1, q2):
+        """Return the distance between qubit q1 to qubit q2."""
         if self.dist is None:
             raise CouplingError("distance has not been computed")
         if q1 not in self.qubits:
             raise CouplingError("%s not in coupling graph" % q1)
         if q2 not in self.qubits:
             raise CouplingError("%s not in coupling graph" % q2)
-        if h:
-            return self.hdist[q1][q2]
-        else:
-            return self.dist[q1][q2]
+        return self.dist[q1][q2]
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
-        s = "%s" % self.qubits
-        s += "\n%s" % self.G.edges()
+        s = "qubits: "
+        s += ", ".join(["%s[%d] @ %d" % (k[0], k[1], v)
+                        for k, v in self.qubits.items()])
+        s += "\nedges: "
+        s += ", ".join(["%s[%d]-%s[%d]" % (e[0][0], e[0][1], e[1][0], e[1][1])
+                        for e in self.get_edges()])
         return s

@@ -69,6 +69,10 @@ class Circuit:
         # Output precision for printing floats
         self.prec = 10
 
+    def get_qubits(self):
+        """Return a list of qubits as (qreg, index) pairs."""
+        return [(k, i) for k, v in self.qregs.items() for i in range(v)]
+
     def rename_register(self, regname, newname):
         """Rename a classical or quantum register throughout the circuit.
 
@@ -652,65 +656,108 @@ class Circuit:
             out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
         return out
 
-    def qasm(self, qeflag=False):
+    def qasm(self, decls_only=False, add_swap=False,
+             no_decls=False, qeflag=False, aliases=None):
         """Return a string containing QASM for this circuit.
 
         if qeflag is True, add a line to include "qelib1.inc"
         and only generate gate code for gates not in qelib1.
+
+        if no_decls is True, only print the instructions.
+
+        if aliases is not None, aliases contains a dict mapping
+        the current qubits in the circuit to new qubit names.
+        We will deduce the register names and sizes from aliases.
+
+        if decls_only is True, only print the declarations.
+
+        if add_swap is True, add the definition of swap in terms of
+        cx if necessary.
         """
-        printed_gates = []
-        out = "OPENQASM 2.0;\n"
-        if qeflag:
-            out += "include \"qelib1.inc\";\n"
-        for k, v in sorted(self.qregs.items()):
-            out += "qreg %s[%d];\n" % (k, v)
-        for k, v in sorted(self.cregs.items()):
-            out += "creg %s[%d];\n" % (k, v)
-        omit = ["U", "CX", "measure", "reset", "barrier"]
-        if qeflag:
-            qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
-                     "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1", "cu3"]
-            omit.extend(qelib)
-            printed_gates.extend(qelib)
-        for k in self.basis.keys():
-            if k not in omit:
-                if not self.gates[k]["opaque"]:
-                    calls = self.gates[k]["body"].calls()
-                    for c in calls:
-                        if c not in printed_gates:
-                            out += self._gate_string(c) + "\n"
-                            printed_gates.append(c)
-                if k not in printed_gates:
-                    out += self._gate_string(k) + "\n"
-                    printed_gates.append(k)
-        ts = nx.topological_sort(self.G)
-        for n in ts:
-            nd = self.G.node[n]
-            if nd["type"] == "op":
-                if nd["condition"] is not None:
-                    out += "if(%s==%d) " \
-                           % (nd["condition"][0], nd["condition"][1])
-                if len(nd["cargs"]) == 0:
-                    nm = nd["name"]
-                    qarg = ",".join(map(lambda x: "%s[%d]" % (x[0], x[1]),
-                                        nd["qargs"]))
-                    if len(nd["params"]) > 0:
-                        param = ",".join(nd["params"])
-                        out += "%s(%s) %s;\n" % (nm, param, qarg)
+        # Rename qregs if necessary
+        if aliases:
+            qregdata = {}
+            for q in aliases.values():
+                if q[0] not in qregdata:
+                    qregdata[q[0]] = q[1] + 1
+                elif qregdata[q[0]] < q[1] + 1:
+                    qregdata[q[0]] = q[1] + 1
+        else:
+            qregdata = self.qregs
+        # Write top matter
+        if no_decls:
+            out = ""
+        else:
+            printed_gates = []
+            out = "OPENQASM 2.0;\n"
+            if qeflag:
+                out += "include \"qelib1.inc\";\n"
+            for k, v in sorted(qregdata.items()):
+                out += "qreg %s[%d];\n" % (k, v)
+            for k, v in sorted(self.cregs.items()):
+                out += "creg %s[%d];\n" % (k, v)
+            omit = ["U", "CX", "measure", "reset", "barrier"]
+            if qeflag:
+                qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
+                         "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
+                         "cu3"]
+                omit.extend(qelib)
+                printed_gates.extend(qelib)
+            for k in self.basis.keys():
+                if k not in omit:
+                    if not self.gates[k]["opaque"]:
+                        calls = self.gates[k]["body"].calls()
+                        for c in calls:
+                            if c not in printed_gates:
+                                out += self._gate_string(c) + "\n"
+                                printed_gates.append(c)
+                    if k not in printed_gates:
+                        out += self._gate_string(k) + "\n"
+                        printed_gates.append(k)
+            if add_swap and not qeflag and "cx" not in self.basis:
+                out += "gate cx a,b { CX a,b; }\n"
+            if add_swap and "swap" not in self.basis:
+                out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
+        # Write the instructions
+        if not decls_only:
+            ts = nx.topological_sort(self.G)
+            for n in ts:
+                nd = self.G.node[n]
+                if nd["type"] == "op":
+                    if nd["condition"] is not None:
+                        out += "if(%s==%d) " \
+                               % (nd["condition"][0], nd["condition"][1])
+                    if len(nd["cargs"]) == 0:
+                        nm = nd["name"]
+                        if aliases:
+                            qarglist = map(lambda x: aliases[x], nd["qargs"])
+                        else:
+                            qarglist = nd["qargs"]
+                        qarg = ",".join(map(lambda x: "%s[%d]" % (x[0], x[1]),
+                                            qarglist))
+                        if len(nd["params"]) > 0:
+                            param = ",".join(nd["params"])
+                            out += "%s(%s) %s;\n" % (nm, param, qarg)
+                        else:
+                            out += "%s %s;\n" % (nm, qarg)
                     else:
-                        out += "%s %s;\n" % (nm, qarg)
-                else:
-                    if nd["name"] == "measure":
-                        assert len(nd["cargs"]) == 1 and \
-                               len(nd["qargs"]) == 1 and \
-                               len(nd["params"]) == 0, "bad node data"
-                        out += "measure %s[%d] -> %s[%d];\n" \
-                               % (nd["qargs"][0][0],
-                                  nd["qargs"][0][1],
-                                  nd["cargs"][0][0],
-                                  nd["cargs"][0][1])
-                    else:
-                        assert False, "bad node data"
+                        if nd["name"] == "measure":
+                            assert len(nd["cargs"]) == 1 and \
+                                   len(nd["qargs"]) == 1 and \
+                                   len(nd["params"]) == 0, "bad node data"
+                            qname = nd["qargs"][0][0]
+                            qindex = nd["qargs"][0][1]
+                            if aliases:
+                                newq = aliases[(qname, qindex)]
+                                qname = newq[0]
+                                qindex = newq[1]
+                            out += "measure %s[%d] -> %s[%d];\n" \
+                                   % (qname,
+                                      qindex,
+                                      nd["cargs"][0][0],
+                                      nd["cargs"][0][1])
+                        else:
+                            assert False, "bad node data"
         return out
 
     def _check_wires_list(self, wires, name, input_circuit):
@@ -1022,6 +1069,10 @@ class Circuit:
         earliest layer at index 0. The layers are constructed using a
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
+
+        TODO: Gates that use the same cbits will end up in different
+        layers as this is currently implemented. This is may not be
+        the desired behavior.
         """
         layers_list = []
         # node_map contains an input node or previous layer node for
@@ -1048,6 +1099,7 @@ class Circuit:
             # foreground node we can add to the current layer.
             ops_touched = {}
             wires_loop = list(wires_with_ops_remaining)
+            emit = False
             for w in wires_loop:
                 oe = list(filter(lambda x: x[2]["name"] == w,
                                  self.G.out_edges(nbunch=[node_map[w]],
@@ -1083,10 +1135,52 @@ class Circuit:
                         for v in itertools.chain(qa, ca, cob):
                             node_map[v] = nxt_nd_idx
                         # Add operation to partition
-                        support_list.append(list(set(qa) | set(ca) | set(cob)))
-            if support_list:
+                        if nxt_nd["name"] != "barrier":
+                            # support_list.append(list(set(qa) | set(ca) |
+                            #                          set(cob)))
+                            support_list.append(list(set(qa)))
+                        emit = True
+            if emit:
                 l_dict = {"graph": new_layer, "partition": support_list}
                 layers_list.append(l_dict)
+                emit = False
             else:
                 assert not wires_with_ops_remaining, "not finished but empty?"
+        return layers_list
+
+    def serial_layers(self):
+        """Return a list of layers for all gates of this circuit.
+
+        A serial layer is a circuit with one gate. The layers have the
+        same structure as in layers().
+        """
+        layers_list = []
+        ts = nx.topological_sort(self.G)
+        for n in ts:
+            nxt_nd = self.G.node[n]
+            if nxt_nd["type"] == "op":
+                new_layer = Circuit()
+                for k, v in self.qregs.items():
+                    new_layer.add_qreg(k, v)
+                for k, v in self.cregs.items():
+                    new_layer.add_creg(k, v)
+                new_layer.basis = copy.deepcopy(self.basis)
+                new_layer.gates = copy.deepcopy(self.gates)
+                # Save the support of the operation we add to the layer
+                support_list = []
+                # Operation data
+                qa = copy.copy(nxt_nd["qargs"])
+                ca = copy.copy(nxt_nd["cargs"])
+                pa = copy.copy(nxt_nd["params"])
+                co = copy.copy(nxt_nd["condition"])
+                cob = self._bits_in_condition(co)
+                # Add node to new_layer
+                new_layer.apply_operation_back(nxt_nd["name"],
+                                               qa, ca, pa, co)
+                # Add operation to partition
+                if nxt_nd["name"] != "barrier":
+                    # support_list.append(list(set(qa) | set(ca) | set(cob)))
+                    support_list.append(list(set(qa)))
+                l_dict = {"graph": new_layer, "partition": support_list}
+                layers_list.append(l_dict)
         return layers_list

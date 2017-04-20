@@ -49,29 +49,8 @@ c = make_unrolled_circuit(sys.argv[1], basis)
 
 # Second, create the coupling graph
 coupling = localize.Coupling(couplingstr)
+print("coupling = \n%s" % coupling)
 
-print("CouplingGraph is = \n%s" % coupling)
-
-if not coupling.connected():
-    print("Coupling graph must be connected")
-    sys.exit(1)
-
-print("input circuit is = \n%s" % c.qasm())
-print("circuit depth = %d" % c.depth())
-
-# Here down is hacking for now; not done
-
-coupling.compute_distance()
-for q1 in coupling.qubits.keys():
-    for q2 in coupling.qubits.keys():
-        print("%s[%d] -> %s[%d]: %f" % (q1[0], q1[1], q2[0], q2[1],
-                                        coupling.distance(q1, q2)))
-
-layerlist = c.layers()
-print("len(layerlist) = %d" % len(layerlist))
-print("partition:")
-for i in range(len(layerlist)):
-    print("    %d: %s" % (i, layerlist[i]["partition"]))
-for i in range(len(layerlist)):
-    print("------------ layer %d ------------" % i)
-    print("%s" % layerlist[i]["graph"].qasm())
+# Third, do the mapping
+c_prime = localize.swap_mapper(c, coupling)
+print("c_prime.qasm() = \n%s" % c_prime.qasm(qeflag=True))

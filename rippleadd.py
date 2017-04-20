@@ -37,6 +37,7 @@ def unmajority(p, a, b, c):
 # something like p = Program(c1, c2, c3)
 # circ.QuantumRegister("a", n)
 
+
 n = 8
 
 a = QuantumRegister("a", n)
@@ -83,7 +84,7 @@ print("width   = %d" % C.width())
 print("bits    = %d" % C.num_cbits())
 print("factors = %d" % C.num_tensor_factors())
 
-# print("")
-# print("Unrolled OPENQASM")
-# print("-----------------------")
-# print(C.qasm(qeflag=True))
+print("")
+print("Unrolled OPENQASM")
+print("-----------------------")
+print(C.qasm(qeflag=True))
