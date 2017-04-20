@@ -46,9 +46,11 @@ produces an abstract syntax tree (**AST**) representation. The **AST** is
 passed to an *Unroller* that is attached to an *UnrollerBackend*. There is
 a *PrinterBackend* for outputting text and a *CircuitBackend* for constructing *Circuit* objects. The *Circuit* object represents an unrolled **OPENQASM**
 circuit as a directed acyclic graph (**DAG**). The *Circuit* provides methods
-for representing, transforming, and computing properties of OPENQASM circuits as directed acyclic graphs and outputting the results as **OPENQASM**. It is used
-by the *localize* module's *swap_mapper* method to insert SWAP gates so the
-circuit can execute on a device with a given *CouplingGraph*.
+for representing, transforming, and computing properties of a circuit as a
+**DAG** and outputting the results again as **OPENQASM**. The whole flow is
+used by the *localize* module's *swap_mapper* method to insert SWAP gates
+so a circuit can execute on a device with fixed couplings given by a
+*CouplingGraph*.
 
 ## Setup Python Virtual Enviroment
 
