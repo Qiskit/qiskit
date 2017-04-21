@@ -87,7 +87,7 @@ class CircuitBackend(UnrollerBackend):
             if "CX" not in self.basis:
                 self.basis.append("CX")
                 self.C.add_basis_element("CX", 2)
-            self.cg.apply_operation_back("CX", [qubit0, qubit1], [],
+            self.C.apply_operation_back("CX", [qubit0, qubit1], [],
                                          [], condition)
 
     def measure(self, qubit, bit):

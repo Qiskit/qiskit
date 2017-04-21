@@ -109,6 +109,13 @@ for i in range(8, 16):
 print("")
 
 print("")
-print("Mapped OPENQASM")
+print("SWAP mapped OPENQASM")
 print("-----------------------")
 print(C_mapped.qasm(qeflag=True))
+
+C_directions = mapper.direction_mapper(C_mapped, coupling, verbose=True)
+
+print("")
+print("Direction mapped OPENQASM")
+print("-----------------------")
+print(C_directions.qasm(qeflag=True))

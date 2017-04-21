@@ -143,12 +143,50 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     coupling_graph = corresponding CouplingGraph
     verbose = optional flag to print more information
 
+    Adds "h" to the circuit basis.
+
     Returns a Circuit object containing a circuit equivalent to
     circuit_graph but with CNOT gate directions matching the edges
     of coupling_graph. Raises an exception if the circuit_graph
     does not conform to the coupling_graph.
     """
-    pass
+    if "cx" not in circuit_graph.basis:
+        return circuit_graph
+    if circuit_graph.basis["cx"] != (2, 0, 0):
+        raise QISKitException("cx gate has unexpected signature %s"
+                              % circuit_graph.basis["cx"])
+    flipped_qasm = "OPENQASM 2.0;\n" + \
+                   "gate cx c,t { CX c,t; }\n" + \
+                   "gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }\n" + \
+                   "gate h a { u2(0,pi) a; }\n" + \
+                   "gate cx_flipped a,b { h a; h b; cx b, a; h a; h b; }\n" + \
+                   "qreg q[2];\n" + \
+                   "cx_flipped q[0],q[1];\n"
+    u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
+                        unroll.CircuitBackend(["cx", "h"]))
+    u.execute()
+    flipped_cx_circuit = u.be.C
+    cx_node_list = circuit_graph.get_named_nodes("cx")
+    cg_edges = coupling_graph.get_edges()
+    for cx_node in cx_node_list:
+        nd = circuit_graph.G.node[cx_node]
+        cxedge = tuple(nd["qargs"])
+        if cxedge in cg_edges:
+            if verbose:
+                print("cx %s[%d], %s[%d] -- OK" % (cxedge[0][0], cxedge[0][1],
+                                                   cxedge[1][0], cxedge[1][1]))
+            continue
+        elif (cxedge[1], cxedge[0]) in cg_edges:
+            circuit_graph.substitute_circuit_one(cx_node,
+                                                 flipped_cx_circuit,
+                                                 wires=[("q", 0), ("q", 1)])
+            if verbose:
+                print("cx %s[%d], %s[%d] -FLIP" % (cxedge[0][0], cxedge[0][1],
+                                                   cxedge[1][0], cxedge[1][1]))
+        else:
+            raise QISKitException("circuit incompatible with CouplingGraph: "
+                                  + "cx on %s" % cxedge)
+    return circuit_graph
 
 
 def swap_mapper(circuit_graph, coupling_graph,
