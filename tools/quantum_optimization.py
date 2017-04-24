@@ -58,9 +58,10 @@ def trial_funtion_optimization(n, m, theta, entangler_map):
     theta = control vector of size n*m stacked as theta[n*i+j] where j counts
            the qubits and i the depth
     entangler_map = {0: [2, 1],
-             1: [2],
-             3: [2],
-             4: [2]}  control is the key and values are the target
+                     1: [2],
+                     3: [2],
+                     4: [2]}
+    control is the key and values are the target
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)

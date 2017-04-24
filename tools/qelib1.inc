@@ -33,36 +33,60 @@ gate t a { u1(pi/4) a; }
 // C3 gate: conjugate of sqrt(S)
 gate tdg a { u1(-pi/4) a; }
 
+// --- Standard rotations ---
+// Rotation around X-axis
+gate rx(theta) a { u3(theta, pi/2,-pi/2) a; }
+// rotation around Y-axis
+gate ry(theta) a { u3(theta,0,0) a; }
+// rotation around Z axis
+gate rz(phi) a { u1(phi) a; }
+
 // --- QE Standard User-Defined Gates  ---
 
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
 gate cy a,b { sdg b; cx a,b; s b; }
+// controlled-H
+gate ch a,b {
+h b; sdg b;
+cx a,b;
+h b; t b;
+cx a,b;
+t b; h b; s b; x b; s a;
+}
 // C3 gate: Toffoli
-gate ccx a,b,c 
-{ 
-  h c; 
-  cx b,c; tdg c; 
-  cx a,c; t c; 
-  cx b,c; tdg c; 
-  cx a,c; t b; t c; h c; 
-  cx a,b; t a; tdg b; 
+gate ccx a,b,c
+{
+  h c;
+  cx b,c; tdg c;
+  cx a,c; t c;
+  cx b,c; tdg c;
+  cx a,c; t b; t c; h c;
+  cx a,b; t a; tdg b;
+  cx a,b;
+}
+// controlled rz rotation
+gate crz(lambda) a,b
+{
+  u1(lambda/2) b;
+  cx a,b;
+  u1(-lambda/2) b;
   cx a,b;
 }
 // controlled phase rotation
 gate cu1(lambda) a,b
 {
-  u1(lambda/2) a; 
+  u1(lambda/2) a;
   cx a,b;
   u1(-lambda/2) b;
   cx a,b;
   u1(lambda/2) b;
 }
 // controlled-U
-gate cu3(theta,phi,lambda) c, t 
+gate cu3(theta,phi,lambda) c, t
 {
-  // implements controlled-U(theta,phi,lambda) with  target t and control c 
+  // implements controlled-U(theta,phi,lambda) with  target t and control c
   u1((lambda-phi)/2) t;
   cx c,t;
   u3(-theta/2,0,-(phi+lambda)/2) t;
