@@ -4,6 +4,7 @@ Base register reference object.
 Author: Andrew Cross
 """
 from ._qiskitexception import QISKitException
+import re
 
 
 class Register(object):
@@ -11,6 +12,9 @@ class Register(object):
 
     def __init__(self, name, sz):
         """Create a new generic register."""
+        test = re.compile('[a-z][a-zA-Z0-9_]*')
+        if test.match(name) is None:
+            raise QISKitException("invalid OPENQASM register name")
         self.name = name
         self.sz = sz
         if sz <= 0:

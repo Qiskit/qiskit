@@ -4,12 +4,36 @@ Ripple adder example based on OPENQASM example.
 Author: Andrew Cross
 """
 # one import statement here would be ideal
+# import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import x, cx, ccx
 
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
+
+
+def print_2x8(layout):
+    """Print a 2x8 layout."""
+    rev_layout = {b: a for a, b in layout.items()}
+    print("")
+    print("2x8 layout:")
+    for i in range(8):
+        qubit = ("q", i)
+        if qubit in rev_layout:
+            print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]),
+                  end="")
+        else:
+            print("XXXX ", end="")
+    print("")
+    for i in range(8, 16):
+        qubit = ("q", i)
+        if qubit in rev_layout:
+            print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]),
+                  end="")
+        else:
+            print("XXXX ", end="")
+    print("")
 
 
 def majority(p, a, b, c):
@@ -78,6 +102,7 @@ print("-----------------------")
 print(C.qasm(qeflag=True))
 
 # This is the 2 by 8
+# Rewrite to use dict with integers (see quantum_optimization.py uder tools)
 couplingstr = "q,0:q,1;q,1:q,2;q,2:q,3;q,3:q,4;q,4:q,5;q,5:q,6;q,6:q,7" + \
               ";q,8:q,9;q,9:q,10;q,10:q,11;q,11:q,12;q,12:q,13;q,13:q,14" + \
               ";q,14:q,15" + \
@@ -89,24 +114,8 @@ print("")
 print("2x8 coupling graph = \n%s" % coupling)
 
 C_mapped, layout = mapper.swap_mapper(C, coupling)
-rev_layout = {b: a for a, b in layout.items()}
 
-print("")
-print("2x8 layout:")
-for i in range(8):
-    qubit = ("q", i)
-    if qubit in rev_layout:
-        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
-    else:
-        print("XXXX ", end="")
-print("")
-for i in range(8, 16):
-    qubit = ("q", i)
-    if qubit in rev_layout:
-        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
-    else:
-        print("XXXX ", end="")
-print("")
+print_2x8(layout)
 
 print("")
 print("SWAP mapped OPENQASM")
