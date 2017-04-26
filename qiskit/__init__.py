@@ -6,3 +6,4 @@ from ._compositegate import CompositeGate
 from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._qiskitexception import QISKitException
+import qiskit.extensions.standard

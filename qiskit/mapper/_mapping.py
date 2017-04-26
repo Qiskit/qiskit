@@ -11,6 +11,10 @@ from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
 
+# TODO: might be simpler to go back to gate list form and do peephole stuff
+# while we "play out" the gate sequence
+
+
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     """Find a swap circuit that implements a permutation for this layer.
 

@@ -3,19 +3,21 @@ Quantum teleportation example based on OPENQASM example.
 
 Author: Andrew Cross
 """
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import barrier, h, cx, u3, x, z
+import qiskit as qk
 
+# Work in progress
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 
 
-q = QuantumRegister("q", 3)
-c0 = ClassicalRegister("c0", 1)
-c1 = ClassicalRegister("c1", 1)
-c2 = ClassicalRegister("c2", 1)
-qc = QuantumCircuit(q, c0, c1, c2)
+q = qk.QuantumRegister("q", 3)
+c0 = qk.ClassicalRegister("c0", 1)
+c1 = qk.ClassicalRegister("c1", 1)
+c2 = qk.ClassicalRegister("c2", 1)
+
+qc = qk.QuantumCircuit(q, c0, c1, c2)
+
 qc.u3(0.3, 0.2, 0.1, q[0])
 qc.h(q[1])
 qc.cx(q[1], q[2])
@@ -54,13 +56,11 @@ print("-----------------------")
 print(C.qasm(qeflag=True))
 
 # This is the 2 by 8
-couplingstr = "q,0:q,1;q,1:q,2;q,2:q,3;q,3:q,4;q,4:q,5;q,5:q,6;q,6:q,7" + \
-              ";q,8:q,9;q,9:q,10;q,10:q,11;q,11:q,12;q,12:q,13;q,13:q,14" + \
-              ";q,14:q,15" + \
-              ";q,0:q,8;q,1:q,9;q,2:q,10;q,3:q,11;q,4:q,12;q,5:q,13" + \
-              ";q,6:q,14;q,7:q,15"
+couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
+                5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
+                11: [12], 12: [13], 13: [14], 14: [15]}
 
-coupling = mapper.Coupling(couplingstr)
+coupling = mapper.Coupling(couplingdict)
 print("")
 print("2x8 coupling graph = \n%s" % coupling)
 

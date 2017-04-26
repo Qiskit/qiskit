@@ -113,14 +113,12 @@ layout_type = "qe5"  # "qe5" or "2x8"
 # Initialize coupling string
 if layout_type == "qe5":
     # This is the star graph
-    couplingstr = "q,0:q,4;q,1:q,4;q,2:q,4;q,3:q,4"
+    couplingdict = {0: [4], 1: [4], 2: [4], 3: [4]}
 elif layout_type == "2x8":
     # This is the 2 by 8
-    couplingstr = "q,0:q,1;q,1:q,2;q,2:q,3;q,3:q,4;q,4:q,5;q,5:q,6;q,6:q,7" + \
-              ";q,8:q,9;q,9:q,10;q,10:q,11;q,11:q,12;q,12:q,13;q,13:q,14" + \
-              ";q,14:q,15" + \
-              ";q,0:q,8;q,1:q,9;q,2:q,10;q,3:q,11;q,4:q,12;q,5:q,13" + \
-              ";q,6:q,14;q,7:q,15"
+    couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
+                    5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
+                    11: [12], 12: [13], 13: [14], 14: [15]}
 else:
     print("bad layout type")
     sys.exit(1)
@@ -129,7 +127,7 @@ else:
 c = make_unrolled_circuit(sys.argv[1], basis)
 
 # Second, create the coupling graph
-coupling = mapper.Coupling(couplingstr)
+coupling = mapper.Coupling(couplingdict)
 print("coupling = \n%s" % coupling)
 
 # Third, do the mapping

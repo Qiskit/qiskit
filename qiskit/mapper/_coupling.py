@@ -20,14 +20,13 @@ class Coupling:
     CNOT gates
     """
 
-    def __init__(self, couplingstr=None):
+    def __init__(self, couplingdict=None):
         """
         Create coupling graph.
 
-        By default, the coupling graph has no nodes. The optional couplingstr
-        has the form "qreg,idx:qreg,idx;..." where each (qreg,idx) pair is a
-        qubit, ":" separates qubits in a directed edge "src:dest", and ";"
-        separates directed edges "dedge;dedge;...".
+        By default, the coupling graph has no nodes. The optional couplingdict
+        specifies the graph as an adjacency list. For example,
+        couplingdict = {0: [1, 2], 1: [2]}.
         """
         # self.qubits is dict from qubit (regname,idx) tuples to node indices
         self.qubits = {}
@@ -40,16 +39,12 @@ class Coupling:
         # self.dist is a dict of dicts from node pairs to distances
         # it must be computed, it is the distance on the digraph
         self.dist = None
-        # Add edges to the graph if the couplingstr is present
-        if couplingstr is not None:
-            edge_list = couplingstr.split(';')
-            for e in edge_list:
-                vertex_pair = e.split(':')
-                vertex0 = vertex_pair[0].split(',')
-                vertex1 = vertex_pair[1].split(',')
-                vtuple0 = (vertex0[0], int(vertex0[1]))
-                vtuple1 = (vertex1[0], int(vertex1[1]))
-                self.add_edge(vtuple0, vtuple1)
+        # Add edges to the graph if the couplingdict is present
+        if couplingdict is not None:
+            for v0, alist in couplingdict.items():
+                for v1 in alist:
+                    regname = "q"
+                    self.add_edge((regname, v0), (regname, v1))
             self.compute_distance()
 
     def size(self):

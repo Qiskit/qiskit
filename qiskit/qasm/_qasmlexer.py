@@ -166,7 +166,6 @@ class QasmLexer(object):
         self.push(incfile)
         return self.lexer.token()
 
-
     def t_MAGIC(self, t):
         'OPENQASM'
         return t
@@ -208,5 +207,6 @@ class QasmLexer(object):
     t_ignore = ' \t\r'
 
     def t_error(self, t):
-        print("Junk in the line -->%s<--" % t.value[0])
+        print("Unable to match any token rule, got -->%s<--" % t.value[0])
+        print("Check your OPENQASM source and any include statements.")
         # t.lexer.skip(1)
