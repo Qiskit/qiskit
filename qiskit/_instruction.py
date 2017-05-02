@@ -10,13 +10,13 @@ from ._qiskitexception import QISKitException
 class Instruction(object):
     """Generic quantum computer instruction."""
 
-    def __init__(self, name, param, arg, circ=None):
+    def __init__(self, name, param, arg, circuit=None):
         """Create a new instruction.
 
         name = instruction name string
         param = list of real parameters
         arg = list of pairs (Register, index)
-        circ = QuantumCircuit or CompositeGate containing this instruction
+        circuit = QuantumCircuit or CompositeGate containing this instruction
         """
         for a in arg:
             if not isinstance(a[0], Register):
@@ -25,33 +25,34 @@ class Instruction(object):
         self.param = param
         self.arg = arg
         self.control = None  # tuple (ClassicalRegister, int) for "if"
-        self.circuit = circ
+        self.circuit = circuit
 
     def check_circuit(self):
         """Raise exception if self.circuit is None."""
         if self.circuit is None:
             raise QISKitException("Instruction's circuit not assigned")
 
-    def c_if(self, c, val):
-        """Add classical control on register c and value val."""
+    def c_if(self, classical, val):
+        """Add classical control on register clasical and value val."""
         self.check_circuit()
-        self.circuit._check_creg(c)
+        self.circuit._check_creg(classical)
         if val < 0:
             raise QISKitException("control value should be non-negative")
-        self.control = (c, val)
+        self.control = (classical, val)
 
-    def _modifiers(self, g):
+    def _modifiers(self, gate):
         """Apply any modifiers of this instruction to another one."""
         if self.control is not None:
             self.check_circuit()
-            if not g.circuit.has_register(self.control[0]):
+            if not gate.circuit.has_register(self.control[0]):
                 raise QISKitException("control register %s not found"
                                       % self.control[0].name)
-            g.c_if(self.control[0], self.control[1])
+            gate.c_if(self.control[0], self.control[1])
 
-    def _qasmif(self, s):
+    def _qasmif(self, string):
         """Print an if statement if needed."""
+        # TODO: validate is the var String is correct
         if self.control is None:
-            return s
+            return string
         else:
-            return "if(%s==%d) " % (self.control[0].name, self.control[1]) + s
+            return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string

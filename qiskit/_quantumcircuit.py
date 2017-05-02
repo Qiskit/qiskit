@@ -27,19 +27,19 @@ class QuantumCircuit(object):
         self.regs = {}
         self.add(*regs)
 
-    def has_register(self, r):
+    def has_register(self, register):
         """
         Test if this circuit has the register r.
 
         Return True or False.
         """
-        if r.name in self.regs:
-            s = self.regs[r.name]
-            if s.sz == r.sz:
-                if ((isinstance(r, QuantumRegister) and
-                   isinstance(s, QuantumRegister)) or
-                   (isinstance(r, ClassicalRegister) and
-                   isinstance(s, ClassicalRegister))):
+        if register.name in self.regs:
+            registers = self.regs[register.name]
+            if registers.size == register.size:
+                if ((isinstance(register, QuantumRegister) and
+                     isinstance(registers, QuantumRegister)) or
+                        (isinstance(register, ClassicalRegister) and
+                         isinstance(registers, ClassicalRegister))):
                     return True
         return False
 
@@ -49,13 +49,13 @@ class QuantumCircuit(object):
 
         Return self + rhs as a  new object.
         """
-        for r in rhs.regs.values():
-            if not self.has_register(r):
+        for register in rhs.regs.values():
+            if not self.has_register(register):
                 raise QISKitException("circuits are not compatible")
-        p = QuantumCircuit(*[r for r in self.regs.values()])
-        for g in itertools.chain(self.data, rhs.data):
-            g.reapply(p)
-        return p
+        circuit = QuantumCircuit(*[register for register in self.regs.values()])
+        for gate in itertools.chain(self.data, rhs.data):
+            gate.reapply(circuit)
+        return circuit
 
     def extend(self, rhs):
         """
@@ -63,11 +63,11 @@ class QuantumCircuit(object):
 
         Modify and return self.
         """
-        for r in rhs.regs.values():
-            if not self.has_register(r):
+        for register in rhs.regs.values():
+            if not self.has_register(register):
                 raise QISKitException("circuits are not compatible")
-        for g in rhs.data:
-            g.reapply(self)
+        for gate in rhs.data:
+            gate.reapply(self)
         return self
 
     def __add__(self, rhs):
@@ -78,40 +78,40 @@ class QuantumCircuit(object):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
 
-    def _attach(self, g):
+    def _attach(self, gate):
         """Attach a gate."""
-        self.data.append(g)
-        return g
+        self.data.append(gate)
+        return gate
 
     def add(self, *regs):
         """Add registers."""
-        for r in regs:
-            if not isinstance(r, Register):
+        for register in regs:
+            if not isinstance(register, Register):
                 raise QISKitException("expected a register")
-            if r.name not in self.regs:
-                self.regs[r.name] = r
+            if register.name not in self.regs:
+                self.regs[register.name] = register
             else:
                 raise QISKitException("register name \"%s\" already exists"
-                                      % r.name)
+                                      % register.name)
 
-    def _check_qreg(self, r):
+    def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
-        if not isinstance(r, QuantumRegister):
+        if not isinstance(register, QuantumRegister):
             raise QISKitException("expected quantum register")
-        if not self.has_register(r):
-            raise QISKitException("register '%s' not in this circuit" % r.name)
+        if not self.has_register(register):
+            raise QISKitException("register '%s' not in this circuit" % register.name)
 
-    def _check_qubit(self, q):
+    def _check_qubit(self, circuit):
         """Raise exception if q is not in this circuit or invalid format."""
-        self._check_qreg(q[0])
-        q[0].check_range(q[1])
+        self._check_qreg(circuit[0])
+        circuit[0].check_range(circuit[1])
 
-    def _check_creg(self, r):
+    def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
-        if not isinstance(r, ClassicalRegister):
+        if not isinstance(register, ClassicalRegister):
             raise QISKitException("expected classical register")
-        if not self.has_register(r):
-            raise QISKitException("register '%s' not in this circuit" % r.name)
+        if not self.has_register(register):
+            raise QISKitException("register '%s' not in this circuit" % register.name)
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
@@ -121,27 +121,27 @@ class QuantumCircuit(object):
 
     def qasm(self):
         """Return OPENQASM string."""
-        s = self.header + "\n"
-        for r in self.regs.values():
-            s += r.qasm() + "\n"
-        for i in self.data:
-            s += i.qasm() + "\n"
-        return s
+        string = self.header + "\n"
+        for register in self.regs.values():
+            string += register.qasm() + "\n"
+        for instruction in self.data:
+            string += instruction.qasm() + "\n"
+        return string
 
-    def measure(self, q, c):
-        """Measure q into c (tuples)."""
-        self._check_qubit(q)
-        self._check_creg(c[0])
-        c[0].check_range(c[1])
-        return self._attach(Measure(q, c, self))
+    def measure(self, quantum_register, circuit):
+        """Measure quantum register into circuit (tuples)."""
+        self._check_qubit(quantum_register)
+        self._check_creg(circuit[0])
+        circuit[0].check_range(circuit[1])
+        return self._attach(Measure(quantum_register, circuit, self))
 
-    def reset(self, q):
+    def reset(self, quantum_register):
         """Reset q."""
-        if isinstance(q, QuantumRegister):
-            gs = InstructionSet()
-            for j in range(q.sz):
-                gs.add(self.reset((q, j)))
-            return gs
+        if isinstance(quantum_register, QuantumRegister):
+            instructions = InstructionSet()
+            for sizes in range(quantum_register.size):
+                instructions.add(self.reset((quantum_register, sizes)))
+            return instructions
         else:
-            self._check_qubit(q)
-            return self._attach(Reset(q, self))
+            self._check_qubit(quantum_register)
+            return self._attach(Reset(quantum_register, self))

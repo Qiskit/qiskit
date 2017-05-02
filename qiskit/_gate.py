@@ -11,19 +11,19 @@ from ._qiskitexception import QISKitException
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, param, arg, circ=None):
+    def __init__(self, name, param, args, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
         param = list of real parameters
         arg = list of pairs (Register, index)
-        circ = QuantumCircuit or CompositeGate containing this gate
+        circuit = QuantumCircuit or CompositeGate containing this gate
         """
-        for a in arg:
-            if not isinstance(a[0], QuantumRegister):
+        for argument in args:
+            if not isinstance(argument[0], QuantumRegister):
                 raise QISKitException("argument not (QuantumRegister, int) "
                                       + "tuple")
-        super(Gate, self).__init__(name, param, arg, circ)
+        super(Gate, self).__init__(name, param, args, circuit)
 
     def inverse(self):
         """Invert this gate."""
