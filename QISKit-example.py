@@ -5,9 +5,14 @@ Author: Ismael Faro
 """
 
 from qiskit import QuantumProgram
+import json
+
+
+with open('token.json') as data_file:
+    token = json.load(data_file)["token"]
+print(token)
 
 # Define Program Specifications.
-
 QPSpecs = {
     "name": "algorithm",
     "circuits": [{
@@ -68,7 +73,7 @@ qc2 = QP_program.create_circuit("circuit2", "qr2", "cr2")
 
 print(qc2.qasm())
 
-QP_program.set_api_token("28bf8660d06952605508809e4bff79f2fb60f9e69f5eb0a56d274a835d952364d7749617d304e38a038a892c00c8c1280991368787430832c42aa668a18af9fa")
+QP_program.set_api_token(token)
 print(QP_program.api_config())
 
 device = 'qx5q' # the device to run on
