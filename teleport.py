@@ -18,6 +18,15 @@ c2 = qk.ClassicalRegister("c2", 1)
 
 qc = qk.QuantumCircuit(q, c0, c1, c2)
 
+qc2 = qk.QuantumCircuit(q, c0, c1, c2)
+
+print("/////////")
+print(qc)
+print(qc2)
+
+
+print("/////////")
+
 qc.u3(0.3, 0.2, 0.1, q[0])
 qc.h(q[1])
 qc.cx(q[1], q[2])
@@ -41,7 +50,7 @@ print(qc.qasm())
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
                     unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
 u.execute()
-C = u.be.C  # circuit directed graph object
+C = u.backend.circuit  # circuit directed graph object
 
 print("")
 print("size    = %d" % C.size())

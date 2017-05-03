@@ -269,8 +269,8 @@ class QuantumProgram(object):
 
     def create_circuit(self, name, qregisters, cregisters):
         """Create a new Quantum Circuit into the Quantum Program"""
-        print(name)
-        self.__circuits[name] = "demo"
+        # print(name)
+        # self.__circuits[name] = "demo"
         self.__circuits[name] = QuantumCircuit(self.__quantum_registers[qregisters],
                                                self.__classical_registers[cregisters])
         print(">> circuit created")

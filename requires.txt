@@ -1,2 +1,5 @@
 IBMQuantumExperience
 requests
+networkx
+ply
+numpy

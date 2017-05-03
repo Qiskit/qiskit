@@ -9,10 +9,10 @@ import json
 
 
 
-with open('token.json') as data_file:
-    token = json.load(data_file)["token"]
+# with open('token.json') as data_file:
+#     token = json.load(data_file)["token"]
 
-
+token = "01aa9c30c21598b38c68d57fe9714a06ab4bb792981a3a94b9d06579e2aed4cd6a9ed9dab9b607a82da0a651f87e96275b30444d29c5297dc3beab7b64c8940d"
 # Define Program Specifications.
 QPSpecs = {
     "name": "algorithm",
@@ -39,6 +39,9 @@ QP_program = QuantumProgram(specs=QPSpecs)
 qc = QP_program.circuit("demo")
 qr = QP_program.quantum_registers("q")
 cr = QP_program.classical_registers('c')
+
+
+
 
 '''
 Test Gates
@@ -68,10 +71,19 @@ print(qc.qasm())
 test Program functionalities
 '''
 # create a new circuit
-qr2 = QP_program.create_quantum_registers("qr2", 10)
-cr2 = QP_program.create_classical_registers("cr2", 5)
-qc2 = QP_program.create_circuit("circuit2", "qr2", "cr2")
-qc2.h(qr2[0])
+qr2 = QP_program.create_quantum_registers("qr2", 3)
+cr2 = QP_program.create_classical_registers("cr2",3)
+qc2 = QP_program.create_circuit("qc2", "q", "c")
+qc3 = QP_program.create_circuit("qc3", "q", "c")
+qc2.h(qr[0])
+qc3.h(qr[0])
+
+
+print("/////////////")
+print(qc+qc3)
+# print(qc3)
+print("/////////////")
+
 
 print(qc2.qasm())
 
@@ -83,7 +95,6 @@ shots = 1024    #the number of shots in the experiment.
 
 id = QP_program.run_circuit("demo", device, shots, max_credits=3)
 print('run Circuit', id)
-
 
 
 ids = QP_program.run_program( device, shots, max_credits=3)

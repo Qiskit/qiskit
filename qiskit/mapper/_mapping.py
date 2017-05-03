@@ -169,7 +169,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
                         unroll.CircuitBackend(["cx", "h"]))
     u.execute()
-    flipped_cx_circuit = u.be.C
+    flipped_cx_circuit = u.backend.circuit
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
@@ -308,4 +308,4 @@ def swap_mapper(circuit_graph, coupling_graph,
     ast = Qasm(data=openqasm_output).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
-    return u.be.C, initial_layout
+    return u.backend.circuit, initial_layout
