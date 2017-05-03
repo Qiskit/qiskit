@@ -253,7 +253,7 @@ class QasmParser(object):
                       | id '[' NNINTEGER error
                       | id '[' error
         '''
-        if len(p) == 4:
+        if len(program) == 4:
             raise QasmException("Expecting an integer index; received",
                                 str(program[3].value))
         if program[4] != ']':
@@ -883,7 +883,7 @@ class QasmParser(object):
            prefix_expression : '+' prefix_expression
                              | '-' prefix_expression
         '''
-        program[0] = node.Prefix([p[1], program[2]])
+        program[0] = node.Prefix([program[1], program[2]])
 
     def p_additive_expression_0(self, program):
         '''

@@ -143,7 +143,7 @@ class QuantumProgram(object):
         # print(unrolled_circuit.)
         unrolled_circuit.execute()
 
-        C = unrolled_circuit.be.C  # circuit DAG
+        C = unrolled_circuit.backend.circuit  # circuit DAG
 
         output = self.__API.run_job({'qasm': C.qasm(qeflag=True)}, device, shots, max_credits)
         return output
@@ -164,7 +164,7 @@ class QuantumProgram(object):
             # unrolled_circuit = unroll.Unroller(Qasm(data=circuit.qasm()).parse(), unroll.CircuitBackend(
             #                                    basis.split(",")))
             unrolled_circuit.execute()
-            C = unrolled_circuit.be.C  # circuit DAG
+            C = unrolled_circuit.backend.C  # circuit DAG
 
             jobs.append({'qasm': C.qasm(qeflag=True)})
         out = self.__API.run_job(jobs, device, shots, max_credits)

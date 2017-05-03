@@ -722,9 +722,9 @@ class Circuit:
                 out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
         if not decls_only:
-            ts = nx.topological_sort(self.G)
+            ts = nx.topological_sort(self.multi_graph)
             for n in ts:
-                nd = self.G.node[n]
+                nd = self.multi_graph.node[n]
                 if nd["type"] == "op":
                     if nd["condition"] is not None:
                         out += "if(%s==%d) " \
@@ -1158,9 +1158,9 @@ class Circuit:
         same structure as in layers().
         """
         layers_list = []
-        ts = nx.topological_sort(self.G)
+        ts = nx.topological_sort(self.multi_graph)
         for n in ts:
-            nxt_nd = self.G.node[n]
+            nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = Circuit()
                 for k, v in self.qregs.items():
