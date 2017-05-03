@@ -39,7 +39,7 @@ def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.u1(theta, (q, j)))
         return gs
     else:

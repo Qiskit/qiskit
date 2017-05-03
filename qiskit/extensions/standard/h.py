@@ -36,7 +36,7 @@ def h(self, q):
     """Apply H to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.h((q, j)))
         return gs
     else:

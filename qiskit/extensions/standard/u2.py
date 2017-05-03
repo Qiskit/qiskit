@@ -11,7 +11,6 @@ from qiskit import InstructionSet
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
 
-
 class U2Gate(Gate):
     """One-pulse single qubit gate."""
 
@@ -47,7 +46,7 @@ def u2(self, phi, lam, q):
     """Apply u2 to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.u2(phi, lam, (q, j)))
         return gs
     else:

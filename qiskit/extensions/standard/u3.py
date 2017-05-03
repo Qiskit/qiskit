@@ -49,7 +49,7 @@ def u3(self, theta, phi, lam, q):
     """Apply u3 to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.u3(theta, phi, lam, (q, j)))
         return gs
     else:

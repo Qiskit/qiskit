@@ -29,7 +29,7 @@ def s(self, q):
     """Apply S to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.s((q, j)))
         return gs
     else:
