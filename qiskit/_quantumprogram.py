@@ -53,7 +53,7 @@ class QuantumProgram(object):
     def __init__(self, specs, name="", circuit=None, scope=None):
         with open('config.json') as data_file:
             config = json.load(data_file)
-        
+
         self.__API_config = config["API"]
         # self.__QASM = qasm.Qasm()
         self.__scope = scope
@@ -144,8 +144,9 @@ class QuantumProgram(object):
         unrolled_circuit.execute()
 
         C = unrolled_circuit.backend.circuit  # circuit DAG
-
-        output = self.__API.run_job({'qasm': C.qasm(qeflag=True)}, device, shots, max_credits)
+        qasm_source = C.qasm(qeflag=True)
+        print(qasm_source)
+        output = self.__API.run_experiment(qasm_source, device, shots, max_credits)
         return output
 
     def run_program(self, device, shots, max_credits=3):
@@ -164,7 +165,7 @@ class QuantumProgram(object):
             # unrolled_circuit = unroll.Unroller(Qasm(data=circuit.qasm()).parse(), unroll.CircuitBackend(
             #                                    basis.split(",")))
             unrolled_circuit.execute()
-            C = unrolled_circuit.backend.C  # circuit DAG
+            C = unrolled_circuit.backend.circuit # circuit DAG
 
             jobs.append({'qasm': C.qasm(qeflag=True)})
         out = self.__API.run_job(jobs, device, shots, max_credits)

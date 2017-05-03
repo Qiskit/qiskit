@@ -137,9 +137,9 @@ class QasmParser(object):
 
         g_sym = self.global_symtab[obj.name]
 
-        if g_sym.type != typ:
+        if g_sym.type != object_type:
             raise QasmException("Type for '" + g_sym.name + "' should be '"
-                                + typ + "' but was found to be '" + g_sym.type
+                                + object_type + "' but was found to be '" + g_sym.type
                                 + "'", "line", str(obj.line), "file", obj.file)
 
         if obj.type == 'indexed_id':
