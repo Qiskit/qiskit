@@ -19,15 +19,15 @@ class GateBody(Node):
 
     def qasm(self):
         """Return the corresponding OPENQASM string."""
-        s = ""
-        for c in self.children:
-            s += "  " + c.qasm() + "\n"
-        return s
+        string = ""
+        for children in self.children:
+            string += "  " + children.qasm() + "\n"
+        return string
 
     def calls(self):
         """Return a list of custom gate names in this gate body."""
         lst = []
-        for c in self.children:
-            if c.type == "custom_unitary":
-                lst.append(c.name)
+        for children in self.children:
+            if children.type == "custom_unitary":
+                lst.append(children.name)
         return lst

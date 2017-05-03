@@ -46,9 +46,9 @@ class Gate(Node):
 
     def qasm(self):
         """Return the corresponding OPENQASM string."""
-        s = "gate " + self.name
+        string = "gate " + self.name
         if self.arguments is not None:
-            s += "(" + self.arguments.qasm() + ")"
-        s += " " + self.bitlist.qasm() + "\n"
-        s += "{\n" + self.body.qasm() + "}"
-        return s
+            string += "(" + self.arguments.qasm() + ")"
+        string += " " + self.bitlist.qasm() + "\n"
+        string += "{\n" + self.body.qasm() + "}"
+        return string
