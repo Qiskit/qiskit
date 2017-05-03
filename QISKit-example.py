@@ -8,9 +8,10 @@ from qiskit import QuantumProgram
 import json
 
 
+
 with open('token.json') as data_file:
     token = json.load(data_file)["token"]
-print(token)
+
 
 # Define Program Specifications.
 QPSpecs = {
@@ -52,8 +53,8 @@ qc.h(qr[0])
 qc.measure(qr[0], cr[0])
 qc.measure(qr[1], cr[1])
 
-qc.z(qr[2]).c_if(cr, 1)
-qc.x(qr[2]).c_if(cr, 1)
+# qc.z(qr[2]).c_if(cr, 1)
+# qc.x(qr[2]).c_if(cr, 1)
 qc.measure(qr[2], cr[2])
 
 '''
@@ -70,6 +71,7 @@ test Program functionalities
 qr2 = QP_program.create_quantum_registers("qr2", 10)
 cr2 = QP_program.create_classical_registers("cr2", 5)
 qc2 = QP_program.create_circuit("circuit2", "qr2", "cr2")
+qc2.h(qr2[0])
 
 print(qc2.qasm())
 
