@@ -35,7 +35,7 @@ gate tdg a { u1(-pi/4) a; }
 
 // --- Standard rotations ---
 // Rotation around X-axis
-gate rx(theta) a { u3(theta, pi/2,-pi/2) a; }
+gate rx(theta) a { u3(theta, -pi/2,pi/2) a; }
 // rotation around Y-axis
 gate ry(theta) a { u3(theta,0,0) a; }
 // rotation around Z axis

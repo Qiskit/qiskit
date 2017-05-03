@@ -23,7 +23,7 @@ def cost_classical(data, n, alpha, beta):
     tot = sum(data.values())
     for key in data:
         observable = 0
-        for j in range(len(key)):
+        for j in range(len(key) - n, len(key)):
             if key[j] == '0':
                 observable = observable + alpha[n-1-j]
             elif key[j] == '1':
