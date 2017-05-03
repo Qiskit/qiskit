@@ -71,10 +71,16 @@ print(qc2.qasm())
 QP_program.set_api_token("28bf8660d06952605508809e4bff79f2fb60f9e69f5eb0a56d274a835d952364d7749617d304e38a038a892c00c8c1280991368787430832c42aa668a18af9fa")
 print(QP_program.api_config())
 
-device = 'real' # the device to run on
+device = 'qx5q' # the device to run on
 shots = 1024    #the number of shots in the experiment. 
-QP_program.run_circuit("circuit2", device, shots, max_credits=3)
 
+id = QP_program.run_circuit("demo", device, shots, max_credits=3)
+print('run Circuit', id)
+
+
+
+ids = QP_program.run_program( device, shots, max_credits=3)
+print('run Program', ids)
 
 # TODO: Topology definition
 # topology={

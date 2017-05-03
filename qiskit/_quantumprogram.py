@@ -127,49 +127,54 @@ class QuantumProgram(object):
             status_list.append(self.__API.get_job(i)['status'])
         return status_list
 
-    def run_circuit(self, circuit ,device, shots, max_credits=3, basis=None):
+    def run_circuit(self, circuit ,device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        if not basis:
-            basis = "u1,u2,u3,cx"  # QE target basis
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx"  # QE target basis
 
         unrolled_circuit = unroll.Unroller(qasm.Qasm(data=self.__circuits[circuit].qasm()).parse(),
-                                           unroll.CircuitBackend(basis.split(",")))
+                                           unroll.CircuitBackend(basis_gates.split(",")))
         # print(unrolled_circuit.)
         unrolled_circuit.execute()
 
-        C = unrolled_circuit.backend.circuit  # circuit DAG
-        qasm_source = C.qasm(qeflag=True)
+        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
+        qasm_source = circuit_unrolled.qasm(qeflag=True)
         print(qasm_source)
         output = self.__API.run_experiment(qasm_source, device, shots, max_credits)
         return output
 
-    def run_program(self, device, shots, max_credits=3):
+    def run_program(self, device, shots, max_credits=3, basis_gates=None):
         """Run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx
         """
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx"  # QE target basis
+
         jobs = []
         for circuit in self.__circuits:
+            print(circuit)
             basis = "u1,u2,u3,cx"  # QE target basis
-            unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
-                                               unroll.CircuitBackend(basis.split(",")))
-            # unrolled_circuit = unroll.Unroller(Qasm(data=circuit.qasm()).parse(), unroll.CircuitBackend(
-            #                                    basis.split(",")))
-            unrolled_circuit.execute()
-            C = unrolled_circuit.backend.circuit # circuit DAG
+            unrolled_circuit = unroll.Unroller(qasm.Qasm(data=self.__circuits[circuit].qasm()).parse(),
+                                               unroll.CircuitBackend(basis_gates.split(",")))
 
-            jobs.append({'qasm': C.qasm(qeflag=True)})
-        out = self.__API.run_job(jobs, device, shots, max_credits)
-        return out
+            unrolled_circuit.execute()
+            circuit_unrolled = unrolled_circuit.backend.circuit # circuit DAG
+
+            jobs.append({'qasm': circuit_unrolled.qasm(qeflag=True)})
+        output = self.__API.run_job(jobs, device, shots, max_credits)
+        return output
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
@@ -283,3 +288,4 @@ class QuantumProgram(object):
         self.__classical_registers[name] = ClassicalRegister(name, size)
         print(">> classical_registers created:", name, size)
         return self.__classical_registers[name]
+        
