@@ -20,7 +20,7 @@ def build_circuit(fname, basis):
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
     u.execute()
-    return u.be.C
+    return u.backend.circuit
 
 
 if len(sys.argv) < 3:
@@ -56,7 +56,7 @@ print("%d operations in c1 named %s" % (len(nlist), opname))
 
 for i in range(len(nlist)):
     n = nlist[i]
-    nd = c1.G.node[n]
+    nd = c1.multi_graph.node[n]
     # ignoring nd["condition"]
     print("%d -- %s %s %s %s %s" % (i, nd["name"], nd["type"], nd["qargs"],
                                     nd["cargs"], nd["params"]))

@@ -29,7 +29,7 @@ print("-----------------------------------------")
 basis = ["u1", "u2", "u3", "cx"]
 unroller = unroll.Unroller(ast, unroll.CircuitBackend(basis))
 unroller.execute()
-C = unroller.be.C
+C = unroller.backend.circuit
 
 print("QASM source output from the circuit graph")
 print("-----------------------------------------")
@@ -43,4 +43,4 @@ print("bits    = %d" % C.num_cbits())
 print("factors = %d" % C.num_tensor_factors())
 
 print("View out.gml in a graph viewer such as Gephi")
-nx.write_gml(C.G, "out.gml", stringizer=str)
+nx.write_gml(C.multi_graph, "out.gml", stringizer=str)

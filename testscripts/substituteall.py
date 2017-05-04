@@ -20,7 +20,7 @@ def build_circuit(fname, basis):
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
     u.execute()
-    return u.be.C
+    return u.backend.circuit
 
 
 if len(sys.argv) < 3:
@@ -60,6 +60,6 @@ c1.substitute_circuit_all(opname, c2, wires)
 # print("c1.G.edges(data=True) = \n%s\n" % c1.G.edges(data=True))
 
 print("View out.gml in a graph viewer such as Gephi")
-nx.write_gml(c1.G, "out.gml", stringizer=str)
+nx.write_gml(c1.multi_graph, "out.gml", stringizer=str)
 
 print("circuit after substitution:\n%s" % c1.qasm())

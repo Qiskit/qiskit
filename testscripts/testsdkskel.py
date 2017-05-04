@@ -3,6 +3,8 @@ Test the SDK skeleton.
 
 Author: Andrew Cross
 """
+import sys
+sys.path.append("..")
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import barrier, ubase, cxbase

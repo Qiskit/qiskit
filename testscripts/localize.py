@@ -82,7 +82,7 @@ def make_unrolled_circuit(fname, basis):
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
-    return u.be.C
+    return u.backend.circuit
 
 
 def make_unrolled_circuit_from_data(dat, basis):
@@ -95,7 +95,7 @@ def make_unrolled_circuit_from_data(dat, basis):
     ast = Qasm(data=dat).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
-    return u.be.C
+    return u.backend.circuit
 
 
 if len(sys.argv) < 2:
@@ -139,11 +139,15 @@ if layout_type == "qe5":
 elif layout_type == "2x8":
     print_2x8(layout)
 
+# Three', expand swaps into cx gates
+c_prime = make_unrolled_circuit_from_data(c_prime.qasm(qeflag=True),
+                                          "cx,u1,u2,u3")
+
 # Fourth, do direction mapping
 c_dblp = mapper.direction_mapper(c_prime, coupling, verbose=True)
 print("c_dblp.qasm() = \n%s" % c_dblp.qasm(qeflag=True))
 
-# Unroll the rest of the way
+# Unroll again
 c_final = make_unrolled_circuit_from_data(c_dblp.qasm(qeflag=True),
                                           "cx,u1,u2,u3")
 print("c_final.qasm() = \n%s" % c_final.qasm(qeflag=True))

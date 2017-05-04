@@ -15,7 +15,7 @@ def build_circuit(fname):
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
     u.execute()
-    return u.be.C
+    return u.backend.circuit
 
 
 if len(sys.argv) < 3:
@@ -46,7 +46,7 @@ else:
 print("composed circuits:\n%s" % c1.qasm())
 
 print("View out.gml in a graph viewer such as Gephi")
-nx.write_gml(c1.G, "out.gml", stringizer=str)
+nx.write_gml(c1.multi_graph, "out.gml", stringizer=str)
 
 # print("c1.G.nodes(data=True) = \n%s\n" % c1.G.nodes(data=True))
 # print("c1.G.edges(data=True) = \n%s\n" % c1.G.edges(data=True))
