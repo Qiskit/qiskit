@@ -173,6 +173,8 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
+        if not self.__API:
+            return {"status":"Error", "result":"Not API setup"}
         if isinstance(circuit, str):
             circuit = self.__circuits[circuit]
 
@@ -189,7 +191,7 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        output = self.run_circuits(self.__circuits, device, shots, max_credits=3, basis_gates=None)
+        output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
     def program_to_text(self, circuits=None):
