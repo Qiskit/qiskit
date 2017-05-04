@@ -66,6 +66,17 @@ use it:
 
 > pip install -r requires.txt
 
+### use the Jupyter Notebook
+
+> cd script
+
+> mv Qconfig.py.default Qconfig.py
+
+edit the Qconfig.py and add your APItoken, you can get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account
+
+> jupyter notebook
+
+
 ### Dependencies problems.
 
 When you try to install the dependencies "pip install --upgrade IBMQuantumExperience", if you have the next error:

@@ -48,17 +48,20 @@ class QuantumProgram(object):
     __circuits = {}
     __API = {}
     __API_config = {}
-    # __QASM = {}
 
-    def __init__(self, specs, name="", circuit=None, scope=None):
-        with open('config.json') as data_file:
-            config = json.load(data_file)
+    def __init__(self, specs=None, name="", circuit=None, scope=None):
+        # with open('config.json') as data_file:
+        #     config = json.load(data_file)
 
-        self.__API_config = config["API"]
+        # self.__API_config = config["API"]
         # self.__QASM = qasm.Qasm()
+        self.__circuits = {}
+        self.__quantum_registers = {}
+        self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
-        self.__init_specs(specs)
+        if specs:
+            self.__init_specs(specs)
         if circuit:
             self.__circuits[circuit["name"]] = (circuit)
 
@@ -94,8 +97,10 @@ class QuantumProgram(object):
     def _setup_api(self, token, url):
         try:
             self.__API = IBMQuantumExperience.IBMQuantumExperience(token, {"url":url})
+            return True
         except:
             print('Exception connect to servers')
+            return False
 
     def set_api(self, token=None, url=None):
         """Set the API conf"""
@@ -107,7 +112,8 @@ class QuantumProgram(object):
             url = self.__API_config["url"]
         else:
             self.__API_config["url"] = {"url":url}
-        self._setup_api(token, url)
+        return self._setup_api(token, url)
+
 
     def set_api_token(self, token):
         """ Set the API Token """
@@ -127,7 +133,23 @@ class QuantumProgram(object):
             status_list.append(self.__API.get_job(i)['status'])
         return status_list
 
-    def run_circuit(self, circuit ,device, shots, max_credits=3, basis_gates=None):
+    def unroller_code(self, circuit, basis_gates=None):
+        """ Unroller the code
+        circuits are circuits to unroll
+        asis_gates are the base gates by default are: u1,u2,u3,cx
+        """
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx"  # QE target basis
+
+        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
+                                           unroll.CircuitBackend(basis_gates.split(",")))
+        unrolled_circuit.execute()
+
+        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
+        qasm_source = circuit_unrolled.qasm(qeflag=True)
+        return qasm_source
+
+    def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
@@ -136,17 +158,25 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx"  # QE target basis
+        jobs = []
+        for circuit in circuits:
+            jobs.append({'qasm': self.unroller_code(circuit, basis_gates)})
+        output = self.__API.run_job(jobs, device, shots, max_credits)
+        return output
 
-        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=self.__circuits[circuit].qasm()).parse(),
-                                           unroll.CircuitBackend(basis_gates.split(",")))
-        # print(unrolled_circuit.)
-        unrolled_circuit.execute()
+    def run_circuit(self, circuit, device, shots, max_credits=3, basis_gates=None):
+        """Run a circuit.
+        circuit is a circuit name
+        api the api for the device
+        device is a string for real or simulator
+        shots is the number of shots
+        max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx
+        """
+        if isinstance(circuit, str):
+            circuit = self.__circuits[circuit]
 
-        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
-        qasm_source = circuit_unrolled.qasm(qeflag=True)
-        print(qasm_source)
+        qasm_source = self.unroller_code(circuit)
         output = self.__API.run_experiment(qasm_source, device, shots, max_credits)
         return output
 
@@ -159,22 +189,21 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx"  # QE target basis
-
-        jobs = []
-        for circuit in self.__circuits:
-            print(circuit)
-            basis = "u1,u2,u3,cx"  # QE target basis
-            unrolled_circuit = unroll.Unroller(qasm.Qasm(data=self.__circuits[circuit].qasm()).parse(),
-                                               unroll.CircuitBackend(basis_gates.split(",")))
-
-            unrolled_circuit.execute()
-            circuit_unrolled = unrolled_circuit.backend.circuit # circuit DAG
-
-            jobs.append({'qasm': circuit_unrolled.qasm(qeflag=True)})
-        output = self.__API.run_job(jobs, device, shots, max_credits)
+        output = self.run_circuits(self.__circuits, device, shots, max_credits=3, basis_gates=None)
         return output
+
+    def program_to_text(self, circuits=None):
+        """Print a program (array of quantum circuits).
+
+        program is a list of quantum circuits, if it's emty use the internal circuits
+        """
+        if not circuits:
+            circuits = self.__circuits.values()
+
+        jobs = ""
+        for circuit in circuits:
+            jobs = jobs + self.unroller_code(circuit) + "\n\n"
+        return jobs
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
