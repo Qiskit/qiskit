@@ -123,7 +123,7 @@ class Circuit:
                 if d["condition"] is not None:
                     if d["condition"][0] == regname:
                         d["condition"] = (newname, d["condition"][1])
-        # eX = edge, d= data 
+        # eX = edge, d= data
         for e1, e2, d in self.multi_graph.edges_iter(data=True):
             if d["name"][0] == regname:
                 d["name"] = (newname, d["name"][1])
@@ -1187,3 +1187,36 @@ class Circuit:
                 l_dict = {"graph": new_layer, "partition": support_list}
                 layers_list.append(l_dict)
         return layers_list
+
+    def collect_runs(self, namelist):
+        """Return a set of runs of "op" nodes with the given names.
+
+        For example, "... h q[0]; cx q[0],q[1]; cx q[0],q[1]; h q[1]; .."
+        would produce the tuple of cx nodes as an element of the set returned
+        from a call to collect_runs(["cx"]).
+
+        Nodes must have only one successor to continue the run.
+        """
+        group_list = []
+        for name in namelist:
+            if name not in self.basis:
+                raise CircuitError("%s is not in the list of basis operations"
+                                   % name)
+
+        # Iterate through the nodes of self in topological order
+        # and form tuples containing sequences of gates
+        # on the same qubit(s).
+        ts = nx.topological_sort(self.multi_graph)
+        for node in ts:
+            nd = self.multi_graph.node[node]
+            if nd["type"] == "op" and nd["name"] in namelist:
+                group = [node]
+                s = self.multi_graph.successors(node)
+                while len(s) == 1 and \
+                      self.multi_graph.node[s[0]]["type"] == "op" and \
+                      self.multi_graph.node[s[0]]["name"] in namelist:
+                    group.append(s[0])
+                    s = self.multi_graph.successors(s[0])
+                if len(group) > 1:
+                    group_list.append(tuple(group))
+        return set(group_list)

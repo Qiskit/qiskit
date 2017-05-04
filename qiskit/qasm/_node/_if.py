@@ -22,4 +22,4 @@ class If(Node):
     def qasm(self):
         """Return the corresponding OPENQASM string."""
         return "if(" + self.children[0].qasm() + "==" \
-               + self.children[1] + ") " + self.children[2].qasm()
+               + str(self.children[1]) + ") " + self.children[2].qasm()

@@ -607,7 +607,7 @@ class QasmParser(object):
         gate_op : CX error
         '''
         raise QasmException("Invalid CX inside gate definition. "
-                            + "Expected an ID or '.', received '"
+                            + "Expected an ID or ',', received '"
                             + str(program[2].value) + "'")
 
     def p_gate_op_1e2(self, program):

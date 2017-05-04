@@ -173,7 +173,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
-        nd = circuit_graph.G.node[cx_node]
+        nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["qargs"])
         if cxedge in cg_edges:
             if verbose:
