@@ -1,2 +1,0 @@
-reset b
-reset c;
