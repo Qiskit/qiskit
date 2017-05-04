@@ -191,7 +191,7 @@ runs = C_directions_unrolled.collect_runs(["u1", "u2", "u3"])
 print(runs)
 
 # TODO: complete this pass
-
-# TODO: add Circuit method to tally each type of gate
-# TODO: incorporate these passes into QuantumProgram
+# TODO: add Circuit method to tally each type of gate so we can see costs
 # TODO: test on examples using simulator
+
+# TODO: simple unit tests for qasm, mapper, unroller, circuit

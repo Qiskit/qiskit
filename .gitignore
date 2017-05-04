@@ -5,6 +5,9 @@ Qconfig.py
 qiskit/qasm/parser.out
 qiskit/qasm/parsetab.py
 
+# editor files
+.vscode/
+
 #standard python ignores follow
 
 # Byte-compiled / optimized / DLL files
