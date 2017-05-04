@@ -15,7 +15,7 @@
 # limitations under the License.
 # =============================================================================
 
-""" 
+"""
 Qasm Program Class
 
 Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
@@ -217,9 +217,11 @@ class QuantumProgram(object):
         """
         status = dict(Counter(self.get_job_list_status(jobids)))
         t = 0
+        timeout_over = False
         print("status = %s (%d seconds)" % (status, t))
         while 'COMPLETED' not in status or status['COMPLETED'] < len(jobids):
             if t == timeout:
+                timeout_over = True
                 break
             time.sleep(wait)
             t += wait
@@ -227,6 +229,10 @@ class QuantumProgram(object):
             print("status = %s (%d seconds)" % (status, t))
         # Get the results
         results = []
+
+        if timeout_over:
+            return {"status":"Error", "result":"Time Out"}
+
         for i in jobids:
             results.append(self.__API.get_job(i))
         return results
