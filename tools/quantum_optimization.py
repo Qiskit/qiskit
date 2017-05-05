@@ -8,7 +8,8 @@ Author: Jay Gambetta
 import sys
 sys.path.append("..")
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import h, u3, barrier, cz
+from qiskit.extensions.standard import h, ry, barrier, cz
+
 
 def cost_classical(data, n, alpha, beta):
     """Compute the cost function.
@@ -25,27 +26,27 @@ def cost_classical(data, n, alpha, beta):
         observable = 0
         for j in range(len(key) - n, len(key)):
             if key[j] == '0':
-                observable = observable + alpha[n-1-j]
+                observable = observable + alpha[len(key)-1-j]
             elif key[j] == '1':
-                observable = observable - alpha[n-1-j]
+                observable = observable - alpha[len(key)-1-j]
             for i in range(j):
                 if key[j] == '0' and key[i] == '0':
-                    observable = observable + beta[n-1-i, n-1-j]
+                    observable = observable + beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '1' and key[i] == '1':
-                    observable = observable + beta[n-1-i, n-1-j]
+                    observable = observable + beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '0' and key[i] == '1':
-                    observable = observable - beta[n-1-i, n-1-j]
+                    observable = observable - beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '1' and key[i] == '0':
-                    observable = observable - beta[n-1-i, n-1-j]
-            for i in range(j+1, n):
+                    observable = observable - beta[len(key)-1-i, len(key)-1-j]
+            for i in range(j+1, len(key)):
                 if key[j] == '0' and key[i] == '0':
-                    observable = observable + beta[n-1-i, n-1-j]
+                    observable = observable + beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '1' and key[i] == '1':
-                    observable = observable + beta[n-1-i, n-1-j]
+                    observable = observable + beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '0' and key[i] == '1':
-                    observable = observable - beta[n-1-i, n-1-j]
+                    observable = observable - beta[len(key)-1-i, len(key)-1-j]
                 elif key[j] == '1' and key[i] == '0':
-                    observable = observable - beta[n-1-i, n-1-j]
+                    observable = observable - beta[len(key)-1-i, len(key)-1-j]
         temp += data[key]*observable/tot
     return temp
 
@@ -73,7 +74,7 @@ def trial_funtion_optimization(n, m, theta, entangler_map):
             for j in entangler_map[node]:
                 trial_circuit.cz(q[node], q[j])
         for j in range(n):
-            trial_circuit.u3(theta[n*i+j], 0, 0, q[j])
+            trial_circuit.ry(theta[n*i+j], q[j])
     trial_circuit.barrier(q)
     for j in range(n):
         trial_circuit.measure(q[j], c[j])
