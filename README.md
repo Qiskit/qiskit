@@ -52,37 +52,52 @@ used by the *localize* module's *swap_mapper* method to insert SWAP gates
 so a circuit can execute on a device with fixed couplings given by a
 *CouplingGraph*.
 
-## Setup Python Virtual Enviroment
+## Install
 
-### Anaconda
-To create a new Virtual Enviroment:
-> conda create -n QISKitenv python=3 pip
+- Intall Anaconda: https://www.continuum.io/downloads
+- Clone the repo:
 
-use it:
+```sh
+git clone https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev
+cd qiskit-sdk-py-dev
+```
 
-> source activate QISKitenv
+- Virtual environment:
 
-### Install Dependencies
+```sh
+# Creation
+conda create -n QISKitenv python=3 pip
+# Setup
+source activate QISKitenv
+```
 
-> pip install -r requires.txt
+- Install project dependencies:
 
-### use the Jupyter Notebook
+```sh
+pip install -r requires.txt
+```
 
-> cd script
+- Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
-> mv Qconfig.py.default Qconfig.py
+```sh
+cd script
+mv Qconfig.py.default Qconfig.py
+```
 
-edit the Qconfig.py and add your APItoken, you can get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account
+- Run it:
 
-> jupyter notebook
+```sh
+jupyter notebook
+```
 
+### Dependencies problem
 
-### Dependencies problems.
+If you upgrade the dependencies and next error happens try with this fix:
 
-When you try to install the dependencies "pip install --upgrade IBMQuantumExperience", if you have the next error:
-
+```sh
+pip install --upgrade IBMQuantumExperience
 * Cannot remove entries from nonexistent file [PATH]/easy-install.pth
 
-You can fix it using:
-
-> curl https://bootstrap.pypa.io/ez_setup.py -o - | python
+# Fix
+curl https://bootstrap.pypa.io/ez_setup.py -o - | python
+```
