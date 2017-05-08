@@ -303,18 +303,24 @@ class QuantumProgram(object):
                                     qregisters=quantumr["name"],
                                     cregisters=classicalr["name"])
 
-    def create_circuit_regbyname(self, name, qregisters, cregisters):
+    def create_circuit_reg(self, name, qregisters, cregisters):
         """Create a new Quantum Circuit into the Quantum Program"""
         self.__circuits[name] = QuantumCircuit()
         for register in qregisters:
-            self.__circuits[name].add(self.__quantum_registers[register])
+            if isinstance(register, str):
+                self.__circuits[name].add(self.__quantum_registers[register])
+            else:
+                self.__circuits[name].add(register)
         for register in cregisters:
-            self.__circuits[name].add(self.__classical_registers[register])
+            if isinstance(register, str):
+                self.__circuits[name].add(self.__classical_registers[register])
+            else:
+                self.__circuits[name].add(register)
         return self.__circuits[name]
 
     def create_circuit(self, name, qregisters, cregisters):
         """Create a new Quantum Circuit into the Quantum Program"""
-        # self.__circuits[name] = "demo"
+
         self.__circuits[name] = QuantumCircuit(qregisters, cregisters)
         print(">> circuit created")
         return self.__circuits[name]
