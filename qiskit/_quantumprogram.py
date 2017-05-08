@@ -305,12 +305,17 @@ class QuantumProgram(object):
                                     qregisters=quantumr["name"],
                                     cregisters=classicalr["name"])
 
-    def create_circuit(self, name, qregisters, cregisters):
+    def create_circuit(self, name, qregisters=None, cregisters=None):
         """Create a new Quantum Circuit into the Quantum Program
         name is a string, the name of the circuit
         qregisters is a Array of Quantum Registers, can be String, by name or the object reference
         cregisters is a Array of Classical Registers, can be String, by name or the object reference
         """
+        if not qregisters:
+            qregisters = []
+        if not cregisters:
+            cregisters = []
+
         self.__circuits[name] = QuantumCircuit()
         for register in qregisters:
             if isinstance(register, str):

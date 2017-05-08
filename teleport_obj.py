@@ -7,10 +7,8 @@ from qiskit import QuantumProgram
 
 QPSpecs = {
     "name": "Program",
-    # "importmodule": "",
     "circuits": [{
         "name": "teleport",
-        #"importqasm": "chemisty.qjson",
         "quantum_registers": [{
             "name":"q",
             "size":3
