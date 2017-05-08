@@ -281,3 +281,11 @@ if __name__ == '__main__':
 
 # hardware.status()
 # hardware.command()
+# use methods instead - or have method as well
+# c1 = a + b + c
+# c2 = a + bp + c
+
+# chemistry1 = make_variational_state + do_measurement_1
+# chemistry2 = make_variational_state + do_measurement_2
+
+# p.add_circuit(c1)

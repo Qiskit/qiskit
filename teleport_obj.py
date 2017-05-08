@@ -5,108 +5,97 @@ Author: Andrew Cross
 """
 from qiskit import QuantumProgram
 
-# define Program
-# add circuit to Program
-# add registers to circuit (or program?)
-
-# TODO: Create Scope object to pass Hardware, Map and others.
-
-# QPScope = {
-#     topology={
-#             hardware={},
-#             map={}
-#     },
-
-# }
-
 QPSpecs = {
-    "name": "algorithm",
+    "name": "Program",
     # "importmodule": "",
     "circuits": [{
-        "name": "demo",
+        "name": "teleport",
         #"importqasm": "chemisty.qjson",
-        "quantum_registers": {
+        "quantum_registers": [{
             "name":"q",
             "size":3
-        },
-        "classical_registers": {
-            "name":"c",
-            "size":3
-        }}]
+        }],
+        "classical_registers": [
+            {"name":"c0",
+             "size":1},
+            {"name":"c1",
+             "size":1},
+            {"name":"c2",
+             "size":1},
+        ]}]
 }
 
 QP_program = QuantumProgram(specs=QPSpecs)
-# c = QP_program.set_circuits("circuit name"")
-# q = QP_program.quantum_registers['q']
+qc = QP_program.circuit("teleport")
+q = QP_program.quantum_registers("q")
+c0 = QP_program.classical_registers("c0")
+c1 = QP_program.classical_registers("c1")
+c2 = QP_program.classical_registers("c2")
 
+qc.u3(0.3, 0.2, 0.1, q[0])
+qc.h(q[1])
+qc.cx(q[1], q[2])
+qc.barrier(q)
 
-#cr = QP_program.get_classical_registers('c')
+qc.cx(q[0], q[1])
+qc.h(q[0])
+qc.measure(q[0], c0[0])
+qc.measure(q[1], c1[0])
 
-qc, qr, cr = QP_program.quantum_elements()
-print(qc)
+qc.z(q[2]).c_if(c0, 1)
+qc.x(q[2]).c_if(c1, 1)
+qc.measure(q[2], c2[0])
 
-# TODO: Topology definition
+######################################################################
 
-# topology={
-#     hardware={},
-#     map={}
-# }
-
-# TODO: 
-# sim1 = myQP.set_scope(topology=topology)
-# topology2={
-#     map={}
-# }
-
-# sim2 = myQP.set_scope( topology=topology2)
-
-# sim1.compile.execute.plot()
-# sim2.compile.execute.plot()
-
-
-# sim1 = myQP.set_scope(hardware={}, map={}, topology={})
-
-# myQP.compile()
-#   myQP.parse(versionQasm, qfiles)
-#   myQP.unroller()
-#   myQP.optimizer(standar)
-#   myQP.map(topology, operations)
-#   myQP.optimizer(cleaner)
-# myQP.execute()
-
-
-
-# myQP.execute()
-# myQP.execute(debug = {})
-
-
-# myQP.plot()
-
-# hardware.status()
-# hardware.command()
-
-qc.u3(0.3, 0.2, 0.1, qr[0])
-qc.h(qr[1])
-qc.cx(qr[1], qr[2])
-qc.barrier()
-
-qc.cx(qr[0], qr[1])
-qc.h(qr[0])
-qc.measure(qr[0], cr[0])
-qc.measure(qr[1], cr[1])
-
-qc.z(qr[2]).c_if(cr, 1)
-qc.x(qr[2]).c_if(cr, 1)
-qc.measure(qr[2], cr[2])
-
+print("QuantumCircuit OPENQASM")
+print("-----------------------")
 print(qc.qasm())
 
+QASM, C = QP_program.unroller_code(qc)
 
-# use methods instead - or have method as well
-# c1 = a + b + c
-# c2 = a + bp + c
+print("")
+print("size    = %d" % C.size())
+print("depth   = %d" % C.depth())
+print("width   = %d" % C.width())
+print("bits    = %d" % C.num_cbits())
+print("factors = %d" % C.num_tensor_factors())
 
-# chemistry1 = make_variational_state + do_measurement_1
-# chemistry2 = make_variational_state + do_measurement_2
+print("")
+print("Unrolled OPENQASM")
+print("-----------------------")
+print(QASM)
 
-# p.add_circuit(c1)
+# This is the 2 by 8
+couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
+                5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
+                11: [12], 12: [13], 13: [14], 14: [15]}
+
+coupling = QP_program.mapper.Coupling(couplingdict)
+print("")
+print("2x8 coupling graph = \n%s" % coupling)
+
+C_mapped, layout = QP_program.mapper.swap_mapper(C, coupling)
+rev_layout = {b: a for a, b in layout.items()}
+
+print("")
+print("2x8 layout:")
+for i in range(8):
+    qubit = ("q", i)
+    if qubit in rev_layout:
+        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
+    else:
+        print("XXXX ", end="")
+print("")
+for i in range(8, 16):
+    qubit = ("q", i)
+    if qubit in rev_layout:
+        print("%s[%d] " % (rev_layout[qubit][0], rev_layout[qubit][1]), end="")
+    else:
+        print("XXXX ", end="")
+print("")
+
+print("")
+print("Mapped OPENQASM")
+print("-----------------------")
+print(C_mapped.qasm(qeflag=True))

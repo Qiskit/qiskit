@@ -33,8 +33,9 @@ from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
 # Beta Modules
-from . import unroll    
+from . import unroll
 from . import qasm
+from . import mapper
 # from .qasm import QasmException
 
 from .extensions.standard import barrier, h, cx, u3, x, z
@@ -61,6 +62,7 @@ class QuantumProgram(object):
         self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
+        self.mapper = mapper
         if specs:
             self.__init_specs(specs)
         if circuit:
@@ -148,7 +150,7 @@ class QuantumProgram(object):
 
         circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
         qasm_source = circuit_unrolled.qasm(qeflag=True)
-        return qasm_source
+        return qasm_source, circuit_unrolled
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
