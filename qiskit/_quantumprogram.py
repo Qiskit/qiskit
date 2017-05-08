@@ -28,12 +28,13 @@ from collections import Counter
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
-
-from . import unroll
-from . import qasm
+# stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
+# Beta Modules
+from . import unroll    
+from . import qasm
 # from .qasm import QasmException
 
 from .extensions.standard import barrier, h, cx, u3, x, z
@@ -273,8 +274,8 @@ class QuantumProgram(object):
     def __init_specs(self, specs):
         """Populate the Quantum Program Object with initial Specs"""
         self.__specs = specs
-        quantumr = {}
-        classicalr = {}
+        quantumr = []
+        classicalr = []
         if "api" in specs:
             if  specs["api"]["token"]:
                 self.__API_config["token"] = specs["api"]["token"]
@@ -283,13 +284,11 @@ class QuantumProgram(object):
 
         if "circuits" in specs:
             for circuit in specs["circuits"]:
-                quantumr = circuit["quantum_registers"]
-                self.create_quantum_registers(quantumr["name"], quantumr["size"])
-                classicalr = circuit["classical_registers"]
-                self.create_classical_registers(classicalr["name"], classicalr["size"])
+                quantumr = self.create_quantum_registers_group(circuit["quantum_registers"])
+                classicalr = self.create_classical_registers_group(circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"],
-                                    qregisters=quantumr["name"],
-                                    cregisters=classicalr["name"])
+                                    qregisters=quantumr[0],
+                                    cregisters=classicalr[0])
         else:
             if "quantum_registers" in specs:
                 print("quantum_registers created")
@@ -304,21 +303,57 @@ class QuantumProgram(object):
                                     qregisters=quantumr["name"],
                                     cregisters=classicalr["name"])
 
+    def create_circuit_regbyname(self, name, qregisters, cregisters):
+        """Create a new Quantum Circuit into the Quantum Program"""
+        self.__circuits[name] = QuantumCircuit()
+        for register in qregisters:
+            self.__circuits[name].add(self.__quantum_registers[register])
+        for register in cregisters:
+            self.__circuits[name].add(self.__classical_registers[register])
+        return self.__circuits[name]
+
     def create_circuit(self, name, qregisters, cregisters):
         """Create a new Quantum Circuit into the Quantum Program"""
-        # print(name)
         # self.__circuits[name] = "demo"
-        self.__circuits[name] = QuantumCircuit(self.__quantum_registers[qregisters],
-                                               self.__classical_registers[cregisters])
+        self.__circuits[name] = QuantumCircuit(qregisters, cregisters)
         print(">> circuit created")
         return self.__circuits[name]
 
+    def create_circuit_name(self, name, qregisters, cregisters):
+        """Create a new Quantum Circuit into the Quantum Program"""
+        # print(name)
+        # self.__circuits[name] = "demo"
+        self.__circuits[name] = QuantumCircuit(self.__quantum_registers[qregisters], cregisters)
+        print(">> circuit created")
+        return self.__circuits[name]
 
     def create_quantum_registers(self, name, size):
         """Create a new set of Quantum Registers"""
         self.__quantum_registers[name] = QuantumRegister(name, size)
         print(">> quantum_registers created:", name, size)
         return self.__quantum_registers[name]
+
+    def create_quantum_registers_name(self, name, size):
+        """Create a new set of Quantum Registers"""
+        self.__quantum_registers[name] = QuantumRegister(name, size)
+        print(">> quantum_registers created:", name, size)
+        return self.__quantum_registers[name]
+
+    def create_quantum_registers_group(self, registers_array):
+        """Create a new set of Quantum Registers based in a array of that"""
+        new_registers = []
+        for register in registers_array:
+            register = self.create_quantum_registers(register["name"], register["size"])
+            new_registers.append(register)
+        print(new_registers)
+        return new_registers
+
+    def create_classical_registers_group(self, registers_array):
+        """Create a new set of Classical Registers based in a array of that"""
+        new_registers = []
+        for register in registers_array:
+            new_registers.append(self.create_classical_registers(register["name"], register["size"]))
+        return new_registers
 
     def create_classical_registers(self, name, size):
         """Create a new set of Classical Registers"""
