@@ -22,6 +22,7 @@ Authors: Ismael Faro
 """
 
 import sys
+sys.path.insert(0, '../')
 
 from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
@@ -120,7 +121,7 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc3, QuantumCircuit)
 
     def test_load_qasm(self):
-        pass
+        pass 
 
     def test_print_circuit(self):
         QP_program = QuantumProgram(specs=QPSpecs)
@@ -228,7 +229,7 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.run_program(device, shots, max_credits=3)
         print(result)
         self.assertEqual(result["status"], "RUNNING")
-    @unittest.skip
+    @unittest.skip 
     def test_execute_one_circuit_real_online(self):
         QP_program = QuantumProgram(specs=QPSpecs)
         qc, qr, cr = QP_program.quantum_elements()
@@ -243,7 +244,7 @@ class TestQISKit(unittest.TestCase):
 
     def test_execute_one_circuit_simulator_local(self):
         pass
-
+   
 if __name__ == '__main__':
     unittest.main()
 
@@ -253,7 +254,7 @@ if __name__ == '__main__':
 #     map={}
 # }
 
-# TODO:
+# TODO: 
 # sim1 = myQP.set_scope(topology=topology)
 # topology2={
 #     map={}

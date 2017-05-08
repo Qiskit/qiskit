@@ -10,11 +10,11 @@ env-dev:
 	pip install pylint
 
 lint:
-	pylint qiskit test tools
+	pylint --rcfile=.rcfile qiskit test tools
 
 test: lint
-#	py.test --verbose --color=yes $(TEST_PATH)
 	python test
 
 run:
+	cd scripts
 	jupyter notebook

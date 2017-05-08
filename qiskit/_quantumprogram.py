@@ -163,7 +163,8 @@ class QuantumProgram(object):
         """
         jobs = []
         for circuit in circuits:
-            jobs.append({'qasm': self.unroller_code(circuit, basis_gates)})
+            qasm_source, circuit = self.unroller_code(circuit, basis_gates)
+            jobs.append({'qasm': qasm_source})
         output = self.__API.run_job(jobs, device, shots, max_credits)
         return output
 
@@ -181,7 +182,7 @@ class QuantumProgram(object):
         if isinstance(circuit, str):
             circuit = self.__circuits[circuit]
 
-        qasm_source = self.unroller_code(circuit)
+        qasm_source, circuit = self.unroller_code(circuit)
         output = self.__API.run_experiment(qasm_source, device, shots, max_credits)
         return output
 
@@ -207,7 +208,8 @@ class QuantumProgram(object):
 
         jobs = ""
         for circuit in circuits:
-            jobs = jobs + self.unroller_code(circuit) + "\n\n"
+            qasm_source, circuit = self.unroller_code(circuit)
+            jobs = jobs + qasm_source + "\n\n"
         return jobs
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
