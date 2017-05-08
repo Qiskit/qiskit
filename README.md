@@ -1,4 +1,6 @@
-# Python SDK
+[![Build Status](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev.svg?token=THSowrrt9aJckeWmgC4s&branch=master)](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev)
+
+# Qiskit SDK Python
 
 Python software development kit (SDK) and Jupyter notebooks for working with
 OPENQASM and the IBM Quantum Experience (QE).
@@ -62,20 +64,13 @@ git clone https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev
 cd qiskit-sdk-py-dev
 ```
 
-- Virtual environment:
+- Create the environment with the dependencies:
 
 ```sh
-# Creation
-conda create -n QISKitenv python=3 pip
-# Setup
-source activate QISKitenv
+make env
 ```
 
-- Install project dependencies:
-
-```sh
-pip install -r requires.txt
-```
+## Use
 
 - Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
@@ -87,10 +82,10 @@ mv Qconfig.py.default Qconfig.py
 - Run it:
 
 ```sh
-jupyter notebook
+make run
 ```
 
-### Dependencies problem
+## FAQ
 
 If you upgrade the dependencies and next error happens try with this fix:
 
@@ -101,3 +96,30 @@ pip install --upgrade IBMQuantumExperience
 # Fix
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
+
+## Developer guide
+
+Please, use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send the contributions.
+
+We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/peps/pep-0008) style guide.
+
+
+### Dependencies
+
+```sh
+make env-dev
+```
+
+### Test
+
+- Please run this to be sure your code fits with the style guide and the tests keep passing:
+
+```sh
+make test
+```
+
+### Commit messages rules
+
+- It should be formed by a one-line subject, followed by one line of white space. Followed by one or more descriptive paragraphs, each separated by one￼￼￼￼ line of white space. All of them finished by a dot.
+- If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
+- It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
