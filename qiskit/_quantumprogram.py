@@ -52,11 +52,6 @@ class QuantumProgram(object):
     __API_config = {}
 
     def __init__(self, specs=None, name="", circuit=None, scope=None):
-        # with open('config.json') as data_file:
-        #     config = json.load(data_file)
-
-        # self.__API_config = config["API"]
-        # self.__QASM = qasm.Qasm()
         self.__circuits = {}
         self.__quantum_registers = {}
         self.__classical_registers = {}

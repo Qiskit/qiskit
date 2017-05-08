@@ -12,8 +12,9 @@ env-dev:
 lint:
 	pylint --rcfile=.rcfile qiskit test tools
 
-test: lint
-	python test
+test:
+	cd test
+	python test/QISKit-tests.py
 
 run:
 	cd scripts
