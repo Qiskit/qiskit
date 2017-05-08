@@ -287,8 +287,8 @@ class QuantumProgram(object):
                 quantumr = self.create_quantum_registers_group(circuit["quantum_registers"])
                 classicalr = self.create_classical_registers_group(circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"],
-                                    qregisters=quantumr[0],
-                                    cregisters=classicalr[0])
+                                    qregisters=quantumr,
+                                    cregisters=classicalr)
         else:
             if "quantum_registers" in specs:
                 print("quantum_registers created")
@@ -303,8 +303,12 @@ class QuantumProgram(object):
                                     qregisters=quantumr["name"],
                                     cregisters=classicalr["name"])
 
-    def create_circuit_reg(self, name, qregisters, cregisters):
-        """Create a new Quantum Circuit into the Quantum Program"""
+    def create_circuit(self, name, qregisters, cregisters):
+        """Create a new Quantum Circuit into the Quantum Program
+        name is a string, the name of the circuit
+        qregisters is a Array of Quantum Registers, can be String, by name or the object reference
+        cregisters is a Array of Classical Registers, can be String, by name or the object reference
+        """
         self.__circuits[name] = QuantumCircuit()
         for register in qregisters:
             if isinstance(register, str):
@@ -316,21 +320,6 @@ class QuantumProgram(object):
                 self.__circuits[name].add(self.__classical_registers[register])
             else:
                 self.__circuits[name].add(register)
-        return self.__circuits[name]
-
-    def create_circuit(self, name, qregisters, cregisters):
-        """Create a new Quantum Circuit into the Quantum Program"""
-
-        self.__circuits[name] = QuantumCircuit(qregisters, cregisters)
-        print(">> circuit created")
-        return self.__circuits[name]
-
-    def create_circuit_name(self, name, qregisters, cregisters):
-        """Create a new Quantum Circuit into the Quantum Program"""
-        # print(name)
-        # self.__circuits[name] = "demo"
-        self.__circuits[name] = QuantumCircuit(self.__quantum_registers[qregisters], cregisters)
-        print(">> circuit created")
         return self.__circuits[name]
 
     def create_quantum_registers(self, name, size):
