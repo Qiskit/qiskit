@@ -1,5 +1,5 @@
 """
-Quantum tools for common operators.
+Quantum tools and common operators.
 
 These are simple methods for making common matrices used in quantum computing.
 
@@ -45,63 +45,28 @@ def operator_qij(gate, qubit_1, qubit_2, number_of_qubits):
     returns a complex numpy array
     """
     temp_1 = np.kron(np.identity(2**(number_of_qubits-2), dtype=complex), gate)
-    temp_2 = temp_1.reshape([2]*2*number_of_qubits)
-    new_order = list(range(number_of_qubits))
-    print(new_order)
-    if qubit_1 == 0 and qubit_2 == 1:
-        # do noething (working)
-        new_order[0] = qubit_1
-        new_order[1] = qubit_2
-    elif qubit_1 == 0 and qubit_2 != 1:
-        # keep 1 constant and swap 2 (working)
-        new_order[1] = qubit_2
-        new_order[qubit_2] = 1
-    elif qubit_1 != 0 and qubit_2 == 1:
-        # keep 2 constant and swap 1 (working)
-        new_order[0] = qubit_1
-        new_order[qubit_1] = 0
-    elif qubit_1 == 1 and qubit_2 == 0:
-        # swap qubit 1 and 2 (working)
-        new_order[0] = qubit_1
-        new_order[1] = qubit_2
-    elif qubit_1 > 1 and qubit_2 > 1:
-        # a simple a swap
-        new_order[0] = qubit_1
-        new_order[qubit_1] = 1
-        new_order[1] = qubit_2
-        new_order[qubit_2] = 2
-    else:
-        # if one is in the first two (this is the confusing one)
-        new_order[0] = qubit_1
-        new_order[1] = qubit_2
-        if qubit_1 <= 1:
-            new_order[qubit_2] = 1
-        elif qubit_2 <= 1:
-            new_order[qubit_1] = 1
-
-    print(new_order)
-    # temp_3 = np.transpose(temp_2, axes=new_order)
-    print("lev")
-    print(temp_1)
-    print("lev")
-    print(temp_2)
-    print("lev")
-    print(temp_3)
-
-    # for ii in range(2**number_of_qubits):
-    #     iip = 0
-    #     oldqubit = 1
-    #     for kk in new_order:
-    #         iip += 2**(number_of_qubits-kk)*(ii/2**(number_of_qubits
-    #                                          - oldqubit) % 2)
-    #         oldqubit += 1
-    #     # print str (iip) +' ' + str (ii)
-    #     for jj in range(2**number_of_qubits):
-    #         jjp = 0
-    #         oldqubitj = 1
-    #         for kk in new_order:
-    #             jjp += 2**(number_of_qubits-kk)*(jj/2**(number_of_qubits
-    #                                              - oldqubitj) % 2)
-    #             oldqubitj += 1
-    #         temp_2[iip, jjp] = temp_1[ii, jj]
-    # return temp_2
+    temp_2 = np.identity(2**(number_of_qubits), dtype=complex)
+    for ii in range(2**number_of_qubits):
+        iistring = bin(ii)[2:]
+        bits = list(iistring.zfill(number_of_qubits))
+        swap_1 = bits[0]
+        swap_2 = bits[1]
+        bits[0] = bits[qubit_1]
+        bits[1] = bits[qubit_2]
+        bits[qubit_1] = swap_1
+        bits[qubit_2] = swap_2
+        iistring = ''.join(bits)
+        iip = int(iistring, 2)
+        for jj in range(2**number_of_qubits):
+            jjstring = bin(jj)[2:]
+            bits = list(jjstring.zfill(number_of_qubits))
+            swap_1 = bits[0]
+            swap_2 = bits[1]
+            bits[0] = bits[qubit_1]
+            bits[1] = bits[qubit_2]
+            bits[qubit_1] = swap_1
+            bits[qubit_2] = swap_2
+            jjstring = ''.join(bits)
+            jjp = int(jjstring, 2)
+            temp_2[iip, jjp] = temp_1[ii, jj]
+    return temp_2
