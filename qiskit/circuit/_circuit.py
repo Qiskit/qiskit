@@ -1207,15 +1207,19 @@ class Circuit:
         # and form tuples containing sequences of gates
         # on the same qubit(s).
         ts = nx.topological_sort(self.multi_graph)
+        nodes_seen = dict(zip(ts, [False]*len(ts)))
         for node in ts:
             nd = self.multi_graph.node[node]
-            if nd["type"] == "op" and nd["name"] in namelist:
+            if nd["type"] == "op" and nd["name"] in namelist \
+               and not nodes_seen[node]:
                 group = [node]
+                nodes_seen[node] = True
                 s = self.multi_graph.successors(node)
                 while len(s) == 1 and \
                       self.multi_graph.node[s[0]]["type"] == "op" and \
                       self.multi_graph.node[s[0]]["name"] in namelist:
                     group.append(s[0])
+                    nodes_seen[s[0]] = True
                     s = self.multi_graph.successors(s[0])
                 if len(group) > 1:
                     group_list.append(tuple(group))
