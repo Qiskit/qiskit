@@ -22,7 +22,7 @@ def destroy(dim):
     return a
 
 
-def gate_qi(gate, qubit, number_of_qubits):
+def operator_qi(gate, qubit, number_of_qubits):
     """Apply the single qubit gate.
 
     gate is the single qubit gate
@@ -35,7 +35,7 @@ def gate_qi(gate, qubit, number_of_qubits):
                    np.kron(gate, np.identity(2**(qubit), dtype=complex)))
 
 
-def gate_qij(gate, qubit_1, qubit_2, number_of_qubits):
+def operator_qij(gate, qubit_1, qubit_2, number_of_qubits):
     """Apply the two-qubit gate.
 
     gate is the two-qubit gate
