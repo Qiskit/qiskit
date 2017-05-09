@@ -50,6 +50,29 @@ class QuantumProgram(object):
     __circuits = {}
     __API = {}
     __API_config = {}
+    __qasm_compile = {}
+
+
+    """
+        qasm_compile ={
+                'backend': {'name': 'qx5qv2'},
+                'maxCredits': 3,
+                'circuits':  [
+                    {'qasm': 'OPENQASM...'},
+                    {'qasm': 'OPENQASM...'}
+                    ],
+                'shots': 1024
+                'result': {
+                    'data':{
+                        counts: {
+
+                        }
+                    }
+                 }
+                }
+        
+
+    """
 
     def __init__(self, specs=None, name="", circuit=None, scope=None):
         self.__circuits = {}
@@ -57,7 +80,10 @@ class QuantumProgram(object):
         self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
+        self.__qasm_compile = {}
+
         self.mapper = mapper
+
         if specs:
             self.__init_specs(specs)
         if circuit:
@@ -176,6 +202,11 @@ class QuantumProgram(object):
     #         output = self.__API.run_job(qasm_source.ciruits,
     #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
     #         return output
+
+
+
+            # output = self.__API.run_job(qasm_source.ciruits,
+            #             qasm_source.backend.name, qasmsourece.shots, 
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
