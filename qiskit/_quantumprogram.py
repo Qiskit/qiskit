@@ -153,7 +153,7 @@ class QuantumProgram(object):
             coupling = self.mapper.Coupling(couplingdict)
             circuit_unrolled, layout = self.mapper.swap_mapper(circuit_unrolled, coupling)
             qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
-        return qasm_source
+        return qasm_source, circuit_unrolled
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
@@ -171,19 +171,11 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def run(self)
-        qasm_compile =
-        {'backend': {'name': 'qx5qv2'},
-        'maxCredits': 3,
-        'circuits':  [
-            {'qasm': 'blah'},
-            {'qasm': 'blah2'}
-            ]
-            'shots': 1024,}
-
-            output = self.__API.run_job(qasm_source.ciruits,
-                        qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
-            return output
+    # def run(self)
+        
+    #         output = self.__API.run_job(qasm_source.ciruits,
+    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
+    #         return output
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
@@ -257,14 +249,14 @@ class QuantumProgram(object):
         output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=None)
         return output
 
-    def plotter(self, method="histogram", circuit=0)
+    # def plotter(self, method="histogram", circuit=0)
 
-        some check if sim or backend done
+    #     some check if sim or backend done
 
-        if histogram do
-            blah
-        if qshere do 
-            blah
+    #     if histogram do
+    #         blah
+    #     if qshere do 
+    #         blah
 
     def program_to_text(self, circuits=None):
         """Print a program (array of quantum circuits).
