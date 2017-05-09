@@ -257,6 +257,15 @@ class QuantumProgram(object):
         output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=None)
         return output
 
+    def plotter(self, method="histogram", circuit=0)
+
+        some check if sim or backend done
+
+        if histogram do
+            blah
+        if qshere do 
+            blah
+
     def program_to_text(self, circuits=None):
         """Print a program (array of quantum circuits).
 
