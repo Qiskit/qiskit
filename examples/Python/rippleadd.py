@@ -92,9 +92,9 @@ C = u.backend.circuit  # circuit directed graph object
 
 print("Unrolled OPENQASM to [u1, u2, u3, cx] basis")
 print("-------------------------------------------")
-print(C.qasm(qeflag=True))
+# print(C.qasm(qeflag=True))
 
-print("")
+# print("")
 print("size    = %d" % C.size())
 print("depth   = %d" % C.depth())
 print("width   = %d" % C.width())
@@ -121,9 +121,9 @@ print_2x8(layout)
 print("")
 print("Inserted SWAP gates for 2x8 layout")
 print("-------------------------------------------")
-print(C_mapped.qasm(qeflag=True))
+# print(C_mapped.qasm(qeflag=True))
 
-print("")
+# print("")
 print("size    = %d" % C_mapped.size())
 print("depth   = %d" % C_mapped.depth())
 print("width   = %d" % C_mapped.width())
@@ -143,9 +143,9 @@ C_directions = mapper.direction_mapper(C_mapped_unrolled, coupling)
 print("")
 print("Changed CNOT directions")
 print("-------------------------------------------")
-print(C_directions.qasm(qeflag=True))
+# print(C_directions.qasm(qeflag=True))
 
-print("")
+# print("")
 print("size    = %d" % C_directions.size())
 print("depth   = %d" % C_directions.depth())
 print("width   = %d" % C_directions.width())
@@ -169,9 +169,9 @@ for r in runs:
 print("")
 print("Cancelled redundant CNOT gates")
 print("-------------------------------------------")
-print(C_directions.qasm(qeflag=True))
+# print(C_directions.qasm(qeflag=True))
 
-print("")
+# print("")
 print("size    = %d" % C_directions.size())
 print("depth   = %d" % C_directions.depth())
 print("width   = %d" % C_directions.width())
@@ -188,7 +188,29 @@ u.execute()
 C_directions_unrolled = u.backend.circuit
 
 runs = C_directions_unrolled.collect_runs(["u1", "u2", "u3"])
-print(runs)
+for run in runs:
+    qname = C_directions_unrolled.multi_graph.node[run[0]]["qargs"][0]
+    print("%s, %d, %s[%d]: " % (run, len(run), qname[0], qname[1]))
+    for node in run:
+        nd = C_directions_unrolled.multi_graph.node[node]
+        assert nd["condition"] is None, "internal error"
+        assert len(nd["qargs"]) == 1, "internal error"
+        assert nd["qargs"][0] == qname, "internal error"
+        print(" %s %s" % (nd["name"], nd["params"]))
+
+# Single qubit gate composition rules:
+# --------------------------------------
+# u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
+# u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, phi2)
+# u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
+# u1(lambda1) * u3(theta2, phi2, lambda2) = u3(theta2, phi2 + lambda1, lambda2)
+# u3(theta1, phi1, lambda1) * u1(lambda2) = u3(theta1, phi1, lambda1 + lambda2)
+#
+# Using Ry(pi/2).Rz(2*lambda).Ry(pi/2) = Rz(pi/2).Ry(pi-2*lambda).Rz(pi/2),
+# u2(phi1, lambda1) * u2(phi2, lambda2) = u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
+#
+# For composing u3's or u2's with u3's, use u2(phi, lambda) = u3(pi/2, phi, lambda)
+# together with the qiskit.mapper.compose_u3 method.
 
 # TODO: complete this pass
 # TODO: add Circuit method to tally each type of gate so we can see costs

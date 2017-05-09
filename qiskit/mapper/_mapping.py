@@ -5,14 +5,11 @@ Author: Andrew Cross
 """
 import sys
 import copy
+import math
 import numpy as np
 from qiskit import QISKitException
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
-
-
-# TODO: might be simpler to go back to gate list form and do peephole stuff
-# while we "play out" the gate sequence
 
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
@@ -309,3 +306,123 @@ def swap_mapper(circuit_graph, coupling_graph,
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
     u.execute()
     return u.backend.circuit, initial_layout
+
+
+def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
+    """Test if arguments are a solution to a system of equations.
+
+    Cos[phi+lamb] * Cos[theta] = Cos[xi] * Cos[theta1+theta2]
+    Sin[phi+lamb] * Cos[theta] = Sin[xi] * Cos[theta1-theta2]
+    Cos[phi-lamb] * Sin[theta] = Cos[xi] * Sin[theta1+theta2]
+    Sin[phi-lamb] * Sin[theta] = Sin[xi] * Sin[-theta1+theta2]
+
+    Returns the maximum absolute difference between right and left hand sides.
+    """
+    delta1 = math.cos(phi + lamb) * math.cos(theta) - \
+        math.cos(xi) * math.cos(theta1 + theta2)
+    delta2 = math.sin(phi + lamb) * math.cos(theta) - \
+        math.sin(xi) * math.cos(theta1 - theta2)
+    delta3 = math.cos(phi - lamb) * math.sin(theta) - \
+        math.cos(xi) * math.sin(theta1 + theta2)
+    delta4 = math.sin(phi - lamb) * math.sin(theta) - \
+        math.sin(xi) * math.sin(-theta1 + theta2)
+    return max(map(abs, [delta1, delta2, delta3, delta4]))
+
+
+def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
+    """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
+
+    Solve the equation
+    Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
+    for theta, phi, and lambda. This is equivalent to solving the system
+    given in the comment for test_solution. Use eps for comparisons with zero.
+
+    Return a solution theta, phi, and lambda.
+    """
+    solutions = []  # list of potential solutions
+    # Four cases to avoid singularities
+    if abs(math.cos(xi)) < eps/10:
+        solutions.append((theta2 - theta1, xi, 0.0))
+    elif abs(math.sin(theta1 + theta2)) < eps/10:
+        phi_minus_lambda = [math.pi/2, 3*math.pi/2, math.pi/2, 3*math.pi/2]
+        stheta_1 = math.asin(math.sin(xi)*math.sin(-theta1+theta2))
+        stheta_2 = math.asin(-math.sin(xi)*math.sin(-theta1+theta2))
+        stheta_3 = math.pi - stheta_1
+        stheta_4 = math.pi - stheta_2
+        stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
+        phi_plus_lambda = list(map(lambda x:
+                                   math.acos(math.cos(theta1+theta2) *
+                                             math.cos(xi)/math.cos(x)),
+                                   stheta))
+        sphi = [(term[0] + term[1])/2 for term in
+                zip(phi_plus_lambda, phi_minus_lambda)]
+        slam = [(term[0] - term[1])/2 for term in
+                zip(phi_plus_lambda, phi_minus_lambda)]
+        solutions = list(zip(stheta, sphi, slam))
+    elif abs(math.cos(theta1 + theta2)) < eps/10:
+        phi_plus_lambda = [math.pi/2, 3*math.pi/2, math.pi/2, 3*math.pi/2]
+        stheta_1 = math.acos(math.sin(xi)*math.cos(theta1-theta2))
+        stheta_2 = math.acos(-math.sin(xi)*math.cos(theta1-theta2))
+        stheta_3 = -stheta_1
+        stheta_4 = -stheta_2
+        stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
+        phi_minus_lambda = list(map(lambda x:
+                                    math.acos(math.sin(theta1+theta2) *
+                                              math.cos(xi)/math.sin(x)),
+                                    stheta))
+        sphi = [(term[0] + term[1])/2 for term in
+                zip(phi_plus_lambda, phi_minus_lambda)]
+        slam = [(term[0] - term[1])/2 for term in
+                zip(phi_plus_lambda, phi_minus_lambda)]
+        solutions = list(zip(stheta, sphi, slam))
+    else:
+        phi_plus_lambda = math.atan(math.sin(xi) * math.cos(theta1 - theta2) /
+                                    (math.cos(xi) * math.cos(theta1 + theta2)))
+        phi_minus_lambda = math.atan(math.sin(xi) * math.sin(-theta1 +
+                                                             theta2) /
+                                     (math.cos(xi) * math.sin(theta1 +
+                                                              theta2)))
+        sphi = (phi_plus_lambda + phi_minus_lambda)/2
+        slam = (phi_plus_lambda - phi_minus_lambda)/2
+        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
+                                    math.cos(sphi + slam)), sphi, slam))
+        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
+                                    math.cos(sphi + slam+math.pi)),
+                          sphi + math.pi/2,
+                          slam + math.pi/2))
+        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
+                                    math.cos(sphi + slam)),
+                          sphi + math.pi/2, slam - math.pi/2))
+        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
+                                    math.cos(sphi + slam + math.pi)),
+                          sphi + math.pi, slam))
+    # Select the first solution with the required accuracy
+    deltas = list(map(lambda x: test_trig_solution(x[0], x[1], x[2],
+                                                   xi, theta1, theta2),
+                      solutions))
+    for delta_sol in zip(deltas, solutions):
+        if delta_sol[0] < eps:
+            return delta_sol[1]
+    print("xi=", xi)
+    print("theta1=", theta1)
+    print("theta2=", theta2)
+    print("solutions=", solutions)
+    print("deltas=", deltas)
+    assert False, "Error! No solution found. This should not happen."
+
+
+def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
+    """Return a triple theta, phi, lambda for the product.
+
+    u3(theta, phi, lambda)
+       = u3(theta1, phi1, lambda1).u3(theta2, phi2, lambda2)
+       = Rz(phi1).Ry(theta1).Rz(lambda1+phi2).Ry(theta2).Rz(lambda2)
+       = Rz(phi1).Rz(phi').Ry(theta').Rz(lambda').Rz(lambda2)
+       = u3(theta', phi1 + phi', lambda2 + lambda')
+
+    Return theta, phi, lambda.
+    """
+    # Careful with the factor of two in yzy_to_zyz
+    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2)/2.0,
+                                       theta1/2.0, theta2/2.0)
+    return (2.0*thetap, phi1 + 2.0 * phip, lambda2 + 2.0*lambdap)
