@@ -3,6 +3,9 @@ Ripple adder example based on OPENQASM example.
 
 Author: Andrew Cross
 """
+import sys
+sys.path.insert(0, '../../')
+
 from qiskit import QuantumProgram
 
 n = 4
@@ -123,6 +126,9 @@ couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
 
+
+# QP_program.compile(couplingdict)
+
 coupling = QP_program.mapper.Coupling(couplingdict)
 C_mapped, layout = QP_program.mapper.swap_mapper(C, coupling)
 
@@ -146,6 +152,8 @@ print("factors = %d" % C_mapped.num_tensor_factors())
 ######################################################################
 # Third pass: expand SWAP subroutines and adjust cx gate orientations.
 ######################################################################
+
+
 
 source, C_mapped_unrolled = QP_program.unroller_code(C_mapped)
 

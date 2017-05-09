@@ -29,7 +29,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 import unittest
-from scripts import Qconfig
+import Qconfig
 import json
 
 # Define Program Specifications.

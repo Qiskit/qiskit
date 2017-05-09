@@ -35,11 +35,11 @@ gate tdg a { u1(-pi/4) a; }
 
 // --- Standard rotations ---
 // Rotation around X-axis
-gate rx(theta) a { u3(theta, -pi/2,pi/2) a; }
+gate Rx(theta) a { u3(theta, pi/2,-pi/2) a; }
 // rotation around Y-axis
-gate ry(theta) a { u3(theta,0,0) a; }
+gate Ry(theta) a { u3(theta,0,0) a; }
 // rotation around Z axis
-gate rz(phi) a { u1(phi) a; }
+gate Rz(phi) a { u1(phi) a; }
 
 // --- QE Standard User-Defined Gates  ---
 
@@ -64,14 +64,6 @@ gate ccx a,b,c
   cx b,c; tdg c;
   cx a,c; t b; t c; h c;
   cx a,b; t a; tdg b;
-  cx a,b;
-}
-// controlled rz rotation
-gate crz(lambda) a,b
-{
-  u1(lambda/2) b;
-  cx a,b;
-  u1(-lambda/2) b;
   cx a,b;
 }
 // controlled phase rotation

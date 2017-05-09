@@ -13,7 +13,6 @@ lint:
 	pylint --rcfile=.rcfile qiskit test tools
 
 test:
-	cd test
 	python test/QISKit-tests.py
 
 run:
