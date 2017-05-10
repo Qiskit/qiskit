@@ -253,6 +253,7 @@ class QuantumProgram(object):
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
         self.__qasm_compile['used_credits'] = job_result['usedCredits']
+        self.__qasm_compile['status'] = job_result['status']
 
         return self.__qasm_compile
 

@@ -260,7 +260,7 @@ class TestQISKit(unittest.TestCase):
         credits = 3
         layout = None
 
-        source = QP_program.compile(device, layout, shots, credits)['complied_circuits'][0]['qasm']
+        source = QP_program.compile(device, layout, shots, credits)['compiled_circuits'][0]['qasm']
 
         self.assertEqual(len(source), 168)
 
@@ -300,7 +300,7 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
         result = QP_program.execute(device, layout, shots, credits)['status']
-        self.assertEqual(result,'RUNNING')
+        self.assertEqual(result, 'COMPLETED')
 
 
         # QP_program.plotter()
