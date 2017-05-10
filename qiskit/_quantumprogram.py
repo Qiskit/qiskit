@@ -156,7 +156,6 @@ class QuantumProgram(object):
             self.__API_config["url"] = {"url":url}
         return self._setup_api(token, url)
 
-
     def set_api_token(self, token):
         """ Set the API Token """
         self.set_api(token=token)
@@ -174,6 +173,23 @@ class QuantumProgram(object):
         for i in jobids:
             status_list.append(self.__API.get_job(i)['status'])
         return status_list
+
+    def load_qasm(self, qasm_file, basis_gates=None):
+        """ Load qasm file
+        qasm_file qasm file name
+        """
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx"  # QE target basis
+
+        try:
+            qasm_file = open(qasm_file, 'r')
+            qasm_source = qasm_file.read()
+            circuit = unroll.Unroller(qasm_source,
+                                      unroll.CircuitBackend(basis_gates.split(",")))
+            self.__circuits[qasm_file] = circuit
+            return circuit
+        except:
+            print('Error: Load qasm file = ', qasm_file)
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code

@@ -5,7 +5,7 @@
 
 import os
 
-APItoken = os.environ['QE_KEY']
+APItoken = os.environ['QE_TOKEN']
 
 config = {
   "url": 'https://quantumexperience.ng.bluemix.net/api'

@@ -282,7 +282,7 @@ class TestQISKit(unittest.TestCase):
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
         QP_program.compile(device, layout, shots, credits)
         result = QP_program.run()
-        self.assertEqual(len(result), 10)
+        self.assertEqual(len(result), 6)
 
     def test_execute_program(self):
         QP_program = QuantumProgram(specs=QPSpecs)
