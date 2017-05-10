@@ -2,8 +2,8 @@
 
 # Virtual environment creation and deps install.
 env:
-	conda create -n QISKitenv python=3 pip
-	source activate QISKitenv
+	conda create -y -n QISKitenv python=3 pip
+	bash -c "source activate QISKitenv"
 	pip install -r requires.txt
 
 env-dev:
