@@ -57,7 +57,7 @@ class QuantumProgram(object):
         'backend': {'name': 'simulator'},
         'max_credits': 3,
         'circuits': [],
-        'complied_circuits': [],
+        'compiled_circuits': [],
         'shots': 1024
     }
 
@@ -68,20 +68,22 @@ class QuantumProgram(object):
         qasm_compile=
             {
                 'backend': {'name': 'qx5qv2'},
-                'maxCredits': 3,
+                'max_credits': 3,
+                'id': 'id0000',
                 'circuits':  [
                     {'qasm': 'OPENQASM text version of circuit 1 from user input'},
                     {'qasm': 'OPENQASM text version of circuit 2 from user input'}
                     ],
-                'complied_circuits': [
+                'compiled_circuits': [
                     {’qasm’: ’Compiled QASM text version of circuit 1 to run on device’,
+                    'exucution_id': 'id000',
                     'result': {
                         'data':{
                             'counts': {’00000’: XXXX, ’00001’: XXXXX},
-                            'time'  : xx.xxxxxxxx} ,
+                            'time'  : xx.xxxxxxxx},
                             ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
                             },
-                        ’status’: ’DONE’} 
+                        ’status’: ’DONE’}
                     },
                     {’qasm’: ’text version of circuit 2 to run on device’, },
                 ],
@@ -205,7 +207,7 @@ class QuantumProgram(object):
             'max_credits': max_credits,
             'layout': layout,
             'circuits': self.circuits_qasm(self.__circuits.values()),
-            'complied_circuits': self.compile_circuits(self.__circuits.values(), layout=layout)[0],
+            'compiled_circuits': self.compile_circuits(self.__circuits.values(), layout=layout)[0],
             'shots': 1024
         }
 
@@ -228,7 +230,7 @@ class QuantumProgram(object):
             unrolled_circuits.append({'circuit_unrolled':circuit_unrolled})
         return qasm_circuits, unrolled_circuits
 
-    def run(self):
+    def run(self, wait=5, timeout=60):
         """Run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -237,23 +239,22 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        output =  self.__API.run_job(self.__qasm_compile['complied_circuits'],
-                                     self.__qasm_compile['backend']['name'],
-                                     self.__qasm_compile['shots'],
-                                     self.__qasm_compile['max_credits'])
-        
-        return output
+        output = self.__API.run_job(self.__qasm_compile['compiled_circuits'],
+                                    self.__qasm_compile['backend']['name'],
+                                    self.__qasm_compile['shots'],
+                                    self.__qasm_compile['max_credits'])
+        if 'error' in output:
+            return {"status":"Error", "result":output['error']}
 
-           # def run(self)
-        
-    #         output = self.__API.run_job(qasm_source.ciruits,
-    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
-    #         return output
+        job_result = self.wait_for_job(output['id'], wait=5, timeout=timeout)
 
+        if job_result['status'] == 'Error':
+            return job_result
 
+        self.__qasm_compile['compiled_circuits'] = job_result['qasms']
+        self.__qasm_compile['used_credits'] = job_result['usedCredits']
 
-            # output = self.__API.run_job(qasm_source.ciruits,
-            #             qasm_source.backend.name, qasmsourece.shots,
+        return self.__qasm_compile
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
@@ -301,7 +302,7 @@ class QuantumProgram(object):
         output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
-    def execute(self, device='simulator', layout=None ,shots=1024, max_credits=3, basis_gates=None):
+    def execute(self, device='simulator', layout=None, shots=1024, max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -325,7 +326,7 @@ class QuantumProgram(object):
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
         qasm_source, circuit_unrolled = self.compile()
-        output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=None)
+        output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=basis_gates)
         return output
 
 
@@ -342,6 +343,31 @@ class QuantumProgram(object):
             qasm_source, circuit = self.unroller_code(circuit)
             jobs = jobs + qasm_source + "\n\n"
         return jobs[:-3]
+
+    def wait_for_job(self, jobid, wait=5, timeout=60):
+        """Wait until all status results are 'COMPLETED'.
+        jobids is a list of id strings.
+        api is an IBMQuantumExperience object.
+        wait is the time to wait between requests, in seconds
+        timeout is how long we wait before failing, in seconds
+        Returns an list of results that correspond to the jobids.
+        """
+        t = 0
+        timeout_over = False
+        job = self.__API.get_job(jobid)
+        while  job['status'] == 'RUNNING':
+            if t == timeout:
+                timeout_over = True
+                break
+            time.sleep(wait)
+            t += wait
+            print("status = %s (%d seconds)" % (job['status'], t))
+            job = self.__API.get_job(jobid)
+        # Get the results
+
+        if timeout_over:
+            return {"status":"Error", "result":"Time Out"}
+        return job
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
@@ -507,7 +533,7 @@ class QuantumProgram(object):
             print("---- Errorr: No results, status = ", self.__qasm_compile["status"])
             return None
 
-        data = self.__qasm_compile['complied'][circuit_number]['result']['data']['count']
+        data = self.__qasm_compile['compiled_circuits'][circuit_number]['result']['data']['count']
         print(data)
         if method == "histogram":
             basicplotter.plot_histogram(data, circuit_number)

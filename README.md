@@ -75,8 +75,9 @@ make env
 - Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
-cd script
-mv Qconfig.py.default Qconfig.py
+
+cp tutorial/Qconfig.py.default test/Qconfig.py
+cp tutorial/Qconfig.py.default tutorial/Qconfig.py
 ```
 
 - Run it:

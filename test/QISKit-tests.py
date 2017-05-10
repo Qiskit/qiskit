@@ -292,7 +292,7 @@ class TestQISKit(unittest.TestCase):
         qc2.h(qr[0])
         qc3.h(qr[0])
         circuits = [qc2, qc3]
-        
+
         device = 'simulator' # the device to run on
         shots = 1024    #the number of shots in the experiment.
         credits = 3
