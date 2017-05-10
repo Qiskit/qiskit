@@ -10,7 +10,7 @@ env-dev:
 	pip install pylint
 
 lint:
-	pylint --rcfile=.rcfile qiskit test tools
+	pylint --rcfile=.rclint qiskit test tools
 
 test:
 	python test/QISKit-tests.py
