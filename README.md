@@ -75,9 +75,7 @@ make env
 - Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
-
-cp tutorial/Qconfig.py.default test/Qconfig.py
-cp tutorial/Qconfig.py.default tutorial/Qconfig.py
+cp tutorial/Qconfig.py.default Qconfig.py
 ```
 
 - Run it:
@@ -92,6 +90,7 @@ If you upgrade the dependencies and next error happens try with this fix:
 
 ```sh
 pip install --upgrade IBMQuantumExperience
+pip install IBMQuantumExperience
 * Cannot remove entries from nonexistent file [PATH]/easy-install.pth
 
 # Fix
