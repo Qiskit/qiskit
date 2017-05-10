@@ -173,6 +173,22 @@ class QuantumProgram(object):
             status_list.append(self.__API.get_job(i)['status'])
         return status_list
 
+    def unroller_code(self, circuit, basis_gates=None):
+        """ Unroller the code
+        circuits are circuits to unroll
+        asis_gates are the base gates by default are: u1,u2,u3,cx
+        """
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx"  # QE target basis
+
+        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
+                                           unroll.CircuitBackend(basis_gates.split(",")))
+        unrolled_circuit.execute()
+
+        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
+        qasm_source = circuit_unrolled.qasm(qeflag=True)
+        return qasm_source, circuit_unrolled
+
     def circuits_qasm(self, circuits):
         qasm_circuits = []
         for circuit in circuits:
@@ -212,23 +228,32 @@ class QuantumProgram(object):
             unrolled_circuits.append({'circuit_unrolled':circuit_unrolled})
         return qasm_circuits, unrolled_circuits
 
-    def unroller_code(self, circuit, basis_gates=None):
-        """ Unroller the code
-        circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx
+    def run(self):
+        """Run a program (array of quantum circuits).
+        program is a list of quantum_circuits
+        api the api for the device
+        device is a string for real or simulator
+        shots is the number of shots
+        max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx"  # QE target basis
+        output =  self.__API.run_job(self.__qasm_compile['complied_circuits'],
+                                     self.__qasm_compile['backend']['name'],
+                                     self.__qasm_compile['shots'],
+                                     self.__qasm_compile['max_credits'])
+        
+        return output
 
-        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
-                                           unroll.CircuitBackend(basis_gates.split(",")))
-        unrolled_circuit.execute()
+           # def run(self)
+        
+    #         output = self.__API.run_job(qasm_source.ciruits,
+    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
+    #         return output
 
-        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
-        qasm_source = circuit_unrolled.qasm(qeflag=True)
-        return qasm_source, circuit_unrolled
 
- 
+
+            # output = self.__API.run_job(qasm_source.ciruits,
+            #             qasm_source.backend.name, qasmsourece.shots,
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
@@ -276,28 +301,6 @@ class QuantumProgram(object):
         output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
-    def run(self):
-        """Run a program (array of quantum circuits).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
-        """
-        output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
-        return output
-
-           # def run(self)
-        
-    #         output = self.__API.run_job(qasm_source.ciruits,
-    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
-    #         return output
-
-
-
-            # output = self.__API.run_job(qasm_source.ciruits,
-            #             qasm_source.backend.name, qasmsourece.shots, 
 
     def execute(self, device, shots, max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).

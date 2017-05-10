@@ -213,7 +213,6 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
         result = QP_program.run_circuits(circuits, device, shots, max_credits=3)
-        print(result)
         self.assertEqual(result["status"], "RUNNING")
 
     def test_execute_program_simulator_online(self):
@@ -229,8 +228,8 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
         result = QP_program.run_program(device, shots, max_credits=3)
-        print(result)
         self.assertEqual(result["status"], "RUNNING")
+
     @unittest.skip 
     def test_execute_one_circuit_real_online(self):
         QP_program = QuantumProgram(specs=QPSpecs)
@@ -262,8 +261,31 @@ class TestQISKit(unittest.TestCase):
         layout = None
 
         source = QP_program.compile(device, layout, shots, credits)['complied_circuits'][0]['qasm']
-       
+
         self.assertEqual(len(source), 168)
+
+    def test_run_program(self):
+        QP_program = QuantumProgram(specs=QPSpecs)
+        qc, qr, cr = QP_program.quantum_elements()
+        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+        qc2.h(qr[0])
+        qc3.h(qr[0])
+
+        circuits = [qc2, qc3]
+
+        device = 'simulator' # the device to run on
+        shots = 1024    #the number of shots in the experiment.
+        credits = 3
+        layout = None
+
+        apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        QP_program.compile(device, layout, shots, credits)['complied_circuits'][0]['qasm']
+        result = QP_program.run()
+        self.assertEqual(len(result), 10)
+
+        # QP_program.plotter()
+
 
     def test_last(self):
         QP_program = QuantumProgram(specs=QPSpecs)
