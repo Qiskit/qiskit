@@ -77,20 +77,21 @@ for j in range(n):
     qc.measure(b[j], ans[j])  # Measure the output register
 qc.measure(cout[0], ans[n])
 
-# TODO: but in new input - make and compile two circuits, put compile in method
+# TODO: Put in new input, make and compile two circuits, put compile in method
 
 ######################################################################
-# Work in progress to map the QuantumCircuit to the 2x8 device
+# Map the QuantumCircuit to the 2x8 device
 ######################################################################
 
 print("QuantumCircuit OPENQASM")
 print("-----------------------")
 print(qc.qasm())
 
+# Unroll this now just for the purpose of gate counting
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
                     unroll.CircuitBackend(["cx", "x", "ccx"]))
 u.execute()
-C = u.backend.circuit  # circuit directed graph object
+C = u.backend.circuit
 
 print("")
 print("size    = %d" % C.size())
@@ -107,12 +108,12 @@ for key, val in C.count_ops().items():
 ######################################################################
 
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
-                    unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
+                    unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
 u.execute()
-C = u.backend.circuit  # circuit directed graph object
+C = u.backend.circuit
 
 print("")
-print("Unrolled OPENQASM to [u1, u2, u3, cx] basis")
+print("Unrolled OPENQASM to QX basis")
 print("-------------------------------------------")
 # print(C.qasm(qeflag=True))
 
@@ -130,7 +131,7 @@ for key, val in C.count_ops().items():
 # Second pass: choose a layout on the coupling graph and add SWAPs.
 ######################################################################
 
-# This is the 2 by 8 array of 16 qubits
+# This is a 2 by 8 array of 16 qubits
 couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
@@ -163,7 +164,7 @@ for key, val in C_mapped.count_ops().items():
 ######################################################################
 
 u = unroll.Unroller(Qasm(data=C_mapped.qasm(qeflag=True)).parse(),
-                    unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
+                    unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
 u.execute()
 C_mapped_unrolled = u.backend.circuit
 C_directions = mapper.direction_mapper(C_mapped_unrolled, coupling)
@@ -188,6 +189,7 @@ for key, val in C_directions.count_ops().items():
 ######################################################################
 # We assume there are no double edges in the connectivity graph, so
 # we don't need to check the direction of the cx gates in a run.
+# BUG: Remove this assumption - won't hold for all-all connections.
 runs = C_directions.collect_runs(["cx"])
 for r in runs:
     if len(r) % 2 == 0:
@@ -217,11 +219,11 @@ for key, val in C_directions.count_ops().items():
 ######################################################################
 
 u = unroll.Unroller(Qasm(data=C_directions.qasm(qeflag=True)).parse(),
-                    unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
+                    unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
 u.execute()
 C_directions_unrolled = u.backend.circuit
 
-runs = C_directions_unrolled.collect_runs(["u1", "u2", "u3"])
+runs = C_directions_unrolled.collect_runs(["u1", "u2", "u3", "id"])
 for run in runs:
     qname = C_directions_unrolled.multi_graph.node[run[0]]["qargs"][0]
     right_name = "u1"
@@ -353,9 +355,6 @@ for key, val in C_directions_unrolled.count_ops().items():
     print("  %s: %d" % (key, val))
 
 # TODO: put each step into a compile() method, clean up
-
-# BUG: fix basis to include id
-# BUG: fix cx cancellation to remove assumption about directed edges
 
 # TODO: test on examples using simulator
 # TODO: simple unit tests for qasm, mapper, unroller, circuit

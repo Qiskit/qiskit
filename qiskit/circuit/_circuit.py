@@ -1074,7 +1074,7 @@ class Circuit:
 
 
         TODO: Gates that use the same cbits will end up in different
-        layers as this is currently implemented. This is may not be
+        layers as this is currently implemented. This may not be
         the desired behavior.
         """
         layers_list = []
@@ -1193,7 +1193,9 @@ class Circuit:
 
         For example, "... h q[0]; cx q[0],q[1]; cx q[0],q[1]; h q[1]; .."
         would produce the tuple of cx nodes as an element of the set returned
-        from a call to collect_runs(["cx"]).
+        from a call to collect_runs(["cx"]). If instead the cx nodes were
+        "cx q[0],q[1]; cx q[1],q[0];", the method would still return the
+        pair in a tuple.
 
         Nodes must have only one successor to continue the run.
         """
