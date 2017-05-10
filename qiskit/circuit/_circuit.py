@@ -1195,15 +1195,12 @@ class Circuit:
         would produce the tuple of cx nodes as an element of the set returned
         from a call to collect_runs(["cx"]). If instead the cx nodes were
         "cx q[0],q[1]; cx q[1],q[0];", the method would still return the
-        pair in a tuple.
+        pair in a tuple. The namelist can contain names that are not
+        in the circuit's basis.
 
         Nodes must have only one successor to continue the run.
         """
         group_list = []
-        for name in namelist:
-            if name not in self.basis:
-                raise CircuitError("%s is not in the list of basis operations"
-                                   % name)
 
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates

@@ -7,6 +7,7 @@ import sys
 import copy
 import math
 import numpy as np
+import networkx as nx
 from qiskit import QISKitException
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
@@ -426,3 +427,161 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2)/2.0,
                                        theta1/2.0, theta2/2.0)
     return (2.0*thetap, phi1 + 2.0 * phip, lambda2 + 2.0*lambdap)
+
+
+def cx_cancellation(circuit):
+    """Cancel back-to-back "cx" gates in circuit."""
+    runs = circuit.collect_runs(["cx"])
+    for run in runs:
+        # Partition the run into chunks with equal gate arguments
+        partition = []
+        chunk = []
+        for i in range(len(run)-1):
+            chunk.append(run[i])
+            qargs0 = circuit.multi_graph.node[run[i]]["qargs"]
+            qargs1 = circuit.multi_graph.node[run[i+1]]["qargs"]
+            if qargs0 != qargs1:
+                partition.append(chunk)
+                chunk = []
+        chunk.append(run[-1])
+        partition.append(chunk)
+        # Simplify each chunk in the partition
+        for chunk in partition:
+            if len(chunk) % 2 == 0:
+                for n in chunk:
+                    circuit._remove_op_node(n)
+            else:
+                for n in chunk[1:]:
+                    circuit._remove_op_node(n)
+
+
+def optimize_1q_gates(circuit):
+    """Simplify runs of single qubit gates in the QX basis.
+
+    Return a new circuit that has been optimized.
+    """
+    qx_basis = ["u1", "u2", "u3", "cx", "id"]
+    urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
+                           unroll.CircuitBackend(qx_basis))
+    urlr.execute()
+    unrolled = urlr.backend.circuit
+
+    runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
+    for run in runs:
+        qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
+        right_name = "u1"
+        right_parameters = (0.0, 0.0, 0.0)  # (theta, phi, lambda)
+        for node in run:
+            nd = unrolled.multi_graph.node[node]
+            assert nd["condition"] is None, "internal error"
+            assert len(nd["qargs"]) == 1, "internal error"
+            assert nd["qargs"][0] == qname, "internal error"
+            left_name = nd["name"]
+            assert left_name in ["u1", "u2", "u3", "id"], "internal error"
+            if left_name == "u1":
+                left_parameters = (0.0, 0.0, float(nd["params"][0]))
+            elif left_name == "u2":
+                left_parameters = (math.pi/2, float(nd["params"][0]),
+                                   float(nd["params"][1]))
+            elif left_name == "u3":
+                left_parameters = tuple(map(float, nd["params"]))
+            else:
+                left_name = "u1"  # replace id with u1
+                left_parameters = (0.0, 0.0, 0.0)
+            # Compose gates
+            name_tuple = (left_name, right_name)
+            if name_tuple == ("u1", "u1"):
+                # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
+                right_parameters = (0.0, 0.0, right_parameters[2] +
+                                    left_parameters[2])
+            elif name_tuple == ("u1", "u2"):
+                # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
+                right_parameters = (math.pi/2, right_parameters[1] +
+                                    left_parameters[2], right_parameters[2])
+            elif name_tuple == ("u2", "u1"):
+                # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
+                right_name = "u2"
+                right_parameters = (math.pi/2, left_parameters[1],
+                                    right_parameters[2] + left_parameters[2])
+            elif name_tuple == ("u1", "u3"):
+                # u1(lambda1) * u3(theta2, phi2, lambda2) =
+                #     u3(theta2, phi2 + lambda1, lambda2)
+                right_parameters = (right_parameters[0], right_parameters[1] +
+                                    left_parameters[2], right_parameters[2])
+            elif name_tuple == ("u3", "u1"):
+                # u3(theta1, phi1, lambda1) * u1(lambda2) =
+                #     u3(theta1, phi1, lambda1 + lambda2)
+                right_name = "u3"
+                right_parameters = (left_parameters[0], left_parameters[1],
+                                    right_parameters[2] + left_parameters[2])
+            elif name_tuple == ("u2", "u2"):
+                # Using Ry(pi/2).Rz(2*lambda).Ry(pi/2) =
+                #    Rz(pi/2).Ry(pi-2*lambda).Rz(pi/2),
+                # u2(phi1, lambda1) * u2(phi2, lambda2) =
+                #    u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
+                right_name = "u3"
+                right_parameters = (math.pi - left_parameters[2] -
+                                    right_parameters[1], left_parameters[1] +
+                                    math.pi/2, right_parameters[2] +
+                                    math.pi/2)
+            else:
+                # For composing u3's or u2's with u3's, use
+                # u2(phi, lambda) = u3(pi/2, phi, lambda)
+                # together with the qiskit.mapper.compose_u3 method.
+                right_name = "u3"
+                right_parameters = compose_u3(left_parameters[0],
+                                              left_parameters[1],
+                                              left_parameters[2],
+                                              right_parameters[0],
+                                              right_parameters[1],
+                                              right_parameters[2])
+            # Here down, when we simplify, we add f(theta) to lambda to correct
+            # the global phase when f(theta) is 2*pi. This isn't necessary but
+            # the other steps preserve the global phase, so we continue.
+            epsilon = 1e-9  # for comparison with zero
+            # Y rotation is 0 mod 2*pi, so the gate is a u1
+            if abs(right_parameters[0] % 2.0*math.pi) < epsilon \
+               and right_name != "u1":
+                right_name = "u1"
+                right_parameters = (0.0, 0.0, right_parameters[1] +
+                                    right_parameters[2] +
+                                    right_parameters[0])
+            # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
+            if right_name == "u3":
+                # theta = pi/2 + 2*k*pi
+                if abs((right_parameters[0] - math.pi/2) % 2.0*math.pi) \
+                   < epsilon:
+                    right_name = "u2"
+                    right_parameters = (math.pi/2, right_parameters[1],
+                                        right_parameters[2] +
+                                        (right_parameters[0] - math.pi/2))
+                # theta = -pi/2 + 2*k*pi
+                if abs((right_parameters[0] + math.pi/2) % 2.0*math.pi) \
+                   < epsilon:
+                    right_name = "u2"
+                    right_parameters = (math.pi/2, right_parameters[1] +
+                                        math.pi, right_parameters[2] -
+                                        math.pi + (right_parameters[0] +
+                                        math.pi/2))
+            # u1 and lambda is 0 mod 4*pi so gate is nop
+            if right_name == "u1" and \
+               abs(right_parameters[2] % 4.0*math.pi) < epsilon:
+                right_name = "nop"
+        # Replace the data of the first node in the run
+        new_params = []
+        if right_name == "u1":
+            new_params.append(right_parameters[2])
+        if right_name == "u2":
+            new_params = [right_parameters[1], right_parameters[2]]
+        if right_name == "u3":
+            new_params = list(right_parameters)
+        nx.set_node_attributes(unrolled.multi_graph, 'name',
+                               {run[0]: right_name})
+        nx.set_node_attributes(unrolled.multi_graph, 'params',
+                               {run[0]: tuple(map(str, new_params))})
+        # Delete the other nodes in the run
+        for node in run[1:]:
+            unrolled._remove_op_node(node)
+        if right_name == "nop":
+            unrolled._remove_op_node(run[0])
+    return unrolled

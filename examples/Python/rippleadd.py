@@ -3,10 +3,6 @@ Ripple adder example based on OPENQASM example.
 
 Author: Andrew Cross
 """
-import math
-
-import networkx as nx
-
 import qiskit as qk
 
 # Work in progress
@@ -77,8 +73,6 @@ for j in range(n):
     qc.measure(b[j], ans[j])  # Measure the output register
 qc.measure(cout[0], ans[n])
 
-# TODO: Put in new input, make and compile two circuits, put compile in method
-
 ######################################################################
 # Map the QuantumCircuit to the 2x8 device
 ######################################################################
@@ -89,7 +83,7 @@ print(qc.qasm())
 
 # Unroll this now just for the purpose of gate counting
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
-                    unroll.CircuitBackend(["cx", "x", "ccx"]))
+                    unroll.CircuitBackend(["cx", "x", "ccx", "id"]))
 u.execute()
 C = u.backend.circuit
 
@@ -136,6 +130,20 @@ couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
 
+# This is all-all.
+#couplingdict = {0: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+#                1: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+#                2: [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+#                3: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11],
+#                4: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11],
+#                5: [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+#                6: [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11],
+#                7: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11],
+#                8: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11],
+#                9: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+#                10: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11],
+#                11: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+
 coupling = mapper.Coupling(couplingdict)
 C_mapped, layout = mapper.swap_mapper(C, coupling)
 
@@ -162,7 +170,6 @@ for key, val in C_mapped.count_ops().items():
 ######################################################################
 # Third pass: expand SWAP subroutines and adjust cx gate orientations.
 ######################################################################
-
 u = unroll.Unroller(Qasm(data=C_mapped.qasm(qeflag=True)).parse(),
                     unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
 u.execute()
@@ -187,17 +194,7 @@ for key, val in C_directions.count_ops().items():
 ######################################################################
 # Fourth pass: collect runs of cx gates and cancel them.
 ######################################################################
-# We assume there are no double edges in the connectivity graph, so
-# we don't need to check the direction of the cx gates in a run.
-# BUG: Remove this assumption - won't hold for all-all connections.
-runs = C_directions.collect_runs(["cx"])
-for r in runs:
-    if len(r) % 2 == 0:
-        for n in r:
-            C_directions._remove_op_node(n)
-    else:
-        for j in range(len(r)-1):
-            C_directions._remove_op_node(r[j])
+mapper.cx_cancellation(C_directions)
 
 print("")
 print("Cancelled redundant CNOT gates")
@@ -217,127 +214,7 @@ for key, val in C_directions.count_ops().items():
 ######################################################################
 # Fifth pass: expand single qubit gates to u1, u2, u3 and simplify.
 ######################################################################
-
-u = unroll.Unroller(Qasm(data=C_directions.qasm(qeflag=True)).parse(),
-                    unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
-u.execute()
-C_directions_unrolled = u.backend.circuit
-
-runs = C_directions_unrolled.collect_runs(["u1", "u2", "u3", "id"])
-for run in runs:
-    qname = C_directions_unrolled.multi_graph.node[run[0]]["qargs"][0]
-    right_name = "u1"
-    right_parameters = (0.0, 0.0, 0.0)  # (theta, phi, lambda)
-    for node in run:
-        nd = C_directions_unrolled.multi_graph.node[node]
-        assert nd["condition"] is None, "internal error"
-        assert len(nd["qargs"]) == 1, "internal error"
-        assert nd["qargs"][0] == qname, "internal error"
-        left_name = nd["name"]
-        assert left_name in ["u1", "u2", "u3", "id"], "internal error"
-        if left_name == "u1":
-            left_parameters = (0.0, 0.0, float(nd["params"][0]))
-        elif left_name == "u2":
-            left_parameters = (math.pi/2, float(nd["params"][0]),
-                               float(nd["params"][1]))
-        elif left_name == "u3":
-            left_parameters = tuple(map(float, nd["params"]))
-        else:
-            left_name = "u1"  # replace id with u1
-            left_parameters = (0.0, 0.0, 0.0)
-        # Compose gates
-        name_tuple = (left_name, right_name)
-        if name_tuple == ("u1", "u1"):
-            # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-            right_parameters = (0.0, 0.0, right_parameters[2] +
-                                left_parameters[2])
-        elif name_tuple == ("u1", "u2"):
-            # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-            right_parameters = (math.pi/2, right_parameters[1] +
-                                left_parameters[2], right_parameters[2])
-        elif name_tuple == ("u2", "u1"):
-            # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
-            right_name = "u2"
-            right_parameters = (math.pi/2, left_parameters[1],
-                                right_parameters[2] + left_parameters[2])
-        elif name_tuple == ("u1", "u3"):
-            # u1(lambda1) * u3(theta2, phi2, lambda2) =
-            #     u3(theta2, phi2 + lambda1, lambda2)
-            right_parameters = (right_parameters[0], right_parameters[1] +
-                                left_parameters[2], right_parameters[2])
-        elif name_tuple == ("u3", "u1"):
-            # u3(theta1, phi1, lambda1) * u1(lambda2) =
-            #     u3(theta1, phi1, lambda1 + lambda2)
-            right_name = "u3"
-            right_parameters = (left_parameters[0], left_parameters[1],
-                                right_parameters[2] + left_parameters[2])
-        elif name_tuple == ("u2", "u2"):
-            # Using Ry(pi/2).Rz(2*lambda).Ry(pi/2) =
-            #    Rz(pi/2).Ry(pi-2*lambda).Rz(pi/2),
-            # u2(phi1, lambda1) * u2(phi2, lambda2) =
-            #    u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
-            right_name = "u3"
-            right_parameters = (math.pi - left_parameters[2] -
-                                right_parameters[1], left_parameters[1] +
-                                math.pi/2, right_parameters[2] +
-                                math.pi/2)
-        else:
-            # For composing u3's or u2's with u3's, use
-            # u2(phi, lambda) = u3(pi/2, phi, lambda)
-            # together with the qiskit.mapper.compose_u3 method.
-            right_name = "u3"
-            right_parameters = mapper.compose_u3(left_parameters[0],
-                                                 left_parameters[1],
-                                                 left_parameters[2],
-                                                 right_parameters[0],
-                                                 right_parameters[1],
-                                                 right_parameters[2])
-        # Here down, when we simplify, we add f(theta) to lambda to correct
-        # the global phase when f(theta) is 2*pi. This isn't necessary but the
-        # other steps preserve the global phase, so we continue to do so.
-        epsilon = 1e-9  # for comparison with zero
-        # Y rotation is 0 mod 2*pi, so the gate is a u1
-        if abs(right_parameters[0] % 2.0*math.pi) < epsilon \
-           and right_name != "u1":
-            right_name = "u1"
-            right_parameters = (0.0, 0.0, right_parameters[1] +
-                                right_parameters[2] +
-                                right_parameters[0])
-        # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
-        if right_name == "u3":
-            # theta = pi/2 + 2*k*pi
-            if abs((right_parameters[0] - math.pi/2) % 2.0*math.pi) < epsilon:
-                right_name = "u2"
-                right_parameters = (math.pi/2, right_parameters[1],
-                                    right_parameters[2] +
-                                    (right_parameters[0] - math.pi/2))
-            # theta = -pi/2 + 2*k*pi
-            if abs((right_parameters[0] + math.pi/2) % 2.0*math.pi) < epsilon:
-                right_name = "u2"
-                right_parameters = (math.pi/2, right_parameters[1] + math.pi,
-                                    right_parameters[2] - math.pi +
-                                    (right_parameters[0] + math.pi/2))
-        # u1 and lambda is 0 mod 4*pi so gate is nop
-        if right_name == "u1" and \
-           abs(right_parameters[2] % 4.0*math.pi) < epsilon:
-            right_name = "nop"
-    # Replace the data of the first node in the run
-    new_params = []
-    if right_name == "u1":
-        new_params.append(right_parameters[2])
-    if right_name == "u2":
-        new_params = [right_parameters[1], right_parameters[2]]
-    if right_name == "u3":
-        new_params = list(right_parameters)
-    nx.set_node_attributes(C_directions_unrolled.multi_graph, 'name',
-                           {run[0]: right_name})
-    nx.set_node_attributes(C_directions_unrolled.multi_graph, 'params',
-                           {run[0]: tuple(map(str, new_params))})
-    # Delete the other nodes in the run
-    for node in run[1:]:
-        C_directions_unrolled._remove_op_node(node)
-    if right_name == "nop":
-        C_directions_unrolled._remove_op_node(run[0])
+C_directions_unrolled = mapper.optimize_1q_gates(C_directions)
 
 print("")
 print("Cancelled redundant single qubit gates")
@@ -354,7 +231,6 @@ print("operations:")
 for key, val in C_directions_unrolled.count_ops().items():
     print("  %s: %d" % (key, val))
 
-# TODO: put each step into a compile() method, clean up
-
 # TODO: test on examples using simulator
+# TODO: understand swap_mapper with all-all
 # TODO: simple unit tests for qasm, mapper, unroller, circuit
