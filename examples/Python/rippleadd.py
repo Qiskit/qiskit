@@ -87,6 +87,21 @@ print("QuantumCircuit OPENQASM")
 print("-----------------------")
 print(qc.qasm())
 
+u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
+                    unroll.CircuitBackend(["cx", "x", "ccx"]))
+u.execute()
+C = u.backend.circuit  # circuit directed graph object
+
+print("")
+print("size    = %d" % C.size())
+print("depth   = %d" % C.depth())
+print("width   = %d" % C.width())
+print("bits    = %d" % C.num_cbits())
+print("factors = %d" % C.num_tensor_factors())
+print("operations:")
+for key, val in C.count_ops().items():
+    print("  %s: %d" % (key, val))
+
 ######################################################################
 # First pass: expand subroutines to a basis of 1 and 2 qubit gates.
 ######################################################################
@@ -96,6 +111,7 @@ u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
 u.execute()
 C = u.backend.circuit  # circuit directed graph object
 
+print("")
 print("Unrolled OPENQASM to [u1, u2, u3, cx] basis")
 print("-------------------------------------------")
 # print(C.qasm(qeflag=True))
@@ -106,6 +122,9 @@ print("depth   = %d" % C.depth())
 print("width   = %d" % C.width())
 print("bits    = %d" % C.num_cbits())
 print("factors = %d" % C.num_tensor_factors())
+print("operations:")
+for key, val in C.count_ops().items():
+    print("  %s: %d" % (key, val))
 
 ######################################################################
 # Second pass: choose a layout on the coupling graph and add SWAPs.
@@ -135,6 +154,9 @@ print("depth   = %d" % C_mapped.depth())
 print("width   = %d" % C_mapped.width())
 print("bits    = %d" % C_mapped.num_cbits())
 print("factors = %d" % C_mapped.num_tensor_factors())
+print("operations:")
+for key, val in C_mapped.count_ops().items():
+    print("  %s: %d" % (key, val))
 
 ######################################################################
 # Third pass: expand SWAP subroutines and adjust cx gate orientations.
@@ -157,6 +179,9 @@ print("depth   = %d" % C_directions.depth())
 print("width   = %d" % C_directions.width())
 print("bits    = %d" % C_directions.num_cbits())
 print("factors = %d" % C_directions.num_tensor_factors())
+print("operations:")
+for key, val in C_directions.count_ops().items():
+    print("  %s: %d" % (key, val))
 
 ######################################################################
 # Fourth pass: collect runs of cx gates and cancel them.
@@ -183,6 +208,9 @@ print("depth   = %d" % C_directions.depth())
 print("width   = %d" % C_directions.width())
 print("bits    = %d" % C_directions.num_cbits())
 print("factors = %d" % C_directions.num_tensor_factors())
+print("operations:")
+for key, val in C_directions.count_ops().items():
+    print("  %s: %d" % (key, val))
 
 ######################################################################
 # Fifth pass: expand single qubit gates to u1, u2, u3 and simplify.
@@ -320,8 +348,9 @@ print("depth   = %d" % C_directions_unrolled.depth())
 print("width   = %d" % C_directions_unrolled.width())
 print("bits    = %d" % C_directions_unrolled.num_cbits())
 print("factors = %d" % C_directions_unrolled.num_tensor_factors())
-
-# TODO: add Circuit method to tally each type of gate so we can see costs
+print("operations:")
+for key, val in C_directions_unrolled.count_ops().items():
+    print("  %s: %d" % (key, val))
 
 # TODO: put each step into a compile() method, clean up
 

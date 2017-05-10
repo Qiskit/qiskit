@@ -1224,3 +1224,20 @@ class Circuit:
                 if len(group) > 1:
                     group_list.append(tuple(group))
         return set(group_list)
+
+    def count_ops(self):
+        """Count the occurrences of operation names.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        ts = nx.topological_sort(self.multi_graph)
+        for node in ts:
+            nd = self.multi_graph.node[node]
+            name = nd["name"]
+            if nd["type"] == "op":
+                if name not in op_dict:
+                    op_dict[name] = 1
+                else:
+                    op_dict[name] += 1
+        return op_dict
