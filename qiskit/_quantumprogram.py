@@ -25,6 +25,7 @@ Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
 import time
 import json
 from collections import Counter
+from . import basicplotter
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
@@ -32,6 +33,8 @@ from IBMQuantumExperience import IBMQuantumExperience
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
+from .qasm import QasmException
+
 # Beta Modules
 from . import unroll
 from . import qasm
@@ -50,27 +53,40 @@ class QuantumProgram(object):
     __circuits = {}
     __API = {}
     __API_config = {}
-    __qasm_compile = {}
+    __qasm_compile = {
+        'backend': {'name': 'simulator'},
+        'max_credits': 3,
+        'circuits': [],
+        'complied_circuits': [],
+        'shots': 1024
+    }
 
 
     """
-        qasm_compile ={
+        objects examples:
+
+        qasm_compile=
+            {
                 'backend': {'name': 'qx5qv2'},
                 'maxCredits': 3,
                 'circuits':  [
-                    {'qasm': 'OPENQASM...'},
-                    {'qasm': 'OPENQASM...'}
+                    {'qasm': 'OPENQASM text version of circuit 1 from user input'},
+                    {'qasm': 'OPENQASM text version of circuit 2 from user input'}
                     ],
-                'shots': 1024
-                'result': {
-                    'data':{
-                        counts: {
-
-                        }
-                    }
-                 }
-                }
-        
+                'complied_circuits': [
+                    {’qasm’: ’Compiled QASM text version of circuit 1 to run on device’,
+                    'result': {
+                        'data':{
+                            'counts': {’00000’: XXXX, ’00001’: XXXXX},
+                            'time'  : xx.xxxxxxxx} ,
+                            ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
+                            },
+                        ’status’: ’DONE’} 
+                    },
+                    {’qasm’: ’text version of circuit 2 to run on device’, },
+                ],
+                'shots': 1024,
+            }
 
     """
 
@@ -80,7 +96,7 @@ class QuantumProgram(object):
         self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
-        self.__qasm_compile = {}
+        # self.__qasm_compile = {}
 
         self.mapper = mapper
 
@@ -157,29 +173,44 @@ class QuantumProgram(object):
             status_list.append(self.__API.get_job(i)['status'])
         return status_list
 
-    def compile(self, couplingdict=None):
-        """ Compile unrole the code
-        circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx
-        """
-        qasm_source, circuit_unrolled = self.unroller_code(self.__circuits)
-        if couplingdict:
-            coupling = self.mapper.Coupling(couplingdict)
-            circuit_unrolled, layout = self.mapper.swap_mapper(circuit_unrolled, coupling)
-            qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
-        return qasm_source, circuit_unrolled
+    def circuits_qasm(self, circuits):
+        qasm_circuits = []
+        for circuit in circuits:
+            qasm_circuits.append({'qasm':circuit.qasm()})
+        return qasm_circuits
 
-    def compile_circuits(self, circuits, couplingdict=None):
+    def compile(self, device, layout=None, shots=1024, max_credits=3):
         """ Compile unrole the code
         circuits are circuits to unroll
         asis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        qasm_source, circuit_unrolled = self.unroller_code(self.__circuits)
-        if couplingdict:
-            coupling = self.mapper.Coupling(couplingdict)
-            circuit_unrolled, layout = self.mapper.swap_mapper(circuit_unrolled, coupling)
-            qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
-        return qasm_source, circuit_unrolled
+        self.__qasm_compile = {
+            'backend': {'name': device},
+            'max_credits': max_credits,
+            'layout': layout,
+            'circuits': self.circuits_qasm(self.__circuits.values()),
+            'complied_circuits': self.compile_circuits(self.__circuits.values(), layout=layout)[0],
+            'shots': 1024
+        }
+
+        return self.__qasm_compile
+
+    def compile_circuits(self, circuits, layout=None):
+        """ Compile unrole the code
+        circuits are circuits to unroll
+        asis_gates are the base gates by default are: u1,u2,u3,cx
+        """
+        qasm_circuits = []
+        unrolled_circuits = []
+        for circuit in circuits:
+            qasm_source, circuit_unrolled = self.unroller_code(circuit)
+            if layout:
+                coupling = self.mapper.Coupling(layout)
+                circuit_unrolled, final_layout = self.mapper.swap_mapper(circuit_unrolled, coupling)
+                qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
+            qasm_circuits.append({'qasm': qasm_source})
+            unrolled_circuits.append({'circuit_unrolled':circuit_unrolled})
+        return qasm_circuits, unrolled_circuits
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
@@ -197,16 +228,7 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    # def run(self)
-        
-    #         output = self.__API.run_job(qasm_source.ciruits,
-    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
-    #         return output
-
-
-
-            # output = self.__API.run_job(qasm_source.ciruits,
-            #             qasm_source.backend.name, qasmsourece.shots, 
+ 
 
     def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
@@ -254,6 +276,29 @@ class QuantumProgram(object):
         output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
+    def run(self):
+        """Run a program (array of quantum circuits).
+        program is a list of quantum_circuits
+        api the api for the device
+        device is a string for real or simulator
+        shots is the number of shots
+        max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx
+        """
+        output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
+        return output
+
+           # def run(self)
+        
+    #         output = self.__API.run_job(qasm_source.ciruits,
+    #                     qasm_source.backend.name, qasmsourece.shots, qasm_sorue.max_credits)
+    #         return output
+
+
+
+            # output = self.__API.run_job(qasm_source.ciruits,
+            #             qasm_source.backend.name, qasmsourece.shots, 
+
     def execute(self, device, shots, max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
@@ -280,14 +325,6 @@ class QuantumProgram(object):
         output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=None)
         return output
 
-    # def plotter(self, method="histogram", circuit=0)
-
-    #     some check if sim or backend done
-
-    #     if histogram do
-    #         blah
-    #     if qshere do 
-    #         blah
 
     def program_to_text(self, circuits=None):
         """Print a program (array of quantum circuits).
@@ -296,12 +333,12 @@ class QuantumProgram(object):
         """
         if not circuits:
             circuits = self.__circuits.values()
-
+        # TODO: Store QASM per circuit
         jobs = ""
         for circuit in circuits:
             qasm_source, circuit = self.unroller_code(circuit)
             jobs = jobs + qasm_source + "\n\n"
-        return jobs
+        return jobs[:-3]
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
@@ -440,7 +477,6 @@ class QuantumProgram(object):
         for register in registers_array:
             register = self.create_quantum_registers(register["name"], register["size"])
             new_registers.append(register)
-        print(new_registers)
         return new_registers
 
     def create_classical_registers_group(self, registers_array):
@@ -455,3 +491,22 @@ class QuantumProgram(object):
         self.__classical_registers[name] = ClassicalRegister(name, size)
         print(">> classical_registers created:", name, size)
         return self.__classical_registers[name]
+
+    def plotter(self, method="histogram", circuit_number=0):
+        """Plot the results
+        method: histogram/qsphere
+        circuit: Print one circuit
+        """
+        if self.__qasm_compile == {}:
+            print("---- Error: Not data to plot ----")
+            return None
+        if not self.__qasm_compile["status"] == "DONE":
+            print("---- Errorr: No results, status = ", self.__qasm_compile["status"])
+            return None
+
+        data = self.__qasm_compile['complied'][circuit_number]['result']['data']['count']
+        print(data)
+        if method == "histogram":
+            basicplotter.plot_histogram(data, circuit_number)
+        else:
+            basicplotter.plot_qsphere(data, circuit_number)

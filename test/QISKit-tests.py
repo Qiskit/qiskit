@@ -119,7 +119,8 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc1, QuantumCircuit)
         self.assertIsInstance(qc2, QuantumCircuit)
         self.assertIsInstance(qc3, QuantumCircuit)
-
+    
+    @unittest.skip 
     def test_load_qasm(self):
         pass 
 
@@ -135,7 +136,7 @@ class TestQISKit(unittest.TestCase):
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
         result = QP_program.program_to_text()
-        self.assertEqual(len(result), 104)
+        self.assertEqual(len(result), 101)
 
     def test_create_add_gates(self):
         QP_program = QuantumProgram(specs=QPSpecs)
@@ -151,7 +152,7 @@ class TestQISKit(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         result = QP_program.program_to_text()
-        self.assertEqual(len(result), 418)
+        self.assertEqual(len(result), 415)
 
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPSpecs)
@@ -175,7 +176,8 @@ class TestQISKit(unittest.TestCase):
         qc3.h(qr[0])
         qc_result = qc2 + qc3
         self.assertIsInstance(qc_result, QuantumCircuit)
-
+    
+    @unittest.skip 
     def test_contact_multiple_vertical_circuits(self):
         pass
 
@@ -242,8 +244,30 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.run_circuit("circuit-name", device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
 
+    @unittest.skip 
     def test_execute_one_circuit_simulator_local(self):
         pass
+
+    def test_compile_program(self):
+        QP_program = QuantumProgram(specs=QPSpecs)
+        qc, qr, cr = QP_program.quantum_elements()
+
+        qc.h(qr[0])
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[1])
+
+        device = 'qx5qv2'
+        shots = 1024
+        credits = 3
+        layout = None
+
+        source = QP_program.compile(device, layout, shots, credits)['complied_circuits'][0]['qasm']
+       
+        self.assertEqual(len(source), 168)
+
+    def test_last(self):
+        QP_program = QuantumProgram(specs=QPSpecs)
+        # QP_program.plotter()
    
 if __name__ == '__main__':
     unittest.main()
