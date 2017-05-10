@@ -213,7 +213,7 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm':circuit.qasm()})
         return qasm_circuits
 
-    def compile(self, device, layout=None, shots=1024, max_credits=3):
+    def compile(self, device, coupling_map=None, shots=1024, max_credits=3):
         """ Compile unrole the code
         circuits are circuits to unroll
         asis_gates are the base gates by default are: u1,u2,u3,cx
@@ -221,13 +221,13 @@ class QuantumProgram(object):
         self.__qasm_compile = {
             'backend': {'name': device},
             'max_credits': max_credits,
-            'compiled_circuits': self.compile_circuits(self.__circuits.values(), layout=layout)[0],
+            'compiled_circuits': self.compile_circuits(self.__circuits.values(), coupling_map=coupling_map)[0],
             'shots': 1024
         }
 
         return self.__qasm_compile
 
-    def compile_circuits(self, circuits, layout=None):
+    def compile_circuits(self, circuits, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
         asis_gates are the base gates by default are: u1,u2,u3,cx
@@ -236,9 +236,9 @@ class QuantumProgram(object):
         unrolled_circuits = []
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(circuit)
-            if layout:
-                coupling = self.mapper.Coupling(layout)
-                circuit_unrolled, final_layout = self.mapper.swap_mapper(circuit_unrolled, coupling)
+            if coupling_map:
+                coupling = self.mapper.Coupling(coupling_map)
+                circuit_unrolled, final_coupling_map = self.mapper.swap_mapper(circuit_unrolled, coupling)
                 qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
             qasm_circuits.append({'qasm': qasm_source})
             unrolled_circuits.append({'circuit_unrolled':circuit_unrolled})
@@ -317,7 +317,7 @@ class QuantumProgram(object):
         output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
-    def execute(self, device='simulator', layout=None, shots=1024, max_credits=3, basis_gates=None):
+    def execute(self, device='simulator', coupling_map=None, shots=1024, max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -326,7 +326,7 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        self.compile(device, layout, shots, max_credits)
+        self.compile(device, coupling_map, shots, max_credits)
         output = self.run()
 
         return output

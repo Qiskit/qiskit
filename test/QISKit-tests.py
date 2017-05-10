@@ -258,9 +258,9 @@ class TestQISKit(unittest.TestCase):
         device = 'qx5qv2'
         shots = 1024
         credits = 3
-        layout = None
+        coupling_map = None
 
-        source = QP_program.compile(device, layout, shots, credits)['compiled_circuits'][0]['qasm']
+        source = QP_program.compile(device, coupling_map, shots, credits)['compiled_circuits'][0]['qasm']
 
         self.assertEqual(len(source), 168)
 
@@ -277,10 +277,10 @@ class TestQISKit(unittest.TestCase):
         device = 'simulator' # the device to run on
         shots = 1024    #the number of shots in the experiment.
         credits = 3
-        layout = None
+        coupling_map = None
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
-        QP_program.compile(device, layout, shots, credits)
+        QP_program.compile(device, coupling_map, shots, credits)
         result = QP_program.run()
         self.assertEqual(len(result), 6)
 
@@ -296,10 +296,10 @@ class TestQISKit(unittest.TestCase):
         device = 'simulator' # the device to run on
         shots = 1024    #the number of shots in the experiment.
         credits = 3
-        layout = None
+        coupling_map = None
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
-        result = QP_program.execute(device, layout, shots, credits)['status']
+        result = QP_program.execute(device, coupling_map, shots, credits)['status']
         self.assertEqual(result, 'COMPLETED')
 
 
