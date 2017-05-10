@@ -90,7 +90,6 @@ If you upgrade the dependencies and next error happens try with this fix:
 
 ```sh
 pip install --upgrade IBMQuantumExperience
-pip install IBMQuantumExperience
 * Cannot remove entries from nonexistent file [PATH]/easy-install.pth
 
 # Fix
