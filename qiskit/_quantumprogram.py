@@ -301,8 +301,7 @@ class QuantumProgram(object):
         output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
         return output
 
-
-    def execute(self, device, shots, max_credits=3, basis_gates=None):
+    def execute(self, device='simulator', layout=None ,shots=1024, max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -311,8 +310,9 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        qasm_source, circuit_unrolled = self.compile()
-        output = self.run_circuit(circuit_unrolled, device, shots, max_credits=3, basis_gates=None)
+        self.compile(device, layout, shots, max_credits)
+        output = self.run()
+
         return output
 
     def execute_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):

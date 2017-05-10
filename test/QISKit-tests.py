@@ -280,9 +280,28 @@ class TestQISKit(unittest.TestCase):
         layout = None
 
         apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
-        QP_program.compile(device, layout, shots, credits)['complied_circuits'][0]['qasm']
+        QP_program.compile(device, layout, shots, credits)
         result = QP_program.run()
         self.assertEqual(len(result), 10)
+
+    def test_execute_program(self):
+        QP_program = QuantumProgram(specs=QPSpecs)
+        qc, qr, cr = QP_program.quantum_elements()
+        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+        qc2.h(qr[0])
+        qc3.h(qr[0])
+        circuits = [qc2, qc3]
+        
+        device = 'simulator' # the device to run on
+        shots = 1024    #the number of shots in the experiment.
+        credits = 3
+        layout = None
+
+        apiconnection = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        result = QP_program.execute(device, layout, shots, credits)['status']
+        self.assertEqual(result,'RUNNING')
+
 
         # QP_program.plotter()
 
