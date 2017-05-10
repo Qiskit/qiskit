@@ -3,18 +3,17 @@
 # Virtual environment creation and deps install.
 env:
 	conda create -y -n QISKitenv python=3 pip
-	bash -c "source activate QISKitenv"
-	pip install -r requires.txt
+	bash -c "source activate QISKitenv;pip install -r requires.txt"
 
 env-dev:
-	pip install pylint
+	bash -c "source activate QISKitenv;pip install pylint matplotlib"
 
 lint:
-	pylint --rcfile=.rclint qiskit test tools
+	bash -c "source activate QISKitenv;pylint --rcfile=.rclint qiskit test tools"
 
 test:
-	python test/QISKit-tests.py
+	bash -c "source activate QISKitenv;python3 test/QISKit-tests.py"
 
 run:
-	cd scripts
-	jupyter notebook
+	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
+
