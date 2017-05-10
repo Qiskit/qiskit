@@ -1,5 +1,7 @@
 # SDK config file
 Qconfig.py
+# We need it in the tests.
+!test/Qconfig.py
 
 # ply outputs
 qiskit/qasm/parser.out
