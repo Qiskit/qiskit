@@ -205,8 +205,6 @@ class QuantumProgram(object):
         self.__qasm_compile = {
             'backend': {'name': device},
             'max_credits': max_credits,
-            'layout': layout,
-            'circuits': self.circuits_qasm(self.__circuits.values()),
             'compiled_circuits': self.compile_circuits(self.__circuits.values(), layout=layout)[0],
             'shots': 1024
         }

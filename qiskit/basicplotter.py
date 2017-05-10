@@ -181,7 +181,7 @@ def plot_histogram(data, number_to_keep=None):
     plt.show()
 
 
-def plot_qsphere(data, number_of_qubits):
+def plot_qsphere(data, number_to_keep, number_of_qubits):
     """Plot the qsphere of data."""
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
