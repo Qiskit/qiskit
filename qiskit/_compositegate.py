@@ -42,7 +42,8 @@ class CompositeGate(Gate):
         """Raise exception if q is not an argument or not qreg in circuit."""
         self.check_circuit()
         self.circuit._check_qubit(qubit)
-        if (qubit[0].name, qubit[1]) not in map(lambda x: (x[0].name, x[1]), self.arg):
+        if (qubit[0].name, qubit[1]) not in map(
+                lambda x: (x[0].name, x[1]), self.arg):
             raise QISKitException("qubit '%s[%d]' not argument of gate"
                                   % (qubit[0].name, qubit[1]))
 

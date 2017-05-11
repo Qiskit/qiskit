@@ -135,7 +135,7 @@ class QuantumProgram(object):
         try:
             self.__api = IBMQuantumExperience(token, {"url": url})
             return True
-        except:
+        except BaseException:
             print('---- Error: Exception connect to servers ----')
 
             return False
@@ -187,7 +187,7 @@ class QuantumProgram(object):
             # print(circuit.qasm())
             self.__circuits[qasm_file] = circuit
             return circuit
-        except:
+        except BaseException:
             print('---- Error: Load qasm file = ', qasm_file)
 
     def unroller_code(self, circuit, basis_gates=None):
@@ -261,7 +261,8 @@ class QuantumProgram(object):
         if 'error' in output:
             return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
+        job_result = self.wait_for_job(
+            output['id'], wait=wait, timeout=timeout)
 
         if job_result['status'] == 'Error':
             return job_result
@@ -272,7 +273,8 @@ class QuantumProgram(object):
 
         return self.__qasm_compile
 
-    def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None, wait=5, timeout=60):
+    def run_circuits(self, circuits, device, shots,
+                     max_credits=3, basis_gates=None, wait=5, timeout=60):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
@@ -326,7 +328,8 @@ class QuantumProgram(object):
         ), device, shots, max_credits=max_credits, basis_gates=basis_gates)
         return output
 
-    def execute(self, device='simulator', coupling_map=None, shots=1024, max_credits=3):
+    def execute(self, device='simulator', coupling_map=None,
+                shots=1024, max_credits=3):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -340,7 +343,8 @@ class QuantumProgram(object):
 
         return output
 
-    def execute_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
+    def execute_circuits(self, circuits, device, shots,
+                         max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
