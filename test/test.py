@@ -18,13 +18,18 @@
 """
 QISKit Test
 
-Authors: Ismael Faro
+Authors: Ismael Faro <Ismael.Faro1@ibm.com>
+         Jesus Perez <jesusper@us.ibm.com>
 """
 
 import sys
+import os
 import json
 import unittest
 
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import Qconfig
 
 from qiskit import QuantumProgram
@@ -32,8 +37,12 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 
+# We need the environment variable for Travis.
+try:
+   API_TOKEN = os.environ["QE_TOKEN"]
+except KeyError:
+    API_TOKEN =  Qconfig.APItoken
 
-sys.path.insert(0, '../')
 
 # Define Program Specifications.
 QPS_SPECS = {
@@ -190,7 +199,7 @@ class TestQISKit(unittest.TestCase):
 
     def test_setup_api(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        result = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        result = QP_program.set_api(API_TOKEN, Qconfig.config["url"])
         self.assertTrue(result)
 
     def test_execute_one_circuit_simulator_online(self):
@@ -202,7 +211,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         result = QP_program.run_circuit(
             "circuit-name", device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
@@ -221,7 +230,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         result = QP_program.run_circuits(
             circuits, device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
@@ -238,7 +247,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         result = QP_program.run_program(device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
@@ -252,7 +261,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         result = QP_program.run_circuit(
             "circuit-name", device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
@@ -295,7 +304,7 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         QP_program.compile(device, coupling_map, shots, credits)
         result = QP_program.run()
         self.assertEqual(len(result), 6)
@@ -315,7 +324,7 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         apiconnection = QP_program.set_api(
-            Qconfig.APItoken, Qconfig.config["url"])
+            API_TOKEN, Qconfig.config["url"])
         result = QP_program.execute(
             device, coupling_map, shots, credits)['status']
         self.assertEqual(result, 'COMPLETED')
