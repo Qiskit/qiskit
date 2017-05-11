@@ -176,7 +176,7 @@ class QuantumProgram(object):
         qasm_file qasm file name
         """
         if not basis_gates:
-            basis_gates = "u1,u2,u3,cx"  # QE target basis
+            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
 
         try:
             qasm_file = open(qasm_file, 'r')
@@ -193,10 +193,10 @@ class QuantumProgram(object):
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
         circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx
+        asis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         if not basis_gates:
-            basis_gates = "u1,u2,u3,cx"  # QE target basis
+            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
 
         unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
                                            unroll.CircuitBackend(basis_gates.split(",")))
@@ -215,7 +215,7 @@ class QuantumProgram(object):
     def compile(self, device, coupling_map=None, shots=1024, max_credits=3):
         """ Compile unrole the code
         circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         self.__qasm_compile = {
             'backend': {'name': device},
@@ -229,18 +229,28 @@ class QuantumProgram(object):
     def compile_circuits(self, circuits, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         qasm_circuits = []
         unrolled_circuits = []
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(circuit)
             if coupling_map:
+                # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
-                circuit_unrolled, final_coupling_map = self.mapper.swap_mapper(
+                circuit_unrolled, final_layout = self.mapper.swap_mapper(
                     circuit_unrolled, coupling)
+                # Expand swaps
                 qasm_source, circuit_unrolled = self.unroller_code(
                     circuit_unrolled)
+                # Change cx directions
+                circuit_unrolled = mapper.direction_mapper(circuit_unrolled,
+                                                           coupling)
+                # Simplify cx gates
+                mapper.cx_cancellation(circuit_unrolled)
+                # Simplify single qubit gates
+                circuit_unrolled = mapper.optimize_1q_gates(circuit_unrolled)
+                qasm_source = circuit_unrolled.qasm(qeflag=True)
             qasm_circuits.append({'qasm': qasm_source})
             unrolled_circuits.append({'circuit_unrolled': circuit_unrolled})
         return qasm_circuits, unrolled_circuits
@@ -252,7 +262,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                     self.__qasm_compile['backend']['name'],
@@ -281,7 +291,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         jobs = []
         for circuit in circuits:
@@ -303,7 +313,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         if not self.__api:
             return {"status": "Error", "result": "Not API setup"}
@@ -322,7 +332,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         output = self.run_circuits(self.__circuits.values(
         ), device, shots, max_credits=max_credits, basis_gates=basis_gates)
@@ -336,7 +346,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         self.compile(device, coupling_map, shots, max_credits)
         output = self.run()
@@ -351,7 +361,7 @@ class QuantumProgram(object):
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         qasm_source, circuit_unrolled = self.compile()
         output = self.run_circuits(
