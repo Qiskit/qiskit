@@ -17,4 +17,3 @@ test:
 
 run:
 	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
-
