@@ -10,7 +10,7 @@ from qiskit import QuantumProgram
 
 n = 4
 
-QPSpecs = {
+QPS_SPECS = {
     "name": "Program",
     "circuits": [{
         "name": "rippleadd",
@@ -30,7 +30,7 @@ QPSpecs = {
         ]}]
 }
 
-QP_program = QuantumProgram(specs=QPSpecs)
+QP_program = QuantumProgram(specs=QPS_SPECS)
 qc = QP_program.circuit("rippleadd")
 a = QP_program.quantum_registers("a")
 b = QP_program.quantum_registers("b")

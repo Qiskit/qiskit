@@ -5,7 +5,7 @@ Author: Andrew Cross
 """
 from qiskit import QuantumProgram
 
-QPSpecs = {
+QPS_SPECS = {
     "name": "Program",
     "circuits": [{
         "name": "teleport",
@@ -23,7 +23,7 @@ QPSpecs = {
         ]}]
 }
 
-QP_program = QuantumProgram(specs=QPSpecs)
+QP_program = QuantumProgram(specs=QPS_SPECS)
 qc = QP_program.circuit("teleport")
 q = QP_program.quantum_registers("q")
 c0 = QP_program.classical_registers("c0")

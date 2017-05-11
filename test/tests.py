@@ -22,18 +22,21 @@ Authors: Ismael Faro
 """
 
 import sys
-sys.path.insert(0, '../')
+import json
+import unittest
+
+import Qconfig
 
 from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-import unittest
-import Qconfig
-import json
+
+
+sys.path.insert(0, '../')
 
 # Define Program Specifications.
-QPSpecs = {
+QPS_SPECS = {
     "name": "program-name",
     "circuits": [{
         "name": "circuit-name",
@@ -56,7 +59,7 @@ class TestQISKit(unittest.TestCase):
         """
         Test Quantum Object Factory creation using Specs
         """
-        result = QuantumProgram(specs=QPSpecs)
+        result = QuantumProgram(specs=QPS_SPECS)
         self.assertTrue(isinstance(result, QuantumProgram))
 
     def test_create_program(self):
@@ -78,7 +81,7 @@ class TestQISKit(unittest.TestCase):
         """
         Get the program componentes, like Circuits and Registers
         """
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         self.assertIsInstance(qc, QuantumCircuit)
         self.assertIsInstance(qr, QuantumRegister)
@@ -88,7 +91,7 @@ class TestQISKit(unittest.TestCase):
         """
         Get the program componentes, like Circuits and Registers
         """
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc = QP_program.circuit("circuit-name")
         qr = QP_program.quantum_registers("qname")
         cr = QP_program.classical_registers("cname")
@@ -129,21 +132,21 @@ class TestQISKit(unittest.TestCase):
         pass
 
     def test_print_circuit(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
         result = qc.qasm()
         self.assertEqual(len(result), 78)
 
     def test_print_program(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
         result = QP_program.program_to_text()
         self.assertEqual(len(result), 101)
 
     def test_create_add_gates(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.u3(0.3, 0.2, 0.1, qr[0])
         qc.h(qr[1])
@@ -159,7 +162,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(len(result), 415)
 
     def test_contact_create_circuit_multiregisters(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qr2 = QP_program.create_quantum_registers("qr", 3)
         cr2 = QP_program.create_classical_registers("cr", 3)
@@ -170,7 +173,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(len(qc_result.qasm()), 90)
 
     def test_contact_multiple_horizontal_circuits(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit(name="qc2",
                                         qregisters=["qname"],
@@ -186,12 +189,12 @@ class TestQISKit(unittest.TestCase):
         pass
 
     def test_setup_api(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         result = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
         self.assertTrue(result)
 
     def test_execute_one_circuit_simulator_online(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
 
@@ -205,7 +208,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(result["status"], "DONE")
 
     def test_execute_several_circuits_simulator_online(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
@@ -224,7 +227,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(result["status"], "RUNNING")
 
     def test_execute_program_simulator_online(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
@@ -241,7 +244,7 @@ class TestQISKit(unittest.TestCase):
 
     @unittest.skip
     def test_execute_one_circuit_real_online(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
 
@@ -259,7 +262,7 @@ class TestQISKit(unittest.TestCase):
         pass
 
     def test_compile_program(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
 
         qc.h(qr[0])
@@ -277,7 +280,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(len(source), 168)
 
     def test_run_program(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
@@ -298,7 +301,7 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(len(result), 6)
 
     def test_execute_program(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
@@ -320,7 +323,7 @@ class TestQISKit(unittest.TestCase):
         # QP_program.plotter()
 
     def test_last(self):
-        QP_program = QuantumProgram(specs=QPSpecs)
+        QP_program = QuantumProgram(specs=QPS_SPECS)
         # QP_program.plotter()
 
 
