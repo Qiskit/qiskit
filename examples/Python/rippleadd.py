@@ -2,13 +2,22 @@
 Ripple adder example based on OPENQASM example.
 
 Author: Andrew Cross
+        Jesus Perez <jesusper@us.ibm.com>
 """
-import qiskit as qk
 
+import sys
+import os
+
+# We don't know from where the user is running the example,
+# so we need a relative position from this file path.
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+import qiskit
 # Work in progress
-from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
+from qiskit.qasm import Qasm
 
 
 def print_2x8(layout):
@@ -48,14 +57,14 @@ def unmajority(p, a, b, c):
 
 
 n = 4
-a = qk.QuantumRegister("a", n)
-b = qk.QuantumRegister("b", n)
-cin = qk.QuantumRegister("cin", 1)
-cout = qk.QuantumRegister("cout", 1)
-ans = qk.ClassicalRegister("ans", n + 1)
+a = qiskit.QuantumRegister("a", n)
+b = qiskit.QuantumRegister("b", n)
+cin = qiskit.QuantumRegister("cin", 1)
+cout = qiskit.QuantumRegister("cout", 1)
+ans = qiskit.ClassicalRegister("ans", n + 1)
 
 # Build subcircuit to add a to b, storing result in b
-adder_subcircuit = qk.QuantumCircuit(cin, a, b, cout)
+adder_subcircuit = qiskit.QuantumCircuit(cin, a, b, cout)
 majority(adder_subcircuit, cin[0], b[0], a[0])
 for j in range(n - 1):
     majority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
@@ -65,7 +74,7 @@ for j in reversed(range(n - 1)):
 unmajority(adder_subcircuit, cin[0], b[0], a[0])
 
 # Build the adder example
-qc = qk.QuantumCircuit(cin, a, b, cout, ans)
+qc = qiskit.QuantumCircuit(cin, a, b, cout, ans)
 qc.x(a[0])  # Set input a = 0...0001
 qc.x(b)   # Set input b = 1...1111
 qc += adder_subcircuit

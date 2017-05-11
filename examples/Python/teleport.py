@@ -2,23 +2,32 @@
 Quantum teleportation example based on OPENQASM example.
 
 Author: Andrew Cross
+        Jesus Perez <jesusper@us.ibm.com>
 """
-import qiskit as qk
 
+import sys
+import os
+
+# We don't know from where the user is running the example,
+# so we need a relative position from this file path.
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+import qiskit
 # Work in progress
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 
 
-q = qk.QuantumRegister("q", 3)
-c0 = qk.ClassicalRegister("c0", 1)
-c1 = qk.ClassicalRegister("c1", 1)
-c2 = qk.ClassicalRegister("c2", 1)
+q = qiskit.QuantumRegister("q", 3)
+c0 = qiskit.ClassicalRegister("c0", 1)
+c1 = qiskit.ClassicalRegister("c1", 1)
+c2 = qiskit.ClassicalRegister("c2", 1)
 
-qc = qk.QuantumCircuit(q, c0, c1, c2)
+qc = qiskit.QuantumCircuit(q, c0, c1, c2)
 
-qc2 = qk.QuantumCircuit(q, c0, c1, c2)
+qc2 = qiskit.QuantumCircuit(q, c0, c1, c2)
 
 print("/////////")
 print(qc)

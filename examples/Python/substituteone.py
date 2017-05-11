@@ -8,9 +8,17 @@ from input wires of opname to wires of the main circuit is given by the wire
 order w1, w2, ..., wn.
 
 Author: Andrew Cross
+        Jesus Perez <jesusper@us.ibm.com>
 """
+
 import sys
-sys.path.append("..")
+import os
+
+# We don't know from where the user is running the example,
+# so we need a relative position from this file path.
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
