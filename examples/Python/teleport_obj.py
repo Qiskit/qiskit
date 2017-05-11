@@ -10,16 +10,16 @@ QPSpecs = {
     "circuits": [{
         "name": "teleport",
         "quantum_registers": [{
-            "name":"q",
-            "size":3
+            "name": "q",
+            "size": 3
         }],
         "classical_registers": [
-            {"name":"c0",
-             "size":1},
-            {"name":"c1",
-             "size":1},
-            {"name":"c2",
-             "size":1},
+            {"name": "c0",
+             "size": 1},
+            {"name": "c1",
+             "size": 1},
+            {"name": "c2",
+             "size": 1},
         ]}]
 }
 

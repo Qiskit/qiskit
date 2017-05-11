@@ -52,16 +52,16 @@ a = qk.QuantumRegister("a", n)
 b = qk.QuantumRegister("b", n)
 cin = qk.QuantumRegister("cin", 1)
 cout = qk.QuantumRegister("cout", 1)
-ans = qk.ClassicalRegister("ans", n+1)
+ans = qk.ClassicalRegister("ans", n + 1)
 
 # Build subcircuit to add a to b, storing result in b
 adder_subcircuit = qk.QuantumCircuit(cin, a, b, cout)
 majority(adder_subcircuit, cin[0], b[0], a[0])
-for j in range(n-1):
-    majority(adder_subcircuit, a[j], b[j+1], a[j+1])
-adder_subcircuit.cx(a[n-1], cout[0])
-for j in reversed(range(n-1)):
-    unmajority(adder_subcircuit, a[j], b[j+1], a[j+1])
+for j in range(n - 1):
+    majority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
+adder_subcircuit.cx(a[n - 1], cout[0])
+for j in reversed(range(n - 1)):
+    unmajority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
 unmajority(adder_subcircuit, cin[0], b[0], a[0])
 
 # Build the adder example
@@ -131,7 +131,7 @@ couplingdict = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 11: [12], 12: [13], 13: [14], 14: [15]}
 
 # This is all-all.
-#couplingdict = {0: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+# couplingdict = {0: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 #                1: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 #                2: [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 #                3: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11],
