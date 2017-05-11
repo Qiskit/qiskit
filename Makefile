@@ -31,6 +31,8 @@ env-dev:
 lint:
 	bash -c "source activate QISKitenv;pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tools tutorial"
 
+# TODO: Uncomment when the lint one passes.
+# test: lint
 test:
 	bash -c "source activate QISKitenv;cd test;python test.py"
 
