@@ -43,9 +43,11 @@ class Unroller(object):
             if len(self.bit_stack[-1]) == 0:
                 # Global scope
                 if node.name in self.qregs:
-                    return [(node.name, j) for j in range(self.qregs[node.name])]
+                    return [(node.name, j)
+                            for j in range(self.qregs[node.name])]
                 elif node.name in self.cregs:
-                    return [(node.name, j) for j in range(self.cregs[node.name])]
+                    return [(node.name, j)
+                            for j in range(self.cregs[node.name])]
                 else:
                     raise UnrollerException("expected qreg or creg name:",
                                             "line=%s" % node.line,
@@ -77,7 +79,8 @@ class Unroller(object):
             args = self._process_node(node.arguments)
         else:
             args = []
-        bits = [self._process_bit_id(node_element) for node_element in node.bitlist.children]
+        bits = [self._process_bit_id(node_element)
+                for node_element in node.bitlist.children]
         if name in self.gates:
             gargs = self.gates[name]["args"]
             gbits = self.gates[name]["bits"]
@@ -88,7 +91,7 @@ class Unroller(object):
                 self.arg_stack.append({gargs[j]: args[j]
                                        for j in range(len(gargs))})
                 # Only index into register arguments.
-                element = list(map(lambda x: idx*x,
+                element = list(map(lambda x: idx * x,
                                    [len(bits[j]) > 1 for j in range(len(bits))]))
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
@@ -247,7 +250,8 @@ class Unroller(object):
 
         elif node.type == "id_list":
             # We process id_list nodes when they are leaves of barriers.
-            return [self._process_bit_id(node_children) for node_children in node.children]
+            return [self._process_bit_id(node_children)
+                    for node_children in node.children]
 
         elif node.type == "primary_list":
             # We should only be called for a barrier.
@@ -269,7 +273,8 @@ class Unroller(object):
             self._process_cnot(node)
 
         elif node.type == "expression_list":
-            return [self._process_node(node_children) for node_children in node.children]
+            return [self._process_node(node_children)
+                    for node_children in node.children]
 
         elif node.type == "binop":
             return self._process_binop(node)
