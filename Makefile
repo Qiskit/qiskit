@@ -9,7 +9,7 @@ env-dev:
 	bash -c "source activate QISKitenv;pip install pylint matplotlib"
 
 lint:
-	bash -c "source activate QISKitenv;pylint qiskit test tools tutorial"
+	bash -c "source activate QISKitenv;pylint test"
 
 test:
 	bash -c "source activate QISKitenv;python test/QISKit-tests.py"

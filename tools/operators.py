@@ -17,7 +17,7 @@ def destroy(dim):
     a = np.zeros((dim, dim), dtype=complex)
     for jj in range(dim):
         for kk in range(dim):
-            if kk-jj == 1:
+            if kk - jj == 1:
                 a[jj, kk] = np.sqrt(jj + 1)
     return a
 
@@ -31,7 +31,7 @@ def operator_qi(gate, qubit, number_of_qubits):
     number_of_qubits is the number of qubits in the system
     returns a complex numpy array
     """
-    return np.kron(np.identity(2**(number_of_qubits-qubit-1), dtype=complex),
+    return np.kron(np.identity(2**(number_of_qubits - qubit - 1), dtype=complex),
                    np.kron(gate, np.identity(2**(qubit), dtype=complex)))
 
 
@@ -44,7 +44,8 @@ def operator_qij(gate, qubit_1, qubit_2, number_of_qubits):
     number_of_qubits is the number of qubits in the system
     returns a complex numpy array
     """
-    temp_1 = np.kron(np.identity(2**(number_of_qubits-2), dtype=complex), gate)
+    temp_1 = np.kron(np.identity(
+        2**(number_of_qubits - 2), dtype=complex), gate)
     temp_2 = np.identity(2**(number_of_qubits), dtype=complex)
     for ii in range(2**number_of_qubits):
         iistring = bin(ii)[2:]
