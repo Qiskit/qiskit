@@ -445,7 +445,8 @@ class QasmParser(object):
         '''
         gate_decl : GATE id gate_scope '(' gate_id_list ')' bit_list gate_body
         '''
-        program[0] = node.Gate([program[2], program[5], program[7], program[8]])
+        program[0] = node.Gate(
+            [program[2], program[5], program[7], program[8]])
         if program[2].name in self.external_functions:
             raise QasmException("GATE names cannot be reserved words. "
                                 + "Received '" + program[2].name + "'")
@@ -739,11 +740,11 @@ class QasmParser(object):
         self.verify_reg(program[4], 'creg')
 
     def p_measure_e(self, program):
-
         '''
            measure : MEASURE primary error
         '''
-        raise QasmException("Illegal measure statement." + str(program[3].value))
+        raise QasmException("Illegal measure statement." +
+                            str(program[3].value))
 
     # ----------------------------------------
     # barrier : BARRIER primary_list

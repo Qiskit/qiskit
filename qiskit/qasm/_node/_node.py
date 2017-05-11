@@ -40,11 +40,11 @@ class Node(object):
             if children is None:
                 print("OOPS! type of parent is", type(self))
                 print(self.children)
-            if type(children) is str:
+            if isinstance(children, str):
                 print(ind, children)
-            elif type(children) is int:
+            elif isinstance(children, int):
                 print(ind, str(children))
-            elif type(children) is float:
+            elif isinstance(children, float):
                 print(ind, str(children))
             else:
                 children.to_string(indent)
