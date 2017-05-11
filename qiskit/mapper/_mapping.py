@@ -62,12 +62,12 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             xi[i] = {}
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
-                scale = 1.0 + np.random.normal(0.0, 1.0/n)
+                scale = 1.0 + np.random.normal(0.0, 1.0 / n)
                 xi[i][j] = scale * coupling.distance(i, j)**2
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
-        for d in range(1, 2*n+1):
+        for d in range(1, 2 * n + 1):
             circ = ""
             # Set of available qubits
             qubit_set = set(qubit_subset)
@@ -246,8 +246,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     first_layer = True
     for i in range(len(layerlist)):
         success_flag, best_circ, best_d, best_layout \
-          = layer_permutation(layerlist[i]["partition"], layout,
-                              qubit_subset, coupling_graph, 20)
+            = layer_permutation(layerlist[i]["partition"], layout,
+                                qubit_subset, coupling_graph, 20)
         if not success_flag:
             if verbose:
                 print("swap_mapper: failed, layer %d, " % i,
@@ -255,15 +255,15 @@ def swap_mapper(circuit_graph, coupling_graph,
             serial_layerlist = layerlist[i]["graph"].serial_layers()
             for j in range(len(serial_layerlist)):
                 success_flag, best_circ, best_d, best_layout \
-                  = layer_permutation(serial_layerlist[j]["partition"],
-                                      layout, qubit_subset, coupling_graph, 20)
+                    = layer_permutation(serial_layerlist[j]["partition"],
+                                        layout, qubit_subset, coupling_graph, 20)
                 if not success_flag:
                     raise QISKitException("swap_mapper failed: " +
                                           "layer %d, sublayer %d" % (i, j) +
                                           ", \"%s\"" %
                                           serial_layerlist[j]["graph"].qasm(
-                                                    no_decls=True,
-                                                    aliases=layout))
+                                              no_decls=True,
+                                              aliases=layout))
                 else:
                     layout = best_layout
                     if first_layer:
@@ -272,8 +272,8 @@ def swap_mapper(circuit_graph, coupling_graph,
                                                               decls_only=True,
                                                               aliases=layout)
                         openqasm_output += serial_layerlist[j]["graph"].qasm(
-                                                        no_decls=True,
-                                                        aliases=layout)
+                            no_decls=True,
+                            aliases=layout)
                         first_layer = False
                     else:
                         if verbose:
@@ -282,8 +282,8 @@ def swap_mapper(circuit_graph, coupling_graph,
                         if best_circ != "":
                             openqasm_output += best_circ
                         openqasm_output += serial_layerlist[j]["graph"].qasm(
-                                                        no_decls=True,
-                                                        aliases=layout)
+                            no_decls=True,
+                            aliases=layout)
         else:
             layout = best_layout
             if first_layer:
@@ -342,38 +342,46 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if abs(math.cos(xi)) < eps/10:
+    if abs(math.cos(xi)) < eps / 10:
         solutions.append((theta2 - theta1, xi, 0.0))
-    elif abs(math.sin(theta1 + theta2)) < eps/10:
-        phi_minus_lambda = [math.pi/2, 3*math.pi/2, math.pi/2, 3*math.pi/2]
-        stheta_1 = math.asin(math.sin(xi)*math.sin(-theta1+theta2))
-        stheta_2 = math.asin(-math.sin(xi)*math.sin(-theta1+theta2))
+    elif abs(math.sin(theta1 + theta2)) < eps / 10:
+        phi_minus_lambda = [
+            math.pi / 2,
+            3 * math.pi / 2,
+            math.pi / 2,
+            3 * math.pi / 2]
+        stheta_1 = math.asin(math.sin(xi) * math.sin(-theta1 + theta2))
+        stheta_2 = math.asin(-math.sin(xi) * math.sin(-theta1 + theta2))
         stheta_3 = math.pi - stheta_1
         stheta_4 = math.pi - stheta_2
         stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
         phi_plus_lambda = list(map(lambda x:
-                                   math.acos(math.cos(theta1+theta2) *
-                                             math.cos(xi)/math.cos(x)),
+                                   math.acos(math.cos(theta1 + theta2) *
+                                             math.cos(xi) / math.cos(x)),
                                    stheta))
-        sphi = [(term[0] + term[1])/2 for term in
+        sphi = [(term[0] + term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
-        slam = [(term[0] - term[1])/2 for term in
+        slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif abs(math.cos(theta1 + theta2)) < eps/10:
-        phi_plus_lambda = [math.pi/2, 3*math.pi/2, math.pi/2, 3*math.pi/2]
-        stheta_1 = math.acos(math.sin(xi)*math.cos(theta1-theta2))
-        stheta_2 = math.acos(-math.sin(xi)*math.cos(theta1-theta2))
+    elif abs(math.cos(theta1 + theta2)) < eps / 10:
+        phi_plus_lambda = [
+            math.pi / 2,
+            3 * math.pi / 2,
+            math.pi / 2,
+            3 * math.pi / 2]
+        stheta_1 = math.acos(math.sin(xi) * math.cos(theta1 - theta2))
+        stheta_2 = math.acos(-math.sin(xi) * math.cos(theta1 - theta2))
         stheta_3 = -stheta_1
         stheta_4 = -stheta_2
         stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
         phi_minus_lambda = list(map(lambda x:
-                                    math.acos(math.sin(theta1+theta2) *
-                                              math.cos(xi)/math.sin(x)),
+                                    math.acos(math.sin(theta1 + theta2) *
+                                              math.cos(xi) / math.sin(x)),
                                     stheta))
-        sphi = [(term[0] + term[1])/2 for term in
+        sphi = [(term[0] + term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
-        slam = [(term[0] - term[1])/2 for term in
+        slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
     else:
@@ -383,17 +391,17 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                              theta2) /
                                      (math.cos(xi) * math.sin(theta1 +
                                                               theta2)))
-        sphi = (phi_plus_lambda + phi_minus_lambda)/2
-        slam = (phi_plus_lambda - phi_minus_lambda)/2
+        sphi = (phi_plus_lambda + phi_minus_lambda) / 2
+        slam = (phi_plus_lambda - phi_minus_lambda) / 2
         solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
                                     math.cos(sphi + slam)), sphi, slam))
         solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
-                                    math.cos(sphi + slam+math.pi)),
-                          sphi + math.pi/2,
-                          slam + math.pi/2))
+                                    math.cos(sphi + slam + math.pi)),
+                          sphi + math.pi / 2,
+                          slam + math.pi / 2))
         solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
                                     math.cos(sphi + slam)),
-                          sphi + math.pi/2, slam - math.pi/2))
+                          sphi + math.pi / 2, slam - math.pi / 2))
         solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
                                     math.cos(sphi + slam + math.pi)),
                           sphi + math.pi, slam))
@@ -424,9 +432,9 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     Return theta, phi, lambda.
     """
     # Careful with the factor of two in yzy_to_zyz
-    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2)/2.0,
-                                       theta1/2.0, theta2/2.0)
-    return (2.0*thetap, phi1 + 2.0 * phip, lambda2 + 2.0*lambdap)
+    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2.0,
+                                       theta1 / 2.0, theta2 / 2.0)
+    return (2.0 * thetap, phi1 + 2.0 * phip, lambda2 + 2.0 * lambdap)
 
 
 def cx_cancellation(circuit):
@@ -436,10 +444,10 @@ def cx_cancellation(circuit):
         # Partition the run into chunks with equal gate arguments
         partition = []
         chunk = []
-        for i in range(len(run)-1):
+        for i in range(len(run) - 1):
             chunk.append(run[i])
             qargs0 = circuit.multi_graph.node[run[i]]["qargs"]
-            qargs1 = circuit.multi_graph.node[run[i+1]]["qargs"]
+            qargs1 = circuit.multi_graph.node[run[i + 1]]["qargs"]
             if qargs0 != qargs1:
                 partition.append(chunk)
                 chunk = []
@@ -481,7 +489,7 @@ def optimize_1q_gates(circuit):
             if left_name == "u1":
                 left_parameters = (0.0, 0.0, float(nd["params"][0]))
             elif left_name == "u2":
-                left_parameters = (math.pi/2, float(nd["params"][0]),
+                left_parameters = (math.pi / 2, float(nd["params"][0]),
                                    float(nd["params"][1]))
             elif left_name == "u3":
                 left_parameters = tuple(map(float, nd["params"]))
@@ -496,12 +504,12 @@ def optimize_1q_gates(circuit):
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-                right_parameters = (math.pi/2, right_parameters[1] +
+                right_parameters = (math.pi / 2, right_parameters[1] +
                                     left_parameters[2], right_parameters[2])
             elif name_tuple == ("u2", "u1"):
                 # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
                 right_name = "u2"
-                right_parameters = (math.pi/2, left_parameters[1],
+                right_parameters = (math.pi / 2, left_parameters[1],
                                     right_parameters[2] + left_parameters[2])
             elif name_tuple == ("u1", "u3"):
                 # u1(lambda1) * u3(theta2, phi2, lambda2) =
@@ -522,8 +530,8 @@ def optimize_1q_gates(circuit):
                 right_name = "u3"
                 right_parameters = (math.pi - left_parameters[2] -
                                     right_parameters[1], left_parameters[1] +
-                                    math.pi/2, right_parameters[2] +
-                                    math.pi/2)
+                                    math.pi / 2, right_parameters[2] +
+                                    math.pi / 2)
             else:
                 # For composing u3's or u2's with u3's, use
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
@@ -540,7 +548,7 @@ def optimize_1q_gates(circuit):
             # the other steps preserve the global phase, so we continue.
             epsilon = 1e-9  # for comparison with zero
             # Y rotation is 0 mod 2*pi, so the gate is a u1
-            if abs(right_parameters[0] % 2.0*math.pi) < epsilon \
+            if abs(right_parameters[0] % 2.0 * math.pi) < epsilon \
                and right_name != "u1":
                 right_name = "u1"
                 right_parameters = (0.0, 0.0, right_parameters[1] +
@@ -549,23 +557,23 @@ def optimize_1q_gates(circuit):
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
             if right_name == "u3":
                 # theta = pi/2 + 2*k*pi
-                if abs((right_parameters[0] - math.pi/2) % 2.0*math.pi) \
+                if abs((right_parameters[0] - math.pi / 2) % 2.0 * math.pi) \
                    < epsilon:
                     right_name = "u2"
-                    right_parameters = (math.pi/2, right_parameters[1],
+                    right_parameters = (math.pi / 2, right_parameters[1],
                                         right_parameters[2] +
-                                        (right_parameters[0] - math.pi/2))
+                                        (right_parameters[0] - math.pi / 2))
                 # theta = -pi/2 + 2*k*pi
-                if abs((right_parameters[0] + math.pi/2) % 2.0*math.pi) \
+                if abs((right_parameters[0] + math.pi / 2) % 2.0 * math.pi) \
                    < epsilon:
                     right_name = "u2"
-                    right_parameters = (math.pi/2, right_parameters[1] +
+                    right_parameters = (math.pi / 2, right_parameters[1] +
                                         math.pi, right_parameters[2] -
                                         math.pi + (right_parameters[0] +
-                                        math.pi/2))
+                                                   math.pi / 2))
             # u1 and lambda is 0 mod 4*pi so gate is nop
             if right_name == "u1" and \
-               abs(right_parameters[2] % 4.0*math.pi) < epsilon:
+               abs(right_parameters[2] % 4.0 * math.pi) < epsilon:
                 right_name = "nop"
         # Replace the data of the first node in the run
         new_params = []
