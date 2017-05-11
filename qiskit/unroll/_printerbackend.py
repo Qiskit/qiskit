@@ -23,7 +23,6 @@ class PrinterBackend(UnrollerBackend):
         self.cval = None
         self.gates = {}
         self.comments = False
-        # TODO: control basis elements
         if basis:
             self.basis = basis
         else:
@@ -207,7 +206,6 @@ class PrinterBackend(UnrollerBackend):
         args is list of floating point parameters.
         qubits is list of (regname, idx) tuples.
         """
-        condition = None
         if self.listen and self.comments:
             print("// start %s, %s, %s" % (name, list(map(self._fs, args)),
                                            qubits))
@@ -215,15 +213,11 @@ class PrinterBackend(UnrollerBackend):
            and self.gates[name]["opaque"]:
             raise BackendException("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
-            # TODO: check this - bug?
-            if self.creg is not None:
-                # TODO: for Andrew - check the condition var scope.
-                condition = (self.creg, self.cval)
-            else:
-                condition = None
             self.in_gate = name
             self.listen = False
             squbits = ["%s[%d]" % (x[0], x[1]) for x in qubits]
+            if self.creg is not None:
+                print("if(%s==%d) " % (self.creg, self.cval), end="")
             print(name, end="")
             if len(args) > 0:
                 print("(%s)" % ",".join(map(self._fs, args)), end="")
