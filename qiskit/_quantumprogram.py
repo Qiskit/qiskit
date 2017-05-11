@@ -41,7 +41,7 @@ from . import qasm
 from . import mapper
 # from .qasm import QasmException
 
-from .extensions.standard import barrier, h, cx, u3, x, z
+from .extensions.standard import barrier, h, cx, u3, x, z, s, ry
 
 class QuantumProgram(object):
     """ Quantum Program Class
@@ -98,7 +98,7 @@ class QuantumProgram(object):
         self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
-        # self.__qasm_compile = {}
+        # self.__API = {}
 
         self.mapper = mapper
 
@@ -137,11 +137,13 @@ class QuantumProgram(object):
         return self.__API.req.credential.config
 
     def _setup_api(self, token, url):
+        self.__API = IBMQuantumExperience.IBMQuantumExperience(token, {"url":url})
         try:
             self.__API = IBMQuantumExperience.IBMQuantumExperience(token, {"url":url})
+
             return True
         except:
-            print('Exception connect to servers')
+            print('---- Error: Exception connect to servers ----')
             return False
 
     def set_api(self, token=None, url=None):
@@ -154,7 +156,8 @@ class QuantumProgram(object):
             url = self.__API_config["url"]
         else:
             self.__API_config["url"] = {"url":url}
-        return self._setup_api(token, url)
+        api = self._setup_api(token, url)
+        return api
 
     def set_api_token(self, token):
         """ Set the API Token """
@@ -184,12 +187,14 @@ class QuantumProgram(object):
         try:
             qasm_file = open(qasm_file, 'r')
             qasm_source = qasm_file.read()
-            circuit = unroll.Unroller(qasm_source,
+            qasm_file.close()
+            circuit = unroll.Unroller(qasm.Qasm(data=qasm_source).parse(),
                                       unroll.CircuitBackend(basis_gates.split(",")))
+            # print(circuit.qasm())
             self.__circuits[qasm_file] = circuit
             return circuit
         except:
-            print('Error: Load qasm file = ', qasm_file)
+            print('---- Error: Load qasm file = ', qasm_file)
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
@@ -271,7 +276,7 @@ class QuantumProgram(object):
 
         return self.__qasm_compile
 
-    def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
+    def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None, wait=5, timeout=60):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
@@ -285,7 +290,12 @@ class QuantumProgram(object):
             qasm_source, circuit = self.unroller_code(circuit, basis_gates)
             jobs.append({'qasm': qasm_source})
         output = self.__API.run_job(jobs, device, shots, max_credits)
-        return output
+        if 'error' in output:
+            return {"status":"Error", "result":output['error']}
+
+        job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
+
+        return job_result
 
     def run_circuit(self, circuit, device, shots, max_credits=3, basis_gates=None):
         """Run a circuit.
@@ -378,6 +388,8 @@ class QuantumProgram(object):
             t += wait
             print("status = %s (%d seconds)" % (job['status'], t))
             job = self.__API.get_job(jobid)
+            if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
+                return {"status":"Error", "result": job['status'] }
         # Get the results
 
         if timeout_over:
@@ -414,6 +426,17 @@ class QuantumProgram(object):
             results.append(self.__API.get_job(i))
         return results
 
+    def flat_results(self, results):
+        """ Flat the results
+        results array of results
+        """
+        flattened = []
+        for sublist in results:
+            for val in sublist:
+                flattened.append(val)
+        return {'qasms': flattened}
+
+
     def combine_jobs(self, jobids, wait=5, timeout=60):
         """Like wait_for_jobs but with a different return format.
         jobids is a list of id strings.
@@ -425,13 +448,7 @@ class QuantumProgram(object):
 
         results = list(map(lambda x: x['qasms'],
                            self.wait_for_jobs(jobids, wait, timeout)))
-        flattened = []
-        for sublist in results:
-            for val in sublist:
-                flattened.append(val)
-        # Are there other parts from the dictionary that we want to add,
-        # such as shots?
-        return {'qasms': flattened}
+        return self.flat_result(results)
 
 
     def average_data(self, data, observable):
@@ -467,11 +484,11 @@ class QuantumProgram(object):
                                     cregisters=classicalr)
         else:
             if "quantum_registers" in specs:
-                print("quantum_registers created")
+                print(">> quantum_registers created")
                 quantumr = specs["quantum_registers"]
                 self.create_quantum_registers(quantumr["name"], quantumr["size"])
             if "classical_registers" in specs:
-                print("quantum_registers created")
+                print(">> quantum_registers created")
                 classicalr = specs["classical_registers"]
                 self.create_classical_registers(classicalr["name"], classicalr["size"])
             if quantumr and classicalr:

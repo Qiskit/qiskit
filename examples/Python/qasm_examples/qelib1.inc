@@ -13,6 +13,8 @@ gate u1(lambda) q { U(0,0,lambda) q; }
 gate cx c,t { CX c,t; }
 // idle gate (identity)
 gate id a { U(0,0,0) a; }
+// idle gate (identity) with length gamma*sqglen
+gate u0(gamma) q { U(0,0,0) q; }
 
 // --- QE Standard Gates ---
 
