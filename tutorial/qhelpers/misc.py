@@ -129,5 +129,5 @@ def average_data(data, observable):
     tot = sum(data.values())
     for key in data:
         if key in observable:
-            temp += data[key]*observable[key]/tot
+            temp += data[key] * observable[key] / tot
     return temp

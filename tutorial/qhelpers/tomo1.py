@@ -14,7 +14,7 @@ def expectation_Z(data, j):
     shots = sum(data.values())
     total = 0.0
     for k, v in data.items():
-        total += (-1)**int(k[len(k)-j-1])*float(v)/float(shots)
+        total += (-1)**int(k[len(k) - j - 1]) * float(v) / float(shots)
     return total
 
 
