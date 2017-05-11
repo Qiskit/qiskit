@@ -16,7 +16,7 @@ def ez(data, j):
     """
     sum = 0.0
     for k, v in data.items():
-        sum += (-1)**int(k[len(k)-j-1])*v
+        sum += (-1)**int(k[len(k) - j - 1]) * v
     return sum
 
 
@@ -105,7 +105,7 @@ def make_bloch_circuits(qasm, basis=["cx", "u1", "u2", "u3", "bloch"]):
             names = copy.copy(c1p.cregs)
             # Mangle the original creg names so we can ignore them
             for regname in names:
-                c1p.rename_register(regname, "aaa"+regname)
+                c1p.rename_register(regname, "aaa" + regname)
             # Make the substitution
             c1p.remove_descendants_of(n)
             c1p.substitute_circuit_one(n, csub[1], [(bloch_qreg, 0)])

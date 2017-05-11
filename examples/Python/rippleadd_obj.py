@@ -10,33 +10,34 @@ from qiskit import QuantumProgram
 
 n = 4
 
-QPSpecs = {
+QPS_SPECS = {
     "name": "Program",
     "circuits": [{
         "name": "rippleadd",
         "quantum_registers": [
-            {"name":"a",
-             "size":n},
-            {"name":"b",
-             "size":n},
-            {"name":"cin",
-             "size":1},
-            {"name":"cout",
-             "size":1}
+            {"name": "a",
+             "size": n},
+            {"name": "b",
+             "size": n},
+            {"name": "cin",
+             "size": 1},
+            {"name": "cout",
+             "size": 1}
         ],
         "classical_registers": [
-            {"name":"ans",
-             "size":n+1},
+            {"name": "ans",
+             "size": n + 1},
         ]}]
 }
 
-QP_program = QuantumProgram(specs=QPSpecs)
+QP_program = QuantumProgram(specs=QPS_SPECS)
 qc = QP_program.circuit("rippleadd")
 a = QP_program.quantum_registers("a")
 b = QP_program.quantum_registers("b")
 cin = QP_program.quantum_registers("cin")
 cout = QP_program.quantum_registers("cout")
 ans = QP_program.classical_registers("ans")
+
 
 def print_2x8(layout):
     """Print a 2x8 layout."""
@@ -75,13 +76,14 @@ def unmajority(p, a, b, c):
 
 
 # Build subcircuit to add a to b, storing result in b
-adder_subcircuit = QP_program.create_circuit("adder_subcircuit", [cin, a, b, cout])
+adder_subcircuit = QP_program.create_circuit(
+    "adder_subcircuit", [cin, a, b, cout])
 majority(adder_subcircuit, cin[0], b[0], a[0])
-for j in range(n-1):
-    majority(adder_subcircuit, a[j], b[j+1], a[j+1])
-adder_subcircuit.cx(a[n-1], cout[0])
-for j in reversed(range(n-1)):
-    unmajority(adder_subcircuit, a[j], b[j+1], a[j+1])
+for j in range(n - 1):
+    majority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
+adder_subcircuit.cx(a[n - 1], cout[0])
+for j in reversed(range(n - 1)):
+    unmajority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
 unmajority(adder_subcircuit, cin[0], b[0], a[0])
 
 # Build the adder example
@@ -154,7 +156,6 @@ print("factors = %d" % C_mapped.num_tensor_factors())
 ######################################################################
 
 
-
 source, C_mapped_unrolled = QP_program.unroller_code(C_mapped)
 
 C_directions = QP_program.mapper.direction_mapper(C_mapped_unrolled, coupling)
@@ -182,7 +183,7 @@ for r in runs:
         for n in r:
             C_directions._remove_op_node(n)
     else:
-        for j in range(len(r)-1):
+        for j in range(len(r) - 1):
             C_directions._remove_op_node(r[j])
 
 print("")

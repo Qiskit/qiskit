@@ -36,15 +36,15 @@ def n_choose_k(n, k):
     if n == 0:
         return 0.0
     else:
-        return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n+1),
-                                                        range(1, k+1)), 1)
+        return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1),
+                                                        range(1, k + 1)), 1)
 
 
 def lex_index(n, k, lst):
     """TODO."""
     assert len(lst) == k, "list should have length k"
-    comb = list(map(lambda x: n-1-x, lst))
-    dualm = sum([n_choose_k(comb[k-1-i], i+1) for i in range(k)])
+    comb = list(map(lambda x: n - 1 - x, lst))
+    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
     m = dualm
     return int(m)
 
@@ -156,7 +156,7 @@ def plot_histogram(data, number_to_keep=None):
     """Plot a histogram of data."""
     if number_to_keep is not None:
         data_temp = dict(Counter(data).most_common(number_to_keep))
-        data_temp["rest"] = sum(data.values())-sum(data_temp.values())
+        data_temp["rest"] = sum(data.values()) - sum(data_temp.values())
         data = data_temp
 
     labels = sorted(data)
@@ -191,12 +191,12 @@ def plot_qsphere(data, number_to_keep, number_of_qubits):
     ax.set_aspect("equal")
     ax.axes.grid(False)
     # Plot semi-transparent sphere
-    u = np.linspace(0, 2*np.pi, 25)
+    u = np.linspace(0, 2 * np.pi, 25)
     v = np.linspace(0, np.pi, 25)
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z,  rstride=1, cstride=1, color='k', alpha=0.05,
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k', alpha=0.05,
                     linewidth=0)
     # wireframe
     # Get rid of the panes
@@ -216,30 +216,31 @@ def plot_qsphere(data, number_to_keep, number_of_qubits):
     total_values = sum(data.values())
     for key in data:
         weight = key.count("1")
-        zvalue = -2*weight/d+1
+        zvalue = -2 * weight / d + 1
         number_of_divisions = n_choose_k(d, weight)
         weight_order = bit_string_index(key)
-        if weight_order >= number_of_divisions/2:
+        if weight_order >= number_of_divisions / 2:
             com_key = compliment(key)
             weight_order_temp = bit_string_index(com_key)
-            weight_order = np.floor(number_of_divisions/2)+weight_order_temp+1
-        print(key+"  "+str(weight_order))
-        angle = (weight_order)*2*np.pi/number_of_divisions
-        xvalue = np.sqrt(1-zvalue**2)*np.cos(angle)
-        yvalue = np.sqrt(1-zvalue**2)*np.sin(angle)
-        linewidth = 5*data.get(key)/total_values
+            weight_order = np.floor(
+                number_of_divisions / 2) + weight_order_temp + 1
+        print(key + "  " + str(weight_order))
+        angle = (weight_order) * 2 * np.pi / number_of_divisions
+        xvalue = np.sqrt(1 - zvalue**2) * np.cos(angle)
+        yvalue = np.sqrt(1 - zvalue**2) * np.sin(angle)
+        linewidth = 5 * data.get(key) / total_values
         print([xvalue, yvalue, zvalue])
         a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue], mutation_scale=20,
                     lw=linewidth, arrowstyle="->", color="k")
         ax.add_artist(a)
-    for weight in range(d+1):
+    for weight in range(d + 1):
         theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
-        z = -2*weight/d+1
+        z = -2 * weight / d + 1
         if weight == 0:
-            z = z-0.001
+            z = z - 0.001
         if weight == d:
-            z = z+0.001
-        r = np.sqrt(1-z**2)
+            z = z + 0.001
+        r = np.sqrt(1 - z**2)
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         ax.plot(x, y, z, 'k')

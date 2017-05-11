@@ -11,6 +11,7 @@ from qiskit import InstructionSet
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
 
+
 class U2Gate(Gate):
     """One-pulse single qubit gate."""
 

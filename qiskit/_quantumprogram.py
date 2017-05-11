@@ -23,25 +23,21 @@ Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
 # pylint: disable=line-too-long
 
 import time
-import json
 from collections import Counter
+# use the external IBMQuantumExperience Library
+from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from . import basicplotter
 
-# use the external IBMQuantumExperience Library
-from IBMQuantumExperience import IBMQuantumExperience
 # stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
-from .qasm import QasmException
 
 # Beta Modules
 from . import unroll
 from . import qasm
 from . import mapper
-# from .qasm import QasmException
 
-from .extensions.standard import barrier, h, cx, u3, x, z, s, ry
 
 class QuantumProgram(object):
     """ Quantum Program Class
@@ -51,8 +47,8 @@ class QuantumProgram(object):
     __quantum_registers = {}
     __classical_registers = {}
     __circuits = {}
-    __API = {}
-    __API_config = {}
+    __api = {}
+    __api_config = {}
     __qasm_compile = {
         'backend': {'name': 'simulator'},
         'max_credits': 3,
@@ -60,7 +56,6 @@ class QuantumProgram(object):
         'compiled_circuits': [],
         'shots': 1024
     }
-
 
     """
         objects examples:
@@ -98,7 +93,7 @@ class QuantumProgram(object):
         self.__classical_registers = {}
         self.__scope = scope
         self.__name = name
-        # self.__API = {}
+        # self.__api = {}
 
         self.mapper = mapper
 
@@ -134,28 +129,27 @@ class QuantumProgram(object):
 
     def api_config(self):
         """Return the program specs"""
-        return self.__API.req.credential.config
+        return self.__api.req.credential.config
 
     def _setup_api(self, token, url):
-        self.__API = IBMQuantumExperience.IBMQuantumExperience(token, {"url":url})
         try:
-            self.__API = IBMQuantumExperience.IBMQuantumExperience(token, {"url":url})
-
+            self.__api = IBMQuantumExperience(token, {"url": url})
             return True
-        except:
+        except BaseException:
             print('---- Error: Exception connect to servers ----')
+
             return False
 
     def set_api(self, token=None, url=None):
         """Set the API conf"""
         if not token:
-            token = self.__API_config["token"]
+            token = self.__api_config["token"]
         else:
-            self.__API_config["token"] = token
+            self.__api_config["token"] = token
         if not url:
-            url = self.__API_config["url"]
+            url = self.__api_config["url"]
         else:
-            self.__API_config["url"] = {"url":url}
+            self.__api_config["url"] = {"url": url}
         api = self._setup_api(token, url)
         return api
 
@@ -174,7 +168,7 @@ class QuantumProgram(object):
         """
         status_list = []
         for i in jobids:
-            status_list.append(self.__API.get_job(i)['status'])
+            status_list.append(self.__api.get_job(i)['status'])
         return status_list
 
     def load_qasm(self, qasm_file, basis_gates=None):
@@ -193,7 +187,7 @@ class QuantumProgram(object):
             # print(circuit.qasm())
             self.__circuits[qasm_file] = circuit
             return circuit
-        except:
+        except BaseException:
             print('---- Error: Load qasm file = ', qasm_file)
 
     def unroller_code(self, circuit, basis_gates=None):
@@ -215,7 +209,7 @@ class QuantumProgram(object):
     def circuits_qasm(self, circuits):
         qasm_circuits = []
         for circuit in circuits:
-            qasm_circuits.append({'qasm':circuit.qasm()})
+            qasm_circuits.append({'qasm': circuit.qasm()})
         return qasm_circuits
 
     def compile(self, device, coupling_map=None, shots=1024, max_credits=3):
@@ -227,7 +221,7 @@ class QuantumProgram(object):
             'backend': {'name': device},
             'max_credits': max_credits,
             'compiled_circuits': self.compile_circuits(self.__circuits.values(), coupling_map=coupling_map)[0],
-            'shots': 1024
+            'shots': shots
         }
 
         return self.__qasm_compile
@@ -243,10 +237,12 @@ class QuantumProgram(object):
             qasm_source, circuit_unrolled = self.unroller_code(circuit)
             if coupling_map:
                 coupling = self.mapper.Coupling(coupling_map)
-                circuit_unrolled, final_coupling_map = self.mapper.swap_mapper(circuit_unrolled, coupling)
-                qasm_source, circuit_unrolled = self.unroller_code(circuit_unrolled)
+                circuit_unrolled, final_coupling_map = self.mapper.swap_mapper(
+                    circuit_unrolled, coupling)
+                qasm_source, circuit_unrolled = self.unroller_code(
+                    circuit_unrolled)
             qasm_circuits.append({'qasm': qasm_source})
-            unrolled_circuits.append({'circuit_unrolled':circuit_unrolled})
+            unrolled_circuits.append({'circuit_unrolled': circuit_unrolled})
         return qasm_circuits, unrolled_circuits
 
     def run(self, wait=5, timeout=60):
@@ -258,14 +254,15 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        output = self.__API.run_job(self.__qasm_compile['compiled_circuits'],
+        output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                     self.__qasm_compile['backend']['name'],
                                     self.__qasm_compile['shots'],
                                     self.__qasm_compile['max_credits'])
         if 'error' in output:
-            return {"status":"Error", "result":output['error']}
+            return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(output['id'], wait=5, timeout=timeout)
+        job_result = self.wait_for_job(
+            output['id'], wait=wait, timeout=timeout)
 
         if job_result['status'] == 'Error':
             return job_result
@@ -276,7 +273,8 @@ class QuantumProgram(object):
 
         return self.__qasm_compile
 
-    def run_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None, wait=5, timeout=60):
+    def run_circuits(self, circuits, device, shots,
+                     max_credits=3, basis_gates=None, wait=5, timeout=60):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
@@ -289,15 +287,16 @@ class QuantumProgram(object):
         for circuit in circuits:
             qasm_source, circuit = self.unroller_code(circuit, basis_gates)
             jobs.append({'qasm': qasm_source})
-        output = self.__API.run_job(jobs, device, shots, max_credits)
+        output = self.__api.run_job(jobs, device, shots, max_credits)
         if 'error' in output:
-            return {"status":"Error", "result":output['error']}
+            return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
+        job_result = self.wait_for_job(
+            output['id'], wait=wait, timeout=timeout)
 
         return job_result
 
-    def run_circuit(self, circuit, device, shots, max_credits=3, basis_gates=None):
+    def run_circuit(self, circuit, device, shots, max_credits=3):
         """Run a circuit.
         circuit is a circuit name
         api the api for the device
@@ -306,13 +305,14 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        if not self.__API:
-            return {"status":"Error", "result":"Not API setup"}
+        if not self.__api:
+            return {"status": "Error", "result": "Not API setup"}
         if isinstance(circuit, str):
             circuit = self.__circuits[circuit]
 
         qasm_source, circuit = self.unroller_code(circuit)
-        output = self.__API.run_experiment(qasm_source, device, shots, max_credits)
+        output = self.__api.run_experiment(
+            qasm_source, device, shots, max_credits)
         return output
 
     def run_program(self, device, shots, max_credits=3, basis_gates=None):
@@ -324,10 +324,12 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
-        output = self.run_circuits(self.__circuits.values(), device, shots, max_credits=3, basis_gates=None)
+        output = self.run_circuits(self.__circuits.values(
+        ), device, shots, max_credits=max_credits, basis_gates=basis_gates)
         return output
 
-    def execute(self, device='simulator', coupling_map=None, shots=1024, max_credits=3, basis_gates=None):
+    def execute(self, device='simulator', coupling_map=None,
+                shots=1024, max_credits=3):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -341,7 +343,8 @@ class QuantumProgram(object):
 
         return output
 
-    def execute_circuits(self, circuits, device, shots, max_credits=3, basis_gates=None):
+    def execute_circuits(self, circuits, device, shots,
+                         max_credits=3, basis_gates=None):
         """Execute compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -351,9 +354,9 @@ class QuantumProgram(object):
         basis_gates are the base gates by default are: u1,u2,u3,cx
         """
         qasm_source, circuit_unrolled = self.compile()
-        output = self.run_circuits(circuit_unrolled, device, shots, max_credits=3, basis_gates=basis_gates)
+        output = self.run_circuits(
+            circuit_unrolled, device, shots, max_credits=max_credits, basis_gates=basis_gates)
         return output
-
 
     def program_to_text(self, circuits=None):
         """Print a program (array of quantum circuits).
@@ -377,23 +380,23 @@ class QuantumProgram(object):
         timeout is how long we wait before failing, in seconds
         Returns an list of results that correspond to the jobids.
         """
-        t = 0
+        timer = 0
         timeout_over = False
-        job = self.__API.get_job(jobid)
-        while  job['status'] == 'RUNNING':
-            if t == timeout:
+        job = self.__api.get_job(jobid)
+        while job['status'] == 'RUNNING':
+            if timer == timeout:
                 timeout_over = True
                 break
             time.sleep(wait)
-            t += wait
-            print("status = %s (%d seconds)" % (job['status'], t))
-            job = self.__API.get_job(jobid)
+            timer += wait
+            print("status = %s (%d seconds)" % (job['status'], timer))
+            job = self.__api.get_job(jobid)
             if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
-                return {"status":"Error", "result": job['status'] }
+                return {"status": "Error", "result": job['status']}
         # Get the results
 
         if timeout_over:
-            return {"status":"Error", "result":"Time Out"}
+            return {"status": "Error", "result": "Time Out"}
         return job
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
@@ -405,25 +408,25 @@ class QuantumProgram(object):
         Returns an list of results that correspond to the jobids.
         """
         status = dict(Counter(self.get_job_list_status(jobids)))
-        t = 0
+        timer = 0
         timeout_over = False
-        print("status = %s (%d seconds)" % (status, t))
+        print("status = %s (%d seconds)" % (status, timer))
         while 'COMPLETED' not in status or status['COMPLETED'] < len(jobids):
-            if t == timeout:
+            if timer == timeout:
                 timeout_over = True
                 break
             time.sleep(wait)
-            t += wait
+            timer += wait
             status = dict(Counter(self.get_job_list_status(jobids)))
-            print("status = %s (%d seconds)" % (status, t))
+            print("status = %s (%d seconds)" % (status, timer))
         # Get the results
         results = []
 
         if timeout_over:
-            return {"status":"Error", "result":"Time Out"}
+            return {"status": "Error", "result": "Time Out"}
 
         for i in jobids:
-            results.append(self.__API.get_job(i))
+            results.append(self.__api.get_job(i))
         return results
 
     def flat_results(self, results):
@@ -436,7 +439,6 @@ class QuantumProgram(object):
                 flattened.append(val)
         return {'qasms': flattened}
 
-
     def combine_jobs(self, jobids, wait=5, timeout=60):
         """Like wait_for_jobs but with a different return format.
         jobids is a list of id strings.
@@ -448,8 +450,7 @@ class QuantumProgram(object):
 
         results = list(map(lambda x: x['qasms'],
                            self.wait_for_jobs(jobids, wait, timeout)))
-        return self.flat_result(results)
-
+        return self.flat_results(results)
 
     def average_data(self, data, observable):
         """Compute the mean value of an observable.
@@ -461,7 +462,7 @@ class QuantumProgram(object):
         tot = sum(data.values())
         for key in data:
             if key in observable:
-                temp += data[key]*observable[key]/tot
+                temp += data[key] * observable[key] / tot
         return temp
 
     def __init_specs(self, specs):
@@ -470,15 +471,17 @@ class QuantumProgram(object):
         quantumr = []
         classicalr = []
         if "api" in specs:
-            if  specs["api"]["token"]:
-                self.__API_config["token"] = specs["api"]["token"]
-            if  specs["api"]["url"]:
-                self.__API_config["url"] = specs["api"]["url"]
+            if specs["api"]["token"]:
+                self.__api_config["token"] = specs["api"]["token"]
+            if specs["api"]["url"]:
+                self.__api_config["url"] = specs["api"]["url"]
 
         if "circuits" in specs:
             for circuit in specs["circuits"]:
-                quantumr = self.create_quantum_registers_group(circuit["quantum_registers"])
-                classicalr = self.create_classical_registers_group(circuit["classical_registers"])
+                quantumr = self.create_quantum_registers_group(
+                    circuit["quantum_registers"])
+                classicalr = self.create_classical_reg_group(
+                    circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"],
                                     qregisters=quantumr,
                                     cregisters=classicalr)
@@ -486,11 +489,13 @@ class QuantumProgram(object):
             if "quantum_registers" in specs:
                 print(">> quantum_registers created")
                 quantumr = specs["quantum_registers"]
-                self.create_quantum_registers(quantumr["name"], quantumr["size"])
+                self.create_quantum_registers(
+                    quantumr["name"], quantumr["size"])
             if "classical_registers" in specs:
                 print(">> quantum_registers created")
                 classicalr = specs["classical_registers"]
-                self.create_classical_registers(classicalr["name"], classicalr["size"])
+                self.create_classical_registers(
+                    classicalr["name"], classicalr["size"])
             if quantumr and classicalr:
                 self.create_circuit(name=specs["name"],
                                     qregisters=quantumr["name"],
@@ -536,15 +541,17 @@ class QuantumProgram(object):
         """Create a new set of Quantum Registers based in a array of that"""
         new_registers = []
         for register in registers_array:
-            register = self.create_quantum_registers(register["name"], register["size"])
+            register = self.create_quantum_registers(
+                register["name"], register["size"])
             new_registers.append(register)
         return new_registers
 
-    def create_classical_registers_group(self, registers_array):
+    def create_classical_reg_group(self, registers_array):
         """Create a new set of Classical Registers based in a array of that"""
         new_registers = []
         for register in registers_array:
-            new_registers.append(self.create_classical_registers(register["name"], register["size"]))
+            new_registers.append(self.create_classical_registers(
+                register["name"], register["size"]))
         return new_registers
 
     def create_classical_registers(self, name, size):
@@ -562,7 +569,8 @@ class QuantumProgram(object):
             print("---- Error: Not data to plot ----")
             return None
         if not self.__qasm_compile["status"] == "DONE":
-            print("---- Errorr: No results, status = ", self.__qasm_compile["status"])
+            print("---- Errorr: No results, status = ",
+                  self.__qasm_compile["status"])
             return None
 
         data = self.__qasm_compile['compiled_circuits'][circuit_number]['result']['data']['count']

@@ -5,25 +5,25 @@ Author: Andrew Cross
 """
 from qiskit import QuantumProgram
 
-QPSpecs = {
+QPS_SPECS = {
     "name": "Program",
     "circuits": [{
         "name": "teleport",
         "quantum_registers": [{
-            "name":"q",
-            "size":3
+            "name": "q",
+            "size": 3
         }],
         "classical_registers": [
-            {"name":"c0",
-             "size":1},
-            {"name":"c1",
-             "size":1},
-            {"name":"c2",
-             "size":1},
+            {"name": "c0",
+             "size": 1},
+            {"name": "c1",
+             "size": 1},
+            {"name": "c2",
+             "size": 1},
         ]}]
 }
 
-QP_program = QuantumProgram(specs=QPSpecs)
+QP_program = QuantumProgram(specs=QPS_SPECS)
 qc = QP_program.circuit("teleport")
 q = QP_program.quantum_registers("q")
 c0 = QP_program.classical_registers("c0")

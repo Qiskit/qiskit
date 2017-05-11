@@ -55,4 +55,5 @@ class Instruction(object):
         if self.control is None:
             return string
         else:
-            return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+            return "if(%s==%d) " % (
+                self.control[0].name, self.control[1]) + string

@@ -18,7 +18,7 @@ class SGate(CompositeGate):
     def __init__(self, qubit, circ=None):
         """Create new S gate."""
         super(SGate, self).__init__("s", [], [qubit], circ)
-        self.u1(math.pi/2.0, qubit)
+        self.u1(math.pi / 2.0, qubit)
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""

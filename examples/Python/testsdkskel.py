@@ -18,7 +18,7 @@ from qiskit.extensions.standard import t, ccx, cswap
 
 n = 5
 q = QuantumRegister("q", n)
-r = QuantumRegister("r", 2*n)
+r = QuantumRegister("r", 2 * n)
 c = ClassicalRegister("c", n)
 cc = ClassicalRegister("cc", n)
 
@@ -42,9 +42,9 @@ qc.h(q[1]).c_if(c, 5)
 
 # qc3.h(r[2]).c_if(c, 5)  # raise exception
 
-qc.u1(math.pi/4.0, q).inverse().inverse()
-qc.u2(math.pi/8.0, math.pi/8.0, q)
-qc.u3(math.pi/4.0, math.pi/8.0, math.pi/16.0, q)
+qc.u1(math.pi / 4.0, q).inverse().inverse()
+qc.u2(math.pi / 8.0, math.pi / 8.0, q)
+qc.u3(math.pi / 4.0, math.pi / 8.0, math.pi / 16.0, q)
 
 qc3.iden(r[0])
 qc3.s(r).inverse()
@@ -57,12 +57,12 @@ qc3.t(r)
 
 qc3.reset(r[0])
 
-for i in range(n-1):
-    qc.cx(q[i], q[i+1])
+for i in range(n - 1):
+    qc.cx(q[i], q[i + 1])
     # qc.cx(q[i], q[i])  # raise exception
 
 for i in range(n):
-    qc.u1(math.pi / (i+1), q[i])
+    qc.u1(math.pi / (i + 1), q[i])
     qc.h(q[i])
     qc.measure(q[i], c[i])
 qc.ccx(q[0], q[1], q[2])

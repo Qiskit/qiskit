@@ -52,7 +52,8 @@ class QuantumCircuit(object):
         for register in rhs.regs.values():
             if not self.has_register(register):
                 raise QISKitException("circuits are not compatible")
-        circuit = QuantumCircuit(*[register for register in self.regs.values()])
+        circuit = QuantumCircuit(
+            *[register for register in self.regs.values()])
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
@@ -99,7 +100,9 @@ class QuantumCircuit(object):
         if not isinstance(register, QuantumRegister):
             raise QISKitException("expected quantum register")
         if not self.has_register(register):
-            raise QISKitException("register '%s' not in this circuit" % register.name)
+            raise QISKitException(
+                "register '%s' not in this circuit" %
+                register.name)
 
     def _check_qubit(self, circuit):
         """Raise exception if q is not in this circuit or invalid format."""
@@ -111,7 +114,9 @@ class QuantumCircuit(object):
         if not isinstance(register, ClassicalRegister):
             raise QISKitException("expected classical register")
         if not self.has_register(register):
-            raise QISKitException("register '%s' not in this circuit" % register.name)
+            raise QISKitException(
+                "register '%s' not in this circuit" %
+                register.name)
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""

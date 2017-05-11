@@ -23,7 +23,7 @@ def prob_0(data, j):
     shots = sum(data.values())
     total = 0.0
     for k, v in data.items():
-        total += (1-int(k[len(k)-j-1]))*float(v)/float(shots)
+        total += (1 - int(k[len(k) - j - 1])) * float(v) / float(shots)
     return total
 
 
@@ -34,7 +34,7 @@ def survival_prob(m, a, b, alpha):
     b is real
     alpha is real in [0,1]
     """
-    return list(map(lambda x: a*alpha**x+b, m))
+    return list(map(lambda x: a * alpha**x + b, m))
 
 
 def process_results(results, total_sequences, total_length, step, qubit):
@@ -60,13 +60,13 @@ def process_results(results, total_sequences, total_length, step, qubit):
         ydatas.append([])
         # For each subsequence length, compute survival probability
         for seq_len in range(step, total_length + step, step):
-            j = int((seq_len - step)/step)
+            j = int((seq_len - step) / step)
             data = misc.get_data(results[seq_num], j)
             ydatas[-1].append(prob_0(data, qubit))
     # Compute the mean survival probability over all sequences
     yavg = []
     for j in range(len(xdata)):
-        yavg.append(sum([r[j] for r in ydatas])/total_sequences)
+        yavg.append(sum([r[j] for r in ydatas]) / total_sequences)
     return (xdata, ydatas, yavg)
 
 
@@ -146,7 +146,7 @@ multab = [
           9, 7, 23, 6, 10, 14, 15, 13, 5, 12],
          [23, 21, 19, 20, 12, 4, 11, 9, 7, 8, 0, 16, 5, 3,
           1, 2, 6, 22, 17, 15, 13, 14, 18, 10]
-         ]
+]
 
 
 # Index of the inverse of clifford_gates[i] is invtab[i]
@@ -196,8 +196,8 @@ def generate_srb1_sequences(total_sequences, total_length, step, qubit):
             clifprod = 0
             for j in range(seq_len):
                 qasm['qasm'] += "%s q[%d];\n" % (
-                                        clifford_gates[indices[seq_num][j]],
-                                        qubit)
+                    clifford_gates[indices[seq_num][j]],
+                    qubit)
                 clifprod = multab[indices[seq_num][j]][clifprod]
             qasm['qasm'] += "%s q[%d];\n" % (clifford_gates[invtab[clifprod]],
                                              qubit)

@@ -74,7 +74,8 @@ class CircuitBackend(UnrollerBackend):
             if "U" not in self.basis:
                 self.basis.append("U")
                 self.circuit.add_basis_element("U", 1, 0, 3)
-            self.circuit.apply_operation_back("U", [qubit], [], list(arg), condition)
+            self.circuit.apply_operation_back(
+                "U", [qubit], [], list(arg), condition)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two qubit gate.
@@ -106,7 +107,8 @@ class CircuitBackend(UnrollerBackend):
         if "measure" not in self.basis:
             self.basis.append("measure")
             self.circuit.add_basis_element("measure", 1, 1)
-        self.circuit.apply_operation_back("measure", [qubit], [bit], [], condition)
+        self.circuit.apply_operation_back(
+            "measure", [qubit], [bit], [], condition)
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -170,7 +172,8 @@ class CircuitBackend(UnrollerBackend):
             self.in_gate = name
             self.listen = False
             self.circuit.add_basis_element(name, len(qubits), 0, len(args))
-            self.circuit.apply_operation_back(name, qubits, [], args, condition)
+            self.circuit.apply_operation_back(
+                name, qubits, [], args, condition)
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.
