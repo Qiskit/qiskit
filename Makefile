@@ -13,7 +13,7 @@ lint:
 	bash -c "source activate QISKitenv;pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tools tutorial"
 
 test:
-	bash -c "source activate QISKitenv;python test/tests.py"
+	bash -c "source activate QISKitenv;python test/test.py"
 
 run:
 	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
