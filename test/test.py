@@ -224,7 +224,7 @@ class TestQISKit(unittest.TestCase):
             Qconfig.APItoken, Qconfig.config["url"])
         result = QP_program.run_circuits(
             circuits, device, shots, max_credits=3)
-        self.assertEqual(result["status"], "RUNNING")
+        self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_program_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -240,7 +240,7 @@ class TestQISKit(unittest.TestCase):
         apiconnection = QP_program.set_api(
             Qconfig.APItoken, Qconfig.config["url"])
         result = QP_program.run_program(device, shots, max_credits=3)
-        self.assertEqual(result["status"], "RUNNING")
+        self.assertEqual(result["status"], "COMPLETED")
 
     @unittest.skip
     def test_execute_one_circuit_real_online(self):
