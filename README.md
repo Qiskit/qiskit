@@ -114,10 +114,10 @@ make env-dev
 - Please run this to be sure your code fits with the style guide and the tests keep passing:
 
 ```sh
-export QE_TOKEN=putYourQExperienceTokenHere
-make test
+export QE_TOKEN=putYourQExperienceTokenHere make test
 ```
-note: You can get yout "putYourQExperienceTokenHere" from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account)
+
+Note: You can get yout "putYourQExperienceTokenHere" from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account)
 
 ### Commit messages rules
 
