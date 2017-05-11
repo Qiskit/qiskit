@@ -12,7 +12,7 @@ lint:
 	bash -c "source activate QISKitenv;pylint qiskit test tools tutorial"
 
 test:
-	bash -c "source activate QISKitenv;python3 test/QISKit-tests.py"
+	bash -c "source activate QISKitenv;python test/QISKit-tests.py"
 
 run:
 	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
