@@ -11,6 +11,10 @@ import ply.lex as lex
 from ._qasmexception import QasmException
 from . import _node as node
 
+CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
+# TODO: Get dinamically from the folder "qasm/lib"
+CORE_LIBS = ['qelib1.inc']
+
 
 class QasmLexer(object):
     """OPENQASM Lexer.
@@ -153,6 +157,9 @@ class QasmLexer(object):
             incfile = next.value.strip('"')
         else:
             raise QasmException("Invalid include: must be a quoted string.")
+
+        if incfile in CORE_LIBS:
+            incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
         next = self.lexer.token()
         if next is None or next.value != ';':
