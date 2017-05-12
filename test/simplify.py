@@ -6,7 +6,9 @@ Author: Andrew Cross
 import sys
 sys.path.insert(0, '../')
 
-from qiskit.mapper import compose_u3
+import qiskit.mapper as mapper
+
+# from qiskit.mapper import compose_u3
 
 import cmath
 import math

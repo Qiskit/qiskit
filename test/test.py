@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-QISKit Test
+Quantum Program QISKit Test
 
 Authors: Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
