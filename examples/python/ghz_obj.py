@@ -1,5 +1,5 @@
 """
-Quantum teleportation example based on OPENQASM example.
+GHZ state example illustrating mapping onto the qx5qv2 device.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -18,43 +18,30 @@ from qiskit import QuantumProgram
 import Qconfig
 
 QPS_SPECS = {
-    "name": "Program",
+    "name": "ghz",
     "circuits": [{
-        "name": "teleport",
+        "name": "ghz",
         "quantum_registers": [{
             "name": "q",
-            "size": 3
+            "size": 5
         }],
         "classical_registers": [
-            {"name": "c0",
-             "size": 1},
-            {"name": "c1",
-             "size": 1},
-            {"name": "c2",
-             "size": 1},
+            {"name": "c",
+             "size": 5}
         ]}]
 }
 
 QP_program = QuantumProgram(specs=QPS_SPECS)
-qc = QP_program.circuit("teleport")
+qc = QP_program.circuit("ghz")
 q = QP_program.quantum_registers("q")
-c0 = QP_program.classical_registers("c0")
-c1 = QP_program.classical_registers("c1")
-c2 = QP_program.classical_registers("c2")
+c = QP_program.classical_registers("c")
 
-qc.u3(0.3, 0.2, 0.1, q[0])
-qc.h(q[1])
-qc.cx(q[1], q[2])
-qc.barrier(q)
-
-qc.cx(q[0], q[1])
 qc.h(q[0])
-qc.measure(q[0], c0[0])
-qc.measure(q[1], c1[0])
-
-qc.z(q[2]).c_if(c0, 1)
-qc.x(q[2]).c_if(c1, 1)
-qc.measure(q[2], c2[0])
+for i in range(4):
+    qc.cx(q[i], q[i+1])
+qc.barrier()
+for i in range(5):
+    qc.measure(q[i], c[i])
 
 # qx5qv2 coupling
 coupling_map = {0: [1, 2],
@@ -63,21 +50,28 @@ coupling_map = {0: [1, 2],
                 3: [2, 4],
                 4: [2]}
 
-# Experiment does not support feedback, so we use the simulator
-
 result = QP_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
 if not result:
     print("Error setting API")
     sys.exit(1)
 
 # First version: not compiled
+print("no compilation, simulator")
 result = QP_program.execute(device='simulator', coupling_map=None, shots=1024)
 # print(result["compiled_circuits"][0]["qasm"])
 print(result["compiled_circuits"][0]["result"]["data"]["counts"])
 
-# Second version: compiled to qx5qv2 coupling graph
+# Second version: compiled to qc5qv2 coupling graph
+print("compilation to qc5qv2, simulator")
 result = QP_program.execute(device='simulator', coupling_map=coupling_map, shots=1024)
 # print(result["compiled_circuits"][0]["qasm"])
 print(result["compiled_circuits"][0]["result"]["data"]["counts"])
 
-# Both versions should give the same distribution
+# Third version: compiled to qc5qv2 coupling graph and run on qx5q
+print("compilation to qc5qv2, device")
+result = QP_program.execute(device='qx5q', coupling_map=coupling_map, shots=1024)
+if result["status"] == "Error":
+    print(result)
+else:
+    print(result["compiled_circuits"][0]["qasm"])
+    print(result["compiled_circuits"][0]["result"]["data"]["counts"])
