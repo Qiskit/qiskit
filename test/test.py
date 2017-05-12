@@ -219,9 +219,10 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.run_circuit(
-            "circuit-name", device, shots, max_credits=3)
-        self.assertEqual(result["status"], "DONE")
+        result = QP_program.execute(
+            [qc], device, shots, max_credits=3)
+        print(result)
+        self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_several_circuits_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -238,7 +239,7 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.run_circuits(
+        result = QP_program.execute(
             circuits, device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
@@ -255,7 +256,7 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.run_program(device, shots, max_credits=3)
+        result = QP_program.execute([qc], device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
     @unittest.skip
@@ -269,8 +270,7 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.run_circuit(
-            "circuit-name", device, shots, max_credits=3)
+        result = QP_program.execute([qc], device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
 
     @unittest.skip
@@ -290,9 +290,10 @@ class TestQISKit(unittest.TestCase):
         credits = 3
         coupling_map = None
 
-        source = QP_program.compile(device, coupling_map, shots, credits)[
-            'compiled_circuits'][0]['qasm']
-
+        source = QP_program.compile([qc],
+                                    device,
+                                    coupling_map)[0]['qasm']
+ 
         self.assertEqual(len(source), 168)
 
     def test_run_program(self):
@@ -312,9 +313,10 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        QP_program.compile(device, coupling_map, shots, credits)
-        result = QP_program.run()
-        self.assertEqual(len(result), 6)
+        QP_program.compile(circuits, device, coupling_map)
+        result = QP_program.run(shots, credits)
+        print(result)
+        self.assertEqual(len(result), 10)
 
     def test_execute_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -332,9 +334,8 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.execute(
-            device, coupling_map, shots, credits)['status']
-        self.assertEqual(result, 'COMPLETED')
+        result = QP_program.execute(circuits, device, shots, max_credits=3)
+        self.assertEqual(result['status'], 'COMPLETED')
 
         # QP_program.plotter()
 
