@@ -38,6 +38,10 @@ from . import unroll
 from . import qasm
 from . import mapper
 
+import sys
+sys.path.append("..")
+from qiskit.extensions.standard import x, h, cx, s, ry, barrier
+
 
 class QuantumProgram(object):
     """ Quantum Program Class
