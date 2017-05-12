@@ -1251,3 +1251,13 @@ class Circuit:
                 else:
                     op_dict[name] += 1
         return op_dict
+
+    def property_summary(self):
+        """Return a dictionary of circuit properties."""
+        summary = {"size": self.size(),
+                   "depth": self.depth(),
+                   "width": self.width(),
+                   "bits": self.num_cbits(),
+                   "factors": self.num_tensor_factors(),
+                   "operations": self.count_ops()}
+        return summary

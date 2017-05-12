@@ -236,10 +236,13 @@ class QuantumProgram(object):
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(circuit)
             if coupling_map:
+                print("pre-mapping properties: %s"
+                      % circuit_unrolled.property_summary())
                 # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
                 circuit_unrolled, final_layout = self.mapper.swap_mapper(
                     circuit_unrolled, coupling)
+                print("layout: %s" % final_layout)
                 # Expand swaps
                 qasm_source, circuit_unrolled = self.unroller_code(
                     circuit_unrolled)
@@ -251,6 +254,8 @@ class QuantumProgram(object):
                 # Simplify single qubit gates
                 circuit_unrolled = mapper.optimize_1q_gates(circuit_unrolled)
                 qasm_source = circuit_unrolled.qasm(qeflag=True)
+                print("post-mapping properties: %s"
+                      % circuit_unrolled.property_summary())
             qasm_circuits.append({'qasm': qasm_source})
             unrolled_circuits.append({'circuit_unrolled': circuit_unrolled})
         return qasm_circuits, unrolled_circuits

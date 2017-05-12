@@ -12,6 +12,14 @@ from qiskit import QISKitException
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
+# Notes:
+# Measurements may occur and be followed by swaps that result in repeated
+# measurement of the same qubit. Near-term experiments cannot implement
+# these circuits, so we may need to modify the algorithm.
+# It can happen that a swap in a deeper layer can be removed by permuting
+# qubits in the layout. We don't do this.
+# It can happen that initial swaps can be removed or partly simplified
+# because the initial state is zero. We don't do this.
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     """Find a swap circuit that implements a permutation for this layer.
@@ -19,7 +27,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     The goal is to swap qubits such that qubits in the same two qubit gates
     are adjacent.
 
-    Based on Sergey Bravyi's MATLAB code.
+    Based on Sergey Bravyi's algorithm.
 
     The layer_partition is a list of (qu)bit lists and each qubit is a
     tuple (qreg, index).
@@ -30,12 +38,13 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     The coupling is a CouplingGraph.
     TRIALS is the number of attempts the randomized algorithm makes.
 
-    Returns: success_flag, best_circ, best_d, best_layout
+    Returns: success_flag, best_circ, best_d, best_layout, trivial_flag
 
     If success_flag is True, then best_circ contains an OPENQASM string with
     the swap circuit, best_d contains the depth of the swap circuit, and
     best_layout contains the new positions of the data qubits after the
-    swap circuit has been applied.
+    swap circuit has been applied. The trivial_flag is set if the layer
+    has no multi-qubit gates.
     """
     rev_layout = {b: a for a, b in layout.items()}
     gates = []
@@ -44,6 +53,12 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             raise QISKitException("Layer contains >2 qubit gates")
         elif len(layer) == 2:
             gates.append(tuple(layer))
+
+    # Can we already apply the gates?
+    dist = sum([coupling.distance(layout[g[0]],
+                                  layout[g[1]]) for g in gates])
+    if dist == len(gates):
+        return True, "", 0, layout, len(gates) == 0
 
     # Begin loop over trials of randomized algorithm
     n = coupling.size()
@@ -54,7 +69,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
 
         trial_layout = copy.deepcopy(layout)
         rev_trial_layout = copy.deepcopy(rev_layout)
-        trial_circ = ""
+        trial_circ = ""  # circuit produced in this trial
 
         # Compute Sergey's randomized distance
         xi = {}
@@ -67,8 +82,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
-        for d in range(1, 2 * n + 1):
-            circ = ""
+        d = 1
+        circ = ""  # circuit for this swap slice
+        while d < 2*n+1:
             # Set of available qubits
             qubit_set = set(qubit_subset)
             # While there are still qubits available
@@ -120,8 +136,11 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
             if dist == len(gates):
-                trial_circ = circ
+                trial_circ += circ
                 break
+
+            # Increment the depth
+            d += 1
 
         # Either we have succeeded at some depth d < dmax or failed
         dist = sum([coupling.distance(trial_layout[g[0]],
@@ -133,9 +152,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             best_d = min(best_d, d)
 
     if best_circ is None:
-        return False, None, None, None
+        return False, None, None, None, False
     else:
-        return True, best_circ, best_d, best_layout
+        return True, best_circ, best_d, best_layout, False
 
 
 def direction_mapper(circuit_graph, coupling_graph, verbose=False):
@@ -193,7 +212,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
 
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
-                basis="cx,u1,u2,u3", verbose=False):
+                basis="cx,u1,u2,u3,id", verbose=False):
     """Map a Circuit onto a CouplingGraph using swap gates.
 
     circuit_graph = input Circuit
@@ -232,7 +251,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                                       "in input Circuit" % (k[0], k[1]))
             if v not in coup_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " +
-                                      " in input CouplingGraph" % (k[0], k[1]))
+                                      " in input CouplingGraph" % (v[0], v[1]))
     else:
         # Supply a default layout
         qubit_subset = coupling_graph.get_qubits()
@@ -243,20 +262,27 @@ def swap_mapper(circuit_graph, coupling_graph,
     # Find swap circuit to preceed to each layer of input circuit
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
-    first_layer = True
+    first_layer = True  # True until first layer is output
+    first_swapping_layer = True  # True until first swap layer is output
+    # Iterate over layers
     for i in range(len(layerlist)):
-        success_flag, best_circ, best_d, best_layout \
+        # Attempt to find a permutation for this layer
+        success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layerlist[i]["partition"], layout,
                                 qubit_subset, coupling_graph, 20)
+        # If this fails, try one gate at a time in this layer
         if not success_flag:
             if verbose:
                 print("swap_mapper: failed, layer %d, " % i,
-                      " contention? retrying sequentially")
+                      " retrying sequentially")
             serial_layerlist = layerlist[i]["graph"].serial_layers()
+            # Go through each gate in the layer
             for j in range(len(serial_layerlist)):
-                success_flag, best_circ, best_d, best_layout \
+                success_flag, best_circ, best_d, best_layout, trivial_flag \
                     = layer_permutation(serial_layerlist[j]["partition"],
-                                        layout, qubit_subset, coupling_graph, 20)
+                                        layout, qubit_subset, coupling_graph,
+                                        20)
+                # Give up if we fail again
                 if not success_flag:
                     raise QISKitException("swap_mapper failed: " +
                                           "layer %d, sublayer %d" % (i, j) +
@@ -265,42 +291,77 @@ def swap_mapper(circuit_graph, coupling_graph,
                                               no_decls=True,
                                               aliases=layout))
                 else:
+                    # Update the qubit positions each iteration
                     layout = best_layout
-                    if first_layer:
-                        initial_layout = layout
-                        openqasm_output += circuit_graph.qasm(add_swap=True,
-                                                              decls_only=True,
-                                                              aliases=layout)
-                        openqasm_output += serial_layerlist[j]["graph"].qasm(
-                            no_decls=True,
-                            aliases=layout)
-                        first_layer = False
+                    if best_d == 0:
+                        # Output qasm without swaps
+                        if first_layer:
+                            openqasm_output += circuit_graph.qasm(
+                                add_swap=True,
+                                decls_only=True,
+                                aliases=layout)
+                            first_layer = False
+                        if not trivial_flag and first_swapping_layer:
+                            initial_layout = layout
+                            first_swapping_layer = False
                     else:
-                        if verbose:
-                            print("swap_mapper: layer %d (%d), depth %d"
-                                  % (i, j, best_d))
-                        if best_circ != "":
-                            openqasm_output += best_circ
+                        # Output qasm with swaps
+                        if first_layer:
+                            openqasm_output += circuit_graph.qasm(
+                                add_swap=True,
+                                decls_only=True,
+                                aliases=layout)
+                            first_layer = False
+                            initial_layout = layout
+                            first_swapping_layer = False
+                        else:
+                            if not first_swapping_layer:
+                                if verbose:
+                                    print("swap_mapper: layer %d (%d), depth %d"
+                                          % (i, j, best_d))
+                                openqasm_output += best_circ
+                            else:
+                                initial_layout = layout
+                                first_swapping_layer = False
                         openqasm_output += serial_layerlist[j]["graph"].qasm(
-                            no_decls=True,
-                            aliases=layout)
+                                    no_decls=True,
+                                    aliases=layout)
         else:
+            # Update the qubit positions each iteration
             layout = best_layout
-            if first_layer:
-                initial_layout = layout
-                openqasm_output += circuit_graph.qasm(add_swap=True,
-                                                      decls_only=True,
-                                                      aliases=layout)
-                openqasm_output += layerlist[i]["graph"].qasm(no_decls=True,
-                                                              aliases=layout)
-                first_layer = False
+            if best_d == 0:
+                # Output qasm without swaps
+                if first_layer:
+                    openqasm_output += circuit_graph.qasm(
+                                add_swap=True,
+                                decls_only=True,
+                                aliases=layout)
+                    first_layer = False
+                if not trivial_flag and first_swapping_layer:
+                    initial_layout = layout
+                    first_swapping_layer = False
             else:
-                if verbose:
-                    print("swap_mapper: layer %s, depth %d" % (i, best_d))
-                if best_circ != "":
-                    openqasm_output += best_circ
-                openqasm_output += layerlist[i]["graph"].qasm(no_decls=True,
-                                                              aliases=layout)
+                # Output qasm with swaps
+                if first_layer:
+                    openqasm_output += circuit_graph.qasm(
+                                add_swap=True,
+                                decls_only=True,
+                                aliases=layout)
+                    first_layer = False
+                    initial_layout = layout
+                    first_swapping_layer = False
+                else:
+                    if not first_swapping_layer:
+                        if verbose:
+                            print("swap_mapper: layer %d, depth %d"
+                                  % (i, best_d))
+                        openqasm_output += best_circ
+                    else:
+                        initial_layout = layout
+                        first_swapping_layer = False
+            openqasm_output += layerlist[i]["graph"].qasm(
+                                    no_decls=True,
+                                    aliases=layout)
     # Parse openqasm_output into Circuit object
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()

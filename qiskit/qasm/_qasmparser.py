@@ -475,7 +475,7 @@ class QasmParser(object):
         '''
         if program[2] != '}':
             raise QasmException("Missing '}' in gate definition; received'"
-                                + str(pprogram[2].value) + "'")
+                                + str(program[2].value) + "'")
         program[0] = node.GateBody(None)
 
     def p_gate_body_1(self, program):

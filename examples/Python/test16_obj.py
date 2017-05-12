@@ -17,69 +17,45 @@ from qiskit import QuantumProgram
 
 import Qconfig
 
+
+def swap(qc, q0, q1):
+    """Swap gate."""
+    qc.cx(q0, q1)
+    qc.cx(q1, q0)
+    qc.cx(q0, q1)
+
 n = 3
 
 QPS_SPECS = {
     "name": "Program",
     "circuits": [{
-        "name": "rippleadd",
+        "name": "test16",
         "quantum_registers": [
-            {"name": "a",
+            {"name": "q",
              "size": n},
-            {"name": "b",
-             "size": n},
-            {"name": "cin",
-             "size": 1},
-            {"name": "cout",
-             "size": 1}
+            {"name": "r",
+             "size": n}
         ],
         "classical_registers": [
             {"name": "ans",
-             "size": n + 1},
+             "size": 2*n},
         ]}]
 }
 
 QP_program = QuantumProgram(specs=QPS_SPECS)
-qc = QP_program.circuit("rippleadd")
-a = QP_program.quantum_registers("a")
-b = QP_program.quantum_registers("b")
-cin = QP_program.quantum_registers("cin")
-cout = QP_program.quantum_registers("cout")
+qc = QP_program.circuit("test16")
+q = QP_program.quantum_registers("q")
+r = QP_program.quantum_registers("r")
 ans = QP_program.classical_registers("ans")
 
+qc.x(q[0])  # Set input q = 1...0000
 
-def majority(p, a, b, c):
-    """Majority gate."""
-    p.cx(c, b)
-    p.cx(c, a)
-    p.ccx(a, b, c)
+swap(qc, q[0], q[n-1])
+swap(qc, q[n-1], r[n-1])
 
-
-def unmajority(p, a, b, c):
-    """Unmajority gate."""
-    p.ccx(a, b, c)
-    p.cx(c, a)
-    p.cx(a, b)
-
-
-# Build subcircuit to add a to b, storing result in b
-adder_subcircuit = QP_program.create_circuit(
-    "adder_subcircuit", [cin, a, b, cout])
-majority(adder_subcircuit, cin[0], b[0], a[0])
-for j in range(n - 1):
-    majority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
-adder_subcircuit.cx(a[n - 1], cout[0])
-for j in reversed(range(n - 1)):
-    unmajority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
-unmajority(adder_subcircuit, cin[0], b[0], a[0])
-
-# Build the adder example
-qc.x(a[0])  # Set input a = 0...0001
-qc.x(b)   # Set input b = 1...1111
-qc += adder_subcircuit
 for j in range(n):
-    qc.measure(b[j], ans[j])  # Measure the output register
-qc.measure(cout[0], ans[n])
+    qc.measure(q[j], ans[j])
+    qc.measure(r[j], ans[j+n])
 
 # 2x8 array
 coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
