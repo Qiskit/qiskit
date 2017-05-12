@@ -1,6 +1,6 @@
-[![Build Status](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev.svg?token=THSowrrt9aJckeWmgC4s&branch=master)](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev)
-
 # Qiskit SDK Python
+
+[![Build Status](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev.svg?token=THSowrrt9aJckeWmgC4s&branch=master)](https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev)
 
 Python software development kit (SDK) and Jupyter notebooks for working with
 OPENQASM and the IBM Quantum Experience (QE).
