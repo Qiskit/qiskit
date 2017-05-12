@@ -27,12 +27,6 @@ import os
 import json
 import unittest
 
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import Qconfig
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
@@ -42,9 +36,19 @@ from qiskit import ClassicalRegister
 
 # We need the environment variable for Travis.
 try:
-   API_TOKEN = os.environ["QE_TOKEN"]
-except KeyError:
-    API_TOKEN =  Qconfig.APItoken
+    # We don't know from where the user is running the example,
+    # so we need a relative position from this file path.
+    # TODO: Relative imports for intra-package imports are highly discouraged.
+    # http://stackoverflow.com/a/7506006
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    import Qconfig
+    API_TOKEN = Qconfig.APItoken
+    # TODO: Why "APItoken" is in the root (the unique) and "url" inside "config"?
+    # (also unique) -> make it consistent.
+    URL = Qconfig.config["url"]
+except ImportError:
+    API_TOKEN = os.environ["QE_TOKEN"]
+    URL = os.environ["QE_URL"]
 
 
 # Define Program Specifications.
@@ -86,7 +90,7 @@ class TestQISKit(unittest.TestCase):
         Test Qconfig
         """
         self.assertEqual(
-            Qconfig.config["url"],
+            URL,
             "https://quantumexperience.ng.bluemix.net/api")
 
     def test_get_components(self):
@@ -202,7 +206,7 @@ class TestQISKit(unittest.TestCase):
 
     def test_setup_api(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        result = QP_program.set_api(API_TOKEN, Qconfig.config["url"])
+        result = QP_program.set_api(API_TOKEN, URL)
         self.assertTrue(result)
 
     def test_execute_one_circuit_simulator_online(self):
@@ -214,7 +218,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         result = QP_program.run_circuit(
             "circuit-name", device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
@@ -233,7 +237,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         result = QP_program.run_circuits(
             circuits, device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
@@ -250,7 +254,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         result = QP_program.run_program(device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
@@ -264,7 +268,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         result = QP_program.run_circuit(
             "circuit-name", device, shots, max_credits=3)
         self.assertEqual(result["status"], "DONE")
@@ -307,7 +311,7 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         QP_program.compile(device, coupling_map, shots, credits)
         result = QP_program.run()
         self.assertEqual(len(result), 6)
@@ -327,7 +331,7 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         apiconnection = QP_program.set_api(
-            API_TOKEN, Qconfig.config["url"])
+            API_TOKEN, URL)
         result = QP_program.execute(
             device, coupling_map, shots, credits)['status']
         self.assertEqual(result, 'COMPLETED')
