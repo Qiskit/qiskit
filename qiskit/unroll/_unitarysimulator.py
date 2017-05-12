@@ -1,8 +1,9 @@
 """
 Backend for the unroller that composes unitary matrices to simulate circuit.
 
-Author: Andrew Cross
+Author: Andrew Cross and Jay Gambetta
 """
+import numpy as np
 from qiskit.unroll import BackendException
 from qiskit.unroll import UnrollerBackend
 
@@ -17,13 +18,20 @@ from qiskit.unroll import UnrollerBackend
 
 
 class UnitarySimulator(UnrollerBackend):
-    """Backend for the unroller that composes unitary matrices."""
+    """ Backend for the unroller that composes unitary matrices.
 
+    """
     def __init__(self, basis=None):
         """Setup this backend.
 
         basis is a list of operation name strings.
         """
+        self.unitary_gates = {}
+        self.unitary_gates['gates'] = {}
+        self.unitaries = {}
+        self.number_of_qubits = 0
+        self.qubit_order = {}
+        self.gate_order = 0
         self.prec = 15
         self.creg = None
         self.cval = None
@@ -37,17 +45,13 @@ class UnitarySimulator(UnrollerBackend):
         self.in_gate = ""
         self.printed_gates = []
 
-        # Jay: put your simulator data here in __init__
-        #      or as a class variable.
-
-    # Jay: add new private methods as you need
-    def apply_my_gate(self, gateargs):
-        """Apply my gate."""
-        pass
-
     def set_trace(self, trace):
         """Set trace to True to enable."""
         self.trace = trace
+
+    def get_unitary_gates(self):
+        """reteurns the dictionary of unitary gates."""
+        return self.unitary_gates
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit.
@@ -78,9 +82,15 @@ class UnitarySimulator(UnrollerBackend):
         sz = size of the register
         """
         assert size >= 0, "invalid qreg size"
+
+        for j in range(size):
+            self.qubit_order[(name, j)] = self.number_of_qubits + j
+        self.number_of_qubits += size
+        # print(self.qubit_order)
+        self.unitary_gates['number_of_qubits'] = self.number_of_qubits
         if self.trace:
-            print("qreg %s[%d];" % (name, size))
-        # Jay: initialize your data
+            print("added %d qubits from qreg %s giving a total of %d qubits" %
+                  (size, name, self.number_of_qubits))
 
     def new_creg(self, name, size):
         """Create a new classical register.
@@ -88,10 +98,7 @@ class UnitarySimulator(UnrollerBackend):
         name = name of the register
         sz = size of the register
         """
-        assert size >= 0, "invalid creg size"
-        if self.trace:
-            print("creg %s[%d];" % (name, size))
-        # Jay: initialize your data? or ignore.
+        pass
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -121,7 +128,20 @@ class UnitarySimulator(UnrollerBackend):
                                                qubit[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            # Jay: update here down with your code for U
+            element = self.qubit_order.get(qubit)
+            self.gate_order +=1
+            gate = np.array([[np.cos(arg[0]/2.0), -np.exp(1j*arg[2])*np.sin(arg[0]/2.0)], [np.exp(1j*arg[1])*np.sin(arg[0]/2.0), np.exp(1j*arg[1])*np.exp(1j*arg[2])*np.cos(arg[0]/2.0)]])
+            self.unitary_gates['number_of_gates'] = self.gate_order
+            self.unitary_gates['gates'][self.gate_order] = {
+                        'qubits': 1,
+                        'matrix': gate,
+                        'name' : "U(%s,%s,%s)" % (self._fs(arg[0]),
+                                                       self._fs(arg[1]),
+                                                       self._fs(arg[2])),
+                        'elements': [element]
+                        }
+
+            # print(self.unitary_gates)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two qubit gate.
@@ -129,6 +149,7 @@ class UnitarySimulator(UnrollerBackend):
         qubit0 is (regname,idx) tuple for the control qubit.
         qubit1 is (regname,idx) tuple for the target qubit.
         """
+
         if self.listen:
             if "CX" not in self.basis:
                 self.basis.append("CX")
@@ -139,7 +160,18 @@ class UnitarySimulator(UnrollerBackend):
                                              qubit1[0], qubit1[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            # Jay: update here down with your code for CX
+            element = [self.qubit_order.get(qubit0),
+                       self.qubit_order.get(qubit1)]
+            self.gate_order +=1
+            cx = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1],
+                          [0, 0, 1, 0]])
+            self.unitary_gates['number_of_gates'] = self.gate_order
+            self.unitary_gates['gates'][self.gate_order] = {
+                        'qubits': 2,
+                        'matrix': cx,
+                        'name': 'CX',
+                        'elements': element,
+                        }
 
     def measure(self, qubit, bit):
         """Measurement operation.
