@@ -216,27 +216,12 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm': circuit.qasm()})
         return qasm_circuits
 
-    def compile(self, device, coupling_map=None, shots=1024, max_credits=3):
-        """ Compile unrole the code
-        circuits are circuits to unroll
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        """
-        self.__qasm_compile = {
-            'backend': {'name': device},
-            'max_credits': max_credits,
-            'compiled_circuits': self.compile_circuits(self.__circuits.values(), coupling_map=coupling_map)[0],
-            'shots': shots
-        }
-
-        return self.__qasm_compile
-
-    def compile_circuits(self, circuits, coupling_map=None):
+    def compile(self, circuits, device="simulator", coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         qasm_circuits = []
-        unrolled_circuits = []
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(circuit)
             if coupling_map:
@@ -261,10 +246,12 @@ class QuantumProgram(object):
                 print("post-mapping properties: %s"
                       % circuit_unrolled.property_summary())
             qasm_circuits.append({'qasm': qasm_source})
-            unrolled_circuits.append({'circuit_unrolled': circuit_unrolled})
-        return qasm_circuits, unrolled_circuits
 
-    def run(self, wait=5, timeout=60):
+        self.__qasm_compile = {'backend': {'name': device},
+                               'compiled_circuits': qasm_circuits}
+        return qasm_circuits
+
+    def run(self, shots=1024, max_credits=3, wait=5, timeout=60):
         """Run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -275,13 +262,14 @@ class QuantumProgram(object):
         """
         output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                     self.__qasm_compile['backend']['name'],
-                                    self.__qasm_compile['shots'],
-                                    self.__qasm_compile['max_credits'])
+                                    shots,
+                                    max_credits)
         if 'error' in output:
             return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(
-            output['id'], wait=wait, timeout=timeout)
+        job_result = self.wait_for_job(output['id'],
+                                       wait=wait,
+                                       timeout=timeout)
 
         if job_result['status'] == 'Error':
             return job_result
@@ -290,91 +278,24 @@ class QuantumProgram(object):
         self.__qasm_compile['used_credits'] = job_result['usedCredits']
         self.__qasm_compile['status'] = job_result['status']
 
-        return self.__qasm_compile
+        return job_result
 
-    def run_circuits(self, circuits, device, shots,
+
+    def execute(self, circuits, device, shots, coupling_map=None,
                      max_credits=3, basis_gates=None, wait=5, timeout=60):
-        """Run a circuit.
-        circuit is a circuit name
+        """Execute, compile and run a program (array of quantum circuits).
+        program is a list of quantum_circuits
         api the api for the device
         device is a string for real or simulator
         shots is the number of shots
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        jobs = []
-        for circuit in circuits:
-            qasm_source, circuit = self.unroller_code(circuit, basis_gates)
-            jobs.append({'qasm': qasm_source})
-        output = self.__api.run_job(jobs, device, shots, max_credits)
+        self.compile(circuits, device, coupling_map)
+        output = self.run(shots, max_credits, wait, timeout)
         if 'error' in output:
             return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(
-            output['id'], wait=wait, timeout=timeout)
-
-        return job_result
-
-    def run_circuit(self, circuit, device, shots, max_credits=3):
-        """Run a circuit.
-        circuit is a circuit name
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        """
-        if not self.__api:
-            return {"status": "Error", "result": "Not API setup"}
-        if isinstance(circuit, str):
-            circuit = self.__circuits[circuit]
-
-        qasm_source, circuit = self.unroller_code(circuit)
-        output = self.__api.run_experiment(
-            qasm_source, device, shots, max_credits)
-        return output
-
-    def run_program(self, device, shots, max_credits=3, basis_gates=None):
-        """Run a program (array of quantum circuits).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        """
-        output = self.run_circuits(self.__circuits.values(
-        ), device, shots, max_credits=max_credits, basis_gates=basis_gates)
-        return output
-
-    def execute(self, device='simulator', coupling_map=None,
-                shots=1024, max_credits=3):
-        """Execute compile and run a program (array of quantum circuits).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        """
-        self.compile(device, coupling_map, shots, max_credits)
-        output = self.run()
-
-        return output
-
-    def execute_circuits(self, circuits, device, shots,
-                         max_credits=3, basis_gates=None):
-        """Execute compile and run a program (array of quantum circuits).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        """
-        qasm_source, circuit_unrolled = self.compile()
-        output = self.run_circuits(
-            circuit_unrolled, device, shots, max_credits=max_credits, basis_gates=basis_gates)
         return output
 
     def program_to_text(self, circuits=None):
