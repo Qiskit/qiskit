@@ -221,7 +221,6 @@ class TestQISKit(unittest.TestCase):
             API_TOKEN, URL)
         result = QP_program.execute(
             [qc], device, shots, max_credits=3)
-        print(result)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_several_circuits_simulator_online(self):
@@ -313,9 +312,8 @@ class TestQISKit(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        QP_program.compile(circuits, device, coupling_map)
-        result = QP_program.run(shots, credits)
-        print(result)
+        QP_program.compile(circuits, device, shots, credits, coupling_map)
+        result = QP_program.run()
         self.assertEqual(len(result), 10)
 
     def test_execute_program(self):

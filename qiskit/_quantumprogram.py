@@ -47,6 +47,9 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
+    __online_devices = ["qx5q", "qx5qv2","simulator", "online_simulator"]
+    __local_devices = ["unitary_simulator"]
+
     __specs = {}
     __quantum_registers = {}
     __classical_registers = {}
@@ -216,7 +219,7 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm': circuit.qasm()})
         return qasm_circuits
 
-    def compile(self, circuits, device="simulator", coupling_map=None):
+    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
@@ -248,11 +251,13 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm': qasm_source})
 
         self.__qasm_compile = {'backend': {'name': device},
-                               'compiled_circuits': qasm_circuits}
+                               'compiled_circuits': qasm_circuits,
+                               'shots':shots,
+                               'max_credits':max_credits}
         return qasm_circuits
 
-    def run(self, shots=1024, max_credits=3, wait=5, timeout=60):
-        """Run a program (array of quantum circuits).
+    def run(self, wait=5, timeout=60):
+        """Run a program (a pre compiled quantum program).
         program is a list of quantum_circuits
         api the api for the device
         device is a string for real or simulator
@@ -260,19 +265,25 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
-                                    self.__qasm_compile['backend']['name'],
-                                    shots,
-                                    max_credits)
-        if 'error' in output:
-            return {"status": "Error", "result": output['error']}
 
-        job_result = self.wait_for_job(output['id'],
-                                       wait=wait,
-                                       timeout=timeout)
+        backend = self.__qasm_compile['backend']['name']
 
-        if job_result['status'] == 'Error':
-            return job_result
+        if backend in self.__online_devices:
+            output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
+                                        backend,
+                                        self.__qasm_compile['shots'],
+                                        self.__qasm_compile['max_credits'])
+            if 'error' in output:
+                return {"status": "Error", "result": output['error']}
+
+            job_result = self.wait_for_job(output['id'],
+                                           wait=wait,
+                                           timeout=timeout)
+
+            if job_result['status'] == 'Error':
+                return job_result
+        else:
+            return {"status": "Error", "result": "Not local simulations"}
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
         self.__qasm_compile['used_credits'] = job_result['usedCredits']
@@ -280,6 +291,15 @@ class QuantumProgram(object):
 
         return job_result
 
+    def run_local(self):
+        """run_local, run a program (precompile of quantum circuits).
+        api the api for the device
+        device is a string for real or simulator
+        shots is the number of shots
+        max_credits is the credits of the experiments.
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+        """
+        pass
 
     def execute(self, circuits, device, shots, coupling_map=None,
                      max_credits=3, basis_gates=None, wait=5, timeout=60):
@@ -291,8 +311,8 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        self.compile(circuits, device, coupling_map)
-        output = self.run(shots, max_credits, wait, timeout)
+        self.compile(circuits, device, shots, max_credits, coupling_map)
+        output = self.run(wait, timeout)
         if 'error' in output:
             return {"status": "Error", "result": output['error']}
 
