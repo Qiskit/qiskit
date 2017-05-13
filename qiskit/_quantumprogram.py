@@ -539,3 +539,8 @@ class QuantumProgram(object):
             basicplotter.plot_histogram(data, circuit_number)
         else:
             basicplotter.plot_qsphere(data, circuit_number)
+
+    def get_data(self, results, i):
+        """Get the dict of labels and counts from the output of get_job."""
+        return results['qasms'][i]['result']['data']['counts']
+
