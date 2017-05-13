@@ -1,8 +1,4 @@
-"""
-Rotation around the x-axis.
-
-Author: Jay using andrew code.
-"""
+"""Rotation around the x-axis."""
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from qiskit import Gate

@@ -1,11 +1,20 @@
 """
-Quantum tools and common operators.
+Contains a (slow) python simulator that makes the unitary of the circuit.
 
 These are simple methods for making common matrices used in quantum computing.
 
-Author: Jay Gambetta
+
 """
 import numpy as np
+
+class UnitarySimulator(object):
+    """
+    Python implementation of a unitary computer simulator.
+    """
+
+    def __init__(self):
+        self._unitary_state = np.ones(1, dtype=complex)
+        self.number_of_qubits = 0
 
 
 def unitary_qi(gate, qubit, number_of_qubits):
@@ -59,15 +68,17 @@ def unitary_qij(gate, qubit_1, qubit_2, number_of_qubits):
 
 
 def unitary_simulator(unitary_gates):
+    """Calculate the unitary for the gates."""
     number_of_qubits = unitary_gates['number_of_qubits']
     number_of_gates = unitary_gates['number_of_gates']
     unitary_state = np.identity(2**(number_of_qubits))
-    for key in sorted(unitary_gates['gates'].keys()):
-        gate = unitary_gates['gates'][key]['matrix']
-        if unitary_gates['gates'][key]['qubits'] == 1:
-            unitary_state = unitary_qi(gate, unitary_gates['gates'][key]
-                            ['elements'][0], number_of_qubits) * unitary_state
-        elif unitary_gates['gates'][key]['qubits'] == 2:
-            unitary_state = unitary_qij(gate, unitary_gates['gates'][key]['elements'][0],
-                             unitary_gates['gates'][key]['elements'][1], number_of_qubits) * unitary_state
-    print(unitary_state)
+    for j in range(number_of_gates):
+        gate = unitary_gates['quantum_circuit'][j]['matrix']
+        if unitary_gates['quantum_circuit'][j]['gate_size'] == 1:
+            unitary_state = np.dot(unitary_qi(gate, unitary_gates['quantum_circuit'][j]
+                            ['indices'][0], number_of_qubits), unitary_state)
+        elif unitary_gates['quantum_circuit'][j]['gate_size'] == 2:
+            unitary_state = np.dot(unitary_qij(gate, unitary_gates['quantum_circuit'][j]['indices'][0],
+                             unitary_gates['quantum_circuit'][j]['indices'][1],
+                             number_of_qubits), unitary_state)
+    return unitary_state
