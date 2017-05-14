@@ -37,11 +37,11 @@ class SimulatorBackend(UnrollerBackend):
         """
         self.circuit = {}
         self.circuit['qasm'] = []
-        self.number_of_qubits = 0
-        self.number_of_cbits = 0
-        self.qubit_order = {}
-        self.cbit_order = {}
-        self.operation_order = 0
+        self._number_of_qubits = 0
+        self._number_of_cbits = 0
+        self._qubit_order = {}
+        self._cbit_order = {}
+        self._operation_order = 0
         self.prec = 15
         self.creg = None
         self.cval = None
@@ -90,14 +90,14 @@ class SimulatorBackend(UnrollerBackend):
         assert size >= 0, "invalid qreg size"
 
         for j in range(size):
-            self.qubit_order[(name, j)] = self.number_of_qubits + j
-        self.number_of_qubits += size
+            self._qubit_order[(name, j)] = self._number_of_qubits + j
+        self._number_of_qubits += size
         # print(self.qubit_order)
-        self.circuit['number_of_qubits'] = self.number_of_qubits
-        self.circuit['qubit_order'] = self.qubit_order
+        self.circuit['number_of_qubits'] = self._number_of_qubits
+        self.circuit['qubit_order'] = self._qubit_order
         if self.trace:
             print("added %d qubits from qreg %s giving a total of %d qubits" %
-                  (size, name, self.number_of_qubits))
+                  (size, name, self._number_of_qubits))
 
     def new_creg(self, name, size):
         """Create a new classical register.
@@ -108,13 +108,13 @@ class SimulatorBackend(UnrollerBackend):
         assert size >= 0, "invalid creg size"
 
         for j in range(size):
-            self.cbit_order[(name, j)] = self.number_of_cbits + j
-        self.number_of_cbits += size
-        self.circuit['number_of_cbits'] = self.number_of_cbits
-        self.circuit['cbit_order'] = self.cbit_order
+            self._cbit_order[(name, j)] = self._number_of_cbits + j
+        self._number_of_cbits += size
+        self.circuit['number_of_cbits'] = self._number_of_cbits
+        self.circuit['cbit_order'] = self._cbit_order
         if self.trace:
             print("added %d cbits from creg %s giving a total of %d qubits" %
-                  (size, name, self.number_of_cbits))
+                  (size, name, self._number_of_cbits))
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -144,14 +144,14 @@ class SimulatorBackend(UnrollerBackend):
                                                qubit[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            qubit_indices = [self.qubit_order.get(qubit)]
-            self.operation_order += 1
+            qubit_indices = [self._qubit_order.get(qubit)]
+            self._operation_order += 1
             # print(np.exp(1j*arg[2])*np.sin(arg[0]/2.0))
             gate = np.array([[np.cos(arg[0]/2.0),
                             -np.exp(1j*arg[2])*np.sin(arg[0]/2.0)],
                             [np.exp(1j*arg[1])*np.sin(arg[0]/2.0),
                             np.exp(1j*arg[1]+1j*arg[2])*np.cos(arg[0]/2.0)]])
-            self.circuit['number_of_operations'] = self.operation_order
+            self.circuit['number_of_operations'] = self._operation_order
             self.circuit['qasm'].append({
                         'type': 'gate',
                         'gate_size': 1,
@@ -180,12 +180,12 @@ class SimulatorBackend(UnrollerBackend):
                                              qubit1[0], qubit1[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            qubit_indices = [self.qubit_order.get(qubit0),
-                             self.qubit_order.get(qubit1)]
-            self.operation_order += 1
+            qubit_indices = [self._qubit_order.get(qubit0),
+                             self._qubit_order.get(qubit1)]
+            self._operation_order += 1
             cx = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
                           [0, 1, 0, 0]])
-            self.circuit['number_of_operations'] = self.operation_order
+            self.circuit['number_of_operations'] = self._operation_order
             self.circuit['qasm'].append({
                         'type': 'gate',
                         'gate_size': 2,
@@ -200,10 +200,10 @@ class SimulatorBackend(UnrollerBackend):
         qubit is (regname, idx) tuple for the input qubit.
         bit is (regname, idx) tuple for the output bit.
         """
-        self.operation_order += 1
-        self.circuit['number_of_operations'] = self.operation_order
-        qubit_indices = [self.qubit_order.get(qubit)]
-        cbit_indices = [self.cbit_order.get(cbit)]
+        self._operation_order += 1
+        self.circuit['number_of_operations'] = self._operation_order
+        qubit_indices = [self._qubit_order.get(qubit)]
+        cbit_indices = [self._cbit_order.get(cbit)]
         self.circuit['qasm'].append({
                     'type': 'measure',
                     'qubit_indices': qubit_indices,
@@ -222,7 +222,13 @@ class SimulatorBackend(UnrollerBackend):
 
         qubit is a (regname, idx) tuple.
         """
-        raise BackendException("Simulator does not support reset")
+        self._operation_order += 1
+        self.circuit['number_of_operations'] = self._operation_order
+        qubit_indices = [self._qubit_order.get(qubit)]
+        self.circuit['qasm'].append({
+                    'type': 'reset',
+                    'qubit_indices': qubit_indices,
+                    })
 
     def set_condition(self, creg, cval):
         """Attach a current condition.

@@ -107,18 +107,14 @@ class QasmSimulator(object):
 
     def _add_qasm_measure(self, qubit, cbit):
         """Apply the measurement qubit gate."""
-        # print(cbit)
+        # print(qubit)
         probability_zero = 0
         random_number = random.random()
-        # print(self._quantum_state)
         for ii in range(2**self._number_of_qubits):
             iistring = bin(ii)[2:]
             bits = list(reversed(iistring.zfill(self._number_of_qubits)))
             if bits[qubit] == '0':
-                # print(ii)
                 probability_zero += np.abs(self._quantum_state[ii])**2
-            # if bits[qubit] == 1 :
-            #    probability_one + =  np.abs(self._quantum_state[ii])**2
         # print(probability_zero)
         if random_number <= probability_zero:
             outcome = '0'
@@ -126,6 +122,7 @@ class QasmSimulator(object):
         else:
             outcome = '1'
             norm = np.sqrt(1-probability_zero)
+        # print(outcome)
         for ii in range(2**self._number_of_qubits):
             # update quantum state
             iistring = bin(ii)[2:]
@@ -134,11 +131,48 @@ class QasmSimulator(object):
                 self._quantum_state[ii] = self._quantum_state[ii]/norm
             else:
                 self._quantum_state[ii] = 0
-            # update classical state
-            temp = bin(self._classical_state)[2:]
-            cbits_string = list(reversed(temp.zfill(self._number_of_cbits)))
-            cbits_string[cbit] = outcome
-            self._classical_state = int(''.join(reversed(cbits_string)), 2)
+        # update classical state
+        temp = bin(self._classical_state)[2:]
+        cbits_string = list(reversed(temp.zfill(self._number_of_cbits)))
+        cbits_string[cbit] = outcome
+        self._classical_state = int(''.join(reversed(cbits_string)), 2)
+
+    def _add_qasm_reset(self, qubit):
+        """Apply the reset to the qubit.
+
+        I to this by applying a measurment and ignoring the outcome"""
+        """Apply the measurement qubit gate."""
+        # print(qubit)
+        probability_zero = 0
+        random_number = random.random()
+        for ii in range(2**self._number_of_qubits):
+            iistring = bin(ii)[2:]
+            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
+            if bits[qubit] == '0':
+                probability_zero += np.abs(self._quantum_state[ii])**2
+        # print(probability_zero)
+        if random_number <= probability_zero:
+            outcome = '0'
+            norm = np.sqrt(probability_zero)
+        else:
+            outcome = '1'
+            norm = np.sqrt(1-probability_zero)
+        # print(outcome)
+        temp = self._quantum_state
+        for ii in range(2**self._number_of_qubits):
+            # update quantum state
+            iistring = bin(ii)[2:]
+            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
+            if outcome == '0':
+                iip = ii
+            else:
+                bits[qubit] == '0'
+                iip = int(''.join(reversed(bits)), 2)
+            if bits[qubit] == '0':
+                self._quantum_state[iip] = temp[ii]/norm
+            else:
+                self._quantum_state[iip] = 0
+        # print(self._quantum_state)
 
     def run(self):
         """Run."""
@@ -156,6 +190,9 @@ class QasmSimulator(object):
                 qubit = self.circuit['qasm'][j]['qubit_indices'][0]
                 cbit = self.circuit['qasm'][j]['cbit_indices'][0]
                 self._add_qasm_measure(qubit, cbit)
+            elif self.circuit['qasm'][j]['type'] == 'reset':
+                qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                self._add_qasm_reset(qubit)
         self.circuit['result']['quantum_state'] = self._quantum_state
         self.circuit['result']['classical_state'] = self._classical_state
         return self.circuit

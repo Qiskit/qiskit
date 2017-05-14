@@ -25,6 +25,8 @@ outcomes = []
 for i in range(shots):
     # running the quantum_circuit
     b = QasmSimulator(unroller.backend.circuit, random.random()).run()
+    #print(b['result']['quantum_state'])
+    #print(b['result']['classical_state'])
     outcomes.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
 
 print('\n\n outcomes = ')
