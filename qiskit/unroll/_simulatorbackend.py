@@ -1,6 +1,26 @@
-"""
-Backend for the unroller that composes unitary matrices to simulate circuit.
+"""Backend for the unroller that composes unitary matrices to simulate circuit.
 
+    {'number_of_qubits': 2,
+    'number_of_cbits': 2,
+    'number_of_operations': 2
+    'qubit_order': {('q', 0): 0, ('v', 0): 1}
+    'cbit_order': {('c', 1): 1, ('c', 0): 0},
+    'qasm': [{
+            'type': 'gate',
+            'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+            'qubit_indices': [0],
+            'gate_size': 1,
+            'matrix': array([[ 0.70710678 +0.00000000e+00j,
+                               0.70710678 -8.65956056e-17j],
+                             [ 0.70710678 +0.00000000e+00j,
+                              -0.70710678 +8.65956056e-17j]])
+            },
+            {
+            'type': 'measure',
+            'cbit_indices': [0],
+            'qubit_indices': [0]
+            }],
+    }
 """
 import numpy as np
 from qiskit.unroll import BackendException
@@ -15,13 +35,13 @@ class SimulatorBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.unitary_gates = {}
-        self.unitary_gates['quantum_circuit'] = []
+        self.circuit = {}
+        self.circuit['qasm'] = []
         self.number_of_qubits = 0
         self.number_of_cbits = 0
         self.qubit_order = {}
         self.cbit_order = {}
-        self.gate_order = 0
+        self.operation_order = 0
         self.prec = 15
         self.creg = None
         self.cval = None
@@ -73,8 +93,8 @@ class SimulatorBackend(UnrollerBackend):
             self.qubit_order[(name, j)] = self.number_of_qubits + j
         self.number_of_qubits += size
         # print(self.qubit_order)
-        self.unitary_gates['number_of_qubits'] = self.number_of_qubits
-        self.unitary_gates['qubit_order'] = self.qubit_order
+        self.circuit['number_of_qubits'] = self.number_of_qubits
+        self.circuit['qubit_order'] = self.qubit_order
         if self.trace:
             print("added %d qubits from qreg %s giving a total of %d qubits" %
                   (size, name, self.number_of_qubits))
@@ -90,8 +110,8 @@ class SimulatorBackend(UnrollerBackend):
         for j in range(size):
             self.cbit_order[(name, j)] = self.number_of_cbits + j
         self.number_of_cbits += size
-        self.unitary_gates['number_of_cbits'] = self.number_of_cbits
-        self.unitary_gates['cbit_order'] = self.cbit_order
+        self.circuit['number_of_cbits'] = self.number_of_cbits
+        self.circuit['cbit_order'] = self.cbit_order
         if self.trace:
             print("added %d cbits from creg %s giving a total of %d qubits" %
                   (size, name, self.number_of_cbits))
@@ -124,22 +144,22 @@ class SimulatorBackend(UnrollerBackend):
                                                qubit[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            indices = [self.qubit_order.get(qubit)]
-            self.gate_order += 1
+            qubit_indices = [self.qubit_order.get(qubit)]
+            self.operation_order += 1
             # print(np.exp(1j*arg[2])*np.sin(arg[0]/2.0))
             gate = np.array([[np.cos(arg[0]/2.0),
                             -np.exp(1j*arg[2])*np.sin(arg[0]/2.0)],
                             [np.exp(1j*arg[1])*np.sin(arg[0]/2.0),
                             np.exp(1j*arg[1]+1j*arg[2])*np.cos(arg[0]/2.0)]])
-            self.unitary_gates['number_of_gates'] = self.gate_order
-            self.unitary_gates['quantum_circuit'].append({
-                        # 'order': self.gate_order,
+            self.circuit['number_of_operations'] = self.operation_order
+            self.circuit['qasm'].append({
+                        'type': 'gate',
                         'gate_size': 1,
                         'matrix': gate,
                         'name': "U(%s,%s,%s)" % (self._fs(arg[0]),
                                                  self._fs(arg[1]),
                                                  self._fs(arg[2])),
-                        'indices': indices
+                        'qubit_indices': qubit_indices
                         })
 
             # print(self.unitary_gates)
@@ -160,27 +180,35 @@ class SimulatorBackend(UnrollerBackend):
                                              qubit1[0], qubit1[1]))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            indices = [self.qubit_order.get(qubit0),
-                       self.qubit_order.get(qubit1)]
-            self.gate_order += 1
-            cx = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1],
-                          [0, 0, 1, 0]])
-            self.unitary_gates['number_of_gates'] = self.gate_order
-            self.unitary_gates['quantum_circuit'].append({
-                        # 'order': self.gate_order,
+            qubit_indices = [self.qubit_order.get(qubit0),
+                             self.qubit_order.get(qubit1)]
+            self.operation_order += 1
+            cx = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
+                          [0, 1, 0, 0]])
+            self.circuit['number_of_operations'] = self.operation_order
+            self.circuit['qasm'].append({
+                        'type': 'gate',
                         'gate_size': 2,
                         'matrix': cx,
                         'name': 'CX',
-                        'indices': indices,
+                        'qubit_indices': qubit_indices,
                         })
 
-    def measure(self, qubit, bit):
+    def measure(self, qubit, cbit):
         """Measurement operation.
 
         qubit is (regname, idx) tuple for the input qubit.
         bit is (regname, idx) tuple for the output bit.
         """
-        raise BackendException("UnitarySimulator does not support measurement")
+        self.operation_order += 1
+        self.circuit['number_of_operations'] = self.operation_order
+        qubit_indices = [self.qubit_order.get(qubit)]
+        cbit_indices = [self.cbit_order.get(cbit)]
+        self.circuit['qasm'].append({
+                    'type': 'measure',
+                    'qubit_indices': qubit_indices,
+                    'cbit_indices': cbit_indices
+                    })
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -194,7 +222,7 @@ class SimulatorBackend(UnrollerBackend):
 
         qubit is a (regname, idx) tuple.
         """
-        raise BackendException("UnitarySimulator does not support reset")
+        raise BackendException("Simulator does not support reset")
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
