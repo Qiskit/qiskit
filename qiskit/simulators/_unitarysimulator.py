@@ -111,6 +111,8 @@ class UnitarySimulator(object):
                     qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
                     self._add_unitary_two(gate, qubit0, qubit1)
             elif self.circuit['qasm'][j]['type'] == 'measure':
-                print('Dropping measure from unitary simulator')
+                print('Warning have droped measure from unitary simulator')
+            elif self.circuit['qasm'][j]['type'] == 'reset':
+                print('Warning have droped reset from unitary simulator')
         self.circuit['result']['unitary'] = self._unitary_state
         return self.circuit

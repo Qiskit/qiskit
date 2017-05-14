@@ -105,8 +105,8 @@ class QasmSimulator(object):
         self._quantum_state = np.dot(unitaty_add, self._quantum_state)
         # print(self._quantum_state)
 
-    def _add_qasm_measure(self, qubit, cbit):
-        """Apply the measurement qubit gate."""
+    def _add_qasm_decision(self, qubit):
+        """Apply the measurement/reset qubit gate."""
         # print(qubit)
         probability_zero = 0
         random_number = random.random()
@@ -122,7 +122,14 @@ class QasmSimulator(object):
         else:
             outcome = '1'
             norm = np.sqrt(1-probability_zero)
+        return (outcome, norm)
+
+    def _add_qasm_measure(self, qubit, cbit):
+        """Apply the measurement qubit gate."""
+
+        outcome, norm = self._add_qasm_decision(qubit)
         # print(outcome)
+        # print(norm)
         for ii in range(2**self._number_of_qubits):
             # update quantum state
             iistring = bin(ii)[2:]
@@ -142,21 +149,8 @@ class QasmSimulator(object):
 
         I to this by applying a measurment and ignoring the outcome"""
         """Apply the measurement qubit gate."""
-        # print(qubit)
-        probability_zero = 0
-        random_number = random.random()
-        for ii in range(2**self._number_of_qubits):
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == '0':
-                probability_zero += np.abs(self._quantum_state[ii])**2
-        # print(probability_zero)
-        if random_number <= probability_zero:
-            outcome = '0'
-            norm = np.sqrt(probability_zero)
-        else:
-            outcome = '1'
-            norm = np.sqrt(1-probability_zero)
+
+        outcome, norm = self._add_qasm_decision(qubit)
         # print(outcome)
         temp = self._quantum_state
         for ii in range(2**self._number_of_qubits):
