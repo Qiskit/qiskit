@@ -12,13 +12,13 @@ Related external projects:
 
 ## Organization
 
-The *scripts* directory contains Jupyter notebooks showing how to use the
+The *tutorial* directory contains Jupyter notebooks showing how to use the
 [Python API](https://github.com/IBM/qiskit-api-py) with
 [OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
 There are Jupyter notebooks demonstrating components of
-the SDK in the *scripts* directory. There are also command line test scripts
-in the *testscripts* directory. The root directory contains some miscellaneous
+the SDK in the *tutorial* directory, and more python and qasm examples in the *examples* directory. There are also command line test scripts
+in the *test* directory. The root directory contains some miscellaneous
 examples and an index Jupyter notebook.
 
 We want to reorganize the SDK so that it has a comfortable and intuitive

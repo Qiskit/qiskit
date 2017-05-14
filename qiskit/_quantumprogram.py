@@ -168,16 +168,6 @@ class QuantumProgram(object):
         """ Set the API url """
         self.set_api(url=url)
 
-    def get_job_list_status(self, jobids):
-        """Given a list of job ids, return a list of job status.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        """
-        status_list = []
-        for i in jobids:
-            status_list.append(self.__api.get_job(i)['status'])
-        return status_list
-
     def load_qasm(self, qasm_file, basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
@@ -219,14 +209,14 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm': circuit.qasm()})
         return qasm_circuits
 
-    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, coupling_map=None):
+    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         qasm_circuits = []
         for circuit in circuits:
-            qasm_source, circuit_unrolled = self.unroller_code(circuit)
+            qasm_source, circuit_unrolled = self.unroller_code(circuit, basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % circuit_unrolled.property_summary())
@@ -258,12 +248,8 @@ class QuantumProgram(object):
 
     def run(self, wait=5, timeout=60):
         """Run a program (a pre compiled quantum program).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+        wait time to check if the job is Completed.
+        timeout time after that the execution stop
         """
 
         backend = self.__qasm_compile['backend']['name']
@@ -301,8 +287,8 @@ class QuantumProgram(object):
         """
         pass
 
-    def execute(self, circuits, device, shots, coupling_map=None,
-                     max_credits=3, basis_gates=None, wait=5, timeout=60):
+    def execute(self, circuits, device, shots=1024,
+                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None):
         """Execute, compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -358,6 +344,16 @@ class QuantumProgram(object):
         if timeout_over:
             return {"status": "Error", "result": "Time Out"}
         return job
+
+    def get_job_list_status(self, jobids):
+        """Given a list of job ids, return a list of job status.
+        jobids is a list of id strings.
+        api is an IBMQuantumExperience object.
+        """
+        status_list = []
+        for i in jobids:
+            status_list.append(self.__api.get_job(i)['status'])
+        return status_list
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
