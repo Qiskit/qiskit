@@ -339,6 +339,21 @@ class TestQISKit(unittest.TestCase):
 
     def test_last(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc, qr, cr = QP_program.quantum_elements()
+        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+        qc2.h(qr[0])
+        qc3.h(qr[0])
+        circuits = [qc2, qc3]
+
+        device = 'local_qasm_simulator'  # the device to run on
+        shots = 1024  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+
+        result = QP_program.execute(circuits, device, shots)
+        self.assertEqual(result['status'], 'COMPLETED')
+
         # QP_program.plotter()
 
 
