@@ -47,8 +47,8 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = ["qx5q", "qx5qv2","simulator", "online_simulator"]
-    __local_devices = ["unitary_simulator"]
+    __online_devices = ["qx5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator","simulator"]
+    __local_devices =  ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
     __quantum_registers = {}
@@ -535,6 +535,9 @@ class QuantumProgram(object):
             basicplotter.plot_histogram(data, circuit_number)
         else:
             basicplotter.plot_qsphere(data, circuit_number)
+
+    def get_qasm_image(self,):
+        pass
 
     def get_data(self, results, i):
         """Get the dict of labels and counts from the output of get_job."""
