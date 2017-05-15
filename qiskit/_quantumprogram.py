@@ -52,7 +52,7 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = [ "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __online_devices = [ "qx5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
@@ -301,6 +301,9 @@ class QuantumProgram(object):
             result = []
             for i in range(shots):
                 b = QasmSimulator(unroller.backend.circuit, random.random()).run()
+                print('...............')
+                print(b)
+                print('...............')
                 result.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
             qasm_circuit["result"]= {"data": {"counts":dict(Counter(result))}}
             outcomes['qasms'].append(qasm_circuit)
