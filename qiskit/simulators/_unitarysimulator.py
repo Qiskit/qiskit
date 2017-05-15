@@ -61,11 +61,11 @@ class UnitarySimulator(object):
         assert(i1 != i2)
 
         if i1 > i2:
-            retval = QasmSimulator._index1(b1,i1-1,k) # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b2,i2,retval)
+            retval = UnitarySimulator._index1(b1,i1-1,k) # insert as (i1-1)th bit, will be shifted left 1 by next line
+            retval = UnitarySimulator._index1(b2,i2,retval)
         else:  # i2>i1
-            retval = QasmSimulator._index1(b2,i2-1,k) # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b1,i1,retval)
+            retval = UnitarySimulator._index1(b2,i2-1,k) # insert as (i2-1)th bit, will be shifted left 1 by next line
+            retval = UnitarySimulator._index1(b1,i1,retval)
         return retval
     #-------------------------------------------------------------
 
@@ -95,7 +95,7 @@ class UnitarySimulator(object):
         unitaty_add = np.kron(temp_1, np.kron(gate, temp_2))
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def _add_unitary_twod(self,gate,q0,q1):
+    def _add_unitary_two(self,gate,q0,q1):
         """Apply the two-qubit gate.
         gate is the two-qubit gate
         q0 is the first qubit (control) counts from 0
@@ -108,9 +108,9 @@ class UnitarySimulator(object):
                 for k in range(2):
                     for jj in range(2):
                         for kk in range(2):
-                            temp1[self._index2(j,q0,k,q1,i),self._index2(jj,q0,kk,q1,i)]=gate[j+2*k,jj+2*kk]
+                            temp1[self._index2(j,q0,k,q1,i), self._index2(jj,q0,kk,q1,i)]=gate[j+2*k,jj+2*kk]
         self._unitary_state = np.dot(temp1, self._unitary_state)
-        
+
     def _add_unitary_two_broken(self, gate, qubit_1, qubit_2):
         """Apply the two-qubit gate.
 

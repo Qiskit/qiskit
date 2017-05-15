@@ -9,6 +9,7 @@ from qiskit.simulators._unitarysimulator import UnitarySimulator
 from qiskit.simulators._qasmsimulator import QasmSimulator
 import random
 from collections import Counter
+import numpy as np
 
 basis = []  # empty basis, defaults to U, CX
 unroller = unroll.Unroller(Qasm(filename="example.qasm").parse(),
@@ -20,7 +21,10 @@ unroller.execute()  # Here is where simulation happens
 print('using the unirary simulator')
 a = UnitarySimulator(unroller.backend.circuit).run()
 print('\n\n Unitary = ')
-print(a['result']['data']['unitary'])
+
+quantum_state = np.zeros(2**(6), dtype=complex)
+quantum_state[0] = 1
+print(np.dot(a['result']['data']['unitary'], quantum_state))
 
 print('\n\nusing the qasm simulator')
 shots = 1024
