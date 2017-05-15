@@ -19,10 +19,8 @@ from qiskit.extensions.standard import barrier, ubase, cxbase
 from qiskit.extensions.standard import h, cx, u1, u2, u3, iden, x, y, z, s
 from qiskit.extensions.standard import t, ccx, cswap
 
-# Issues
-#   .q_if is not implemented, store controls on each gate, two methods
-
-# Ismael advice - keep it simple
+# Issues:
+#   .q_if is not implemented
 
 n = 5
 q = QuantumRegister("q", n)
