@@ -48,9 +48,11 @@ for representing, transforming, and computing properties of a circuit as a
 used by the *mapper* module to rewrite a circuit to execute on a device 
 with fixed couplings given by a *CouplingGraph*.
 
-The circuit representations and how they are currently transformed into each other are summarized in ![](images/circuit_representations.png?raw=true).
+The circuit representations and how they are currently transformed into each other are summarized here: 
+<img src="images/circuit_representations.png" alt="circuits" style="width: 300px;"/>
 
-The unroller backends and their outputs are summarized in ![](images/unroller_backends.png?raw=true).
+The unroller backends and their outputs are summarized here:
+<img src="images/unroller_backends.png" alt="backends" style="width: 300px;"/>
 
 
 ## Install
