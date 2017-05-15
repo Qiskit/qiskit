@@ -20,7 +20,7 @@ unroller.execute()  # Here is where simulation happens
 print('using the unirary simulator')
 a = UnitarySimulator(unroller.backend.circuit).run()
 print('\n\n Unitary = ')
-print(a['result']['unitary'])
+print(a['result']['data']['unitary'])
 
 print('\n\nusing the qasm simulator')
 shots = 1024
@@ -28,9 +28,9 @@ outcomes = []
 for i in range(shots):
     # running the quantum_circuit
     b = QasmSimulator(unroller.backend.circuit, random.random()).run()
-    #print(b['result']['quantum_state'])
-    #print(b['result']['classical_state'])
-    outcomes.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
+    # print(b['resuls']['data']['quantum_state'])
+    # print(b['resuls']['data']['classical_state'])
+    outcomes.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
 
 print('\n\n outcomes = ')
 print(dict(Counter(outcomes)))

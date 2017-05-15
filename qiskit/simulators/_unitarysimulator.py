@@ -19,12 +19,15 @@ Author: Jay Gambetta
                                0.70710678 -8.65956056e-17j],
                              [ 0.70710678 +0.00000000e+00j,
                               -0.70710678 +8.65956056e-17j]])
-            }]
-        'result': {
-            unitary: array([[ 0.70710678 +0.00000000e+00j,
-                              0.70710678 -8.65956056e-17j],
-                            [ 0.70710678 +0.00000000e+00j,
-                             -0.70710678 +8.65956056e-17j]])
+            }],
+        'result':
+            { 'data':
+                {
+                unitary: array([[ 0.70710678 +0.00000000e+00j,
+                                  0.70710678 -8.65956056e-17j],
+                                [ 0.70710678 +0.00000000e+00j,
+                                 -0.70710678 +8.65956056e-17j]])
+                }
             }
         }
 """
@@ -38,6 +41,7 @@ class UnitarySimulator(object):
         self.circuit = circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
         self.circuit['result'] = {}
+        self.circuit['result']['data'] = {}
         self._unitary_state = np.identity(2**(self._number_of_qubits),
                                           dtype=complex)
         self._number_of_operations = self.circuit['number_of_operations']
@@ -112,8 +116,8 @@ class UnitarySimulator(object):
                     qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
                     self._add_unitary_two(gate, qubit0, qubit1)
             elif self.circuit['qasm'][j]['type'] == 'measure':
-                print('Warning have droped measure from unitary simulator')
+                print('Warning have dropped measure from unitary simulator')
             elif self.circuit['qasm'][j]['type'] == 'reset':
-                print('Warning have droped reset from unitary simulator')
-        self.circuit['result']['unitary'] = self._unitary_state
+                print('Warning have dropped reset from unitary simulator')
+        self.circuit['result']['data']['unitary'] = self._unitary_state
         return self.circuit

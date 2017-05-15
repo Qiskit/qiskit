@@ -3,7 +3,6 @@ Contains a (slow) python simulator that makes the qasm of the circuit.
 
 We advise using the c++ simulator or online for larger size systems
 
-Author: Jay Gambetta
 
 {'number_of_qubits': 2,
 'number_of_cbits': 2,
@@ -45,6 +44,7 @@ class QasmSimulator(object):
         self._number_of_qubits = self.circuit['number_of_qubits']
         self._number_of_cbits = self.circuit['number_of_cbits']
         self.circuit['result'] = {}
+        self.circuit['result']['data'] = {}
         self._quantum_state = np.zeros(2**(self._number_of_qubits),
                                        dtype=complex)
         self._quantum_state[0] = 1
@@ -188,6 +188,6 @@ class QasmSimulator(object):
             elif self.circuit['qasm'][j]['type'] == 'reset':
                 qubit = self.circuit['qasm'][j]['qubit_indices'][0]
                 self._add_qasm_reset(qubit)
-        self.circuit['result']['quantum_state'] = self._quantum_state
-        self.circuit['result']['classical_state'] = self._classical_state
+        self.circuit['result']['data']['quantum_state'] = self._quantum_state
+        self.circuit['result']['data']['classical_state'] = self._classical_state
         return self.circuit
