@@ -175,7 +175,8 @@ class TestQISKit(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         result = QP_program.program_to_text()
-        self.assertEqual(len(result), 415)
+        print(result)
+        self.assertEqual(len(result), 439)
 
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)

@@ -330,13 +330,11 @@ class QuantumProgram(object):
         program is a list of quantum circuits, if it's emty use the internal circuits
         """
         if not circuits:
-            circuits = self.__circuits.values()
+            circuits = self.__circuits
         # TODO: Store QASM per circuit
         jobs = ""
-        print(self.__circuits.items)
-        for circuit in circuits:
-            # add the circuit name like a comment.
-            circuit_name = "# Circuit: "+ circuit['name'] + "\n\n"
+        for name, circuit in circuits.items():
+            circuit_name = "# Circuit: "+ name + "\n"
             qasm_source, circuit = self.unroller_code(circuit)
             jobs = jobs + circuit_name + qasm_source + "\n\n"
         return jobs[:-3]
