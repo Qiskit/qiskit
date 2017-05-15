@@ -49,10 +49,10 @@ used by the *mapper* module to rewrite a circuit to execute on a device
 with fixed couplings given by a *CouplingGraph*.
 
 The circuit representations and how they are currently transformed into each other are summarized here: 
-<img src="images/circuit_representations.png" alt="circuits" style="width: 300px;"/>
+<img src="images/circuit_representations.png" alt="circuits" style="width: 200px;"/>
 
 The unroller backends and their outputs are summarized here:
-<img src="images/unroller_backends.png" alt="backends" style="width: 300px;"/>
+<img src="images/unroller_backends.png" alt="backends" style="width: 200px;"/>
 
 
 ## Install
