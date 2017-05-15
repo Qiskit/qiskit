@@ -4,16 +4,17 @@ OPENQASM Lexer.
 This is a wrapper around the PLY lexer to support the "include" statement
 by creating a stack of lexers.
 
-Author: Jim Challenger
+Authors: Jim Challenger
+         Jesus Perez <jesusper@us.ibm.com>
 """
+
 import os
 import ply.lex as lex
 from ._qasmexception import QasmException
 from . import _node as node
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
-# TODO: Get dinamically from the folder "qasm/lib"
-CORE_LIBS = ['qelib1.inc']
+CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
 class QasmLexer(object):
