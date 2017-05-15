@@ -50,7 +50,7 @@ with fixed couplings given by a *CouplingGraph*.
 
 The circuit representations and how they are currently transformed into each other are summarized in ![](images/circuit_representations.png?raw=true).
 
-The unroller backends and their outputs are summarized in ![](images/circuit_representations.png?raw=true).
+The unroller backends and their outputs are summarized in ![](images/unroller_backends.png?raw=true).
 
 
 ## Install
