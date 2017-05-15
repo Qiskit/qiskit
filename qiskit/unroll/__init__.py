@@ -4,3 +4,4 @@ from ._oneregisterbackend import OneRegisterBackend
 from ._printerbackend import PrinterBackend
 from ._unrollerbackend import UnrollerBackend
 from ._backendexception import BackendException
+from ._simulatorbackend import SimulatorBackend

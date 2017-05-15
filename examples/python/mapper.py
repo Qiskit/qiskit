@@ -1,9 +1,9 @@
 """
-Test script for localization of quantum circuits.
+Test script for mapping quantum circuits.
 
 This script takes a QASM file and produces output that shows the
-process of finding SWAP gates to map the circuit onto the coupling graph.
-The final output is QASM source for a "localized" version of the input
+process of mapping the circuit onto the coupling graph.
+The final output is QASM source for a "mapped" version of the input
 circuit.
 
 The coupling graph and target basis are hard-coded into this script.
@@ -106,14 +106,14 @@ def make_unrolled_circuit_from_data(dat, basis):
 
 
 if len(sys.argv) < 2:
-    print("localize.py <qasm>\n")
+    print("mapper.py <qasm>\n")
     print("  qasm = main circuit")
     print("")
-    print("Generates a new \"localized\" circuit matching the coupling.")
+    print("Generates a new \"mapped\" circuit matching the coupling.")
     sys.exit(1)
 
 # This is the QE basis
-basis = "u1,u2,u3,cx"
+basis = "u1,u2,u3,cx,id"
 
 layout_type = "qe5"  # "qe5" or "2x8"
 
@@ -148,7 +148,7 @@ elif layout_type == "2x8":
 
 # Three', expand swaps into cx gates
 c_prime = make_unrolled_circuit_from_data(c_prime.qasm(qeflag=True),
-                                          "cx,u1,u2,u3")
+                                          "cx,u1,u2,u3,id")
 
 # Fourth, do direction mapping
 c_dblp = mapper.direction_mapper(c_prime, coupling, verbose=True)
@@ -156,5 +156,5 @@ print("c_dblp.qasm() = \n%s" % c_dblp.qasm(qeflag=True))
 
 # Unroll again
 c_final = make_unrolled_circuit_from_data(c_dblp.qasm(qeflag=True),
-                                          "cx,u1,u2,u3")
+                                          "cx,u1,u2,u3,id")
 print("c_final.qasm() = \n%s" % c_final.qasm(qeflag=True))

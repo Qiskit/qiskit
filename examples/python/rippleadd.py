@@ -239,7 +239,3 @@ print("factors = %d" % C_directions_unrolled.num_tensor_factors())
 print("operations:")
 for key, val in C_directions_unrolled.count_ops().items():
     print("  %s: %d" % (key, val))
-
-# TODO: test on examples using simulator
-# TODO: understand swap_mapper with all-all
-# TODO: simple unit tests for qasm, mapper, unroller, circuit

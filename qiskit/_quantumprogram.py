@@ -23,6 +23,7 @@ Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
 # pylint: disable=line-too-long
 
 import time
+import random
 from collections import Counter
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
@@ -38,6 +39,10 @@ from . import unroll
 from . import qasm
 from . import mapper
 
+from .unroll import SimulatorBackend
+from .simulators._unitarysimulator import UnitarySimulator
+from .simulators._qasmsimulator import QasmSimulator
+
 import sys
 sys.path.append("..")
 from qiskit.extensions.standard import x, h, cx, s, ry, barrier
@@ -47,8 +52,8 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = ["qx5q", "qx5qv2","simulator", "online_simulator"]
-    __local_devices = ["unitary_simulator"]
+    __online_devices = ["qx5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
     __quantum_registers = {}
@@ -168,16 +173,6 @@ class QuantumProgram(object):
         """ Set the API url """
         self.set_api(url=url)
 
-    def get_job_list_status(self, jobids):
-        """Given a list of job ids, return a list of job status.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        """
-        status_list = []
-        for i in jobids:
-            status_list.append(self.__api.get_job(i)['status'])
-        return status_list
-
     def load_qasm(self, qasm_file, basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
@@ -219,14 +214,14 @@ class QuantumProgram(object):
             qasm_circuits.append({'qasm': circuit.qasm()})
         return qasm_circuits
 
-    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, coupling_map=None):
+    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         qasm_circuits = []
         for circuit in circuits:
-            qasm_source, circuit_unrolled = self.unroller_code(circuit)
+            qasm_source, circuit_unrolled = self.unroller_code(circuit, basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % circuit_unrolled.property_summary())
@@ -258,12 +253,8 @@ class QuantumProgram(object):
 
     def run(self, wait=5, timeout=60):
         """Run a program (a pre compiled quantum program).
-        program is a list of quantum_circuits
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+        wait time to check if the job is Completed.
+        timeout time after that the execution stop
         """
 
         backend = self.__qasm_compile['backend']['name']
@@ -283,7 +274,8 @@ class QuantumProgram(object):
             if job_result['status'] == 'Error':
                 return job_result
         else:
-            return {"status": "Error", "result": "Not local simulations"}
+            self.run_local()
+            # return {"status": "Error", "result": "Not local simulations"}
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
         self.__qasm_compile['used_credits'] = job_result['usedCredits']
@@ -299,10 +291,35 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        pass
+        shots = self.__qasm_compile['shots']
+        qasms = self.__qasm_compile['compiled_circuits']
+       
+        # /print(qasms)
+        
+        outcomes = {'qasms':[]}
+        for qasm in qasms:
+            print('----------------')
+            print(qasm['qasm'])
+            print('----------------')
+            basis = []
+            unroller = unroll.Unroller(qasm['qasm'],SimulatorBackend(basis))
+            print('----%%-----')
+            unroller.backend.set_trace(False)
+            print('-----++-----')
+            unroller.execute() 
+            print('------**-----')
+            for i in range(shots):
+                print('.................')
+                b = QasmSimulator(unroller.backend.circuit, random.random()).run()
+                print('.................')
+                print(b)
+                
+                # outcomes['qasms'].append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
+        print(outcomes)
+        return outcomes
 
-    def execute(self, circuits, device, shots, coupling_map=None,
-                     max_credits=3, basis_gates=None, wait=5, timeout=60):
+    def execute(self, circuits, device, shots=1024,
+                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None):
         """Execute, compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -358,6 +375,16 @@ class QuantumProgram(object):
         if timeout_over:
             return {"status": "Error", "result": "Time Out"}
         return job
+
+    def get_job_list_status(self, jobids):
+        """Given a list of job ids, return a list of job status.
+        jobids is a list of id strings.
+        api is an IBMQuantumExperience object.
+        """
+        status_list = []
+        for i in jobids:
+            status_list.append(self.__api.get_job(i)['status'])
+        return status_list
 
     def wait_for_jobs(self, jobids, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
@@ -539,6 +566,9 @@ class QuantumProgram(object):
             basicplotter.plot_histogram(data, circuit_number)
         else:
             basicplotter.plot_qsphere(data, circuit_number)
+
+    def get_qasm_image(self,):
+        pass
 
     def get_data(self, results, i):
         """Get the dict of labels and counts from the output of get_job."""
