@@ -37,6 +37,39 @@ import numpy as np
 class UnitarySimulator(object):
     """UnitarySimulator class."""
 
+    @staticmethod
+    def _index1(b,i,k):
+        "takes a bitstring k and inserts bit b as the ith bit,shifting bits >= i over to make room"
+
+        retval=k
+        lowbits=k & ( (1<<i) - 1)  # get the low i bits
+
+        retval >>= i
+        retval <<= 1
+
+        retval |= b
+
+        retval <<= i
+        retval |= lowbits
+
+        return retval
+    #-------------------------------------------------------------
+    @staticmethod
+    def _index2(b1,i1,b2,i2,k):
+        "takes a bitstring k and inserts bits b1 as the i1th bit and b2 as the i2th bit"
+
+        assert(i1 != i2)
+
+        if i1 > i2:
+            retval = QasmSimulator._index1(b1,i1-1,k) # insert as (i1-1)th bit, will be shifted left 1 by next line
+            retval = QasmSimulator._index1(b2,i2,retval)
+        else:  # i2>i1
+            retval = QasmSimulator._index1(b2,i2-1,k) # insert as (i2-1)th bit, will be shifted left 1 by next line
+            retval = QasmSimulator._index1(b1,i1,retval)
+        return retval
+    #-------------------------------------------------------------
+
+
     def __init__(self, circuit):
         self.circuit = circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
@@ -62,7 +95,23 @@ class UnitarySimulator(object):
         unitaty_add = np.kron(temp_1, np.kron(gate, temp_2))
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def _add_unitary_two(self, gate, qubit_1, qubit_2):
+    def _add_unitary_twod(self,gate,q0,q1):
+        """Apply the two-qubit gate.
+        gate is the two-qubit gate
+        q0 is the first qubit (control) counts from 0
+        q1 is the second qubit (target)
+        returns a complex numpy array
+        """
+        temp1=np.zeros([1<<(self._number_of_qubits),1<<(self._number_of_qubits)])
+        for i in range(1<<(self._number_of_qubits-2)):
+            for j in range(2):
+                for k in range(2):
+                    for jj in range(2):
+                        for kk in range(2):
+                            temp1[self._index2(j,q0,k,q1,i),self._index2(jj,q0,kk,q1,i)]=gate[j+2*k,jj+2*kk]
+        self._unitary_state = np.dot(temp1, self._unitary_state)
+        
+    def _add_unitary_two_broken(self, gate, qubit_1, qubit_2):
         """Apply the two-qubit gate.
 
         gate is the two-qubit gate
