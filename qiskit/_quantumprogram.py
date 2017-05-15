@@ -52,7 +52,7 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = ["qx5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __online_devices = [ "qx5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
@@ -82,7 +82,9 @@ class QuantumProgram(object):
                     {'qasm': 'OPENQASM text version of circuit 2 from user input'}
                     ],
                 'compiled_circuits': [
-                    {’qasm’: ’Compiled QASM text version of circuit 1 to run on device’,
+                    {
+                    'name': #TODO: use the name to update the compile
+                    ’qasm’: ’Compiled QASM text version of circuit 1 to run on device’, #TODO: convert to object
                     'exucution_id': 'id000',
                     'result': {
                         'data':{
@@ -208,12 +210,6 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def circuits_qasm(self, circuits):
-        qasm_circuits = []
-        for circuit in circuits:
-            qasm_circuits.append({'qasm': circuit.qasm()})
-        return qasm_circuits
-
     def compile(self, circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None):
         """ Compile unrole the code
         circuits are circuits to unroll
@@ -297,24 +293,20 @@ class QuantumProgram(object):
         # /print(qasms)
         
         outcomes = {'qasms':[]}
-        for qasm in qasms:
-            print('----------------')
-            print(qasm['qasm'])
-            print('----------------')
+        for qasm_circuit in qasms:
             basis = []
-            unroller = unroll.Unroller(qasm['qasm'],SimulatorBackend(basis))
-            print('----%%-----')
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),SimulatorBackend(basis))
             unroller.backend.set_trace(False)
-            print('-----++-----')
             unroller.execute() 
-            print('------**-----')
+            result = []
             for i in range(shots):
-                print('.................')
                 b = QasmSimulator(unroller.backend.circuit, random.random()).run()
-                print('.................')
+                print('...............')
                 print(b)
-                
-                # outcomes['qasms'].append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
+                print('...............')
+                result.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
+            qasm_circuit["result"]= {"data": {"counts":dict(Counter(result))}}
+            outcomes['qasms'].append(qasm_circuit)
         print(outcomes)
         return outcomes
 
@@ -341,12 +333,13 @@ class QuantumProgram(object):
         program is a list of quantum circuits, if it's emty use the internal circuits
         """
         if not circuits:
-            circuits = self.__circuits.values()
+            circuits = self.__circuits
         # TODO: Store QASM per circuit
         jobs = ""
-        for circuit in circuits:
+        for name, circuit in circuits.items():
+            circuit_name = "# Circuit: "+ name + "\n"
             qasm_source, circuit = self.unroller_code(circuit)
-            jobs = jobs + qasm_source + "\n\n"
+            jobs = jobs + circuit_name + qasm_source + "\n\n"
         return jobs[:-3]
 
     def wait_for_job(self, jobid, wait=5, timeout=60):
@@ -375,69 +368,6 @@ class QuantumProgram(object):
         if timeout_over:
             return {"status": "Error", "result": "Time Out"}
         return job
-
-    def get_job_list_status(self, jobids):
-        """Given a list of job ids, return a list of job status.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        """
-        status_list = []
-        for i in jobids:
-            status_list.append(self.__api.get_job(i)['status'])
-        return status_list
-
-    def wait_for_jobs(self, jobids, wait=5, timeout=60):
-        """Wait until all status results are 'COMPLETED'.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        wait is the time to wait between requests, in seconds
-        timeout is how long we wait before failing, in seconds
-        Returns an list of results that correspond to the jobids.
-        """
-        status = dict(Counter(self.get_job_list_status(jobids)))
-        timer = 0
-        timeout_over = False
-        print("status = %s (%d seconds)" % (status, timer))
-        while 'COMPLETED' not in status or status['COMPLETED'] < len(jobids):
-            if timer == timeout:
-                timeout_over = True
-                break
-            time.sleep(wait)
-            timer += wait
-            status = dict(Counter(self.get_job_list_status(jobids)))
-            print("status = %s (%d seconds)" % (status, timer))
-        # Get the results
-        results = []
-
-        if timeout_over:
-            return {"status": "Error", "result": "Time Out"}
-
-        for i in jobids:
-            results.append(self.__api.get_job(i))
-        return results
-
-    def flat_results(self, results):
-        """ Flat the results
-        results array of results
-        """
-        flattened = []
-        for sublist in results:
-            for val in sublist:
-                flattened.append(val)
-        return {'qasms': flattened}
-
-    def combine_jobs(self, jobids, wait=5, timeout=60):
-        """Like wait_for_jobs but with a different return format.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        wait is the time to wait between requests, in seconds
-        timeout is how long we wait before failing, in seconds
-        Returns a list of dict outcomes of the flattened in the order
-        jobids so it works with _getData_. """
-
-        results = list(map(lambda x: x['qasms'],
-                           self.wait_for_jobs(jobids, wait, timeout)))
-        return self.flat_results(results)
 
     def average_data(self, data, observable):
         """Compute the mean value of an observable.
@@ -570,7 +500,7 @@ class QuantumProgram(object):
     def get_qasm_image(self,):
         pass
 
-    def get_data(self, results, i):
+    def get_data(self, results, i): #TODO: change the index for name 
         """Get the dict of labels and counts from the output of get_job."""
         return results['qasms'][i]['result']['data']['counts']
 

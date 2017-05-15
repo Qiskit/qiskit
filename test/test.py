@@ -159,7 +159,7 @@ class TestQISKit(unittest.TestCase):
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
         result = QP_program.program_to_text()
-        self.assertEqual(len(result), 101)
+        self.assertEqual(len(result), 125)
 
     def test_create_add_gates(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -175,7 +175,8 @@ class TestQISKit(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         result = QP_program.program_to_text()
-        self.assertEqual(len(result), 415)
+        print(result)
+        self.assertEqual(len(result), 439)
 
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -352,6 +353,7 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         result = QP_program.execute(circuits, device, shots)
+        print(result)
         self.assertEqual(result['status'], 'COMPLETED')
 
         # QP_program.plotter()
