@@ -9,9 +9,9 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="373.08823mm"
-   height="188.52194mm"
-   viewBox="0 0 1321.9661 667.99114"
+   width="373.08826mm"
+   height="188.52196mm"
+   viewBox="0 0 1321.9662 667.99119"
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
@@ -262,8 +262,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="692.84134"
-     inkscape:cy="446.68561"
+     inkscape:cx="692.84131"
+     inkscape:cy="446.68564"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -292,7 +292,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(782.22436,66.629243)">
+     transform="translate(782.22433,66.629243)">
     <rect
        style="fill:#bfd6e9;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4198-1-0-3-3)"
        id="rect3336-7-6-5-6"
@@ -442,27 +442,37 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-573.70044"
+       x="-569.70044"
        y="395.6506"
        id="text4210-6"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="-573.70044"
+         x="-569.70044"
          y="395.6506"
          id="tspan4224-6"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">UnitarySimulator</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">SimulatorBackend</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-695.38416"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-576.29749"
        y="567.98627"
        id="text7822-2"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan7824-0"
-         x="-695.38416"
+         x="-576.29749"
          y="567.98627"
-         style="font-size:25px">Simulator input data</tspan></text>
+         style="font-size:25px;text-align:center;text-anchor:middle">Simulator input data</tspan><tspan
+         sodipodi:role="line"
+         x="-576.29749"
+         y="599.23627"
+         style="font-size:25px;text-align:center;text-anchor:middle"
+         id="tspan3534">unroller.backend.circuit</tspan><tspan
+         sodipodi:role="line"
+         x="-576.29749"
+         y="630.48627"
+         style="font-size:25px;text-align:center;text-anchor:middle"
+         id="tspan3532" /></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:3.06642962;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend-1-6-4)"
        d="m -568.31169,433.32069 0,95.70907"

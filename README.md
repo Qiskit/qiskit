@@ -18,45 +18,44 @@ The *tutorial* directory contains Jupyter notebooks showing how to use the
 
 There are Jupyter notebooks demonstrating components of
 the SDK in the *tutorial* directory, and more python and qasm examples in the *examples* directory. There are also command line test scripts
-in the *test* directory. The root directory contains some miscellaneous
-examples and an index Jupyter notebook.
+in the *test* directory.
 
-We want to reorganize the SDK so that it has a comfortable and intuitive
-interface for developers.
+Users can construct a *QuantumProgram* to create, modify, compile, and execute a collection of quantum circuits. 
 
-Users can create instances of *QuantumRegister* and *ClassicalRegister*, and
-use these to construct a *QuantumCircuit*. They can then call methods of these
-objects to apply gates within the circuit. The *extensions* directory extends
-these objects as needed to support new gate sets and algorithms. The "cswap"
-gate in the standard extension shows how to build gates that are sequences of
+Each *QuantumCircuit* has some set of registers, *QuantumRegister* and *ClassicalRegister*, and methods of these objects are used to apply instructions within the circuit. The *extensions* directory extends
+the quantum circuit as needed to support new gate sets and algorithms. For example, the "cswap" gate in the standard extension shows how to build gates that are sequences of
 other unitary gates. The Python file "header.py" shows how we append OPENQASM
 gate definitions as we import extensions. The *QuantumCircuit* can generate
 OPENQASM code that can flow through other components in the *qiskit* directory.
 
 The *qiskit* directory is the main Python module and contains the programming
-interface objects *QuantumRegister*, *ClassicalRegister*, and *QuantumCircuit*.
-The directory also contains a *qasm* module for parsing OPENQASM circuits,
-an *unroll* module to flatten QASM for a target gate basis by expanding
+interface objects *QuantumProgram*, *QuantumRegister*, *ClassicalRegister*, and *QuantumCircuit*.
+The directory also contains internal modules: a *qasm* module for parsing OPENQASM circuits,
+an *unroll* module to "flatten" QASM for a target gate basis by expanding
 gate subroutines as needed, a *circuit* module for working with circuits as
-graphs, and a *localize* module for mapping all-to-all circuits to run on
+graphs, and a *mapper* module for mapping all-to-all circuits to run on
 devices with fixed couplings.
 
 Quantum circuits flow through the components as follows. The programming
 interface is used to generate **OPENQASM** circuits. **OPENQASM** source,
 as a file or string, is passed into a *Qasm* object, whose *parse* method
-produces an abstract syntax tree (**AST**) representation. The **AST** is
+produces an abstract syntax tree (**AST**). The **AST** is
 passed to an *Unroller* that is attached to an *UnrollerBackend*. There is
 a *PrinterBackend* for outputting text and a *CircuitBackend* for constructing *Circuit* objects. The *Circuit* object represents an unrolled **OPENQASM**
 circuit as a directed acyclic graph (**DAG**). The *Circuit* provides methods
 for representing, transforming, and computing properties of a circuit as a
 **DAG** and outputting the results again as **OPENQASM**. The whole flow is
-used by the *localize* module's *swap_mapper* method to insert SWAP gates
-so a circuit can execute on a device with fixed couplings given by a
-*CouplingGraph*.
+used by the *mapper* module to rewrite a circuit to execute on a device 
+with fixed couplings given by a *CouplingGraph*.
+
+The circuit representations and how they are currently transformed into each other are summarized in ![](images/circuit_representations.png?raw=true).
+
+The unroller backends and their outputs are summarized in ![](images/circuit_representations.png?raw=true).
+
 
 ## Install
 
-- Intall Anaconda: https://www.continuum.io/downloads
+- Install Anaconda: https://www.continuum.io/downloads
 - Clone the repo:
 
 ```sh
@@ -86,7 +85,7 @@ make run
 
 ## FAQ
 
-If you upgrade the dependencies and next error happens try with this fix:
+If you upgrade the dependencies and next error happens try this fix:
 
 ```sh
 pip install --upgrade IBMQuantumExperience
@@ -98,7 +97,7 @@ curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
 ## Developer guide
 
-Please, use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send the contributions.
+Please, use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
 
 We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/peps/pep-0008) style guide.
 
@@ -121,6 +120,6 @@ Note: You can get yout "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 
 ### Commit messages rules
 
-- It should be formed by a one-line subject, followed by one line of white space. Followed by one or more descriptive paragraphs, each separated by one￼￼￼￼ line of white space. All of them finished by a dot.
+- It should be formed by a one-line subject, followed by one line of white space. Followed by one or more descriptive paragraphs, each separated by one line of white space. All of them finished by a dot.
 - If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
 - It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
