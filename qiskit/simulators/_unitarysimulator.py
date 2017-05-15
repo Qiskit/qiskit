@@ -3,6 +3,7 @@ Contains a (slow) python simulator that makes the unitary of the circuit.
 
 These are simple methods for making common matrices used in quantum computing.
 
+Author: Jay Gambetta
 
     circuit =
         {

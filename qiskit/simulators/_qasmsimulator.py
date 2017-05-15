@@ -3,6 +3,7 @@ Contains a (slow) python simulator that makes the qasm of the circuit.
 
 We advise using the c++ simulator or online for larger size systems
 
+Author: Jay Gambetta
 
 {'number_of_qubits': 2,
 'number_of_cbits': 2,

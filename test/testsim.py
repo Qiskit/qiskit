@@ -1,4 +1,7 @@
-"""Quick test program for unitary simulator backend."""
+"""Quick test program for unitary simulator backend.
+
+Author: Jay Gambetta
+"""
 import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
 from qiskit.unroll import SimulatorBackend

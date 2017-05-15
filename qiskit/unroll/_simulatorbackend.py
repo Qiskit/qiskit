@@ -1,5 +1,7 @@
 """Backend for the unroller that composes unitary matrices to simulate circuit.
 
+Author: Jay Gambetta and Andrew Cross
+
     {'number_of_qubits': 2,
     'number_of_cbits': 2,
     'number_of_operations': 2

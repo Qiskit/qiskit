@@ -1,4 +1,7 @@
-"""Rotation around the z-axis."""
+"""Rotation around the z-axis.
+
+Author: Jay Gambetta and Andrew Cross
+"""
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from qiskit import Gate
