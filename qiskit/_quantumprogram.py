@@ -52,7 +52,7 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = [ "IBMQX5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
@@ -521,15 +521,19 @@ class QuantumProgram(object):
         else:
             basicplotter.plot_qsphere(data, circuit_number)
 
-    def get_qasm_image(self,):
+    def get_qasm_image(self, circuit):
+        """Get imagen circuit representation from API."""
         pass
 
     def get_data(self, results, i): #TODO: change the index for name
         """Get the dict of labels and counts from the output of get_job."""
-        return results['qasms'][i]['result']['data']['counts']
+        return results['compiled_circuits'][i]['result']['data']['counts']
 
     #TODO: change the index for name and i think there is no point to get data above
     # ALSO i think we need an assert if there is no results
     def get_counts(self, i):
         """Get the dict of labels and counts from the output of get_job."""
-        return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
+        if isinstance(i, str):
+            pass
+        else:
+            return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']

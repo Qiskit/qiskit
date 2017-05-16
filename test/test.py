@@ -334,6 +334,7 @@ class TestQISKit(unittest.TestCase):
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
         result = QP_program.execute(circuits, device, shots, max_credits=3)
+        # print(result)
         self.assertEqual(result['status'], 'COMPLETED')
 
         # QP_program.plotter()
@@ -351,8 +352,8 @@ class TestQISKit(unittest.TestCase):
         shots = 1024  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-
         result = QP_program.execute(circuits, device, shots)
+        # print(result)
         self.assertEqual(result['status'], 'COMPLETED')
 
     def test_local_qasm_simulator_one_shot(self):
@@ -369,6 +370,7 @@ class TestQISKit(unittest.TestCase):
         credits = 3
         coupling_map = None
         result = QP_program.execute(circuits, device, shots)
+        # print(result)
         self.assertEqual(result['compiled_circuits'][0]['result']['data']['classical_state'], 0)
 
     def test_local_unitary_simulator(self):
@@ -394,48 +396,3 @@ class TestQISKit(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-# TODO: Topology definition
-# topology={
-#     hardware={},
-#     map={}
-# }
-
-# TODO:
-# sim1 = myQP.set_scope(topology=topology)
-# topology2={
-#     map={}
-# }
-
-
-# sim2 = myQP.set_scope( topology=topology2)
-
-# sim1.compile.execute.plot()
-# sim2.compile.execute.plot()
-
-# sim1 = myQP.set_scope(hardware={}, map={}, topology={})
-
-# myQP.compile()
-#   myQP.parse(versionQasm, qfiles)
-#   myQP.unroller()
-#   myQP.optimizer(standar)
-#   myQP.map(topology, operations)
-#   myQP.optimizer(cleaner)
-# myQP.execute()
-
-# myQP.execute()
-# myQP.execute(debug = {})
-
-
-# myQP.plot()
-
-# hardware.status()
-# hardware.command()
-# use methods instead - or have method as well
-# c1 = a + b + c
-# c2 = a + bp + c
-
-# chemistry1 = make_variational_state + do_measurement_1
-# chemistry2 = make_variational_state + do_measurement_2
-
-# p.add_circuit(c1)
