@@ -259,13 +259,12 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.execute([qc], device, shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
-    @unittest.skip
     def test_execute_one_circuit_real_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc.h(qr[1])
 
-        device = 'qx5q'  # the device to run on
+        device = 'IBMQX5qv2'  # the device to run on
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
