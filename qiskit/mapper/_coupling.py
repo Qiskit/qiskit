@@ -67,7 +67,7 @@ class Coupling:
         """
         Add a qubit to the coupling graph.
 
-        name = tuple (regname,idx) for qubit
+        name = tuple (regname, idx) for qubit
         """
         if name in self.qubits:
             raise CouplingError("%s already in coupling graph" % name)

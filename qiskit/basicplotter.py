@@ -32,16 +32,17 @@ COMPLEMENT = {'1': '0', '0': '1'}
 
 
 def n_choose_k(n, k):
-    """TODO."""
+    """Return the number of combinations."""
     if n == 0:
         return 0.0
     else:
-        return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1),
-                                                        range(1, k + 1)), 1)
+        return reduce(lambda x, y: x * y[0] / y[1],
+                      zip(range(n - k + 1, n + 1),
+                          range(1, k + 1)), 1)
 
 
 def lex_index(n, k, lst):
-    """TODO."""
+    """Return the index of a combination."""
     assert len(lst) == k, "list should have length k"
     comb = list(map(lambda x: n - 1 - x, lst))
     dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
@@ -50,7 +51,7 @@ def lex_index(n, k, lst):
 
 
 def bit_string_index(s):
-    """TODO."""
+    """Return the index of a string of 0s and 1s."""
     n = len(s)
     k = s.count("1")
     assert s.count("0") == n - k, "s must be a string of 0 and 1"
@@ -97,7 +98,7 @@ def plot_bloch_vector(bloch, title=""):
     """Plot a Bloch vector.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
-    bloch is a 3-tuple (x,y,z)
+    bloch is a 3-tuple (x, y, z)
     title is a string, the plot title
     """
     # Set arrow lengths
@@ -137,7 +138,7 @@ def plot_bloch_vector(bloch, title=""):
     # Rotate the view
     ax.view_init(30, 30)
 
-    # Annotate the axes, shifts are ad-hoc for this (30,30) view
+    # Annotate the axes, shifts are ad-hoc for this (30, 30) view
     xp, yp, _ = proj3d.proj_transform(arlen, 0, 0, ax.get_proj())
     plt.annotate("x", xy=(xp, yp), xytext=(-3, -8),
                  textcoords='offset points', ha='right', va='bottom')
@@ -167,7 +168,7 @@ def plot_histogram(data, number_to_keep=None):
     width = 0.35  # the width of the bars
     fig, ax = plt.subplots()
     rects = ax.bar(ind, pvalues, width, color='seagreen')
-    # add some text for labels, title and axes ticks
+    # add some text for labels, title, and axes ticks
     ax.set_ylabel('Probabilities', fontsize=12)
     ax.set_xticks(ind)
     ax.set_xticklabels(labels, fontsize=12)
