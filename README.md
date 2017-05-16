@@ -5,10 +5,6 @@
 Python software development kit (SDK) and Jupyter notebooks for working with
 OPENQASM and the IBM Quantum Experience (QE).
 
-Related external projects:
-
-- [Python API](https://github.com/IBM/qiskit-api-py)
-- [OPENQASM](https://github.com/IBM/qiskit-openqasm)
 
 ## Organization
 
@@ -20,7 +16,7 @@ There are Jupyter notebooks demonstrating components of
 the SDK in the *tutorial* directory, and more python and qasm examples in the *examples* directory. There are also command line test scripts
 in the *test* directory.
 
-Users can construct a *QuantumProgram* to create, modify, compile, and execute a collection of quantum circuits. 
+Users can construct a *QuantumProgram* to create, modify, compile, and execute a collection of quantum circuits.
 
 Each *QuantumCircuit* has some set of registers, *QuantumRegister* and *ClassicalRegister*, and methods of these objects are used to apply instructions within the circuit. The *extensions* directory extends
 the quantum circuit as needed to support new gate sets and algorithms. For example, the "cswap" gate in the standard extension shows how to build gates that are sequences of
@@ -45,14 +41,16 @@ a *PrinterBackend* for outputting text and a *CircuitBackend* for constructing *
 circuit as a directed acyclic graph (**DAG**). The *Circuit* provides methods
 for representing, transforming, and computing properties of a circuit as a
 **DAG** and outputting the results again as **OPENQASM**. The whole flow is
-used by the *mapper* module to rewrite a circuit to execute on a device 
+used by the *mapper* module to rewrite a circuit to execute on a device
 with fixed couplings given by a *CouplingGraph*.
 
-The circuit representations and how they are currently transformed into each other are summarized here: 
-<img src="images/circuit_representations.png" alt="circuits" style="width: 200px;"/>
+The circuit representations and how they are currently transformed into each other are summarized here:
+
+<img src="images/circuit_representations.png" alt="circuits" width="500"/>
 
 The unroller backends and their outputs are summarized here:
-<img src="images/unroller_backends.png" alt="backends" style="width: 200px;"/>
+
+<img src="images/unroller_backends.png" alt="backends" width="500"/>
 
 
 ## Install

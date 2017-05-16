@@ -17,8 +17,6 @@
 
 
 language: python
-python:
-  - "3.4"
 
 install:
   - sudo apt-get update
@@ -29,7 +27,6 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
 
-  - make env
   - make env-dev
 
 script:

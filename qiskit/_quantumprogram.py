@@ -33,6 +33,7 @@ from . import basicplotter
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
+from . import QISKitException
 
 # Beta Modules
 from . import unroll
@@ -84,8 +85,8 @@ class QuantumProgram(object):
                 'compiled_circuits': [
                     {
                     'name': #TODO: use the name to update the compile
-                    ’qasm’: ’Compiled QASM text version of circuit 1 to run on device’, #TODO: convert to object
-                    'exucution_id': 'id000',
+                    ’qasm’: ’Compiled QASM to run on backend, #TODO: convert to object
+                    'execution_id': 'id000',
                     'result': {
                         'data':{
                             'counts': {’00000’: XXXX, ’00001’: XXXXX},
@@ -100,6 +101,50 @@ class QuantumProgram(object):
             }
 
     """
+#       'circuits': "name_circuit" {
+#                     {
+#                     'name': #TODO: use the name to update the compile
+#                     'QASM_source': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'QASM_compiled': 
+#                     'execution_id': 'id000',
+#                     'result': {
+#                         'data':{
+#                             'counts': {’00000’: XXXX, ’00001’: XXXXX},
+#                             'time'  : xx.xxxxxxxx},
+#                             ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
+#                             },
+#                         ’status’: ’DONE’}
+#                     }}
+
+#
+#    backend =  {device, shots, max_credits, }
+#
+#       'circuit_to_execute': [{a,device1,shots,max_credit},{b,device1},{a,device2},{b,device2},.......],
+#       'circuits': { "a": {
+#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'execution: {'local_simulatior': { QASM_compile, data, shots, status}
+#                       }
+#                     .....}, 
+#                     "b": {
+#                    
+#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'QASM_compiled: None
+#                     .....}, 
+#                     "name": {
+#                     'QASM': ’New'
+#                     'QASM_compiled: None
+#                     .....}, 
+# }
+
+# c = qp.add('name',a, b)
+
+# qp.compile(['a','b'],backend, ....)
+# qp.compile(['a','b'],backend, ....)
+# qp.compile(['a','b'],device2, ....)
+# qp.run(....)
+
+
+
 
     def __init__(self, specs=None, name="", circuit=None, scope=None):
         self.__circuits = {}
@@ -530,10 +575,14 @@ class QuantumProgram(object):
         return results['compiled_circuits'][i]['result']['data']['counts']
 
     #TODO: change the index for name and i think there is no point to get data above
-    # ALSO i think we need an assert if there is no results
+    # ALSO i think we need an error if there is no results when we use a name
     def get_counts(self, i):
         """Get the dict of labels and counts from the output of get_job."""
-        if isinstance(i, str):
+        if isinstance(i, str): # WHY DO WE NEED THIS
             pass
         else:
+        if 'result' not in self.__qasm_compile['compiled_circuits'][i]
+            raise QISKitException("the results have not been run")
+        else:
             return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
+
