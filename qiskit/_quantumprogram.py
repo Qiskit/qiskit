@@ -581,7 +581,7 @@ class QuantumProgram(object):
         if isinstance(i, str): # WHY DO WE NEED THIS
             pass
         else:
-            if 'result' not in self.__qasm_compile['compiled_circuits'][i]
+            if 'result' not in self.__qasm_compile['compiled_circuits'][i]:
                 raise QISKitException("the results have not been run")
             else:
                 return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
