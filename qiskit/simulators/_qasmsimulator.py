@@ -26,7 +26,8 @@ and if you want to simulate the histogram over shots.
 
     outcomes = []
     for i in range(shots):
-        circuit_result = QasmSimulator(unroller.backend.circuit, random.random()).run()
+        circuit_result = QasmSimulator(unroller.backend.circuit,
+                                       random.random()).run()
         outcomes.append(bin(circuit_result['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
 
     circuit_result['result']['data']['counts'] = dict(Counter(outcomes))

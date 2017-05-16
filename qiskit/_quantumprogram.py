@@ -52,7 +52,7 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = [ "qx5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __online_devices = [ "IBMQX5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
@@ -74,7 +74,7 @@ class QuantumProgram(object):
 
         qasm_compile=
             {
-                'backend': {'name': 'qx5qv2'},
+                'backend': {'name': 'ibmqx2'},
                 'max_credits': 3,
                 'id': 'id0000',
                 'circuits':  [
@@ -254,12 +254,13 @@ class QuantumProgram(object):
         """
 
         backend = self.__qasm_compile['backend']['name']
-
+        print("backend that is running %s", backend)
         if backend in self.__online_devices:
             output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                         backend,
                                         self.__qasm_compile['shots'],
                                         self.__qasm_compile['max_credits'])
+            print(output)
             if 'error' in output:
                 return {"status": "Error", "result": output['error']}
 
@@ -289,15 +290,15 @@ class QuantumProgram(object):
         """
         shots = self.__qasm_compile['shots']
         qasms = self.__qasm_compile['compiled_circuits']
-       
+
         # /print(qasms)
-        
+
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
             basis = []
             unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),SimulatorBackend(basis))
             unroller.backend.set_trace(False)
-            unroller.execute() 
+            unroller.execute()
             result = []
             for i in range(shots):
                 b = QasmSimulator(unroller.backend.circuit, random.random()).run()
@@ -500,7 +501,6 @@ class QuantumProgram(object):
     def get_qasm_image(self,):
         pass
 
-    def get_data(self, results, i): #TODO: change the index for name 
+    def get_data(self, results, i): #TODO: change the index for name
         """Get the dict of labels and counts from the output of get_job."""
         return results['qasms'][i]['result']['data']['counts']
-
