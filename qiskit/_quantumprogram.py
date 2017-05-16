@@ -254,13 +254,13 @@ class QuantumProgram(object):
         """
 
         backend = self.__qasm_compile['backend']['name']
-        print("backend that is running %s", backend)
+        print("backend that is running %s" % (backend))
         if backend in self.__online_devices:
             output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                         backend,
                                         self.__qasm_compile['shots'],
                                         self.__qasm_compile['max_credits'])
-            print(output)
+            # print(output)
             if 'error' in output:
                 return {"status": "Error", "result": output['error']}
 
@@ -275,9 +275,11 @@ class QuantumProgram(object):
             # return {"status": "Error", "result": "Not local simulations"}
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
+        # print(self.__qasm_compile['compiled_circuits'])
         self.__qasm_compile['used_credits'] = job_result['usedCredits']
         self.__qasm_compile['status'] = job_result['status']
 
+        # TODO: ISMAEL WHY NOT RETURN __qasm_compile rather than job_results.
         return job_result
 
     def run_local(self):
@@ -370,17 +372,19 @@ class QuantumProgram(object):
             return {"status": "Error", "result": "Time Out"}
         return job
 
-    def average_data(self, data, observable):
-        """Compute the mean value of an observable.
+    def average_data(self, i, observable):
+        """Compute the mean value of an diagonal observable.
+
         Takes in the data counts(i) and a corresponding observable in dict
         form and calculates sum_i value(i) P(i) where value(i) is the value of
         the observable for the i state.
         """
+        counts = self.get_counts(i)
         temp = 0
-        tot = sum(data.values())
-        for key in data:
+        tot = sum(counts.values())
+        for key in counts:
             if key in observable:
-                temp += data[key] * observable[key] / tot
+                temp += counts[key] * observable[key] / tot
         return temp
 
     def __init_specs(self, specs):
@@ -504,3 +508,9 @@ class QuantumProgram(object):
     def get_data(self, results, i): #TODO: change the index for name
         """Get the dict of labels and counts from the output of get_job."""
         return results['qasms'][i]['result']['data']['counts']
+
+    #TODO: change the index for name and i think there is no point to get data above
+    # ALSO i think we need an assert if there is no results
+    def get_counts(self, i):
+        """Get the dict of labels and counts from the output of get_job."""
+        return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
