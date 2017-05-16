@@ -24,7 +24,7 @@ env:
 	conda create -y -n QISKitenv python=3 pip
 	bash -c "source activate QISKitenv;pip install -r requires.txt"
 
-env-dev:
+env-dev: env
 	bash -c "source activate QISKitenv;pip install pylint matplotlib"
 
 # Ignoring generated ones with .py extension.
