@@ -101,6 +101,50 @@ class QuantumProgram(object):
             }
 
     """
+#       'circuits': "name_circuit" {
+#                     {
+#                     'name': #TODO: use the name to update the compile
+#                     'QASM_source': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'QASM_compiled': 
+#                     'execution_id': 'id000',
+#                     'result': {
+#                         'data':{
+#                             'counts': {’00000’: XXXX, ’00001’: XXXXX},
+#                             'time'  : xx.xxxxxxxx},
+#                             ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
+#                             },
+#                         ’status’: ’DONE’}
+#                     }}
+
+#
+#    backend =  {device, shots, max_credits, }
+#
+#       'circuit_to_execute': [{a,device1,shots,max_credit},{b,device1},{a,device2},{b,device2},.......],
+#       'circuits': { "a": {
+#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'execution: {'local_simulatior': { QASM_compile, data, shots, status}
+#                       }
+#                     .....}, 
+#                     "b": {
+#                    
+#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
+#                     'QASM_compiled: None
+#                     .....}, 
+#                     "name": {
+#                     'QASM': ’New'
+#                     'QASM_compiled: None
+#                     .....}, 
+# }
+
+# c = qp.add('name',a, b)
+
+# qp.compile(['a','b'],backend, ....)
+# qp.compile(['a','b'],backend, ....)
+# qp.compile(['a','b'],device2, ....)
+# qp.run(....)
+
+
+
 
     def __init__(self, specs=None, name="", circuit=None, scope=None):
         self.__circuits = {}
@@ -541,3 +585,4 @@ class QuantumProgram(object):
             raise QISKitException("the results have not been run")
         else:
             return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
+
