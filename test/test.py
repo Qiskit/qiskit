@@ -390,8 +390,14 @@ class TestQISKit(unittest.TestCase):
         # print(result)
         self.assertIsNotNone(result['compiled_circuits'][0]['result']['data']['unitary'])
 
+    def test_load_qasm(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
 
-        # QP_program.plotter()
+        QP_program
+        
+        result = QP_program.load_qasm("circuit","test/test.qasm")
+
+        self.assertEqual(len(result.qasm()),1569)
 
 
 if __name__ == '__main__':

@@ -69,6 +69,7 @@ class QuantumProgram(object):
         'compiled_circuits': [],
         'shots': 1024
     }
+    __qprogram = {}
 
     """
         objects examples:
@@ -142,20 +143,19 @@ class QuantumProgram(object):
 # qp.compile(['a','b'],device2, ....)
 # qp.run(....)
 
-    def __init__(self, specs=None, name="", circuit=None, scope=None):
+    def __init__(self, specs=None, name=""):
         self.__circuits = {}
         self.__quantum_registers = {}
         self.__classical_registers = {}
-        self.__scope = scope
+
         self.__name = name
+        self.__qprogram = {}
         # self.__api = {}
 
         self.mapper = mapper
 
         if specs:
             self.__init_specs(specs)
-        if circuit:
-            self.__circuits[circuit["name"]] = (circuit)
 
     def quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
@@ -216,24 +216,24 @@ class QuantumProgram(object):
         """ Set the API url """
         self.set_api(url=url)
 
-    def load_qasm(self, qasm_file, basis_gates=None):
+    def load_qasm(self, name="", qasm_file=None, basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
         """
+        if not qasm_file:
+            print('"Not filename provided')
+            return {"status": "Error", "result": "Not filename provided"}
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
 
-        try:
-            qasm_file = open(qasm_file, 'r')
-            qasm_source = qasm_file.read()
-            qasm_file.close()
-            circuit = unroll.Unroller(qasm.Qasm(data=qasm_source).parse(),
-                                      unroll.CircuitBackend(basis_gates.split(",")))
-            # print(circuit.qasm())
-            self.__circuits[qasm_file] = circuit
-            return circuit
-        except BaseException:
-            print('---- Error: Load qasm file = ', qasm_file)
+        if name == "":
+            name = qasm_file
+
+        circuit = qasm.Qasm(filename=qasm_file).parse()
+
+        self.__circuits[name] = {"circuit": circuit, "QASM": circuit.qasm()}
+        return circuit
+
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
