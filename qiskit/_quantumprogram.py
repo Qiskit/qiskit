@@ -383,7 +383,8 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        self.compile(circuits, device, shots, max_credits, coupling_map)
+        self.compile(circuits, device, shots, max_credits,
+                     basis_gates, coupling_map)
         output = self.run(wait, timeout)
         if 'error' in output:
             return {"status": "Error", "result": output['error']}
