@@ -216,24 +216,23 @@ class QuantumProgram(object):
         """ Set the API url """
         self.set_api(url=url)
 
-    def load_qasm(self, qasm_file, basis_gates=None):
+    def load_qasm(self, name="", qasm_file=None, basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
         """
+        if not qasm_file:
+            print('"Not filename provided')
+            return {"status": "Error", "result": "Not filename provided"}
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
 
-        try:
-            qasm_file = open(qasm_file, 'r')
-            qasm_source = qasm_file.read()
-            qasm_file.close()
-            circuit = unroll.Unroller(qasm.Qasm(data=qasm_source).parse(),
-                                      unroll.CircuitBackend(basis_gates.split(",")))
-            # print(circuit.qasm())
-            self.__circuits[qasm_file] = circuit
-            return circuit
-        except BaseException:
-            print('---- Error: Load qasm file = ', qasm_file)
+        if name == "":
+            name = qasm_file
+
+        circuit = qasm.Qasm(filename=qasm_file).parse()
+
+        return circuit
+
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
