@@ -118,7 +118,6 @@ class QuantumProgram(object):
 
 #
 #    backend =  {device, shots, max_credits, }
-#
 #       'circuit_to_execute': [{a,device1,shots,max_credit},{b,device1},{a,device2},{b,device2},.......],
 #       'circuits': { "a": {
 #                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
@@ -142,9 +141,6 @@ class QuantumProgram(object):
 # qp.compile(['a','b'],backend, ....)
 # qp.compile(['a','b'],device2, ....)
 # qp.run(....)
-
-
-
 
     def __init__(self, specs=None, name="", circuit=None, scope=None):
         self.__circuits = {}
@@ -564,25 +560,35 @@ class QuantumProgram(object):
         if method == "histogram":
             basicplotter.plot_histogram(data, circuit_number)
         else:
-            basicplotter.plot_qsphere(data, circuit_number)
+            pass
+            # basicplotter.plot_qsphere(data, circuit_number)
 
     def get_qasm_image(self, circuit):
         """Get imagen circuit representation from API."""
         pass
 
-    def get_data(self, results, i): #TODO: change the index for name
-        """Get the dict of labels and counts from the output of get_job."""
-        return results['compiled_circuits'][i]['result']['data']['counts']
+    def get_data(self, results, name):
+        """Get the dict of labels and counts from the output of get_job.
+        results are the list of results
+        name is the name or index of one circuit.
+        NOTE: now only work with the index, we need need allow to access by the circuit name"""
+        if not isinstance(name, str):
+            return results['compiled_circuits'][name]['result']['data']['counts']
+        else:
+            pass
 
     #TODO: change the index for name and i think there is no point to get data above
     # ALSO i think we need an error if there is no results when we use a name
-    def get_counts(self, i):
-        """Get the dict of labels and counts from the output of get_job."""
-        if isinstance(i, str): # WHY DO WE NEED THIS
+    def get_counts(self, name):
+        """Get the dict of labels and counts from the output of get_job.
+        name is the name or index of one circuit.
+        NOTE: now only work with the index, we need need allow to access by the circuit name"""
+        if not isinstance(name, str):
+            return self.__qasm_compile['compiled_circuits'][name]['result']['data']['counts']
+        else:
             pass
-        else:
-        if 'result' not in self.__qasm_compile['compiled_circuits'][i]
-            raise QISKitException("the results have not been run")
-        else:
-            return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']
-
+            # for qasm in self.__qasm_compile['compiled_circuits']:
+            #     if 'result' not in self.__qasm_compile['compiled_circuits'][name]:
+            #         raise QISKitException("the results have not been run")
+            #     else:
+            #         return self.__qasm_compile['compiled_circuits'][name]['result']['data']['counts']
