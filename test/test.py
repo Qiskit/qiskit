@@ -315,7 +315,7 @@ class TestQISKit(unittest.TestCase):
             API_TOKEN, URL)
         QP_program.compile(circuits, device, shots, credits, coupling_map)
         result = QP_program.run()
-        self.assertEqual(len(result), 10)
+        self.assertEqual(len(result), 6)
 
     def test_execute_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -338,7 +338,7 @@ class TestQISKit(unittest.TestCase):
 
         # QP_program.plotter()
 
-    def test_last(self):
+    def test_local_qasm_simulator(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
@@ -353,8 +353,41 @@ class TestQISKit(unittest.TestCase):
         coupling_map = None
 
         result = QP_program.execute(circuits, device, shots)
-        print(result)
         self.assertEqual(result['status'], 'COMPLETED')
+
+    def test_local_qasm_simulator_one_shot(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc, qr, cr = QP_program.quantum_elements()
+        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+        qc2.h(qr[0])
+        qc3.h(qr[0])
+        circuits = [qc2, qc3]
+
+        device = 'local_qasm_simulator'  # the device to run on
+        shots = 1  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+        result = QP_program.execute(circuits, device, shots)
+        self.assertEqual(result['compiled_circuits'][0]['result']['data']['classical_state'], 0)
+
+    def test_local_unitary_simulator(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc, qr, cr = QP_program.quantum_elements()
+        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+        qc2.h(qr[0])
+        qc3.h(qr[0])
+        circuits = [qc2, qc3]
+
+        device = 'local_unitary_simulator'  # the device to run on
+        shots = 1  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+        result = QP_program.execute(circuits, device, shots)
+        # print(result)
+        self.assertIsNotNone(result['compiled_circuits'][0]['result']['data']['unitary'])
+
 
         # QP_program.plotter()
 

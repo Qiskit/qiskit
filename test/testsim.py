@@ -12,7 +12,7 @@ from collections import Counter
 import numpy as np
 
 basis = []  # empty basis, defaults to U, CX
-unroller = unroll.Unroller(Qasm(filename="example.qasm").parse(),
+unroller = unroll.Unroller(Qasm(filename="test/example.qasm").parse(),
                            SimulatorBackend(basis))
 unroller.backend.set_trace(False)  # print calls as they happen
 unroller.execute()  # Here is where simulation happens
