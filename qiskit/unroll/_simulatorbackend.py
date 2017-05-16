@@ -1,28 +1,54 @@
-"""Backend for the unroller that composes unitary matrices to simulate circuit.
+"""Backend for the unroller that composes qasm into simulator inputs.
 
 Author: Jay Gambetta and Andrew Cross
 
-    {'number_of_qubits': 2,
+The input is a the AST and a basis set and returns a compiled simulator circuit
+ready to be run in backends:
+    [
+    "ibmqx_qasm_simulator" #TODO,
+     "local_unitary_simulator",
+     "local_qasm_simulator"
+     ]
+
+OUTPUT
+circuit =
+    {
+    'number_of_qubits': 2,
     'number_of_cbits': 2,
-    'number_of_operations': 2
+    'number_of_operations': 4
     'qubit_order': {('q', 0): 0, ('v', 0): 1}
     'cbit_order': {('c', 1): 1, ('c', 0): 0},
-    'qasm': [{
-            'type': 'gate',
-            'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
-            'qubit_indices': [0],
-            'gate_size': 1,
-            'matrix': array([[ 0.70710678 +0.00000000e+00j,
-                               0.70710678 -8.65956056e-17j],
-                             [ 0.70710678 +0.00000000e+00j,
-                              -0.70710678 +8.65956056e-17j]])
-            },
-            {
-            'type': 'measure',
-            'cbit_indices': [0],
-            'qubit_indices': [0]
-            }],
+    'qasm':
+        [{
+        'type': 'gate',
+        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+        'qubit_indices': [0],
+        'gate_size': 1,
+        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
+                           0.70710678 -8.65956056e-17j],
+                         [ 0.70710678 +0.00000000e+00j,
+                          -0.70710678 +8.65956056e-17j]])
+        },
+        {
+        'type': 'gate',
+        'name': 'CX',
+        'qubit_indices': [0, 1],
+        'gate_size': 2,
+        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
+                            [0, 1, 0, 0]])
+        },
+        {
+        'type': 'reset',
+        'qubit_indices': [1]
+        }
+        {
+        'type': 'measure',
+        'cbit_indices': [0],
+        'qubit_indices': [0]
+        }],
     }
+
+    #TODO currently only supports standard basis
 """
 import numpy as np
 from qiskit.unroll import BackendException
@@ -272,9 +298,8 @@ class SimulatorBackend(UnrollerBackend):
                 print(" %s;" % ",".join(squbits))
             if self.creg is not None:
                 raise BackendException("UnitarySimulator does not support if")
-            # Jay: update here down with your code for any other gates,
-            #      like h, u1, u2, u3, if you want to treat those specially.
-            # Otherwise, set self.basis = [] and just implement U and CX.
+            # Jay: update here for any other gates, like h, u1, u2, u3, but
+            # need to decided how we handle the matrix.
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.

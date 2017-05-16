@@ -1,5 +1,5 @@
 """
-Backend for the unroller that prints OPENQASM.
+Backend for the unroller that prints OpenQASM.
 
 Author: Andrew Cross
 """
@@ -8,7 +8,7 @@ from ._unrollerbackend import UnrollerBackend
 
 
 class PrinterBackend(UnrollerBackend):
-    """Backend for the unroller that prints OPENQASM.
+    """Backend for the unroller that prints OpenQASM.
 
     This backend also serves as a base class for other unroller backends.
     """
