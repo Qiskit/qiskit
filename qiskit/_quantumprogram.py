@@ -105,7 +105,7 @@ class QuantumProgram(object):
 #                     {
 #                     'name': #TODO: use the name to update the compile
 #                     'QASM_source': ’Compiled QASM to run on backend, #TODO: convert to object
-#                     'QASM_compiled': 
+#                     'QASM_compiled':
 #                     'execution_id': 'id000',
 #                     'result': {
 #                         'data':{
@@ -123,16 +123,16 @@ class QuantumProgram(object):
 #                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
 #                     'execution: {'local_simulatior': { QASM_compile, data, shots, status}
 #                       }
-#                     .....}, 
+#                     .....},
 #                     "b": {
-#                    
+#
 #                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
 #                     'QASM_compiled: None
-#                     .....}, 
+#                     .....},
 #                     "name": {
 #                     'QASM': ’New'
 #                     'QASM_compiled: None
-#                     .....}, 
+#                     .....},
 # }
 
 # c = qp.add('name',a, b)
@@ -579,6 +579,7 @@ class QuantumProgram(object):
 
     #TODO: change the index for name and i think there is no point to get data above
     # ALSO i think we need an error if there is no results when we use a name
+
     def get_counts(self, name):
         """Get the dict of labels and counts from the output of get_job.
         name is the name or index of one circuit.
