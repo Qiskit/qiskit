@@ -1,7 +1,7 @@
 """
 Quantum Optimization tools.
 
-These are simple methods for common tasks in our optimization,
+These are simple methods for common tasks in our optimization.
 
 Author: Jay Gambetta
 """
@@ -18,7 +18,7 @@ def cost_classical(data, n, alpha, beta):
     alpha is a vector with elements q0 -- qn
     beta is a matrix of couplings
 
-    NOTE THIS SHOULD BE MADE TO WORK WITH UPPER TRIANGLE
+    NOTE THIS SHOULD BE MADE TO WORK WITH THE UPPER TRIANGLE.
     """
     temp = 0
     tot = sum(data.values())
