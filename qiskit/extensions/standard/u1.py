@@ -12,10 +12,10 @@ from qiskit.extensions.standard import header
 
 
 class U1Gate(Gate):
-    """Diagonal single qubit gate."""
+    """Diagonal single-qubit gate."""
 
     def __init__(self, theta, qubit, circ=None):
-        """Create new diagonal single qubit gate."""
+        """Create new diagonal single-qubit gate."""
         super(U1Gate, self).__init__("u1", [theta], [qubit], circ)
 
     def qasm(self):

@@ -1,5 +1,5 @@
 """
-Two-pulse single qubit gate.
+Two-pulse single-qubit gate.
 
 Author: Andrew Cross
 """
@@ -12,7 +12,7 @@ from qiskit.extensions.standard import header
 
 
 class U3Gate(Gate):
-    """Two-pulse single qubit gate."""
+    """Two-pulse single-qubit gate."""
 
     def __init__(self, theta, phi, lam, qubit, circ=None):
         """Create new two-pulse single qubit gate."""
@@ -31,7 +31,7 @@ class U3Gate(Gate):
     def inverse(self):
         """Invert this gate.
 
-        u3(theta,phi,lamb)^dagger = u3(-theta, -lam, -phi)
+        u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
         self.param[0] = -self.param[0]
         phi = self.param[1]

@@ -78,10 +78,10 @@ class CircuitBackend(UnrollerBackend):
                 "U", [qubit], [], list(arg), condition)
 
     def cx(self, qubit0, qubit1):
-        """Fundamental two qubit gate.
+        """Fundamental two-qubit gate.
 
-        qubit0 is (regname,idx) tuple for the control qubit.
-        qubit1 is (regname,idx) tuple for the target qubit.
+        qubit0 is (regname, idx) tuple for the control qubit.
+        qubit1 is (regname, idx) tuple for the target qubit.
         """
         if self.listen:
             if self.creg is not None:

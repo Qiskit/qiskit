@@ -155,10 +155,10 @@ class SimulatorBackend(UnrollerBackend):
         #      this is called when the unroller sees "gate blah() blah {}"
 
     def u(self, arg, qubit):
-        """Fundamental single qubit gate.
+        """Fundamental single-qubit gate.
 
         arg is 3-tuple of float parameters.
-        qubit is (regname,idx) tuple.
+        qubit is (regname, idx) tuple.
         """
         if self.listen:
             if "U" not in self.basis:
@@ -193,10 +193,10 @@ class SimulatorBackend(UnrollerBackend):
             # print(self.unitary_gates)
 
     def cx(self, qubit0, qubit1):
-        """Fundamental two qubit gate.
+        """Fundamental two-qubit gate.
 
-        qubit0 is (regname,idx) tuple for the control qubit.
-        qubit1 is (regname,idx) tuple for the target qubit.
+        qubit0 is (regname, idx) tuple for the control qubit.
+        qubit1 is (regname, idx) tuple for the target qubit.
         """
         if self.listen:
             if "CX" not in self.basis:
