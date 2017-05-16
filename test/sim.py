@@ -19,9 +19,9 @@
 """Quick test program for unitary simulator backend."""
 import unittest
 
-from qiskit.simulators import UnitarySimulator
+
 from qiskit.qasm import Qasm
-from qiskit.simulators import UnitarySimulator
+from qiskit.simulators._unitarysimulator import UnitarySimulator
 import qiskit.unroll as unroll
 
 class TestQISKitSIM(unittest.TestCase):
@@ -35,6 +35,7 @@ class TestQISKitSIM(unittest.TestCase):
                                    UnitarySimulator(basis))
         unroller.backend.set_trace(True)  # print calls as they happen
         result = unroller.execute()  # Here is where simulation happens
+        print(result)
         self.assertEqual(result, 'TODO: check result')
 
 if __name__ == '__main__':

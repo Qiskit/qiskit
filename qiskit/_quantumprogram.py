@@ -270,47 +270,67 @@ class QuantumProgram(object):
 
             if job_result['status'] == 'Error':
                 return job_result
+            self.__qasm_compile['status'] = job_result['status']
+            self.__qasm_compile['used_credits'] = job_result['usedCredits']
         else:
-            self.run_local()
-            # return {"status": "Error", "result": "Not local simulations"}
+            if backend == 'local_qasm_simulator':
+                job_result = self.run_local_qasm_simulator()
+                self.__qasm_compile['status'] = job_result['status']
+            elif backend == 'local_unitary_simulator':
+                job_result = self.run_local_unitary_simulator()
+                self.__qasm_compile['status'] = job_result['status']
+            else:
+                return {"status": "Error", "result": "Not local simulations"}
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
+
         # print(self.__qasm_compile['compiled_circuits'])
-        self.__qasm_compile['used_credits'] = job_result['usedCredits']
         self.__qasm_compile['status'] = job_result['status']
 
-        # TODO: ISMAEL WHY NOT RETURN __qasm_compile rather than job_results.
-        return job_result
+        return self.__qasm_compile
 
-    def run_local(self):
-        """run_local, run a program (precompile of quantum circuits).
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+
+    def run_local_qasm_simulator(self):
+        """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         """
         shots = self.__qasm_compile['shots']
         qasms = self.__qasm_compile['compiled_circuits']
 
-        # /print(qasms)
+        outcomes = {'qasms':[]}
+        for qasm_circuit in qasms:
+            basis = []
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(), SimulatorBackend(basis))
+            unroller.backend.set_trace(False)
+            unroller.execute()
+            result = []
+            if shots == 1:
+                qasm_circuit = QasmSimulator(unroller.backend.circuit, random.random()).run()
+            else:
+                for i in range(shots):
+                    b = QasmSimulator(unroller.backend.circuit, random.random()).run()
+                    result.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
+                qasm_circuit["result"] = {"data":{"counts":dict(Counter(result))}}
+            outcomes['qasms'].append(qasm_circuit)
+        outcomes['status'] = 'COMPLETED'
+        return outcomes
+
+    def run_local_unitary_simulator(self):
+        """run_local_qasm_simulator, run a program (precompile of quantum circuits).
+        """
+        shots = self.__qasm_compile['shots']
+        qasms = self.__qasm_compile['compiled_circuits']
 
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
             basis = []
-            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),SimulatorBackend(basis))
-            unroller.backend.set_trace(False)
-            unroller.execute()
-            result = []
-            for i in range(shots):
-                b = QasmSimulator(unroller.backend.circuit, random.random()).run()
-                print('...............')
-                print(b)
-                print('...............')
-                result.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
-            qasm_circuit["result"]= {"data": {"counts":dict(Counter(result))}}
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),
+                                       UnitarySimulator(basis))
+            unroller.backend.set_trace(True)  # print calls as they happen
+            result = unroller.execute()  # Here is where simulation happens
+
+            qasm_circuit["result"] = {"data":{"unitary":result}}
             outcomes['qasms'].append(qasm_circuit)
-        print(outcomes)
+        outcomes['status'] = 'COMPLETED'
         return outcomes
 
     def execute(self, circuits, device, shots=1024,
