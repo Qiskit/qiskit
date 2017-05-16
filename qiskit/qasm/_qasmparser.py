@@ -65,7 +65,7 @@ class QasmParser(object):
     def verify_bit_list(self, obj):
         """Verify each qubit in a list of ids."""
         # We expect the object to be a bitlist or an idlist, we don't care.
-        # We will iterate it and insure everything in it is declared as a bit,
+        # We will iterate it and ensure everything in it is declared as a bit,
         # and throw if not.
         for children in obj.children:
             self.verify_declared_bit(children)
@@ -945,7 +945,7 @@ class QasmParser(object):
         '''
            ignore : STRING
         '''
-        # this should never hit but it keeps the unsupressable warnings at bay
+        # this should never hit but it keeps the insuppressible warnings at bay
         pass
 
     def p_error(self, program):

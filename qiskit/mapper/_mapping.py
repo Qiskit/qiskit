@@ -21,10 +21,11 @@ import qiskit.unroll as unroll
 # It can happen that initial swaps can be removed or partly simplified
 # because the initial state is zero. We don't do this.
 
+
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     """Find a swap circuit that implements a permutation for this layer.
 
-    The goal is to swap qubits such that qubits in the same two qubit gates
+    The goal is to swap qubits such that qubits in the same two-qubit gates
     are adjacent.
 
     Based on Sergey Bravyi's algorithm.

@@ -47,7 +47,7 @@ class QuantumCircuit(object):
         """
         Append rhs to self if self contains rhs's registers.
 
-        Return self + rhs as a  new object.
+        Return self + rhs as a new object.
         """
         for register in rhs.regs.values():
             if not self.has_register(register):

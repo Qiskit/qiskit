@@ -52,7 +52,7 @@ class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = [ "qx5qv2","ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+    __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __specs = {}
@@ -74,7 +74,7 @@ class QuantumProgram(object):
 
         qasm_compile=
             {
-                'backend': {'name': 'qx5qv2'},
+                'backend': {'name': 'ibmqx2'},
                 'max_credits': 3,
                 'id': 'id0000',
                 'circuits':  [
@@ -254,12 +254,13 @@ class QuantumProgram(object):
         """
 
         backend = self.__qasm_compile['backend']['name']
-
+        print("backend that is running %s" % (backend))
         if backend in self.__online_devices:
             output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
                                         backend,
                                         self.__qasm_compile['shots'],
                                         self.__qasm_compile['max_credits'])
+            # print(output)
             if 'error' in output:
                 return {"status": "Error", "result": output['error']}
 
@@ -269,45 +270,66 @@ class QuantumProgram(object):
 
             if job_result['status'] == 'Error':
                 return job_result
+            self.__qasm_compile['status'] = job_result['status']
+            self.__qasm_compile['used_credits'] = job_result['usedCredits']
         else:
-            self.run_local()
-            # return {"status": "Error", "result": "Not local simulations"}
+            if backend == 'local_qasm_simulator':
+                job_result = self.run_local_qasm_simulator()
+                self.__qasm_compile['status'] = job_result['status']
+            elif backend == 'local_unitary_simulator':
+                job_result = self.run_local_unitary_simulator()
+                self.__qasm_compile['status'] = job_result['status']
+            else:
+                return {"status": "Error", "result": "Not local simulations"}
 
         self.__qasm_compile['compiled_circuits'] = job_result['qasms']
-        self.__qasm_compile['used_credits'] = job_result['usedCredits']
+
+        # print(self.__qasm_compile['compiled_circuits'])
         self.__qasm_compile['status'] = job_result['status']
 
-        return job_result
+        return self.__qasm_compile
 
-    def run_local(self):
-        """run_local, run a program (precompile of quantum circuits).
-        api the api for the device
-        device is a string for real or simulator
-        shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+    def run_local_qasm_simulator(self):
+        """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         """
         shots = self.__qasm_compile['shots']
         qasms = self.__qasm_compile['compiled_circuits']
-       
-        # /print(qasms)
-        
+
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
             basis = []
-            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),SimulatorBackend(basis))
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(), SimulatorBackend(basis))
             unroller.backend.set_trace(False)
-            unroller.execute() 
+            unroller.execute()
             result = []
-            for i in range(shots):
-                b = QasmSimulator(unroller.backend.circuit, random.random()).run()
-                print('...............')
-                print(b)
-                print('...............')
-                result.append(bin(b['result']['classical_state'])[2:].zfill(b['number_of_cbits']))
-            qasm_circuit["result"]= {"data": {"counts":dict(Counter(result))}}
+            if shots == 1:
+                qasm_circuit = QasmSimulator(unroller.backend.circuit, random.random()).run()
+            else:
+                for i in range(shots):
+                    b = QasmSimulator(unroller.backend.circuit, random.random()).run()
+                    result.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
+                qasm_circuit["result"] = {"data":{"counts":dict(Counter(result))}}
             outcomes['qasms'].append(qasm_circuit)
-        print(outcomes)
+        outcomes['status'] = 'COMPLETED'
+        return outcomes
+
+    def run_local_unitary_simulator(self):
+        """run_local_qasm_simulator, run a program (precompile of quantum circuits).
+        """
+        shots = self.__qasm_compile['shots']
+        qasms = self.__qasm_compile['compiled_circuits']
+        basis = []
+        outcomes = {'qasms':[]}
+        for qasm_circuit in qasms:
+
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),
+                                       SimulatorBackend(basis))
+            unroller.backend.set_trace(False)  # print calls as they happen
+            unroller.execute()  # Here is where simulation happens
+            result = UnitarySimulator(unroller.backend.circuit).run()
+            qasm_circuit["result"] = {"data":{"unitary":result}}
+            outcomes['qasms'].append(qasm_circuit)
+        outcomes['status'] = 'COMPLETED'
         return outcomes
 
     def execute(self, circuits, device, shots=1024,
@@ -369,17 +391,19 @@ class QuantumProgram(object):
             return {"status": "Error", "result": "Time Out"}
         return job
 
-    def average_data(self, data, observable):
-        """Compute the mean value of an observable.
+    def average_data(self, i, observable):
+        """Compute the mean value of an diagonal observable.
+
         Takes in the data counts(i) and a corresponding observable in dict
         form and calculates sum_i value(i) P(i) where value(i) is the value of
         the observable for the i state.
         """
+        counts = self.get_counts(i)
         temp = 0
-        tot = sum(data.values())
-        for key in data:
+        tot = sum(counts.values())
+        for key in counts:
             if key in observable:
-                temp += data[key] * observable[key] / tot
+                temp += counts[key] * observable[key] / tot
         return temp
 
     def __init_specs(self, specs):
@@ -497,10 +521,19 @@ class QuantumProgram(object):
         else:
             basicplotter.plot_qsphere(data, circuit_number)
 
-    def get_qasm_image(self,):
+    def get_qasm_image(self, circuit):
+        """Get imagen circuit representation from API."""
         pass
 
-    def get_data(self, results, i): #TODO: change the index for name 
+    def get_data(self, results, i): #TODO: change the index for name
         """Get the dict of labels and counts from the output of get_job."""
-        return results['qasms'][i]['result']['data']['counts']
+        return results['compiled_circuits'][i]['result']['data']['counts']
 
+    #TODO: change the index for name and i think there is no point to get data above
+    # ALSO i think we need an assert if there is no results
+    def get_counts(self, i):
+        """Get the dict of labels and counts from the output of get_job."""
+        if isinstance(i, str):
+            pass
+        else:
+            return self.__qasm_compile['compiled_circuits'][i]['result']['data']['counts']

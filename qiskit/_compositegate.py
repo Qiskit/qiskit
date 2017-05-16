@@ -69,16 +69,16 @@ class CompositeGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.seq = [gate.inverse() for gate in reversed(self.data)]
+        self.data = [gate.inverse() for gate in reversed(self.data)]
         self.inverse_flag = not self.inverse_flag
         return self
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
-        self.seq = [gate.q_if(qregs) for gate in self.data]
+        self.data = [gate.q_if(qregs) for gate in self.data]
         return self
 
     def c_if(self, c, val):
         """Add classical control register."""
-        self.seq = [gate.c_if(c, val) for gate in self.data]
+        self.data = [gate.c_if(c, val) for gate in self.data]
         return self

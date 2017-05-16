@@ -1,5 +1,5 @@
 """
-T=sqrt(S) phase gate.
+T=sqrt(S) phase gate or its inverse.
 
 Author: Andrew Cross
 """
@@ -13,7 +13,7 @@ from qiskit.extensions.standard import u1
 
 
 class TGate(CompositeGate):
-    """T=sqrt(S) Clifford phase gate."""
+    """T=sqrt(S) Clifford phase gate or its inverse."""
 
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
@@ -23,6 +23,15 @@ class TGate(CompositeGate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.t(self.arg[0]))
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubit = self.data[0].arg[0]
+        phi = self.data[0].param[0]
+        if phi > 0:
+            return self.data[0]._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
+        else:
+            return self.data[0]._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
 
 
 def t(self, q):
@@ -37,5 +46,12 @@ def t(self, q):
         return self._attach(TGate(q, self))
 
 
+def tdg(self, q):
+    """Apply Tdg to q."""
+    return self.t(q).inverse()
+
+
 QuantumCircuit.t = t
+QuantumCircuit.tdg = tdg
 CompositeGate.t = t
+CompositeGate.tdg = tdg

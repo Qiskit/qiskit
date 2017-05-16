@@ -11,7 +11,7 @@ import numpy as np
 def destroy(dim):
     """Annihilation operator.
 
-    dim integer dimension (for qubits dim = 2**n where n is number of qubits)
+    dim = integer dimension (for qubits dim = 2**n where n is number of qubits)
     returns a complex numpy array
     """
     a = np.zeros((dim, dim), dtype=complex)
@@ -23,9 +23,9 @@ def destroy(dim):
 
 
 def operator_qi(gate, qubit, number_of_qubits):
-    """Apply the single qubit gate.
+    """Apply the single-qubit gate.
 
-    gate is the single qubit gate
+    gate is the single-qubit gate
     qubit is the qubit to apply it on counts from 0 and order
         is q_{n-1} ... otimes q_1 otimes q_0
     number_of_qubits is the number of qubits in the system

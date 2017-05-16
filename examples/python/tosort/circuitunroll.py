@@ -13,7 +13,7 @@ import networkx as nx
 # so we need a relative position from this file path.
 # TODO: Relative imports for intra-package imports are highly discouraged.
 # http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
