@@ -39,6 +39,7 @@ class Instruction(object):
         if val < 0:
             raise QISKitException("control value should be non-negative")
         self.control = (classical, val)
+        return self
 
     def _modifiers(self, gate):
         """Apply any modifiers of this instruction to another one."""
@@ -51,7 +52,6 @@ class Instruction(object):
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
-        # TODO: validate is the var String is correct
         if self.control is None:
             return string
         else:
