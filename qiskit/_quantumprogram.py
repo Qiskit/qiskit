@@ -289,7 +289,6 @@ class QuantumProgram(object):
 
         return self.__qasm_compile
 
-
     def run_local_qasm_simulator(self):
         """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         """
@@ -319,15 +318,15 @@ class QuantumProgram(object):
         """
         shots = self.__qasm_compile['shots']
         qasms = self.__qasm_compile['compiled_circuits']
-
+        basis = []
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
-            basis = []
-            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),
-                                       UnitarySimulator(basis))
-            unroller.backend.set_trace(True)  # print calls as they happen
-            result = unroller.execute()  # Here is where simulation happens
 
+            unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit['qasm']).parse(),
+                                       SimulatorBackend(basis))
+            unroller.backend.set_trace(False)  # print calls as they happen
+            unroller.execute()  # Here is where simulation happens
+            result = UnitarySimulator(unroller.backend.circuit).run()
             qasm_circuit["result"] = {"data":{"unitary":result}}
             outcomes['qasms'].append(qasm_circuit)
         outcomes['status'] = 'COMPLETED'

@@ -385,7 +385,7 @@ class TestQISKit(unittest.TestCase):
         credits = 3
         coupling_map = None
         result = QP_program.execute(circuits, device, shots)
-        print(result)
+        # print(result)
         self.assertIsNotNone(result['compiled_circuits'][0]['result']['data']['unitary'])
 
 
