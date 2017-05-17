@@ -334,6 +334,7 @@ class QuantumProgram(object):
                 jobs = []
                 for circuit in self.__to_execute[backend]:
                     jobs.append({"compiled_circuit": circuit["compiled_circuit"], "shots": circuit["shots"]})
+                print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
                 elif backend == "local_unitary_simulator":
