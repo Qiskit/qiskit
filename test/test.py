@@ -93,7 +93,7 @@ class TestQISKit(unittest.TestCase):
             URL,
             "https://quantumexperience.ng.bluemix.net/api")
     
-    @unittest.skip
+
     def test_get_components(self):
         """
         Get the program componentes, like Circuits and Registers
@@ -103,7 +103,7 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc, QuantumCircuit)
         self.assertIsInstance(qr, QuantumRegister)
         self.assertIsInstance(cr, ClassicalRegister)
-    @unittest.skip  
+
     def test_get_individual_components(self):
         """
         Get the program componentes, like Circuits and Registers
@@ -115,24 +115,24 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc, QuantumCircuit)
         self.assertIsInstance(qr, QuantumRegister)
         self.assertIsInstance(cr, ClassicalRegister)
-    @unittest.skip
+
     def test_create_classical_register(self):
         QP_program = QuantumProgram()
         cr = QP_program.create_classical_registers("cr", 3)
         self.assertIsInstance(cr, ClassicalRegister)    
-    @unittest.skip
+
     def test_create_quantum_register(self):
         QP_program = QuantumProgram()
         qr = QP_program.create_quantum_registers("qr", 3)
         self.assertIsInstance(qr, QuantumRegister)
-    @unittest.skip
+
     def test_create_circuit(self):
         QP_program = QuantumProgram()
         qr = QP_program.create_quantum_registers("qr", 3)
         cr = QP_program.create_classical_registers("cr", 3)
         qc = QP_program.create_circuit("qc", ["qr"], ["cr"])
         self.assertIsInstance(qc, QuantumCircuit)
-    @unittest.skip
+
     def test_create_create_several_circuits(self):
         QP_program = QuantumProgram()
         qr = QP_program.create_quantum_registers("qr", 3)
@@ -144,7 +144,7 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc2, QuantumCircuit)
         self.assertIsInstance(qc3, QuantumCircuit)
 
-    @unittest.skip
+
     def test_print_circuit(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.quantum_elements()
@@ -152,7 +152,7 @@ class TestQISKit(unittest.TestCase):
         qc.h(qr[1])
         result = qc.qasm()
         self.assertEqual(len(result), 78)
-    @unittest.skip
+
     def test_print_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         
@@ -163,7 +163,7 @@ class TestQISKit(unittest.TestCase):
         qc.h(qr[1])
         result = QP_program.program_to_text()
         self.assertEqual(len(result), 124)
-    @unittest.skip
+
     def test_create_add_gates(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         
@@ -184,10 +184,9 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.program_to_text()
         print(result)
         self.assertEqual(len(result), 438)
-    @unittest.skip
+
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        
         qr = QP_program.quantum_registers("qname")
         cr = QP_program.classical_registers("cname")
         qr2 = QP_program.create_quantum_registers("qr", 3)
@@ -197,7 +196,7 @@ class TestQISKit(unittest.TestCase):
                                               cregisters=[cr, cr2])
         self.assertIsInstance(qc_result, QuantumCircuit)
         self.assertEqual(len(qc_result.qasm()), 90)
-    @unittest.skip
+
     def test_contact_multiple_horizontal_circuits(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         
@@ -217,12 +216,12 @@ class TestQISKit(unittest.TestCase):
     @unittest.skip
     def test_contact_multiple_vertical_circuits(self):
         pass
-    @unittest.skip
+
     def test_setup_api(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         result = QP_program.set_api(API_TOKEN, URL)
         self.assertTrue(result)
-    @unittest.skip
+
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         
@@ -348,7 +347,9 @@ class TestQISKit(unittest.TestCase):
             API_TOKEN, URL)
         QP_program.compile(circuits, device, shots, credits, coupling_map)
         result = QP_program.run()
+        print('---------------test_run_program----------')
         print(result)
+        print('---------------****test_run_program----------')
         # TODO: Revire result
         self.assertEqual(result['status'], 'COMPLETED')
 
@@ -494,25 +495,25 @@ class TestQISKit(unittest.TestCase):
         print(result)
         self.assertEqual(result['status'], "COMPLETED")
 
-    def test_add_circuit(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qc, qr, cr = QP_program.quantum_elements()
+    # def test_add_circuit(self):
+    #     QP_program = QuantumProgram(specs=QPS_SPECS)
+    #     qc, qr, cr = QP_program.quantum_elements()
 
-        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
-        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
-        qc2.h(qr[0])
-        qc3.h(qr[1])
-        new_circuit = qc2 + qc3
-        QP_program.add_circuit('new_circuit',new_circuit)
-        circuits = ['new_circuit']
+    #     qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
+    #     qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
+    #     qc2.h(qr[0])
+    #     qc3.h(qr[1])
+    #     new_circuit = qc2 + qc3
+    #     QP_program.add_circuit('new_circuit',new_circuit)
+    #     circuits = ['new_circuit']
 
-        device = 'local_qasm_simulator'  # the device to run on
-        shots = 1  # the number of shots in the experiment.
-        credits = 3
-        coupling_map = None
-        result = QP_program.execute(circuits, device, shots)
+    #     device = 'local_qasm_simulator'  # the device to run on
+    #     shots = 1  # the number of shots in the experiment.
+    #     credits = 3
+    #     coupling_map = None
+    #     result = QP_program.execute(circuits, device, shots)
 
-        self.assertEqual(result['status'], 'COMPLETED')
+    #     self.assertEqual(result['status'], 'COMPLETED')
 
 
 if __name__ == '__main__':
