@@ -230,8 +230,9 @@ class QuantumProgram(object):
             name = qasm_file
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
+
         self.__circuits['circuits'][name] = {"name":name, "object": circuit, "QASM": circuit.qasm()}
-        # print(self.__circuits)
+
         return circuit
 
 
@@ -293,7 +294,7 @@ class QuantumProgram(object):
                 to_execute[device] = []
             to_execute[device].append({"circuit":circuit, "device":device})
         #TODO: improve ontly return the compiled circuits.
-        
+
         self.__circuits["to_execute"] = to_execute
         return self.__circuits
 
@@ -306,7 +307,7 @@ class QuantumProgram(object):
             jobs = []
             for circuit in backend:
                 jobs.append()
-            
+
             print("backend that is running %s" % (backend))
             if backend in self.__online_devices:
                 output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
