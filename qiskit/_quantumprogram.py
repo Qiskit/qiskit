@@ -261,6 +261,9 @@ class QuantumProgram(object):
         # TODO: Control device names
         qasm_circuits = []
         to_execute = {}
+        print('***********')
+        print(self.__circuits)
+        print('***********')
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(self.__circuits['circuits'][circuit]["object"], basis_gates)
             if coupling_map:
@@ -306,16 +309,27 @@ class QuantumProgram(object):
         """
         for backend in self.__circuits["to_execute"]:
             jobs = []
-            for circuit in backend:
-                jobs.append()
-
+            shots = 1024
+            max_credits = 3
+            for circuit in self.__circuits["to_execute"][backend]:
+                print('-------------------5%%%%%------------------')
+                print(circuit)
+                print('-------------------UUUUUU------------------')
+                backend_device = circuit['device']
+                circuit_element = self.__circuits['circuits'][circuit['circuit']]['execution'][backend_device]
+                shots = circuit_element["shots"]
+                max_credits = circuit_element["max_credit"]
+                jobs.append({'qasm':circuit_element["QASM_compile"]})
+            print('-------------------5%%%%%------------------')
+            print(jobs,backend_device,shots,max_credits)
+            print('------------------XXXXXXXX-----------------')
             print("backend that is running %s" % (backend))
             if backend in self.__online_devices:
-                output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
-                                            backend,
-                                            self.__qasm_compile['shots'],
-                                            self.__qasm_compile['max_credits'])
-                # print(output)
+                output = self.__api.run_job(jobs,
+                                            backend_device,
+                                            shots,
+                                            max_credits)
+                print(output)
                 if 'error' in output:
                     return {"status": "Error", "result": output['error']}
 
@@ -329,10 +343,10 @@ class QuantumProgram(object):
                 self.__qasm_compile['used_credits'] = job_result['usedCredits']
             else:
                 if backend == 'local_qasm_simulator':
-                    job_result = self.run_local_qasm_simulator()
+                    job_result = self.run_local_qasm_simulator(jobs, shots)
                     self.__qasm_compile['status'] = job_result['status']
                 elif backend == 'local_unitary_simulator':
-                    job_result = self.run_local_unitary_simulator()
+                    job_result = self.run_local_unitary_simulator(jobs, shots)
                     self.__qasm_compile['status'] = job_result['status']
                 else:
                     return {"status": "Error", "result": "Not local simulations"}
@@ -344,11 +358,9 @@ class QuantumProgram(object):
 
             return self.__qasm_compile
 
-    def run_local_qasm_simulator(self):
+    def run_local_qasm_simulator(self, qasms, shots):
         """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         """
-        shots = self.__qasm_compile['shots']
-        qasms = self.__qasm_compile['compiled_circuits']
 
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
@@ -368,11 +380,11 @@ class QuantumProgram(object):
         outcomes['status'] = 'COMPLETED'
         return outcomes
 
-    def run_local_unitary_simulator(self):
+    def run_local_unitary_simulator(self, qasms, shots):
         """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         """
-        shots = self.__qasm_compile['shots']
-        qasms = self.__qasm_compile['compiled_circuits']
+        # shots = self.__qasm_compile['shots']
+        # qasms = self.__qasm_compile['compiled_circuits']
         basis = []
         outcomes = {'qasms':[]}
         for qasm_circuit in qasms:
@@ -509,18 +521,19 @@ class QuantumProgram(object):
         if not cregisters:
             cregisters = []
 
-        self.__circuits[name] = QuantumCircuit()
+        self.__circuits['circuits'][name] = {"name":name, "object": QuantumCircuit(), "QASM": QuantumCircuit().qasm()}
+
         for register in qregisters:
             if isinstance(register, str):
-                self.__circuits[name].add(self.__quantum_registers[register])
+                self.__circuits['circuits'][name].add(self.__quantum_registers[register])
             else:
-                self.__circuits[name].add(register)
+                self.__circuits['circuits'][name].add(register)
         for register in cregisters:
             if isinstance(register, str):
-                self.__circuits[name].add(self.__classical_registers[register])
+                self.__circuits['circuits'][name].add(self.__classical_registers[register])
             else:
-                self.__circuits[name].add(register)
-        return self.__circuits[name]
+                self.__circuits['circuits'][name].add(register)
+        return self.__circuits['circuits'][name]
 
     def create_quantum_registers(self, name, size):
         """Create a new set of Quantum Registers"""

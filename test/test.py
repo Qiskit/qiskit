@@ -377,7 +377,7 @@ class TestQISKit(unittest.TestCase):
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
         qc2.h(qr[0])
         qc3.h(qr[0])
-        circuits = [qc2, qc3]
+        circuits = ['qc2', 'qc3']
 
         device = 'local_unitary_simulator'  # the device to run on
         shots = 1  # the number of shots in the experiment.
@@ -421,12 +421,29 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
         print(result)
 
-        to_check = result["circuit-dev"]["execution"][device]["QASM_compile"]
-
         result = QP_program.run()
-
+        
         print(result)
-        self.assertEqual(len(to_check),117)
+        self.assertEqual(result['compiled_circuits'][0]['result']['data']['classical_state'], 0)
+
+    def test_new_execute(self):
+        QP_program = QuantumProgram()
+
+        device = 'local_qasm_simulator'  # the device to run on
+        shots = 1  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+        QP_program.load_qasm("circuit-dev","test/test.qasm")
+        circuits = ["circuit-dev"]
+
+        result = QP_program.execute(circuits, device, shots, credits, coupling_map)
+        print(result)
+
+        # result = QP_program.run()
+        
+        print(result)
+        self.assertEqual(result['compiled_circuits'][0]['result']['data']['classical_state'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
