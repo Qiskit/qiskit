@@ -143,9 +143,6 @@ class TestQISKit(unittest.TestCase):
         self.assertIsInstance(qc2, QuantumCircuit)
         self.assertIsInstance(qc3, QuantumCircuit)
 
-    @unittest.skip
-    def test_load_qasm(self):
-        pass
 
     def test_print_circuit(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -391,14 +388,45 @@ class TestQISKit(unittest.TestCase):
         self.assertIsNotNone(result['compiled_circuits'][0]['result']['data']['unitary'])
 
     def test_load_qasm(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram()
+        QP_program.load_qasm("circuit-dev","test/test.qasm")
+        result = QP_program.get_circuit("circuit-dev")
+        to_check = result["QASM"]
+        self.assertEqual(len(to_check),1569)
 
-        QP_program
-        
-        result = QP_program.load_qasm("circuit","test/test.qasm")
+    def test_new_compile(self):
+        QP_program = QuantumProgram()
+        device = 'local_qasm_simulator'  # the device to run on
+        shots = 1  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+        QP_program.load_qasm("circuit-dev","test/test.qasm")
+        circuits = ["circuit-dev"]
 
-        self.assertEqual(len(result.qasm()),1569)
+        result = QP_program.compile(circuits, device, shots, credits, coupling_map)
+        to_check = QP_program.get_result("circuit-dev",device)["QASM_compile"]
 
+        self.assertEqual(len(to_check),117)
+
+    def test_new_run(self):
+        QP_program = QuantumProgram()
+
+        device = 'local_qasm_simulator'  # the device to run on
+        shots = 1  # the number of shots in the experiment.
+        credits = 3
+        coupling_map = None
+        QP_program.load_qasm("circuit-dev","test/test.qasm")
+        circuits = ["circuit-dev"]
+
+        result = QP_program.compile(circuits, device, shots, credits, coupling_map)
+        print(result)
+
+        to_check = result["circuit-dev"]["execution"][device]["QASM_compile"]
+
+        result = QP_program.run()
+
+        print(result)
+        self.assertEqual(len(to_check),117)
 
 if __name__ == '__main__':
     unittest.main()

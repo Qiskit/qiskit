@@ -144,7 +144,7 @@ class QuantumProgram(object):
 # qp.run(....)
 
     def __init__(self, specs=None, name=""):
-        self.__circuits = {}
+        self.__circuits = {"circuits":{}}
         self.__quantum_registers = {}
         self.__classical_registers = {}
 
@@ -230,8 +230,9 @@ class QuantumProgram(object):
             name = qasm_file
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
-
-        self.__circuits[name] = {"circuit": circuit, "QASM": circuit.qasm()}
+        self.__circuits['circuits'][name] = {"name":name, "object": circuit, "QASM": circuit.qasm()}
+        # print(self.__circuits)
+        return circuit
 
 
     def unroller_code(self, circuit, basis_gates=None):
@@ -255,9 +256,11 @@ class QuantumProgram(object):
         circuits are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
+        # TODO: Control device names
         qasm_circuits = []
+        to_execute = {}
         for circuit in circuits:
-            qasm_source, circuit_unrolled = self.unroller_code(circuit, basis_gates)
+            qasm_source, circuit_unrolled = self.unroller_code(self.__circuits['circuits'][circuit]["object"], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % circuit_unrolled.property_summary())
@@ -279,55 +282,65 @@ class QuantumProgram(object):
                 qasm_source = circuit_unrolled.qasm(qeflag=True)
                 print("post-mapping properties: %s"
                       % circuit_unrolled.property_summary())
-            qasm_circuits.append({'qasm': qasm_source})
-
-        self.__qasm_compile = {'backend': {'name': device},
-                               'compiled_circuits': qasm_circuits,
-                               'shots':shots,
-                               'max_credits':max_credits}
-        return qasm_circuits
+            #TODO: add timestamp, compilation
+            self.__circuits['circuits'][circuit]["execution"] = {device: {"QASM_compile": qasm_source,
+                                                              "compiled_circuits": circuit_unrolled,
+                                                              "shots": shots,
+                                                              "max_credit": max_credits,
+                                                              "coupling_map": coupling_map,
+                                                              "basis_gates": basis_gates}}
+            if not device in to_execute:
+                to_execute[device] = []
+            to_execute[device].append({"circuit":circuit, "device":device})
+        #TODO: improve ontly return the compiled circuits.
+        
+        self.__circuits["to_execute"] = to_execute
+        return self.__circuits
 
     def run(self, wait=5, timeout=60):
         """Run a program (a pre compiled quantum program).
         wait time to check if the job is Completed.
         timeout time after that the execution stop
         """
+        for backend in self.__circuits["to_execute"]:
+            jobs = []
+            for circuit in backend:
+                jobs.append()
+            
+            print("backend that is running %s" % (backend))
+            if backend in self.__online_devices:
+                output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
+                                            backend,
+                                            self.__qasm_compile['shots'],
+                                            self.__qasm_compile['max_credits'])
+                # print(output)
+                if 'error' in output:
+                    return {"status": "Error", "result": output['error']}
 
-        backend = self.__qasm_compile['backend']['name']
-        print("backend that is running %s" % (backend))
-        if backend in self.__online_devices:
-            output = self.__api.run_job(self.__qasm_compile['compiled_circuits'],
-                                        backend,
-                                        self.__qasm_compile['shots'],
-                                        self.__qasm_compile['max_credits'])
-            # print(output)
-            if 'error' in output:
-                return {"status": "Error", "result": output['error']}
+                job_result = self.wait_for_job(output['id'],
+                                               wait=wait,
+                                               timeout=timeout)
 
-            job_result = self.wait_for_job(output['id'],
-                                           wait=wait,
-                                           timeout=timeout)
-
-            if job_result['status'] == 'Error':
-                return job_result
-            self.__qasm_compile['status'] = job_result['status']
-            self.__qasm_compile['used_credits'] = job_result['usedCredits']
-        else:
-            if backend == 'local_qasm_simulator':
-                job_result = self.run_local_qasm_simulator()
+                if job_result['status'] == 'Error':
+                    return job_result
                 self.__qasm_compile['status'] = job_result['status']
-            elif backend == 'local_unitary_simulator':
-                job_result = self.run_local_unitary_simulator()
-                self.__qasm_compile['status'] = job_result['status']
+                self.__qasm_compile['used_credits'] = job_result['usedCredits']
             else:
-                return {"status": "Error", "result": "Not local simulations"}
+                if backend == 'local_qasm_simulator':
+                    job_result = self.run_local_qasm_simulator()
+                    self.__qasm_compile['status'] = job_result['status']
+                elif backend == 'local_unitary_simulator':
+                    job_result = self.run_local_unitary_simulator()
+                    self.__qasm_compile['status'] = job_result['status']
+                else:
+                    return {"status": "Error", "result": "Not local simulations"}
 
-        self.__qasm_compile['compiled_circuits'] = job_result['qasms']
+            self.__qasm_compile['compiled_circuits'] = job_result['qasms']
 
-        # print(self.__qasm_compile['compiled_circuits'])
-        self.__qasm_compile['status'] = job_result['status']
+            # print(self.__qasm_compile['compiled_circuits'])
+            self.__qasm_compile['status'] = job_result['status']
 
-        return self.__qasm_compile
+            return self.__qasm_compile
 
     def run_local_qasm_simulator(self):
         """run_local_qasm_simulator, run a program (precompile of quantum circuits).
@@ -566,6 +579,24 @@ class QuantumProgram(object):
     def get_qasm_image(self, circuit):
         """Get imagen circuit representation from API."""
         pass
+
+    def get_circuit(self, name):
+        """get the circut by name.
+        name of the circuit"""
+        if name in self.__circuits["circuits"]:
+            return self.__circuits["circuits"][name]
+        else:
+            return  {"status": "Error", "result": 'circuit not found'}
+
+    def get_result(self, name, device):
+        """get the get_result from one circut and backend
+        name of the circuit
+        device that use to compile, run or execute
+        """
+        if name in self.__circuits["circuits"] and device in self.__circuits["circuits"][name]['execution']:
+            return self.__circuits["circuits"][name]['execution'][device]
+        else:
+            return  {"status": "Error", "result": 'circuit not found'}
 
     def get_data(self, results, name):
         """Get the dict of labels and counts from the output of get_job.
