@@ -142,6 +142,79 @@ class QuantumProgram(object):
 # qp.compile(['a','b'],device2, ....)
 # qp.run(....)
 
+
+#### JAY AND ANDREW DISCUSSION
+# Three phases of the workflow
+# Build, compile, run
+#
+# Build works with quantum circuit objects, registers, quantum program, to build new circuits. When done, populate "raw_circuits" data structure with "qasm" text.
+#
+# Compile takes the output of the build phase and populates the "execution" field of the "raw_circuits" data structure with "qasm_compiled" and backend parameters.
+#
+# Run takes a list of tasks, runs them, and, after completion, populates the data structure
+#
+###############################################################
+# Build phase
+#
+#qp = QuantumProgram()
+# everything we have working with python objects
+#
+#c = a + b # a, b, c QuantumCircuits; we cannot add programs
+#a.extend(b)
+#qp.add_circuit(c, "qpt")
+#
+#qp = QuantumProgram()
+#qp.load("myprogram.json")
+#qc = qp.get_circuit("qpt")
+#
+# raw_circuits below is empty until the first compile, when
+# each circuit in the program is turned into QASM text and added with name
+# in the future, when we have a .save(), it would make raw_circuits and
+# then save that data. when we have a .load(), load should read in this
+# data and make all of the circuits
+#
+#qp.compile()  # defaults
+#qp.compile(parameters=stuff, coupling_map=blah, ...)
+#
+###############################################################
+#
+# Parallel python dictionary with "name", "quantum_circuit"
+#
+# Parallel dictionary/JSON with compiled data
+#  "raw_circuits": {
+#    "name": {
+#      "qasm_file": "string, made by load, or by interface",
+#      "execution": None,
+#      "execution": {"local_qasm_simulator": {
+#                    "qasm_compiled": STUFF,
+#                    "shots": XXX,
+#                    "max_credit": XXX,
+#		...
+#                    "result": {"data":
+#                              {"counts": histogram_data,
+#                              "time": run_time},
+#                               "date": some_date_format}
+#                              }
+#
+#    }
+#  }
+#}
+#
+###############################################################
+#
+# backend = { device, shots, coupling_map, max_credits }
+#
+# qp.compile(["name"], backend1)
+# qp.compile(["name2"], backend2)
+# qp.compile(["name3", "name4"], backend3)
+#
+# qp "private" object is a list of tasks to execute:
+# circuit_to_execute = [{"name":"name", "backend":backend1}]
+#
+###############################################################
+#
+# qp.run()  # plows through circuit_to_execute, and clears as it executes
+
     def __init__(self, specs=None, name="", circuit=None, scope=None):
         self.__circuits = {}
         self.__quantum_registers = {}
