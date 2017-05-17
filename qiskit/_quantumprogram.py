@@ -176,7 +176,7 @@ class QuantumProgram(object):
 
     def circuit(self, name):
         """Return a specific Circuit"""
-        return self.__circuits[name]
+        return self.__circuits['circuits'][name]['object']
 
     def get_specs(self):
         """Return the program specs"""
@@ -231,7 +231,6 @@ class QuantumProgram(object):
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
 
-
         self.__circuits['circuits'][name] = {"name":name, "object": circuit, "QASM": circuit.qasm()}
 
         return circuit
@@ -261,9 +260,6 @@ class QuantumProgram(object):
         # TODO: Control device names
         qasm_circuits = []
         to_execute = {}
-        print('***********')
-        print(self.__circuits)
-        print('***********')
         for circuit in circuits:
             qasm_source, circuit_unrolled = self.unroller_code(self.__circuits['circuits'][circuit]["object"], basis_gates)
             if coupling_map:
@@ -312,24 +308,18 @@ class QuantumProgram(object):
             shots = 1024
             max_credits = 3
             for circuit in self.__circuits["to_execute"][backend]:
-                print('-------------------5%%%%%------------------')
-                print(circuit)
-                print('-------------------UUUUUU------------------')
                 backend_device = circuit['device']
                 circuit_element = self.__circuits['circuits'][circuit['circuit']]['execution'][backend_device]
                 shots = circuit_element["shots"]
                 max_credits = circuit_element["max_credit"]
                 jobs.append({'qasm':circuit_element["QASM_compile"]})
-            print('-------------------5%%%%%------------------')
-            print(jobs,backend_device,shots,max_credits)
-            print('------------------XXXXXXXX-----------------')
             print("backend that is running %s" % (backend))
             if backend in self.__online_devices:
                 output = self.__api.run_job(jobs,
                                             backend_device,
                                             shots,
                                             max_credits)
-                print(output)
+
                 if 'error' in output:
                     return {"status": "Error", "result": output['error']}
 
@@ -423,12 +413,12 @@ class QuantumProgram(object):
         program is a list of quantum circuits, if it's emty use the internal circuits
         """
         if not circuits:
-            circuits = self.__circuits
+            circuits = self.__circuits['circuits']
         # TODO: Store QASM per circuit
         jobs = ""
         for name, circuit in circuits.items():
             circuit_name = "# Circuit: "+ name + "\n"
-            qasm_source, circuit = self.unroller_code(circuit)
+            qasm_source, circuit = self.unroller_code(circuit['object'])
             jobs = jobs + circuit_name + qasm_source + "\n\n"
         return jobs[:-3]
 
@@ -525,15 +515,18 @@ class QuantumProgram(object):
 
         for register in qregisters:
             if isinstance(register, str):
-                self.__circuits['circuits'][name].add(self.__quantum_registers[register])
+                self.__circuits['circuits'][name]['object'].add(self.__quantum_registers[register])
             else:
-                self.__circuits['circuits'][name].add(register)
+                self.__circuits['circuits'][name]['object'].add(register)
         for register in cregisters:
             if isinstance(register, str):
-                self.__circuits['circuits'][name].add(self.__classical_registers[register])
+                self.__circuits['circuits'][name]['object'].add(self.__classical_registers[register])
             else:
-                self.__circuits['circuits'][name].add(register)
-        return self.__circuits['circuits'][name]
+                self.__circuits['circuits'][name]['object'].add(register)
+
+        self.__circuits['circuits'][name]['QASM'] = self.__circuits['circuits'][name]['object'].qasm()
+
+        return self.__circuits['circuits'][name]['object']
 
     def create_quantum_registers(self, name, size):
         """Create a new set of Quantum Registers"""
@@ -584,7 +577,7 @@ class QuantumProgram(object):
             return None
 
         data = self.__qasm_compile['compiled_circuits'][circuit_number]['result']['data']['count']
-        print(data)
+
         if method == "histogram":
             basicplotter.plot_histogram(data, circuit_number)
         else:
