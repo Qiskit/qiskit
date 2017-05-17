@@ -231,6 +231,7 @@ class QuantumProgram(object):
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
 
+
         self.__circuits['circuits'][name] = {"name":name, "object": circuit, "QASM": circuit.qasm()}
 
         return circuit
