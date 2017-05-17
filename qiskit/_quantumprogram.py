@@ -70,9 +70,27 @@ class QuantumProgram(object):
         'shots': 1024
     }
     __qprogram = {}
+    __last_device_backend = ""
 
     """
         objects examples:
+
+      'circuits': {"name_circuit" {
+                    {
+                    'name': 
+                    'QASM_source': ’Compiled QASM to run on backend, #TODO: convert to object
+                    'QASM_compiled':
+                    'object': 
+                    'execution_id': 'id000',
+                    'result': {
+                        'data':{
+                            'counts': {’00000’: XXXX, ’00001’: XXXXX},
+                            'time'  : xx.xxxxxxxx},
+                            ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
+                            },
+                        ’status’: ’DONE’}
+                    }}
+
 
         qasm_compile=
             {
@@ -102,55 +120,15 @@ class QuantumProgram(object):
             }
 
     """
-#       'circuits': "name_circuit" {
-#                     {
-#                     'name': #TODO: use the name to update the compile
-#                     'QASM_source': ’Compiled QASM to run on backend, #TODO: convert to object
-#                     'QASM_compiled':
-#                     'execution_id': 'id000',
-#                     'result': {
-#                         'data':{
-#                             'counts': {’00000’: XXXX, ’00001’: XXXXX},
-#                             'time'  : xx.xxxxxxxx},
-#                             ’date’  : ’2017−05−09Txx:xx:xx.xxxZ’
-#                             },
-#                         ’status’: ’DONE’}
-#                     }}
-
-#
-#    backend =  {device, shots, max_credits, }
-#       'circuit_to_execute': [{a,device1,shots,max_credit},{b,device1},{a,device2},{b,device2},.......],
-#       'circuits': { "a": {
-#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
-#                     'execution: {'local_simulatior': { QASM_compile, data, shots, status}
-#                       }
-#                     .....},
-#                     "b": {
-#
-#                     'QASM': ’Compiled QASM to run on backend, #TODO: convert to object
-#                     'QASM_compiled: None
-#                     .....},
-#                     "name": {
-#                     'QASM': ’New'
-#                     'QASM_compiled: None
-#                     .....},
-# }
-
-# c = qp.add('name',a, b)
-
-# qp.compile(['a','b'],backend, ....)
-# qp.compile(['a','b'],backend, ....)
-# qp.compile(['a','b'],device2, ....)
-# qp.run(....)
 
     def __init__(self, specs=None, name=""):
         self.__circuits = {"circuits":{}}
         self.__quantum_registers = {}
         self.__classical_registers = {}
-
+        self.__init_circuit = None
         self.__name = name
         self.__qprogram = {}
-        # self.__api = {}
+        self.__last_device_backend = ""
 
         self.mapper = mapper
 
@@ -162,7 +140,7 @@ class QuantumProgram(object):
         if not specs:
             specs = self.get_specs()
 
-        return self.__circuits[list(self.__circuits)[0]], \
+        return self.__init_circuit, \
             self.__quantum_registers[list(self.__quantum_registers)[0]], \
             self.__classical_registers[list(self.__classical_registers)[0]]
 
@@ -258,6 +236,7 @@ class QuantumProgram(object):
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         # TODO: Control device names
+        self.__last_device_backend = device
         qasm_circuits = []
         to_execute = {}
         for circuit in circuits:
@@ -449,14 +428,14 @@ class QuantumProgram(object):
             return {"status": "Error", "result": "Time Out"}
         return job
 
-    def average_data(self, i, observable):
+    def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
 
         Takes in the data counts(i) and a corresponding observable in dict
         form and calculates sum_i value(i) P(i) where value(i) is the value of
         the observable for the i state.
         """
-        counts = self.get_counts(i)
+        counts = self.get_counts(name)
         temp = 0
         tot = sum(counts.values())
         for key in counts:
@@ -481,9 +460,9 @@ class QuantumProgram(object):
                     circuit["quantum_registers"])
                 classicalr = self.create_classical_reg_group(
                     circuit["classical_registers"])
-                self.create_circuit(name=circuit["name"],
-                                    qregisters=quantumr,
-                                    cregisters=classicalr)
+                self.__init_circuit = self.create_circuit(name=circuit["name"],
+                                                          qregisters=quantumr,
+                                                          cregisters=classicalr)
         else:
             if "quantum_registers" in specs:
                 print(">> quantum_registers created")
@@ -500,7 +479,15 @@ class QuantumProgram(object):
                                     qregisters=quantumr["name"],
                                     cregisters=classicalr["name"])
 
-    def create_circuit(self, name, qregisters=None, cregisters=None):
+    def add_circuit(self, name, circuit_object):
+        """Add anew circuit based in a Object representation.
+        name is the name or index of one circuit."""
+        
+        self.__circuits['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
+
+        return circuit_object
+
+    def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
         """Create a new Quantum Circuit into the Quantum Program
         name is a string, the name of the circuit
         qregisters is a Array of Quantum Registers, can be String, by name or the object reference
@@ -511,7 +498,9 @@ class QuantumProgram(object):
         if not cregisters:
             cregisters = []
 
-        self.__circuits['circuits'][name] = {"name":name, "object": QuantumCircuit(), "QASM": QuantumCircuit().qasm()}
+        if not circuit_object:
+            circuit_object = QuantumCircuit()
+        self.__circuits['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
 
         for register in qregisters:
             if isinstance(register, str):
@@ -596,39 +585,35 @@ class QuantumProgram(object):
         else:
             return  {"status": "Error", "result": 'circuit not found'}
 
-    def get_result(self, name, device):
+    def get_result(self, name, device=None):
         """get the get_result from one circut and backend
         name of the circuit
         device that use to compile, run or execute
         """
+        if not device:
+            device = self.__last_device_backend
+
         if name in self.__circuits["circuits"] and device in self.__circuits["circuits"][name]['execution']:
             return self.__circuits["circuits"][name]['execution'][device]
         else:
             return  {"status": "Error", "result": 'circuit not found'}
 
-    def get_data(self, results, name):
+    def get_data(self, results, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
         results are the list of results
-        name is the name or index of one circuit.
-        NOTE: now only work with the index, we need need allow to access by the circuit name"""
-        if not isinstance(name, str):
-            return results['compiled_circuits'][name]['result']['data']['counts']
-        else:
-            pass
+        name is the name or index of one circuit."""
+        if not device:
+            device = self.__last_device_backend
 
+        return results['compiled_circuits'][name]['result'][device]['data']
+        
     #TODO: change the index for name and i think there is no point to get data above
     # ALSO i think we need an error if there is no results when we use a name
 
-    def get_counts(self, name):
+    def get_counts(self, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
-        name is the name or index of one circuit.
-        NOTE: now only work with the index, we need need allow to access by the circuit name"""
-        if not isinstance(name, str):
-            return self.__qasm_compile['compiled_circuits'][name]['result']['data']['counts']
-        else:
-            pass
-            # for qasm in self.__qasm_compile['compiled_circuits']:
-            #     if 'result' not in self.__qasm_compile['compiled_circuits'][name]:
-            #         raise QISKitException("the results have not been run")
-            #     else:
-            #         return self.__qasm_compile['compiled_circuits'][name]['result']['data']['counts']
+        name is the name or index of one circuit."""
+        if not device:
+            device = self.__last_device_backend
+        return self.__circuits["circuits"][name]['result'][device]['data']['counts']
+
