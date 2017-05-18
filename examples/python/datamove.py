@@ -1,5 +1,22 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
-Simple test of the mapper.
+Simple test of the mapper on an example that swaps a "1" state.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -35,7 +52,8 @@ def swap(qc, q0, q1):
     qc.cx(q1, q0)
     qc.cx(q0, q1)
 
-n = 3  # at least 3
+
+n = 3  # make this at least 3
 
 QPS_SPECS = {
     "name": "Program",
@@ -54,10 +72,10 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("swapping")
-q = qp.quantum_registers("q")
-r = qp.quantum_registers("r")
-ans = qp.classical_registers("ans")
+qc = qp.get_circuit("swapping")
+q = qp.get_quantum_registers("q")
+r = qp.get_quantum_registers("r")
+ans = qp.get_classical_registers("ans")
 
 # Set the first bit of q
 qc.x(q[0])
@@ -84,13 +102,13 @@ if not result:
     sys.exit(1)
 
 # First version: not compiled
-result = qp.execute([qp.circuit("swapping")], device=device, coupling_map=None, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+result = qp.execute(["swapping"], device=device, coupling_map=None, shots=1024)
+print(qp.get_compiled_qasm("swapping"))
+print(qp.get_counts("swapping"))
 
 # Second version: compiled to coupling graph
-result = qp.execute([qp.circuit("swapping")], device=device, coupling_map=coupling_map, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+result = qp.execute(["swapping"], device=device, coupling_map=coupling_map, shots=1024)
+print(qp.get_compiled_qasm("swapping"))
+print(qp.get_counts("swapping"))
 
 # Both versions should give the same distribution

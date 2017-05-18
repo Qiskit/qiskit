@@ -1,21 +1,36 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
 Quantum teleportation example based on an OpenQASM example.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
 """
-
 import sys
 import os
-
 # We don't know from where the user is running the example,
 # so we need a relative position from this file path.
 # TODO: Relative imports for intra-package imports are highly discouraged.
 # http://stackoverflow.com/a/7506006
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
-
 import Qconfig
+
 
 ###############################################################
 # Set the device name and coupling map.
@@ -49,11 +64,11 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("teleport")
-q = qp.quantum_registers("q")
-c0 = qp.classical_registers("c0")
-c1 = qp.classical_registers("c1")
-c2 = qp.classical_registers("c2")
+qc = qp.get_circuit("teleport")
+q = qp.get_quantum_registers("q")
+c0 = qp.get_classical_registers("c0")
+c1 = qp.get_classical_registers("c1")
+c2 = qp.get_classical_registers("c2")
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -87,15 +102,14 @@ if not result:
 # Experiment does not support feedback, so we use the simulator
 
 # First version: not compiled
-result = qp.execute([qp.circuit("teleport")], device=device,
+result = qp.execute(["teleport"], device=device,
                     coupling_map=None, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_counts("teleport"))
 
 # Second version: compiled to qx5qv2 coupling graph
-result = qp.execute([qp.circuit("teleport")], device=device,
+result = qp.execute(["teleport"], device=device,
                     coupling_map=coupling_map, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_compiled_qasm("teleport"))
+print(qp.get_counts("teleport"))
 
 # Both versions should give the same distribution

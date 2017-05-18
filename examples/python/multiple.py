@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
 Illustrate compiling several circuits to different backends.
 
@@ -28,7 +45,7 @@ coupling_map = {0: [1, 2],
                 4: [2]}
 
 ###############################################################
-# Make a quantum program for the GHZ state.
+# Make a quantum program for the GHZ and Bell states.
 ###############################################################
 QPS_SPECS = {
     "name": "programs",
@@ -55,10 +72,10 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-ghz = qp.circuit("ghz")
-bell = qp.circuit("bell")
-q = qp.quantum_registers("q")
-c = qp.classical_registers("c")
+ghz = qp.get_circuit("ghz")
+bell = qp.get_circuit("bell")
+q = qp.get_quantum_registers("q")
+c = qp.get_classical_registers("c")
 
 # Create a GHZ state
 ghz.h(q[0])
@@ -94,6 +111,6 @@ qp.compile(["ghz"], device='simulator', shots=1024,
 
 qp.run()
 
-print(qp.get_counts("bell")) # returns {}, don't do this
+print(qp.get_counts("bell")) # returns error, don't do this
 print(qp.get_counts("bell", device="local_qasm_simulator"))
 print(qp.get_counts("ghz"))

@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
 Ripple adder example based on an OpenQASM example.
 
@@ -28,7 +45,7 @@ coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
 ###############################################################
 # Make a quantum program for the n-bit ripple adder.
 ###############################################################
-n = 3
+n = 2
 
 QPS_SPECS = {
     "name": "Program",
@@ -51,12 +68,12 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("rippleadd")
-a = qp.quantum_registers("a")
-b = qp.quantum_registers("b")
-cin = qp.quantum_registers("cin")
-cout = qp.quantum_registers("cout")
-ans = qp.classical_registers("ans")
+qc = qp.get_circuit("rippleadd")
+a = qp.get_quantum_registers("a")
+b = qp.get_quantum_registers("b")
+cin = qp.get_quantum_registers("cin")
+cout = qp.get_quantum_registers("cout")
+ans = qp.get_classical_registers("ans")
 
 
 def majority(p, a, b, c):
@@ -103,15 +120,19 @@ if not result:
     sys.exit(1)
 
 # First version: not compiled
-result = qp.execute([qp.circuit("rippleadd")], device=device,
+result = qp.execute(["rippleadd"], device=device,
                     coupling_map=None, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(result)
+print(qp.get_counts("rippleadd"))
 
 # Second version: compiled to 2x8 array coupling graph
-result = qp.execute([qp.circuit("rippleadd")], device=device,
-                    coupling_map=coupling_map, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+qp.compile(["rippleadd"], device=device,
+           coupling_map=coupling_map, shots=1024)
+qp.print_execution_list(verbose=True)
+result = qp.run()
+
+print(result)
+print(qp.get_compiled_qasm("rippleadd"))
+print(qp.get_counts("rippleadd"))
 
 # Both versions should give the same distribution
