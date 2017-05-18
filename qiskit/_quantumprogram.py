@@ -56,15 +56,15 @@ class QuantumProgram(object):
     __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
-    __specs = {}
-    __quantum_registers = {}
-    __classical_registers = {}
-    __circuits = {}
+    # __specs = {}
+    # __quantum_registers = {}
+    # __classical_registers = {}
+    # __circuits = {}
     __api = {}
     __api_config = {}
-    __qprogram = {}
-    __last_device_backend = ""
-    __to_execute = {}
+    # __qprogram = {}
+    # __last_device_backend = ""
+    # __to_execute = {}
 
     """
     Elements that are not python identifiers or string constants are denoted
@@ -74,7 +74,6 @@ class QuantumProgram(object):
     __circuits = {
         "circuits": {
             --circuit name (string)--: {
-                "name": --circuit name (string)--,
                 "object": --circuit object (TBD)--,
                 "QASM": --output of .qasm() (string)--,
                 "execution": {  # FILLED IN AFTER RUN
@@ -122,6 +121,7 @@ class QuantumProgram(object):
         self.__name = name
         self.__qprogram = {}
         self.__last_device_backend = ""
+        self.__to_execute = {}
 
         self.mapper = mapper
 
@@ -202,7 +202,7 @@ class QuantumProgram(object):
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__circuits['circuits'][name] = {"name":name, "object": circuit, "QASM": circuit.qasm()}
+        self.__circuits['circuits'][name] = {"object": circuit, "QASM": circuit.qasm()}
 
         return circuit
 
@@ -320,19 +320,21 @@ class QuantumProgram(object):
                     else:
                         if last_shots != shots:
                             return "Error: Online devices only support job batches with equal numbers of shots"
+                            return {"status": "Error", "result":'Online devices only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
                     else:
                         if last_max_credits != max_credits:
-                            return "Error: Online devices only support job batches with equal max credits"
+                            return  {"status": "Error", "result":'Online devices only support job batches with equal max credits'} 
+                            
                 print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
                 if 'error' in output:
-                    return "Error: " + output['error']
+                    return {"status": "Error", "result": output['error']} 
                 job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
 
                 if job_result['status'] == 'Error':
-                    return "Error: " + job_result['result']
+                    return job_result
             else:
                 jobs = []
                 for circuit in self.__to_execute[backend]:
@@ -342,13 +344,12 @@ class QuantumProgram(object):
                 elif backend == "local_unitary_simulator":
                     job_result = self.run_local_unitary_simulator(jobs)
                 else:
-                    return "Error: Not a local simulator"
+                    return {"status": "Error", "result": 'Not a local simulator'}
 
             assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
 
             # Fill data into self.__circuits for this backend
             index = 0
-            print(self.__to_execute[backend],'///////////////')
             for circuit in self.__to_execute[backend]:
                 name = circuit["name"]
                 if name not in self.__circuits["circuits"]:
@@ -467,18 +468,15 @@ class QuantumProgram(object):
         job = self.__api.get_job(jobid)
         while job['status'] == 'RUNNING':
             if timer == timeout:
-                timeout_over = True
-                break
+                return {"status": "Error", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
             print("status = %s (%d seconds)" % (job['status'], timer))
             job = self.__api.get_job(jobid)
             if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
                 return {"status": "Error", "result": job['status']}
+    
         # Get the results
-
-        if timeout_over:
-            return {"status": "Error", "result": "Time Out"}
         return job
 
     def average_data(self, name, observable):
@@ -625,7 +623,6 @@ class QuantumProgram(object):
     def get_circuit(self, name):
         """get the circut by name.
         name of the circuit"""
-        print (self.__circuits['circuits'],'<<<<<--------')
         if name in self.__circuits['circuits']:
             return self.__circuits['circuits'][name]
         else:
@@ -636,8 +633,6 @@ class QuantumProgram(object):
         name of the circuit
         device that use to compile, run or execute
         """
-        print(name,'<<<-') 
-        print (self.__circuits['circuits'],'<<<<<--------')
         if not device:
             device = self.__last_device_backend
 
