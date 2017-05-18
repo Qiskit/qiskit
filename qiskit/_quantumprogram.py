@@ -145,8 +145,8 @@ class QuantumProgram(object):
     # A hack for this is (LETS not do this)
     #
     # delete qasm_compiled and then make compiled_circuit what qasm_compiled is
-    # now and then for the API it just gets compiled_circuit  and for the
-    # local simulator(s)
+    # now. Then for the API it just gets passed compiled_circuit and for the
+    # local simulator(s) we would do
     #   unroller = unroll.Unroller(qasm.Qasm(compiled_circuit).parse(), SimulatorBackend(basis_gates))
     #   unroller.backend.set_trace(False)
     #   unroller.execute()
@@ -191,7 +191,7 @@ class QuantumProgram(object):
     def circuit(self, name):
         #TODO_ISMEAL_QUESATAION: I PREFER GET* for getters and this should be get_quantum_circuit.
         """Return a specific Circuit Object"""
-        return self.__quantum_program['circuits'][name]['object']
+        return self.__quantum_program['circuits'][name]['circuit']
 
     def get_specs(self):
         """Return the program specs"""
@@ -300,7 +300,7 @@ class QuantumProgram(object):
 
         for name in name_of_circuits:
             # TODO: The circuit object has to have .qasm() method; currently several different types
-            qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]["circuit"], basis_gates)
+            qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % dag_unrolled.property_summary())
@@ -328,7 +328,7 @@ class QuantumProgram(object):
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
 
-            self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["circuit"].qasm()
+            self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program['circuits'][name]['circuit'].qasm()
             #TODO_ISMEAL_QUESATAION: I THINK THIS SHOULD MAKE A NEW EXECUTION iF
             #IT DOES NOT EXIST AND IF IT DOES IT SHOULD ONLY OVERRIDER THE BACKEND
             self.__quantum_program["circuits"][name]["execution"] = {}
@@ -508,7 +508,7 @@ class QuantumProgram(object):
         jobs = ""
         for name, circuit in circuits.items():
             circuit_name = "# Circuit: "+ name + "\n"
-            qasm_source, circuit = self.unroller_code(circuit['object'])
+            qasm_source, circuit = self.unroller_code(circuit['circuit'])
             jobs = jobs + circuit_name + qasm_source + "\n\n"
         return jobs[:-3]
 
@@ -617,18 +617,18 @@ class QuantumProgram(object):
 
         for register in qregisters:
             if isinstance(register, str):
-                self.__quantum_program['circuits'][name]['object'].add(self.__quantum_registers[register])
+                self.__quantum_program['circuits'][name]['circuit'].add(self.__quantum_registers[register])
             else:
-                self.__quantum_program['circuits'][name]['object'].add(register)
+                self.__quantum_program['circuits'][name]['circuit'].add(register)
         for register in cregisters:
             if isinstance(register, str):
-                self.__quantum_program['circuits'][name]['object'].add(self.__classical_registers[register])
+                self.__quantum_program['circuits'][name]['circuit'].add(self.__classical_registers[register])
             else:
-                self.__quantum_program['circuits'][name]['object'].add(register)
+                self.__quantum_program['circuits'][name]['circuit'].add(register)
 
-        self.__quantum_program['circuits'][name]['qasm'] = self.__quantum_program['circuits'][name]['object'].qasm()
+        self.__quantum_program['circuits'][name]['qasm'] = self.__quantum_program['circuits'][name]['circuit'].qasm()
 
-        return self.__quantum_program['circuits'][name]['object']
+        return self.__quantum_program['circuits'][name]['circuit']
 
     def create_quantum_registers(self, name, size):
         """Create a new set of Quantum Registers"""
@@ -689,7 +689,7 @@ class QuantumProgram(object):
     #remove program_to_text and then you can have get_circuit_qasms that
     #takes in and array of names and self.__quantum_program['circuits'][name]["qasm"]
     #WHICH MAY BE EMPYT AND IF SO YOU NEED TO RUN
-    #self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["circuit"].qasm()
+    #self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]['circuit'].qasm()
     # AND THEN RETURN
     def get_circuit(self, name):
         """get the circut by name.
