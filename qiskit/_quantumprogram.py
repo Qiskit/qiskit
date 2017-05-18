@@ -48,6 +48,9 @@ import sys
 sys.path.append("..")
 from qiskit.extensions.standard import x, h, cx, s, ry, barrier
 
+#TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
+# intilzers, seters, getters, runners 
+
 
 class QuantumProgram(object):
     """ Quantum Program Class
@@ -114,12 +117,12 @@ class QuantumProgram(object):
     """
 
     def __init__(self, specs=None, name=""):
-        self.__circuits = {"circuits":{}}
+        self.__circuits = {"circuits":{}} #TODO_ISMEAL_QUESATAION: THIS REALLY SHOULD BE CALL __qprogram
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
-        self.__name = name
-        self.__qprogram = {}
+        self.__name = name #TODO_ISMEAL_QUESATAION: IS THIS USED
+        self.__qprogram = {} #TODO_ISMEAL_QUESATAION: IS THIS USED __circuits has replaced it
         self.__last_device_backend = ""
         self.__to_execute = {}
 
@@ -130,6 +133,7 @@ class QuantumProgram(object):
 
     def quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
+        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
         if not specs:
             specs = self.get_specs()
 
@@ -138,15 +142,18 @@ class QuantumProgram(object):
             self.__classical_registers[list(self.__classical_registers)[0]]
 
     def quantum_registers(self, name):
+        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
         """Return a specific Quantum Registers"""
         return self.__quantum_registers[name]
 
     def classical_registers(self, name):
+        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
         """Return a specific Classical Registers"""
         return self.__classical_registers[name]
 
     def circuit(self, name):
-        """Return a specific Circuit"""
+        #TODO_ISMEAL_QUESATAION: I PREFER GET* for getters and this should be get_quantum_circuit.
+        """Return a specific Circuit Object"""
         return self.__circuits['circuits'][name]['object']
 
     def get_specs(self):
@@ -155,6 +162,7 @@ class QuantumProgram(object):
 
     def api_config(self):
         """Return the program specs"""
+        #TODO_ISMEAL_QUESATAION: I PREFER GET_* and really doc needs work
         return self.__api.req.credential.config
 
     def _setup_api(self, token, url):
