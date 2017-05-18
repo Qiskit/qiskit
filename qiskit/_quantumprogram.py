@@ -298,7 +298,7 @@ class QuantumProgram(object):
             # with a different name for this not to be the case.
 
             if not self.__quantum_program["circuits"][name]["execution"]:
-                not self.__quantum_program["circuits"][name]["execution"]={}
+                self.__quantum_program["circuits"][name]["execution"]={}
             self.__quantum_program["circuits"][name]["execution"][device] = {}
             job = {}
             job["name"] = name
