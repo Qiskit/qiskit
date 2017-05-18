@@ -136,7 +136,7 @@ class QuantumProgram(object):
 
 
     def __init__(self, specs=None, name=""):
-        self.__quantum_program  = {"circuits":{}} 
+        self.__quantum_program  = {"circuits":{}}
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
@@ -631,9 +631,9 @@ class QuantumProgram(object):
         name of the circuit"""
         qasm_source = []
         for name in list_circuit_name:
-             qasm_source.append( get_qasm(name)
+             qasm_source.append(self.get_qasm(name))
         return qasm_source
-        
+
     def get_result(self, name, device=None):
         """get the get_result from one circut and backend
         name of the circuit
