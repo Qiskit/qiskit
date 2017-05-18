@@ -34,7 +34,7 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
-	bash -c "source activate QISKitenv;cd test;python test.py"
+	bash -c "source activate QISKitenv;cd test;pythonw test.py"
 
 run:
 	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
