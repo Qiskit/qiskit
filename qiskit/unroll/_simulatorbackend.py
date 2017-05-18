@@ -2,16 +2,16 @@
 
 Author: Jay Gambetta and Andrew Cross
 
-The input is a the AST and a basis set and returns a compiled simulator circuit
+The input is a AST and a basis set and returns a compiled simulator circuit
 ready to be run in backends:
-    [
-    "ibmqx_qasm_simulator" #TODO,
-     "local_unitary_simulator",
-     "local_qasm_simulator"
-     ]
+
+[
+"local_unitary_simulator",
+"local_qasm_simulator"
+]
 
 OUTPUT
-circuit =
+compiled_circuit =
     {
     'number_of_qubits': 2,
     'number_of_cbits': 2,
@@ -40,16 +40,37 @@ circuit =
         {
         'type': 'reset',
         'qubit_indices': [1]
-        }
+        },
         {
         'type': 'measure',
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
     }
-
-    #TODO currently only supports standard basis
 """
+# TODO: currently only supports standard basis
+# TODO: currently if gates are not supported
+# TODO: think more about compiled_circuit dictionary i would like to have this
+# langugage agnoistic and a complete representation of a quantum file for any
+# simulator so some things to consider are remove 'number_of_operations',
+# 'matrix' and its the role of the simulator objects to have there internal
+# representations of the matrices and number_of_operations is just he lenght of
+# qasm.
+#
+# Current thinking for conditionals is to add
+#
+# 'condition_type': 'equality',
+# 'condition_cbits': [0,2,3],
+# 'condition_value': 7,
+#
+# to the elements of qasm.
+#
+# Also 'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+# would become
+# 'name': U
+# 'theta': 1.570796326794897
+# 'phi': 1.570796326794897
+# 'lambda': 1.570796326794897
 import numpy as np
 from qiskit.unroll import BackendException
 from qiskit.unroll import UnrollerBackend
@@ -120,7 +141,6 @@ class SimulatorBackend(UnrollerBackend):
         for j in range(size):
             self._qubit_order[(name, j)] = self._number_of_qubits + j
         self._number_of_qubits += size
-        # print(self.qubit_order)
         self.circuit['number_of_qubits'] = self._number_of_qubits
         self.circuit['qubit_order'] = self._qubit_order
         if self.trace:
@@ -151,8 +171,6 @@ class SimulatorBackend(UnrollerBackend):
         gatedata is the AST node for the gate.
         """
         self.gates[name] = gatedata
-        # Jay: you don't need to do anything here,
-        #      this is called when the unroller sees "gate blah() blah {}"
 
     def u(self, arg, qubit):
         """Fundamental single-qubit gate.
@@ -174,7 +192,6 @@ class SimulatorBackend(UnrollerBackend):
                 raise BackendException("UnitarySimulator does not support if")
             qubit_indices = [self._qubit_order.get(qubit)]
             self._operation_order += 1
-            # print(np.exp(1j*arg[2])*np.sin(arg[0]/2.0))
             gate = np.array([[np.cos(arg[0]/2.0),
                             -np.exp(1j*arg[2])*np.sin(arg[0]/2.0)],
                             [np.exp(1j*arg[1])*np.sin(arg[0]/2.0),
@@ -189,8 +206,6 @@ class SimulatorBackend(UnrollerBackend):
                                                  self._fs(arg[2])),
                         'qubit_indices': qubit_indices
                         })
-
-            # print(self.unitary_gates)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
