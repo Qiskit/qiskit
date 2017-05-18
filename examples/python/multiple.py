@@ -28,7 +28,7 @@ coupling_map = {0: [1, 2],
                 4: [2]}
 
 ###############################################################
-# Make a quantum program for the GHZ state.
+# Make a quantum program for the GHZ and Bell states.
 ###############################################################
 QPS_SPECS = {
     "name": "programs",
@@ -55,10 +55,10 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-ghz = qp.circuit("ghz")
-bell = qp.circuit("bell")
-q = qp.quantum_registers("q")
-c = qp.classical_registers("c")
+ghz = qp.get_circuit("ghz")
+bell = qp.get_circuit("bell")
+q = qp.get_quantum_registers("q")
+c = qp.get_classical_registers("c")
 
 # Create a GHZ state
 ghz.h(q[0])
@@ -94,6 +94,6 @@ qp.compile(["ghz"], device='simulator', shots=1024,
 
 qp.run()
 
-print(qp.get_counts("bell")) # returns {}, don't do this
+print(qp.get_counts("bell")) # returns error, don't do this
 print(qp.get_counts("bell", device="local_qasm_simulator"))
 print(qp.get_counts("ghz"))

@@ -55,10 +55,10 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("swapping")
-q = qp.quantum_registers("q")
-r = qp.quantum_registers("r")
-ans = qp.classical_registers("ans")
+qc = qp.get_circuit("swapping")
+q = qp.get_quantum_registers("q")
+r = qp.get_quantum_registers("r")
+ans = qp.get_classical_registers("ans")
 
 # Set the first bit of q
 qc.x(q[0])
@@ -86,12 +86,12 @@ if not result:
 
 # First version: not compiled
 result = qp.execute(["swapping"], device=device, coupling_map=None, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
+print(qp.get_compiled_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Second version: compiled to coupling graph
 result = qp.execute(["swapping"], device=device, coupling_map=coupling_map, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
+print(qp.get_compiled_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Both versions should give the same distribution
