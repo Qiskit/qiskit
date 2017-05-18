@@ -147,9 +147,6 @@ class QuantumProgram(object):
 
     def get_quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
-        if not specs:
-            specs = self.get_specs()
-
         return self.__init_circuit, \
             self.__quantum_registers[list(self.__quantum_registers)[0]], \
             self.__classical_registers[list(self.__classical_registers)[0]]
@@ -385,7 +382,7 @@ class QuantumProgram(object):
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": "Internal error, circuit not found"}
-                if not self.__quantum_program["circuits"][name]["execution"]:
+                if not "execution" in self.__quantum_program["circuits"][name]:
                     self.__quantum_program["circuits"][name]["execution"]={}
                 # We overide the results 
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
