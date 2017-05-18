@@ -12,8 +12,8 @@ The *tutorial* directory contains Jupyter notebooks showing how to use the
 [Python API](https://github.com/IBM/qiskit-api-py) with
 [OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
-There are Jupyter notebooks demonstrating components of
-the SDK in the *tutorial* directory, and more python and qasm examples in the *examples* directory. There are also command line test scripts
+In the *tutorial* directory are Jupyter notebooks demonstrating components of
+the SDK, and more Python and qasm examples in the *examples* directory. There are also command line test scripts
 in the *test* directory.
 
 Users can construct a *QuantumProgram* to create, modify, compile, and execute a collection of quantum circuits.
@@ -71,7 +71,7 @@ make env
 
 ## Use
 
-- Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
+- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
 cp tutorial/Qconfig.py.default Qconfig.py
@@ -85,7 +85,7 @@ make run
 
 ## FAQ
 
-If you upgrade the dependencies and next error happens try this fix:
+If you upgrade the dependencies and next error, happens try this fix:
 
 ```sh
 pip install --upgrade IBMQuantumExperience
@@ -95,7 +95,7 @@ pip install --upgrade IBMQuantumExperience
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
 
-## Developer guide
+## Developer Guide
 
 Please, use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
 
@@ -120,6 +120,6 @@ Note: You can get yout "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 
 ### Commit messages rules
 
-- It should be formed by a one-line subject, followed by one line of white space. Followed by one or more descriptive paragraphs, each separated by one line of white space. All of them finished by a dot.
+- Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them finished by a dot.
 - If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
 - It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
