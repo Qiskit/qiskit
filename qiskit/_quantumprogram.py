@@ -94,10 +94,10 @@ class QuantumProgram(object):
                 "QASM": --output of .qasm() (string)--,
                 "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                     --device name (string)--: {
-                        "QASM_compiled": --compiled QASM (string)--,
+                        "QASM_compiled": --compiled QASM output of .qasm() (string) after compliing--,
                         "coupling_map": --adjacency list (dict)--,
                         "basis_gates": --comma separated gate names (string)--,
-                        "compiled_circuit": --local simulator input (dict) or None--,
+                        "compiled_circuit": --local simulator input (dict that could be a JSON file) or None--,
                         "shots": --shots (int)--,
                         "max_credits": --credits (int)--,
                         "result": {
@@ -117,17 +117,19 @@ class QuantumProgram(object):
         --device name (string)--: [
             {
                 "name": --circuit name (string)--,
-                "QASM_compiled": --compiled QASM (string)--,
+                "QASM_compiled": --compiled QASM output of .qasm() (string) after compliing--,
                 "coupling_map": --adjacency list (dict)--,
                 "basis_gates": --comma separated gate names (string)--,
-                "compiled_circuit": --local simulator input (dict) OR None--,
+                "compiled_circuit": --local simulator input (dict that could be a JSON file) or None--,
                 "shots": --shots (int)--,
                 "max_credits": --credits (int)--
+                "seed": --initial seed for the simulator (int) --
             },
             ...
         ]
     }
     """
+    # TODO. I DONT THINK coupling_map, basis_gates is needed in the __to_execute
 
     def __init__(self, specs=None, name=""):
         self.__quantum_program  = {"circuits":{}} #TODO_ISMEAL_QUESATAION: I CHANGE __CIRCUITS TO __quantum_program
@@ -264,6 +266,8 @@ class QuantumProgram(object):
                     "compiled_circuit": --local simulator input (dict) OR None--,
                     "shots": --shots (int)--,
                     "max_credits": --credits (int)--
+                    "seed": --initial seed for the simulator (int) -- 
+
                 },
                 ...
             ]
