@@ -40,17 +40,12 @@ from . import unroll
 from . import qasm
 from . import mapper
 
-#TODO_ISMEAL_QUESATAION: WHY DO WE NEED THIS. cant we use unroll.SimulatorBackend when we use it
-from .unroll import SimulatorBackend
-
 # Local Simulator Modules
-from .simulators._unitarysimulator import UnitarySimulator
-from .simulators._qasmsimulator import QasmSimulator
+from . import simulators
 
 import sys
 sys.path.append("..")
-#TODO_ANDREW_QUESATAION: why these extensions
-from qiskit.extensions.standard import x, h, cx, s, ry, barrier
+import qiskit.extensions.standard
 
 #TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
 # intilzers, seters, getters, runners
@@ -254,7 +249,7 @@ class QuantumProgram(object):
 
 
     def unroller_code(self, circuit, basis_gates=None):
-        """ Unroller the code
+        """ Unroll the code
         circuit are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
@@ -393,6 +388,7 @@ class QuantumProgram(object):
                 for job in self.__to_execute[backend]:
                     #TODO_JAY: PUT SEED IN JOB
                     jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
+                print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
                 elif backend == "local_unitary_simulator":
@@ -442,13 +438,13 @@ class QuantumProgram(object):
             one_result = {'result': None, 'status': "FAIL"}
             if job["shots"] == 1:
                 #TODO_JAY: PUT SEED IN JOB
-                qasm_circuit = QasmSimulator(job["compiled_circuit"], random.random()).run()
+                qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
                 one_result["result"] = qasm_circuit["result"]
                 one_result["status"] = 'COMPLETED'
             else:
                 result = []
                 for i in range(job["shots"]):
-                    b = QasmSimulator(job["compiled_circuit"], random.random()).run()
+                    b = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
                     result.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
                 one_result["result"] = {"data": {"counts": dict(Counter(result))}}
                 one_result["status"] = 'COMPLETED'
@@ -473,7 +469,7 @@ class QuantumProgram(object):
         job_results = {"qasms": []}
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
-            unitary_circuit = UnitarySimulator(job["compiled_circuit"]).run()
+            unitary_circuit = simulators.UnitarySimulator(job["compiled_circuit"]).run()
             one_result["result"] = unitary_circuit["result"]
             one_result["status"] = 'COMPLETED'
             job_results['qasms'].append(one_result)
@@ -681,7 +677,7 @@ class QuantumProgram(object):
             # TODO: only work with unitary simulator; basicplotter.plot_qsphere(data)
 
     def get_qasm_image(self, circuit):
-        """Get imagen circuit representation from API."""
+        """Get image circuit representation from API."""
         pass
 
     #TODO_ISMEAL_QUESATAION: HOW IS THIS CURRENTLY USED.
@@ -733,4 +729,4 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
-            return  {"status": "Error", "result": 'Error in cicuit name'}
+            return  {"status": "Error", "result": 'Error in circuit name'}

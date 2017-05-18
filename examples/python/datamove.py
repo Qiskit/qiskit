@@ -1,5 +1,5 @@
 """
-Simple test of the mapper.
+Simple test of the mapper on an example that swaps a "1" state.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -35,7 +35,8 @@ def swap(qc, q0, q1):
     qc.cx(q1, q0)
     qc.cx(q0, q1)
 
-n = 3  # at least 3
+
+n = 3  # make this at least 3
 
 QPS_SPECS = {
     "name": "Program",
@@ -84,13 +85,13 @@ if not result:
     sys.exit(1)
 
 # First version: not compiled
-result = qp.execute([qp.circuit("swapping")], device=device, coupling_map=None, shots=1024)
+result = qp.execute(["swapping"], device=device, coupling_map=None, shots=1024)
 # print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_counts("swapping"))
 
 # Second version: compiled to coupling graph
-result = qp.execute([qp.circuit("swapping")], device=device, coupling_map=coupling_map, shots=1024)
+result = qp.execute(["swapping"], device=device, coupling_map=coupling_map, shots=1024)
 # print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_counts("swapping"))
 
 # Both versions should give the same distribution
