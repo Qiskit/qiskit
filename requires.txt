@@ -4,4 +4,3 @@ networkx
 ply
 numpy
 scipy
-matplotlib

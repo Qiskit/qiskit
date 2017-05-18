@@ -294,12 +294,7 @@ class QuantumProgram(object):
             # TODO: add timestamp, compilation
             if device not in self.__to_execute:
                 self.__to_execute[device] = []
-            # We overwrite this data on each compile. A user would need to make the same circuit
-            # with a different name for this not to be the case.
 
-            if not self.__quantum_program["circuits"][name]["execution"]:
-                self.__quantum_program["circuits"][name]["execution"]={}
-            self.__quantum_program["circuits"][name]["execution"][device] = {}
             job = {}
             job["name"] = name
             job["qasm_compiled"] = qasm_compiled
@@ -376,6 +371,9 @@ class QuantumProgram(object):
                 name = job["name"]
                 if name not in self.__quantum_program["circuits"]:
                     return {"status": "Error", "result": "Internal error, circuit not found"}
+                if not self.__quantum_program["circuits"][name]["execution"]:
+                    self.__quantum_program["circuits"][name]["execution"]={}
+                # We overide the results 
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
