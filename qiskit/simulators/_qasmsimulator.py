@@ -1,45 +1,40 @@
 # pylint: disable=line-too-long
-"""Contains a (slow) python simulator that simulates a qasm quantum circuit.
+"""Contains a (slow) python simulator.
 
 Author: Jay Gambetta
 
+It simulates a qasm quantum circuit that has been compiled to run on the
+simulator.
+
 We advise using the c++ simulator or online for larger size systems.
 
-The input is the circuit object and the output is the same circuit object with
-a result field added circuit['result']['data']['quantum_state'] and
-circuit['result']['data']['classical_state'] where quantum_state is
+The input is
+    compiled_circuit object
+    seed
+    shots
+and the output is the compiled_circuit object with a result field added
+
+if shots = 1
+    compiled_circuit['result']['data']['quantum_state'] and
+    circuit['result']['data']['classical_state'] where quantum_state is
 a 2**n complex numpy array representing the quantum state vector and
 classical_state is a interger representing the state of the classical
 registors.
+if shots > 1
+    circuit['result']['data']["counts"] where this is dict {"0000" : 454}
 
 The simulator is ran using
 
-    circuit_results = QasmSimulator(circuit,seed).run().
-
-where seed is the random number seed.
-
-If you want to turn the classical state to a bitstring use
-
-    bin(circuit_result['result']['data']['classical_state'])[2:].zfill(circuit_result['number_of_cbits'])
-
-and if you want to simulate the histogram over shots.
-
-    outcomes = []
-    for i in range(shots):
-        circuit_result = QasmSimulator(unroller.backend.circuit,
-                                       random.random()).run()
-        outcomes.append(bin(circuit_result['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
-
-    circuit_result['result']['data']['counts'] = dict(Counter(outcomes))
+    QasmSimulator(compiled_circuit,seed,shots).run().
 
 TODO add the IF qasm operation.
 TODO think about how to run the quantum state when we ignore measurement.
 
-circuit =
+compiled_circuit =
     {
-    'number_of_qubits': 4,
+    'number_of_qubits': 2,
     'number_of_cbits': 2,
-    'number_of_operations': 2
+    'number_of_operations': 4,
     'qubit_order': {('q', 0): 0, ('v', 0): 1}
     'cbit_order': {('c', 1): 1, ('c', 0): 0},
     'qasm':
@@ -79,6 +74,22 @@ circuit =
             }
         }
     }
+
+If you want to turn the classical state to a bitstring use
+
+    bin(circuit_result['result']['data']['classical_state'])[2:].zfill(circuit_result['number_of_cbits'])
+
+and if you want to simulate the histogram over shots.
+
+    outcomes = []
+    for i in range(shots):
+        circuit_result = QasmSimulator(unroller.backend.circuit,
+                                       random.random()).run()
+        outcomes.append(bin(circuit_result['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
+
+    circuit_result['result']['data']['counts'] = dict(Counter(outcomes))
+
+
 """
 import numpy as np
 import random
