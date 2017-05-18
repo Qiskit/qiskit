@@ -45,9 +45,9 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("ghz")
-q = qp.quantum_registers("q")
-c = qp.classical_registers("c")
+qc = qp.get_circuit("ghz")
+q = qp.get_quantum_registers("q")
+c = qp.get_classical_registers("c")
 
 # Create a GHZ state
 qc.h(q[0])

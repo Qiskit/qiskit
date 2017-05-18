@@ -41,13 +41,11 @@ from . import qasm
 from . import mapper
 
 # Local Simulator Modules
-from .simulators._unitarysimulator import UnitarySimulator
-from .simulators._qasmsimulator import QasmSimulator
+from . import simulators
 
 import sys
 sys.path.append("..")
-#TODO_ANDREW_QUESATAION: why these extensions
-from qiskit.extensions.standard import x, h, cx, s, ry, barrier
+import qiskit.extensions.standard
 
 #TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
 # intilzers, seters, getters, runners
@@ -223,7 +221,7 @@ class QuantumProgram(object):
 
 
     def unroller_code(self, circuit, basis_gates=None):
-        """ Unroller the code
+        """ Unroll the code
         circuit are circuits to unroll
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
@@ -265,9 +263,12 @@ class QuantumProgram(object):
         """
         # TODO: Control device names
         if name_of_circuits == []:
-            return {"status": "Error", "result": 'Not circuits'}
+            return {"status": "Error", "result": 'No circuits'}
 
         for name in name_of_circuits:
+            if name not in self.__quantum_program["circuits"]:
+                return {"status": "Error", "result": "%s not in QuantumProgram" % name}
+
             # TODO: The circuit object has to have .qasm() method; currently several different types
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             if coupling_map:
@@ -336,31 +337,42 @@ class QuantumProgram(object):
                         last_shots = shots
                     else:
                         if last_shots != shots:
+                            # Clear the list of compiled programs to execute
+                            self.__to_execute = {}
                             return {"status": "Error", "result":'Online devices only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
                     else:
                         if last_max_credits != max_credits:
+                            # Clear the list of compiled programs to execute
+                            self.__to_execute = {}
                             return  {"status": "Error", "result":'Online devices only support job batches with equal max credits'}
 
                 print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
                 if 'error' in output:
+                    # Clear the list of compiled programs to execute
+                    self.__to_execute = {}
                     return {"status": "Error", "result": output['error']}
                 job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
 
                 if job_result['status'] == 'Error':
+                    # Clear the list of compiled programs to execute
+                    self.__to_execute = {}
                     return job_result
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
                     #TODO_JAY: PUT SEED IN JOB
                     jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
+                print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
                 elif backend == "local_unitary_simulator":
                     job_result = self.run_local_unitary_simulator(jobs)
                 else:
+                    # Clear the list of compiled programs to execute
+                    self.__to_execute = {}
                     return {"status": "Error", "result": 'Not a local simulator'}
 
             assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
@@ -370,6 +382,8 @@ class QuantumProgram(object):
             for job in self.__to_execute[backend]:
                 name = job["name"]
                 if name not in self.__quantum_program["circuits"]:
+                    # Clear the list of compiled programs to execute
+                    self.__to_execute = {}
                     return {"status": "Error", "result": "Internal error, circuit not found"}
                 if not self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"]={}
@@ -408,13 +422,13 @@ class QuantumProgram(object):
             one_result = {'result': None, 'status': "FAIL"}
             if job["shots"] == 1:
                 #TODO_JAY: PUT SEED IN JOB
-                qasm_circuit = QasmSimulator(job["compiled_circuit"], random.random()).run()
+                qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
                 one_result["result"] = qasm_circuit["result"]
                 one_result["status"] = 'COMPLETED'
             else:
                 result = []
                 for i in range(job["shots"]):
-                    b = QasmSimulator(job["compiled_circuit"], random.random()).run()
+                    b = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
                     result.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
                 one_result["result"] = {"data": {"counts": dict(Counter(result))}}
                 one_result["status"] = 'COMPLETED'
@@ -439,7 +453,7 @@ class QuantumProgram(object):
         job_results = {"qasms": []}
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
-            unitary_circuit = UnitarySimulator(job["compiled_circuit"]).run()
+            unitary_circuit = simulators.UnitarySimulator(job["compiled_circuit"]).run()
             one_result["result"] = unitary_circuit["result"]
             one_result["status"] = 'COMPLETED'
             job_results['qasms'].append(one_result)
@@ -613,7 +627,7 @@ class QuantumProgram(object):
             # TODO: only work with unitary simulator; basicplotter.plot_qsphere(data)
 
     def get_qasm_image(self, circuit):
-        """Get imagen circuit representation from API."""
+        """Get image circuit representation from API."""
         pass
 
     def get_qasm(self, name):
@@ -629,7 +643,7 @@ class QuantumProgram(object):
         name of the circuit"""
         qasm_source = []
         for name in list_circuit_name:
-             qasm_source.append(self.get_qasm(name))
+            qasm_source.append(self.get_qasm(name))
         return qasm_source
 
     def get_result(self, name, device=None):
@@ -662,4 +676,33 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
-            return  {"status": "Error", "result": 'Error in cicuit name'}
+            return  {"status": "Error", "result": 'Error in circuit name'}
+
+    def get_compiled_qasm(self, name, device=None):
+        """Get the compiled qasm for the named circuit and device.
+
+        If device is None, it defaults to the last device.
+        """
+        if not device:
+            device = self.__last_device_backend
+        try:
+            return self.__quantum_program["circuits"][name]["execution"][device]["qasm_compiled"]
+        except KeyError:
+            return "No compiled qasm for this circuit"
+
+    def print_execution_list(self, verbose=False):
+        """Print the compiled circuits that are ready to run.
+
+        verbose controls how much is returned.
+        """
+        for device, jobs in self.__to_execute.items():
+            print("%s:" % device)
+            for job in jobs:
+                print("  %s:" % job["name"])
+                print("    shots = %d" % job["shots"])
+                print("    max_credits = %d" % job["max_credits"])
+                if verbose:
+                    print("    qasm_compiled =")
+                    print("// *******************************************")
+                    print(job["qasm_compiled"], end="")
+                    print("// *******************************************")

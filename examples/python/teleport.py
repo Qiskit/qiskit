@@ -49,11 +49,11 @@ QPS_SPECS = {
 }
 
 qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.circuit("teleport")
-q = qp.quantum_registers("q")
-c0 = qp.classical_registers("c0")
-c1 = qp.classical_registers("c1")
-c2 = qp.classical_registers("c2")
+qc = qp.get_circuit("teleport")
+q = qp.get_quantum_registers("q")
+c0 = qp.get_classical_registers("c0")
+c1 = qp.get_classical_registers("c1")
+c2 = qp.get_classical_registers("c2")
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -87,15 +87,14 @@ if not result:
 # Experiment does not support feedback, so we use the simulator
 
 # First version: not compiled
-result = qp.execute([qp.circuit("teleport")], device=device,
+result = qp.execute(["teleport"], device=device,
                     coupling_map=None, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_counts("teleport"))
 
 # Second version: compiled to qx5qv2 coupling graph
-result = qp.execute([qp.circuit("teleport")], device=device,
+result = qp.execute(["teleport"], device=device,
                     coupling_map=coupling_map, shots=1024)
-# print(result["compiled_circuits"][0]["qasm"])
-print(qp.get_counts(0))
+print(qp.get_compiled_qasm("teleport"))
+print(qp.get_counts("teleport"))
 
 # Both versions should give the same distribution
