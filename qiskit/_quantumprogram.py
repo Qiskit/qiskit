@@ -29,7 +29,7 @@ from collections import Counter
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from . import basicplotter
 
-# stable Modules
+# Stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
@@ -40,25 +40,39 @@ from . import unroll
 from . import qasm
 from . import mapper
 
+#TODO_ISMEAL_QUESATAION: WHY DO WE NEED THIS. cant we use unroll.SimulatorBackend when we use it
 from .unroll import SimulatorBackend
+
+# Local Simulator Modules
 from .simulators._unitarysimulator import UnitarySimulator
 from .simulators._qasmsimulator import QasmSimulator
 
 import sys
 sys.path.append("..")
+#TODO_ANDREW_QUESATAION: why these backends
 from qiskit.extensions.standard import x, h, cx, s, ry, barrier
 
 #TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
-# intilzers, seters, getters, runners 
+# intilzers, seters, getters, runners
 
 
 class QuantumProgram(object):
     """ Quantum Program Class
 
      Class internal properties """
-    __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "ibmqx_qasm_simulator", "simulator"]
+
+    #TODO_ISMEAL_QUESATAION: I THINK we should remove IBMQX5qv2 i know it works but this forces us to
+    # go down the path that we are working towards. I would add "real" back and give a comment that
+    # real is the default real chip device which may change over time and the user will need to look up which
+    # device is the real keyword from our devices tab(which i know does not exist yet)
+
+    # Also for now ibmqx_qasm_simulator should defaul to the current simulator online which is what
+    # simulator does as well but  my goal for it is to be an updated version of chirs's code when
+    # he is finished  and then simulator can become our default like real
+    __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
+    #TODO_ISMEAL_QUESATAION: CAN WE REMOVE THE COMMENTS BELOW
     # __specs = {}
     # __quantum_registers = {}
     # __classical_registers = {}

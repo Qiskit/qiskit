@@ -1,4 +1,4 @@
-"""Quick test program for unitary simulator backend.
+"""Quick test program for unitary and qasm simulator backend.
 
 Author: Jay Gambetta
 """
