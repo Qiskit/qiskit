@@ -65,7 +65,6 @@ class QuantumProgram(object):
     # go down the path that we are working towards. I would add "real" back and give a comment that
     # real is the default real chip device which may change over time and the user will need to look up which
     # device is the real keyword from our devices tab(which i know does not exist yet)
-
     # Also for now ibmqx_qasm_simulator should defaul to the current simulator online which is what
     # simulator does as well but  my goal for it is to be an updated version of chirs's code when
     # he is finished  and then simulator can become our default like real
@@ -76,7 +75,7 @@ class QuantumProgram(object):
     # __specs = {}
     # __quantum_registers = {}
     # __classical_registers = {}
-    # __circuits = {}
+    # __quantum_program = {}
     __api = {}
     __api_config = {}
     # __qprogram = {}
@@ -88,12 +87,12 @@ class QuantumProgram(object):
     by "--description (type)--". For example, a circuit's name is denoted by
     "--circuit name (string)--" and might have the value "teleport".
 
-    __circuits = {
+    __quantum_program = {
         "circuits": {
             --circuit name (string)--: {
                 "object": --circuit object (TBD)--,
                 "QASM": --output of .qasm() (string)--,
-                "execution": {  # FILLED IN AFTER RUN
+                "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                     --device name (string)--: {
                         "QASM_compiled": --compiled QASM (string)--,
                         "coupling_map": --adjacency list (dict)--,
@@ -102,7 +101,7 @@ class QuantumProgram(object):
                         "shots": --shots (int)--,
                         "max_credits": --credits (int)--,
                         "result": {
-                            "data": {  # DATA IS A DIFFERENT OBJECT FOR EACH SIMULATOR
+                            "data": {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
                                 "counts": {’00000’: XXXX, ’00001’: XXXXX},
                                 "time"  : xx.xxxxxxxx
                             },
@@ -131,12 +130,12 @@ class QuantumProgram(object):
     """
 
     def __init__(self, specs=None, name=""):
-        self.__circuits = {"circuits":{}} #TODO_ISMEAL_QUESATAION: THIS REALLY SHOULD BE CALL __qprogram
+        self.__quantum_program  = {"circuits":{}} #TODO_ISMEAL_QUESATAION: I CHANGE __CIRCUITS TO __quantum_program
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
         self.__name = name #TODO_ISMEAL_QUESATAION: IS THIS USED
-        self.__qprogram = {} #TODO_ISMEAL_QUESATAION: IS THIS USED __circuits has replaced it
+        self.__qprogram = {} #TODO_ISMEAL_QUESATAION: IS THIS USED __quantum_program  has replaced it
         self.__last_device_backend = ""
         self.__to_execute = {}
 
@@ -168,7 +167,7 @@ class QuantumProgram(object):
     def circuit(self, name):
         #TODO_ISMEAL_QUESATAION: I PREFER GET* for getters and this should be get_quantum_circuit.
         """Return a specific Circuit Object"""
-        return self.__circuits['circuits'][name]['object']
+        return self.__quantum_program['circuits'][name]['object']
 
     def get_specs(self):
         """Return the program specs"""
@@ -224,7 +223,7 @@ class QuantumProgram(object):
 
         circuit = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__circuits['circuits'][name] = {"object": circuit, "QASM": circuit.qasm()}
+        self.__quantum_program['circuits'][name] = {"object": circuit, "QASM": circuit.qasm()}
 
         #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
         return circuit
@@ -276,7 +275,7 @@ class QuantumProgram(object):
 
         for name in name_of_circuits:
             # TODO: The circuit object has to have .qasm() method; currently several different types
-            QASM_compiled, dag_unrolled = self.unroller_code(self.__circuits['circuits'][name]["object"], basis_gates)
+            QASM_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]["object"], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % dag_unrolled.property_summary())
@@ -304,10 +303,10 @@ class QuantumProgram(object):
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
 
-            self.__circuits["circuits"][name]["QASM"] = self.__circuits["circuits"][name]["object"].qasm()
+            self.__quantum_program["circuits"][name]["QASM"] = self.__quantum_program["circuits"][name]["object"].qasm()
             #TODO_ISMEAL_QUESATAION: I THINK THIS SHOULD MAKE A NEW EXECUTION iF
             #IT DOES NOT EXIST AND IF IT DOES IT SHOULD ONLY OVERRIDER THE BACKEND
-            self.__circuits["circuits"][name]["execution"] = {}
+            self.__quantum_program["circuits"][name]["execution"] = {}
             job = {}
             job["name"] = name
             job["QASM_compiled"] = QASM_compiled
@@ -379,19 +378,19 @@ class QuantumProgram(object):
 
             assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
 
-            # Fill data into self.__circuits for this backend
+            # Fill data into self.__quantum_program for this backend
             index = 0
             for job in self.__to_execute[backend]:
                 name = job["name"]
-                if name not in self.__circuits["circuits"]:
+                if name not in self.__quantum_program["circuits"]:
                     return {"status": "Error", "result": "Internal error, circuit not found"}
-                if backend not in self.__circuits["circuits"][name]["execution"]:
-                    self.__circuits["circuits"][name]["execution"][backend] = {}
+                if backend not in self.__quantum_program["circuits"][name]["execution"]:
+                    self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
                 for field in ["QASM_compiled", "coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits"]:
-                    self.__circuits["circuits"][name]["execution"][backend][field] = job[field]
-                self.__circuits["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
-                self.__circuits["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
+                    self.__quantum_program["circuits"][name]["execution"][backend][field] = job[field]
+                self.__quantum_program["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
+                self.__quantum_program["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
                 index += 1
 
         # Clear the list of compiled programs to execute
@@ -480,7 +479,7 @@ class QuantumProgram(object):
         #TODO_ISMEAL_QUESATAION: I WANT TO KILL THIS FUNCTION and have
         # get_circuit_qasm and git_circut_qasms SEE BELOW
         if not circuits:
-            circuits = self.__circuits['circuits']
+            circuits = self.__quantum_program['circuits']
         # TODO: Store QASM per circuit
         jobs = ""
         for name, circuit in circuits.items():
@@ -571,7 +570,7 @@ class QuantumProgram(object):
         name is the name or index of one circuit."""
         #TODO_ISMEAL_QUESATAION: do we need to fill in the QASM my philophy is this
         #is not filled until we compile or save when we have a save and why do we return
-        self.__circuits['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
 
         return circuit_object
 
@@ -590,22 +589,22 @@ class QuantumProgram(object):
 
         if not circuit_object:
             circuit_object = QuantumCircuit()
-        self.__circuits['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
 
         for register in qregisters:
             if isinstance(register, str):
-                self.__circuits['circuits'][name]['object'].add(self.__quantum_registers[register])
+                self.__quantum_program['circuits'][name]['object'].add(self.__quantum_registers[register])
             else:
-                self.__circuits['circuits'][name]['object'].add(register)
+                self.__quantum_program['circuits'][name]['object'].add(register)
         for register in cregisters:
             if isinstance(register, str):
-                self.__circuits['circuits'][name]['object'].add(self.__classical_registers[register])
+                self.__quantum_program['circuits'][name]['object'].add(self.__classical_registers[register])
             else:
-                self.__circuits['circuits'][name]['object'].add(register)
+                self.__quantum_program['circuits'][name]['object'].add(register)
 
-        self.__circuits['circuits'][name]['QASM'] = self.__circuits['circuits'][name]['object'].qasm()
+        self.__quantum_program['circuits'][name]['QASM'] = self.__quantum_program['circuits'][name]['object'].qasm()
 
-        return self.__circuits['circuits'][name]['object']
+        return self.__quantum_program['circuits'][name]['object']
 
     def create_quantum_registers(self, name, size):
         """Create a new set of Quantum Registers"""
@@ -664,15 +663,15 @@ class QuantumProgram(object):
     #TODO_ISMEAL_QUESATAION: HOW IS THIS CURRENTLY USED.
     #I THINK THIS SHOLD BE get_circuits_qasm and then we
     #remove program_to_text and then you can have get_circuit_qasms that
-    #takes in and array of names and self.__circuits['circuits'][name]["QASM"]
+    #takes in and array of names and self.__quantum_program['circuits'][name]["QASM"]
     #WHICH MAY BE EMPYT AND IF SO YOU NEED TO RUN
-    #self.__circuits["circuits"][name]["QASM"] = self.__circuits["circuits"][name]["object"].qasm()
+    #self.__quantum_program["circuits"][name]["QASM"] = self.__quantum_program["circuits"][name]["object"].qasm()
     # AND THEN RETURN
     def get_circuit(self, name):
         """get the circut by name.
         name of the circuit"""
-        if name in self.__circuits['circuits']:
-            return self.__circuits['circuits'][name]
+        if name in self.__quantum_program['circuits']:
+            return self.__quantum_program['circuits'][name]
         else:
             return  {"status": "Error", "result": 'Circuit not found'}
 
@@ -684,8 +683,8 @@ class QuantumProgram(object):
         if not device:
             device = self.__last_device_backend
 
-        if name in self.__circuits["circuits"]:
-            return self.__circuits["circuits"][name]['execution'][device]['result']
+        if name in self.__quantum_program["circuits"]:
+            return self.__quantum_program["circuits"][name]['execution'][device]['result']
         else:
             return  {"status": "Error", "result": 'Circuit not found'}
 
@@ -695,7 +694,7 @@ class QuantumProgram(object):
         name is the name or index of one circuit."""
         if not device:
             device = self.__last_device_backend
-        return self.__circuits["circuits"][name]['execution'][device]['result']['data']
+        return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']
 
     #TODO_ISMEAL_QUESATAION: I THINK get_counts, get_data, and get result need to be
     #nested get_counts calls _get_data and get_data calls get_results
@@ -708,6 +707,6 @@ class QuantumProgram(object):
             device = self.__last_device_backend
         # TODO: check that there are results
         try:
-            return self.__circuits["circuits"][name]['execution'][device]['result']['data']['counts']
+            return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
             return  {"status": "Error", "result": 'Error in cicuit name'}
