@@ -12,8 +12,8 @@ The *tutorial* directory contains Jupyter notebooks showing how to use the
 [Python API](https://github.com/IBM/qiskit-api-py) with
 [OPENQASM](https://github.com/IBM/qiskit-openqasm).
 
-There are Jupyter notebooks demonstrating components of
-the SDK in the *tutorial* directory, and more python and qasm examples in the *examples* directory. There are also command line test scripts
+In the *tutorial* directory are Jupyter notebooks demonstrating components of
+the SDK, and more Python and qasm examples in the *examples* directory. There are also command line test scripts
 in the *test* directory.
 
 Users can construct a *QuantumProgram* to create, modify, compile, and execute a collection of quantum circuits.
@@ -27,8 +27,8 @@ OPENQASM code that can flow through other components in the *qiskit* directory.
 The *qiskit* directory is the main Python module and contains the programming
 interface objects *QuantumProgram*, *QuantumRegister*, *ClassicalRegister*, and *QuantumCircuit*.
 The directory also contains internal modules: a *qasm* module for parsing OPENQASM circuits,
-an *unroll* module to "flatten" QASM for a target gate basis by expanding
-gate subroutines as needed, a *circuit* module for working with circuits as
+an *unroll* module to interpret and "unroll" QASM for a target gate basis
+(expanding gate subroutines and loops as needed), a *circuit* module for working with circuits as
 graphs, and a *mapper* module for mapping all-to-all circuits to run on
 devices with fixed couplings.
 
@@ -71,7 +71,7 @@ make env
 
 ## Use
 
-- Setup the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
+- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
 cp tutorial/Qconfig.py.default Qconfig.py
@@ -85,7 +85,7 @@ make run
 
 ## FAQ
 
-If you upgrade the dependencies and next error happens try this fix:
+If you upgrade the dependencies and next error, happens try this fix:
 
 ```sh
 pip install --upgrade IBMQuantumExperience
@@ -95,7 +95,7 @@ pip install --upgrade IBMQuantumExperience
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
 
-## Developer guide
+## Developer Guide
 
 Please, use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
 
@@ -120,6 +120,6 @@ Note: You can get yout "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 
 ### Commit messages rules
 
-- It should be formed by a one-line subject, followed by one line of white space. Followed by one or more descriptive paragraphs, each separated by one line of white space. All of them finished by a dot.
+- Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them finished by a dot.
 - If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
 - It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
