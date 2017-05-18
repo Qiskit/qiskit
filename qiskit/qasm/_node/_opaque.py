@@ -42,8 +42,8 @@ class Opaque(Node):
 
     def qasm(self):
         """Return the corresponding OPENQASM string."""
-        s = "opaque %s" % self.name
+        string = "opaque %s" % self.name
         if self.arguments is not None:
-            s += "(" + self.arguments.qasm() + ")"
-        s += self.bitlist.qasm() + ";"
-        return s
+            string += "(" + self.arguments.qasm() + ")"
+        string += self.bitlist.qasm() + ";"
+        return string

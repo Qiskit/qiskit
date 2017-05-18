@@ -23,9 +23,9 @@ class Node(object):
         """Return True if this is an expression node."""
         return self.expression
 
-    def add_child(self, n):
+    def add_child(self, node):
         """Add a child node."""
-        self.children.append(n)
+        self.children.append(node)
 
     def to_string(self, indent):
         """Print with indent."""
@@ -36,15 +36,15 @@ class Node(object):
             print(ind, self.type)
         indent = indent + 3
         ind = indent * ' '
-        for c in self.children:
-            if c is None:
+        for children in self.children:
+            if children is None:
                 print("OOPS! type of parent is", type(self))
                 print(self.children)
-            if type(c) is str:
-                print(ind, c)
-            elif type(c) is int:
-                print(ind, str(c))
-            elif type(c) is float:
-                print(ind, str(c))
+            if isinstance(children, str):
+                print(ind, children)
+            elif isinstance(children, int):
+                print(ind, str(children))
+            elif isinstance(children, float):
+                print(ind, str(children))
             else:
-                c.to_string(indent)
+                children.to_string(indent)

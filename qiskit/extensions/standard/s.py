@@ -1,5 +1,5 @@
 """
-S=diag(1,i) Clifford phase gate.
+S=diag(1,i) Clifford phase gate or its inverse.
 
 Author: Andrew Cross
 """
@@ -13,23 +13,32 @@ from qiskit.extensions.standard import u1
 
 
 class SGate(CompositeGate):
-    """S=diag(1,i) Clifford phase gate."""
+    """S=diag(1,i) Clifford phase gate or its inverse."""
 
     def __init__(self, qubit, circ=None):
         """Create new S gate."""
         super(SGate, self).__init__("s", [], [qubit], circ)
-        self.u1(math.pi/2.0, qubit)
+        self.u1(math.pi / 2.0, qubit)
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.s(self.arg[0]))
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubit = self.data[0].arg[0]
+        phi = self.data[0].param[0]
+        if phi > 0:
+            return self.data[0]._qasmif("s %s[%d];" % (qubit[0].name, qubit[1]))
+        else:
+            return self.data[0]._qasmif("sdg %s[%d];" % (qubit[0].name, qubit[1]))
 
 
 def s(self, q):
     """Apply S to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.s((q, j)))
         return gs
     else:
@@ -37,5 +46,12 @@ def s(self, q):
         return self._attach(SGate(q, self))
 
 
+def sdg(self, q):
+    """Apply Sdg to q."""
+    return self.s(q).inverse()
+
+
 QuantumCircuit.s = s
+QuantumCircuit.sdg = sdg
 CompositeGate.s = s
+CompositeGate.sdg = sdg

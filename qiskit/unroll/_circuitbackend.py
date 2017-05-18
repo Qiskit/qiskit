@@ -11,7 +11,7 @@ from ..circuit import Circuit
 class CircuitBackend(UnrollerBackend):
     """Backend for the unroller that creates a Circuit object."""
 
-    def __init__(self, basis=[]):
+    def __init__(self, basis=None):
         """Setup this backend.
 
         basis is a list of operation name strings.
@@ -19,8 +19,11 @@ class CircuitBackend(UnrollerBackend):
         self.prec = 15
         self.creg = None
         self.cval = None
-        self.C = Circuit()
-        self.basis = basis
+        self.circuit = Circuit()
+        if basis:
+            self.basis = basis
+        else:
+            self.basis = []
         self.listen = True
         self.in_gate = ""
         self.gates = {}
@@ -32,30 +35,30 @@ class CircuitBackend(UnrollerBackend):
     def define_gate(self, name, gatedata):
         """Record and pass down the data for this gate."""
         self.gates[name] = gatedata
-        self.C.add_gate_data(name, gatedata)
+        self.circuit.add_gate_data(name, gatedata)
 
-    def version(self, v):
+    def version(self, version):
         """Accept the version string.
 
         v is a version number.
         """
         pass
 
-    def new_qreg(self, name, sz):
+    def new_qreg(self, name, size):
         """Create a new quantum register.
 
         name = name of the register
         sz = size of the register
         """
-        self.C.add_qreg(name, sz)
+        self.circuit.add_qreg(name, size)
 
-    def new_creg(self, name, sz):
+    def new_creg(self, name, size):
         """Create a new classical register.
 
         name = name of the register
         sz = size of the register
         """
-        self.C.add_creg(name, sz)
+        self.circuit.add_creg(name, size)
 
     def u(self, arg, qubit):
         """Fundamental single qubit gate.
@@ -70,14 +73,15 @@ class CircuitBackend(UnrollerBackend):
                 condition = None
             if "U" not in self.basis:
                 self.basis.append("U")
-                self.C.add_basis_element("U", 1, 0, 3)
-            self.C.apply_operation_back("U", [qubit], [], list(arg), condition)
+                self.circuit.add_basis_element("U", 1, 0, 3)
+            self.circuit.apply_operation_back(
+                "U", [qubit], [], list(arg), condition)
 
     def cx(self, qubit0, qubit1):
-        """Fundamental two qubit gate.
+        """Fundamental two-qubit gate.
 
-        qubit0 is (regname,idx) tuple for the control qubit.
-        qubit1 is (regname,idx) tuple for the target qubit.
+        qubit0 is (regname, idx) tuple for the control qubit.
+        qubit1 is (regname, idx) tuple for the target qubit.
         """
         if self.listen:
             if self.creg is not None:
@@ -86,9 +90,9 @@ class CircuitBackend(UnrollerBackend):
                 condition = None
             if "CX" not in self.basis:
                 self.basis.append("CX")
-                self.C.add_basis_element("CX", 2)
-            self.C.apply_operation_back("CX", [qubit0, qubit1], [],
-                                         [], condition)
+                self.circuit.add_basis_element("CX", 2)
+            self.circuit.apply_operation_back("CX", [qubit0, qubit1], [],
+                                              [], condition)
 
     def measure(self, qubit, bit):
         """Measurement operation.
@@ -102,8 +106,9 @@ class CircuitBackend(UnrollerBackend):
             condition = None
         if "measure" not in self.basis:
             self.basis.append("measure")
-            self.C.add_basis_element("measure", 1, 1)
-        self.C.apply_operation_back("measure", [qubit], [bit], [], condition)
+            self.circuit.add_basis_element("measure", 1, 1)
+        self.circuit.apply_operation_back(
+            "measure", [qubit], [bit], [], condition)
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -112,14 +117,13 @@ class CircuitBackend(UnrollerBackend):
         """
         if self.listen:
             names = []
-            # TODO: one liner?
             for x in qubitlists:
                 for j in range(len(x)):
                     names.append(x[j])
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
-                self.C.add_basis_element("barrier", -1)
-            self.C.apply_operation_back("barrier", names)
+                self.circuit.add_basis_element("barrier", -1)
+            self.circuit.apply_operation_back("barrier", names)
 
     def reset(self, qubit):
         """Reset instruction.
@@ -132,8 +136,8 @@ class CircuitBackend(UnrollerBackend):
             condition = None
         if "reset" not in self.basis:
             self.basis.append("reset")
-            self.C.add_basis_element("reset", 1)
-        self.C.apply_operation_back("reset", [qubit], [], [], condition)
+            self.circuit.add_basis_element("reset", 1)
+        self.circuit.apply_operation_back("reset", [qubit], [], [], condition)
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -166,8 +170,9 @@ class CircuitBackend(UnrollerBackend):
                 condition = None
             self.in_gate = name
             self.listen = False
-            self.C.add_basis_element(name, len(qubits), 0, len(args))
-            self.C.apply_operation_back(name, qubits, [], args, condition)
+            self.circuit.add_basis_element(name, len(qubits), 0, len(args))
+            self.circuit.apply_operation_back(
+                name, qubits, [], args, condition)
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.

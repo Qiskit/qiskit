@@ -12,10 +12,10 @@ from qiskit.extensions.standard import header
 
 
 class U1Gate(Gate):
-    """Diagonal single qubit gate."""
+    """Diagonal single-qubit gate."""
 
     def __init__(self, theta, qubit, circ=None):
-        """Create new diagonal single qubit gate."""
+        """Create new diagonal single-qubit gate."""
         super(U1Gate, self).__init__("u1", [theta], [qubit], circ)
 
     def qasm(self):
@@ -39,7 +39,7 @@ def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.u1(theta, (q, j)))
         return gs
     else:

@@ -18,7 +18,7 @@ class Program(Node):
 
     def qasm(self):
         """Return the corresponding OPENQASM string."""
-        s = ""
-        for c in self.children:
-            s += c.qasm() + "\n"
-        return s
+        string = ""
+        for children in self.children:
+            string += children.qasm() + "\n"
+        return string

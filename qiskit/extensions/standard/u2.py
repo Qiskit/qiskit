@@ -1,5 +1,5 @@
 """
-One-pulse single qubit gate.
+One-pulse single-qubit gate.
 
 Author: Andrew Cross
 """
@@ -13,10 +13,10 @@ from qiskit.extensions.standard import header
 
 
 class U2Gate(Gate):
-    """One-pulse single qubit gate."""
+    """One-pulse single-qubit gate."""
 
     def __init__(self, phi, lam, qubit, circ=None):
-        """Create new one-pulse single qubit gate."""
+        """Create new one-pulse single-qubit gate."""
         super(U2Gate, self).__init__("u2", [phi, lam], [qubit], circ)
 
     def qasm(self):
@@ -47,7 +47,7 @@ def u2(self, phi, lam, q):
     """Apply u2 to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.u2(phi, lam, (q, j)))
         return gs
     else:

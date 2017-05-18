@@ -1,18 +1,19 @@
 """
-Backend for the unroller that prints OPENQASM.
+Backend for the unroller that prints OpenQASM.
 
 Author: Andrew Cross
 """
 from ._backendexception import BackendException
 from ._unrollerbackend import UnrollerBackend
 
+
 class PrinterBackend(UnrollerBackend):
-    """Backend for the unroller that prints OPENQASM.
+    """Backend for the unroller that prints OpenQASM.
 
     This backend also serves as a base class for other unroller backends.
     """
 
-    def __init__(self, basis=[]):
+    def __init__(self, basis=None):
         """Setup this backend.
 
         basis is a list of operation name strings.
@@ -22,7 +23,10 @@ class PrinterBackend(UnrollerBackend):
         self.cval = None
         self.gates = {}
         self.comments = False
-        self.basis = basis
+        if basis:
+            self.basis = basis
+        else:
+            self.basis = []
         self.listen = True
         self.in_gate = ""
         self.printed_gates = []
@@ -46,29 +50,29 @@ class PrinterBackend(UnrollerBackend):
         fmt = "{0:0.%sf}" % self.prec
         return fmt.format(f)
 
-    def version(self, v):
+    def version(self, version):
         """Print the version string.
 
         v is a version number.
         """
-        print("OPENQASM %s;" % v)
+        print("OPENQASM %s;" % version)
 
-    def new_qreg(self, name, sz):
+    def new_qreg(self, name, size):
         """Create a new quantum register.
 
         name = name of the register
         sz = size of the register
         """
-        assert sz >= 0, "invalid qreg size"
-        print("qreg %s[%d];" % (name, sz))
+        assert size >= 0, "invalid qreg size"
+        print("qreg %s[%d];" % (name, size))
 
-    def new_creg(self, name, sz):
+    def new_creg(self, name, size):
         """Create a new classical register.
 
         name = name of the register
         sz = size of the register
         """
-        print("creg %s[%d];" % (name, sz))
+        print("creg %s[%d];" % (name, size))
 
     def _gate_string(self, name):
         """Print OPENQASM for the named gate."""
@@ -99,10 +103,10 @@ class PrinterBackend(UnrollerBackend):
             # Print the hierarchy of gates this gate calls
             if not self.gates[name]["opaque"]:
                 calls = self.gates[name]["body"].calls()
-                for c in calls:
-                    if c not in self.printed_gates:
-                        print(self._gate_string(c))
-                        self.printed_gates.append(c)
+                for call in calls:
+                    if call not in self.printed_gates:
+                        print(self._gate_string(call))
+                        self.printed_gates.append(call)
             # Print the gate itself
             if name not in self.printed_gates:
                 print(self._gate_string(name))
@@ -159,11 +163,11 @@ class PrinterBackend(UnrollerBackend):
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
             names = []
-            for x in qubitlists:
-                if len(x) == 1:
-                    names.append("%s[%d]" % (x[0][0], x[0][1]))
+            for qubitlist in qubitlists:
+                if len(qubitlist) == 1:
+                    names.append("%s[%d]" % (qubitlist[0][0], qubitlist[0][1]))
                 else:
-                    names.append("%s" % x[0][0])
+                    names.append("%s" % qubitlist[0][0])
             print("barrier %s;" % ",".join(names))
 
     def reset(self, qubit):
@@ -209,14 +213,11 @@ class PrinterBackend(UnrollerBackend):
            and self.gates[name]["opaque"]:
             raise BackendException("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
-            # TODO: check this - bug?
-            if self.creg is not None:
-                condition = (self.creg, self.cval)
-            else:
-                condition = None
             self.in_gate = name
             self.listen = False
             squbits = ["%s[%d]" % (x[0], x[1]) for x in qubits]
+            if self.creg is not None:
+                print("if(%s==%d) " % (self.creg, self.cval), end="")
             print(name, end="")
             if len(args) > 0:
                 print("(%s)" % ",".join(map(self._fs, args)), end="")

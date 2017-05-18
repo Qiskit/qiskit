@@ -55,7 +55,7 @@ class Circuit:
         # Input nodes have out-degree 1 and output nodes have in-degree 1.
         # Edges carry wire labels (reg,idx) and each operation has
         # corresponding in- and out-edges with the same wire labels.
-        self.G = nx.MultiDiGraph()
+        self.multi_graph = nx.MultiDiGraph()
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -89,20 +89,21 @@ class Circuit:
         if regname in self.qregs:
             self.qregs[newname] = self.qregs[regname]
             self.qregs.pop(regname, None)
-            regsz = self.qregs[newname]
+            reg_size = self.qregs[newname]
         if regname in self.cregs:
             self.cregs[newname] = self.cregs[regname]
             self.cregs.pop(regname, None)
-            regsz = self.cregs[newname]
+            reg_size = self.cregs[newname]
             iscreg = True
-        for i in range(regsz):
+        for i in range(reg_size):
             self.wire_type[(newname, i)] = iscreg
             self.wire_type.pop((regname, i), None)
             self.input_map[(newname, i)] = self.input_map[(regname, i)]
             self.input_map.pop((regname, i), None)
             self.output_map[(newname, i)] = self.output_map[(regname, i)]
             self.output_map.pop((regname, i), None)
-        for n, d in self.G.nodes_iter(data=True):
+        # n node d = data
+        for n, d in self.multi_graph.nodes_iter(data=True):
             if d["type"] == "in" or d["type"] == "out":
                 if d["name"][0] == regname:
                     d["name"] = (newname, d["name"][1])
@@ -122,7 +123,8 @@ class Circuit:
                 if d["condition"] is not None:
                     if d["condition"][0] == regname:
                         d["condition"] = (newname, d["condition"][1])
-        for e1, e2, d in self.G.edges_iter(data=True):
+        # eX = edge, d= data
+        for e1, e2, d in self.multi_graph.edges_iter(data=True):
             if d["name"][0] == regname:
                 d["name"] = (newname, d["name"][1])
 
@@ -136,25 +138,25 @@ class Circuit:
         """Return a deep copy of self."""
         return copy.deepcopy(self)
 
-    def fs(self, f):
+    def fs(self, number):
         """Format a float f as a string with self.prec digits."""
-        fmt = "{0:0.%sf}" % self.prec
-        return fmt.format(f)
+        fmt = "{0:0.%snumber}" % self.prec
+        return fmt.format(number)
 
-    def add_qreg(self, name, sz):
-        """Add all wires in a quantum register named name with size sz."""
+    def add_qreg(self, name, size):
+        """Add all wires in a quantum register named name with size."""
         if name in self.qregs or name in self.cregs:
             raise CircuitError("duplicate register name %s" % name)
-        self.qregs[name] = sz
-        for j in range(sz):
+        self.qregs[name] = size
+        for j in range(size):
             self._add_wire((name, j))
 
-    def add_creg(self, name, sz):
-        """Add all wires in a classical register named name with size sz."""
+    def add_creg(self, name, size):
+        """Add all wires in a classical register named name with size."""
         if name in self.qregs or name in self.cregs:
             raise CircuitError("duplicate register name %s" % name)
-        self.cregs[name] = sz
-        for j in range(sz):
+        self.cregs[name] = size
+        for j in range(size):
             self._add_wire((name, j), True)
 
     def _add_wire(self, name, isClassical=False):
@@ -171,32 +173,36 @@ class Circuit:
             self.output_map[name] = self.node_counter
             in_node = self.input_map[name]
             out_node = self.output_map[name]
-            self.G.add_edge(in_node, out_node)
-            self.G.node[in_node]["type"] = "in"
-            self.G.node[out_node]["type"] = "out"
-            self.G.node[in_node]["name"] = name
-            self.G.node[out_node]["name"] = name
-            self.G.edge[in_node][out_node][0]["name"] = name
+            self.multi_graph.add_edge(in_node, out_node)
+            self.multi_graph.node[in_node]["type"] = "in"
+            self.multi_graph.node[out_node]["type"] = "out"
+            self.multi_graph.node[in_node]["name"] = name
+            self.multi_graph.node[out_node]["name"] = name
+            self.multi_graph.edge[in_node][out_node][0]["name"] = name
         else:
             raise CircuitError("duplicate wire %s" % name)
 
-    def add_basis_element(self, name, nq, nc=0, np=0):
+    def add_basis_element(self, name, number_qubits,
+                          number_classical=0, number_parameters=0):
         """Add an operation to the basis.
 
         name is string label for operation
-        nq is number of qubit arguments
-        nc is number of bit arguments
-        np is number of real parameters
+        number_qubits is number of qubit arguments
+        number_classical is number of bit arguments
+        number_parameters is number of real parameters
 
         The parameters (nq,nc,np) are ignored for the special case
         when name = "barrier". The barrier instruction has a variable
         number of qubit arguments.
         """
         if name not in self.basis:
-            self.basis[name] = (nq, nc, np)
+            self.basis[name] = (
+                number_qubits,
+                number_classical,
+                number_parameters)
         if name in self.gates:
-            if self.gates[name]["n_args"] != np or \
-              self.gates[name]["n_bits"] != nq or nc != 0:
+            if self.gates[name]["n_args"] != number_parameters or \
+                    self.gates[name]["n_bits"] != number_qubits or number_classical != 0:
                 raise CircuitError("gate data does not match "
                                    + "basis element specification")
 
@@ -215,8 +221,8 @@ class Circuit:
             self.gates[name] = gatedata
             if name in self.basis:
                 if self.basis[name][0] != self.gates[name]["n_bits"] or \
-                  self.basis[name][1] != 0 or \
-                  self.basis[name][2] != self.gates[name]["n_args"]:
+                        self.basis[name][1] != 0 or \
+                        self.basis[name][2] != self.gates[name]["n_args"]:
                     raise CircuitError("gate data does not match "
                                        + "basis element specification")
 
@@ -300,14 +306,14 @@ class Circuit:
         """
         # Add a new operation node to the graph
         self.node_counter += 1
-        self.G.add_node(self.node_counter)
+        self.multi_graph.add_node(self.node_counter)
         # Update that operation node's data
-        self.G.node[self.node_counter]["type"] = "op"
-        self.G.node[self.node_counter]["name"] = nname
-        self.G.node[self.node_counter]["qargs"] = nqargs
-        self.G.node[self.node_counter]["cargs"] = ncargs
-        self.G.node[self.node_counter]["params"] = nparams
-        self.G.node[self.node_counter]["condition"] = ncondition
+        self.multi_graph.node[self.node_counter]["type"] = "op"
+        self.multi_graph.node[self.node_counter]["name"] = nname
+        self.multi_graph.node[self.node_counter]["qargs"] = nqargs
+        self.multi_graph.node[self.node_counter]["cargs"] = ncargs
+        self.multi_graph.node[self.node_counter]["params"] = nparams
+        self.multi_graph.node[self.node_counter]["condition"] = ncondition
 
     def apply_operation_back(self, name, qargs, cargs=[], params=[],
                              condition=None):
@@ -334,11 +340,12 @@ class Circuit:
         # and adding new edges from the operation node to each output node
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
-            ie = self.G.predecessors(self.output_map[q])
+            ie = self.multi_graph.predecessors(self.output_map[q])
             assert len(ie) == 1, "output node has multiple in-edges"
-            self.G.add_edge(ie[0], self.node_counter, name=q)
-            self.G.remove_edge(ie[0], self.output_map[q])
-            self.G.add_edge(self.node_counter, self.output_map[q], name=q)
+            self.multi_graph.add_edge(ie[0], self.node_counter, name=q)
+            self.multi_graph.remove_edge(ie[0], self.output_map[q])
+            self.multi_graph.add_edge(
+                self.node_counter, self.output_map[q], name=q)
 
     def apply_operation_front(self, name, qargs, cargs=[], params=[],
                               condition=None):
@@ -365,11 +372,12 @@ class Circuit:
         # and adding new edges to the operation node from each input node
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
-            ie = self.G.successors(self.input_map[q])
+            ie = self.multi_graph.successors(self.input_map[q])
             assert len(ie) == 1, "input node has multiple out-edges"
-            self.G.add_edge(self.node_counter, ie[0], name=q)
-            self.G.remove_edge(self.input_map[q], ie[0])
-            self.G.add_edge(self.input_map[q], self.node_counter, name=q)
+            self.multi_graph.add_edge(self.node_counter, ie[0], name=q)
+            self.multi_graph.remove_edge(self.input_map[q], ie[0])
+            self.multi_graph.add_edge(
+                self.input_map[q], self.node_counter, name=q)
 
     def _make_union_basis(self, input_circuit):
         """Return a new basis map.
@@ -455,11 +463,11 @@ class Circuit:
                     # (k,0) exists in wire_map because wire_map doesn't
                     # fragment k
                     if not wire_map[(k, 0)][0] in valregs:
-                        sz = max(map(lambda x: x[1],
-                                     filter(lambda x: x[0]
-                                            == wire_map[(k, 0)][0],
-                                            wire_map.values())))
-                        add_regs.add((wire_map[(k, 0)][0], sz+1))
+                        size = max(map(lambda x: x[1],
+                                       filter(lambda x: x[0]
+                                              == wire_map[(k, 0)][0],
+                                              wire_map.values())))
+                        add_regs.add((wire_map[(k, 0)][0], size + 1))
         return add_regs
 
     def _check_wiremap_validity(self, wire_map, keymap, valmap, input_circuit):
@@ -521,14 +529,14 @@ class Circuit:
         add_qregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
-        for r in add_qregs:
-            self.add_qreg(r[0], r[1])
+        for register in add_qregs:
+            self.add_qreg(register[0], register[1])
 
         add_cregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
-        for r in add_cregs:
-            self.add_creg(r[0], r[1])
+        for register in add_cregs:
+            self.add_creg(register[0], register[1])
 
         self._check_wiremap_validity(wire_map, input_circuit.input_map,
                                      self.output_map, input_circuit)
@@ -536,18 +544,18 @@ class Circuit:
         # Compose
         self.basis = union_basis
         self.gates = union_gates
-        ts = nx.topological_sort(input_circuit.G)
-        for n in ts:
-            nd = input_circuit.G.node[n]
+        topological_sort = nx.topological_sort(input_circuit.multi_graph)
+        for node in topological_sort:
+            nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "in":
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
                 assert m_name in self.output_map, \
-                 "wire (%s,%d) not in self" % (m_name[0], m_name[1])
+                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
                 assert nd["name"] in input_circuit.wire_type, \
-                 "inconsistent wire_type for (%s,%d) in input_circuit" \
-                 % (nd["name"][0], nd["name"][1])
+                    "inconsistent wire_type for (%s,%d) in input_circuit" \
+                    % (nd["name"][0], nd["name"][1])
             elif nd["type"] == "out":
                 # ignore output nodes
                 pass
@@ -594,18 +602,18 @@ class Circuit:
         # Compose
         self.basis = union_basis
         self.gates = union_gates
-        ts = nx.topological_sort(input_circuit.G, reverse=True)
+        ts = nx.topological_sort(input_circuit.multi_graph, reverse=True)
         for n in ts:
-            nd = input_circuit.G.node[n]
+            nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "out":
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
                 assert m_name in self.input_map, \
-                 "wire (%s,%d) not in self" % (m_name[0], m_name[1])
+                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
                 assert nd["name"] in input_circuit.wire_type, \
-                 "inconsistent wire_type for (%s,%d) in input_circuit" \
-                 % (nd["name"][0], nd["name"][1])
+                    "inconsistent wire_type for (%s,%d) in input_circuit" \
+                    % (nd["name"][0], nd["name"][1])
             elif nd["type"] == "in":
                 # ignore input nodes
                 pass
@@ -621,12 +629,12 @@ class Circuit:
 
     def size(self):
         """Return the number of operations."""
-        return self.G.order() - 2*len(self.wire_type)
+        return self.multi_graph.order() - 2 * len(self.wire_type)
 
     def depth(self):
         """Return the circuit depth."""
-        assert nx.is_directed_acyclic_graph(self.G), "not a DAG"
-        return nx.dag_longest_path_length(self.G)-1
+        assert nx.is_directed_acyclic_graph(self.multi_graph), "not a DAG"
+        return nx.dag_longest_path_length(self.multi_graph) - 1
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
@@ -638,7 +646,7 @@ class Circuit:
 
     def num_tensor_factors(self):
         """Compute how many components the circuit can decompose into."""
-        return nx.number_weakly_connected_components(self.G)
+        return nx.number_weakly_connected_components(self.multi_graph)
 
     def _gate_string(self, name):
         """Return a QASM string for the named gate."""
@@ -720,9 +728,9 @@ class Circuit:
                 out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
         if not decls_only:
-            ts = nx.topological_sort(self.G)
+            ts = nx.topological_sort(self.multi_graph)
             for n in ts:
-                nd = self.G.node[n]
+                nd = self.multi_graph.node[n]
                 if nd["type"] == "op":
                     if nd["condition"] is not None:
                         out += "if(%s==%d) " \
@@ -743,8 +751,8 @@ class Circuit:
                     else:
                         if nd["name"] == "measure":
                             assert len(nd["cargs"]) == 1 and \
-                                   len(nd["qargs"]) == 1 and \
-                                   len(nd["params"]) == 0, "bad node data"
+                                len(nd["qargs"]) == 1 and \
+                                len(nd["params"]) == 0, "bad node data"
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
                             if aliases:
@@ -787,12 +795,12 @@ class Circuit:
         """Return predecessor and successor dictionaries.
 
         These map from wire names to predecessor and successor
-        nodes for the operation node n in self.G.
+        nodes for the operation node n in self.multi_graph.
         """
         pred_map = {e[2]['name']: e[0] for e in
-                    self.G.in_edges_iter(nbunch=n, data=True)}
+                    self.multi_graph.in_edges_iter(nbunch=n, data=True)}
         succ_map = {e[2]['name']: e[1] for e in
-                    self.G.out_edges_iter(nbunch=n, data=True)}
+                    self.multi_graph.out_edges_iter(nbunch=n, data=True)}
         return pred_map, succ_map
 
     def _full_pred_succ_maps(self, pred_map, succ_map, input_circuit,
@@ -819,9 +827,11 @@ class Circuit:
                 # Otherwise, use the corresponding output nodes of self
                 # and compute the predecessor.
                 full_succ_map[w] = self.output_map[w]
-                full_pred_map[w] = self.G.predecessors(self.output_map[w])[0]
-                assert len(self.G.predecessors(self.output_map[w])) == 1,\
-                 "too many predecessors for (%s,%d) output node" % (w[0], w[1])
+                full_pred_map[w] = self.multi_graph.predecessors(self.output_map[w])[
+                    0]
+                assert len(self.multi_graph.predecessors(self.output_map[w])) == 1,\
+                    "too many predecessors for (%s,%d) output node" % (
+                        w[0], w[1])
         return full_pred_map, full_succ_map
 
     def substitute_circuit_all(self, name, input_circuit, wires=[]):
@@ -857,14 +867,14 @@ class Circuit:
         #       that we add from the input_circuit.
         self.basis = union_basis
         self.gates = union_gates
-        ts = nx.topological_sort(self.G)
+        ts = nx.topological_sort(self.multi_graph)
         for n in ts:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["name"] == name:
                 if nd["condition"] is None:
                     wire_map = {k: v for k, v in zip(wires,
-                                [i for s in [nd["qargs"], nd["cargs"]]
-                                 for i in s])}
+                                                     [i for s in [nd["qargs"], nd["cargs"]]
+                                                      for i in s])}
                     self._check_wiremap_validity(wire_map, wires,
                                                  self.input_map, input_circuit)
                     pred_map, succ_map = self._make_pred_succ_maps(n)
@@ -872,11 +882,11 @@ class Circuit:
                         self._full_pred_succ_maps(pred_map, succ_map,
                                                   input_circuit, wire_map)
                     # Now that we know the connections, delete node
-                    self.G.remove_node(n)
+                    self.multi_graph.remove_node(n)
                     # Iterate over nodes of input_circuit
-                    tsin = nx.topological_sort(input_circuit.G)
+                    tsin = nx.topological_sort(input_circuit.multi_graph)
                     for m in tsin:
-                        md = input_circuit.G.node[m]
+                        md = input_circuit.multi_graph.node[m]
                         if md["type"] == "op":
                             # Insert a new node
                             condition = self._map_condition(wire_map,
@@ -893,31 +903,33 @@ class Circuit:
                             all_cbits.extend(m_cargs)
                             al = [m_qargs, all_cbits]
                             for q in itertools.chain(*al):
-                                self.G.add_edge(full_pred_map[q],
-                                                self.node_counter, name=q)
+                                self.multi_graph.add_edge(full_pred_map[q],
+                                                          self.node_counter, name=q)
                                 full_pred_map[q] = copy.copy(self.node_counter)
                     # Connect all predecessors and successors, and remove
                     # residual edges between input and output nodes
                     for w in full_pred_map.keys():
-                        self.G.add_edge(full_pred_map[w], full_succ_map[w],
-                                        name=w)
-                        o_pred = self.G.predecessors(self.output_map[w])
+                        self.multi_graph.add_edge(full_pred_map[w], full_succ_map[w],
+                                                  name=w)
+                        o_pred = self.multi_graph.predecessors(
+                            self.output_map[w])
                         if len(o_pred) > 1:
                             assert len(o_pred) == 2, \
-                                   "expected 2 predecessors here"
+                                "expected 2 predecessors here"
                             p = list(filter(lambda x: x != full_pred_map[w],
                                             o_pred))
                             assert len(p) == 1, \
-                                   "expected 1 predecessor to pass filter"
-                            self.G.remove_edge(p[0], self.output_map[w])
+                                "expected 1 predecessor to pass filter"
+                            self.multi_graph.remove_edge(
+                                p[0], self.output_map[w])
 
     def substitute_circuit_one(self, node, input_circuit, wires=[]):
         """Replace one node with input_circuit.
 
-        node is a reference to a node of self.G of type "op"
+        node is a reference to a node of self.multi_graph of type "op"
         input_circuit is a CircuitGraph
         """
-        nd = self.G.node[node]
+        nd = self.multi_graph.node[node]
 
         # TODO: reuse common code in substitute_circuit_one and _all
 
@@ -965,11 +977,11 @@ class Circuit:
                 self._full_pred_succ_maps(pred_map, succ_map,
                                           input_circuit, wire_map)
             # Now that we know the connections, delete node
-            self.G.remove_node(node)
+            self.multi_graph.remove_node(node)
             # Iterate over nodes of input_circuit
-            tsin = nx.topological_sort(input_circuit.G)
+            tsin = nx.topological_sort(input_circuit.multi_graph)
             for m in tsin:
-                md = input_circuit.G.node[m]
+                md = input_circuit.multi_graph.node[m]
                 if md["type"] == "op":
                     # Insert a new node
                     condition = self._map_condition(wire_map, md["condition"])
@@ -985,19 +997,20 @@ class Circuit:
                     all_cbits.extend(m_cargs)
                     al = [m_qargs, all_cbits]
                     for q in itertools.chain(*al):
-                        self.G.add_edge(full_pred_map[q], self.node_counter,
-                                        name=q)
+                        self.multi_graph.add_edge(full_pred_map[q], self.node_counter,
+                                                  name=q)
                         full_pred_map[q] = copy.copy(self.node_counter)
             # Connect all predecessors and successors, and remove
             # residual edges between input and output nodes
             for w in full_pred_map.keys():
-                self.G.add_edge(full_pred_map[w], full_succ_map[w], name=w)
-                o_pred = self.G.predecessors(self.output_map[w])
+                self.multi_graph.add_edge(
+                    full_pred_map[w], full_succ_map[w], name=w)
+                o_pred = self.multi_graph.predecessors(self.output_map[w])
                 if len(o_pred) > 1:
                     assert len(o_pred) == 2, "expected 2 predecessors here"
                     p = list(filter(lambda x: x != full_pred_map[w], o_pred))
                     assert len(p) == 1, "expected 1 predecessor to pass filter"
-                    self.G.remove_edge(p[0], self.output_map[w])
+                    self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_named_nodes(self, name):
         """Return a list of "op" nodes with the given name."""
@@ -1007,9 +1020,9 @@ class Circuit:
                                % name)
 
         # Iterate through the nodes of self in topological order
-        ts = nx.topological_sort(self.G)
+        ts = nx.topological_sort(self.multi_graph)
         for n in ts:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["name"] == name:
                 nlist.append(n)
         return nlist
@@ -1020,43 +1033,43 @@ class Circuit:
         Add edges from predecessors to successors.
         """
         pred_map, succ_map = self._make_pred_succ_maps(n)
-        self.G.remove_node(n)
+        self.multi_graph.remove_node(n)
         for w in pred_map.keys():
-            self.G.add_edge(pred_map[w], succ_map[w], name=w)
+            self.multi_graph.add_edge(pred_map[w], succ_map[w], name=w)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
-        anc = nx.ancestors(self.G, node)
+        anc = nx.ancestors(self.multi_graph, node)
         # TODO: probably better to do all at once using
-        # G.remove_nodes_from; same for related functions ...
+        # multi_graph.remove_nodes_from; same for related functions ...
         for n in anc:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
     def remove_descendants_of(self, node):
         """Remove all of the descendant operation nodes of node."""
-        dec = nx.descendants(self.G, node)
+        dec = nx.descendants(self.multi_graph, node)
         for n in dec:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
     def remove_nonancestors_of(self, node):
         """Remove all of the non-ancestors operation nodes of node."""
-        anc = nx.ancestors(self.G, node)
-        comp = list(set(self.G.nodes()) - set(anc))
+        anc = nx.ancestors(self.multi_graph, node)
+        comp = list(set(self.multi_graph.nodes()) - set(anc))
         for n in comp:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
     def remove_nondescendants_of(self, node):
         """Remove all of the non-descendants operation nodes of node."""
-        dec = nx.descendants(self.G, node)
-        comp = list(set(self.G.nodes()) - set(dec))
+        dec = nx.descendants(self.multi_graph, node)
+        comp = list(set(self.multi_graph.nodes()) - set(dec))
         for n in comp:
-            nd = self.G.node[n]
+            nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
@@ -1070,8 +1083,9 @@ class Circuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
+
         TODO: Gates that use the same cbits will end up in different
-        layers as this is currently implemented. This is may not be
+        layers as this is currently implemented. This may not be
         the desired behavior.
         """
         layers_list = []
@@ -1102,11 +1116,11 @@ class Circuit:
             emit = False
             for w in wires_loop:
                 oe = list(filter(lambda x: x[2]["name"] == w,
-                                 self.G.out_edges(nbunch=[node_map[w]],
-                                                  data=True)))
+                                 self.multi_graph.out_edges(nbunch=[node_map[w]],
+                                                            data=True)))
                 assert len(oe) == 1, "should only be one out-edge per (qu)bit"
                 nxt_nd_idx = oe[0][1]
-                nxt_nd = self.G.node[nxt_nd_idx]
+                nxt_nd = self.multi_graph.node[nxt_nd_idx]
                 # If we reach an output node, we are done with this wire.
                 if nxt_nd["type"] == "out":
                     wires_with_ops_remaining.remove(w)
@@ -1155,9 +1169,9 @@ class Circuit:
         same structure as in layers().
         """
         layers_list = []
-        ts = nx.topological_sort(self.G)
+        ts = nx.topological_sort(self.multi_graph)
         for n in ts:
-            nxt_nd = self.G.node[n]
+            nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = Circuit()
                 for k, v in self.qregs.items():
@@ -1184,3 +1198,66 @@ class Circuit:
                 l_dict = {"graph": new_layer, "partition": support_list}
                 layers_list.append(l_dict)
         return layers_list
+
+    def collect_runs(self, namelist):
+        """Return a set of runs of "op" nodes with the given names.
+
+        For example, "... h q[0]; cx q[0],q[1]; cx q[0],q[1]; h q[1]; .."
+        would produce the tuple of cx nodes as an element of the set returned
+        from a call to collect_runs(["cx"]). If instead the cx nodes were
+        "cx q[0],q[1]; cx q[1],q[0];", the method would still return the
+        pair in a tuple. The namelist can contain names that are not
+        in the circuit's basis.
+
+        Nodes must have only one successor to continue the run.
+        """
+        group_list = []
+
+        # Iterate through the nodes of self in topological order
+        # and form tuples containing sequences of gates
+        # on the same qubit(s).
+        ts = nx.topological_sort(self.multi_graph)
+        nodes_seen = dict(zip(ts, [False] * len(ts)))
+        for node in ts:
+            nd = self.multi_graph.node[node]
+            if nd["type"] == "op" and nd["name"] in namelist \
+               and not nodes_seen[node]:
+                group = [node]
+                nodes_seen[node] = True
+                s = self.multi_graph.successors(node)
+                while len(s) == 1 and \
+                        self.multi_graph.node[s[0]]["type"] == "op" and \
+                        self.multi_graph.node[s[0]]["name"] in namelist:
+                    group.append(s[0])
+                    nodes_seen[s[0]] = True
+                    s = self.multi_graph.successors(s[0])
+                if len(group) > 1:
+                    group_list.append(tuple(group))
+        return set(group_list)
+
+    def count_ops(self):
+        """Count the occurrences of operation names.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        ts = nx.topological_sort(self.multi_graph)
+        for node in ts:
+            nd = self.multi_graph.node[node]
+            name = nd["name"]
+            if nd["type"] == "op":
+                if name not in op_dict:
+                    op_dict[name] = 1
+                else:
+                    op_dict[name] += 1
+        return op_dict
+
+    def property_summary(self):
+        """Return a dictionary of circuit properties."""
+        summary = {"size": self.size(),
+                   "depth": self.depth(),
+                   "width": self.width(),
+                   "bits": self.num_cbits(),
+                   "factors": self.num_tensor_factors(),
+                   "operations": self.count_ops()}
+        return summary

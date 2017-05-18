@@ -36,7 +36,7 @@ def iden(self, q):
     """Apply Identity to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.iden((q, j)))
         return gs
     else:

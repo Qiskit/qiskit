@@ -27,21 +27,21 @@ class YGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
+    def reapply(self, circuit):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.y(self.arg[0]))
+        self._modifiers(circuit.y(self.arg[0]))
 
 
-def y(self, q):
+def y(self, quantum_register):
     """Apply Y to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.y((q, j)))
-        return gs
+    if isinstance(quantum_register, QuantumRegister):
+        intructions = InstructionSet()
+        for register in range(quantum_register.size):
+            intructions.add(self.y((quantum_register, register)))
+        return intructions
     else:
-        self._check_qubit(q)
-        return self._attach(YGate(q, self))
+        self._check_qubit(quantum_register)
+        return self._attach(YGate(quantum_register, self))
 
 
 QuantumCircuit.y = y

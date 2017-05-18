@@ -10,7 +10,7 @@ from ._qiskitexception import QISKitException
 class CompositeGate(Gate):
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, param, arg, circ=None):
+    def __init__(self, name, param, args, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
@@ -18,43 +18,44 @@ class CompositeGate(Gate):
         arg = list of pairs (Register, index)
         circ = QuantumCircuit or CompositeGate containing this gate
         """
-        super(Gate, self).__init__(name, param, arg, circ)
+        super().__init__(name, param, args, circuit)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
 
-    def has_register(self, r):
+    def has_register(self, register):
         """Test if this gate's circuit has the register r."""
         self.check_circuit()
-        return self.circuit.has_register(r)
+        return self.circuit.has_register(register)
 
-    def _modifiers(self, g):
+    def _modifiers(self, gate):
         """Apply any modifiers of this gate to another composite g."""
         if self.inverse_flag:
-            g.inverse()
-        super(Gate, self)._modifiers(g)
+            gate.inverse()
+        super()._modifiers(gate)
 
-    def _attach(self, g):
+    def _attach(self, gate):
         """Attach a gate."""
-        self.data.append(g)
-        return g
+        self.data.append(gate)
+        return gate
 
-    def _check_qubit(self, q):
+    def _check_qubit(self, qubit):
         """Raise exception if q is not an argument or not qreg in circuit."""
         self.check_circuit()
-        self.circuit._check_qubit(q)
-        if (q[0].name, q[1]) not in map(lambda x: (x[0].name, x[1]), self.arg):
+        self.circuit._check_qubit(qubit)
+        if (qubit[0].name, qubit[1]) not in map(
+                lambda x: (x[0].name, x[1]), self.arg):
             raise QISKitException("qubit '%s[%d]' not argument of gate"
-                                  % (q[0].name, q[1]))
+                                  % (qubit[0].name, qubit[1]))
 
-    def _check_qreg(self, r):
-        """Raise exception if r is not in this gate's circuit."""
+    def _check_qreg(self, register):
+        """Raise exception if quantum register is not in this gate's circuit."""
         self.check_circuit()
-        self.circuit._check_qreg(r)
+        self.circuit._check_qreg(register)
 
-    def _check_creg(self, r):
-        """Raise exception if r is not in this gate's circuit."""
+    def _check_creg(self, register):
+        """Raise exception if classical register is not in this gate's circuit."""
         self.check_circuit()
-        self.circuit._check_creg(r)
+        self.circuit._check_creg(register)
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
@@ -68,16 +69,16 @@ class CompositeGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.seq = [g.inverse() for g in reversed(self.data)]
+        self.data = [gate.inverse() for gate in reversed(self.data)]
         self.inverse_flag = not self.inverse_flag
         return self
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
-        self.seq = [g.q_if(qregs) for g in self.data]
+        self.data = [gate.q_if(qregs) for gate in self.data]
         return self
 
     def c_if(self, c, val):
         """Add classical control register."""
-        self.seq = [g.c_if(c, val) for g in self.data]
+        self.data = [gate.c_if(c, val) for gate in self.data]
         return self

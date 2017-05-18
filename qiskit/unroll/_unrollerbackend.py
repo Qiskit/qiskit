@@ -12,11 +12,13 @@ class UnrollerBackend(object):
     This backend also serves as a base class for other unroller backends.
     """
 
-    def __init__(self, basis=[]):
+    def __init__(self, basis=None):
         """Setup this backend.
 
         basis is a list of operation name strings.
         """
+        if basis:
+            basis = []
         raise BackendException("Backend __init__ unimplemented")
 
     def set_basis(self, basis):
@@ -26,14 +28,14 @@ class UnrollerBackend(object):
         """
         raise BackendException("Backend set_basis unimplemented")
 
-    def version(self, v):
+    def version(self, version):
         """Print the version string.
 
         v is a version number.
         """
         raise BackendException("Backend version unimplemented")
 
-    def new_qreg(self, name, sz):
+    def new_qreg(self, name, size):
         """Create a new quantum register.
 
         name = name of the register
@@ -41,7 +43,7 @@ class UnrollerBackend(object):
         """
         raise BackendException("Backend new_qreg unimplemented")
 
-    def new_creg(self, name, sz):
+    def new_creg(self, name, size):
         """Create a new classical register.
 
         name = name of the register

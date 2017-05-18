@@ -22,7 +22,7 @@ class QasmParser(object):
         # For yacc, also, write_tables = Bool and optimize = Bool
         self.parser = yacc.yacc(module=self, debug=False)
         self.qasm = None
-        self.parseDeb = False
+        self.parse_deb = False
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
@@ -65,10 +65,10 @@ class QasmParser(object):
     def verify_bit_list(self, obj):
         """Verify each qubit in a list of ids."""
         # We expect the object to be a bitlist or an idlist, we don't care.
-        # We will iterate it and insure everything in it is declared as a bit,
+        # We will iterate it and ensure everything in it is declared as a bit,
         # and throw if not.
-        for b in obj.children:
-            self.verify_declared_bit(b)
+        for children in obj.children:
+            self.verify_declared_bit(children)
 
     def verify_exp_list(self, obj):
         """Verify each expression in a list."""
@@ -78,86 +78,86 @@ class QasmParser(object):
         #
         # I believe we only have to look at the current symtab.
         if obj.children is not None:
-            for child in obj.children:
-                if isinstance(child, node.Id):
-                    if child.name in self.external_functions:
+            for children in obj.children:
+                if isinstance(children, node.Id):
+                    if children.name in self.external_functions:
                         continue
 
-                    if child.name not in self.current_symtab:
-                        raise QasmException("Argument '" + child.name
+                    if children.name not in self.current_symtab:
+                        raise QasmException("Argument '" + children.name
                                             + "' in expression cannot be "
-                                            + "found, line", str(child.line),
-                                            "file", child.file)
+                                            + "found, line", str(children.line),
+                                            "file", children.file)
                 else:
-                    if hasattr(child, "children"):
-                        self.verify_exp_list(child)
+                    if hasattr(children, "children"):
+                        self.verify_exp_list(children)
 
     def verify_as_gate(self, obj, bitlist, arglist=None):
         """Verify a user defined gate call."""
         if obj.name not in self.global_symtab:
             raise QasmException("Cannot find gate definition for '" + obj.name
                                 + "', line", str(obj.line), 'file', obj.file)
-        g = self.global_symtab[obj.name]
-        if not (g.type == 'gate' or g.type == 'opaque'):
+        g_sym = self.global_symtab[obj.name]
+        if not (g_sym.type == 'gate' or g_sym.type == 'opaque'):
             raise QasmException("'" + obj.name + "' is used as a gate "
                                 + "or opaque call but the symbol is neither;"
-                                + " it is a '" + g.type + "' line",
+                                + " it is a '" + g_sym.type + "' line",
                                 str(obj.line), 'file', obj.file)
 
-        if g.n_bits() != bitlist.size():
+        if g_sym.n_bits() != bitlist.size():
             raise QasmException("Gate or opaque call to '" + obj.name
                                 + "' uses", str(bitlist.size()),
                                 "qubits but is declared for",
-                                str(g.n_bits()), "qubits", "line",
+                                str(g_sym.n_bits()), "qubits", "line",
                                 str(obj.line), 'file', obj.file)
 
         if arglist:
-            if g.n_args() != arglist.size():
+            if g_sym.n_args() != arglist.size():
                 raise QasmException("Gate or opaque call to '" + obj.name
                                     + "' uses", str(arglist.size()),
                                     "qubits but is declared for",
-                                    str(g.n_args()), "qubits", "line",
+                                    str(g_sym.n_args()), "qubits", "line",
                                     str(obj.line), 'file', obj.file)
         else:
-            if g.n_args() > 0:
+            if g_sym.n_args() > 0:
                 raise QasmException("Gate or opaque call to '" + obj.name
                                     + "' has no arguments but is declared for",
-                                    str(g.n_args()), "qubits", "line",
+                                    str(g_sym.n_args()), "qubits", "line",
                                     str(obj.line), 'file', obj.file)
 
-    def verify_reg(self, obj, typ):
+    def verify_reg(self, obj, object_type):
         """Verify a register."""
         # How to verify:
         #    types must match
         #    indexes must be checked
         if obj.name not in self.global_symtab:
-            raise QasmException('Cannot find definition for', typ, "'"
+            raise QasmException('Cannot find definition for', object_type, "'"
                                 + obj.name + "'", 'at line', str(obj.line),
                                 'file', obj.file)
 
-        sym = self.global_symtab[obj.name]
+        g_sym = self.global_symtab[obj.name]
 
-        if sym.type != typ:
-            raise QasmException("Type for '" + sym.name + "' should be '"
-                                + typ + "' but was found to be '" + sym.type
+        if g_sym.type != object_type:
+            raise QasmException("Type for '" + g_sym.name + "' should be '"
+                                + object_type + "' but was found to be '" + g_sym.type
                                 + "'", "line", str(obj.line), "file", obj.file)
 
         if obj.type == 'indexed_id':
-            bound = sym.index
+            bound = g_sym.index
             ndx = obj.index
             if ndx < 0 or ndx >= bound:
-                raise QasmException("Register index for '" + sym.name
+                raise QasmException("Register index for '" + g_sym.name
                                     + "' out of bounds. Index is", str(ndx),
                                     "bound is 0 <= index <", str(bound),
                                     "at line", str(obj.line), "file", obj.file)
 
-    def verify_reg_list(self, obj, typ):
+    def verify_reg_list(self, obj, object_type):
         """Verify a list of registers."""
         # We expect the object to be a bitlist or an idlist, we don't care.
         # We will iterate it and ensure everything in it is declared as a bit,
         # and throw if not.
-        for b in obj.children:
-            self.verify_reg(b, typ)
+        for children in obj.children:
+            self.verify_reg(children, object_type)
 
     def pop_scope(self):
         """Return to the previous scope."""
@@ -171,35 +171,35 @@ class QasmParser(object):
     # ---- Begin the PLY parser ----
     start = 'main'
 
-    def p_main(self, p):
+    def p_main(self, program):
         '''
             main : program
         '''
-        self.qasm = p[1]
+        self.qasm = program[1]
 
     # ----------------------------------------
     #  program : statement
     #          | program statement
     # ----------------------------------------
-    def p_program_0(self, p):
+    def p_program_0(self, program):
         '''
            program : statement
         '''
-        p[0] = node.Program([p[1]])
+        program[0] = node.Program([program[1]])
 
-    def p_program_1(self, p):
+    def p_program_1(self, program):
         '''
            program : program statement
         '''
-        p[0] = p[1]
-        p[0].add_child(p[2])
+        program[0] = program[1]
+        program[0].add_child(program[2])
 
     # ----------------------------------------
     #  statement : decl
     #            | quantum_op ';'
     #            | magic ';'
     # ----------------------------------------
-    def p_statement(self, p):
+    def p_statement(self, program):
         '''
            statement : decl
                      | quantum_op ';'
@@ -208,19 +208,19 @@ class QasmParser(object):
                      | quantum_op error
                      | magic error
         '''
-        if len(p) > 2:
-            if p[2] != ';':
+        if len(program) > 2:
+            if program[2] != ';':
                 raise QasmException("Missing ';' at end of statement; "
-                                    + "received", str(p[2].value))
-        p[0] = p[1]
+                                    + "received", str(program[2].value))
+        program[0] = program[1]
 
-    def p_magic(self, p):
+    def p_magic(self, program):
         '''
            magic : MAGIC REAL
         '''
-        p[0] = node.Magic([p[2]])
+        program[0] = node.Magic([program[2]])
 
-    def p_magic_0(self, p):
+    def p_magic_0(self, program):
         '''
            magic : MAGIC error
         '''
@@ -231,127 +231,127 @@ class QasmParser(object):
     # ----------------------------------------
     #  id : ID
     # ----------------------------------------
-    def p_id(self, p):
+    def p_id(self, program):
         '''
            id : ID
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_id_e(self, p):
+    def p_id_e(self, program):
         '''
            id : error
         '''
         raise QasmException("Expected an ID, received '"
-                            + str(p[1].value) + "'")
+                            + str(program[1].value) + "'")
 
     # ----------------------------------------
     #  indexed_id : ID [ int ]
     # ----------------------------------------
-    def p_indexed_id(self, p):
+    def p_indexed_id(self, program):
         '''
            indexed_id : id '[' NNINTEGER ']'
                       | id '[' NNINTEGER error
                       | id '[' error
         '''
-        if len(p) == 4:
+        if len(program) == 4:
             raise QasmException("Expecting an integer index; received",
-                                str(p[3].value))
-        if p[4] != ']':
+                                str(program[3].value))
+        if program[4] != ']':
             raise QasmException("Missing ']' in indexed ID; received",
-                                str(p[4].value))
-        p[0] = node.IndexedId([p[1], p[3]])
+                                str(program[4].value))
+        program[0] = node.IndexedId([program[1], program[3]])
 
     # ----------------------------------------
     #  primary : id
     #          | indexed_id
     # ----------------------------------------
-    def p_primary(self, p):
+    def p_primary(self, program):
         '''
            primary : id
                    | indexed_id
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
     # ----------------------------------------
     #  id_list : id
     #          | id_list ',' id
     # ----------------------------------------
-    def p_id_list_0(self, p):
+    def p_id_list_0(self, program):
         '''
            id_list : id
         '''
-        p[0] = node.IdList([p[1]])
+        program[0] = node.IdList([program[1]])
 
-    def p_id_list_1(self, p):
+    def p_id_list_1(self, program):
         '''
            id_list : id_list ',' id
         '''
-        p[0] = p[1]
-        p[0].add_child(p[3])
+        program[0] = program[1]
+        program[0].add_child(program[3])
 
     # ----------------------------------------
     #  gate_id_list : id
     #               | gate_id_list ',' id
     # ----------------------------------------
-    def p_gate_id_list_0(self, p):
+    def p_gate_id_list_0(self, program):
         '''
            gate_id_list : id
         '''
-        p[0] = node.IdList([p[1]])
-        self.update_symtab(p[1])
+        program[0] = node.IdList([program[1]])
+        self.update_symtab(program[1])
 
-    def p_gate_id_list_1(self, p):
+    def p_gate_id_list_1(self, program):
         '''
            gate_id_list : gate_id_list ',' id
         '''
-        p[0] = p[1]
-        p[0].add_child(p[3])
-        self.update_symtab(p[3])
+        program[0] = program[1]
+        program[0].add_child(program[3])
+        self.update_symtab(program[3])
 
     # ----------------------------------------
     #  bit_list : bit
     #           | bit_list ',' bit
     # ----------------------------------------
-    def p_bit_list_0(self, p):
+    def p_bit_list_0(self, program):
         '''
            bit_list : id
         '''
-        p[0] = node.IdList([p[1]])
-        p[1].is_bit = True
-        self.update_symtab(p[1])
+        program[0] = node.IdList([program[1]])
+        program[1].is_bit = True
+        self.update_symtab(program[1])
 
-    def p_bit_list_1(self, p):
+    def p_bit_list_1(self, program):
         '''
            bit_list : bit_list ',' id
         '''
-        p[0] = p[1]
-        p[0].add_child(p[3])
-        p[3].is_bit = True
-        self.update_symtab(p[3])
+        program[0] = program[1]
+        program[0].add_child(program[3])
+        program[3].is_bit = True
+        self.update_symtab(program[3])
 
     # ----------------------------------------
     #  primary_list : primary
     #               | primary_list ',' primary
     # ----------------------------------------
-    def p_primary_list_0(self, p):
+    def p_primary_list_0(self, program):
         '''
            primary_list : primary
         '''
-        p[0] = node.PrimaryList([p[1]])
+        program[0] = node.PrimaryList([program[1]])
 
-    def p_primary_list_1(self, p):
+    def p_primary_list_1(self, program):
         '''
            primary_list : primary_list ',' primary
         '''
-        p[0] = p[1]
-        p[1].add_child(p[3])
+        program[0] = program[1]
+        program[1].add_child(program[3])
 
     # ----------------------------------------
     #  decl : qreg_decl
     #       | creg_decl
     #       | gate_decl
     # ----------------------------------------
-    def p_decl(self, p):
+    def p_decl(self, program):
         '''
            decl : qreg_decl ';'
                 | creg_decl ';'
@@ -359,55 +359,55 @@ class QasmParser(object):
                 | creg_decl error
                 | gate_decl
         '''
-        if len(p) > 2:
-            if p[2] != ';':
+        if len(program) > 2:
+            if program[2] != ';':
                 raise QasmException("Missing ';' in qreg or creg declaraton."
-                                    + " Instead received '" + p[2].value + "'")
-        p[0] = p[1]
+                                    + " Instead received '" + program[2].value + "'")
+        program[0] = program[1]
 
     # ----------------------------------------
     #  qreg_decl : QREG indexed_id
     # ----------------------------------------
-    def p_qreg_decl(self, p):
+    def p_qreg_decl(self, program):
         '''
            qreg_decl : QREG indexed_id
         '''
-        p[0] = node.Qreg([p[2]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Qreg([program[2]])
+        if program[2].name in self.external_functions:
             raise QasmException("QREG names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
-        if p[2].index == 0:
+                                + "Received '" + program[2].name + "'")
+        if program[2].index == 0:
             raise QasmException("QREG size must be positive")
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_qreg_decl_e(self, p):
+    def p_qreg_decl_e(self, program):
         '''
            qreg_decl : QREG error
         '''
         raise QasmException("Expecting indexed id (ID[int]) in QREG"
-                            + " declaration; received", p[2].value)
+                            + " declaration; received", program[2].value)
 
     # ----------------------------------------
     #  creg_decl : QREG indexed_id
     # ----------------------------------------
-    def p_creg_decl(self, p):
+    def p_creg_decl(self, program):
         '''
            creg_decl : CREG indexed_id
         '''
-        p[0] = node.Creg([p[2]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Creg([program[2]])
+        if program[2].name in self.external_functions:
             raise QasmException("CREG names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
-        if p[2].index == 0:
+                                + "Received '" + program[2].name + "'")
+        if program[2].index == 0:
             raise QasmException("CREG size must be positive")
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_creg_decl_e(self, p):
+    def p_creg_decl_e(self, program):
         '''
            creg_decl : CREG error
         '''
         raise QasmException("Expecting indexed id (ID[int]) in CREG"
-                            + " declaration; received", p[2].value)
+                            + " declaration; received", program[2].value)
 
     # Gate_body will throw if there are errors, so we don't need to cover
     # that here. Same with the id_lists - if they are not legal, we die
@@ -419,40 +419,41 @@ class QasmParser(object):
     #            | GATE id gate_scope '(' gate_id_list ')' bit_list gate_body
     #
     # ----------------------------------------
-    def p_gate_decl_0(self, p):
+    def p_gate_decl_0(self, program):
         '''
            gate_decl : GATE id gate_scope bit_list gate_body
         '''
-        p[0] = node.Gate([p[2], p[4], p[5]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Gate([program[2], program[4], program[5]])
+        if program[2].name in self.external_functions:
             raise QasmException("GATE names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
+                                + "Received '" + program[2].name + "'")
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_gate_decl_1(self, p):
+    def p_gate_decl_1(self, program):
         '''
            gate_decl : GATE id gate_scope '(' ')' bit_list gate_body
         '''
-        p[0] = node.Gate([p[2], p[6], p[7]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Gate([program[2], program[6], program[7]])
+        if program[2].name in self.external_functions:
             raise QasmException("GATE names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
+                                + "Received '" + program[2].name + "'")
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_gate_decl_2(self, p):
+    def p_gate_decl_2(self, program):
         '''
         gate_decl : GATE id gate_scope '(' gate_id_list ')' bit_list gate_body
         '''
-        p[0] = node.Gate([p[2], p[5], p[7], p[8]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Gate(
+            [program[2], program[5], program[7], program[8]])
+        if program[2].name in self.external_functions:
             raise QasmException("GATE names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
+                                + "Received '" + program[2].name + "'")
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_gate_scope(self, p):
+    def p_gate_scope(self, program):
         '''
            gate_scope :
         '''
@@ -468,20 +469,20 @@ class QasmParser(object):
     # Error handling: gete_op will throw if there's a problem so we won't
     #                 get here with in the gate_op_list
     # ----------------------------------------
-    def p_gate_body_0(self, p):
+    def p_gate_body_0(self, program):
         '''
            gate_body : '{' '}'
         '''
-        if p[2] != '}':
+        if program[2] != '}':
             raise QasmException("Missing '}' in gate definition; received'"
-                                + str(p[2].value) + "'")
-        p[0] = node.GateBody(None)
+                                + str(program[2].value) + "'")
+        program[0] = node.GateBody(None)
 
-    def p_gate_body_1(self, p):
+    def p_gate_body_1(self, program):
         '''
            gate_body : '{' gate_op_list '}'
         '''
-        p[0] = node.GateBody(p[2])
+        program[0] = node.GateBody(program[2])
 
     # ----------------------------------------
     #  gate_op_list : gate_op
@@ -490,18 +491,18 @@ class QasmParser(object):
     # Error handling: gete_op will throw if there's a problem so we won't
     #                 get here with errors
     # ----------------------------------------
-    def p_gate_op_list_0(self, p):
+    def p_gate_op_list_0(self, program):
         '''
             gate_op_list : gate_op
         '''
-        p[0] = [p[1]]
+        program[0] = [program[1]]
 
-    def p_gate_op_list_1(self, p):
+    def p_gate_op_list_1(self, program):
         '''
             gate_op_list : gate_op_list gate_op
         '''
-        p[0] = p[1]
-        p[0].append(p[2])
+        program[0] = program[1]
+        program[0].append(program[2])
 
     # ----------------------------------------
     # These are for use outside of gate_bodies and allow
@@ -516,49 +517,49 @@ class QasmParser(object):
     # Note that it might not be unitary - this is the mechanism that
     # is also used to invoke calls to 'opaque'
     # ----------------------------------------
-    def p_unitary_op_0(self, p):
+    def p_unitary_op_0(self, program):
         '''
           unitary_op : U '(' exp_list ')' primary
         '''
-        p[0] = node.UniversalUnitary([p[3], p[5]])
-        self.verify_reg(p[5], 'qreg')
-        self.verify_exp_list(p[3])
+        program[0] = node.UniversalUnitary([program[3], program[5]])
+        self.verify_reg(program[5], 'qreg')
+        self.verify_exp_list(program[3])
 
-    def p_unitary_op_1(self, p):
+    def p_unitary_op_1(self, program):
         '''
         unitary_op : CX primary ',' primary
         '''
-        p[0] = node.Cnot([p[2], p[4]])
-        self.verify_reg(p[2], 'qreg')
-        self.verify_reg(p[4], 'qreg')
+        program[0] = node.Cnot([program[2], program[4]])
+        self.verify_reg(program[2], 'qreg')
+        self.verify_reg(program[4], 'qreg')
         # TODO: check that p[2] and p[4] are distinct
 
-    def p_unitary_op_2(self, p):
+    def p_unitary_op_2(self, program):
         '''
         unitary_op : id primary_list
         '''
-        p[0] = node.CustomUnitary([p[1], p[2]])
-        self.verify_as_gate(p[1], p[2])
-        self.verify_reg_list(p[2], 'qreg')
+        program[0] = node.CustomUnitary([program[1], program[2]])
+        self.verify_as_gate(program[1], program[2])
+        self.verify_reg_list(program[2], 'qreg')
         # TODO: check that primary_list elements are distinct
 
-    def p_unitary_op_3(self, p):
+    def p_unitary_op_3(self, program):
         '''
         unitary_op : id '(' ')' primary_list
         '''
-        p[0] = node.CustomUnitary([p[1], p[4]])
-        self.verify_as_gate(p[1], p[4])
-        self.verify_reg_list(p[4], 'qreg')
+        program[0] = node.CustomUnitary([program[1], program[4]])
+        self.verify_as_gate(program[1], program[4])
+        self.verify_reg_list(program[4], 'qreg')
         # TODO: check that primary_list elements are distinct
 
-    def p_unitary_op_4(self, p):
+    def p_unitary_op_4(self, program):
         '''
         unitary_op : id '(' exp_list ')' primary_list
         '''
-        p[0] = node.CustomUnitary([p[1], p[3], p[5]])
-        self.verify_as_gate(p[1], p[5], arglist=p[3])
-        self.verify_reg_list(p[5], 'qreg')
-        self.verify_exp_list(p[3])
+        program[0] = node.CustomUnitary([program[1], program[3], program[5]])
+        self.verify_as_gate(program[1], program[5], arglist=program[3])
+        self.verify_reg_list(program[5], 'qreg')
+        self.verify_exp_list(program[3])
         # TODO: check that primary_list elements are distinct
 
     # ----------------------------------------
@@ -572,13 +573,13 @@ class QasmParser(object):
     #         | id '(' exp_list ')' id_list    ';'
     #         | BARRIER id_list                ';'
     # ----------------------------------------
-    def p_gate_op_0(self, p):
+    def p_gate_op_0(self, program):
         '''
         gate_op : U '(' exp_list ')' id ';'
         '''
-        p[0] = node.UniversalUnitary([p[3], p[5]])
-        self.verify_declared_bit(p[5])
-        self.verify_exp_list(p[3])
+        program[0] = node.UniversalUnitary([program[3], program[5]])
+        self.verify_declared_bit(program[5])
+        self.verify_exp_list(program[3])
 
     def p_gate_op_0e1(self, p):
         '''
@@ -587,97 +588,97 @@ class QasmParser(object):
         raise QasmException("Invalid U inside gate definition. "
                             + "Missing bit id or ';'")
 
-    def p_gate_op_0e2(self, p):
+    def p_gate_op_0e2(self, program):
         '''
         gate_op : U '(' exp_list error
         '''
         raise QasmException("Missing ')' in U invocation in gate definition.")
 
-    def p_gate_op_1(self, p):
+    def p_gate_op_1(self, program):
         '''
         gate_op : CX id ',' id ';'
         '''
-        p[0] = node.Cnot([p[2], p[4]])
-        self.verify_declared_bit(p[2])
-        self.verify_declared_bit(p[4])
+        program[0] = node.Cnot([program[2], program[4]])
+        self.verify_declared_bit(program[2])
+        self.verify_declared_bit(program[4])
         # TODO: check that p[2] and p[4] are distinct
 
-    def p_gate_op_1e1(self, p):
+    def p_gate_op_1e1(self, program):
         '''
         gate_op : CX error
         '''
         raise QasmException("Invalid CX inside gate definition. "
-                            + "Expected an ID or '.', received '"
-                            + str(p[2].value) + "'")
+                            + "Expected an ID or ',', received '"
+                            + str(program[2].value) + "'")
 
-    def p_gate_op_1e2(self, p):
+    def p_gate_op_1e2(self, program):
         '''
         gate_op : CX id ',' error
         '''
         raise QasmException("Invalid CX inside gate definition. "
                             + "Expected an ID or ';', received '"
-                            + str(p[4].value) + "'")
+                            + str(program[4].value) + "'")
 
-    def p_gate_op_2(self, p):
+    def p_gate_op_2(self, program):
         '''
         gate_op : id id_list ';'
         '''
-        p[0] = node.CustomUnitary([p[1], p[2]])
+        program[0] = node.CustomUnitary([program[1], program[2]])
         # To verify:
         # 1. id is declared as a gate in global scope
         # 2. everything in the id_list is declared as a bit in local scope
-        self.verify_as_gate(p[1], p[2])
-        self.verify_bit_list(p[2])
+        self.verify_as_gate(program[1], program[2])
+        self.verify_bit_list(program[2])
         # TODO: check that elements of id_list are distinct
 
-    def p_gate_op_2e(self, p):
+    def p_gate_op_2e(self, program):
         '''
         gate_op : id  id_list error
         '''
         raise QasmException("Invalid gate invocation inside gate definition.")
 
-    def p_gate_op_3(self, p):
+    def p_gate_op_3(self, program):
         '''
         gate_op : id '(' ')' id_list ';'
         '''
-        p[0] = node.CustomUnitary([p[1], p[4]])
-        self.verify_as_gate(p[1], p[4])
-        self.verify_bit_list(p[4])
+        program[0] = node.CustomUnitary([program[1], program[4]])
+        self.verify_as_gate(program[1], program[4])
+        self.verify_bit_list(program[4])
         # TODO: check that elements of id_list are distinct
 
-    def p_gate_op_4(self, p):
+    def p_gate_op_4(self, program):
         '''
         gate_op : id '(' exp_list ')' id_list ';'
         '''
-        p[0] = node.CustomUnitary([p[1], p[3], p[5]])
-        self.verify_as_gate(p[1], p[5], arglist=p[3])
-        self.verify_bit_list(p[5])
-        self.verify_exp_list(p[3])
+        program[0] = node.CustomUnitary([program[1], program[3], program[5]])
+        self.verify_as_gate(program[1], program[5], arglist=program[3])
+        self.verify_bit_list(program[5])
+        self.verify_exp_list(program[3])
         # TODO: check that elements of id_list are distinct
 
-    def p_gate_op_4e0(self, p):
+    def p_gate_op_4e0(self, program):
         '''
         gate_op : id '(' ')'  error
         '''
         raise QasmException("Invalid bit list inside gate definition or"
                             + " missing ';'")
 
-    def p_gate_op_4e1(self, p):
+    def p_gate_op_4e1(self, program):
         '''
         gate_op : id '('   error
         '''
         raise QasmException("Unmatched () for gate invocation inside gate"
                             + " invocation.")
 
-    def p_gate_op_5(self, p):
+    def p_gate_op_5(self, program):
         '''
         gate_op : BARRIER id_list ';'
         '''
-        p[0] = node.Barrier([p[2]])
-        self.verify_bit_list(p[2])
+        program[0] = node.Barrier([program[2]])
+        self.verify_bit_list(program[2])
         # TODO: check that elements of id_list are distinct
 
-    def p_gate_op_5e(self, p):
+    def p_gate_op_5e(self, program):
         '''
         gate_op : BARRIER error
         '''
@@ -690,37 +691,38 @@ class QasmParser(object):
     #
     # These are like gate declaratons only wihtout a body.
     # ----------------------------------------
-    def p_opaque_0(self, p):
+    def p_opaque_0(self, program):
         '''
            opaque : OPAQUE id gate_scope bit_list
         '''
-        p[0] = node.Opaque([p[2], p[4]])
-        if p[2].name in self.external_functions:
+        # TODO: Review Opaque function
+        program[0] = node.Opaque([program[2], program[4]])
+        if program[2].name in self.external_functions:
             raise QasmException("OPAQUE names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
+                                + "Received '" + program[2].name + "'")
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_opaque_1(self, p):
+    def p_opaque_1(self, program):
         '''
            opaque : OPAQUE id gate_scope '(' ')' bit_list
         '''
-        p[0] = node.Opaque([p[2], p[6]])
+        program[0] = node.Opaque([program[2], program[6]])
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_opaque_2(self, p):
+    def p_opaque_2(self, program):
         '''
            opaque : OPAQUE id gate_scope '(' gate_id_list ')' bit_list
         '''
-        p[0] = node.Opaque([p[2], p[5], p[7]])
-        if p[2].name in self.external_functions:
+        program[0] = node.Opaque([program[2], program[5], program[7]])
+        if program[2].name in self.external_functions:
             raise QasmException("OPAQUE names cannot be reserved words. "
-                                + "Received '" + p[2].name + "'")
+                                + "Received '" + program[2].name + "'")
         self.pop_scope()
-        self.update_symtab(p[0])
+        self.update_symtab(program[0])
 
-    def p_opaque_1e(self, p):
+    def p_opaque_1e(self, program):
         '''
            opaque : OPAQUE id gate_scope '(' error
         '''
@@ -729,48 +731,48 @@ class QasmParser(object):
     # ----------------------------------------
     # measure : MEASURE primary ASSIGN primary
     # ----------------------------------------
-    def p_measure(self, p):
+    def p_measure(self, program):
         '''
            measure : MEASURE primary ASSIGN primary
         '''
-        p[0] = node.Measure([p[2], p[4]])
-        self.verify_reg(p[2], 'qreg')
-        self.verify_reg(p[4], 'creg')
+        program[0] = node.Measure([program[2], program[4]])
+        self.verify_reg(program[2], 'qreg')
+        self.verify_reg(program[4], 'creg')
 
-    def p_measure_e(self, p):
-
+    def p_measure_e(self, program):
         '''
            measure : MEASURE primary error
         '''
-        raise QasmException("Illegal measure statement." + str(p[3].value))
+        raise QasmException("Illegal measure statement." +
+                            str(program[3].value))
 
     # ----------------------------------------
     # barrier : BARRIER primary_list
     #
     # Errors are covered by handling erros in primary_list
     # ----------------------------------------
-    def p_barrier(self, p):
+    def p_barrier(self, program):
         '''
         barrier : BARRIER primary_list
         '''
-        p[0] = node.Barrier([p[2]])
-        self.verify_reg_list(p[2], 'qreg')
+        program[0] = node.Barrier([program[2]])
+        self.verify_reg_list(program[2], 'qreg')
         # TODO: check that elements of primary_list are distinct
 
     # ----------------------------------------
     # reset : RESET primary
     # ----------------------------------------
-    def p_reset(self, p):
+    def p_reset(self, program):
         '''
         reset : RESET primary
         '''
-        p[0] = node.Reset([p[2]])
-        self.verify_reg(p[2], 'qreg')
+        program[0] = node.Reset([program[2]])
+        self.verify_reg(program[2], 'qreg')
 
     # ----------------------------------------
     # IF '(' ID MATCHES NNINTEGER ')' quantum_op
     # ----------------------------------------
-    def p_if(self, p):
+    def p_if(self, program):
         '''
         if : IF '(' id MATCHES NNINTEGER ')' quantum_op
         if : IF '(' id error
@@ -778,24 +780,24 @@ class QasmParser(object):
         if : IF '(' id MATCHES NNINTEGER error
         if : IF error
         '''
-        if len(p) == 3:
+        if len(program) == 3:
             raise QasmException("Ill-formed IF statement. Perhaps a"
                                 + " missing '('?")
-        if len(p) == 5:
+        if len(program) == 5:
             raise QasmException("Ill-formed IF statement.  Expected '==', "
-                                + "received '" + str(p[4].value))
-        if len(p) == 6:
+                                + "received '" + str(program[4].value))
+        if len(program) == 6:
             raise QasmException("Ill-formed IF statement.  Expected a number, "
-                                + "received '" + str(p[5].value))
-        if len(p) == 7:
+                                + "received '" + str(program[5].value))
+        if len(program) == 7:
             raise QasmException("Ill-formed IF statement, unmatched '('")
 
-        if p[7].type == 'if':
+        if program[7].type == 'if':
             raise QasmException("Nested IF statements not allowed")
-        if p[7].type == 'barrier':
+        if program[7].type == 'barrier':
             raise QasmException("barrier not permitted in IF statement")
 
-        p[0] = node.If([p[3], p[5], p[7]])
+        program[0] = node.If([program[3], program[5], program[7]])
 
     # ----------------------------------------
     # These are all the things you can have outside of a gate declaration
@@ -807,7 +809,7 @@ class QasmParser(object):
     #                   | if
     #
     # ----------------------------------------
-    def p_quantum_op(self, p):
+    def p_quantum_op(self, program):
         '''
             quantum_op : unitary_op
                        | opaque
@@ -816,7 +818,7 @@ class QasmParser(object):
                        | reset
                        | if
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
     # ----------------------------------------
     # unary : NNINTEGER
@@ -828,133 +830,133 @@ class QasmParser(object):
     #
     # We will trust 'expression' to throw before we have to handle it here
     # ----------------------------------------
-    def p_unary_0(self, p):
+    def p_unary_0(self, program):
         '''
            unary : NNINTEGER
         '''
-        p[0] = node.Int(p[1])
+        program[0] = node.Int(program[1])
 
-    def p_unary_1(self, p):
+    def p_unary_1(self, program):
         '''
            unary : REAL
         '''
-        p[0] = node.Real(p[1])
+        program[0] = node.Real(program[1])
 
-    def p_unary_2(self, p):
+    def p_unary_2(self, program):
         '''
            unary : PI
         '''
-        p[0] = node.Real(math.pi)
+        program[0] = node.Real(math.pi)
 
-    def p_unary_3(self, p):
+    def p_unary_3(self, program):
         '''
            unary : id
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_unary_4(self, p):
+    def p_unary_4(self, program):
         '''
            unary : '(' expression ')'
         '''
-        p[0] = p[2]
+        program[0] = program[2]
 
-    def p_unary_6(self, p):
+    def p_unary_6(self, program):
         '''
            unary : id '(' expression ')'
         '''
         # note this is a semantic check, not syntactic
-        if p[1].name not in self.external_functions:
+        if program[1].name not in self.external_functions:
             raise QasmException("Illegal external function call: ",
-                                str(p[1].name))
-        p[0] = node.External([p[1], p[3]])
+                                str(program[1].name))
+        program[0] = node.External([program[1], program[3]])
 
     # ----------------------------------------
     # Prefix
     # ----------------------------------------
-    def p_prefix_expression_0(self, p):
+    def p_prefix_expression_0(self, program):
         '''
            prefix_expression : unary
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_prefix_expression_1(self, p):
+    def p_prefix_expression_1(self, program):
         '''
            prefix_expression : '+' prefix_expression
                              | '-' prefix_expression
         '''
-        p[0] = node.Prefix([p[1], p[2]])
+        program[0] = node.Prefix([program[1], program[2]])
 
-    def p_additive_expression_0(self, p):
+    def p_additive_expression_0(self, program):
         '''
             additive_expression : prefix_expression
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_additive_expression_1(self, p):
+    def p_additive_expression_1(self, program):
         '''
             additive_expression : additive_expression '+' prefix_expression
                                 | additive_expression '-' prefix_expression
         '''
-        p[0] = node.BinaryOp([p[2], p[1], p[3]])
+        program[0] = node.BinaryOp([program[2], program[1], program[3]])
 
-    def p_multiplicative_expression_0(self, p):
+    def p_multiplicative_expression_0(self, program):
         '''
             multiplicative_expression : additive_expression
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_multiplicative_expression_1(self, p):
+    def p_multiplicative_expression_1(self, program):
         '''
         multiplicative_expression : multiplicative_expression '*' additive_expression
                                   | multiplicative_expression '/' additive_expression
         '''
-        p[0] = node.BinaryOp([p[2], p[1], p[3]])
+        program[0] = node.BinaryOp([program[2], program[1], program[3]])
 
-    def p_expression_0(self, p):
+    def p_expression_0(self, program):
         '''
             expression : multiplicative_expression
         '''
-        p[0] = p[1]
+        program[0] = program[1]
 
-    def p_expression_1(self, p):
+    def p_expression_1(self, program):
         '''
             expression : expression '^' multiplicative_expression
         '''
-        p[0] = node.BinaryOp([p[2], p[1], p[3]])
+        program[0] = node.BinaryOp([program[2], program[1], program[3]])
 
     # ----------------------------------------
     # exp_list : exp
     #          | exp_list ',' exp
     # ----------------------------------------
-    def p_exp_list_0(self, p):
+    def p_exp_list_0(self, program):
         '''
            exp_list : expression
         '''
-        p[0] = node.ExpressionList([p[1]])
+        program[0] = node.ExpressionList([program[1]])
 
-    def p_exp_list_1(self, p):
+    def p_exp_list_1(self, program):
         '''
            exp_list : exp_list ',' expression
         '''
-        p[0] = p[1]
-        p[0].add_child(p[3])
+        program[0] = program[1]
+        program[0].add_child(program[3])
 
-    def p_ignore(self, p):
+    def p_ignore(self, program):
         '''
            ignore : STRING
         '''
-        # this should never hit but it keeps the unsupressable warnings at bay
+        # this should never hit but it keeps the insuppressible warnings at bay
         pass
 
-    def p_error(self, p):
+    def p_error(self, program):
         # EOF is a special case because the stupid error token isn't placed
         # on the stack
-        if not p:
+        if not program:
             raise QasmException("Error at end of file. "
                                 + "Perhaps there is a missing ';'")
 
-        col = self.find_column(self.lexer.data, p)
-        print("Error near line", str(self.lexer.lineno),  'Column', col)
+        col = self.find_column(self.lexer.data, program)
+        print("Error near line", str(self.lexer.lineno), 'Column', col)
 
     def find_column(self, input, token):
         """Compute the column.
@@ -974,14 +976,14 @@ class QasmParser(object):
         '''Test method to verify tokenizer.'''
         try:
             while True:
-                tok = self.lexer.token()
-                if not tok:
+                token = self.lexer.token()
+                if not token:
                     break
                 # TODO: This isn't really the column, it's the character
                 # position.  Need to do backtrack to the nearest \n to get
                 # the actual column.
-                print('TOKEN:' + str(tok) + ":ENDTOKEN", 'at line',
-                      tok.lineno, 'column', tok.lexpos, 'file',
+                print('TOKEN:' + str(token) + ":ENDTOKEN", 'at line',
+                      token.lineno, 'column', token.lexpos, 'file',
                       self.lexer.filename)
         except QasmException as e:
             print('Exception tokenizing qasm file:', e.msg)

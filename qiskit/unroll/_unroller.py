@@ -11,12 +11,12 @@ from ._unrollerexception import UnrollerException
 class Unroller(object):
     """OPENQASM interpreter object that unrolls subroutines and loops."""
 
-    def __init__(self, ast, be=None):
+    def __init__(self, ast, backend=None):
         """Initialize interpreter's data."""
         # Abstract syntax tree from parser
         self.ast = ast
         # Backend object
-        self.be = be
+        self.backend = backend
         # OPENQASM version number
         self.version = 0.0
         # Dict of qreg names and sizes
@@ -30,54 +30,57 @@ class Unroller(object):
         # List of dictionaries mapping local bit ids to global ids (name,idx)
         self.bit_stack = [{}]
 
-    def _process_bit_id(self, n):
+    def _process_bit_id(self, node):
         """Process an Id or IndexedId node as a bit or register type.
 
         Return a list of tuples (name,index).
         """
-        if n.type == "indexed_id":
+        if node.type == "indexed_id":
             # An indexed bit or qubit
-            return [(n.name, n.index)]
-        elif n.type == "id":
+            return [(node.name, node.index)]
+        elif node.type == "id":
             # A qubit or qreg or creg
             if len(self.bit_stack[-1]) == 0:
                 # Global scope
-                if n.name in self.qregs:
-                    return [(n.name, j) for j in range(self.qregs[n.name])]
-                elif n.name in self.cregs:
-                    return [(n.name, j) for j in range(self.cregs[n.name])]
+                if node.name in self.qregs:
+                    return [(node.name, j)
+                            for j in range(self.qregs[node.name])]
+                elif node.name in self.cregs:
+                    return [(node.name, j)
+                            for j in range(self.cregs[node.name])]
                 else:
                     raise UnrollerException("expected qreg or creg name:",
-                                            "line=%s" % n.line,
-                                            "file=%s" % n.file)
+                                            "line=%s" % node.line,
+                                            "file=%s" % node.file)
             else:
                 # local scope
-                if n.name in self.bit_stack[-1]:
-                    return [self.bit_stack[-1][n.name]]
+                if node.name in self.bit_stack[-1]:
+                    return [self.bit_stack[-1][node.name]]
                 else:
                     raise UnrollerException("excepted local bit name:",
-                                            "line=%s" % n.line,
-                                            "file=%s" % n.file)
+                                            "line=%s" % node.line,
+                                            "file=%s" % node.file)
 
-    def _process_local_id(self, n):
-        """Process an Id node n as a local id."""
+    def _process_local_id(self, node):
+        """Process an Id node as a local id."""
         # The id must be in arg_stack i.e. the id is inside a gate_body
         id_dict = self.arg_stack[-1]
-        if n.name in id_dict:
-            return float(id_dict[n.name])
+        if node.name in id_dict:
+            return float(id_dict[node.name])
         else:
             raise UnrollerException("expected local parameter name:",
-                                    "line=%s" % n.line,
-                                    "file=%s" % n.file)
+                                    "line=%s" % node.line,
+                                    "file=%s" % node.file)
 
-    def _process_custom_unitary(self, n):
-        """Process a custom unitary node n."""
-        name = n.name
-        if n.arguments is not None:
-            args = self._process_node(n.arguments)
+    def _process_custom_unitary(self, node):
+        """Process a custom unitary node."""
+        name = node.name
+        if node.arguments is not None:
+            args = self._process_node(node.arguments)
         else:
             args = []
-        bits = [self._process_bit_id(m) for m in n.bitlist.children]
+        bits = [self._process_bit_id(node_element)
+                for node_element in node.bitlist.children]
         if name in self.gates:
             gargs = self.gates[name]["args"]
             gbits = self.gates[name]["bits"]
@@ -88,109 +91,109 @@ class Unroller(object):
                 self.arg_stack.append({gargs[j]: args[j]
                                        for j in range(len(gargs))})
                 # Only index into register arguments.
-                f = list(map(lambda x: idx*x,
-                             [len(bits[j]) > 1 for j in range(len(bits))]))
-                self.bit_stack.append({gbits[j]: bits[j][f[j]]
+                element = list(map(lambda x: idx * x,
+                                   [len(bits[j]) > 1 for j in range(len(bits))]))
+                self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
-                self.be.start_gate(name,
-                                   [self.arg_stack[-1][s] for s in gargs],
-                                   [self.bit_stack[-1][s] for s in gbits])
+                self.backend.start_gate(name,
+                                        [self.arg_stack[-1][s] for s in gargs],
+                                        [self.bit_stack[-1][s] for s in gbits])
                 if not self.gates[name]["opaque"]:
                     self._process_children(gbody)
-                self.be.end_gate(name,
-                                 [self.arg_stack[-1][s] for s in gargs],
-                                 [self.bit_stack[-1][s] for s in gbits])
+                self.backend.end_gate(name,
+                                      [self.arg_stack[-1][s] for s in gargs],
+                                      [self.bit_stack[-1][s] for s in gbits])
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
             raise UnrollerException("internal error undefined gate:",
-                                    "line=%s" % n.line, "file=%s" % n.file)
+                                    "line=%s" % node.line, "file=%s" % node.file)
 
-    def _process_gate(self, n, opaque=False):
-        """Process a gate node n.
+    def _process_gate(self, node, opaque=False):
+        """Process a gate node.
 
         If opaque is True, process the node as an opaque gate node.
         """
-        self.gates[n.name] = {}
-        de = self.gates[n.name]
+        self.gates[node.name] = {}
+        de = self.gates[node.name]
         de["opaque"] = opaque
-        de["n_args"] = n.n_args()
-        de["n_bits"] = n.n_bits()
-        if n.n_args() > 0:
-            de["args"] = [c.name for c in n.arguments.children]
+        de["n_args"] = node.n_args()
+        de["n_bits"] = node.n_bits()
+        if node.n_args() > 0:
+            de["args"] = [element.name for element in node.arguments.children]
         else:
             de["args"] = []
-        de["bits"] = [c.name for c in n.bitlist.children]
+        de["bits"] = [c.name for c in node.bitlist.children]
         if opaque:
             de["body"] = None
         else:
-            de["body"] = n.body
-        self.be.define_gate(n.name, copy.deepcopy(de))
+            de["body"] = node.body
+        self.backend.define_gate(node.name, copy.deepcopy(de))
 
-    def _process_cnot(self, n):
-        """Process a CNOT gate node n."""
-        id0 = self._process_bit_id(n.children[0])
-        id1 = self._process_bit_id(n.children[1])
+    def _process_cnot(self, node):
+        """Process a CNOT gate node."""
+        id0 = self._process_bit_id(node.children[0])
+        id1 = self._process_bit_id(node.children[1])
         if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
             raise UnrollerException("internal error: qreg size mismatch",
-                                    "line=%s" % n.line, "file=%s" % n.file)
+                                    "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.be.cx(id0[idx], id1[idx])
+                self.backend.cx(id0[idx], id1[idx])
             elif len(id0) > 1:
-                self.be.cx(id0[idx], id1[0])
+                self.backend.cx(id0[idx], id1[0])
             else:
-                self.be.cx(id0[0], id1[idx])
+                self.backend.cx(id0[0], id1[idx])
 
-    def _process_binop(self, n):
-        """Process a binary operation node n."""
-        op = n.children[0]
-        lexpr = n.children[1]
-        rexpr = n.children[2]
-        if op == '+':
+    def _process_binop(self, node):
+        """Process a binary operation node."""
+        operation = node.children[0]
+        lexpr = node.children[1]
+        rexpr = node.children[2]
+        if operation == '+':
             return self._process_node(lexpr) + self._process_node(rexpr)
-        elif op == '-':
+        elif operation == '-':
             return self._process_node(lexpr) - self._process_node(rexpr)
-        elif op == '*':
+        elif operation == '*':
             return self._process_node(lexpr) * self._process_node(rexpr)
-        elif op == '/':
+        elif operation == '/':
             return self._process_node(lexpr) / self._process_node(rexpr)
-        elif op == '^':
+        elif operation == '^':
             return self._process_node(lexpr) ** self._process_node(rexpr)
         else:
             raise UnrollerException("internal error: undefined binop",
-                                    "line=%s" % n.line, "file=%s" % n.file)
+                                    "line=%s" % node.line, "file=%s" % node.file)
 
-    def _process_prefix(self, n):
-        """Process a prefix node n."""
-        op = n.children[0]
-        expr = n.children[1]
-        if op == '+':
+    def _process_prefix(self, node):
+        """Process a prefix node."""
+        operation = node.children[0]
+        expr = node.children[1]
+        if operation == '+':
             return self._process_node(expr)
-        elif op == '-':
+        elif operation == '-':
             return -self._process_node(expr)
         else:
             raise UnrollerException("internal error: undefined prefix",
-                                    "line=%s" % n.line, "file=%s" % n.file)
+                                    "line=%s" % node.line, "file=%s" % node.file)
 
-    def _process_measure(self, n):
-        """Process a measurement node n."""
-        id0 = self._process_bit_id(n.children[0])
-        id1 = self._process_bit_id(n.children[1])
+    def _process_measure(self, node):
+        """Process a measurement node."""
+        id0 = self._process_bit_id(node.children[0])
+        id1 = self._process_bit_id(node.children[1])
         if len(id0) != len(id1):
             raise UnrollerException("internal error: reg size mismatch",
-                                    "line=%s" % n.line, "file=%s" % n.file)
-        for idx in range(len(id0)):
-            self.be.measure(id0[idx], id1[idx])
+                                    "line=%s" % node.line, "file=%s" % node.file)
+        for idx, idy in zip(id0, id1):
+            self.backend.measure(idx, idy)
 
-    def _process_if(self, n):
-        """Process an if node n."""
-        creg = n.children[0].name
-        cval = n.children[1]
-        self.be.set_condition(creg, cval)
-        self._process_node(n.children[2])
-        self.be.drop_condition()
+    def _process_if(self, node):
+        """Process an if node."""
+        creg = node.children[0].name
+        cval = node.children[1]
+        self.backend.set_condition(creg, cval)
+        self._process_node(node.children[2])
+        self.backend.drop_condition()
 
     def _process_external(self, n):
         """Process an external function node n."""
@@ -201,7 +204,7 @@ class Unroller(object):
             'cos': math.cos,
             'tan': math.tan,
             'exp': math.exp,
-            'ln': math.ln,
+            'ln': math.log,
             'sqrt': math.sqrt
         }
         if op in dispatch:
@@ -210,110 +213,112 @@ class Unroller(object):
             raise UnrollerException("internal error: undefined external",
                                     "line=%s" % n.line, "file=%s" % n.file)
 
-    def _process_children(self, n):
-        """Call process_node for all children of node n."""
-        for c in n.children:
+    def _process_children(self, node):
+        """Call process_node for all children of node."""
+        for c in node.children:
             self._process_node(c)
 
-    def _process_node(self, n):
+    def _process_node(self, node):
         """Carry out the action associated with node n."""
-        if n.type == "program":
-            self._process_children(n)
+        if node.type == "program":
+            self._process_children(node)
 
-        elif n.type == "qreg":
-            self.qregs[n.name] = int(n.index)
-            self.be.new_qreg(n.name, int(n.index))
+        elif node.type == "qreg":
+            self.qregs[node.name] = int(node.index)
+            self.backend.new_qreg(node.name, int(node.index))
 
-        elif n.type == "creg":
-            self.cregs[n.name] = int(n.index)
-            self.be.new_creg(n.name, int(n.index))
+        elif node.type == "creg":
+            self.cregs[node.name] = int(node.index)
+            self.backend.new_creg(node.name, int(node.index))
 
-        elif n.type == "id":
-            return self._process_local_id(n)
+        elif node.type == "id":
+            return self._process_local_id(node)
 
-        elif n.type == "int":
+        elif node.type == "int":
             # We process int nodes when they are leaves of expressions
             # and cast them to float to avoid, for example, 3/2 = 1.
-            return float(n.value)
+            return float(node.value)
 
-        elif n.type == "real":
-            return float(n.value)
+        elif node.type == "real":
+            return float(node.value)
 
-        elif n.type == "indexed_id":
+        elif node.type == "indexed_id":
             # We should not get here.
             raise UnrollerException("internal error n.type == indexed_id:",
-                                    "line=%s" % n.line,
-                                    "file=%s" % n.file)
+                                    "line=%s" % node.line,
+                                    "file=%s" % node.file)
 
-        elif n.type == "id_list":
+        elif node.type == "id_list":
             # We process id_list nodes when they are leaves of barriers.
-            return [self._process_bit_id(m) for m in n.children]
+            return [self._process_bit_id(node_children)
+                    for node_children in node.children]
 
-        elif n.type == "primary_list":
+        elif node.type == "primary_list":
             # We should only be called for a barrier.
-            return [self._process_bit_id(m) for m in n.children]
+            return [self._process_bit_id(m) for m in node.children]
 
-        elif n.type == "gate":
-            self._process_gate(n)
+        elif node.type == "gate":
+            self._process_gate(node)
 
-        elif n.type == "custom_unitary":
-            self._process_custom_unitary(n)
+        elif node.type == "custom_unitary":
+            self._process_custom_unitary(node)
 
-        elif n.type == "universal_unitary":
-            args = tuple(self._process_node(n.children[0]))
-            qid = self._process_bit_id(n.children[1])
-            for idx in range(len(qid)):
-                self.be.u(args, qid[idx])
+        elif node.type == "universal_unitary":
+            args = tuple(self._process_node(node.children[0]))
+            qid = self._process_bit_id(node.children[1])
+            for element in qid:
+                self.backend.u(args, element)
 
-        elif n.type == "cnot":
-            self._process_cnot(n)
+        elif node.type == "cnot":
+            self._process_cnot(node)
 
-        elif n.type == "expression_list":
-            return [self._process_node(m) for m in n.children]
+        elif node.type == "expression_list":
+            return [self._process_node(node_children)
+                    for node_children in node.children]
 
-        elif n.type == "binop":
-            return self._process_binop(n)
+        elif node.type == "binop":
+            return self._process_binop(node)
 
-        elif n.type == "prefix":
-            return self._process_prefix(n)
+        elif node.type == "prefix":
+            return self._process_prefix(node)
 
-        elif n.type == "measure":
-            self._process_measure(n)
+        elif node.type == "measure":
+            self._process_measure(node)
 
-        elif n.type == "magic":
-            self.version = float(n.children[0])
-            self.be.version(n.children[0])
+        elif node.type == "magic":
+            self.version = float(node.children[0])
+            self.backend.version(node.children[0])
 
-        elif n.type == "barrier":
-            ids = self._process_node(n.children[0])
-            self.be.barrier(ids)
+        elif node.type == "barrier":
+            ids = self._process_node(node.children[0])
+            self.backend.barrier(ids)
 
-        elif n.type == "reset":
-            id0 = self._process_bit_id(n.children[0])
+        elif node.type == "reset":
+            id0 = self._process_bit_id(node.children[0])
             for idx in range(len(id0)):
-                self.be.reset(id0[idx])
+                self.backend.reset(id0[idx])
 
-        elif n.type == "if":
-            self._process_if(n)
+        elif node.type == "if":
+            self._process_if(node)
 
-        elif n.type == "opaque":
-            self._process_gate(n, opaque=True)
+        elif node.type == "opaque":
+            self._process_gate(node, opaque=True)
 
-        elif n.type == "external":
-            return self._process_external(n)
+        elif node.type == "external":
+            return self._process_external(node)
 
         else:
             raise UnrollerException("internal error: undefined node type",
-                                    n.type, "line=%s" % n.line,
-                                    "file=%s" % n.file)
+                                    node.type, "line=%s" % node.line,
+                                    "file=%s" % node.file)
 
-    def set_backend(self, be):
+    def set_backend(self, backend):
         """Set the backend object."""
-        self.be = be
+        self.backend = backend
 
     def execute(self):
         """Interpret OPENQASM and make appropriate backend calls."""
-        if self.be is not None:
+        if self.backend is not None:
             self._process_node(self.ast)
         else:
             raise UnrollerException("backend not attached")

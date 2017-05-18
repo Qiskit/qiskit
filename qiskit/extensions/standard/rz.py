@@ -1,7 +1,6 @@
-"""
-Rotation around the z-axis.
+"""Rotation around the z-axis.
 
-Author: Jay using andrew code.
+Author: Jay Gambetta and Andrew Cross
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

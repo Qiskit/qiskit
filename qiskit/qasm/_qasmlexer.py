@@ -4,12 +4,17 @@ OPENQASM Lexer.
 This is a wrapper around the PLY lexer to support the "include" statement
 by creating a stack of lexers.
 
-Author: Jim Challenger
+Authors: Jim Challenger
+         Jesus Perez <jesusper@us.ibm.com>
 """
+
 import os
 import ply.lex as lex
 from ._qasmexception import QasmException
 from . import _node as node
+
+CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
+CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
 class QasmLexer(object):
@@ -76,7 +81,7 @@ class QasmLexer(object):
         'MATCHES',
         'ID',
         'STRING',
-        )
+    )
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
@@ -149,10 +154,13 @@ class QasmLexer(object):
         next = self.lexer.token()
         lineno = next.lineno
         # print('NEXT', next, "next.value", next.value, type(next))
-        if type(next.value) == str:
+        if isinstance(next.value, str):
             incfile = next.value.strip('"')
         else:
             raise QasmException("Invalid include: must be a quoted string.")
+
+        if incfile in CORE_LIBS:
+            incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
         next = self.lexer.token()
         if next is None or next.value != ';':
