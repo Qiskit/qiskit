@@ -56,26 +56,12 @@ class QuantumProgram(object):
 
      Class internal properties """
 
-    #TODO_ISMEAL_QUESATAION: I THINK we should remove IBMQX5qv2 i know it works but this forces us to
-    # go down the path that we are working towards. I would add "real" back and give a comment that
-    # real is the default real chip device which may change over time and the user will need to look up which
-    # device is the real keyword from our devices tab(which i know does not exist yet)
-    # Also for now ibmqx_qasm_simulator should defaul to the current simulator online which is what
-    # simulator does as well but  my goal for it is to be an updated version of chirs's code when
-    # he is finished  and then simulator can become our default like real
-    __online_devices = ["IBMQX5qv2", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
+    __online_devices = ["real", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
     __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
 
-    #TODO_ISMEAL_QUESATAION: CAN WE REMOVE THE COMMENTS BELOW
-    # __specs = {}
-    # __quantum_registers = {}
-    # __classical_registers = {}
-    # __quantum_program = {}
+    __quantum_program = {}
     __api = {}
     __api_config = {}
-    # __qprogram = {}
-    # __last_device_backend = ""
-    # __to_execute = {}
 
     """
     Elements that are not python identifiers or string constants are denoted
@@ -86,7 +72,6 @@ class QuantumProgram(object):
         "circuits": {
             --circuit name (string)--: {
                 "circuit": --circuit object (TBD)--,
-                "qasm": --output of .qasm() (string)--,
                 "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                     --device name (string)--: {
                         "qasm_compiled": --compiled qasm output of .qasm() (string) after compliing--,
@@ -149,23 +134,19 @@ class QuantumProgram(object):
 
 
     def __init__(self, specs=None, name=""):
-        self.__quantum_program  = {"circuits":{}} #TODO_ISMEAL_QUESATAION: I CHANGE __CIRCUITS TO __quantum_program
+        self.__quantum_program  = {"circuits":{}} 
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
-        self.__name = name #TODO_ISMEAL_QUESATAION: IS THIS USED
-        self.__qprogram = {} #TODO_ISMEAL_QUESATAION: IS THIS USED __quantum_program  has replaced it
         self.__last_device_backend = ""
         self.__to_execute = {}
-
         self.mapper = mapper
 
         if specs:
             self.__init_specs(specs)
 
-    def quantum_elements(self, specs=None):
+    def get_quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
-        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
         if not specs:
             specs = self.get_specs()
 
@@ -173,28 +154,20 @@ class QuantumProgram(object):
             self.__quantum_registers[list(self.__quantum_registers)[0]], \
             self.__classical_registers[list(self.__classical_registers)[0]]
 
-    def quantum_registers(self, name):
-        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
+    def get_quantum_registers(self, name):
         """Return a specific Quantum Registers"""
         return self.__quantum_registers[name]
 
-    def classical_registers(self, name):
-        #TODO_ISMEAL_QUESATAION: I PREFER GET_* for getters
+    def get_classical_registers(self, name):
         """Return a specific Classical Registers"""
         return self.__classical_registers[name]
 
-    def circuit(self, name):
-        #TODO_ISMEAL_QUESATAION: I PREFER GET* for getters and this should be get_quantum_circuit.
+    def get_circuit(self, name):
         """Return a specific Circuit Object"""
         return self.__quantum_program['circuits'][name]['circuit']
 
-    def get_specs(self):
+    def get_api_config(self):
         """Return the program specs"""
-        return self.__specs
-
-    def api_config(self):
-        """Return the program specs"""
-        #TODO_ISMEAL_QUESATAION: I PREFER GET_* and really doc needs work
         return self.__api.req.credential.config
 
     def _setup_api(self, token, url):
@@ -242,10 +215,9 @@ class QuantumProgram(object):
 
         circuit_object = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"circuit": circuit_object}
 
-        #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
-        return self.__quantum_program['circuits'][name]
+        return {"status": "COMPLETED", "result": 'all done'}
 
 
     def unroller_code(self, circuit, basis_gates=None):
@@ -323,10 +295,9 @@ class QuantumProgram(object):
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
 
-            self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program['circuits'][name]['circuit'].qasm()
-            #TODO_ISMEAL_QUESATAION: I THINK THIS SHOULD MAKE A NEW EXECUTION iF
-            #IT DOES NOT EXIST AND IF IT DOES IT SHOULD ONLY OVERRIDER THE BACKEND
-            self.__quantum_program["circuits"][name]["execution"] = {}
+            if not self.__quantum_program["circuits"][name]["execution"]:
+                not self.__quantum_program["circuits"][name]["execution"]={}
+            self.__quantum_program["circuits"][name]["execution"][device] = {}
             job = {}
             job["name"] = name
             job["qasm_compiled"] = qasm_compiled
@@ -337,7 +308,7 @@ class QuantumProgram(object):
             job["max_credits"] = max_credits
             job["seed"] = None
             if device in ["local_unitary_simulator", "local_qasm_simulator"]:
-                unroller = unroll.Unroller(qasm.Qasm(data=qasm_compiled).parse(), SimulatorBackend(basis_gates))
+                unroller = unroll.Unroller(qasm.Qasm(data=qasm_compiled).parse(), unroll.SimulatorBackend(basis_gates))
                 unroller.backend.set_trace(False)
                 unroller.execute()
                 job["compiled_circuit"] = unroller.backend.circuit
@@ -490,24 +461,6 @@ class QuantumProgram(object):
         output = self.run(wait, timeout)
         return output
 
-    def program_to_text(self, circuits=None):
-        """Print a program (array of quantum circuits).
-
-        program is a list of quantum circuits, if it's emty use the internal circuits
-        """
-
-        #TODO_ISMEAL_QUESATAION: I WANT TO KILL THIS FUNCTION and have
-        # get_circuit_qasm and git_circut_qasms SEE BELOW
-        if not circuits:
-            circuits = self.__quantum_program['circuits']
-        # TODO: Store qasm per circuit
-        jobs = ""
-        for name, circuit in circuits.items():
-            circuit_name = "# Circuit: "+ name + "\n"
-            qasm_source, circuit = self.unroller_code(circuit['circuit'])
-            jobs = jobs + circuit_name + qasm_source + "\n\n"
-        return jobs[:-3]
-
     def wait_for_job(self, jobid, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
         jobids is a list of id strings.
@@ -551,7 +504,6 @@ class QuantumProgram(object):
 
     def __init_specs(self, specs):
         """Populate the Quantum Program Object with initial Specs"""
-        self.__specs = specs
         quantumr = []
         classicalr = []
         if "api" in specs:
@@ -564,7 +516,7 @@ class QuantumProgram(object):
             for circuit in specs["circuits"]:
                 quantumr = self.create_quantum_registers_group(
                     circuit["quantum_registers"])
-                classicalr = self.create_classical_reg_group(
+                classicalr = self.create_classical_registers_group(
                     circuit["classical_registers"])
                 self.__init_circuit = self.create_circuit(name=circuit["name"],
                                                           qregisters=quantumr,
@@ -588,10 +540,7 @@ class QuantumProgram(object):
     def add_circuit(self, name, circuit_object):
         """Add anew circuit based in a Object representation.
         name is the name or index of one circuit."""
-        #TODO_ISMEAL_QUESATAION: do we need to fill in the qasm my philophy is this
-        #is not filled until we compile or save when we have a save and why do we return
-        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object, "qasm": circuit_object.qasm()}
-
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
         return circuit_object
 
     def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
@@ -600,8 +549,6 @@ class QuantumProgram(object):
         qregisters is a Array of Quantum Registers, can be String, by name or the object reference
         cregisters is a Array of Classical Registers, can be String, by name or the object reference
         """
-        #TODO_ISMEAL_QUESATAION: do we need to fill in the qasm my philosophy is this
-        #is not filled until we compile or save when we have a save and why do we return
         if not qregisters:
             qregisters = []
         if not cregisters:
@@ -609,7 +556,7 @@ class QuantumProgram(object):
 
         if not circuit_object:
             circuit_object = QuantumCircuit()
-        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object, "qasm": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
 
         for register in qregisters:
             if isinstance(register, str):
@@ -622,18 +569,9 @@ class QuantumProgram(object):
             else:
                 self.__quantum_program['circuits'][name]['circuit'].add(register)
 
-        self.__quantum_program['circuits'][name]['qasm'] = self.__quantum_program['circuits'][name]['circuit'].qasm()
-
         return self.__quantum_program['circuits'][name]['circuit']
 
     def create_quantum_registers(self, name, size):
-        """Create a new set of Quantum Registers"""
-        self.__quantum_registers[name] = QuantumRegister(name, size)
-        print(">> quantum_registers created:", name, size)
-        return self.__quantum_registers[name]
-
-    #TODO_ISMEAL_QUESATAION: HOW IS THIS DIFFERENT TO ABOVE
-    def create_quantum_registers_name(self, name, size):
         """Create a new set of Quantum Registers"""
         self.__quantum_registers[name] = QuantumRegister(name, size)
         print(">> quantum_registers created:", name, size)
@@ -648,8 +586,7 @@ class QuantumProgram(object):
             new_registers.append(register)
         return new_registers
 
-    #TODO_ISMEAL_QUESATAION:  SHOULD WE USE THE SAME NAME REG->registers
-    def create_classical_reg_group(self, registers_array):
+    def create_classical_registers_group(self, registers_array):
         """Create a new set of Classical Registers based in a array of that"""
         new_registers = []
         for register in registers_array:
@@ -680,21 +617,22 @@ class QuantumProgram(object):
         """Get image circuit representation from API."""
         pass
 
-    #TODO_ISMEAL_QUESATAION: HOW IS THIS CURRENTLY USED.
-    #I THINK THIS SHOLD BE get_circuits_qasm and then we
-    #remove program_to_text and then you can have get_circuit_qasms that
-    #takes in and array of names and self.__quantum_program['circuits'][name]["qasm"]
-    #WHICH MAY BE EMPYT AND IF SO YOU NEED TO RUN
-    #self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]['circuit'].qasm()
-    # AND THEN RETURN
-    def get_circuit(self, name):
+    def get_qasm(self, name):
         """get the circut by name.
         name of the circuit"""
         if name in self.__quantum_program['circuits']:
-            return self.__quantum_program['circuits'][name]
+            return self.__quantum_program['circuits'][name]['circuit'].qasm()
         else:
             return  {"status": "Error", "result": 'Circuit not found'}
 
+    def get_qasms(self, list_circuit_name):
+        """get the circut by name.
+        name of the circuit"""
+        qasm_source = []
+        for name in list_circuit_name:
+             qasm_source.append( get_qasm(name)
+        return qasm_source
+        
     def get_result(self, name, device=None):
         """get the get_result from one circut and backend
         name of the circuit
@@ -716,10 +654,6 @@ class QuantumProgram(object):
             device = self.__last_device_backend
         return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']
 
-    #TODO_ISMEAL_QUESATAION: I THINK get_counts, get_data, and get result need to be
-    #nested get_counts calls _get_data and get_data calls get_results
-    #and use the try as in get_counts. change the index for name and i think there is no point to get data above
-    # ALSO i think we need an error if there is no results when we use a name
     def get_counts(self, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
         name is the name or index of one circuit."""
