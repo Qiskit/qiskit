@@ -49,7 +49,7 @@ from .simulators._qasmsimulator import QasmSimulator
 
 import sys
 sys.path.append("..")
-#TODO_ANDREW_QUESATAION: why these backends
+#TODO_ANDREW_QUESATAION: why these extensions
 from qiskit.extensions.standard import x, h, cx, s, ry, barrier
 
 #TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
