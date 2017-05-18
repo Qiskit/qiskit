@@ -134,7 +134,7 @@ class QuantumProgram(object):
 
 
     def __init__(self, specs=None, name=""):
-        self.__quantum_program  = {"circuits":{}} 
+        self.__quantum_program  = {"circuits":{}}
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
@@ -295,13 +295,7 @@ class QuantumProgram(object):
             # TODO: add timestamp, compilation
             if device not in self.__to_execute:
                 self.__to_execute[device] = []
-            # We overwrite this data on each compile. A user would need to make
-            # the same circuit with a different name for this not to be the
-            # case.
 
-            if "execution" not in self.__quantum_program["circuits"][name]:
-                self.__quantum_program["circuits"][name]["execution"] = {}
-            self.__quantum_program["circuits"][name]["execution"][device] = {}
             job = {}
             job["name"] = name
             job["qasm_compiled"] = qasm_compiled
@@ -391,6 +385,9 @@ class QuantumProgram(object):
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": "Internal error, circuit not found"}
+                if not self.__quantum_program["circuits"][name]["execution"]:
+                    self.__quantum_program["circuits"][name]["execution"]={}
+                # We overide the results 
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
@@ -646,7 +643,7 @@ class QuantumProgram(object):
         name of the circuit"""
         qasm_source = []
         for name in list_circuit_name:
-             qasm_source.append(get_qasm(name))
+            qasm_source.append(self.get_qasm(name))
         return qasm_source
 
     def get_result(self, name, device=None):
