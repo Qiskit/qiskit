@@ -27,8 +27,8 @@ OPENQASM code that can flow through other components in the *qiskit* directory.
 The *qiskit* directory is the main Python module and contains the programming
 interface objects *QuantumProgram*, *QuantumRegister*, *ClassicalRegister*, and *QuantumCircuit*.
 The directory also contains internal modules: a *qasm* module for parsing OPENQASM circuits,
-an *unroll* module to "flatten" QASM for a target gate basis by expanding
-gate subroutines as needed, a *circuit* module for working with circuits as
+an *unroll* module to interpret and "unroll" QASM for a target gate basis
+(expanding gate subroutines and loops as needed), a *circuit* module for working with circuits as
 graphs, and a *mapper* module for mapping all-to-all circuits to run on
 devices with fixed couplings.
 
