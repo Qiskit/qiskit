@@ -1,0 +1,101 @@
+"""
+Quantum teleportation example based on an OpenQASM example.
+
+Author: Andrew Cross
+        Jesus Perez <jesusper@us.ibm.com>
+"""
+
+import sys
+import os
+
+# We don't know from where the user is running the example,
+# so we need a relative position from this file path.
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from qiskit import QuantumProgram
+
+import Qconfig
+
+###############################################################
+# Set the device name and coupling map.
+###############################################################
+device = "simulator"
+coupling_map = {0: [1, 2],
+                1: [2],
+                2: [],
+                3: [2, 4],
+                4: [2]}
+
+###############################################################
+# Make a quantum program for quantum teleportation.
+###############################################################
+QPS_SPECS = {
+    "name": "Program",
+    "circuits": [{
+        "name": "teleport",
+        "quantum_registers": [{
+            "name": "q",
+            "size": 3
+        }],
+        "classical_registers": [
+            {"name": "c0",
+             "size": 1},
+            {"name": "c1",
+             "size": 1},
+            {"name": "c2",
+             "size": 1},
+        ]}]
+}
+
+qp = QuantumProgram(specs=QPS_SPECS)
+qc = qp.circuit("teleport")
+q = qp.quantum_registers("q")
+c0 = qp.classical_registers("c0")
+c1 = qp.classical_registers("c1")
+c2 = qp.classical_registers("c2")
+
+# Prepare an initial state
+qc.u3(0.3, 0.2, 0.1, q[0])
+
+# Prepare a Bell pair
+qc.h(q[1])
+qc.cx(q[1], q[2])
+
+# Barrier following state preparation
+qc.barrier(q)
+
+# Measure in the Bell basis
+qc.cx(q[0], q[1])
+qc.h(q[0])
+qc.measure(q[0], c0[0])
+qc.measure(q[1], c1[0])
+
+# Apply a correction
+qc.z(q[2]).c_if(c0, 1)
+qc.x(q[2]).c_if(c1, 1)
+qc.measure(q[2], c2[0])
+
+###############################################################
+# Set up the API and execute the program.
+###############################################################
+result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+if not result:
+    print("Error setting API")
+    sys.exit(1)
+
+# Experiment does not support feedback, so we use the simulator
+
+# First version: not compiled
+result = qp.execute([qp.circuit("teleport")], device=device,
+                    coupling_map=None, shots=1024)
+# print(result["compiled_circuits"][0]["qasm"])
+print(qp.get_counts(0))
+
+# Second version: compiled to qx5qv2 coupling graph
+result = qp.execute([qp.circuit("teleport")], device=device,
+                    coupling_map=coupling_map, shots=1024)
+# print(result["compiled_circuits"][0]["qasm"])
+print(qp.get_counts(0))
+
+# Both versions should give the same distribution

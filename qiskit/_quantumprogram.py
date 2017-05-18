@@ -247,10 +247,10 @@ class QuantumProgram(object):
 
         circuit_object = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit.qasm()}
+        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit_object.qasm()}
 
         #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
-        return circuit
+        return self.__quantum_program['circuits'][name]
 
 
     def unroller_code(self, circuit, basis_gates=None):
@@ -289,7 +289,6 @@ class QuantumProgram(object):
                     "shots": --shots (int)--,
                     "max_credits": --credits (int)--
                     "seed": --initial seed for the simulator (int) --
-
                 },
                 ...
             ]
@@ -374,7 +373,6 @@ class QuantumProgram(object):
                         last_shots = shots
                     else:
                         if last_shots != shots:
-                            return "Error: Online devices only support job batches with equal numbers of shots"
                             return {"status": "Error", "result":'Online devices only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
