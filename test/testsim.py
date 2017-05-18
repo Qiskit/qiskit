@@ -12,7 +12,7 @@ from collections import Counter
 import numpy as np
 
 basis = []  # empty basis, defaults to U, CX
-unroller = unroll.Unroller(Qasm(filename="test/example.qasm").parse(),
+unroller = unroll.Unroller(Qasm(filename="example.qasm").parse(),
                            SimulatorBackend(basis))
 unroller.backend.set_trace(False)  # print calls as they happen
 unroller.execute()  # Here is where simulation happens
@@ -30,6 +30,7 @@ print(np.dot(a['result']['data']['unitary'], quantum_state))
 print('\n\nusing the qasm simulator')
 shots = 1024
 outcomes = []
+seed = 1
 b = QasmSimulator(unroller.backend.circuit, 1).run()
 print(b['result']['data']['quantum_state'])
 print(b['result']['data']['classical_state'])

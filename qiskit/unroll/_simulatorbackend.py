@@ -4,14 +4,15 @@ Author: Jay Gambetta and Andrew Cross
 
 The input is a the AST and a basis set and returns a compiled simulator circuit
 ready to be run in backends:
-    [
-    "ibmqx_qasm_simulator" #TODO,
-     "local_unitary_simulator",
-     "local_qasm_simulator"
-     ]
+
+[
+"ibmqx_qasm_simulator" #TODO,
+"local_unitary_simulator",
+"local_qasm_simulator"
+]
 
 OUTPUT
-circuit =
+compiled_circuit =
     {
     'number_of_qubits': 2,
     'number_of_cbits': 2,

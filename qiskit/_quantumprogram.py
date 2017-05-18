@@ -204,6 +204,7 @@ class QuantumProgram(object):
 
         self.__circuits['circuits'][name] = {"object": circuit, "QASM": circuit.qasm()}
 
+        # WHY DO WE NEED TO RETURN SOMETHING
         return circuit
 
 
@@ -223,10 +224,10 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None):
-        """Compile the circuits.
+    def compile(self, name_of_circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
+        """Compile the name_of_circuits by names.
 
-        circuits is a list of circuit names to compile.
+        name_of_circuits is a list of circuit names to compile.
         device is the target device name.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         coupling_map is the adjacency list for coupling graph
@@ -248,12 +249,12 @@ class QuantumProgram(object):
         }
         """
         # TODO: Control device names
-        if circuits == []:
+        if name_of_circuits == []:
             return {"status": "Error", "result": 'Not circuits'}
 
-        for circuit in circuits:
+        for name in name_of_circuits:
             # TODO: The circuit object has to have .qasm() method; currently several different types
-            QASM_compiled, dag_unrolled = self.unroller_code(self.__circuits['circuits'][circuit]["object"], basis_gates)
+            QASM_compiled, dag_unrolled = self.unroller_code(self.__circuits['circuits'][name]["object"], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % dag_unrolled.property_summary())
@@ -280,21 +281,25 @@ class QuantumProgram(object):
                 self.__to_execute[device] = []
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
-            self.__circuits["circuits"][circuit]["QASM"] = self.__circuits["circuits"][circuit]["object"].qasm()
-            self.__circuits["circuits"][circuit]["execution"] = {}
+            self.__circuits["circuits"][name]["QASM"] = self.__circuits["circuits"][name]["object"].qasm()
+            self.__circuits["circuits"][name]["execution"] = {}
             job = {}
-            job["name"] = circuit
+            job["name"] = name
             job["QASM_compiled"] = QASM_compiled
             job["coupling_map"] = coupling_map
             job["basis_gates"] = basis_gates
             job["compiled_circuit"] = None
             job["shots"] = shots
             job["max_credits"] = max_credits
+            job["seed"] = None
             if device in ["local_unitary_simulator", "local_qasm_simulator"]:
                 unroller = unroll.Unroller(qasm.Qasm(data=QASM_compiled).parse(), SimulatorBackend(basis_gates))
                 unroller.backend.set_trace(False)
                 unroller.execute()
                 job["compiled_circuit"] = unroller.backend.circuit
+                job["seed"] = random.random()
+                if seed is not None:
+                    job["seed"] = seed
             self.__to_execute[device].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
@@ -425,8 +430,8 @@ class QuantumProgram(object):
             job_results['qasms'].append(one_result)
         return job_results
 
-    def execute(self, circuits, device, shots=1024,
-                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None):
+    def execute(self, name_of_circuits, device, shots=1024,
+                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None):
         """Execute, compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api the api for the device
@@ -435,8 +440,8 @@ class QuantumProgram(object):
         max_credits is the credits of the experiments.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
-        self.compile(circuits, device, shots, max_credits,
-                     basis_gates, coupling_map)
+        self.compile(name_of_circuits, device, shots, max_credits,
+                     basis_gates, coupling_map, seed)
         output = self.run(wait, timeout)
         return output
 
@@ -445,6 +450,8 @@ class QuantumProgram(object):
 
         program is a list of quantum circuits, if it's emty use the internal circuits
         """
+
+        # I WANT TO KILL THIS FUNCTION and have get_circuits
         if not circuits:
             circuits = self.__circuits['circuits']
         # TODO: Store QASM per circuit
