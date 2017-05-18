@@ -138,17 +138,16 @@ class QuantumProgram(object):
     # (make them) stay consistant.
     # qasm_compiled is used by the API for online stuff.
     # compiled_circuit is used by my simulators. Ideally I would like
-    # compiled_circuit to be another python QuantumCicuit object and then we
-    # have a method in QuantumCicuit that makes A JSON FILE say .qasm_json()
-    # which is a json file that is very similar to the output of the unroll
-    # SimulatorBackend and is a COMPLETE REPRESENTATION of a circuit.
-    # It is this that is passed to the API or the simulator.
+    # compiled_circuit to be a JSON FILE  which is very similar to the
+    # output of the unroll SimulatorBackend and is a COMPLETE REPRESENTATION
+    # of a circuit. It is this that is passed to the API or the simulator.
+    #
     # A hack for this is (LETS not do this)
     #
-    # delete qasm_compiled and then make compiled_circuit a QuantumCircuit
-    # object and then for the API do compiled_circuit.qasm() and for the
+    # delete qasm_compiled and then make compiled_circuit what qasm_compiled is
+    # now and then for the API it just gets compiled_circuit  and for the
     # local simulator(s)
-    #   unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit.qasm()).parse(), SimulatorBackend(basis_gates))
+    #   unroller = unroll.Unroller(qasm.Qasm(compiled_circuit).parse(), SimulatorBackend(basis_gates))
     #   unroller.backend.set_trace(False)
     #   unroller.execute()
     # and pass unroller.backend.circuit to the local simulators
@@ -256,8 +255,8 @@ class QuantumProgram(object):
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroller the code
-        circuits are circuits to unroll
-        asis_gates are the base gates by default are: u1,u2,u3,cx,id
+        circuit are circuits to unroll
+        basis_gates are the base gates by default are: u1,u2,u3,cx,id
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
