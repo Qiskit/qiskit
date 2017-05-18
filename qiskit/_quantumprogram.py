@@ -90,7 +90,7 @@ class QuantumProgram(object):
     __quantum_program = {
         "circuits": {
             --circuit name (string)--: {
-                "object": --circuit object (TBD)--,
+                "circuit": --circuit object (TBD)--,
                 "qasm": --output of .qasm() (string)--,
                 "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                     --device name (string)--: {
@@ -129,7 +129,30 @@ class QuantumProgram(object):
         ]
     }
     """
-    # TODO. I DONT THINK coupling_map, basis_gates is needed in the __to_execute
+    # FUTURE IMPROVEMENTS (NOT NOW)
+    # TODO. JAY: I DONT THINK coupling_map, basis_gates is needed in the __to_execute
+    # TODO. JAY: I DONT THINK "qasm" is needed in the __quantum_prgram as
+    # with the get_circuit_qasm method you can make it
+    # TODO: JAY qasm_compiled and compiled_circuit are redundent if we do correctly.
+    # THEY are the same thing for the different backends and currenlty we hope
+    # (make them) stay consistant.
+    # qasm_compiled is used by the API for online stuff.
+    # compiled_circuit is used by my simulators. Ideally I would like
+    # compiled_circuit to be another python QuantumCicuit object and then we
+    # have a method in QuantumCicuit that makes A JSON FILE say .qasm_json()
+    # which is a json file that is very similar to the output of the unroll
+    # SimulatorBackend and is a COMPLETE REPRESENTATION of a circuit.
+    # It is this that is passed to the API or the simulator.
+    # A hack for this is (LETS not do this)
+    #
+    # delete qasm_compiled and then make compiled_circuit a QuantumCircuit
+    # object and then for the API do compiled_circuit.qasm() and for the
+    # local simulator(s)
+    #   unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit.qasm()).parse(), SimulatorBackend(basis_gates))
+    #   unroller.backend.set_trace(False)
+    #   unroller.execute()
+    # and pass unroller.backend.circuit to the local simulators
+
 
     def __init__(self, specs=None, name=""):
         self.__quantum_program  = {"circuits":{}} #TODO_ISMEAL_QUESATAION: I CHANGE __CIRCUITS TO __quantum_program
@@ -223,9 +246,9 @@ class QuantumProgram(object):
         if name == "":
             name = qasm_file
 
-        circuit = qasm.Qasm(filename=qasm_file).parse()
+        circuit_object = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__quantum_program['circuits'][name] = {"object": circuit, "qasm": circuit.qasm()}
+        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit.qasm()}
 
         #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
         return circuit
@@ -279,7 +302,7 @@ class QuantumProgram(object):
 
         for name in name_of_circuits:
             # TODO: The circuit object has to have .qasm() method; currently several different types
-            qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]["object"], basis_gates)
+            qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]["circuit"], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % dag_unrolled.property_summary())
@@ -307,7 +330,7 @@ class QuantumProgram(object):
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
 
-            self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["object"].qasm()
+            self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["circuit"].qasm()
             #TODO_ISMEAL_QUESATAION: I THINK THIS SHOULD MAKE A NEW EXECUTION iF
             #IT DOES NOT EXIST AND IF IT DOES IT SHOULD ONLY OVERRIDER THE BACKEND
             self.__quantum_program["circuits"][name]["execution"] = {}
@@ -574,7 +597,7 @@ class QuantumProgram(object):
         name is the name or index of one circuit."""
         #TODO_ISMEAL_QUESATAION: do we need to fill in the qasm my philophy is this
         #is not filled until we compile or save when we have a save and why do we return
-        self.__quantum_program['circuits'][name] = {"name":name, "object": circuit_object, "qasm": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object, "qasm": circuit_object.qasm()}
 
         return circuit_object
 
@@ -593,7 +616,7 @@ class QuantumProgram(object):
 
         if not circuit_object:
             circuit_object = QuantumCircuit()
-        self.__quantum_program['circuits'][name] = {"name":name, "object": circuit_object, "qasm": circuit_object.qasm()}
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object, "qasm": circuit_object.qasm()}
 
         for register in qregisters:
             if isinstance(register, str):
@@ -669,7 +692,7 @@ class QuantumProgram(object):
     #remove program_to_text and then you can have get_circuit_qasms that
     #takes in and array of names and self.__quantum_program['circuits'][name]["qasm"]
     #WHICH MAY BE EMPYT AND IF SO YOU NEED TO RUN
-    #self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["object"].qasm()
+    #self.__quantum_program["circuits"][name]["qasm"] = self.__quantum_program["circuits"][name]["circuit"].qasm()
     # AND THEN RETURN
     def get_circuit(self, name):
         """get the circut by name.
