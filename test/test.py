@@ -321,7 +321,7 @@ class TestQISKit(unittest.TestCase):
                                 
         to_test = QP_program.get_circuit('circuitName')
 
-        self.assertEqual(len(to_test['QASM']), 120)
+        self.assertEqual(len(to_test['qasm']), 120)
 
     def test_run_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -440,7 +440,7 @@ class TestQISKit(unittest.TestCase):
         QP_program = QuantumProgram()
         QP_program.load_qasm("circuit-dev","test.qasm")
         result = QP_program.get_circuit("circuit-dev")
-        to_check = result["QASM"]
+        to_check = result["qasm"]
         self.assertEqual(len(to_check),1569)
 
     def test_new_compile(self):
@@ -455,7 +455,7 @@ class TestQISKit(unittest.TestCase):
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
         to_check = QP_program.get_circuit("circuit-dev")
 
-        self.assertEqual(len(to_check['QASM']),1569)
+        self.assertEqual(len(to_check['qasm']),1569)
 
     def test_new_run(self):
         QP_program = QuantumProgram()

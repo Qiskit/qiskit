@@ -247,10 +247,10 @@ class QuantumProgram(object):
 
         circuit_object = qasm.Qasm(filename=qasm_file).parse()
 
-        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit.qasm()}
+        self.__quantum_program['circuits'][name] = {"circuit": circuit_object, "qasm": circuit_object.qasm()}
 
         #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
-        return circuit
+        return self.__quantum_program['circuits'][name]
 
 
     def unroller_code(self, circuit, basis_gates=None):
