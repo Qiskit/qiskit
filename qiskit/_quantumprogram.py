@@ -204,7 +204,7 @@ class QuantumProgram(object):
 
         self.__circuits['circuits'][name] = {"object": circuit, "QASM": circuit.qasm()}
 
-        # WHY DO WE NEED TO RETURN SOMETHING
+        #TODO_ISMEAL_QUESATAION: WHY DO WE NEED TO RETURN SOMETHING
         return circuit
 
 
@@ -281,7 +281,10 @@ class QuantumProgram(object):
                 self.__to_execute[device] = []
             # We overwrite this data on each compile. A user would need to make the same circuit
             # with a different name for this not to be the case.
+
             self.__circuits["circuits"][name]["QASM"] = self.__circuits["circuits"][name]["object"].qasm()
+            #TODO_ISMEAL_QUESATAION: I THINK THIS SHOULD MAKE A NEW EXECUTION iF
+            #IT DOES NOT EXIST AND IF IT DOES IT SHOULD ONLY OVERRIDER THE BACKEND
             self.__circuits["circuits"][name]["execution"] = {}
             job = {}
             job["name"] = name
@@ -316,10 +319,10 @@ class QuantumProgram(object):
                 last_shots = -1
                 last_max_credits = -1
                 jobs = []
-                for circuit in self.__to_execute[backend]:
-                    jobs.append({'qasm': circuit["QASM_compiled"]})
-                    shots = circuit["shots"]
-                    max_credits = circuit["max_credits"]
+                for job in self.__to_execute[backend]:
+                    jobs.append({'qasm': job["QASM_compiled"]})
+                    shots = job["shots"]
+                    max_credits = job["max_credits"]
                     if last_shots == -1:
                         last_shots = shots
                     else:
@@ -342,8 +345,9 @@ class QuantumProgram(object):
                     return job_result
             else:
                 jobs = []
-                for circuit in self.__to_execute[backend]:
-                    jobs.append({"compiled_circuit": circuit["compiled_circuit"], "shots": circuit["shots"]})
+                for job in self.__to_execute[backend]:
+                    #TODO_JAY: PUT SEED IN JOB
+                    jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
                 elif backend == "local_unitary_simulator":
@@ -355,15 +359,15 @@ class QuantumProgram(object):
 
             # Fill data into self.__circuits for this backend
             index = 0
-            for circuit in self.__to_execute[backend]:
-                name = circuit["name"]
+            for job in self.__to_execute[backend]:
+                name = job["name"]
                 if name not in self.__circuits["circuits"]:
                     return {"status": "Error", "result": "Internal error, circuit not found"}
                 if backend not in self.__circuits["circuits"][name]["execution"]:
                     self.__circuits["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
                 for field in ["QASM_compiled", "coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits"]:
-                    self.__circuits["circuits"][name]["execution"][backend][field] = circuit[field]
+                    self.__circuits["circuits"][name]["execution"][backend][field] = job[field]
                 self.__circuits["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
                 self.__circuits["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
                 index += 1
@@ -392,7 +396,7 @@ class QuantumProgram(object):
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
             if job["shots"] == 1:
-                # TODO: seed control
+                #TODO_JAY: PUT SEED IN JOB
                 qasm_circuit = QasmSimulator(job["compiled_circuit"], random.random()).run()
                 one_result["result"] = qasm_circuit["result"]
                 one_result["status"] = 'COMPLETED'
@@ -451,7 +455,8 @@ class QuantumProgram(object):
         program is a list of quantum circuits, if it's emty use the internal circuits
         """
 
-        # I WANT TO KILL THIS FUNCTION and have get_circuits
+        #TODO_ISMEAL_QUESATAION: I WANT TO KILL THIS FUNCTION and have
+        # get_circuit_qasm and git_circut_qasms SEE BELOW
         if not circuits:
             circuits = self.__circuits['circuits']
         # TODO: Store QASM per circuit
@@ -489,9 +494,11 @@ class QuantumProgram(object):
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
 
-        Takes in the data counts(i) and a corresponding observable in dict
+        Takes in an obserbaleobservable in dict
         form and calculates sum_i value(i) P(i) where value(i) is the value of
-        the observable for the i state.
+        the observable for the i state
+
+        returns a double
         """
         counts = self.get_counts(name)
         temp = 0
@@ -540,7 +547,8 @@ class QuantumProgram(object):
     def add_circuit(self, name, circuit_object):
         """Add anew circuit based in a Object representation.
         name is the name or index of one circuit."""
-
+        #TODO_ISMEAL_QUESATAION: do we need to fill in the QASM my philophy is this
+        #is not filled until we compile or save when we have a save and why do we return
         self.__circuits['circuits'][name] = {"name":name, "object": circuit_object, "QASM": circuit_object.qasm()}
 
         return circuit_object
@@ -551,6 +559,8 @@ class QuantumProgram(object):
         qregisters is a Array of Quantum Registers, can be String, by name or the object reference
         cregisters is a Array of Classical Registers, can be String, by name or the object reference
         """
+        #TODO_ISMEAL_QUESATAION: do we need to fill in the QASM my philosophy is this
+        #is not filled until we compile or save when we have a save and why do we return
         if not qregisters:
             qregisters = []
         if not cregisters:
@@ -581,6 +591,7 @@ class QuantumProgram(object):
         print(">> quantum_registers created:", name, size)
         return self.__quantum_registers[name]
 
+    #TODO_ISMEAL_QUESATAION: HOW IS THIS DIFFERENT TO ABOVE
     def create_quantum_registers_name(self, name, size):
         """Create a new set of Quantum Registers"""
         self.__quantum_registers[name] = QuantumRegister(name, size)
@@ -596,6 +607,7 @@ class QuantumProgram(object):
             new_registers.append(register)
         return new_registers
 
+    #TODO_ISMEAL_QUESATAION:  SHOULD WE USE THE SAME NAME REG->registers
     def create_classical_reg_group(self, registers_array):
         """Create a new set of Classical Registers based in a array of that"""
         new_registers = []
@@ -627,6 +639,13 @@ class QuantumProgram(object):
         """Get imagen circuit representation from API."""
         pass
 
+    #TODO_ISMEAL_QUESATAION: HOW IS THIS CURRENTLY USED.
+    #I THINK THIS SHOLD BE get_circuits_qasm and then we
+    #remove program_to_text and then you can have get_circuit_qasms that
+    #takes in and array of names and self.__circuits['circuits'][name]["QASM"]
+    #WHICH MAY BE EMPYT AND IF SO YOU NEED TO RUN
+    #self.__circuits["circuits"][name]["QASM"] = self.__circuits["circuits"][name]["object"].qasm()
+    # AND THEN RETURN
     def get_circuit(self, name):
         """get the circut by name.
         name of the circuit"""
@@ -656,9 +675,10 @@ class QuantumProgram(object):
             device = self.__last_device_backend
         return self.__circuits["circuits"][name]['execution'][device]['result']['data']
 
-    #TODO: change the index for name and i think there is no point to get data above
+    #TODO_ISMEAL_QUESATAION: I THINK get_counts, get_data, and get result need to be
+    #nested get_counts calls _get_data and get_data calls get_results
+    #and use the try as in get_counts. change the index for name and i think there is no point to get data above
     # ALSO i think we need an error if there is no results when we use a name
-
     def get_counts(self, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
         name is the name or index of one circuit."""
