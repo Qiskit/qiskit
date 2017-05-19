@@ -8,7 +8,7 @@ OpenQASM and the IBM Q experience (QX).
 
 ## Organization
 
-The *tutorial* directory contains Jupyter notebooks demonstrating components of the SDK. Take a look at the [index](https://github.ibm.com/IBMQuantum/qiskit-sdk-py/blob/master/tutorial/index.ipynb) to get started. The SDK uses the [Python API](https://github.com/IBM/qiskit-api-py) to interact with the QX and expresses quantum circuits using [OpenQASM](https://github.com/IBM/qiskit-openqasm). Python example programs can be found in the *examples* directory, and test scripts are located in *test*. The *qiskit* directory is the main module of the SDK.
+The *tutorial* directory contains Jupyter notebooks demonstrating components of the SDK. Take a look at the [index](https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev/blob/master/tutorial/index.ipynb) to get started. The SDK uses the [Python API](https://github.com/IBM/qiskit-api-py) to interact with the QX and expresses quantum circuits using [OpenQASM](https://github.com/IBM/qiskit-openqasm). Python example programs can be found in the *examples* directory, and test scripts are located in *test*. The *qiskit* directory is the main module of the SDK.
 
 ## Structure
 
