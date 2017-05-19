@@ -666,3 +666,23 @@ class QuantumProgram(object):
                     print("// *******************************************")
                     print(job["compiled_circuit"], end="")
                     print("// *******************************************")
+    
+    def get_device_status(self, device):
+        """Return the online device status via QX API call
+        device is the name of the real chip
+        """
+   
+        if device in self.__online_devices:
+            return self.__api.device_status(device)
+        else:
+            return {"status": "Error", "result": "This device doesn't exist"}
+
+    def get_device_calibration(self, device):
+        """Return the online device calibrations via QX API call
+        device is the name of the real chip
+        """
+   
+        if device in self.__online_devices:
+            return self.__api.device_calibration(device)
+        else:
+            return {"status": "Error", "result": "This device doesn't exist"}

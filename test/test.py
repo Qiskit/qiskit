@@ -297,7 +297,7 @@ class TestQISKit(unittest.TestCase):
         qc.h(qr[1])
         qc.measure(qr[0], cr[0])
 
-        device = 'IBMQX5qv2'  # the device to run on
+        device = 'ibmqx2'  # the device to run on
         shots = 1  # the number of shots in the experiment.
 
         apiconnection = QP_program.set_api(
@@ -318,7 +318,7 @@ class TestQISKit(unittest.TestCase):
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
 
-        device = 'IBMQX5qv2'
+        device = 'ibmqx2'
         shots = 1024
         credits = 3
         coupling_map = None
@@ -528,6 +528,26 @@ class TestQISKit(unittest.TestCase):
 
         self.assertEqual(result['status'], 'COMPLETED')
 
+    def test_device_status(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        
+        apiconnection = QP_program.set_api(API_TOKEN, URL)
+        
+        device = 'ibmqx2'
+        result = QP_program.get_device_status(device)
+
+        self.assertIn(result['available'], [True,False])
+
+
+    def test_device_calibration(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        
+        apiconnection = QP_program.set_api(API_TOKEN, URL)
+        
+        device = 'ibmqx2'
+        result = QP_program.get_device_calibration(device)
+        
+        self.assertEqual (len(result), 12)
 
 if __name__ == '__main__':
     unittest.main()
