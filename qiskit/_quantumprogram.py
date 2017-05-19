@@ -47,9 +47,6 @@ import sys
 sys.path.append("..")
 import qiskit.extensions.standard
 
-#TODO_ISMEAL_QUESATAION: I THINK THE FUNCTIONS NEED TO BE MOVED AROUND
-# intilzers, seters, getters, runners
-
 
 class QuantumProgram(object):
     """ Quantum Program Class
@@ -111,12 +108,9 @@ class QuantumProgram(object):
     """
     # FUTURE IMPROVEMENTS (NOT NOW)
     # TODO. JAY: I DONT THINK coupling_map, basis_gates is needed in the __to_execute
-    # TODO. JAY: I DONT THINK "qasm" is needed in the __quantum_prgram as
-    # with the get_circuit_qasm method you can make it
     # TODO: JAY qasm_compiled and compiled_circuit are redundent if we do correctly.
-    # THEY are the same thing for the different backends and currenlty we hope
-    # (make them) stay consistant.
-    # qasm_compiled is used by the API for online stuff.
+    # THEY are the same thing for the different backends and currenlty we
+    # (make them) stay consistant. qasm_compiled is used by the API for online stuff.
     # compiled_circuit is used by my simulators. Ideally I would like
     # compiled_circuit to be a JSON FILE  which is very similar to the
     # output of the unroll SimulatorBackend and is a COMPLETE REPRESENTATION
@@ -241,7 +235,8 @@ class QuantumProgram(object):
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         coupling_map is the adjacency list for coupling graph
 
-        This method adds elements of the following form to the self.__to_execute list corresponding to the device:
+        This method adds elements of the following form to the self.__to_execute
+        list corresponding to the device:
 
         --device name (string)--: [
                 {
@@ -258,7 +253,6 @@ class QuantumProgram(object):
             ]
         }
         """
-        # TODO: Control device names
         if name_of_circuits == []:
             return {"status": "Error", "result": 'No circuits'}
 
@@ -266,7 +260,7 @@ class QuantumProgram(object):
             if name not in self.__quantum_program["circuits"]:
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
 
-            # TODO: The circuit object has to have .qasm() method; currently several different types
+            # TODO: The circuit object has to have .qasm() method; Need to make sure it does
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
@@ -360,7 +354,7 @@ class QuantumProgram(object):
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    #TODO_JAY: PUT SEED IN JOB
+                    #TODO JAY: PUT SEED IN JOB
                     jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
                 print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
@@ -384,7 +378,7 @@ class QuantumProgram(object):
                     return {"status": "Error", "result": "Internal error, circuit not found"}
                 if not "execution" in self.__quantum_program["circuits"][name]:
                     self.__quantum_program["circuits"][name]["execution"]={}
-                # We overide the results 
+                # We overide the results
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
@@ -418,7 +412,7 @@ class QuantumProgram(object):
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
             if job["shots"] == 1:
-                #TODO_JAY: PUT SEED IN JOB
+                #TODO JAY: PUT SEED IN JOB
                 qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
                 one_result["result"] = qasm_circuit["result"]
                 one_result["status"] = 'COMPLETED'
@@ -669,7 +663,6 @@ class QuantumProgram(object):
         name is the name or index of one circuit."""
         if not device:
             device = self.__last_device_backend
-        # TODO: check that there are results
         try:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
