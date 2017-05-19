@@ -120,3 +120,12 @@ Note: You can get your "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 - Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them ending with a dot.
 - If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
 - It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
+
+
+## Authors (alphabetical)
+
+The first release of QISKit was developed by Andrew Cross, Jim Challanger, Ismeal Faro, Jay Gambetta, Jesus Perez, and John Smolin
+
+## License
+
+QISKit is released under the Apache 2 license.

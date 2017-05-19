@@ -17,7 +17,7 @@
 
 """Contains a (slow) python simulator that returns the unitary of the circuit.
 
-Author: Jay Gambetta
+Author: Jay Gambetta and John Smolin
 
 The input is the circuit object and the output is the same circuit object with
 a result field added circuit['result']['data']['unitary'] where the unitary is
