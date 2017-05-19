@@ -303,7 +303,7 @@ class TestQISKit(unittest.TestCase):
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
         result = QP_program.execute( ['circuitName'], device, shots, max_credits=3)
-        self.assertIn(result["status"], ["DONE","Error"])
+        self.assertIn(result["status"], ["COMPLETED","Error"])
 
 
 
