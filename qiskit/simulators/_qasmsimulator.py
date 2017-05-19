@@ -169,9 +169,7 @@ class QasmSimulator(object):
         self._number_of_cbits = self.circuit['number_of_cbits']
         self.circuit['result'] = {}
         self.circuit['result']['data'] = {}
-        self._quantum_state = np.zeros(2**(self._number_of_qubits),
-                                       dtype=complex)
-        self._quantum_state[0] = 1
+        self._quantum_state = 0
         self._classical_state = 0
         self._shots = shots
         random.seed(seed)
@@ -306,6 +304,10 @@ class QasmSimulator(object):
         outcomes = []
         # Do each shot
         for shot in range(self._shots):
+            self._quantum_state = np.zeros(2**(self._number_of_qubits),
+                                       dtype=complex)
+            self._quantum_state[0] = 1
+            self._classical_state = 0
             # Do each operation in this shot
             for j in range(self._number_of_operations):
                 # Check if gate operation
