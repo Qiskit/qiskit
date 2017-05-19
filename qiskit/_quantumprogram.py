@@ -71,10 +71,9 @@ class QuantumProgram(object):
                 "circuit": --circuit object (TBD)--,
                 "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                     --device name (string)--: {
-                        "qasm_compiled": --compiled qasm output of .qasm() (string) after compliing--,
                         "coupling_map": --adjacency list (dict)--,
                         "basis_gates": --comma separated gate names (string)--,
-                        "compiled_circuit": --local simulator input (dict that could be a JSON file) or None--,
+                        "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
                         "shots": --shots (int)--,
                         "max_credits": --credits (int)--,
                         "result": {
@@ -94,10 +93,9 @@ class QuantumProgram(object):
         --device name (string)--: [
             {
                 "name": --circuit name (string)--,
-                "qasm_compiled": --compiled qasm output of .qasm() (string) after compliing--,
                 "coupling_map": --adjacency list (dict)--,
                 "basis_gates": --comma separated gate names (string)--,
-                "compiled_circuit": --local simulator input (dict that could be a JSON file) or None--,
+                "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
                 "shots": --shots (int)--,
                 "max_credits": --credits (int)--
                 "seed": --initial seed for the simulator (int) --
@@ -106,29 +104,14 @@ class QuantumProgram(object):
         ]
     }
     """
-    # FUTURE IMPROVEMENTS (NOT NOW)
-    # TODO. JAY: I DONT THINK coupling_map, basis_gates is needed in the __to_execute
-    # TODO: JAY qasm_compiled and compiled_circuit are redundent if we do correctly.
-    # THEY are the same thing for the different backends and currenlty we
-    # (make them) stay consistant. qasm_compiled is used by the API for online stuff.
-    # compiled_circuit is used by my simulators. Ideally I would like
-    # compiled_circuit to be a JSON FILE  which is very similar to the
-    # output of the unroll SimulatorBackend and is a COMPLETE REPRESENTATION
-    # of a circuit. It is this that is passed to the API or the simulator.
-    #
-    # A hack for this is (LETS not do this)
-    #
-    # delete qasm_compiled and then make compiled_circuit what qasm_compiled is
-    # now. Then for the API it just gets passed compiled_circuit and for the
-    # local simulator(s) we would do
-    #   unroller = unroll.Unroller(qasm.Qasm(compiled_circuit).parse(), SimulatorBackend(basis_gates))
-    #   unroller.backend.set_trace(False)
-    #   unroller.execute()
-    # and pass unroller.backend.circuit to the local simulators
-
+    # -- FUTURE IMPROVEMENTS --
+    # TODO: coupling_map, basis_gates will move to compiled_circuit object
+    # TODO: compiled_circuit is currently QASM text. In the future we will
+    #       make a method in the QuantumCircuit object that makes an object
+    #       to be passed to the runner and this will live in compiled_circuit.
 
     def __init__(self, specs=None, name=""):
-        self.__quantum_program  = {"circuits":{}}
+        self.__quantum_program = {"circuits": {}}
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
@@ -204,12 +187,12 @@ class QuantumProgram(object):
         if name == "":
             name = qasm_file
 
-        circuit_object = qasm.Qasm(filename=qasm_file).parse()
+        circuit_object = qasm.Qasm(filename=qasm_file).parse()  # Node (AST)
 
+        # TODO: add method to convert to QuantumCircuit object from Node
         self.__quantum_program['circuits'][name] = {"circuit": circuit_object}
 
         return {"status": "COMPLETED", "result": 'all done'}
-
 
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroll the code
@@ -241,10 +224,9 @@ class QuantumProgram(object):
         --device name (string)--: [
                 {
                     "name": --circuit name (string)--,
-                    "qasm_compiled": --compiled qasm (string)--,
                     "coupling_map": --adjacency list (dict)--,
                     "basis_gates": --comma separated gate names (string)--,
-                    "compiled_circuit": --local simulator input (dict) OR None--,
+                    "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
                     "shots": --shots (int)--,
                     "max_credits": --credits (int)--
                     "seed": --initial seed for the simulator (int) --
@@ -260,7 +242,7 @@ class QuantumProgram(object):
             if name not in self.__quantum_program["circuits"]:
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
 
-            # TODO: The circuit object has to have .qasm() method; Need to make sure it does
+            # TODO: The circuit object has to have .qasm() method (be careful)
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
@@ -289,21 +271,17 @@ class QuantumProgram(object):
 
             job = {}
             job["name"] = name
-            job["qasm_compiled"] = qasm_compiled
             job["coupling_map"] = coupling_map
             job["basis_gates"] = basis_gates
-            job["compiled_circuit"] = None
             job["shots"] = shots
             job["max_credits"] = max_credits
-            job["seed"] = None
-            if device in ["local_unitary_simulator", "local_qasm_simulator"]:
-                unroller = unroll.Unroller(qasm.Qasm(data=qasm_compiled).parse(), unroll.SimulatorBackend(basis_gates))
-                unroller.backend.set_trace(False)
-                unroller.execute()
-                job["compiled_circuit"] = unroller.backend.circuit
-                job["seed"] = random.random()
-                if seed is not None:
-                    job["seed"] = seed
+            # TODO: This will become a new compiled circuit object in the
+            #       future. See future improvements at the top of this
+            #       file.
+            job["compiled_circuit"] = qasm_compiled
+            job["seed"] = random.random()
+            if seed is not None:
+                job["seed"] = seed
             self.__to_execute[device].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
@@ -321,7 +299,7 @@ class QuantumProgram(object):
                 last_max_credits = -1
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    jobs.append({'qasm': job["qasm_compiled"]})
+                    jobs.append({'qasm': job["compiled_circuit"]})
                     shots = job["shots"]
                     max_credits = job["max_credits"]
                     if last_shots == -1:
@@ -354,8 +332,9 @@ class QuantumProgram(object):
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    #TODO JAY: PUT SEED IN JOB
-                    jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
+                    jobs.append({"compiled_circuit": job["compiled_circuit"],
+                                 "shots": job["shots"],
+                                 "seed": job["seed"]})
                 print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
@@ -382,7 +361,7 @@ class QuantumProgram(object):
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
-                for field in ["qasm_compiled", "coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits"]:
+                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed"]:
                     self.__quantum_program["circuits"][name]["execution"][backend][field] = job[field]
                 self.__quantum_program["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
                 self.__quantum_program["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
@@ -411,18 +390,9 @@ class QuantumProgram(object):
         job_results = {"qasms": []}
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
-            if job["shots"] == 1:
-                #TODO JAY: PUT SEED IN JOB
-                qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
-                one_result["result"] = qasm_circuit["result"]
-                one_result["status"] = 'COMPLETED'
-            else:
-                result = []
-                for i in range(job["shots"]):
-                    b = simulators.QasmSimulator(job["compiled_circuit"], random.random()).run()
-                    result.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
-                one_result["result"] = {"data": {"counts": dict(Counter(result))}}
-                one_result["status"] = 'COMPLETED'
+            qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], job["shots"], job["seed"]).run()
+            one_result["result"] = qasm_circuit["result"]
+            one_result["status"] = 'COMPLETED'
             job_results['qasms'].append(one_result)
         return job_results
 
@@ -615,7 +585,7 @@ class QuantumProgram(object):
             basicplotter.plot_histogram(data, number_to_keep)
         else:
             pass
-            # TODO: only work with unitary simulator; basicplotter.plot_qsphere(data)
+            # TODO: add basicplotter.plot_qsphere(data) for unitary simulator
 
     def get_qasm_image(self, circuit):
         """Get image circuit representation from API."""
@@ -627,7 +597,7 @@ class QuantumProgram(object):
         if name in self.__quantum_program['circuits']:
             return self.__quantum_program['circuits'][name]['circuit'].qasm()
         else:
-            return  {"status": "Error", "result": 'Circuit not found'}
+            return {"status": "Error", "result": 'Circuit not found'}
 
     def get_qasms(self, list_circuit_name):
         """get the circut by name.
@@ -648,7 +618,7 @@ class QuantumProgram(object):
         if name in self.__quantum_program["circuits"]:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']
         else:
-            return  {"status": "Error", "result": 'Circuit not found'}
+            return {"status": "Error", "result": 'Circuit not found'}
 
     def get_data(self, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
@@ -666,7 +636,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
-            return  {"status": "Error", "result": 'Error in circuit name'}
+            return {"status": "Error", "result": 'Error in circuit name'}
 
     def get_compiled_qasm(self, name, device=None):
         """Get the compiled qasm for the named circuit and device.
@@ -676,7 +646,7 @@ class QuantumProgram(object):
         if not device:
             device = self.__last_device_backend
         try:
-            return self.__quantum_program["circuits"][name]["execution"][device]["qasm_compiled"]
+            return self.__quantum_program["circuits"][name]["execution"][device]["compiled_circuit"]
         except KeyError:
             return "No compiled qasm for this circuit"
 
@@ -692,7 +662,7 @@ class QuantumProgram(object):
                 print("    shots = %d" % job["shots"])
                 print("    max_credits = %d" % job["max_credits"])
                 if verbose:
-                    print("    qasm_compiled =")
+                    print("    compiled_circuit =")
                     print("// *******************************************")
-                    print(job["qasm_compiled"], end="")
+                    print(job["compiled_circuit"], end="")
                     print("// *******************************************")

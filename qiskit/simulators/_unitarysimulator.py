@@ -91,6 +91,8 @@ circuit =
     }
 """
 import numpy as np
+import qiskit.qasm as qasm
+import qiskit.unroll as unroll
 
 
 class UnitarySimulator(object):
@@ -135,9 +137,14 @@ class UnitarySimulator(object):
             retval = UnitarySimulator._index1(b1, i1, retval)
         return retval
 
-    def __init__(self, circuit):
+    def __init__(self, compiled_circuit):
         """Initial the UnitarySimulator object."""
-        self.circuit = circuit
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit).parse(),
+                                   unroll.SimulatorBackend(basis_gates))
+        unroller.backend.set_trace(False)
+        unroller.execute()
+        self.circuit = unroller.backend.circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
         self.circuit['result'] = {}
         self.circuit['result']['data'] = {}

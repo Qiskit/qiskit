@@ -6,7 +6,7 @@ Python software development kit (SDK) and Jupyter notebooks for working with
 OpenQASM and the IBM Q experience (QX).
 
 ## Philosophy
- 
+
 The basic concept of our quantum program is an array of quantum circuits. The program workflow consists of three stages: Build, Compile, and Run. Build allows you to make different quantum circuits that represent the problem you are solving; Compile allows you to rewrite them to run on different backends (simulators/real chips of different quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted or allows you to make a better program for the next instance.
 
 ## Organization
@@ -25,7 +25,7 @@ The *extensions* directory extends quantum circuits as needed to support other g
 
 ### Internal modules
 
-The directory also contains internal modules:
+The directory also contains internal modules that are still under development:
 
 * a *qasm* module for parsing **OpenQASM** circuits
 * an *unroll* module to interpret and "unroll" **OpenQASM** to a target gate basis (expanding gate subroutines and loops as needed)
@@ -71,7 +71,7 @@ make env
 
 ## Use
 
-- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account):
+- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
 cp tutorial/Qconfig.py.default Qconfig.py
@@ -116,7 +116,7 @@ make env-dev
 make test
 ```
 
-Note: You can get your "putYourQExperienceTokenHere" from [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) > Account)
+Note: You can get your "putYourQExperienceTokenHere" from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account)
 
 ### Commit messages rules
 
@@ -127,7 +127,7 @@ Note: You can get your "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 
 ## Authors (alphabetical)
 
-The first release of QISKit was developed by Andrew Cross, Jim Challanger, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin
+The first release of QISKit was developed by Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin.
 
 ## License
 
