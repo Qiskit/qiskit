@@ -25,7 +25,7 @@ The *extensions* directory extends quantum circuits as needed to support other g
 
 ### Internal modules
 
-The directory also contains internal modules:
+The directory also contains internal modules that are still under development:
 
 * a *qasm* module for parsing **OpenQASM** circuits
 * an *unroll* module to interpret and "unroll" **OpenQASM** to a target gate basis (expanding gate subroutines and loops as needed)
