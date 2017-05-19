@@ -277,21 +277,29 @@ class QasmSimulator(object):
 
         qubit is the qubit that is reset.
         """
+        # TODO: slow, refactor later
         outcome, norm = self._add_qasm_decision(qubit)
-        temp = self._quantum_state
+        temp = np.copy(self._quantum_state)
+        self._quantum_state.fill(0.0)
+        # measurement
         for ii in range(2**self._number_of_qubits):
-            # update quantum state
             iistring = bin(ii)[2:]
             bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if outcome == '0':
-                iip = ii
+            if bits[qubit] == outcome:
+                temp[ii] = temp[ii]/norm
             else:
-                bits[qubit] == '0'
+                temp[ii] = 0
+        # reset
+        if outcome == '1':
+            for ii in range(2**self._number_of_qubits):
+                iistring = bin(ii)[2:]
+                bits = list(reversed(iistring.zfill(self._number_of_qubits)))
+                bits[qubit] = '0'
                 iip = int(''.join(reversed(bits)), 2)
-            if bits[qubit] == '0':
-                self._quantum_state[iip] = temp[ii]/norm
-            else:
-                self._quantum_state[iip] = 0
+                self._quantum_state[iip] += temp[ii]
+        else:
+            self._quantum_state = temp
+
 
     def run(self):
         """Run."""

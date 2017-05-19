@@ -269,6 +269,9 @@ class SimulatorBackend(UnrollerBackend):
                     'qubit_indices': qubit_indices,
                     'cbit_indices': cbit_indices
                     })
+        if self.trace:
+            print("measure %s[%d] -> %s[%d];" % (qubit[0], qubit[1], 
+                                                 cbit[0], cbit[1]))
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -289,6 +292,9 @@ class SimulatorBackend(UnrollerBackend):
                     'type': 'reset',
                     'qubit_indices': qubit_indices,
                     })
+        if self.trace:
+            print("reset %s[%d];" % (qubit[0], qubit[1]))
+
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
