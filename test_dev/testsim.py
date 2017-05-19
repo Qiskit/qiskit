@@ -14,6 +14,10 @@ import random
 from collections import Counter
 import numpy as np
 
+# to make command line imputs
+simulator_to_run = "qasm_simulator"
+seed = 1
+
 if len(sys.argv) != 2:
     print("testsim <filename.qasm>")
     sys.exit(1)
@@ -23,22 +27,22 @@ filename = sys.argv[1]
 qp = QuantumProgram()
 qp.load_qasm("example", qasm_file=filename)
 
-print('using the unitary simulator')
-a = UnitarySimulator(qp.get_qasm("example")).run()
-print('\n\n state from unitary = ')
+if simulator_to_run == "unitary_simulator":
+    print('using the unitary simulator')
+    a = UnitarySimulator(qp.get_qasm("example")).run()
+    print('\n\n state from unitary = ')
+    quantum_state = np.zeros(2**(a['number_of_qubits']), dtype=complex)
+    quantum_state[0] = 1
+    print(np.dot(a['result']['data']['unitary'], quantum_state))
 
-quantum_state = np.zeros(2**(a['number_of_qubits']), dtype=complex)
-quantum_state[0] = 1
+if simulator_to_run == "qasm_simulator_single_shot":
+    print('using the qasm simulator in single shot mode \n ')
+    b = QasmSimulator(qp.get_qasm("example"), seed).run()
+    print(b['result']['data']['quantum_state'])
+    print(b['result']['data']['classical_state'])
 
-print(np.dot(a['result']['data']['unitary'], quantum_state))
-
-print('\n\nusing the qasm simulator')
-shots = 1024
-outcomes = []
-seed = 1
-b = QasmSimulator(qp.get_qasm("example"), 1).run()
-print(b['result']['data']['quantum_state'])
-print(b['result']['data']['classical_state'])
-
-b = QasmSimulator(qp.get_qasm("example"), shots).run()
-print(b['result']['data']['counts'])
+if simulator_to_run == "qasm_simulator":
+    print('using the qasm simulator \n ')
+    shots = 1024
+    b = QasmSimulator(qp.get_qasm("example"), shots).run()
+    print(b['result']['data']['counts'])
