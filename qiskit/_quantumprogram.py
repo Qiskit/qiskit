@@ -107,24 +107,11 @@ class QuantumProgram(object):
     }
     """
     # FUTURE IMPROVEMENTS (NOT NOW)
-    # TODO. JAY: I DONT THINK coupling_map, basis_gates is needed in the __to_execute
-    # TODO: JAY qasm_compiled and compiled_circuit are redundent if we do correctly.
-    # THEY are the same thing for the different backends and currenlty we
-    # (make them) stay consistant. qasm_compiled is used by the API for online stuff.
-    # compiled_circuit is used by my simulators. Ideally I would like
-    # compiled_circuit to be a JSON FILE  which is very similar to the
-    # output of the unroll SimulatorBackend and is a COMPLETE REPRESENTATION
-    # of a circuit. It is this that is passed to the API or the simulator.
-    #
-    # A hack for this is (LETS not do this)
-    #
-    # delete qasm_compiled and then make compiled_circuit what qasm_compiled is
-    # now. Then for the API it just gets passed compiled_circuit and for the
-    # local simulator(s) we would do
-    #   unroller = unroll.Unroller(qasm.Qasm(compiled_circuit).parse(), SimulatorBackend(basis_gates))
-    #   unroller.backend.set_trace(False)
-    #   unroller.execute()
-    # and pass unroller.backend.circuit to the local simulators
+    # TODO. coupling_map, basis_gates do we continue to keep in __to_execute
+    # TODO: qasm_compiled and compiled_circuit are redundent and represent the
+    # same thing. Text version of a qasm. In future we will make a method in
+    # the QuantumCircuit object that makes a JSON file to be passed to the
+    # runner and this will live in compiled_circuit.
 
 
     def __init__(self, specs=None, name=""):
