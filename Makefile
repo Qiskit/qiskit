@@ -29,7 +29,7 @@ env-dev: env
 
 # Ignoring generated ones with .py extension.
 lint:
-	bash -c "source activate QISKitenv;pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tools tutorial"
+	bash -c "source activate QISKitenv;pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial"
 
 # TODO: Uncomment when the lint one passes.
 # test: lint
@@ -37,4 +37,4 @@ test:
 	bash -c "source activate QISKitenv;cd test;python test.py"
 
 run:
-	bash -c "source activate QISKitenv;cd scripts;jupyter notebook"
+	bash -c "source activate QISKitenv;cd tutorial;jupyter notebook"
