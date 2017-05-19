@@ -14,8 +14,14 @@ import random
 from collections import Counter
 import numpy as np
 
+if len(sys.argv) != 2:
+    print("testsim <filename.qasm>")
+    sys.exit(1)
+
+filename = sys.argv[1]
+
 qp = QuantumProgram()
-qp.load_qasm("example", qasm_file="example.qasm")
+qp.load_qasm("example", qasm_file=filename)
 
 print('using the unitary simulator')
 a = UnitarySimulator(qp.get_qasm("example")).run()

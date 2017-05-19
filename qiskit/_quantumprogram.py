@@ -242,7 +242,7 @@ class QuantumProgram(object):
             if name not in self.__quantum_program["circuits"]:
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
 
-            # TODO: The circuit object has to have .qasm() method; need to make sure it does
+            # TODO: The circuit object has to have .qasm() method (be careful)
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             if coupling_map:
                 print("pre-mapping properties: %s"
@@ -275,9 +275,8 @@ class QuantumProgram(object):
             job["basis_gates"] = basis_gates
             job["shots"] = shots
             job["max_credits"] = max_credits
-            job["seed"] = None
             # TODO: This will become a new compiled circuit object in the
-            #       future. See future improvements at the top of this 
+            #       future. See future improvements at the top of this
             #       file.
             job["compiled_circuit"] = qasm_compiled
             job["seed"] = random.random()
@@ -333,8 +332,9 @@ class QuantumProgram(object):
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    # TODO: Put the seed into the job
-                    jobs.append({"compiled_circuit": job["compiled_circuit"], "shots": job["shots"]})
+                    jobs.append({"compiled_circuit": job["compiled_circuit"],
+                                 "shots": job["shots"],
+                                 "seed": job["seed"]})
                 print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
@@ -361,7 +361,7 @@ class QuantumProgram(object):
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
-                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits"]:
+                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed"]:
                     self.__quantum_program["circuits"][name]["execution"][backend][field] = job[field]
                 self.__quantum_program["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
                 self.__quantum_program["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
@@ -390,8 +390,7 @@ class QuantumProgram(object):
         job_results = {"qasms": []}
         for job in jobs:
             one_result = {'result': None, 'status': "FAIL"}
-            # TODO: Put the seed into the job
-            qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], job["shots"]).run()
+            qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], job["shots"], job["seed"]).run()
             one_result["result"] = qasm_circuit["result"]
             one_result["status"] = 'COMPLETED'
             job_results['qasms'].append(one_result)
@@ -586,7 +585,7 @@ class QuantumProgram(object):
             basicplotter.plot_histogram(data, number_to_keep)
         else:
             pass
-            # TODO: only work with unitary simulator; basicplotter.plot_qsphere(data)
+            # TODO: add basicplotter.plot_qsphere(data) for unitary simulator
 
     def get_qasm_image(self, circuit):
         """Get image circuit representation from API."""
@@ -598,7 +597,7 @@ class QuantumProgram(object):
         if name in self.__quantum_program['circuits']:
             return self.__quantum_program['circuits'][name]['circuit'].qasm()
         else:
-            return  {"status": "Error", "result": 'Circuit not found'}
+            return {"status": "Error", "result": 'Circuit not found'}
 
     def get_qasms(self, list_circuit_name):
         """get the circut by name.
@@ -619,7 +618,7 @@ class QuantumProgram(object):
         if name in self.__quantum_program["circuits"]:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']
         else:
-            return  {"status": "Error", "result": 'Circuit not found'}
+            return {"status": "Error", "result": 'Circuit not found'}
 
     def get_data(self, name, device=None):
         """Get the dict of labels and counts from the output of get_job.
@@ -637,7 +636,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
-            return  {"status": "Error", "result": 'Error in circuit name'}
+            return {"status": "Error", "result": 'Error in circuit name'}
 
     def get_compiled_qasm(self, name, device=None):
         """Get the compiled qasm for the named circuit and device.
