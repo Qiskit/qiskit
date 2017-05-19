@@ -124,7 +124,7 @@ Note: You can get your "putYourQExperienceTokenHere" from [IBM Quantum Experienc
 
 ## Authors (alphabetical)
 
-The first release of QISKit was developed by Andrew Cross, Jim Challanger, Ismeal Faro, Jay Gambetta, Jesus Perez, and John Smolin
+The first release of QISKit was developed by Andrew Cross, Jim Challanger, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin
 
 ## License
 
