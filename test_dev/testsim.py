@@ -2,6 +2,9 @@
 
 Author: Jay Gambetta
 """
+import sys
+sys.path.append("..")
+from qiskit import QuantumProgram
 import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
 from qiskit.unroll import SimulatorBackend
@@ -11,15 +14,11 @@ import random
 from collections import Counter
 import numpy as np
 
-basis = []  # empty basis, defaults to U, CX
-unroller = unroll.Unroller(Qasm(filename="example.qasm").parse(),
-                           SimulatorBackend(basis))
-unroller.backend.set_trace(False)  # print calls as they happen
-unroller.execute()  # Here is where simulation happens
+qp = QuantumProgram()
+qp.load_qasm("example", qasm_file="example.qasm")
 
-
-print('using the unirary simulator')
-a = UnitarySimulator(unroller.backend.circuit).run()
+print('using the unitary simulator')
+a = UnitarySimulator(qp.get_qasm("example")).run()
 print('\n\n state from unitary = ')
 
 quantum_state = np.zeros(2**(a['number_of_qubits']), dtype=complex)
@@ -31,18 +30,9 @@ print('\n\nusing the qasm simulator')
 shots = 1024
 outcomes = []
 seed = 1
-b = QasmSimulator(unroller.backend.circuit, 1).run()
+b = QasmSimulator(qp.get_qasm("example"), 1).run()
 print(b['result']['data']['quantum_state'])
 print(b['result']['data']['classical_state'])
 
-
-print('\n\nrunning many shots')
-for i in range(shots):
-    # running the quantum_circuit
-    b = QasmSimulator(unroller.backend.circuit, random.random()).run()
-    # print(b['resuls']['data']['quantum_state'])
-    # print(b['resuls']['data']['classical_state'])
-    outcomes.append(bin(b['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
-
-print('\n\n outcomes = ')
-print(dict(Counter(outcomes)))
+b = QasmSimulator(qp.get_qasm("example"), shots).run()
+print(b['result']['data']['counts'])
