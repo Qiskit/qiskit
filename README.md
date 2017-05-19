@@ -129,6 +129,8 @@ Note: You can get your "putYourQExperienceTokenHere" from [IBM Q experience](htt
 
 The first release of QISKit was developed by Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin.
 
+In future releases, anyone who contributes code to this project can include their name here.
+
 ## License
 
 QISKit is released under the Apache 2 license.
