@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-Ripple adder example based on an OpenQASM example.
+Ripple adder example based on Cuccaro et al, quant-ph/0410184.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -128,7 +128,7 @@ print(qp.get_counts("rippleadd"))
 # Second version: compiled to 2x8 array coupling graph
 qp.compile(["rippleadd"], device=device,
            coupling_map=coupling_map, shots=1024)
-qp.print_execution_list(verbose=True)
+# qp.print_execution_list(verbose=True)
 result = qp.run()
 
 print(result)
