@@ -105,7 +105,7 @@ class QuantumProgram(object):
     }
     """
     # -- FUTURE IMPROVEMENTS --
-    # TODO: for status resutls  choose ALL_CAPS, or This but be consistent
+    # TODO: for status results choose ALL_CAPS, or This but be consistent
     # TODO: coupling_map, basis_gates will move to compiled_circuit object
     # TODO: compiled_circuit is currently QASM text. In the future we will
     #       make a method in the QuantumCircuit object that makes an object
@@ -186,7 +186,7 @@ class QuantumProgram(object):
         return self.__quantum_registers[name]
 
     def create_quantum_registers_group(self, registers_array):
-        """Create a new set of Quantum Registers based in a array of that"""
+        """Create a new set of Quantum Registers based on a array of that"""
         new_registers = []
         for register in registers_array:
             register = self.create_quantum_registers(
@@ -201,7 +201,7 @@ class QuantumProgram(object):
         return self.__classical_registers[name]
 
     def create_classical_registers_group(self, registers_array):
-        """Create a new set of Classical Registers based in a array of that"""
+        """Create a new set of Classical Registers based on a array of that"""
         new_registers = []
         for register in registers_array:
             new_registers.append(self.create_classical_registers(
@@ -211,8 +211,8 @@ class QuantumProgram(object):
     def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
         """Create a new Quantum Circuit into the Quantum Program
         name is a string, the name of the circuit
-        qregisters is a Array of Quantum Registers, can be String, by name or the object reference
-        cregisters is a Array of Classical Registers, can be String, by name or the object reference
+        qregisters is an Array of Quantum Registers, can be String, by name or the object reference
+        cregisters is an Array of Classical Registers, can be String, by name or the object reference
         """
         if not qregisters:
             qregisters = []
@@ -237,15 +237,15 @@ class QuantumProgram(object):
         return self.__quantum_program['circuits'][name]['circuit']
 
     def get_quantum_registers(self, name):
-        """Return a specific Quantum Registers"""
+        """Return a Quantum Registers by name"""
         return self.__quantum_registers[name]
 
     def get_classical_registers(self, name):
-        """Return a specific Classical Registers"""
+        """Return a Classical Register by name"""
         return self.__classical_registers[name]
 
     def get_circuit(self, name):
-        """Return a specific Circuit Object"""
+        """Return a Circuit Object by name"""
         return self.__quantum_program['circuits'][name]['circuit']
 
     def get_quantum_elements(self, specs=None):
@@ -310,7 +310,7 @@ class QuantumProgram(object):
                                     cregisters=classicalr["name"])
 
     def add_circuit(self, name, circuit_object):
-        """Add anew circuit based in a Object representation.
+        """Add a new circuit based on an Object representation.
         name is the name or index of one circuit."""
         self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
         return circuit_object
@@ -338,8 +338,8 @@ class QuantumProgram(object):
     # Compiling methods
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroll the code
-        circuit are circuits to unroll
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+        circuit is circuits to unroll
+        basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
@@ -459,11 +459,11 @@ class QuantumProgram(object):
 
     #runners
     def run(self, wait=5, timeout=60):
-        """Run a program (a pre compiled quantum program).
+        """Run a program (a pre-compiled quantum program).
 
         All input for run comes from self.__to_execute
-        wait time to check if the job is Completed.
-        timeout time after that the execution stop
+        wait time is how long to check if the job is completed
+        timeout is time until the execution stopa
         """
         for backend in self.__to_execute:
             self.__last_device_backend = backend
@@ -530,7 +530,7 @@ class QuantumProgram(object):
                     return {"status": "Error", "result": "Internal error, circuit not found"}
                 if not "execution" in self.__quantum_program["circuits"][name]:
                     self.__quantum_program["circuits"][name]["execution"]={}
-                # We overide the results
+                # We override the results
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
@@ -621,13 +621,13 @@ class QuantumProgram(object):
 
     def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
                 max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None):
-        """Execute, compile and run a program (array of quantum circuits).
+        """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
-        api the api for the device
+        api is the api for the device
         device is a string for real or simulator
         shots is the number of shots
-        max_credits is the credits of the experiments.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
+        max_credits is the maximum credits for the experiments
+        basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         self.compile(name_of_circuits, device, shots, max_credits,
                      basis_gates, coupling_map, seed)
@@ -638,7 +638,7 @@ class QuantumProgram(object):
     def get_result(self, name, device=None):
         """get the get_result from one circut and backend
         name of the circuit
-        device that use to compile, run or execute
+        device that is use to compile, run, or execute
         """
         if not device:
             device = self.__last_device_backend
@@ -682,7 +682,7 @@ class QuantumProgram(object):
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
 
-        Takes in an obserbaleobservable in dict
+        Takes in an observable in dict
         form and calculates sum_i value(i) P(i) where value(i) is the value of
         the observable for the i state
 

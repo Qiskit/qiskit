@@ -15,7 +15,7 @@
 # limitations under the License.
 # =============================================================================
 
-"""Contains a (slow) python simulator that returns the unitary of the circuit.
+"""Contains a (slow) Python simulator that returns the unitary of the circuit.
 
 Author: Jay Gambetta and John Smolin
 
@@ -31,11 +31,11 @@ The input is
     compiled_circuit object
 and the output is the results object
 
-The simulator is ran using
+The simulator is run using
 
     UnitarySimulator(compiled_circuit).run().
 
-In the qasm key operations with type 'measure' and 'reset' are dropped.
+In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
 Internal circuit_object
 
@@ -168,9 +168,9 @@ class UnitarySimulator(object):
         self._number_of_operations = self.circuit['number_of_operations']
 
     def _add_unitary_single(self, gate, qubit):
-        """Apply the single qubit gate.
+        """Apply the single-qubit gate.
 
-        gate is the single qubit gate.
+        gate is the single-qubit gate.
         qubit is the qubit to apply it on counts from 0 and order
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
@@ -201,7 +201,7 @@ class UnitarySimulator(object):
         self._unitary_state = np.dot(temp1, self._unitary_state)
 
     def run(self):
-        """Apply the single qubit gate."""
+        """Apply the single-qubit gate."""
         for j in range(self._number_of_operations):
             # each operations
             test = self.circuit['qasm'][j]['type']
