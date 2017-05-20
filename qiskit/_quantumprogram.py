@@ -237,7 +237,7 @@ class QuantumProgram(object):
         return self.__quantum_program['circuits'][name]['circuit']
 
     def get_quantum_registers(self, name):
-        """Return a Quantum Registers by name"""
+        """Return a Quantum Register by name"""
         return self.__quantum_registers[name]
 
     def get_classical_registers(self, name):
