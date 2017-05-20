@@ -105,7 +105,6 @@ class QuantumProgram(object):
     }
     """
     # -- FUTURE IMPROVEMENTS --
-    # TODO: rearrange order of functions
     # TODO: for status resutls  choose ALL_CAPS, or This but be consistent
     # TODO: coupling_map, basis_gates will move to compiled_circuit object
     # TODO: compiled_circuit is currently QASM text. In the future we will
@@ -124,24 +123,7 @@ class QuantumProgram(object):
         if specs:
             self.__init_specs(specs)
 
-    def get_quantum_elements(self, specs=None):
-        """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
-        return self.__init_circuit, \
-            self.__quantum_registers[list(self.__quantum_registers)[0]], \
-            self.__classical_registers[list(self.__classical_registers)[0]]
-
-    def get_quantum_registers(self, name):
-        """Return a specific Quantum Registers"""
-        return self.__quantum_registers[name]
-
-    def get_classical_registers(self, name):
-        """Return a specific Classical Registers"""
-        return self.__classical_registers[name]
-
-    def get_circuit(self, name):
-        """Return a specific Circuit Object"""
-        return self.__quantum_program['circuits'][name]['circuit']
-
+    # API functions
     def get_api_config(self):
         """Return the program specs"""
         return self.__api.req.credential.config
@@ -176,6 +158,102 @@ class QuantumProgram(object):
         """ Set the API url """
         self.set_api(url=url)
 
+    def get_device_status(self, device):
+        """Return the online device status via QX API call
+        device is the name of the real chip
+        """
+
+        if device in self.__online_devices:
+            return self.__api.device_status(device)
+        else:
+            return {"status": "Error", "result": "This device doesn't exist"}
+
+    def get_device_calibration(self, device):
+        """Return the online device calibrations via QX API call
+        device is the name of the real chip
+        """
+
+        if device in self.__online_devices:
+            return self.__api.device_calibration(device)
+        else:
+            return {"status": "Error", "result": "This device doesn't exist"}
+
+    # Building parts of the program
+    def create_quantum_registers(self, name, size):
+        """Create a new set of Quantum Registers"""
+        self.__quantum_registers[name] = QuantumRegister(name, size)
+        print(">> quantum_registers created:", name, size)
+        return self.__quantum_registers[name]
+
+    def create_quantum_registers_group(self, registers_array):
+        """Create a new set of Quantum Registers based in a array of that"""
+        new_registers = []
+        for register in registers_array:
+            register = self.create_quantum_registers(
+                register["name"], register["size"])
+            new_registers.append(register)
+        return new_registers
+
+    def create_classical_registers(self, name, size):
+        """Create a new set of Classical Registers"""
+        self.__classical_registers[name] = ClassicalRegister(name, size)
+        print(">> classical_registers created:", name, size)
+        return self.__classical_registers[name]
+
+    def create_classical_registers_group(self, registers_array):
+        """Create a new set of Classical Registers based in a array of that"""
+        new_registers = []
+        for register in registers_array:
+            new_registers.append(self.create_classical_registers(
+                register["name"], register["size"]))
+        return new_registers
+
+    def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
+        """Create a new Quantum Circuit into the Quantum Program
+        name is a string, the name of the circuit
+        qregisters is a Array of Quantum Registers, can be String, by name or the object reference
+        cregisters is a Array of Classical Registers, can be String, by name or the object reference
+        """
+        if not qregisters:
+            qregisters = []
+        if not cregisters:
+            cregisters = []
+
+        if not circuit_object:
+            circuit_object = QuantumCircuit()
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
+
+        for register in qregisters:
+            if isinstance(register, str):
+                self.__quantum_program['circuits'][name]['circuit'].add(self.__quantum_registers[register])
+            else:
+                self.__quantum_program['circuits'][name]['circuit'].add(register)
+        for register in cregisters:
+            if isinstance(register, str):
+                self.__quantum_program['circuits'][name]['circuit'].add(self.__classical_registers[register])
+            else:
+                self.__quantum_program['circuits'][name]['circuit'].add(register)
+
+        return self.__quantum_program['circuits'][name]['circuit']
+
+    def get_quantum_registers(self, name):
+        """Return a specific Quantum Registers"""
+        return self.__quantum_registers[name]
+
+    def get_classical_registers(self, name):
+        """Return a specific Classical Registers"""
+        return self.__classical_registers[name]
+
+    def get_circuit(self, name):
+        """Return a specific Circuit Object"""
+        return self.__quantum_program['circuits'][name]['circuit']
+
+    def get_quantum_elements(self, specs=None):
+        """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
+        return self.__init_circuit, \
+            self.__quantum_registers[list(self.__quantum_registers)[0]], \
+            self.__classical_registers[list(self.__classical_registers)[0]]
+
     def load_qasm(self, name="", qasm_file=None, basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
@@ -196,6 +274,68 @@ class QuantumProgram(object):
 
         return {"status": "COMPLETED", "result": 'all done'}
 
+    def __init_specs(self, specs):
+        """Populate the Quantum Program Object with initial Specs"""
+        quantumr = []
+        classicalr = []
+        if "api" in specs:
+            if specs["api"]["token"]:
+                self.__api_config["token"] = specs["api"]["token"]
+            if specs["api"]["url"]:
+                self.__api_config["url"] = specs["api"]["url"]
+
+        if "circuits" in specs:
+            for circuit in specs["circuits"]:
+                quantumr = self.create_quantum_registers_group(
+                    circuit["quantum_registers"])
+                classicalr = self.create_classical_registers_group(
+                    circuit["classical_registers"])
+                self.__init_circuit = self.create_circuit(name=circuit["name"],
+                                                          qregisters=quantumr,
+                                                          cregisters=classicalr)
+        else:
+            if "quantum_registers" in specs:
+                print(">> quantum_registers created")
+                quantumr = specs["quantum_registers"]
+                self.create_quantum_registers(
+                    quantumr["name"], quantumr["size"])
+            if "classical_registers" in specs:
+                print(">> quantum_registers created")
+                classicalr = specs["classical_registers"]
+                self.create_classical_registers(
+                    classicalr["name"], classicalr["size"])
+            if quantumr and classicalr:
+                self.create_circuit(name=specs["name"],
+                                    qregisters=quantumr["name"],
+                                    cregisters=classicalr["name"])
+
+    def add_circuit(self, name, circuit_object):
+        """Add anew circuit based in a Object representation.
+        name is the name or index of one circuit."""
+        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
+        return circuit_object
+
+    def get_qasm_image(self, circuit):
+        """Get image circuit representation from API."""
+        pass
+
+    def get_qasm(self, name):
+        """get the circut by name.
+        name of the circuit"""
+        if name in self.__quantum_program['circuits']:
+            return self.__quantum_program['circuits'][name]['circuit'].qasm()
+        else:
+            return {"status": "Error", "result": 'Circuit not found'}
+
+    def get_qasms(self, list_circuit_name):
+        """get the circut by name.
+        name of the circuit"""
+        qasm_source = []
+        for name in list_circuit_name:
+            qasm_source.append(self.get_qasm(name))
+        return qasm_source
+
+    # Compiling methods
     def unroller_code(self, circuit, basis_gates=None):
         """ Unroll the code
         circuit are circuits to unroll
@@ -287,6 +427,37 @@ class QuantumProgram(object):
             self.__to_execute[device].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
+    def get_compiled_qasm(self, name, device=None):
+        """Get the compiled qasm for the named circuit and device.
+
+        If device is None, it defaults to the last device.
+        """
+        if not device:
+            device = self.__last_device_backend
+        try:
+            return self.__quantum_program["circuits"][name]["execution"][device]["compiled_circuit"]
+        except KeyError:
+            return "No compiled qasm for this circuit"
+
+    def print_execution_list(self, verbose=False):
+        """Print the compiled circuits that are ready to run.
+
+        verbose controls how much is returned.
+        """
+        for device, jobs in self.__to_execute.items():
+            print("%s:" % device)
+            for job in jobs:
+                print("  %s:" % job["name"])
+                print("    shots = %d" % job["shots"])
+                print("    max_credits = %d" % job["max_credits"])
+                print("    seed (simulator only) = %d" % job["seed"])
+                if verbose:
+                    print("    compiled_circuit =")
+                    print("// *******************************************")
+                    print(job["compiled_circuit"], end="")
+                    print("// *******************************************")
+
+    #runners
     def run(self, wait=5, timeout=60):
         """Run a program (a pre compiled quantum program).
 
@@ -374,6 +545,30 @@ class QuantumProgram(object):
 
         return  {"status": "COMPLETED", "result": 'all done'}
 
+    def wait_for_job(self, jobid, wait=5, timeout=60):
+        """Wait until all status results are 'COMPLETED'.
+        jobids is a list of id strings.
+        api is an IBMQuantumExperience object.
+        wait is the time to wait between requests, in seconds
+        timeout is how long we wait before failing, in seconds
+        Returns an list of results that correspond to the jobids.
+        """
+        timer = 0
+        timeout_over = False
+        job = self.__api.get_job(jobid)
+        while job['status'] == 'RUNNING':
+            if timer == timeout:
+                return {"status": "Error", "result": "Time Out"}
+            time.sleep(wait)
+            timer += wait
+            print("status = %s (%d seconds)" % (job['status'], timer))
+            job = self.__api.get_job(jobid)
+            if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
+                return {"status": "Error", "result": job['status']}
+
+        # Get the results
+        return job
+
     def run_local_qasm_simulator(self, jobs):
         """run_local_qasm_simulator, run a program (precompile of quantum circuits).
         jobs is list of dicts {"compiled_circuit": simulator input data, "shots": integer num shots}
@@ -439,178 +634,7 @@ class QuantumProgram(object):
         output = self.run(wait, timeout)
         return output
 
-    def wait_for_job(self, jobid, wait=5, timeout=60):
-        """Wait until all status results are 'COMPLETED'.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        wait is the time to wait between requests, in seconds
-        timeout is how long we wait before failing, in seconds
-        Returns an list of results that correspond to the jobids.
-        """
-        timer = 0
-        timeout_over = False
-        job = self.__api.get_job(jobid)
-        while job['status'] == 'RUNNING':
-            if timer == timeout:
-                return {"status": "Error", "result": "Time Out"}
-            time.sleep(wait)
-            timer += wait
-            print("status = %s (%d seconds)" % (job['status'], timer))
-            job = self.__api.get_job(jobid)
-            if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
-                return {"status": "Error", "result": job['status']}
-
-        # Get the results
-        return job
-
-    def average_data(self, name, observable):
-        """Compute the mean value of an diagonal observable.
-
-        Takes in an obserbaleobservable in dict
-        form and calculates sum_i value(i) P(i) where value(i) is the value of
-        the observable for the i state
-
-        returns a double
-        """
-        counts = self.get_counts(name)
-        temp = 0
-        tot = sum(counts.values())
-        for key in counts:
-            if key in observable:
-                temp += counts[key] * observable[key] / tot
-        return temp
-
-    def __init_specs(self, specs):
-        """Populate the Quantum Program Object with initial Specs"""
-        quantumr = []
-        classicalr = []
-        if "api" in specs:
-            if specs["api"]["token"]:
-                self.__api_config["token"] = specs["api"]["token"]
-            if specs["api"]["url"]:
-                self.__api_config["url"] = specs["api"]["url"]
-
-        if "circuits" in specs:
-            for circuit in specs["circuits"]:
-                quantumr = self.create_quantum_registers_group(
-                    circuit["quantum_registers"])
-                classicalr = self.create_classical_registers_group(
-                    circuit["classical_registers"])
-                self.__init_circuit = self.create_circuit(name=circuit["name"],
-                                                          qregisters=quantumr,
-                                                          cregisters=classicalr)
-        else:
-            if "quantum_registers" in specs:
-                print(">> quantum_registers created")
-                quantumr = specs["quantum_registers"]
-                self.create_quantum_registers(
-                    quantumr["name"], quantumr["size"])
-            if "classical_registers" in specs:
-                print(">> quantum_registers created")
-                classicalr = specs["classical_registers"]
-                self.create_classical_registers(
-                    classicalr["name"], classicalr["size"])
-            if quantumr and classicalr:
-                self.create_circuit(name=specs["name"],
-                                    qregisters=quantumr["name"],
-                                    cregisters=classicalr["name"])
-
-    def add_circuit(self, name, circuit_object):
-        """Add anew circuit based in a Object representation.
-        name is the name or index of one circuit."""
-        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
-        return circuit_object
-
-    def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
-        """Create a new Quantum Circuit into the Quantum Program
-        name is a string, the name of the circuit
-        qregisters is a Array of Quantum Registers, can be String, by name or the object reference
-        cregisters is a Array of Classical Registers, can be String, by name or the object reference
-        """
-        if not qregisters:
-            qregisters = []
-        if not cregisters:
-            cregisters = []
-
-        if not circuit_object:
-            circuit_object = QuantumCircuit()
-        self.__quantum_program['circuits'][name] = {"name":name, "circuit": circuit_object}
-
-        for register in qregisters:
-            if isinstance(register, str):
-                self.__quantum_program['circuits'][name]['circuit'].add(self.__quantum_registers[register])
-            else:
-                self.__quantum_program['circuits'][name]['circuit'].add(register)
-        for register in cregisters:
-            if isinstance(register, str):
-                self.__quantum_program['circuits'][name]['circuit'].add(self.__classical_registers[register])
-            else:
-                self.__quantum_program['circuits'][name]['circuit'].add(register)
-
-        return self.__quantum_program['circuits'][name]['circuit']
-
-    def create_quantum_registers(self, name, size):
-        """Create a new set of Quantum Registers"""
-        self.__quantum_registers[name] = QuantumRegister(name, size)
-        print(">> quantum_registers created:", name, size)
-        return self.__quantum_registers[name]
-
-    def create_quantum_registers_group(self, registers_array):
-        """Create a new set of Quantum Registers based in a array of that"""
-        new_registers = []
-        for register in registers_array:
-            register = self.create_quantum_registers(
-                register["name"], register["size"])
-            new_registers.append(register)
-        return new_registers
-
-    def create_classical_registers_group(self, registers_array):
-        """Create a new set of Classical Registers based in a array of that"""
-        new_registers = []
-        for register in registers_array:
-            new_registers.append(self.create_classical_registers(
-                register["name"], register["size"]))
-        return new_registers
-
-    def create_classical_registers(self, name, size):
-        """Create a new set of Classical Registers"""
-        self.__classical_registers[name] = ClassicalRegister(name, size)
-        print(">> classical_registers created:", name, size)
-        return self.__classical_registers[name]
-
-    def plotter(self, name, device=None, method="histogram", number_to_keep=None):
-        """Plot the results
-        method: histogram/qsphere
-        circuit: Print one circuit
-        """
-        data = self.get_counts(name, device)
-
-        if method == "histogram":
-            basicplotter.plot_histogram(data, number_to_keep)
-        else:
-            pass
-            # TODO: add basicplotter.plot_qsphere(data) for unitary simulator
-
-    def get_qasm_image(self, circuit):
-        """Get image circuit representation from API."""
-        pass
-
-    def get_qasm(self, name):
-        """get the circut by name.
-        name of the circuit"""
-        if name in self.__quantum_program['circuits']:
-            return self.__quantum_program['circuits'][name]['circuit'].qasm()
-        else:
-            return {"status": "Error", "result": 'Circuit not found'}
-
-    def get_qasms(self, list_circuit_name):
-        """get the circut by name.
-        name of the circuit"""
-        qasm_source = []
-        for name in list_circuit_name:
-            qasm_source.append(self.get_qasm(name))
-        return qasm_source
-
+    # method to process the data
     def get_result(self, name, device=None):
         """get the get_result from one circut and backend
         name of the circuit
@@ -642,51 +666,32 @@ class QuantumProgram(object):
         except KeyError:
             return {"status": "Error", "result": 'Error in circuit name'}
 
-    def get_compiled_qasm(self, name, device=None):
-        """Get the compiled qasm for the named circuit and device.
-
-        If device is None, it defaults to the last device.
+    def plotter(self, name, device=None, method="histogram", number_to_keep=None):
+        """Plot the results
+        method: histogram/qsphere
+        circuit: Print one circuit
         """
-        if not device:
-            device = self.__last_device_backend
-        try:
-            return self.__quantum_program["circuits"][name]["execution"][device]["compiled_circuit"]
-        except KeyError:
-            return "No compiled qasm for this circuit"
+        data = self.get_counts(name, device)
 
-    def print_execution_list(self, verbose=False):
-        """Print the compiled circuits that are ready to run.
-
-        verbose controls how much is returned.
-        """
-        for device, jobs in self.__to_execute.items():
-            print("%s:" % device)
-            for job in jobs:
-                print("  %s:" % job["name"])
-                print("    shots = %d" % job["shots"])
-                print("    max_credits = %d" % job["max_credits"])
-                if verbose:
-                    print("    compiled_circuit =")
-                    print("// *******************************************")
-                    print(job["compiled_circuit"], end="")
-                    print("// *******************************************")
-
-    def get_device_status(self, device):
-        """Return the online device status via QX API call
-        device is the name of the real chip
-        """
-
-        if device in self.__online_devices:
-            return self.__api.device_status(device)
+        if method == "histogram":
+            basicplotter.plot_histogram(data, number_to_keep)
         else:
-            return {"status": "Error", "result": "This device doesn't exist"}
+            pass
+            # TODO: add basicplotter.plot_qsphere(data) for unitary simulator
 
-    def get_device_calibration(self, device):
-        """Return the online device calibrations via QX API call
-        device is the name of the real chip
+    def average_data(self, name, observable):
+        """Compute the mean value of an diagonal observable.
+
+        Takes in an obserbaleobservable in dict
+        form and calculates sum_i value(i) P(i) where value(i) is the value of
+        the observable for the i state
+
+        returns a double
         """
-
-        if device in self.__online_devices:
-            return self.__api.device_calibration(device)
-        else:
-            return {"status": "Error", "result": "This device doesn't exist"}
+        counts = self.get_counts(name)
+        temp = 0
+        tot = sum(counts.values())
+        for key in counts:
+            if key in observable:
+                temp += counts[key] * observable[key] / tot
+        return temp
