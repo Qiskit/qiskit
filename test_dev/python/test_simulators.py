@@ -15,7 +15,11 @@
 # limitations under the License.
 # =============================================================================
 
-"""Quick program to test logal simulator backends.
+"""Quick program to test local simulator backends.
+
+From the command line give it a filename and a list of simulators to test.
+The output is whatever is returned from the simulator. I would like to add one
+test that runs the example.qasm
 
 Author: Jay Gambetta
 

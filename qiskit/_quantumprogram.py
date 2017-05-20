@@ -682,9 +682,9 @@ class QuantumProgram(object):
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
 
-        Takes in an obserbaleobservable in dict
-        form and calculates sum_i value(i) P(i) where value(i) is the value of
-        the observable for the i state
+        Takes in an observable in dictionary format and then
+        calculates the sum_i value(i) P(i) where value(i) is the value of
+        the observable for state i.
 
         returns a double
         """
