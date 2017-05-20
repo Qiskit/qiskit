@@ -100,7 +100,9 @@ import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 
 # TODO add the IF qasm operation.
-# TODO add ["status"] = 'DONE', 'ERROR'
+# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# does not show up
+
 
 class QasmSimulator(object):
     """Python implementation of a qasm simulator."""

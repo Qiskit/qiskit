@@ -106,8 +106,8 @@ import numpy as np
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 # TODO think about if this should be an error or just removed from circuit.
-# TODO add ["status"] = 'DONE', 'ERROR'
-
+# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# does not show up
 
 class UnitarySimulator(object):
     """Python implementation of a unitary simulator."""
