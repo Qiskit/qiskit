@@ -19,23 +19,31 @@
 
 Author: Jay Gambetta and John Smolin
 
+It simulates a unitary of a quantum circuit that has been compiled to run on
+the simulator.
+
 The input is the circuit object and the output is the same circuit object with
-a result field added circuit['result']['data']['unitary'] where the unitary is
+a result field added results['data']['unitary'] where the unitary is
 a 2**n x 2**n complex numpy array representing the unitary matrix.
+
+
+The input is
+    compiled_circuit object
+and the output is the results object
 
 The simulator is ran using
 
-    UnitarySimulator(circuit).run().
+    UnitarySimulator(compiled_circuit).run().
 
 In the qasm key operations with type 'measure' and 'reset' are dropped.
 
-TODO think about if this should be an error or just removed from circuit.
+Internal circuit_object
 
 circuit =
     {
     'number_of_qubits': 2,
     'number_of_cbits': 2,
-    'number_of_operations': 4
+    'number_of_operations': 4,
     'qubit_order': {('q', 0): 0, ('v', 0): 1}
     'cbit_order': {('c', 1): 1, ('c', 0): 0},
     'qasm':
@@ -66,7 +74,11 @@ circuit =
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
-    'result':
+    }
+
+returned results object
+
+result =
         {
         'data':
             {
@@ -87,12 +99,14 @@ circuit =
                                  0.00000000 +0.00000000e+00j
                                  0.00000000 +0.00000000e+00j]
             }
+        'state': 'DONE'
         }
-    }
 """
 import numpy as np
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
+# TODO think about if this should be an error or just removed from circuit.
+# TODO add ["status"] = 'DONE', 'ERROR'
 
 
 class UnitarySimulator(object):
@@ -146,8 +160,9 @@ class UnitarySimulator(object):
         unroller.execute()
         self.circuit = unroller.backend.circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
-        self.circuit['result'] = {}
-        self.circuit['result']['data'] = {}
+        self.result = {}
+        self.result = {}
+        self.result['data'] = {}
         self._unitary_state = np.identity(2**(self._number_of_qubits),
                                           dtype=complex)
         self._number_of_operations = self.circuit['number_of_operations']
@@ -188,7 +203,9 @@ class UnitarySimulator(object):
     def run(self):
         """Apply the single qubit gate."""
         for j in range(self._number_of_operations):
-            if self.circuit['qasm'][j]['type'] == 'gate':
+            # each operations
+            test = self.circuit['qasm'][j]['type']
+            if test == 'gate':
                 gate = self.circuit['qasm'][j]['matrix']
                 if self.circuit['qasm'][j]['gate_size'] == 1:
                     qubit = self.circuit['qasm'][j]['qubit_indices'][0]
@@ -197,9 +214,10 @@ class UnitarySimulator(object):
                     qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
                     qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
                     self._add_unitary_two(gate, qubit0, qubit1)
-            elif self.circuit['qasm'][j]['type'] == 'measure':
+            elif test == 'measure':
                 print('Warning have dropped measure from unitary simulator')
-            elif self.circuit['qasm'][j]['type'] == 'reset':
+            elif test == 'reset':
                 print('Warning have dropped reset from unitary simulator')
-        self.circuit['result']['data']['unitary'] = self._unitary_state
-        return self.circuit
+        self.result['data']['unitary'] = self._unitary_state
+        self.result['status'] = 'DONE'
+        return self.result
