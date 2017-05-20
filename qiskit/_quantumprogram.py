@@ -105,6 +105,8 @@ class QuantumProgram(object):
     }
     """
     # -- FUTURE IMPROVEMENTS --
+    # TODO: rearrange order of functions
+    # TODO: for status resutls  choose ALL_CAPS, or This but be consistent
     # TODO: coupling_map, basis_gates will move to compiled_circuit object
     # TODO: compiled_circuit is currently QASM text. In the future we will
     #       make a method in the QuantumCircuit object that makes an object
@@ -210,7 +212,7 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, name_of_circuits, device="simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
+    def compile(self, name_of_circuits, device="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
         """Compile the name_of_circuits by names.
 
         name_of_circuits is a list of circuit names to compile.
@@ -389,10 +391,11 @@ class QuantumProgram(object):
         """
         job_results = {"qasms": []}
         for job in jobs:
-            one_result = {'result': None, 'status': "FAIL"}
+            one_result = {'result': None, 'status': "Error"}
             qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], job["shots"], job["seed"]).run()
-            one_result["result"] = qasm_circuit["result"]
-            one_result["status"] = 'COMPLETED'
+            one_result["result"]={}
+            one_result["result"]["data"] = qasm_circuit["data"]
+            one_result["status"] = qasm_circuit["status"]
             job_results['qasms'].append(one_result)
         return job_results
 
@@ -413,14 +416,15 @@ class QuantumProgram(object):
         """
         job_results = {"qasms": []}
         for job in jobs:
-            one_result = {'result': None, 'status': "FAIL"}
+            one_result = {'result': None, 'status': "Error"}
             unitary_circuit = simulators.UnitarySimulator(job["compiled_circuit"]).run()
-            one_result["result"] = unitary_circuit["result"]
-            one_result["status"] = 'COMPLETED'
+            one_result["result"]={}
+            one_result["result"]["data"] = unitary_circuit["data"]
+            one_result["status"] = unitary_circuit["status"]
             job_results['qasms'].append(one_result)
         return job_results
 
-    def execute(self, name_of_circuits, device, shots=1024,
+    def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
                 max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None):
         """Execute, compile and run a program (array of quantum circuits).
         program is a list of quantum_circuits
@@ -666,12 +670,12 @@ class QuantumProgram(object):
                     print("// *******************************************")
                     print(job["compiled_circuit"], end="")
                     print("// *******************************************")
-    
+
     def get_device_status(self, device):
         """Return the online device status via QX API call
         device is the name of the real chip
         """
-   
+
         if device in self.__online_devices:
             return self.__api.device_status(device)
         else:
@@ -681,7 +685,7 @@ class QuantumProgram(object):
         """Return the online device calibrations via QX API call
         device is the name of the real chip
         """
-   
+
         if device in self.__online_devices:
             return self.__api.device_calibration(device)
         else:

@@ -27,27 +27,26 @@ We advise using the c++ simulator or online for larger size systems.
 
 The input is
     compiled_circuit object
-    seed
     shots
-and the output is the compiled_circuit object with a result field added
+    seed
+and the output is the results object
 
 if shots = 1
     compiled_circuit['result']['data']['quantum_state'] and
-    circuit['result']['data']['classical_state'] where quantum_state is
+    results['data']['classical_state'] where quantum_state is
 a 2**n complex numpy array representing the quantum state vector and
 classical_state is a interger representing the state of the classical
 registors.
 if shots > 1
-    circuit['result']['data']["counts"] where this is dict {"0000" : 454}
+    results['data']["counts"] where this is dict {"0000" : 454}
 
 The simulator is ran using
 
-    QasmSimulator(compiled_circuit,seed,shots).run().
+    QasmSimulator(compiled_circuit,shots,seed).run().
 
-TODO add the IF qasm operation.
-TODO think about how to run the quantum state when we ignore measurement.
+Internal circuit_object
 
-compiled_circuit =
+circuit =
     {
     'number_of_qubits': 2,
     'number_of_cbits': 2,
@@ -82,31 +81,17 @@ compiled_circuit =
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
-    'result':
+    }
+
+result =
         {
         'data':
             {
             'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
             'classical_state': 0
             }
+        'status': 'DONE'
         }
-    }
-
-If you want to turn the classical state to a bitstring use
-
-    bin(circuit_result['result']['data']['classical_state'])[2:].zfill(circuit_result['number_of_cbits'])
-
-and if you want to simulate the histogram over shots.
-
-    outcomes = []
-    for i in range(shots):
-        circuit_result = QasmSimulator(unroller.backend.circuit,
-                                       random.random()).run()
-        outcomes.append(bin(circuit_result['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
-
-    circuit_result['result']['data']['counts'] = dict(Counter(outcomes))
-
-
 """
 import numpy as np
 import random
@@ -114,6 +99,8 @@ from collections import Counter
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 
+# TODO add the IF qasm operation.
+# TODO add ["status"] = 'DONE', 'ERROR'
 
 class QasmSimulator(object):
     """Python implementation of a qasm simulator."""
@@ -167,8 +154,8 @@ class QasmSimulator(object):
         self.circuit = unroller.backend.circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
         self._number_of_cbits = self.circuit['number_of_cbits']
-        self.circuit['result'] = {}
-        self.circuit['result']['data'] = {}
+        self.result = {}
+        self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
         self._shots = shots
@@ -298,14 +285,12 @@ class QasmSimulator(object):
         else:
             self._quantum_state = temp
 
-
     def run(self):
         """Run."""
         outcomes = []
         # Do each shot
         for shot in range(self._shots):
-            self._quantum_state = np.zeros(2**(self._number_of_qubits),
-                                       dtype=complex)
+            self._quantum_state = np.zeros(2**(self._number_of_qubits), dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
@@ -338,8 +323,10 @@ class QasmSimulator(object):
             outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))
         # Return the results
         if self._shots == 1:
-            self.circuit['result']['data']['quantum_state'] = self._quantum_state
-            self.circuit['result']['data']['classical_state'] = self._classical_state
+            self.result['data']['quantum_state'] = self._quantum_state
+            self.result['data']['classical_state'] = self._classical_state
+
         else:
-            self.circuit['result']['data']['counts'] = dict(Counter(outcomes))
-        return self.circuit
+            self.result['data']['counts'] = dict(Counter(outcomes))
+        self.result['status'] = 'DONE'
+        return self.result
