@@ -1,3 +1,3 @@
-// bad barrier, bad argumets
+// bad barrier, bad arguments
 
 barrier 1;

@@ -1,4 +1,4 @@
-// quantum Fourier transform for the Quantum Experience
+// quantum Fourier transform for the IBM Q experience
 // on the first 3 qubits
 
 OPENQASM 2.0;
