@@ -135,8 +135,7 @@ In future releases, anyone who contributes code to this project can include thei
 ## License
 
 QISKit is released under the Apache 2 license.
-=======
+
 ## Do you want to help?
 
 :sunglasses: If you'd like to contribute please take a look to our [contribution guidelines](CONTRIBUTING.md).
->>>>>>> contributing
