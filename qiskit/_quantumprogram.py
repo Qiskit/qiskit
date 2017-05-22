@@ -53,8 +53,8 @@ class QuantumProgram(object):
 
      Class internal properties """
 
-    __online_devices = ["real", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
-    __local_devices = ["local_unitary_simulator", "local_qasm_simulator"]
+    __ONLINE_DEVICES = ["real", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
+    __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator"]
 
     __quantum_program = {}
     __api = {}
@@ -163,7 +163,7 @@ class QuantumProgram(object):
         device is the name of the real chip
         """
 
-        if device in self.__online_devices:
+        if device in self.__ONLINE_DEVICES:
             return self.__api.device_status(device)
         else:
             return {"status": "Error", "result": "This device doesn't exist"}
@@ -173,7 +173,7 @@ class QuantumProgram(object):
         device is the name of the real chip
         """
 
-        if device in self.__online_devices:
+        if device in self.__ONLINE_DEVICES:
             return self.__api.device_calibration(device)
         else:
             return {"status": "Error", "result": "This device doesn't exist"}
@@ -467,7 +467,7 @@ class QuantumProgram(object):
         """
         for backend in self.__to_execute:
             self.__last_device_backend = backend
-            if backend in self.__online_devices:
+            if backend in self.__ONLINE_DEVICES:
                 last_shots = -1
                 last_max_credits = -1
                 jobs = []
