@@ -95,6 +95,7 @@ pip install --upgrade IBMQuantumExperience
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
 
+<<<<<<< HEAD
 ## Developer Guide
 
 Please use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
@@ -134,3 +135,8 @@ In future releases, anyone who contributes code to this project can include thei
 ## License
 
 QISKit is released under the Apache 2 license.
+=======
+## Do you want to help?
+
+:sunglasses: If you'd like to contribute please take a look to our [contribution guidelines](CONTRIBUTING.md).
+>>>>>>> contributing

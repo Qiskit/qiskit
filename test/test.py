@@ -68,26 +68,45 @@ QPS_SPECS = {
 
 class TestQISKit(unittest.TestCase):
     """
-    Test Create Program
+    QISKIT QuatumProgram Object Tests.
     """
     @unittest.skip
-    def test_create_program_with_Specs(self):
+    def test_create_program_with_specs(self):
         """
-        Test Quantum Object Factory creation using Specs
+        Test Quantum Object Factory creation using Specs deffinition object.
+        If all is correct we get a object intstance of QuantumProgram
+
+        Previusly:
+            Objects:
+                QPS_SPECS
+            Libraries:
+                from qiskit import QuantumProgram
+
         """
         result = QuantumProgram(specs=QPS_SPECS)
         self.assertTrue(isinstance(result, QuantumProgram))
-    @unittest.skip
+
+
     def test_create_program(self):
         """
-        Test Quantum Object Factory
+        Test Quantum Object Factory creation Without Specs deffinition object.
+        If all is correct we get a object intstance of QuantumProgram
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
         """
         result = QuantumProgram()
         self.assertTrue(isinstance(result, QuantumProgram))
-    @unittest.skip
+
     def test_config_scripts_file(self):
         """
         Test Qconfig
+        in this case we check if the URL API is defined.
+
+        Previusly:
+            Libraries:
+                import Qconfig
         """
         self.assertEqual(
             URL,
