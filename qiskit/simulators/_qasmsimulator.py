@@ -40,7 +40,7 @@ registors.
 if shots > 1
     results['data']["counts"] where this is dict {"0000" : 454}
 
-The simulator is ran using
+The simulator is run using
 
     QasmSimulator(compiled_circuit,shots,seed).run().
 
@@ -222,10 +222,8 @@ class QasmSimulator(object):
         """
         probability_zero = 0
         random_number = random.random()
-        for ii in range(2**self._number_of_qubits):
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == '0':
+        for ii in range(1 << self._number_of_qubits):
+            if ii&(1<<qubit) == 0:
                 probability_zero += np.abs(self._quantum_state[ii])**2
         if random_number <= probability_zero:
             outcome = '0'
@@ -242,19 +240,15 @@ class QasmSimulator(object):
         cbit is the classical bit the measurement is assigned to.
         """
         outcome, norm = self._add_qasm_decision(qubit)
-        for ii in range(2**self._number_of_qubits):
+        for ii in range(1 << self._number_of_qubits):
             # update quantum state
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == outcome:
+            if (ii >> qubit) & 1  == int(outcome):
                 self._quantum_state[ii] = self._quantum_state[ii]/norm
             else:
                 self._quantum_state[ii] = 0
         # update classical state
-        temp = bin(self._classical_state)[2:]
-        cbits_string = list(reversed(temp.zfill(self._number_of_cbits)))
-        cbits_string[cbit] = outcome
-        self._classical_state = int(''.join(reversed(cbits_string)), 2)
+        bit = 1 << cbit
+        self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
 
     def _add_qasm_reset(self, qubit):
         """Apply the reset to the qubit.
@@ -269,20 +263,17 @@ class QasmSimulator(object):
         temp = np.copy(self._quantum_state)
         self._quantum_state.fill(0.0)
         # measurement
-        for ii in range(2**self._number_of_qubits):
+        for ii in range(1 << self._number_of_qubits):
             iistring = bin(ii)[2:]
             bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == outcome:
+            if (ii >> qubit) & 1 == int(outcome):
                 temp[ii] = temp[ii]/norm
             else:
                 temp[ii] = 0
         # reset
         if outcome == '1':
-            for ii in range(2**self._number_of_qubits):
-                iistring = bin(ii)[2:]
-                bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-                bits[qubit] = '0'
-                iip = int(''.join(reversed(bits)), 2)
+            for ii in range(1 << self._number_of_qubits):
+                iip = ( ~(1 << qubit) ) & ii  # bit number qubit set to zero
                 self._quantum_state[iip] += temp[ii]
         else:
             self._quantum_state = temp
@@ -292,7 +283,7 @@ class QasmSimulator(object):
         outcomes = []
         # Do each shot
         for shot in range(self._shots):
-            self._quantum_state = np.zeros(2**(self._number_of_qubits), dtype=complex)
+            self._quantum_state = np.zeros(1 << self._number_of_qubits, dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
