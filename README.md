@@ -1,5 +1,6 @@
 # Quantum Information Software Kit (QISKit) SDK Python
 
+[![Build Status](https://travis-ci.org/IBM/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/IBM/qiskit-sdk-py)
 
 Python software development kit (SDK) and Jupyter notebooks for working with
 OpenQASM and the IBM Q experience (QX).
