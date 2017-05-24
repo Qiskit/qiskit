@@ -20,7 +20,7 @@
 Author: Jay Gambetta and John Smolin
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
-the simulator.
+the simulator. It is exponential in the number of qubits.
 
 The input is the circuit object and the output is the same circuit object with
 a result field added results['data']['unitary'] where the unitary is
@@ -105,51 +105,14 @@ result =
 import numpy as np
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
+from ._simulatortools import enlarge_single_opt, enlarge_two_opt
 # TODO think about if this should be an error or just removed from circuit.
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+
 class UnitarySimulator(object):
     """Python implementation of a unitary simulator."""
-
-    @staticmethod
-    def _index1(b, i, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bit b as the ith bit,
-        shifting bits >= i over to make room.
-        """
-        retval = k
-        lowbits = k & ((1 << i) - 1)  # get the low i bits
-
-        retval >>= i
-        retval <<= 1
-
-        retval |= b
-
-        retval <<= i
-        retval |= lowbits
-
-        return retval
-
-    @staticmethod
-    def _index2(b1, i1, b2, i2, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bits b1 as the i1th bit
-        and b2 as the i2th bit
-        """
-        assert(i1 != i2)
-
-        if i1 > i2:
-            # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = UnitarySimulator._index1(b1, i1-1, k)
-            retval = UnitarySimulator._index1(b2, i2, retval)
-        else:  # i2>i1
-            # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = UnitarySimulator._index1(b2, i2-1, k)
-            retval = UnitarySimulator._index1(b1, i1, retval)
-        return retval
 
     def __init__(self, compiled_circuit):
         """Initial the UnitarySimulator object."""
@@ -175,10 +138,7 @@ class UnitarySimulator(object):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-        temp_1 = np.identity(2**(self._number_of_qubits-qubit-1),
-                             dtype=complex)
-        temp_2 = np.identity(2**(qubit), dtype=complex)
-        unitaty_add = np.kron(temp_1, np.kron(gate, temp_2))
+        unitaty_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def _add_unitary_two(self, gate, q0, q1):
@@ -189,16 +149,8 @@ class UnitarySimulator(object):
         q1 is the second qubit (target)
         returns a complex numpy array
         """
-        temp1 = np.zeros([1 << (self._number_of_qubits),
-                          1 << (self._number_of_qubits)])
-        for i in range(1 << (self._number_of_qubits-2)):
-            for j in range(2):
-                for k in range(2):
-                    for jj in range(2):
-                        for kk in range(2):
-                            temp1[self._index2(j, q0, k, q1, i),
-                                  self._index2(jj, q0, kk, q1, i)] = gate[j+2*k, jj+2*kk]
-        self._unitary_state = np.dot(temp1, self._unitary_state)
+        unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
+        self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self):
         """Apply the single-qubit gate."""

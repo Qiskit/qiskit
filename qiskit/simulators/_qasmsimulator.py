@@ -21,7 +21,7 @@
 Author: Jay Gambetta and John Smolin
 
 It simulates a qasm quantum circuit that has been compiled to run on the
-simulator.
+simulator. It is exponential in the number of qubits.
 
 We advise using the c++ simulator or online for larger size systems.
 
@@ -223,7 +223,7 @@ class QasmSimulator(object):
         probability_zero = 0
         random_number = random.random()
         for ii in range(1 << self._number_of_qubits):
-            if ii&(1<<qubit) == 0:
+            if ii & (1 << qubit) == 0:
                 probability_zero += np.abs(self._quantum_state[ii])**2
         if random_number <= probability_zero:
             outcome = '0'
@@ -242,7 +242,7 @@ class QasmSimulator(object):
         outcome, norm = self._add_qasm_decision(qubit)
         for ii in range(1 << self._number_of_qubits):
             # update quantum state
-            if (ii >> qubit) & 1  == int(outcome):
+            if (ii >> qubit) & 1 == int(outcome):
                 self._quantum_state[ii] = self._quantum_state[ii]/norm
             else:
                 self._quantum_state[ii] = 0
@@ -264,8 +264,6 @@ class QasmSimulator(object):
         self._quantum_state.fill(0.0)
         # measurement
         for ii in range(1 << self._number_of_qubits):
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
             if (ii >> qubit) & 1 == int(outcome):
                 temp[ii] = temp[ii]/norm
             else:
@@ -273,7 +271,7 @@ class QasmSimulator(object):
         # reset
         if outcome == '1':
             for ii in range(1 << self._number_of_qubits):
-                iip = ( ~(1 << qubit) ) & ii  # bit number qubit set to zero
+                iip = (~ (1 << qubit)) & ii  # bit number qubit set to zero
                 self._quantum_state[iip] += temp[ii]
         else:
             self._quantum_state = temp

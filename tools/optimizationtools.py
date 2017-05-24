@@ -1,25 +1,32 @@
 """
 Quantum Optimization tools.
 
-These are simple methods for common tasks in our optimization.
+These are simple tools that are used in our optimization examples
 
 Author: Jay Gambetta
 """
 import sys
-sys.path.append("..")
+import os
+# We don't know from where the user is running the example,
+# so we need a relative position from this file path.
+# TODO: Relative imports for intra-package imports are highly discouraged.
+# http://stackoverflow.com/a/7506006
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
+from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_opt
+import numpy as np
 
 
-def cost_classical(data, n, alpha, beta):
+def cost_function(data, n, alpha, beta):
     """Compute the cost function.
 
+    data  is a dictionary of the form data = {'00000': 10}
     n = number of qubits
     alpha is a vector with elements q0 -- qn
     beta is a matrix of couplings
-
-    NOTE THIS SHOULD BE MADE TO WORK WITH THE UPPER TRIANGLE.
     """
+
     temp = 0
     tot = sum(data.values())
     for key in data:
@@ -58,6 +65,25 @@ def cost_classical(data, n, alpha, beta):
         temp += data[key] * observable / tot
     return temp
 
+
+def make_Hamiltonian(n, alpha, beta):
+    """Compute the cost function.
+
+    n = number of qubits
+    alpha is a vector with elements q0 -- qn
+    beta is a matrix of couplings
+    WARNING. This is exponential in the number of qubits.
+    """
+
+    Hamiltonian = 0
+    Z = np.array([[1, 0], [0, -1]])
+    ZZ = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    for j in range(n):
+        Hamiltonian += alpha[j]*enlarge_single_opt(Z, j, n)
+        for i in range(0, j):
+            Hamiltonian += beta[i, j]*enlarge_two_opt(ZZ, i, j, n)
+
+    return Hamiltonian
 
 def trial_funtion_optimization(n, m, theta, entangler_map):
     """Trial function for classical optimization problems.
