@@ -56,21 +56,18 @@ circuit =
     'qasm':
         [{
         'type': 'gate',
-        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+        'name': 'U',
+        'theta': 1.570796326794897
+        'phi': 1.570796326794897
+        'lambda': 1.570796326794897
         'qubit_indices': [0],
         'gate_size': 1,
-        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
-                           0.70710678 -8.65956056e-17j],
-                         [ 0.70710678 +0.00000000e+00j,
-                          -0.70710678 +8.65956056e-17j]])
         },
         {
         'type': 'gate',
         'name': 'CX',
         'qubit_indices': [0, 1],
         'gate_size': 2,
-        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
         },
         {
         'type': 'reset',
@@ -197,24 +194,6 @@ class QasmSimulator(object):
             psi[ind3] = cache0
             psi[ind1] = cache1
 
-    def _add_qasm_two(self, gate, q0, q1):
-        """Apply the two-qubit gate.
-
-        gate is the two-qubit gate.
-        q0 is the first qubit (control) counts from 0.
-        q1 is the second qubit (target).
-        """
-        temp1 = np.zeros([1 << (self._number_of_qubits),
-                          1 << (self._number_of_qubits)])
-        for i in range(1 << (self._number_of_qubits - 2)):
-            for j in range(2):
-                for k in range(2):
-                    for jj in range(2):
-                        for kk in range(2):
-                            temp1[self._index2(j, q0, k, q1, i),
-                                  self._index2(jj, q0, kk, q1, i)] = gate[j+2*k, jj+2*kk]
-        self._quantum_state = np.dot(temp1, self._quantum_state)
-
     def _add_qasm_decision(self, qubit):
         """Apply the decision of measurement/reset qubit gate.
 
@@ -286,30 +265,34 @@ class QasmSimulator(object):
             self._classical_state = 0
             # Do each operation in this shot
             for j in range(self._number_of_operations):
-                # Check if gate operation
-                if self.circuit['qasm'][j]['type'] == 'gate':
-                    gate = self.circuit['qasm'][j]['matrix']
-                    # Check if single or two qubit gate
-                    if self.circuit['qasm'][j]['gate_size'] == 1:
-                        qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                        self._add_qasm_single(gate, qubit)
-                    elif self.circuit['qasm'][j]['gate_size'] == 2:
-                        qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
-                        qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
-                        # Check if CX or other two qubit gate
-                        if self.circuit['qasm'][j]['name'] == 'CX':
-                            self._add_qasm_cx(qubit0, qubit1)
-                        else:
-                            self._add_qasm_two(gate, qubit0, qubit1)
+                # Check if single  gate
+                if self.circuit['qasm'][j]['name'] == 'U':
+                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                    theta = self.circuit['qasm'][j]['theta']
+                    phi = self.circuit['qasm'][j]['phi']
+                    lam = self.circuit['qasm'][j]['lambda']
+                    gate = np.array([[np.cos(theta/2.0),
+                                      -np.exp(1j*lam)*np.sin(theta/2.0)],
+                                     [np.exp(1j*phi)*np.sin(theta/2.0),
+                                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+                    self._add_qasm_single(gate, qubit)
+                # Check if CX gate
+                elif self.circuit['qasm'][j]['name'] == 'CX':
+                    qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
+                    qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
+                    self._add_qasm_cx(qubit0, qubit1)
                 # Check if measure
-                elif self.circuit['qasm'][j]['type'] == 'measure':
+                elif self.circuit['qasm'][j]['name'] == 'measure':
                     qubit = self.circuit['qasm'][j]['qubit_indices'][0]
                     cbit = self.circuit['qasm'][j]['cbit_indices'][0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif self.circuit['qasm'][j]['type'] == 'reset':
+                elif self.circuit['qasm'][j]['name'] == 'reset':
                     qubit = self.circuit['qasm'][j]['qubit_indices'][0]
                     self._add_qasm_reset(qubit)
+                else:
+                    self.result['status'] = 'ERROR'
+                    return self.result
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))
         # Return the results

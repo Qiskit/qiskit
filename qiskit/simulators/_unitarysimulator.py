@@ -49,21 +49,18 @@ circuit =
     'qasm':
         [{
         'type': 'gate',
-        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+        'name': 'U',
+        'theta': 1.570796326794897
+        'phi': 1.570796326794897
+        'lambda': 1.570796326794897
         'qubit_indices': [0],
         'gate_size': 1,
-        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
-                           0.70710678 -8.65956056e-17j],
-                         [ 0.70710678 +0.00000000e+00j,
-                          -0.70710678 +8.65956056e-17j]])
         },
         {
         'type': 'gate',
         'name': 'CX',
         'qubit_indices': [0, 1],
         'gate_size': 2,
-        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
         },
         {
         'type': 'reset',
@@ -156,20 +153,29 @@ class UnitarySimulator(object):
         """Apply the single-qubit gate."""
         for j in range(self._number_of_operations):
             # each operations
-            test = self.circuit['qasm'][j]['type']
-            if test == 'gate':
-                gate = self.circuit['qasm'][j]['matrix']
-                if self.circuit['qasm'][j]['gate_size'] == 1:
-                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                    self._add_unitary_single(gate, qubit)
-                elif self.circuit['qasm'][j]['gate_size'] == 2:
-                    qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
-                    qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
-                    self._add_unitary_two(gate, qubit0, qubit1)
-            elif test == 'measure':
+            if self.circuit['qasm'][j]['name'] == 'U':
+                qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                theta = self.circuit['qasm'][j]['theta']
+                phi = self.circuit['qasm'][j]['phi']
+                lam = self.circuit['qasm'][j]['lambda']
+                gate = np.array([[np.cos(theta/2.0),
+                                  -np.exp(1j*lam)*np.sin(theta/2.0)],
+                                 [np.exp(1j*phi)*np.sin(theta/2.0),
+                                  np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+                self._add_unitary_single(gate, qubit)
+            elif self.circuit['qasm'][j]['name'] == 'CX':
+                qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
+                qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
+                gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
+                                 [0, 1, 0, 0]])
+                self._add_unitary_two(gate, qubit0, qubit1)
+            elif self.circuit['qasm'][j]['name'] == 'measure':
                 print('Warning have dropped measure from unitary simulator')
-            elif test == 'reset':
+            elif self.circuit['qasm'][j]['name'] == 'reset':
                 print('Warning have dropped reset from unitary simulator')
+            else:
+                self.result['status'] = 'ERROR'
+                return self.result
         self.result['data']['unitary'] = self._unitary_state
         self.result['status'] = 'DONE'
         return self.result

@@ -490,7 +490,8 @@ class QuantumProgram(object):
                             self.__to_execute = {}
                             return  {"status": "Error", "result":'Online devices only support job batches with equal max credits'}
 
-                # TODO have an option to print this. print("running on backend: %s" % (backend))
+                # TODO have an option to print this.
+                print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
                 if 'error' in output:
                     # Clear the list of compiled programs to execute
@@ -508,7 +509,8 @@ class QuantumProgram(object):
                     jobs.append({"compiled_circuit": job["compiled_circuit"],
                                  "shots": job["shots"],
                                  "seed": job["seed"]})
-                print("running on backend: %s" % (backend))
+                # TODO have an option to print this.
+                # print("running on backend: %s" % (backend))
                 if backend == "local_qasm_simulator":
                     job_result = self.run_local_qasm_simulator(jobs)
                 elif backend == "local_unitary_simulator":
