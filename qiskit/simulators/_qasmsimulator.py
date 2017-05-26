@@ -80,12 +80,23 @@ circuit =
         }],
     }
 
+if shots = 1
 result =
         {
         'data':
             {
             'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
             'classical_state': 0
+            }
+        'status': 'DONE'
+        }
+
+if shots > 1
+result =
+        {
+        'data':
+            {
+            'counts': {'0000': 50, '1001': 44},
             }
         'status': 'DONE'
         }
