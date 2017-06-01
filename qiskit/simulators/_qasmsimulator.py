@@ -1,65 +1,73 @@
 # pylint: disable=line-too-long
-"""Contains a (slow) python simulator that simulates a qasm quantum circuit.
+# -*- coding: utf-8 -*-
 
-Author: Jay Gambetta
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""Contains a (slow) python simulator.
+
+Author: Jay Gambetta and John Smolin
+
+It simulates a qasm quantum circuit that has been compiled to run on the
+simulator. It is exponential in the number of qubits.
 
 We advise using the c++ simulator or online for larger size systems.
 
-The input is the circuit object and the output is the same circuit object with
-a result field added circuit['result']['data']['quantum_state'] and
-circuit['result']['data']['classical_state'] where quantum_state is
+The input is
+    compiled_circuit object
+    shots
+    seed
+and the output is the results object
+
+if shots = 1
+    compiled_circuit['result']['data']['quantum_state'] and
+    results['data']['classical_state'] where quantum_state is
 a 2**n complex numpy array representing the quantum state vector and
 classical_state is a interger representing the state of the classical
 registors.
+if shots > 1
+    results['data']["counts"] where this is dict {"0000" : 454}
 
-The simulator is ran using
+The simulator is run using
 
-    circuit_results = QasmSimulator(circuit,seed).run().
+    QasmSimulator(compiled_circuit,shots,seed).run().
 
-where seed is the random number seed.
-
-If you want to turn the classical state to a bitstring use
-
-    bin(circuit_result['result']['data']['classical_state'])[2:].zfill(circuit_result['number_of_cbits'])
-
-and if you want to simulate the histogram over shots.
-
-    outcomes = []
-    for i in range(shots):
-        circuit_result = QasmSimulator(unroller.backend.circuit,
-                                       random.random()).run()
-        outcomes.append(bin(circuit_result['result']['data']['classical_state'])[2:].zfill(b['number_of_cbits']))
-
-    circuit_result['result']['data']['counts'] = dict(Counter(outcomes))
-
-TODO add the IF qasm operation.
-TODO think about how to run the quantum state when we ignore measurement.
+Internal circuit_object
 
 circuit =
     {
-    'number_of_qubits': 4,
+    'number_of_qubits': 2,
     'number_of_cbits': 2,
-    'number_of_operations': 2
+    'number_of_operations': 4,
     'qubit_order': {('q', 0): 0, ('v', 0): 1}
     'cbit_order': {('c', 1): 1, ('c', 0): 0},
     'qasm':
         [{
         'type': 'gate',
-        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+        'name': 'U',
+        'theta': 1.570796326794897
+        'phi': 1.570796326794897
+        'lambda': 1.570796326794897
         'qubit_indices': [0],
         'gate_size': 1,
-        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
-                           0.70710678 -8.65956056e-17j],
-                         [ 0.70710678 +0.00000000e+00j,
-                          -0.70710678 +8.65956056e-17j]])
         },
         {
         'type': 'gate',
         'name': 'CX',
         'qubit_indices': [0, 1],
         'gate_size': 2,
-        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
         },
         {
         'type': 'reset',
@@ -70,18 +78,38 @@ circuit =
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
-    'result':
+    }
+
+if shots = 1
+result =
         {
         'data':
             {
             'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
             'classical_state': 0
             }
+        'status': 'DONE'
         }
-    }
+
+if shots > 1
+result =
+        {
+        'data':
+            {
+            'counts': {'0000': 50, '1001': 44},
+            }
+        'status': 'DONE'
+        }
 """
 import numpy as np
 import random
+from collections import Counter
+import qiskit.qasm as qasm
+import qiskit.unroll as unroll
+
+# TODO add the IF qasm operation.
+# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# does not show up
 
 
 class QasmSimulator(object):
@@ -126,18 +154,22 @@ class QasmSimulator(object):
             retval = QasmSimulator._index1(b1, i1, retval)
         return retval
 
-    def __init__(self, circuit, random_seed):
+    def __init__(self, compiled_circuit, shots, seed=random.random()):
         """Initialize the QasmSimulator object."""
-        self.circuit = circuit
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit).parse(),
+                                   unroll.SimulatorBackend(basis_gates))
+        unroller.backend.set_trace(False)
+        unroller.execute()
+        self.circuit = unroller.backend.circuit
         self._number_of_qubits = self.circuit['number_of_qubits']
         self._number_of_cbits = self.circuit['number_of_cbits']
-        self.circuit['result'] = {}
-        self.circuit['result']['data'] = {}
-        self._quantum_state = np.zeros(2**(self._number_of_qubits),
-                                       dtype=complex)
-        self._quantum_state[0] = 1
+        self.result = {}
+        self.result['data'] = {}
+        self._quantum_state = 0
         self._classical_state = 0
-        random.seed(random_seed)
+        self._shots = shots
+        random.seed(seed)
         self._number_of_operations = self.circuit['number_of_operations']
 
     def _add_qasm_single(self, gate, qubit):
@@ -173,24 +205,6 @@ class QasmSimulator(object):
             psi[ind3] = cache0
             psi[ind1] = cache1
 
-    def _add_qasm_two(self, gate, q0, q1):
-        """Apply the two-qubit gate.
-
-        gate is the two-qubit gate.
-        q0 is the first qubit (control) counts from 0.
-        q1 is the second qubit (target).
-        """
-        temp1 = np.zeros([1 << (self._number_of_qubits),
-                          1 << (self._number_of_qubits)])
-        for i in range(1 << (self._number_of_qubits - 2)):
-            for j in range(2):
-                for k in range(2):
-                    for jj in range(2):
-                        for kk in range(2):
-                            temp1[self._index2(j, q0, k, q1, i),
-                                  self._index2(jj, q0, kk, q1, i)] = gate[j+2*k, jj+2*kk]
-        self._quantum_state = np.dot(temp1, self._quantum_state)
-
     def _add_qasm_decision(self, qubit):
         """Apply the decision of measurement/reset qubit gate.
 
@@ -198,10 +212,8 @@ class QasmSimulator(object):
         """
         probability_zero = 0
         random_number = random.random()
-        for ii in range(2**self._number_of_qubits):
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == '0':
+        for ii in range(1 << self._number_of_qubits):
+            if ii & (1 << qubit) == 0:
                 probability_zero += np.abs(self._quantum_state[ii])**2
         if random_number <= probability_zero:
             outcome = '0'
@@ -218,19 +230,15 @@ class QasmSimulator(object):
         cbit is the classical bit the measurement is assigned to.
         """
         outcome, norm = self._add_qasm_decision(qubit)
-        for ii in range(2**self._number_of_qubits):
+        for ii in range(1 << self._number_of_qubits):
             # update quantum state
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if bits[qubit] == outcome:
+            if (ii >> qubit) & 1 == int(outcome):
                 self._quantum_state[ii] = self._quantum_state[ii]/norm
             else:
                 self._quantum_state[ii] = 0
         # update classical state
-        temp = bin(self._classical_state)[2:]
-        cbits_string = list(reversed(temp.zfill(self._number_of_cbits)))
-        cbits_string[cbit] = outcome
-        self._classical_state = int(''.join(reversed(cbits_string)), 2)
+        bit = 1 << cbit
+        self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
 
     def _add_qasm_reset(self, qubit):
         """Apply the reset to the qubit.
@@ -240,44 +248,70 @@ class QasmSimulator(object):
 
         qubit is the qubit that is reset.
         """
+        # TODO: slow, refactor later
         outcome, norm = self._add_qasm_decision(qubit)
-        temp = self._quantum_state
-        for ii in range(2**self._number_of_qubits):
-            # update quantum state
-            iistring = bin(ii)[2:]
-            bits = list(reversed(iistring.zfill(self._number_of_qubits)))
-            if outcome == '0':
-                iip = ii
+        temp = np.copy(self._quantum_state)
+        self._quantum_state.fill(0.0)
+        # measurement
+        for ii in range(1 << self._number_of_qubits):
+            if (ii >> qubit) & 1 == int(outcome):
+                temp[ii] = temp[ii]/norm
             else:
-                bits[qubit] == '0'
-                iip = int(''.join(reversed(bits)), 2)
-            if bits[qubit] == '0':
-                self._quantum_state[iip] = temp[ii]/norm
-            else:
-                self._quantum_state[iip] = 0
+                temp[ii] = 0
+        # reset
+        if outcome == '1':
+            for ii in range(1 << self._number_of_qubits):
+                iip = (~ (1 << qubit)) & ii  # bit number qubit set to zero
+                self._quantum_state[iip] += temp[ii]
+        else:
+            self._quantum_state = temp
 
     def run(self):
         """Run."""
-        for j in range(self._number_of_operations):
-            if self.circuit['qasm'][j]['type'] == 'gate':
-                gate = self.circuit['qasm'][j]['matrix']
-                if self.circuit['qasm'][j]['gate_size'] == 1:
+        outcomes = []
+        # Do each shot
+        for shot in range(self._shots):
+            self._quantum_state = np.zeros(1 << self._number_of_qubits, dtype=complex)
+            self._quantum_state[0] = 1
+            self._classical_state = 0
+            # Do each operation in this shot
+            for j in range(self._number_of_operations):
+                # Check if single  gate
+                if self.circuit['qasm'][j]['name'] == 'U':
                     qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                    theta = self.circuit['qasm'][j]['theta']
+                    phi = self.circuit['qasm'][j]['phi']
+                    lam = self.circuit['qasm'][j]['lambda']
+                    gate = np.array([[np.cos(theta/2.0),
+                                      -np.exp(1j*lam)*np.sin(theta/2.0)],
+                                     [np.exp(1j*phi)*np.sin(theta/2.0),
+                                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
                     self._add_qasm_single(gate, qubit)
-                elif self.circuit['qasm'][j]['gate_size'] == 2:
+                # Check if CX gate
+                elif self.circuit['qasm'][j]['name'] == 'CX':
                     qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
                     qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
-                    if self.circuit['qasm'][j]['name'] == 'CX':
-                        self._add_qasm_cx(qubit0, qubit1)
-                    else:
-                        self._add_qasm_two(gate, qubit0, qubit1)
-            elif self.circuit['qasm'][j]['type'] == 'measure':
-                qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                cbit = self.circuit['qasm'][j]['cbit_indices'][0]
-                self._add_qasm_measure(qubit, cbit)
-            elif self.circuit['qasm'][j]['type'] == 'reset':
-                qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                self._add_qasm_reset(qubit)
-        self.circuit['result']['data']['quantum_state'] = self._quantum_state
-        self.circuit['result']['data']['classical_state'] = self._classical_state
-        return self.circuit
+                    self._add_qasm_cx(qubit0, qubit1)
+                # Check if measure
+                elif self.circuit['qasm'][j]['name'] == 'measure':
+                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                    cbit = self.circuit['qasm'][j]['cbit_indices'][0]
+                    self._add_qasm_measure(qubit, cbit)
+                # Check if reset
+                elif self.circuit['qasm'][j]['name'] == 'reset':
+                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                    self._add_qasm_reset(qubit)
+                else:
+                    self.result['status'] = 'ERROR'
+                    return self.result
+            # Turn classical_state (int) into bit string
+            outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))
+        # Return the results
+        if self._shots == 1:
+            self.result['data']['quantum_state'] = self._quantum_state
+            self.result['data']['classical_state'] = self._classical_state
+
+        else:
+            self.result['data']['counts'] = dict(Counter(outcomes))
+        self.result['status'] = 'DONE'
+        return self.result

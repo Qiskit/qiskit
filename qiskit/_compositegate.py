@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
 Composite gate, a container for a sequence of unitary gates.
 
@@ -48,17 +65,26 @@ class CompositeGate(Gate):
                                   % (qubit[0].name, qubit[1]))
 
     def _check_qreg(self, register):
-        """Raise exception if quantum register is not in this gate's circuit."""
+        """Raise exception.
+
+        if quantum register is not in this gate's circuit.
+        """
         self.check_circuit()
         self.circuit._check_qreg(register)
 
     def _check_creg(self, register):
-        """Raise exception if classical register is not in this gate's circuit."""
+        """Raise exception.
+
+        if classical register is not in this gate's circuit.
+        """
         self.check_circuit()
         self.circuit._check_creg(register)
 
     def _check_dups(self, qubits):
-        """Raise exception if list of qubits contains duplicates."""
+        """Raise exception.
+
+        if list of qubits contains duplicates.
+        """
         squbits = set(qubits)
         if len(squbits) != len(qubits):
             raise QISKitException("duplicate qubit arguments")

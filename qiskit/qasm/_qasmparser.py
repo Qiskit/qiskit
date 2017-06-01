@@ -1,7 +1,25 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
 OPENQASM parser.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 import math
 from ._qasmlexer import QasmLexer
@@ -158,6 +176,67 @@ class QasmParser(object):
         # and throw if not.
         for children in obj.children:
             self.verify_reg(children, object_type)
+
+    def id_tuple_list(self, id_node):
+        """Return a list of (name, index) tuples for this id node."""
+        assert id_node.type == "id", "internal error, id_tuple_list"
+        bit_list = []
+        try:
+            g_sym = self.current_symtab[id_node.name]
+        except KeyError:
+            g_sym = self.global_symtab[id_node.name]
+        if g_sym.type == "qreg" or g_sym.type == "creg":
+            # Return list of (name, idx) for reg ids
+            for idx in range(g_sym.index):
+                bit_list.append((id_node.name, idx))
+        else:
+            # Return (name, -1) for other ids
+            bit_list.append((id_node.name, -1))
+        return bit_list
+
+    def verify_distinct(self, list_of_nodes):
+        """Check that objects in list_of_nodes represent distinct (qu)bits.
+
+        list_of_nodes is a list containing nodes of type id, indexed_id,
+        primary_list, or id_list. We assume these are all the same type
+        'qreg' or 'creg'.
+        This method raises an exception if list_of_nodes refers to the
+        same object more than once.
+        """
+        bit_list = []
+        line_number = -1
+        filename = ""
+        for node in list_of_nodes:
+            # id node: add all bits in register or (name, -1) for id
+            if node.type == "id":
+                bit_list.extend(self.id_tuple_list(node))
+                line_number = node.line
+                filename = node.file
+            # indexed_id: add the bit
+            elif node.type == "indexed_id":
+                bit_list.append((node.name, node.index))
+                line_number = node.line
+                filename = node.file
+            # primary_list: for each id or indexed_id child, add
+            elif node.type == "primary_list":
+                for child in node.children:
+                    if child.type == "id":
+                        bit_list.extend(self.id_tuple_list(child))
+                    else:
+                        bit_list.append((child.name, child.index))
+                    line_number = child.line
+                    filename = child.file
+            # id_list: for each id, add
+            elif node.type == "id_list":
+                for child in node.children:
+                    bit_list.extend(self.id_tuple_list(child))
+                    line_number = child.line
+                    filename = child.file
+            else:
+                assert False, "internal error, verify_distinct"
+        if len(bit_list) != len(set(bit_list)):
+            raise QasmException("duplicate identifiers at line %d file %s"
+                                % (line_number, filename))
 
     def pop_scope(self):
         """Return to the previous scope."""
@@ -532,7 +611,9 @@ class QasmParser(object):
         program[0] = node.Cnot([program[2], program[4]])
         self.verify_reg(program[2], 'qreg')
         self.verify_reg(program[4], 'qreg')
-        # TODO: check that p[2] and p[4] are distinct
+        self.verify_distinct([program[2], program[4]])
+        # TODO: check that if both primary are id, same size
+        # TODO: this needs to be checked in other cases too
 
     def p_unitary_op_2(self, program):
         '''
@@ -541,7 +622,7 @@ class QasmParser(object):
         program[0] = node.CustomUnitary([program[1], program[2]])
         self.verify_as_gate(program[1], program[2])
         self.verify_reg_list(program[2], 'qreg')
-        # TODO: check that primary_list elements are distinct
+        self.verify_distinct([program[2]])
 
     def p_unitary_op_3(self, program):
         '''
@@ -550,7 +631,7 @@ class QasmParser(object):
         program[0] = node.CustomUnitary([program[1], program[4]])
         self.verify_as_gate(program[1], program[4])
         self.verify_reg_list(program[4], 'qreg')
-        # TODO: check that primary_list elements are distinct
+        self.verify_distinct([program[4]])
 
     def p_unitary_op_4(self, program):
         '''
@@ -560,7 +641,7 @@ class QasmParser(object):
         self.verify_as_gate(program[1], program[5], arglist=program[3])
         self.verify_reg_list(program[5], 'qreg')
         self.verify_exp_list(program[3])
-        # TODO: check that primary_list elements are distinct
+        self.verify_distinct([program[5]])
 
     # ----------------------------------------
     # This is a restricted set of "quantum_op" which also
@@ -601,7 +682,7 @@ class QasmParser(object):
         program[0] = node.Cnot([program[2], program[4]])
         self.verify_declared_bit(program[2])
         self.verify_declared_bit(program[4])
-        # TODO: check that p[2] and p[4] are distinct
+        self.verify_distinct([program[2], program[4]])
 
     def p_gate_op_1e1(self, program):
         '''
@@ -629,7 +710,7 @@ class QasmParser(object):
         # 2. everything in the id_list is declared as a bit in local scope
         self.verify_as_gate(program[1], program[2])
         self.verify_bit_list(program[2])
-        # TODO: check that elements of id_list are distinct
+        self.verify_distinct([program[2]])
 
     def p_gate_op_2e(self, program):
         '''
@@ -644,7 +725,7 @@ class QasmParser(object):
         program[0] = node.CustomUnitary([program[1], program[4]])
         self.verify_as_gate(program[1], program[4])
         self.verify_bit_list(program[4])
-        # TODO: check that elements of id_list are distinct
+        self.verify_distinct([program[4]])
 
     def p_gate_op_4(self, program):
         '''
@@ -654,7 +735,7 @@ class QasmParser(object):
         self.verify_as_gate(program[1], program[5], arglist=program[3])
         self.verify_bit_list(program[5])
         self.verify_exp_list(program[3])
-        # TODO: check that elements of id_list are distinct
+        self.verify_distinct([program[5]])
 
     def p_gate_op_4e0(self, program):
         '''
@@ -676,7 +757,7 @@ class QasmParser(object):
         '''
         program[0] = node.Barrier([program[2]])
         self.verify_bit_list(program[2])
-        # TODO: check that elements of id_list are distinct
+        self.verify_distinct([program[2]])
 
     def p_gate_op_5e(self, program):
         '''
@@ -757,7 +838,7 @@ class QasmParser(object):
         '''
         program[0] = node.Barrier([program[2]])
         self.verify_reg_list(program[2], 'qreg')
-        # TODO: check that elements of primary_list are distinct
+        self.verify_distinct([program[2]])
 
     # ----------------------------------------
     # reset : RESET primary

@@ -1,17 +1,34 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """Backend for the unroller that composes qasm into simulator inputs.
 
 Author: Jay Gambetta and Andrew Cross
 
-The input is a the AST and a basis set and returns a compiled simulator circuit
+The input is a AST and a basis set and returns a compiled simulator circuit
 ready to be run in backends:
-    [
-    "ibmqx_qasm_simulator" #TODO,
-     "local_unitary_simulator",
-     "local_qasm_simulator"
-     ]
+
+[
+"local_unitary_simulator",
+"local_qasm_simulator"
+]
 
 OUTPUT
-circuit =
+compiled_circuit =
     {
     'number_of_qubits': 2,
     'number_of_cbits': 2,
@@ -20,36 +37,45 @@ circuit =
     'cbit_order': {('c', 1): 1, ('c', 0): 0},
     'qasm':
         [{
-        'type': 'gate',
-        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
+        'name': 'U',
+        'theta': 1.570796326794897
+        'phi': 1.570796326794897
+        'lambda': 1.570796326794897
         'qubit_indices': [0],
         'gate_size': 1,
-        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
-                           0.70710678 -8.65956056e-17j],
-                         [ 0.70710678 +0.00000000e+00j,
-                          -0.70710678 +8.65956056e-17j]])
         },
         {
-        'type': 'gate',
         'name': 'CX',
         'qubit_indices': [0, 1],
         'gate_size': 2,
-        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
         },
         {
-        'type': 'reset',
+        'name': 'reset',
         'qubit_indices': [1]
-        }
+        },
         {
-        'type': 'measure',
+        'name': 'measure',
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
     }
-
-    #TODO currently only supports standard basis
 """
+# TODO: currently only supports standard basis
+# TODO: currently if gates are not supported
+# TODO: think more about compiled_circuit dictionary i would like to have this
+# langugage agnoistic and a complete representation of a quantum file for any
+# simulator so some things to consider are remove 'number_of_operations',
+# as it is just he lenght of qasm.
+#
+# Current thinking for conditionals is to add
+#
+# 'condition_type': 'equality',
+# 'condition_cbits': [0,2,3],
+# 'condition_value': 7,
+#
+# to the elements of qasm.
+#
+
 import numpy as np
 from qiskit.unroll import BackendException
 from qiskit.unroll import UnrollerBackend
@@ -120,7 +146,6 @@ class SimulatorBackend(UnrollerBackend):
         for j in range(size):
             self._qubit_order[(name, j)] = self._number_of_qubits + j
         self._number_of_qubits += size
-        # print(self.qubit_order)
         self.circuit['number_of_qubits'] = self._number_of_qubits
         self.circuit['qubit_order'] = self._qubit_order
         if self.trace:
@@ -151,8 +176,6 @@ class SimulatorBackend(UnrollerBackend):
         gatedata is the AST node for the gate.
         """
         self.gates[name] = gatedata
-        # Jay: you don't need to do anything here,
-        #      this is called when the unroller sees "gate blah() blah {}"
 
     def u(self, arg, qubit):
         """Fundamental single-qubit gate.
@@ -174,23 +197,15 @@ class SimulatorBackend(UnrollerBackend):
                 raise BackendException("UnitarySimulator does not support if")
             qubit_indices = [self._qubit_order.get(qubit)]
             self._operation_order += 1
-            # print(np.exp(1j*arg[2])*np.sin(arg[0]/2.0))
-            gate = np.array([[np.cos(arg[0]/2.0),
-                            -np.exp(1j*arg[2])*np.sin(arg[0]/2.0)],
-                            [np.exp(1j*arg[1])*np.sin(arg[0]/2.0),
-                            np.exp(1j*arg[1]+1j*arg[2])*np.cos(arg[0]/2.0)]])
             self.circuit['number_of_operations'] = self._operation_order
             self.circuit['qasm'].append({
-                        'type': 'gate',
                         'gate_size': 1,
-                        'matrix': gate,
-                        'name': "U(%s,%s,%s)" % (self._fs(arg[0]),
-                                                 self._fs(arg[1]),
-                                                 self._fs(arg[2])),
+                        'name': "U",
+                        'theta': arg[0],
+                        'phi': arg[1],
+                        'lambda': arg[2],
                         'qubit_indices': qubit_indices
                         })
-
-            # print(self.unitary_gates)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -211,13 +226,9 @@ class SimulatorBackend(UnrollerBackend):
             qubit_indices = [self._qubit_order.get(qubit0),
                              self._qubit_order.get(qubit1)]
             self._operation_order += 1
-            cx = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                          [0, 1, 0, 0]])
             self.circuit['number_of_operations'] = self._operation_order
             self.circuit['qasm'].append({
-                        'type': 'gate',
                         'gate_size': 2,
-                        'matrix': cx,
                         'name': 'CX',
                         'qubit_indices': qubit_indices,
                         })
@@ -233,10 +244,13 @@ class SimulatorBackend(UnrollerBackend):
         qubit_indices = [self._qubit_order.get(qubit)]
         cbit_indices = [self._cbit_order.get(cbit)]
         self.circuit['qasm'].append({
-                    'type': 'measure',
+                    'name': 'measure',
                     'qubit_indices': qubit_indices,
                     'cbit_indices': cbit_indices
                     })
+        if self.trace:
+            print("measure %s[%d] -> %s[%d];" % (qubit[0], qubit[1],
+                                                 cbit[0], cbit[1]))
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -254,9 +268,11 @@ class SimulatorBackend(UnrollerBackend):
         self.circuit['number_of_operations'] = self._operation_order
         qubit_indices = [self._qubit_order.get(qubit)]
         self.circuit['qasm'].append({
-                    'type': 'reset',
+                    'name': 'reset',
                     'qubit_indices': qubit_indices,
                     })
+        if self.trace:
+            print("reset %s[%d];" % (qubit[0], qubit[1]))
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
