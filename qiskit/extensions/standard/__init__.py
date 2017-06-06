@@ -19,3 +19,7 @@ from .z import z
 from .rx import rx
 from .ry import ry
 from .rz import rz
+from .cu1 import cu1
+from .ch import ch
+from .crz import crz
+from .cu3 import cu3

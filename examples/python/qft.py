@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-Illustrate compiling several circuits to different backends.
+Quantum Fourier Transform examples.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -24,6 +24,7 @@ Author: Andrew Cross
 
 import sys
 import os
+import math
 
 # We don't know from where the user is running the example,
 # so we need a relative position from this file path.
@@ -45,12 +46,12 @@ coupling_map = {0: [1, 2],
                 4: [2]}
 
 ###############################################################
-# Make a quantum program for the GHZ and Bell states.
+# Make a quantum program for the GHZ state.
 ###############################################################
 QPS_SPECS = {
-    "name": "programs",
+    "name": "ghz",
     "circuits": [{
-        "name": "ghz",
+        "name": "qft3",
         "quantum_registers": [{
             "name": "q",
             "size": 5
@@ -58,44 +59,79 @@ QPS_SPECS = {
         "classical_registers": [
             {"name": "c",
              "size": 5}
-        ]},{
-        "name": "bell",
+        ]},
+        {
+        "name": "qft4",
         "quantum_registers": [{
             "name": "q",
             "size": 5
         }],
         "classical_registers": [
             {"name": "c",
-             "size": 5
-        }]}
+             "size": 5}
+        ]},
+        {
+        "name": "qft5",
+        "quantum_registers": [{
+            "name": "q",
+            "size": 5
+        }],
+        "classical_registers": [
+            {"name": "c",
+             "size": 5}
+        ]}
     ]
 }
 
+
+def input_state(circ, q, n):
+    """n-qubit input state for QFT that produces output 1."""
+    for j in range(n):
+        circ.h(q[j])
+        circ.u1(math.pi/float(2**(j)), q[j]).inverse()
+
+
+def qft(circ, q, n):
+    """n-qubit QFT on q in circ."""
+    for j in range(n):
+        for k in range(j):
+            circ.cu1(math.pi/float(2**(j-k)), q[j], q[k])
+        circ.h(q[j])
+
+
 qp = QuantumProgram(specs=QPS_SPECS)
-ghz = qp.get_circuit("ghz")
-bell = qp.get_circuit("bell")
 q = qp.get_quantum_registers("q")
 c = qp.get_classical_registers("c")
 
-# Create a GHZ state
-ghz.h(q[0])
-for i in range(4):
-    ghz.cx(q[i], q[i+1])
-# Insert a barrier before measurement
-ghz.barrier()
-# Measure all of the qubits in the standard basis
-for i in range(5):
-    ghz.measure(q[i], c[i])
+qft3 = qp.get_circuit("qft3")
+qft4 = qp.get_circuit("qft4")
+qft5 = qp.get_circuit("qft5")
 
-# Create a Bell state
-bell.h(q[0])
-bell.cx(q[0], q[1])
-bell.barrier()
-bell.measure(q[0], c[0])
-bell.measure(q[1], c[1])
+input_state(qft3, q, 3)
+qft3.barrier()
+qft(qft3, q, 3)
+qft3.barrier()
+for j in range(3):
+    qft3.measure(q[j], c[j])
 
-print(ghz.qasm())
-print(bell.qasm())
+input_state(qft4, q, 4)
+qft4.barrier()
+qft(qft4, q, 4)
+qft4.barrier()
+for j in range(4):
+    qft4.measure(q[j], c[j])
+
+input_state(qft5, q, 5)
+qft5.barrier()
+qft(qft5, q, 5)
+qft5.barrier()
+for j in range(5):
+    qft5.measure(q[j], c[j])
+
+print(qft3.qasm())
+print(qft4.qasm())
+print(qft5.qasm())
+
 
 ###############################################################
 # Set up the API and execute the program.
@@ -105,12 +141,19 @@ if not result:
     print("Error setting API")
     sys.exit(1)
 
-qp.compile(["bell"], device='local_qasm_simulator', shots=1024)
-qp.compile(["ghz"], device='simulator', shots=1024,
-           coupling_map=coupling_map)
+result = qp.execute(["qft3", "qft4", "qft5"], device='simulator',
+                    coupling_map=coupling_map, shots=1024)
+print(result)
+print(qp.get_compiled_qasm("qft3"))
+print(qp.get_compiled_qasm("qft4"))
+print(qp.get_compiled_qasm("qft5"))
+print(qp.get_counts("qft3"))
+print(qp.get_counts("qft4"))
+print(qp.get_counts("qft5"))
 
-qp.run()
 
-# print(qp.get_counts("bell")) # returns error, don't do this
-print(qp.get_counts("bell", device="local_qasm_simulator"))
-print(qp.get_counts("ghz"))
+result = qp.execute(["qft3"], device=device,
+                    coupling_map=coupling_map, shots=1024, timeout=120)
+print(result)
+print(qp.get_compiled_qasm("qft3"))
+print(qp.get_counts("qft3"))
