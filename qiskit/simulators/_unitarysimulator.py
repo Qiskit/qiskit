@@ -63,11 +63,13 @@ circuit =
         'gate_size': 2,
         },
         {
-        'type': 'reset',
+        'type': 'reset', //TODO: Validate if reset uses name "reset"
+        'name': 'reset',
         'qubit_indices': [1]
         }
         {
-        'type': 'measure',
+        'type': 'measure', //TODO: Validate if measure uses name "measure"
+        'name': 'measure',
         'cbit_indices': [0],
         'qubit_indices': [0]
         }],
