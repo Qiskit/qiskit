@@ -85,6 +85,7 @@ def make_Hamiltonian(n, alpha, beta):
 
     return Hamiltonian
 
+
 def trial_funtion_optimization(n, m, theta, entangler_map):
     """Trial function for classical optimization problems.
 
@@ -112,4 +113,31 @@ def trial_funtion_optimization(n, m, theta, entangler_map):
     trial_circuit.barrier(q)
     for j in range(n):
         trial_circuit.measure(q[j], c[j])
+    return trial_circuit
+
+
+def trial_funtion_optimization_no_meas(n, m, theta, entangler_map):
+    """Trial function for classical optimization problems.
+
+    n = number of qubits
+    m = depth
+    theta = control vector of size n*m stacked as theta[n*i+j] where j counts
+           the qubits and i the depth
+    entangler_map = {0: [2, 1],
+                     1: [2],
+                     3: [2],
+                     4: [2]}
+    control is the key and values are the target
+    """
+    q = QuantumRegister("q", n)
+    c = ClassicalRegister("c", n)
+    trial_circuit = QuantumCircuit(q, c)
+    trial_circuit.h(q)
+    for i in range(m):
+        trial_circuit.barrier(q)
+        for node in entangler_map:
+            for j in entangler_map[node]:
+                trial_circuit.cz(q[node], q[j])
+        for j in range(n):
+            trial_circuit.ry(theta[n * i + j], q[j])
     return trial_circuit
