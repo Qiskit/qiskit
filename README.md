@@ -55,7 +55,7 @@ Several unroller backends and their outputs are summarized here:
 
 ## Install
 
-- Install Anaconda: https://www.continuum.io/downloads
+- Install Anaconda (Python 3.* version): https://www.continuum.io/downloads
 - Clone the repo:
 
 ```sh
@@ -71,7 +71,7 @@ make env
 
 ## Use
 
-- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
+- Set up the Jupyter notebook. Add your API token to the file *Qconfig.py* (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
 cp tutorial/Qconfig.py.default Qconfig.py
