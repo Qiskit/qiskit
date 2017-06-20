@@ -18,7 +18,10 @@
 """
 Qasm Program Class
 
-Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
+Authors: Andrew Cross
+         Jay M. Gambetta
+         Ismael Faro <Ismael.Faro1@ibm.com>
+         Jesus Perez <jesusper@us.ibm.com>
 """
 # pylint: disable=line-too-long
 
