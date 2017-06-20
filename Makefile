@@ -25,7 +25,7 @@ env:
 	bash -c "source activate QISKitenv;pip install -r requires.txt"
 
 env-dev: env
-	bash -c "source activate QISKitenv;pip install pylint matplotlib"
+	bash -c "source activate QISKitenv;pip install pylint"
 
 # Ignoring generated ones with .py extension.
 lint:
