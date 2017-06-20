@@ -34,6 +34,10 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 
+
+QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../examples/qasm/test.qasm')
+
+
 # We need the environment variable for Travis.
 try:
     # We don't know from where the user is running the example,
@@ -475,7 +479,7 @@ class TestQISKit(unittest.TestCase):
 
     def test_load_qasm(self):
         QP_program = QuantumProgram()
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         result = QP_program.get_circuit("circuit-dev")
         to_check = result.qasm()
         self.assertEqual(len(to_check),1569)
@@ -486,7 +490,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
@@ -501,7 +505,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
@@ -517,7 +521,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.execute(circuits, device, shots, credits, coupling_map)
