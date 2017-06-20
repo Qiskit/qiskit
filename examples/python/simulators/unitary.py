@@ -26,15 +26,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from qiskit import UnitarySimulator
 
 
-CIRCUIT = """OPENQASM 2.0;
-include "qelib1.inc";
-
-qreg a[4];
-qreg b[4];
-creg ans[5];
-h a[3];
-cx a[3],b[0];"""
-
+QASM_PATH = os.path.join(os.path.dirname(__file__), '../../qasm/simple8qbit.qasm')
+CIRCUIT = open(QASM_PATH, 'r').read()
 
 print('Result')
 print(UnitarySimulator(CIRCUIT).run())
