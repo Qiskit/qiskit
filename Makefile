@@ -19,22 +19,22 @@
 
 .PHONY: env env-dev lint test run
 
-# Virtual environment creation and deps install.
+# Dependencies need to be installed on the Anaconda virtual environment.
 env:
-	conda create -y -n QISKitenv python=3 pip
-	bash -c "source activate QISKitenv;pip install -r requires.txt"
+	conda create -y -n QISKitenv python=3
+	bash -c "source activate QISKitenv;make env"
 
-env-dev: env
-	bash -c "source activate QISKitenv;pip install pylint"
+run:
+	bash -c "source activate QISKitenv;cd tutorial;jupyter notebook"
+
 
 # Ignoring generated ones with .py extension.
 lint:
-	bash -c "source activate QISKitenv;pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial"
+	pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial"
+
+# TODO: RUN WITH THE NATIVE TOOL INSTEAD.
 
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
-	bash -c "source activate QISKitenv;cd test;python test.py"
-
-run:
-	bash -c "source activate QISKitenv;cd tutorial;jupyter notebook"
+	python3 test/test.py

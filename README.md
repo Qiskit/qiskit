@@ -52,32 +52,43 @@ Several unroller backends and their outputs are summarized here:
 
 <img src="images/unroller_backends.png" alt="backends" width="500"/>
 
-
 ## Install
 
-- Install Anaconda (Python 3.* version): https://www.continuum.io/downloads
-- Clone the repo:
+* Install [Python 3](https://docs.python.org/3/using/index.html).
+* Get the code:
 
 ```sh
-git clone https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev
-cd qiskit-sdk-py-dev
+git clone https://github.com/IBM/qiskit-sdk-py
+cd qiskit-sdk-py
 ```
 
-- Create the environment with the dependencies:
+* Add your API token to the file "Qconfig.py" (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
 
 ```sh
-make env
+cp Qconfig.py.default Qconfig.py
 ```
+
+* Install the dependencies:
+  * To use as a library:
+  ```sh
+  sudo -H pip3 install -r requires.txt
+  ```
+  * [Jupyter](http://jupyter.readthedocs.io/en/latest/install.html) client is needed is needed to use the graphical interface [Jupyter](http://jupyter.readthedocs.io/en/latest/install.html) client.
+  ```sh
+  make env
+  ```
 
 ## Use
 
-- Set up the Jupyter notebook. Add your API token to the file *Qconfig.py* (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
+### Library
+
+Please check the [examples](examples/python).
 
 ```sh
-cp tutorial/Qconfig.py.default Qconfig.py
+python3 examples/python/quantumProgram/teleport.py
 ```
 
-- Run it:
+### GUI
 
 ```sh
 make run
@@ -88,7 +99,8 @@ make run
 If you upgrade the dependencies and get an error, try this fix:
 
 ```sh
-pip install --upgrade IBMQuantumExperience
+sudo -H pip3 install --upgrade IBMQuantumExperience
+
 * Cannot remove entries from nonexistent file [PATH]/easy-install.pth
 
 # Fix
@@ -101,29 +113,25 @@ Please use [GitHub pull requests](https://help.github.com/articles/using-pull-re
 
 We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/peps/pep-0008) style guide.
 
-
 ### Dependencies
 
 ```sh
-make env-dev
+sudo -H pip3 install -r requires-dev.txt
 ```
 
 ### Test
 
-- Please run this to be sure your code fits with the style guide and the tests keep passing:
+* Please run this to be sure your code fits with the style guide and the tests keep passing:
 
 ```sh
 make test
 ```
 
-Note: You can get your "putYourQExperienceTokenHere" from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account)
-
 ### Commit messages rules
 
-- Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them ending with a dot.
-- If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
-- It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
-
+* Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them ending with a dot.
+* If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
+* It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
 
 ## Authors (alphabetical)
 
@@ -138,4 +146,3 @@ QISKit is released under the Apache 2 license.
 ## Do you want to help?
 
 :sunglasses: If you'd like to contribute please take a look to our [contribution guidelines](CONTRIBUTING.md).
-
