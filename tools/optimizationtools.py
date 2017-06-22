@@ -16,7 +16,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
 from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_opt
 from qiskit.simulators.pauli import Pauli
-
+import numpy as np
 
 
 def cost_function(data, n, alpha, beta):
@@ -145,7 +145,7 @@ def trial_funtion_optimization_no_meas(n, m, theta, entangler_map):
             trial_circuit.ry(theta[n * i + j], q[j])
     return trial_circuit
 
-def trial_funtion_optimization_post_rot(n, m, theta, entangler_map,pauli_string):
+def trial_circuit_pauli(n,m,theta,entangler_map,pauli_string):
     """Trial function for classical optimization problems.
 
     n = number of qubits
@@ -164,18 +164,26 @@ def trial_funtion_optimization_post_rot(n, m, theta, entangler_map,pauli_string)
     trial_circuit.h(q)
     for i in range(m):
         trial_circuit.barrier(q)
+        
+        for j in range(n):
+            trial_circuit.rx(theta[n * i * 2 + 2*j], q[j])
+            trial_circuit.rz(theta[n * i * 2 + 2*j + 1], q[j])        
+        
+        
         for node in entangler_map:
             for j in entangler_map[node]:
                 trial_circuit.cz(q[node], q[j])
-        for j in range(n):
-            trial_circuit.ry(theta[n * i + j], q[j])
-
+        
 
     for j in range(n):
         if pauli_string[j]=='X':
-            trial_circuit.ry(pi/4, q[j])
+            trial_circuit.ry(np.pi/4, q[j])
+            
         elif pauli_string[j]=='Y':
-            trial_circuit.rx(-pi/4, q[j])
+            trial_circuit.rx(-np.pi/4, q[j])
+
+    for j in range(n):
+        trial_circuit.measure(q[j], c[j])
 
     return trial_circuit
 
@@ -189,7 +197,7 @@ def parse_hamiltonian_file(file_name):
 
     textAll = file.readlines()
     textAll = [x.strip() for x in textAll]
-    print('\nall text', textAll)
+    
 
     #i=0
     dim = len(textAll)
