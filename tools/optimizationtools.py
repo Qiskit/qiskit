@@ -166,7 +166,7 @@ def trial_circuit_pauli(n,m,theta,entangler_map,pauli_string):
         trial_circuit.barrier(q)
         
         for j in range(n):
-            trial_circuit.rx(theta[n * i * 2 + 2*j], q[j])
+            trial_circuit.ry(theta[n * i * 2 + 2*j], q[j])
             trial_circuit.rz(theta[n * i * 2 + 2*j + 1], q[j])        
         
         
