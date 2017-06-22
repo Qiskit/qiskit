@@ -15,8 +15,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
 from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_opt
-from qiskit.simulators.pauli import Pauli
 import numpy as np
+
+
 
 
 def cost_function(data, n, alpha, beta):
@@ -146,21 +147,14 @@ def trial_funtion_optimization_no_meas(n, m, theta, entangler_map):
     return trial_circuit
 
 def trial_circuit_pauli(n,m,theta,entangler_map,pauli_string):
-    """Trial function for classical optimization problems.
 
-    n = number of qubits
-    m = depth
-    theta = control vector of size n*m stacked as theta[n*i+j] where j counts
-           the qubits and i the depth
-    entangler_map = {0: [2, 1],
-                     1: [2],
-                     3: [2],
-                     4: [2]}
-    control is the key and values are the target
-    """
+    # create a trial circuit with the final post-rotations that depend on pauli_string 
+    
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
     trial_circuit = QuantumCircuit(q, c)
+    
+    
     trial_circuit.h(q)
     for i in range(m):
         trial_circuit.barrier(q)
@@ -187,34 +181,65 @@ def trial_circuit_pauli(n,m,theta,entangler_map,pauli_string):
 
     return trial_circuit
 
+
+
+
 def parse_hamiltonian_file(file_name):
+    
+    #parses a Hamiltonian file into an array
 
     file = open(file_name,'r+')
-
-
-    # Read the file into a string list and then separate them into two lists, one containing only text string
-    # and  the other numeric value
 
     textAll = file.readlines()
     textAll = [x.strip() for x in textAll]
     
 
-    #i=0
+   
     dim = len(textAll)
     textStr=[]
 
     for i in range(dim):
         if (i % 2) == 0:
             textStr.append(textAll[i])
-    #        print('text length=',len(textStr[i]))
-    #        print('text',textStr[i])
+    
         else:
             Numb = float(textAll[i])
             textStr.append(Numb)
-    #       print('number',textStr[i])
-    #    print('i=',i)
+    
     return textStr
 
+def text_to_ham(file_name):
+    
+    # Builds a Hamiltonian matrix out of a Hamiltonian text file 
+    
+    ham_array=parse_hamiltonian_file(file_name)
+    hamiltonian=np.zeros(np.power(2,len(ham_array[0])),np.power(2,len(ham_array[0])))
+    identity=np.matrix([[1,0],[0,1]])
+    sx=np.matrix('0 1;1 0')
+    sy=np.matrix('0 -1j;1j 0')
+    sz=np.matrix('1 0;0 -1')
+           
+    i=0
+    while i<len(ham_array):
+        term=1
+        pauli_term=ham_array[i]
+        
+        for j in range(len(pauli_term)):
+                         
+            if pauli_term[j]=='I':
+                         term=np.kron(term,identity)
+            elif pauli_term[j]=='X':
+                         term=np.kron(term,sx)
+            elif pauli_term[j]=='Y':
+                         term=np.kron(term,sy)
+            elif pauli_term[j]=='Z':
+                         term=np.kron(term,sz)
+           
+        hamiltonian=np.add(hamiltonian,float(ham_array[i+1])*term)
+        i+=2
+                         
+    return hamiltonian 
+        
 
 def SPSA_optimization(obj_fun,initial_theta,SPSA_parameters,max_trials):
     
