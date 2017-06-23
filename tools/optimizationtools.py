@@ -157,24 +157,24 @@ def trial_circuit_pauli(n,m,theta,entangler_map,pauli_string):
     
     trial_circuit.h(q)
     for i in range(m):
-        trial_circuit.barrier(q)
+           trial_circuit.barrier(q)
         
-        for j in range(n):
+    for j in range(n):
             trial_circuit.ry(theta[n * i * 2 + 2*j], q[j])
             trial_circuit.rz(theta[n * i * 2 + 2*j + 1], q[j])        
         
         
-        for node in entangler_map:
+    for node in entangler_map:
             for j in entangler_map[node]:
                 trial_circuit.cz(q[node], q[j])
         
 
     for j in range(n):
         if pauli_string[j]=='X':
-            trial_circuit.ry(np.pi/4, q[j])
+            trial_circuit.ry(-np.pi/2, q[j])
             
         elif pauli_string[j]=='Y':
-            trial_circuit.rx(-np.pi/4, q[j])
+            trial_circuit.rx(np.pi/2, q[j])
 
     for j in range(n):
         trial_circuit.measure(q[j], c[j])
