@@ -16,7 +16,16 @@
 # Authors: Jesus Perez <jesusper@us.ibm.com>
 
 
+dist: trusty
 language: python
+python:
+  - "2.7.13"
+  - "3.6.1"
+  - "nightly"
+
+before_install:
+  - pip install flake8
+  - flake8 . --count --statistics
 
 install:
   - sudo apt-get update
