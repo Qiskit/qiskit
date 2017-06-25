@@ -25,7 +25,7 @@ python:
 
 before_install:
   - pip install flake8
-  - flake8 . --count --statistics
+  - flake8 . --count --max-line-length=127 --statistics
 
 install:
   - sudo apt-get update
