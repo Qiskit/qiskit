@@ -53,35 +53,58 @@ Several unroller backends and their outputs are summarized here:
 <img src="images/unroller_backends.png" alt="backends" width="500"/>
 
 
-## Install
+## Installation and setup
 
-- Install Anaconda: https://www.continuum.io/downloads
-- Clone the repo:
+### 1. Get the tools you'll need:
+* Install Anaconda: https://www.continuum.io/downloads
+* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
+* Optionally download Git: https://git-scm.com/download/
 
+### 2. Clone the QISKit SDK repository and navigate to its folder on your local machine:
+
+* If you have Git installed, run the following commands:
 ```sh
 git clone https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev
 cd qiskit-sdk-py-dev
 ```
+* If you don't have Git installed, click the "Clone or download" button at the URL shown in the git clone command, unzip the file if needed, then navigate to that folder in a terminal window.
 
-- Create the environment with the dependencies:
+### 3. Set up an Anaconda environment for working with QISKit, and install the required dependencies:
 
+* If running either Linux or Mac OS X with Xcode, simply run the following command:
 ```sh
 make env
 ```
+* If running either Windows or Mac OS X without Xcode, run the following set of commands:
+```sh
+conda create -y -n QISKitenv python=3 pip scipy
+activate QISKitenv
+pip install -r requires.txt
+```
 
-## Use
-
-- Set up the Jupyter notebook. Add your API token to the file "Qconfig.py" (get it from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account):
-
+### 4. Configure your API token
+* Create an [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) account if you haven't already done so
+* Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
+* You will insert your API token in a file called Qconfig.py. First copy the default version of this file from the tutorial folder to the main SDK folder (on Windows, replace `cp` with `copy`):
 ```sh
 cp tutorial/Qconfig.py.default Qconfig.py
 ```
+* Open your Qconfig.py, remove the `#` from the beginning of the API token line, and copy/paste your API token into the space between the quotation marks on that line. Save and close the file.
 
-- Run it:
+## Starting the Jupyter-based tutorials
+The SDK includes tutorials in the form of Jupyter notebooks, which are essentially web pages that contain "cells" of embedded Python code. To run a cell, click on it and hit `Shift+Enter` or use the toolbar at the top of the page. Any output from a cell is displayed immediately below it on the page. In most cases, the cells on each page must be run in sequential order from top to bottom in order to avoid errors. To get started with the tutorials, follow the instructions below.
 
+* If running either Linux or Mac OS X with Xcode, simply run the following command from the QISKit SDK folder:
 ```sh
 make run
 ```
+* If running either Windows or Mac OS X without Xcode, run the following set of commands from the QISKit SDK folder:
+```sh
+activate QISKitenv
+cd tutorial
+jupyter notebook index.ipynb
+```
+
 
 ## FAQ
 
@@ -94,6 +117,8 @@ pip install --upgrade IBMQuantumExperience
 # Fix
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
+
+For additional troubleshooting tips, see the QISKit troubleshooting page on the project's GitHub wiki.
 
 ## Developer Guide
 
