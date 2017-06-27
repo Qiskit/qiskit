@@ -14,41 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""Quick program to test the Pauli class."""
-import numpy as np
-from scipy import linalg as la
+
+"""Quick program to test json backend
+
+python test_jsonoutput.py ../qasm/example.qasm
+
+"""
 import sys
-sys.path.append("../..")
-from tools.pauli import Pauli, random_pauli, inverse_pauli, pauli_group
-
-v = np.zeros(3)
-w = np.zeros(3)
-v[0] = 1
-w[1] = 1
-v[2] = 1
-w[2] = 1
-
-p = Pauli(v, w)
-print(p)
-print("In label form:")
-print(p.to_label())
-print("In matrix form:")
-print(p.to_matrix())
+import numpy as np
+from qiskit import QuantumProgram
+import qiskit.qasm as qasm
+import qiskit.unroll as unroll
 
 
-q = random_pauli(2)
-print(q)
+seed = 88
+filename = sys.argv[1]
+qp = QuantumProgram()
+qp.load_qasm("example", qasm_file=filename)
 
-r = inverse_pauli(p)
-print("In label form:")
-print(r.to_label())
-
-print("Group in tensor order:")
-grp = pauli_group(3, case=1)
-for j in grp:
-    print(j.to_label())
-
-print("Group in weight order:")
-grp = pauli_group(3)
-for j in grp:
-    print(j.to_label())
+basis_gates = []  # unroll to base gates
+unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
+                           unroll.JsonBackend(basis_gates))
+unroller.execute()
+print(unroller.backend.circuit)

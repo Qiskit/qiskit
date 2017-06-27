@@ -6,5 +6,6 @@ h q;
 cx q, r;
 creg c[3];
 creg d[3];
+barrier q;
 measure q->c;
 measure r->d;
