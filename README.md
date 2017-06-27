@@ -55,12 +55,18 @@ Several unroller backends and their outputs are summarized here:
 
 ## Installation and setup
 
-### 1. Get the tools you'll need:
-* Install Anaconda: https://www.continuum.io/downloads
-* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
-* Optionally download Git: https://git-scm.com/download/
+### 1. Get the tools
 
-### 2. Clone the QISKit SDK repository and navigate to its folder on your local machine:
+You'll need:
+
+* Install [Python 3](https://docs.python.org/3/using/index.html).
+* [Jupyter](http://jupyter.readthedocs.io/en/latest/install.html) client is needed to run the tutorials, not to use as a library.
+* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
+* Optionally download Git: https://git-scm.com/download/.
+
+### 2. Get the code
+
+Clone the QISKit SDK repository and navigate to its folder on your local machine:
 
 * If you have Git installed, run the following commands:
 ```sh
@@ -69,7 +75,16 @@ cd qiskit-sdk-py
 ```
 * If you don't have Git installed, click the "Clone or download" button at the URL shown in the git clone command, unzip the file if needed, then navigate to that folder in a terminal window.
 
-### 3. Set up an Anaconda environment for working with QISKit, and install the required dependencies:
+### 3. Setup the environment
+
+To use as a library install the dependencies:
+
+```sh
+# Depending on the system and setup to append "sudo -H" before could be needed.
+pip3 install -r requires.txt
+```
+
+To get the tutorials working set up an Anaconda environment for working with QISKit, and install the required dependencies:
 
 * If running either Linux or Mac OS X with Xcode, simply run the following command:
 ```sh
@@ -87,7 +102,7 @@ pip install -r requires.txt
 * Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
 * You will insert your API token in a file called Qconfig.py. First copy the default version of this file from the tutorial folder to the main SDK folder (on Windows, replace `cp` with `copy`):
 ```sh
-cp tutorial/Qconfig.py.default Qconfig.py
+cp Qconfig.py.default Qconfig.py
 ```
 * Open your Qconfig.py, remove the `#` from the beginning of the API token line, and copy/paste your API token into the space between the quotation marks on that line. Save and close the file.
 
@@ -111,8 +126,10 @@ jupyter notebook index.ipynb
 If you upgrade the dependencies and get the error below, try the fix shown below the error:
 
 ```sh
-sudo -H pip3 install --upgrade IBMQuantumExperience #trying to upgrade the IBMQuantumExperience module
-*Cannot remove entries from nonexistent file [PATH]/easy-install.pth #error message
+# Depending on the system and setup to append "sudo -H" before could be needed.
+pip3 install --upgrade IBMQuantumExperience
+*Cannot remove entries from nonexistent file [PATH]/easy-install.pth
+
 # Fix: run the command below
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
@@ -128,7 +145,7 @@ We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/p
 ### Dependencies
 
 ```sh
-sudo -H pip3 install -r requires-dev.txt
+pip3 install -r requires-dev.txt
 ```
 
 ### Test
