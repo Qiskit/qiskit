@@ -569,7 +569,7 @@ class TestQuantumProgram(unittest.TestCase):
         device = 'ibmqx2'
         result = QP_program.get_device_calibration(device)
         
-        self.assertEqual (len(result), 12)
+        self.assertEqual (len(result), 4)
 
 if __name__ == '__main__':
     unittest.main()
