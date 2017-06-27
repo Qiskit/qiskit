@@ -89,7 +89,7 @@ class Pauli:
             ope = np.dot(tempz, tempx)
             Xtemp = np.kron(ope, Xtemp)
         pauli_mat = (-1j)**np.dot(self.v, self.w) * Xtemp
-        return pauli_stringmat
+        return pauli_mat
 
 
 def random_pauli(numberofqubits):

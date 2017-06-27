@@ -18,148 +18,92 @@ from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_op
 import numpy as np
 from tools.pauli import Pauli, label_to_pauli
 
-def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials):
+
+def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 10):
     """Minimize the obj_fun(controls).
 
     initial_theta = the intial controls
     SPSA_parameters = the numerical parameters
     max_trials = the maximum number of trials
     """
-    theta_plus = []
-    theta_minus = []
-    theta = []
-    cost_plus = []
-    cost_minus = []
-    theta.append(initial_theta)
+    theta_plus_save = []
+    theta_minus_save = []
+    cost_plus_save = []
+    cost_minus_save = []
+    theta = initial_theta
     for k in range(max_trials):
         # SPSA Paramaters
         a_spsa = float(SPSA_parameters[0])/np.power(k+1+SPSA_parameters[4], SPSA_parameters[2])
         c_spsa = float(SPSA_parameters[1])/np.power(k+1, SPSA_parameters[3])
         Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
         # plus and minus directions
-        theta_plus.append(theta[k]+c_spsa*Delta)
-        theta_minus.append(theta[k]-c_spsa*Delta)
+        theta_plus = theta + c_spsa*Delta
+        theta_minus = theta - c_spsa*Delta
         # cost fuction for two directions
-        cost_plus.append(obj_fun(theta_plus[k])[0])
-        cost_minus.append(obj_fun(theta_minus[k])[0])
-        if k % 10 == 0:
+        cost_plus = obj_fun(theta_plus)[0]
+        cost_minus = obj_fun(theta_minus)[0]
+        # derivative estimate
+        g_spsa = (cost_plus - cost_minus)*Delta/(2.0*c_spsa)
+        # updated theta
+        theta = theta - a_spsa*g_spsa
+        # saving
+        if k % save_steps == 0:
             print('Energy at theta+ for step # ' + str(k))
             print(cost_plus[k])
-            print(('Energy at theta_minus for step # '+str(k)))
+            print(('Energy at theta- for step # '+str(k)))
             print(cost_minus[k])
-        g_spsa = (cost_plus[k] - cost_minus[k])*Delta/(2.0*c_spsa)
-        theta.append(theta[k]-a_spsa*g_spsa)
-
-    cost_final = obj_fun(theta[max_trials-1])[0]
-
-    print('Final Energy is\n'+str(cost_final))
-
-    return cost_final, cost_plus, cost_minus, theta_plus, theta_minus
+            theta_plus_save.append(theta_plus)
+            theta_minus_save.append(theta_minus)
+            cost_plus_save.append(cost_plus)
+            cost_minus_save.append(cost_minus)
+    # final cost update
+    cost_final = obj_fun(theta)[0]
+    print('Final Energy is: ' + str(cost_final))
+    return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
 
 
 # COST functions
+def Measure_pauli_z(data, v):
+    """Compute the expectation value of Z which is represented by Z^v where
+    v has lenght number of qubits and is 1 if Z is present and 0 otherwise.
+
+    data = is a dictionary of the form data = {'00000': 10}
+
+    M = <psi|Z^v|psi>
+      = \sum_lambda  lambda  |<lambda |psi>|^2
+      = sum_i lambda(i) P(i)
+      where i is the bitstring (key of data)
+      = sum_key lambda(key) #key/total_values
+
+
+    """
+    observable = 0
+    tot = sum(data.values())
+    for key in data:
+        value = 1
+        for j in range(len(v)):
+            if v[j] == 1:
+                # we have found a Z and key is reverse order of bits
+                outcome = 1
+                if key[len(v)-j-1] == '1':
+                    outcome = -1
+                value = outcome*value
+        observable = observable + value*data[key]/tot
+    return observable
+
+
 def Energy_Estimate(data, pauli_list):
-    """Compute the Energy of a Hamiltonian where P_i elementwise commutes,
-    which means that P_i is equilvalent to Z_i.
+        """Compute the Hamiltonian.
 
-    H = sum_i alpha_i Z_i
+        pauli_list is a list of tuples [(number, Pauli(v,w))]
 
-    E = <psi| H |psi>
-      = sum_i alpha_i <psi|Z_i|psi>
-      = sum_i alphi_i (P_i(up) - P_i(down))
+        TODO ADD the ability to rotate the pauli_list to the Z-basis for chemistry
+        """
+        energy = 0
+        for p in pauli_list:
+            energy += p[0]*Measure_pauli_z(data, p[1].v)
+        return energy
 
-
-    data = is a dictionary of the form data = {'00000': 10}
-    n = number of qubits
-    alpha = a vector with elements q0 -- qn
-
-    beta= a matrix of couplings
-    """
-    temp = 0
-    tot = sum(data.values())
-    for key in data:
-        observable = 0
-        for j in range(len(key) - n, len(key)):
-            if key[j] == '0':
-                observable = observable + alpha[len(key) - 1 - j]
-            elif key[j] == '1':
-                observable = observable - alpha[len(key) - 1 - j]
-            for i in range(j):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-            for i in range(j + 1, len(key)):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-        temp += data[key] * observable / tot
-    return temp
-def Energy_Estimate(data, n, alpha, beta):
-    """Compute the Energy Estimate of a diagonal Hamiltonian.
-
-    H = alpha_i Z_i + beta_ij Z_i Z_j
-
-    data = is a dictionary of the form data = {'00000': 10}
-    n = number of qubits
-    alpha = a vector with elements q0 -- qn
-
-    beta= a matrix of couplings
-    """
-    temp = 0
-    tot = sum(data.values())
-    for key in data:
-        observable = 0
-        for j in range(len(key) - n, len(key)):
-            if key[j] == '0':
-                observable = observable + alpha[len(key) - 1 - j]
-            elif key[j] == '1':
-                observable = observable - alpha[len(key) - 1 - j]
-            for i in range(j):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-            for i in range(j + 1, len(key)):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-        temp += data[key] * observable / tot
-    return temp
 
 def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement = True):
     """Trial function for classical optimization problems.
@@ -255,9 +199,7 @@ def make_Hamiltonian(pauli_list):
 
 
 def Hamiltonian_from_file(file_name):
-    """Compute the pauli_list from a file name.
-
-    This is a  function at the moment until we can make Hamiltonian
+    """Compute the pauli_list from a file.
     """
     file = open(file_name, 'r+')
     text_all = file.readlines()

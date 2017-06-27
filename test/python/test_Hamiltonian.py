@@ -14,13 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """Quick program to test the cost function for different basis functions.
-
-
-Author: Jay Gambetta
-
-
 """
 import numpy as np
 from scipy import linalg as la
@@ -54,56 +48,19 @@ w, v = la.eigh(a, eigvals=(0, 0))
 print(w)
 print(v)
 
-# cost function
-alpha = np.zeros(n)
-alpha[2] = 1
-# only input the upper triangle  b[i,j] for i < j
-beta = np.zeros((n, n))
-beta[0, 1] = 1
-beta[0, 2] = 1
-beta[1, 2] = 1
 data = {'000': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'001': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'010': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'011': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'100': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'101': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'110': 10}
-print(Energy_Estimate(data, n, alpha, beta))
+print(Energy_Estimate(data, pauli_list))
 data = {'111': 10}
-print(Energy_Estimate(data, n, alpha, beta))
-
-
-"""
-[[ 4.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j -2.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j -2.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j -2.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  2.+0.j]]
-[-2.]
-[[ 0.+0.j]
- [ 0.+0.j]
- [ 0.+0.j]
- [ 0.+0.j]
- [ 0.+0.j]
- [ 0.+0.j]
- [ 1.+0.j]
- [ 0.+0.j]]
-4.0
-0.0
-0.0
-0.0
--2.0
--2.0
--2.0
-2.0
-"""
+print(Energy_Estimate(data, pauli_list))
