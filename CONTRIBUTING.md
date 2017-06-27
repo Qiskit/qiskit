@@ -4,26 +4,21 @@
 
 You can contribute in many ways to this project.
 
-
 ## Issue reporting
 
 :fire: This is a goog point to start, when you find a problem please add it to the [issue traker](https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev/issues). The ideal report should include the steps to reproduce it.
-
 
 ## Doubts solving
 
 :two_women_holding_hands: To help less advanced users is another wonderful way to start. You can help us to close some opened issues. This kind of tickets should be labeled as `question`.
 
-
 ## Improvement proposal
 
 :smiling_imp: If you have an idea for a new feature please open a ticket labeled as `enhancement`. If you could also add a piece of code with the idea or a partial implementation it would be awesome.
 
-
 ## Documentation
 
 :eyes: We all know the doc always need fixes/upgrades :wink:, so please feel free to send a PR (see next point) with what you found.
-
 
 ## Code
 
@@ -34,7 +29,8 @@ You can contribute in many ways to this project.
 Needed libraries should be installed in this way:
 
 ```sh
-make env-dev
+# Depending on the system and setup to append "sudo -H" before could be needed.
+pip3 install -r requires-dev.txt
 ```
 
 ### Test
@@ -56,7 +52,6 @@ make lint
 ### Doc
 
 Review the parts of the documentation regarding the new changes and update it if it's needed.
-
 
 ### Pull requests
 
