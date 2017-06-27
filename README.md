@@ -56,9 +56,11 @@ Several unroller backends and their outputs are summarized here:
 ## Installation and setup
 
 ### 1. Get the tools you'll need:
+
 * Install [Anaconda] (https://www.continuum.io/downloads) with python 3.
 * Mac OS X users will find [Xcode](https://developer.apple.com/xcode/) usefull.
 * Optionally download [Git](https://git-scm.com/download/):
+
 
 ### 2. Clone the QISKit SDK repository and navigate to its folder on your local machine:
 
@@ -69,12 +71,17 @@ cd qiskit-sdk-py
 ```
 * If you don't have Git installed, click the "Clone or download" button at the URL shown in the git clone command, unzip the file if needed, then navigate to that folder in a terminal window.
 
-
 ### 3. Set up an Anaconda environment for working with QISKit, and install the required dependencies:
 
 * If running either Linux or Mac OS X with Xcode, simply run the following command:
 ```sh
 cp Qconfig.py.default Qconfig.py
+```
+* If running either Windows or Mac OS X without Xcode, run the following set of commands:
+```sh
+conda create -y -n QISKitenv python=3 pip scipy
+activate QISKitenv
+pip install -r requires.txt
 ```
 * If running either Windows or Mac OS X without Xcode, run the following set of commands:
 ```sh
@@ -105,7 +112,6 @@ activate QISKitenv
 cd tutorial
 jupyter notebook index.ipynb
 ```
-
 
 ## FAQ
 
