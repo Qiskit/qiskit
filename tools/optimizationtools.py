@@ -247,6 +247,7 @@ def SPSA_optimization(obj_fun,initial_theta,SPSA_parameters,max_trials):
     
     theta_plus=[]
     theta_minus=[]
+    theta=[]
     cost_plus=[]
     cost_minus=[]
     
@@ -254,23 +255,31 @@ def SPSA_optimization(obj_fun,initial_theta,SPSA_parameters,max_trials):
     
     for k in range(max_trials):
         
+       
         #SPSA Paramaters
-        a_spsa = float(SPSA_parameters[0])/np.power(k+1+SPSA_parameters[2], SPSA_parameters[1])
-        c_spsa = float(SPSA_parameters[3])/np.power(k+1, SPSA_parameters[4])
-        Delta=2*np.random.randint(2,np.shape(initial_controls)) - 1
-
+        a_spsa = float(SPSA_parameters[0])/np.power(k+1+SPSA_parameters[4], SPSA_parameters[2])
+        c_spsa = float(SPSA_parameters[1])/np.power(k+1, SPSA_parameters[3])
+        Delta=2*np.random.randint(2,size=np.shape(initial_theta)[0]) - 1
+     
 
                
-        theta_plus.append(theta[p]+c_spsa*Delta)
-        theta_minus.append(theta[p]-c_spsa*Delta)
+        theta_plus.append(theta[k]+c_spsa*Delta)
+        theta_minus.append(theta[k]-c_spsa*Delta)
         
-        cost_plus.append(obj_fun(theta_plus[k]))
-        cost_minus.append(obj_fun(theta_minus[k]))
+        cost_plus.append(obj_fun(theta_plus[k])[0])
+        cost_minus.append(obj_fun(theta_minus[k])[0])
+        
+        print(('Energy at theta_plus for step # '+str(k)))
+        print(cost_plus[k])
+        print(('Energy at theta_minus for step # '+str(k)))
+        print(cost_minus[k])
         g_spsa=(cost_plus[k]-cost_minus[k])*Delta/(2.0*c_spsa)
         
-        theta[k+1]=theta[k]-a_spsa*g_spsa
+        theta.append(theta[k]-a_spsa*g_spsa)
         
-    cost_final=obj_fun(theta[max_trials-1])
+    cost_final=obj_fun(theta[max_trials-1])[0]
+    
+    print('Final Energy is\n'+str(cost_final))
     
     return cost_final , cost_plus , cost_minus , theta_plus, theta_minus 
         
