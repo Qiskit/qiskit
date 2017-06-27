@@ -56,11 +56,9 @@ Several unroller backends and their outputs are summarized here:
 ## Installation and setup
 
 ### 1. Get the tools you'll need:
-
-* Install [Anaconda] (https://www.continuum.io/downloads) with python 3.
-* Mac OS X users will find [Xcode](https://developer.apple.com/xcode/) usefull.
-* Optionally download [Git](https://git-scm.com/download/):
-
+* Install Anaconda: https://www.continuum.io/downloads
+* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
+* Optionally download Git: https://git-scm.com/download/
 
 ### 2. Clone the QISKit SDK repository and navigate to its folder on your local machine:
 
@@ -75,13 +73,7 @@ cd qiskit-sdk-py
 
 * If running either Linux or Mac OS X with Xcode, simply run the following command:
 ```sh
-cp Qconfig.py.default Qconfig.py
-```
-* If running either Windows or Mac OS X without Xcode, run the following set of commands:
-```sh
-conda create -y -n QISKitenv python=3 pip scipy
-activate QISKitenv
-pip install -r requires.txt
+make env
 ```
 * If running either Windows or Mac OS X without Xcode, run the following set of commands:
 ```sh
@@ -95,7 +87,7 @@ pip install -r requires.txt
 * Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
 * You will insert your API token in a file called Qconfig.py. First copy the default version of this file from the tutorial folder to the main SDK folder (on Windows, replace `cp` with `copy`):
 ```sh
-python3 examples/python/quantumProgram/teleport.py
+cp tutorial/Qconfig.py.default Qconfig.py
 ```
 * Open your Qconfig.py, remove the `#` from the beginning of the API token line, and copy/paste your API token into the space between the quotation marks on that line. Save and close the file.
 
@@ -113,16 +105,15 @@ cd tutorial
 jupyter notebook index.ipynb
 ```
 
+
 ## FAQ
 
-If you upgrade the dependencies and get an error, try this fix:
+If you upgrade the dependencies and get the error below, try the fix shown below the error:
 
 ```sh
-sudo -H pip3 install --upgrade IBMQuantumExperience
-
-* Cannot remove entries from nonexistent file [PATH]/easy-install.pth
-
-# Fix
+sudo -H pip3 install --upgrade IBMQuantumExperience #trying to upgrade the IBMQuantumExperience module
+*Cannot remove entries from nonexistent file [PATH]/easy-install.pth #error message
+# Fix: run the command below
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
 
