@@ -146,32 +146,6 @@ curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
 For additional troubleshooting tips, see the QISKit troubleshooting page on the project's GitHub wiki.
 
-## Developer Guide
-
-Please use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
-
-We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/peps/pep-0008) style guide.
-
-### Dependencies
-
-```sh
-pip3 install -r requires-dev.txt
-```
-
-### Test
-
-* Please run this to be sure your code fits with the style guide and the tests keep passing:
-
-```sh
-make test
-```
-
-### Commit messages rules
-
-* Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them ending with a dot.
-* If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
-* It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
-
 ## Authors (alphabetical)
 
 The first release of QISKit was developed by Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin.
@@ -180,7 +154,7 @@ In future releases, anyone who contributes code to this project can include thei
 
 ## License
 
-QISKit is released under the Apache 2 license.
+QISKit is released under the [Apache license, version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Do you want to help?
 
