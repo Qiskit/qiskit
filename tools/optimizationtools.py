@@ -82,6 +82,7 @@ def Measure_pauli_z(data, pauli):
     for key in data:
         value = 1
         for j in range(pauli.numberofqubits):
+            
             if (pauli.v[j] == 1 or pauli.w[j] == 1) and key[pauli.numberofqubits - j - 1] == '1':
                     value = -value
 
@@ -96,7 +97,7 @@ def Energy_Estimate(data, pauli_list):
         """
         energy = 0
         if np.ndim(pauli_list) == 1:
-            energy = pauli_list[0]*Measure_pauli_z(data, pauli_list)
+            energy = pauli_list[0]*Measure_pauli_z(data, pauli_list[1])
         else:
             for p in pauli_list:
                 energy += p[0]*Measure_pauli_z(data, p[1])
