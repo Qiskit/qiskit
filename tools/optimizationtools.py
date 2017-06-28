@@ -48,10 +48,10 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
         theta = theta - a_spsa*g_spsa
         # saving
         if k % save_steps == 0:
-            print('Energy at theta+ for step # ' + str(k))
-            print(cost_plus[k])
+            print('Energy at theta+ for step # ' + str(k))  
+            print(cost_plus)
             print(('Energy at theta- for step # '+str(k)))
-            print(cost_minus[k])
+            print(cost_minus)
             theta_plus_save.append(theta_plus)
             theta_minus_save.append(theta_minus)
             cost_plus_save.append(cost_plus)
@@ -63,7 +63,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
 
 
 # COST functions
-def Measure_pauli_z(data, v):
+def Measure_pauli_z(data, v,w):
     """Compute the expectation value of Z which is represented by Z^v where
     v has lenght number of qubits and is 1 if Z is present and 0 otherwise.
 
@@ -82,26 +82,28 @@ def Measure_pauli_z(data, v):
     for key in data:
         value = 1
         for j in range(len(v)):
-            if v[j] == 1:
-                # we have found a Z and key is reverse order of bits
-                outcome = 1
-                if key[len(v)-j-1] == '1':
-                    outcome = -1
-                value = outcome*value
+            if (v[j] == 1 or w[j]==1) and key[len(v)-j-1] == '1':
+                    value = -value
+               
         observable = observable + value*data[key]/tot
     return observable
 
 
 def Energy_Estimate(data, pauli_list):
-        """Compute the Hamiltonian.
+        """Compute expectation value of a list of Paulis with coefficients.
 
-        pauli_list is a list of tuples [(number, Pauli(v,w))]
+        pauli_list is a list of tuples [(number, Pauli(v,w))]  
 
-        TODO ADD the ability to rotate the pauli_list to the Z-basis for chemistry
         """
+        
         energy = 0
-        for p in pauli_list:
-            energy += p[0]*Measure_pauli_z(data, p[1].v)
+        
+        if np.ndim(pauli_list)==1:
+            energy=pauli_list[0]*Measure_pauli_z(data, pauli_list[1].v,pauli_list[1].w)
+            
+        else:
+            for p in pauli_list:
+                energy += p[0]*Measure_pauli_z(data, p[1].v,pauli_list[1].w)
         return energy
 
 
@@ -189,7 +191,7 @@ def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string = None, measureme
 def make_Hamiltonian(pauli_list):
         """Compute the Hamiltonian.
 
-        pauli_list is a list of tuples [(number, Pauli(v,w))]
+        pauli_list is a list of tuples [(coefficient, Pauli(v,w))]
         WARNING. This is exponential in the number of qubits.
         """
         Hamiltonian = 0
@@ -202,12 +204,11 @@ def Hamiltonian_from_file(file_name):
     """Compute the pauli_list from a file.
     """
     file = open(file_name, 'r+')
-    text_all = file.readlines()
-    text_all = [x.strip() for x in text_all]
+    ham_array = file.readlines()
+    ham_array = [x.strip() for x in ham_array]
     pauli_list = []
-    for i in range(len(text_all)//2):
-        string = text_all[2*i]
-        pauli = label_to_pauli(string)
-        Numb = float(text_all[2*i+1])
+    for i in range(len(ham_array)//2):
+        pauli = label_to_pauli(ham_array[2*i])
+        Numb = float(ham_array[2*i+1])
         pauli_list.append((Numb, pauli))
     return pauli_list
