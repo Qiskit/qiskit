@@ -25,7 +25,7 @@ The input is a AST and a basis set and returns a json-like file
  "header": {
  "number_qubits": 2, // int
  "number_cbits": 2, // int
- "qubit_labels": [['q', 0], ['v', 0]], // list[list[string, int]]
+ "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
  "cbits_labels": [["c", 2]], // list[list[string, int]]
  }
  "operations": // list[map]
@@ -33,8 +33,8 @@ The input is a AST and a basis set and returns a json-like file
         {
             "name": , // required -- string
             "params": , // optional -- list[double]
-            "qubits": ,// optional -- list[int]
-            "cbits": ,//optional -- list[int]
+            "qubits": , // optional -- list[int]
+            "cbits": , //optional -- list[int]
             "conditional":  // optional -- map
                 {
                     "type": , // string
@@ -44,7 +44,6 @@ The input is a AST and a basis set and returns a json-like file
         },
     ]
 }
-# TODO: currently only supports standard basis
 """
 from qiskit.unroll import BackendException
 from qiskit.unroll import UnrollerBackend
@@ -57,6 +56,7 @@ class JsonBackend(UnrollerBackend):
         """Setup this backend.
 
         basis is a list of operation name strings.
+        The default basis is ["U", "CX"].
         """
         self.circuit = {}
         self.circuit['operations'] = []
@@ -67,6 +67,7 @@ class JsonBackend(UnrollerBackend):
         self._cbit_order = []
         self._qubit_order_internal = {}
         self._cbit_order_internal = {}
+
         self.creg = None
         self.cval = None
         self.gates = {}
@@ -138,14 +139,30 @@ class JsonBackend(UnrollerBackend):
         if self.listen:
             if "U" not in self.basis:
                 self.basis.append("U")
-            if self.creg is not None:
-                raise BackendException("UnitarySimulator does not support if")
             qubit_indices = [self._qubit_order_internal.get(qubit)]
             self.circuit['operations'].append({
-                        'name': "U",
-                        'params': [arg[0], arg[1], arg[2]],
-                        'qubits': qubit_indices
-                        })
+                'name': "U",
+                'params': [arg[0], arg[1], arg[2]],
+                'qubits': qubit_indices
+                })
+            self._add_condition()
+
+    def _add_condition(self):
+        """Check for a condition (self.creg) and add fields if necessary.
+
+        Fields are added to the last operation in the circuit.
+        """
+        if self.creg is not None:
+            mask = 0
+            for cbit, index in self._cbit_order_internal.items():
+                if cbit[0] == self.creg:
+                    mask |= (1 << index)
+                conditional = {
+                    'type': "==",
+                    'mask': mask,
+                    'val': self.cval
+                }
+            self.circuit['operations'][-1]['conditional'] = conditional
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -156,14 +173,13 @@ class JsonBackend(UnrollerBackend):
         if self.listen:
             if "CX" not in self.basis:
                 self.basis.append("CX")
-            if self.creg is not None:
-                raise BackendException("JsonBackend does not support if")
             qubit_indices = [self._qubit_order_internal.get(qubit0),
                              self._qubit_order_internal.get(qubit1)]
             self.circuit['operations'].append({
-                        'name': 'CX',
-                        'qubits': qubit_indices,
-                        })
+                'name': 'CX',
+                'qubits': qubit_indices,
+                })
+            self._add_condition()
 
     def measure(self, qubit, cbit):
         """Measurement operation.
@@ -171,13 +187,16 @@ class JsonBackend(UnrollerBackend):
         qubit is (regname, idx) tuple for the input qubit.
         bit is (regname, idx) tuple for the output bit.
         """
+        if "measure" not in self.basis:
+            self.basis.append("measure")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
         cbit_indices = [self._cbit_order_internal.get(cbit)]
         self.circuit['operations'].append({
-                    'name': 'measure',
-                    'qubits': qubit_indices,
-                    'cbits': cbit_indices
-                    })
+            'name': 'measure',
+            'qubits': qubit_indices,
+            'cbits': cbit_indices
+            })
+        self._add_condition()
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -192,20 +211,25 @@ class JsonBackend(UnrollerBackend):
                 for qubits in qubitlist:
                     qubit_indices.append(self._qubit_order_internal.get(qubits))
             self.circuit['operations'].append({
-                        'name': 'barrier',
-                        'qubits': qubit_indices,
-                        })
+                'name': 'barrier',
+                'qubits': qubit_indices,
+                })
+            # no conditions on barrier, even when it appears
+            # in body of conditioned gate
 
     def reset(self, qubit):
         """Reset instruction.
 
         qubit is a (regname, idx) tuple.
         """
+        if "reset" not in self.basis:
+            self.basis.append("reset")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
         self.circuit['operations'].append({
-                    'name': 'reset',
-                    'qubits': qubit_indices,
-                    })
+            'name': 'reset',
+            'qubits': qubit_indices,
+            })
+        self._add_condition()
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -234,8 +258,14 @@ class JsonBackend(UnrollerBackend):
         if self.listen and name in self.basis:
             self.in_gate = name
             self.listen = False
-            if self.creg is not None:
-                raise BackendException("JsonBackend does not support if")
+            qubit_indices = [self._qubit_order_internal.get(qubit)
+                             for qubit in qubits]
+            self.circuit['operations'].append({
+                'name': name,
+                'params': args,
+                'qubits': qubit_indices
+                })
+            self._add_condition()
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.
