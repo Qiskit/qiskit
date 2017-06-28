@@ -48,7 +48,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
         theta = theta - a_spsa*g_spsa
         # saving
         if k % save_steps == 0:
-            print('Energy at theta+ for step # ' + str(k))  
+            print('Energy at theta+ for step # ' + str(k))
             print(cost_plus)
             print(('Energy at theta- for step # '+str(k)))
             print(cost_minus)
@@ -63,7 +63,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
 
 
 # COST functions
-def Measure_pauli_z(data, v,w):
+def Measure_pauli_z(data, pauli):
     """Compute the expectation value of Z which is represented by Z^v where
     v has lenght number of qubits and is 1 if Z is present and 0 otherwise.
 
@@ -81,10 +81,10 @@ def Measure_pauli_z(data, v,w):
     tot = sum(data.values())
     for key in data:
         value = 1
-        for j in range(len(v)):
-            if (v[j] == 1 or w[j]==1) and key[len(v)-j-1] == '1':
+        for j in range(pauli.numberofqubits):
+            if (pauli.v[j] == 1 or pauli.w[j] == 1) and key[pauli.numberofqubits - j - 1] == '1':
                     value = -value
-               
+
         observable = observable + value*data[key]/tot
     return observable
 
@@ -92,18 +92,14 @@ def Measure_pauli_z(data, v,w):
 def Energy_Estimate(data, pauli_list):
         """Compute expectation value of a list of Paulis with coefficients.
 
-        pauli_list is a list of tuples [(number, Pauli(v,w))]  
-
+        pauli_list is a list of tuples [(number, Pauli(v,w))]
         """
-        
         energy = 0
-        
-        if np.ndim(pauli_list)==1:
-            energy=pauli_list[0]*Measure_pauli_z(data, pauli_list[1].v,pauli_list[1].w)
-            
+        if np.ndim(pauli_list) == 1:
+            energy = pauli_list[0]*Measure_pauli_z(data, pauli_list)
         else:
             for p in pauli_list:
-                energy += p[0]*Measure_pauli_z(data, p[1].v,pauli_list[1].w)
+                energy += p[0]*Measure_pauli_z(data, p[1])
         return energy
 
 
