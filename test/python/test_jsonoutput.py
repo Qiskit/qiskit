@@ -26,13 +26,16 @@ from qiskit import QuantumProgram
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 
+if len(sys.argv) < 2:
+    print("./test_jsonoutput.py <filename.qasm>")
+    sys.exit(1)
 
 seed = 88
 filename = sys.argv[1]
 qp = QuantumProgram()
 qp.load_qasm("example", qasm_file=filename)
 
-basis_gates = []  # unroll to base gates
+basis_gates = []  # unroll to base gates, change to test
 unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                            unroll.JsonBackend(basis_gates))
 unroller.execute()
