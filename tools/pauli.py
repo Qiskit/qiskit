@@ -115,13 +115,13 @@ def label_to_pauli(label):
         if label[j] == 'I':
             v[j] = 0
             w[j] = 0
-        elif label[j] == 'X':
+        elif label[j] == 'Z':
             v[j] = 1
             w[j] = 0
         elif label[j] == 'Y':
             v[j] = 1
             w[j] = 1
-        elif label[j] == 'Z':
+        elif label[j] == 'X':
             v[j] = 0
             w[j] = 1
         else:
