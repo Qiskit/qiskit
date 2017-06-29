@@ -251,6 +251,10 @@ class QuantumProgram(object):
         """Return a Circuit Object by name"""
         return self.__quantum_program['circuits'][name]['circuit']
 
+    def get_circuit_names(self):
+        """Return all circuit names"""
+        return list(self.__quantum_program['circuits'].keys())
+
     def get_quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
         return self.__init_circuit, \
