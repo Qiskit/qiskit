@@ -101,7 +101,10 @@ def random_pauli(numberofqubits):
     return Pauli(v, w)
 
 def sgn_prod(P1, P2):
-    """Multiply two Paulis P1*P2 and track the sign"""
+    """Multiply two Paulis P1*P2 and track the sign.
+
+    P3 = P1*P2: X*Y 
+    """
 
     if P1.numberofqubits != P2.numberofqubits:
         print('Paulis cannot be multiplied - different number of qubits')
