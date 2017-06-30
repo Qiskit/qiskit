@@ -100,6 +100,16 @@ def random_pauli(numberofqubits):
                       [2:].zfill(numberofqubits))).astype(np.int)
     return Pauli(v, w)
 
+def sgn_prod(P1, P2):
+    """Multiply two Paulis P1*P2 and track the sign"""
+
+    if P1.numberofqubits != P2.numberofqubits:
+        print('Paulis cannot be multiplied - different number of qubits')
+    vnew = (P1.v + P2.v) % 2
+    wnew = (P1.w + P2.w) % 2
+    paulinew = Pauli(vnew, wnew)
+    sgn = np.inner(P1.w, P2.v) % 2
+    return paulinew, sgn
 
 def inverse_pauli(other):
     """Return the inverse of a Pauli."""

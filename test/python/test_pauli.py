@@ -19,7 +19,7 @@ import numpy as np
 from scipy import linalg as la
 import sys
 sys.path.append("../..")
-from tools.pauli import Pauli, random_pauli, inverse_pauli, pauli_group
+from tools.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
 
 v = np.zeros(3)
 w = np.zeros(3)
@@ -52,3 +52,19 @@ print("Group in weight order:")
 grp = pauli_group(3)
 for j in grp:
     print(j.to_label())
+
+print("sign product:")
+p1 = Pauli(np.array([0]), np.array([1]))
+p2 = Pauli(np.array([1]), np.array([1]))
+p3, sgn = sgn_prod(p1, p2)
+print(p1.to_label())
+print(p2.to_label())
+print(p3.to_label())
+print(sgn)
+
+print("sign product reverse:")
+p3, sgn = sgn_prod(p2, p1)
+print(p2.to_label())
+print(p1.to_label())
+print(p3.to_label())
+print(sgn)
