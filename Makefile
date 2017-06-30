@@ -35,3 +35,7 @@ lint:
 # test: lint
 test:
 	python3 -m unittest discover
+	python3 -m unittest discover -p "*_test.py"
+
+profile:
+	python3 -m unittest discover -p "*_profile.py"
