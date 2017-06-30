@@ -19,7 +19,7 @@
 Qasm Program Class
 
 Authors: Andrew Cross
-         Jay M. Gambetta
+         Jay M. Gambetta <jay.gambetta@us.ibm.com>
          Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
 """
@@ -513,7 +513,13 @@ class QuantumProgram(object):
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    jobs.append({"compiled_circuit": job["compiled_circuit"],
+                    # this will get pushed into the compiler when online supports jason
+                    basis_gates = []  # unroll to base gates
+                    unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(),unroll.JsonBackend(basis_gates))
+                    unroller.execute()
+                    jsoncircuit = unroller.backend.circuit
+                    #to here
+                    jobs.append({"compiled_circuit": jsoncircuit,
                                  "shots": job["shots"],
                                  "seed": job["seed"]})
                 # TODO have an option to print this.

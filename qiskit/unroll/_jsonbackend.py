@@ -19,14 +19,14 @@
 
 Author: Jay Gambetta and Andrew Cross
 
-The input is a AST and a basis set and returns a json-like file
+The input is a AST and a basis set and returns a json memory object
 
 {
  "header": {
- "number_qubits": 2, // int
- "number_cbits": 2, // int
+ "number_of_qubits": 2, // int
+ "number_of_clbits": 2, // int
  "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
- "cbits_labels": [["c", 2]], // list[list[string, int]]
+ "clbit_labels": [["c", 2]], // list[list[string, int]]
  }
  "operations": // list[map]
     [
@@ -119,8 +119,8 @@ class JsonBackend(UnrollerBackend):
         for j in range(size):
             self._cbit_order_internal[(name, j)] = self._number_of_cbits + j
         self._number_of_cbits += size
-        self.circuit['header']['number_of_cbits'] = self._number_of_cbits
-        self.circuit['header']['cbits_labels'] = self._cbit_order
+        self.circuit['header']['number_of_clbits'] = self._number_of_cbits
+        self.circuit['header']['clbit_labels'] = self._cbit_order
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -190,11 +190,11 @@ class JsonBackend(UnrollerBackend):
         if "measure" not in self.basis:
             self.basis.append("measure")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
-        cbit_indices = [self._cbit_order_internal.get(cbit)]
+        clbit_indices = [self._cbit_order_internal.get(cbit)]
         self.circuit['operations'].append({
             'name': 'measure',
             'qubits': qubit_indices,
-            'cbits': cbit_indices
+            'clbits': clbit_indices
             })
         self._add_condition()
 
