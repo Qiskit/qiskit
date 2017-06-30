@@ -44,41 +44,30 @@ The simulator is run using
 
     QasmSimulator(compiled_circuit,shots,seed).run().
 
-Internal circuit_object
-
-circuit =
-    {
-    'number_of_qubits': 2,
-    'number_of_cbits': 2,
-    'number_of_operations': 4,
-    'qubit_order': {('q', 0): 0, ('v', 0): 1}
-    'cbit_order': {('c', 1): 1, ('c', 0): 0},
-    'qasm':
-        [{
-        'type': 'gate',
-        'name': 'U',
-        'theta': 1.570796326794897
-        'phi': 1.570796326794897
-        'lambda': 1.570796326794897
-        'qubit_indices': [0],
-        'gate_size': 1,
+compiled_circuit =
+{
+ "header": {
+ "number_of_qubits": 2, // int
+ "number_of_clbits": 2, // int
+ "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
+ "clbit_labels": [["c", 2]], // list[list[string, int]]
+ }
+ "operations": // list[map]
+    [
+        {
+            "name": , // required -- string
+            "params": , // optional -- list[double]
+            "qubits": , // optional -- list[int]
+            "clbits": , //optional -- list[int]
+            "conditional":  // optional -- map
+                {
+                    "type": , // string
+                    "mask": , // big int
+                    "val":  , // big int
+                }
         },
-        {
-        'type': 'gate',
-        'name': 'CX',
-        'qubit_indices': [0, 1],
-        'gate_size': 2,
-        },
-        {
-        'type': 'reset',
-        'qubit_indices': [1]
-        }
-        {
-        'type': 'measure',
-        'cbit_indices': [0],
-        'qubit_indices': [0]
-        }],
-    }
+    ]
+}
 
 if shots = 1
 result =
@@ -104,8 +93,7 @@ result =
 import numpy as np
 import random
 from collections import Counter
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
+
 
 # TODO add the IF qasm operation.
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
@@ -156,21 +144,16 @@ class QasmSimulator(object):
 
     def __init__(self, compiled_circuit, shots, seed=random.random()):
         """Initialize the QasmSimulator object."""
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit).parse(),
-                                   unroll.SimulatorBackend(basis_gates))
-        unroller.backend.set_trace(False)
-        unroller.execute()
-        self.circuit = unroller.backend.circuit
-        self._number_of_qubits = self.circuit['number_of_qubits']
-        self._number_of_cbits = self.circuit['number_of_cbits']
+        self.circuit = compiled_circuit
+        self._number_of_qubits = self.circuit['header']['number_of_qubits']
+        self._number_of_cbits = self.circuit['header']['number_of_clbits']
         self.result = {}
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
         self._shots = shots
         random.seed(seed)
-        self._number_of_operations = self.circuit['number_of_operations']
+        self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitary 1-qubit operator to a qubit.
@@ -277,30 +260,32 @@ class QasmSimulator(object):
             # Do each operation in this shot
             for j in range(self._number_of_operations):
                 # Check if single  gate
-                if self.circuit['qasm'][j]['name'] == 'U':
-                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                    theta = self.circuit['qasm'][j]['theta']
-                    phi = self.circuit['qasm'][j]['phi']
-                    lam = self.circuit['qasm'][j]['lambda']
+                if self.circuit['operations'][j]['name'] == 'U':
+                    qubit = self.circuit['operations'][j]['qubits'][0]
+                    theta = self.circuit['operations'][j]['params'][0]
+                    phi = self.circuit['operations'][j]['params'][1]
+                    lam = self.circuit['operations'][j]['params'][2]
                     gate = np.array([[np.cos(theta/2.0),
                                       -np.exp(1j*lam)*np.sin(theta/2.0)],
                                      [np.exp(1j*phi)*np.sin(theta/2.0),
                                       np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
-                elif self.circuit['qasm'][j]['name'] == 'CX':
-                    qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
-                    qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
+                elif self.circuit['operations'][j]['name'] == 'CX':
+                    qubit0 = self.circuit['operations'][j]['qubits'][0]
+                    qubit1 = self.circuit['operations'][j]['qubits'][1]
                     self._add_qasm_cx(qubit0, qubit1)
                 # Check if measure
-                elif self.circuit['qasm'][j]['name'] == 'measure':
-                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                    cbit = self.circuit['qasm'][j]['cbit_indices'][0]
+                elif self.circuit['operations'][j]['name'] == 'measure':
+                    qubit = self.circuit['operations'][j]['qubits'][0]
+                    cbit = self.circuit['operations'][j]['clbits'][0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif self.circuit['qasm'][j]['name'] == 'reset':
-                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
+                elif self.circuit['operations'][j]['name'] == 'reset':
+                    qubit = self.circuit['operations'][j]['qubits'][0]
                     self._add_qasm_reset(qubit)
+                elif self.circuit['operations'][j]['name'] == 'barrier':
+                    pass
                 else:
                     self.result['status'] = 'ERROR'
                     return self.result
