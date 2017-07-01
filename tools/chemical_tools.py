@@ -220,7 +220,7 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
             Yj.v[j]=1
             Yj.w[j]=1
             
-            a.append((update_pauli[j]*Xj*parity_pauli[j],update_pauli[j]*Yj*remainder_pauli[j]))
+            a.append((update_pauli[j]*Xj*parity_pauli[j],update_pauli[j]*Yj*remainder_pauli[j]))  # defines the two Pauli components of a
             
           
     """            
@@ -290,8 +290,9 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
         
         for pauli_term in pauli_list:
             out_stream.write(pauli_term[1].to_label()+'\n')
-            out_stream.write('%.15f' % pauli_term[0]+'\n')
-            
+            out_stream.write('%.15f' % pauli_term[0].real+'\n')
+    
+        out_stream.close()
     
     
     
