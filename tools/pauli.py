@@ -1,10 +1,10 @@
-# Pauli operators
-#
-# A Pauli Opt.
-#
-# Jay Gambetta <jay.gambetta@us.ibm.com>
-# Andrew Cross <awcross@us.ibm.com>
+"""
+Tools for working with Pauli Operators.
 
+A simple pauli class and some tools.
+
+Author: Jay Gambetta and Andrew Cross
+"""
 import random
 import numpy as np
 
@@ -23,6 +23,11 @@ class Pauli:
 
     Multiplication is P1*P2 = (-i)^dot(v1+v2,w1+w2) Z^(v1+v2) X^(w1+w2)
     where the sums are taken modulo 2.
+
+    Ref.
+    Jeroen Dehaene and Bart De Moor
+    Clifford group, stabilizer states, and linear and quadratic operations over GF(2)
+    Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
 
     def __init__(self, v, w):
@@ -103,7 +108,7 @@ def random_pauli(numberofqubits):
 def sgn_prod(P1, P2):
     """Multiply two Paulis P1*P2 and track the sign.
 
-    P3 = P1*P2: X*Y 
+    P3 = P1*P2: X*Y
     """
 
     if P1.numberofqubits != P2.numberofqubits:
