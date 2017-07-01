@@ -116,8 +116,22 @@ def sgn_prod(P1, P2):
     vnew = (P1.v + P2.v) % 2
     wnew = (P1.w + P2.w) % 2
     paulinew = Pauli(vnew, wnew)
-    sgn = np.inner(P1.w, P2.v) % 2
-    return paulinew, sgn
+    phase=1
+    for i in range(len(P1.v)):
+        if P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==0 and P2.w[i]==1:  # Z*X
+            phase=1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # X*Z
+            phase=-1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==1:  # X*Y
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==0 and P2.w[i]==1:  # Y*X
+            phase=-1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # Y*Z
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==1 and P2.w[i]==1:  # Z*Y
+            phase=-1j*phase
+
+    return paulinew, phase
 
 def inverse_pauli(other):
     """Return the inverse of a Pauli."""

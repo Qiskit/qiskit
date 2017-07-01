@@ -82,7 +82,7 @@ def Measure_pauli_z(data, pauli):
     for key in data:
         value = 1
         for j in range(pauli.numberofqubits):
-            
+
             if (pauli.v[j] == 1 or pauli.w[j] == 1) and key[pauli.numberofqubits - j - 1] == '1':
                     value = -value
 
