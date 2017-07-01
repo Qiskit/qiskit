@@ -1,7 +1,7 @@
 """ 
 chemical_tools 
 
-Set of functions used to map fermionic Hamiltonians to qubits 
+Set of functions used to map fermionic Hamiltonians to qubit Hamiltonians 
 
 Author: Antonio Mezzacapo 
 
@@ -46,13 +46,15 @@ def flip_set(j,dim):
 
 def pauli_sel_add(pauli_term,pauli_list,threshold):
 
-    # appends pauli_term to pauli_list if is not present in pauli_list. 
-    # If present adjusts the coefficient of the existing pauli 
- 
+    """
+    appends pauli_term to pauli_list if is not present in pauli_list. 
+    If present adjusts the coefficient of the existing pauli 
+    """
+    
     found=False
     
-    if not not pauli_list:   # if the list is not empty
-        
+    if not not pauli_list:   # if the list is not empty       
+       
         for i in range(len(pauli_list)):   
             
             if pauli_list[i][1].to_label()==pauli_term[1].to_label():   # check if the new pauli belong to the list 
@@ -80,13 +82,30 @@ def pauli_sel_add(pauli_term,pauli_list,threshold):
 
 def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
 
+    
+    """ Takes fermionic one and two-body operators in the form of numpy arrays with real entries, e.g. 
+        h1=np.zeros((n,n))
+        h2=np.zeros((n,n,n,n))
+        where n is the number of fermionic modes, and gives a pauli_list of mapped pauli terms and 
+        coefficients, according to the map_type specified, with values
+        
+        map_type:
+        JORDAN_WIGNER
+        PARITY
+        BINARY_TREE
+        
+        the notation for the two-body operator is the chemists' one,
+        h2(i,j,k,m) a^dag_i a^dag_k a_m a_j
+        
+        Options: 
+        - writes the mapped pauli_list to a file out_file 
+        - neglects mapped terms below a threshold 
+        
+    """
+    
     pauli_list=[]
     
     n=len(h1) # number of fermionic modes / qubits  
-    
-    print('length h')
-    print(n)
-    
     
     """
     ####################################################################
@@ -210,13 +229,6 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
     ####################################################################
     """
             
-            
-            
-#    for i in range(n):
-        
- #       print(a[i][0].to_label())
-  #      print(a[i][1].to_label())
-        
         
     """
     #######################    One-body    #############################
@@ -237,17 +249,14 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
     """
     #######################    Two-body    #############################
     """
-    print('CHECK')
-    print(h2[0,1,1,0])
+
     for i in range(n):
         for j in range(n):
             for k in range(n):
                 for m in range(n):
-                    
-                    print([i,j,k,m])
-                    
+                            
                     if h2[i,j,k,m]!=0:
-                        print('INSIDE')
+                        
                         for alpha in range(2):
                             for beta in range(2):
                                 for gamma in range(2):
@@ -258,78 +267,37 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
                                         """
                                         
                                         pauli_prod_1=sgn_prod(a[i][alpha],a[k][beta])
-                                        
-                                        print('ai')
-                                        print(a[i][alpha].to_label())
-                                        print('ak')
-                                        print(a[k][beta].to_label())
-                                        print('1 sign')
-                                        print(pauli_prod_1[1])
-                                       
-                                        
-                                        
                                         pauli_prod_2=sgn_prod(pauli_prod_1[0],a[m][gamma])
-                                        
-                                       
-                                        
-                                        
-                                        print('am')
-                                        print(a[m][gamma].to_label())
-                                        print('2 sign')
-                                        print(pauli_prod_2[1])
-                                        
-                                        
-                                        
-                                        pauli_prod_3=sgn_prod(pauli_prod_2[0],a[j][delta])
-                                        
-                                        
-                                        print('aj')
-                                        print(a[j][delta].to_label())
-                                        print('pauli_prod_3')
-                                        print(pauli_prod_3[0].to_label())
-                                        print(pauli_prod_3[1])
-                                        
-                                        
+                                        pauli_prod_3=sgn_prod(pauli_prod_2[0],a[j][delta])                                     
                                         
                                         phase1=pauli_prod_1[1]*pauli_prod_2[1]*pauli_prod_3[1]
-                                        print('phase1')
-                                        print(phase1)
-                                        
                                         phase2=np.power(-1j,alpha+beta)*np.power(1j,gamma+delta)
-                                        print('phase2')
-                                        print(phase2)
-                                        print(pauli_prod_3[0].to_label())
-                                        
-                                        pauli_term=[h2[i,j,k,m]*1/8*phase1*phase2 ,  pauli_prod_3[0]  ]
-                                        print(pauli_term[0])
-                                        
+                                                                     
+                                        pauli_term=[h2[i,j,k,m]*1/16*phase1*phase2,pauli_prod_3[0]]
+
                                         pauli_list=pauli_sel_add(pauli_term,pauli_list,threshold)
-                                        
-                        
-                        
-                       
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-    print('Check final ham')
-    for pauli_term in pauli_list:
-        
-        
-        print(pauli_term[1].to_label())
-        print(pauli_term[0])
-    
-    
-    
-  
-       
-                                                                
             
+    
+    """            
+    ####################################################################
+    #################          WRITE TO FILE         ###################
+    ####################################################################
+    """
+    
+    
+    if out_file!= None:
+        out_stream=open(out_file,'w')
         
-        
+        for pauli_term in pauli_list:
+            out_stream.write(pauli_term[1].to_label()+'\n')
+            out_stream.write('%.15f' % pauli_term[0]+'\n')
+            
+    
+    
+    
+    
+    
+    
     return pauli_list 
     
     
