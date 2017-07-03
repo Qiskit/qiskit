@@ -20,6 +20,8 @@ except ImportError as ierr:
 from qiskit import QuantumProgram
 from qiskit.simulators._unitarysimulator import UnitarySimulator
 from qiskit.simulators._qasmsimulator import QasmSimulator
+import qiskit.qasm as qasm
+import qiskit.unroll as unroll
 
 class LocalSimulatorTest(unittest.TestCase):
     """Test local qasm simulator."""
@@ -40,7 +42,13 @@ class LocalSimulatorTest(unittest.TestCase):
         """Test data counts output for single circuit run against reference."""
         shots = 1024
         self.qp.load_qasm('example', qasm_file=self.qasmFileName)
-        c = QasmSimulator(self.qp.get_qasm("example"), shots, self.seed).run()
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
+                      unroll.JsonBackend(basis_gates))
+        unroller.execute()
+        circuit = unroller.backend.circuit
+        c = QasmSimulator(circuit, shots, self.seed).run()
         expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,
                     '000000': 131, '010010': 141, '110110': 116, '001001': 124}
         self.assertEqual(c['data']['counts'], expected)
