@@ -1,10 +1,10 @@
-# Pauli operators
-#
-# A Pauli Opt.
-#
-# Jay Gambetta <jay.gambetta@us.ibm.com>
-# Andrew Cross <awcross@us.ibm.com>
+"""
+Tools for working with Pauli Operators.
 
+A simple pauli class and some tools.
+
+Author: Jay Gambetta and Andrew Cross
+"""
 import random
 import numpy as np
 
@@ -23,6 +23,11 @@ class Pauli:
 
     Multiplication is P1*P2 = (-i)^dot(v1+v2,w1+w2) Z^(v1+v2) X^(w1+w2)
     where the sums are taken modulo 2.
+
+    Ref.
+    Jeroen Dehaene and Bart De Moor
+    Clifford group, stabilizer states, and linear and quadratic operations over GF(2)
+    Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
 
     def __init__(self, v, w):
@@ -100,6 +105,33 @@ def random_pauli(numberofqubits):
                       [2:].zfill(numberofqubits))).astype(np.int)
     return Pauli(v, w)
 
+def sgn_prod(P1, P2):
+    """Multiply two Paulis P1*P2 and track the sign.
+
+    P3 = P1*P2: X*Y
+    """
+
+    if P1.numberofqubits != P2.numberofqubits:
+        print('Paulis cannot be multiplied - different number of qubits')
+    vnew = (P1.v + P2.v) % 2
+    wnew = (P1.w + P2.w) % 2
+    paulinew = Pauli(vnew, wnew)
+    phase=1
+    for i in range(len(P1.v)):
+        if P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==0 and P2.w[i]==1:  # Z*X
+            phase=1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # X*Z
+            phase=-1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==1:  # X*Y
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==0 and P2.w[i]==1:  # Y*X
+            phase=-1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # Y*Z
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==1 and P2.w[i]==1:  # Z*Y
+            phase=-1j*phase
+
+    return paulinew, phase
 
 def inverse_pauli(other):
     """Return the inverse of a Pauli."""

@@ -88,9 +88,9 @@ class QuantumProgram(object):
                             "status": --status (string)--
                         }
                     },
+                }
             }
         }
-    }
 
     __to_execute = {
         --device name (string)--: [
