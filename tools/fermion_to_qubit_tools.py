@@ -19,6 +19,7 @@ References:
 
 from tools.pauli import Pauli, label_to_pauli,sgn_prod
 import numpy as np
+from tools.optimizationtools import Hamiltonian_from_file
 
 
 """
@@ -68,25 +69,27 @@ def pauli_term_append(pauli_term,pauli_list,threshold):
 
     found=False
 
-    if not not pauli_list:   # if the list is not empty
+    if np.absolute(pauli_term[0])>threshold:
+        
+        if (not not pauli_list):   # if the list is not empty
 
-        for i in range(len(pauli_list)):
+            for i in range(len(pauli_list)):
 
-            if pauli_list[i][1].to_label()==pauli_term[1].to_label():   # check if the new pauli belong to the list
+                if pauli_list[i][1].to_label()==pauli_term[1].to_label():   # check if the new pauli belongs to the list
 
-                pauli_list[i][0]+=pauli_term[0]    # if found renormalize the coefficient of existent pauli
+                    pauli_list[i][0]+=pauli_term[0]    # if found renormalize the coefficient of existent pauli
 
-                if np.absolute(pauli_list[i][0])<threshold: # remove the element if coeff. value is now less than threshold
-                    del pauli_list[i]
+                    if np.absolute(pauli_list[i][0])<threshold: # remove the element if coeff. value is now less than threshold
+                        del pauli_list[i]
 
-                found=True
-                break
+                    found=True
+                    break
 
-        if found==False:       # if not found add the new pauli
-            pauli_list.append(pauli_term)
+            if found==False:       # if not found add the new pauli
+                pauli_list.append(pauli_term)
 
-    else:
-        pauli_list.append(pauli_term)      # if list is empty add the new pauli
+        else:
+            pauli_list.append(pauli_term)      # if list is empty add the new pauli
 
 
 
@@ -312,9 +315,93 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
 
         out_stream.close()
 
-    
-
-
-
-
     return pauli_list
+
+
+
+def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001,):
+    
+    """
+    This function takes in a mapped fermionic Hamiltonian with an even number of modes, obtained with the parity or binary-tree mappings (in case the number of modes is n=2^k, k integer) and removes two qubits at positions n/2,n according to the total number of particles m. 
+    
+    
+    ham_in can be both a pauli_list type or a string with a input Hamiltonian text filename.
+    The function returns a pauli_list and optionally creates a Hamiltonian text file with name out_file    
+    m is the number of particles (e.g. electrons) in the system
+    
+    """
+    
+    ham_out=[]
+    
+    
+    if m%4==0: 
+        par_1=1
+        par_2=1
+    elif m%4==1:   
+        par_1=-1
+        par_2=-1    # could be also +1, +1/-1 are degenerate spin-parity sectors 
+    elif m%4==2:
+        par_1=1
+        par_2=-1
+    else:
+        par_1=-1
+        par_2=-1    # could be also +1, +1/-1 are degenerate spin-parity sectors 
+
+   
+    if type(ham_in) is str:
+        
+        file_name=ham_in
+        ham_in=Hamiltonian_from_file(ham_in)    # conversion from Hamiltonian text file to pauli_list 
+
+    # number of qubits 
+    n=len(ham_in[0][1].v)
+    
+    for pauli_term in ham_in:#loop over Pauli terms
+        
+        coeff_out=pauli_term[0]
+        
+        if pauli_term[1].v[n//2-1]==1 and pauli_term[1].w[n//2-1]==0:  # Z operator encountered at qubit n/2
+            
+            coeff_out=par_2*coeff_out
+            
+        if pauli_term[1].v[n-1]==1 and pauli_term[1].w[n-1]==0:  # Z operator encountered at qubit n
+            
+            coeff_out=par_1*coeff_out
+    
+        v_temp=[]
+        w_temp=[] 
+        for j in range(n):   
+            if j!=n//2-1 and j!=n-1:
+              
+                v_temp.append(pauli_term[1].v[j])
+                w_temp.append(pauli_term[1].w[j])
+    
+      
+        pauli_term_out=[coeff_out,Pauli(v_temp,w_temp)]
+        ham_out=pauli_term_append(pauli_term_out,ham_out,threshold)
+   
+    
+        
+    
+    """
+    ####################################################################
+    #################          WRITE TO FILE         ###################
+    ####################################################################
+    """
+
+    if out_file!=None:
+
+            out_stream=open(out_file,'w')
+
+            for pauli_term in ham_out:
+                out_stream.write(pauli_term[1].to_label()+'\n')
+                out_stream.write('%.15f' % pauli_term[0].real+'\n')
+
+            out_stream.close()
+        
+    
+    
+    
+    return ham_out 
+    
+    
