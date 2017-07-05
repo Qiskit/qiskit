@@ -18,7 +18,10 @@
 """
 Qasm Program Class
 
-Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
+Authors: Andrew Cross
+         Jay M. Gambetta <jay.gambetta@us.ibm.com>
+         Ismael Faro <Ismael.Faro1@ibm.com>
+         Jesus Perez <jesusper@us.ibm.com>
 """
 # pylint: disable=line-too-long
 
@@ -85,9 +88,9 @@ class QuantumProgram(object):
                             "status": --status (string)--
                         }
                     },
+                }
             }
         }
-    }
 
     __to_execute = {
         --device name (string)--: [
@@ -247,6 +250,10 @@ class QuantumProgram(object):
     def get_circuit(self, name):
         """Return a Circuit Object by name"""
         return self.__quantum_program['circuits'][name]['circuit']
+
+    def get_circuit_names(self):
+        """Return all circuit names"""
+        return list(self.__quantum_program['circuits'].keys())
 
     def get_quantum_elements(self, specs=None):
         """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
@@ -506,7 +513,13 @@ class QuantumProgram(object):
             else:
                 jobs = []
                 for job in self.__to_execute[backend]:
-                    jobs.append({"compiled_circuit": job["compiled_circuit"],
+                    # this will get pushed into the compiler when online supports json
+                    basis_gates = []  # unroll to base gates
+                    unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(),unroll.JsonBackend(basis_gates))
+                    unroller.execute()
+                    json_circuit = unroller.backend.circuit
+                    # converts qasm circuit to json circuit
+                    jobs.append({"compiled_circuit": json_circuit,
                                  "shots": job["shots"],
                                  "seed": job["seed"]})
                 # TODO have an option to print this.

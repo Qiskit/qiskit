@@ -111,6 +111,6 @@ qp.compile(["ghz"], device='simulator', shots=1024,
 
 qp.run()
 
-print(qp.get_counts("bell")) # returns error, don't do this
+# print(qp.get_counts("bell")) # returns error, don't do this
 print(qp.get_counts("bell", device="local_qasm_simulator"))
 print(qp.get_counts("ghz"))

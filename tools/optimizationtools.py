@@ -3,7 +3,7 @@ Quantum Optimization tools.
 
 These are simple tools that are used in our optimization examples
 
-Author: Jay Gambetta
+Author: Jay Gambetta and Antonio Mezzacapo
 """
 import sys
 import os
@@ -16,76 +16,95 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
 from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_opt
 import numpy as np
+from tools.pauli import Pauli, label_to_pauli
 
 
-def cost_function(data, n, alpha, beta):
-    """Compute the cost function.
+def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 10):
+    """Minimize the obj_fun(controls).
 
-    data  is a dictionary of the form data = {'00000': 10}
-    n = number of qubits
-    alpha is a vector with elements q0 -- qn
-    beta is a matrix of couplings
+    initial_theta = the intial controls
+    SPSA_parameters = the numerical parameters
+    max_trials = the maximum number of trials
     """
+    theta_plus_save = []
+    theta_minus_save = []
+    cost_plus_save = []
+    cost_minus_save = []
+    theta = initial_theta
+    for k in range(max_trials):
+        # SPSA Paramaters
+        a_spsa = float(SPSA_parameters[0])/np.power(k+1+SPSA_parameters[4], SPSA_parameters[2])
+        c_spsa = float(SPSA_parameters[1])/np.power(k+1, SPSA_parameters[3])
+        Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+        # plus and minus directions
+        theta_plus = theta + c_spsa*Delta
+        theta_minus = theta - c_spsa*Delta
+        # cost fuction for two directions
+        cost_plus = obj_fun(theta_plus)[0]
+        cost_minus = obj_fun(theta_minus)[0]
+        # derivative estimate
+        g_spsa = (cost_plus - cost_minus)*Delta/(2.0*c_spsa)
+        # updated theta
+        theta = theta - a_spsa*g_spsa
+        # saving
+        if k % save_steps == 0:
+            print('Energy at theta+ for step # ' + str(k))
+            print(cost_plus)
+            print(('Energy at theta- for step # '+str(k)))
+            print(cost_minus)
+            theta_plus_save.append(theta_plus)
+            theta_minus_save.append(theta_minus)
+            cost_plus_save.append(cost_plus)
+            cost_minus_save.append(cost_minus)
+    # final cost update
+    cost_final = obj_fun(theta)[0]
+    print('Final Energy is: ' + str(cost_final))
+    return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
 
-    temp = 0
+
+# COST functions
+def Measure_pauli_z(data, pauli):
+    """Compute the expectation value of Z which is represented by Z^v where
+    v has lenght number of qubits and is 1 if Z is present and 0 otherwise.
+
+    data = is a dictionary of the form data = {'00000': 10}
+
+    M = <psi|Z^v|psi>
+      = \sum_lambda  lambda  |<lambda |psi>|^2
+      = sum_i lambda(i) P(i)
+      where i is the bitstring (key of data)
+      = sum_key lambda(key) #key/total_values
+
+
+    """
+    observable = 0
     tot = sum(data.values())
     for key in data:
-        observable = 0
-        for j in range(len(key) - n, len(key)):
-            if key[j] == '0':
-                observable = observable + alpha[len(key) - 1 - j]
-            elif key[j] == '1':
-                observable = observable - alpha[len(key) - 1 - j]
-            for i in range(j):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-            for i in range(j + 1, len(key)):
-                if key[j] == '0' and key[i] == '0':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '1':
-                    observable = observable + \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '0' and key[i] == '1':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-                elif key[j] == '1' and key[i] == '0':
-                    observable = observable - \
-                        beta[len(key) - 1 - i, len(key) - 1 - j]
-        temp += data[key] * observable / tot
-    return temp
+        value = 1
+        for j in range(pauli.numberofqubits):
+
+            if (pauli.v[j] == 1 or pauli.w[j] == 1) and key[pauli.numberofqubits - j - 1] == '1':
+                    value = -value
+
+        observable = observable + value*data[key]/tot
+    return observable
 
 
-def make_Hamiltonian(n, alpha, beta):
-    """Compute the cost function.
+def Energy_Estimate(data, pauli_list):
+        """Compute expectation value of a list of Paulis with coefficients.
 
-    n = number of qubits
-    alpha is a vector with elements q0 -- qn
-    beta is a matrix of couplings
-    WARNING. This is exponential in the number of qubits.
-    """
+        pauli_list is a list of tuples [(number, Pauli(v,w))]
+        """
+        energy = 0
+        if np.ndim(pauli_list) == 1:
+            energy = pauli_list[0]*Measure_pauli_z(data, pauli_list[1])
+        else:
+            for p in pauli_list:
+                energy += p[0]*Measure_pauli_z(data, p[1])
+        return energy
 
-    Hamiltonian = 0
-    Z = np.array([[1, 0], [0, -1]])
-    ZZ = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    for j in range(n):
-        Hamiltonian += alpha[j]*enlarge_single_opt(Z, j, n)
-        for i in range(0, j):
-            Hamiltonian += beta[i, j]*enlarge_two_opt(ZZ, i, j, n)
 
-    return Hamiltonian
-
-def trial_funtion_optimization(n, m, theta, entangler_map):
+def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement = True):
     """Trial function for classical optimization problems.
 
     n = number of qubits
@@ -97,11 +116,14 @@ def trial_funtion_optimization(n, m, theta, entangler_map):
                      3: [2],
                      4: [2]}
     control is the key and values are the target
+    pauli_string = length of number of qubits string
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
     trial_circuit = QuantumCircuit(q, c)
     trial_circuit.h(q)
+    if meas_string is None:
+        meas_string = [None for x in range(n)]
     for i in range(m):
         trial_circuit.barrier(q)
         for node in entangler_map:
@@ -111,5 +133,79 @@ def trial_funtion_optimization(n, m, theta, entangler_map):
             trial_circuit.ry(theta[n * i + j], q[j])
     trial_circuit.barrier(q)
     for j in range(n):
-        trial_circuit.measure(q[j], c[j])
+        if meas_string[j] == 'X':
+            trial_circuit.h(q[j])
+        elif meas_string[j] == 'Y':
+            trial_circuit.s(q[j]).inverse()
+            trial_circuit.h(q[j])
+    if measurement:
+        for j in range(n):
+            trial_circuit.measure(q[j], c[j])
     return trial_circuit
+
+
+def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string = None, measurement = True):
+    """Trial function for classical optimization problems.
+
+    n = number of qubits
+    m = depth
+    theta = control vector of size n*m*2 stacked as theta[n*i*2+2*j+p] where j
+    counts the qubits and i the depth and p if y and z.
+    entangler_map = {0: [2, 1],
+                     1: [2],
+                     3: [2],
+                     4: [2]}
+    control is the key and values are the target
+    pauli_string = length of number of qubits string
+    """
+    q = QuantumRegister("q", n)
+    c = ClassicalRegister("c", n)
+    trial_circuit = QuantumCircuit(q, c)
+    trial_circuit.h(q)
+    if meas_string is None:
+        meas_string = [None for x in range(n)]
+    for i in range(m):
+        trial_circuit.barrier(q)
+        for node in entangler_map:
+            for j in entangler_map[node]:
+                trial_circuit.cz(q[node], q[j])
+        for j in range(n):
+            trial_circuit.ry(theta[n * i * 2 + 2*j], q[j])
+            trial_circuit.rz(theta[n * i * 2 + 2*j + 1], q[j])
+    trial_circuit.barrier(q)
+    for j in range(n):
+        if meas_string[j] == 'X':
+            trial_circuit.h(q[j])
+        elif meas_string[j] == 'Y':
+            trial_circuit.s(q[j]).inverse()
+            trial_circuit.h(q[j])
+    if measurement:
+        for j in range(n):
+            trial_circuit.measure(q[j], c[j])
+    return trial_circuit
+
+
+def make_Hamiltonian(pauli_list):
+        """Compute the Hamiltonian.
+
+        pauli_list is a list of tuples [(coefficient, Pauli(v,w))]
+        WARNING. This is exponential in the number of qubits.
+        """
+        Hamiltonian = 0
+        for p in pauli_list:
+            Hamiltonian += p[0]*p[1].to_matrix()
+        return Hamiltonian
+
+
+def Hamiltonian_from_file(file_name):
+    """Compute the pauli_list from a file.
+    """
+    file = open(file_name, 'r+')
+    ham_array = file.readlines()
+    ham_array = [x.strip() for x in ham_array]
+    pauli_list = []
+    for i in range(len(ham_array)//2):
+        pauli = label_to_pauli(ham_array[2*i])
+        Numb = float(ham_array[2*i+1])
+        pauli_list.append([Numb, pauli])
+    return pauli_list

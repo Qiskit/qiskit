@@ -34,6 +34,10 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 
+
+QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../examples/qasm/simple8qbit.qasm')
+
+
 # We need the environment variable for Travis.
 try:
     # We don't know from where the user is running the example,
@@ -66,7 +70,7 @@ QPS_SPECS = {
 }
 
 
-class TestQISKit(unittest.TestCase):
+class TestQuantumProgram(unittest.TestCase):
     """
     QISKIT QuatumProgram Object Tests.
     """
@@ -111,7 +115,6 @@ class TestQISKit(unittest.TestCase):
         self.assertEqual(
             URL,
             "https://quantumexperience.ng.bluemix.net/api")
-    
 
     def test_get_components(self):
         """
@@ -138,7 +141,7 @@ class TestQISKit(unittest.TestCase):
     def test_create_classical_register(self):
         QP_program = QuantumProgram()
         cr = QP_program.create_classical_registers("cr", 3)
-        self.assertIsInstance(cr, ClassicalRegister)    
+        self.assertIsInstance(cr, ClassicalRegister)
 
     def test_create_quantum_register(self):
         QP_program = QuantumProgram()
@@ -174,22 +177,22 @@ class TestQISKit(unittest.TestCase):
 
     def test_print_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        
+
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_registers("qname")
         cr = QP_program.get_classical_registers("cname")
-        
+
         qc.h(qr[1])
         result = QP_program.get_qasm("circuitName")
         self.assertEqual(len(result), 78)
 
     def test_create_add_gates(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        
+
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_registers("qname")
         cr = QP_program.get_classical_registers("cname")
-        
+
         qc.u3(0.3, 0.2, 0.1, qr[0])
         qc.h(qr[1])
         qc.cx(qr[1], qr[2])
@@ -475,7 +478,7 @@ class TestQISKit(unittest.TestCase):
 
     def test_load_qasm(self):
         QP_program = QuantumProgram()
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         result = QP_program.get_circuit("circuit-dev")
         to_check = result.qasm()
         self.assertEqual(len(to_check),1569)
@@ -486,7 +489,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
@@ -501,7 +504,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.compile(circuits, device, shots, credits, coupling_map)
@@ -517,7 +520,7 @@ class TestQISKit(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        QP_program.load_qasm("circuit-dev","test.qasm")
+        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
         result = QP_program.execute(circuits, device, shots, credits, coupling_map)
@@ -566,7 +569,7 @@ class TestQISKit(unittest.TestCase):
         device = 'ibmqx2'
         result = QP_program.get_device_calibration(device)
         
-        self.assertEqual (len(result), 12)
+        self.assertEqual (len(result), 4)
 
 if __name__ == '__main__':
     unittest.main()

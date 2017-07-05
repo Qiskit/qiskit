@@ -1,10 +1,10 @@
-# Pauli operators
-#
-# A Pauli Opt.
-#
-# Jay Gambetta <jay.gambetta@us.ibm.com>
-# Andrew Cross <awcross@us.ibm.com>
+"""
+Tools for working with Pauli Operators.
 
+A simple pauli class and some tools.
+
+Author: Jay Gambetta and Andrew Cross
+"""
 import random
 import numpy as np
 
@@ -23,23 +23,28 @@ class Pauli:
 
     Multiplication is P1*P2 = (-i)^dot(v1+v2,w1+w2) Z^(v1+v2) X^(w1+w2)
     where the sums are taken modulo 2.
+
+    Ref.
+    Jeroen Dehaene and Bart De Moor
+    Clifford group, stabilizer states, and linear and quadratic operations over GF(2)
+    Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
 
     def __init__(self, v, w):
         """Make the Pauli class."""
+        self.numberofqubits = len(v)
         self.v = v
         self.w = w
-        self.numberofqubits = len(v)
 
     def __str__(self):
         """Output the Pauli as first row v and second row w."""
-        stemp = '\nv = '
+        stemp = 'v = '
         for i in self.v:
             stemp += str(i) + '\t'
         stemp = stemp + '\nw = '
         for j in self.w:
             stemp += str(j) + '\t'
-        return stemp + '\n'
+        return stemp
 
     def __mul__(self, other):
         """Multiply two Paulis."""
@@ -50,7 +55,7 @@ class Pauli:
         paulinew = Pauli(vnew, wnew)
         return paulinew
 
-    def toLabel(self):
+    def to_label(self):
         """Print out the labels in X, Y, Z format."""
         plabel = ''
         for jindex in range(self.numberofqubits):
@@ -64,49 +69,32 @@ class Pauli:
                 plabel += 'Z'
         return plabel
 
-    def toQASM(self, qubits):
-        """Print out the qasm format for the Pauli."""
-        if len(qubits) == self.numberofqubits:
-            qasmlabel = ''
-            for jindex in qubits:
-                if self.v[jindex] == 0 and self.w[jindex] == 0:
-                    qasmlabel += 'id q[' + str(jindex) + '];\n'  # identity
-                elif self.v[jindex] == 0 and self.w[jindex] == 1:
-                    qasmlabel += 'u3(-pi,0,-pi) q[' + str(jindex) + '];\n'  # x
-                elif self.v[jindex] == 1 and self.w[jindex] == 1:
-                    # y
-                    qasmlabel += 'u3(-pi,0,2*pi) q[' + str(jindex) + '];\n'
-                elif self.v[jindex] == 1 and self.w[jindex] == 0:
-                    qasmlabel += 'u1(pi) q[' + str(jindex) + '];\n'  # z
-            qasmlabel += 'barrier q;\n'
-            return qasmlabel
-        else:
-            print('the qubit vector matched the Pauli')
-            return -1
-
     def to_matrix(self):
-        """Convert Pauli to a matrix representation."""
+        """Convert Pauli to a matrix representation.
+
+        Order is q_n x q_{n-1} .... q_0
+        """
         X = np.array([[0, 1], [1, 0]], dtype=complex)
         Z = np.array([[1, 0], [0, -1]], dtype=complex)
-        I = np.array([[1, 0], [0, 1]], dtype=complex)
+        Id = np.array([[1, 0], [0, 1]], dtype=complex)
         Xtemp = 1
         for k in range(self.numberofqubits):
             if self.v[k] == 0:
-                tempz = I
+                tempz = Id
             elif self.v[k] == 1:
                 tempz = Z
             else:
                 print('the z string is not of the form 0 and 1')
             if self.w[k] == 0:
-                tempx = I
+                tempx = Id
             elif self.w[k] == 1:
                 tempx = X
             else:
                 print('the x string is not of the form 0 and 1')
             ope = np.dot(tempz, tempx)
-            Xtemp = np.kron(Xtemp, ope)
-        paulimat = (-1j)**np.dot(self.v, self.w) * Xtemp
-        return paulimat
+            Xtemp = np.kron(ope, Xtemp)
+        pauli_mat = (-1j)**np.dot(self.v, self.w) * Xtemp
+        return pauli_mat
 
 
 def random_pauli(numberofqubits):
@@ -117,13 +105,61 @@ def random_pauli(numberofqubits):
                       [2:].zfill(numberofqubits))).astype(np.int)
     return Pauli(v, w)
 
+def sgn_prod(P1, P2):
+    """Multiply two Paulis P1*P2 and track the sign.
 
-def InversePauli(other):
+    P3 = P1*P2: X*Y
+    """
+
+    if P1.numberofqubits != P2.numberofqubits:
+        print('Paulis cannot be multiplied - different number of qubits')
+    vnew = (P1.v + P2.v) % 2
+    wnew = (P1.w + P2.w) % 2
+    paulinew = Pauli(vnew, wnew)
+    phase=1
+    for i in range(len(P1.v)):
+        if P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==0 and P2.w[i]==1:  # Z*X
+            phase=1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # X*Z
+            phase=-1j*phase
+        elif P1.v[i]==0 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==1:  # X*Y
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==0 and P2.w[i]==1:  # Y*X
+            phase=-1j*phase
+        elif P1.v[i]==1 and P1.w[i]==1 and P2.v[i]==1 and P2.w[i]==0:  # Y*Z
+            phase=1j*phase
+        elif P1.v[i]==1 and P1.w[i]==0 and P2.v[i]==1 and P2.w[i]==1:  # Z*Y
+            phase=-1j*phase
+
+    return paulinew, phase
+
+def inverse_pauli(other):
     """Return the inverse of a Pauli."""
     v = other.v
     w = other.w
     return Pauli(v, w)
 
+def label_to_pauli(label):
+    """Return the pauli of a string ."""
+    v = np.zeros(len(label))
+    w = np.zeros(len(label))
+    for j in range(len(label)):
+        if label[j] == 'I':
+            v[j] = 0
+            w[j] = 0
+        elif label[j] == 'Z':
+            v[j] = 1
+            w[j] = 0
+        elif label[j] == 'Y':
+            v[j] = 1
+            w[j] = 1
+        elif label[j] == 'X':
+            v[j] = 0
+            w[j] = 1
+        else:
+            print('something went wrong')
+            return -1
+    return Pauli(v, w)
 
 def pauli_group(numberofqubits, case=0):
     """Return the Pauli group with 4^n elements.
@@ -134,14 +170,15 @@ def pauli_group(numberofqubits, case=0):
     @param numberofqubits is number of qubits
     @param case determines ordering of group elements (0=weight, 1=tensor)
     @return list of Pauli objects
+    WARNING THIS IS EXPONENTIAL
     """
     if numberofqubits < 5:
         tempset = []
         if case == 0:
-            tmp = PauliGroup(numberofqubits, case=1)
+            tmp = pauli_group(numberofqubits, case=1)
             # sort on the weight of the Pauli operator
             return sorted(tmp, key=lambda x: -
-                          np.count_nonzero(np.array(x.toLabel(), 'c') == b'I'))
+                          np.count_nonzero(np.array(x.to_label(), 'c') == b'I'))
 
         elif case == 1:
             # the Pauli set is in tensor order II IX IY IZ XI ...
@@ -154,17 +191,17 @@ def pauli_group(numberofqubits, case=0):
                     # end first
                     element = int((kindex) / (4**(jindex))) % 4
                     if element == 0:
-                        v[numberofqubits - jindex - 1] = 0
-                        w[numberofqubits - jindex - 1] = 0
+                        v[jindex] = 0
+                        w[jindex] = 0
                     elif element == 1:
-                        v[numberofqubits - jindex - 1] = 0
-                        w[numberofqubits - jindex - 1] = 1
+                        v[jindex] = 0
+                        w[jindex] = 1
                     elif element == 2:
-                        v[numberofqubits - jindex - 1] = 1
-                        w[numberofqubits - jindex - 1] = 1
+                        v[jindex] = 1
+                        w[jindex] = 1
                     elif element == 3:
-                        v[numberofqubits - jindex - 1] = 1
-                        w[numberofqubits - jindex - 1] = 0
+                        v[jindex] = 1
+                        w[jindex] = 0
                 tempset.append(Pauli(v, w))
             return tempset
     else:
