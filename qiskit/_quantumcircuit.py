@@ -96,6 +96,14 @@ class QuantumCircuit(object):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
 
+    def __len__(self):
+        """Return number of operations in circuit"""
+        return len(self.data)
+
+    def __getitem__(self, item):
+        """Return indexed operation"""
+        return self.data[item]
+    
     def _attach(self, gate):
         """Attach a gate."""
         self.data.append(gate)

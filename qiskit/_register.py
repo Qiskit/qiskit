@@ -41,6 +41,10 @@ class Register(object):
         """Return a string representing the register."""
         return "Register(%s,%d)" % (self.name, self.size)
 
+    def __len__(self):
+        """Return register size"""
+        return self.size
+
     def check_range(self, j):
         """Check that j is a valid index into self."""
         if j < 0 or j >= self.size:
