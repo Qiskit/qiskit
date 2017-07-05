@@ -207,5 +207,5 @@ def Hamiltonian_from_file(file_name):
     for i in range(len(ham_array)//2):
         pauli = label_to_pauli(ham_array[2*i])
         Numb = float(ham_array[2*i+1])
-        pauli_list.append((Numb, pauli))
+        pauli_list.append([Numb, pauli])
     return pauli_list
