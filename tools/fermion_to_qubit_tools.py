@@ -322,7 +322,7 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
 def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001,):
     
     """
-    This function takes in a mapped fermionic Hamiltonian with an even number of modes, obtained with the parity or binary-tree mappings (in case the number of modes is n=2^k, k integer) and removes two qubits at positions n/2,n according to the total number of particles m. 
+    This function takes in a mapped fermionic Hamiltonian with an even number of modes n, obtained with the parity (for every even n) or binary-tree mapping (in case the number of modes is a power of 2, n=2^k, k integer) and removes two qubits at positions n/2,n according to the total number of particles m. 
     
     
     ham_in can be both a pauli_list type or a string with a input Hamiltonian text filename.
@@ -360,11 +360,11 @@ def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001,):
         
         coeff_out=pauli_term[0]
         
-        if pauli_term[1].v[n//2-1]==1 and pauli_term[1].w[n//2-1]==0:  # Z operator encountered at qubit n/2
+        if pauli_term[1].v[n//2-1]==1 and pauli_term[1].w[n//2-1]==0:  # Z operator encountered at qubit n/2-1
             
             coeff_out=par_2*coeff_out
             
-        if pauli_term[1].v[n-1]==1 and pauli_term[1].w[n-1]==0:  # Z operator encountered at qubit n
+        if pauli_term[1].v[n-1]==1 and pauli_term[1].w[n-1]==0:  # Z operator encountered at qubit n-1
             
             coeff_out=par_1*coeff_out
     
