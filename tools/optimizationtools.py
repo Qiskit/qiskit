@@ -74,8 +74,6 @@ def Measure_pauli_z(data, pauli):
       = sum_i lambda(i) P(i)
       where i is the bitstring (key of data)
       = sum_key lambda(key) #key/total_values
-
-
     """
     observable = 0
     tot = sum(data.values())
@@ -116,7 +114,8 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement
                      3: [2],
                      4: [2]}
     control is the key and values are the target
-    pauli_string = length of number of qubits string
+    meas_string = the pauli to be measured
+    measurement = true/false if measurement is to be done
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
@@ -141,6 +140,36 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement
     if measurement:
         for j in range(n):
             trial_circuit.measure(q[j], c[j])
+    return trial_circuit
+
+
+def trial_circuit_computational(n, state, meas_string = None, measurement = True):
+    """Trial function for classical optimization problems.
+
+    n = number of qubits
+    state = a bit string for the state prepared.
+    meas_string = the pauli to be measured
+    measurement = true/false if measurement is to be done
+    """
+    q = QuantumRegister("q", n)
+    c = ClassicalRegister("c", n)
+    trial_circuit = QuantumCircuit(q, c)
+    if meas_string is None:
+        meas_string = [None for x in range(n)]
+    if len(state) == n:
+        for j in range(n):
+            if state[n-j-1] == "1":
+                trial_circuit.x(q[j])
+        trial_circuit.barrier(q)
+        for j in range(n):
+            if meas_string[j] == 'X':
+                trial_circuit.h(q[j])
+            elif meas_string[j] == 'Y':
+                trial_circuit.s(q[j]).inverse()
+                trial_circuit.h(q[j])
+        if measurement:
+            for j in range(n):
+                trial_circuit.measure(q[j], c[j])
     return trial_circuit
 
 
