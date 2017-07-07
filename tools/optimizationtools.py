@@ -82,7 +82,7 @@ def SPSA_calibration(obj_fun,initial_theta,initial_c,target_update,stat):
     SPSA_parameters[4] = 0
     
     
-    DeltaE=0
+    Delta_obj=0
     for i in range(stat):
         
         if i%5==0:
@@ -90,12 +90,12 @@ def SPSA_calibration(obj_fun,initial_theta,initial_c,target_update,stat):
             
         Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
         
-        E_plus=obj_fun(initial_theta+initial_c*Delta)[0]
-        E_minus=obj_fun(initial_theta-initial_c*Delta)[0]
+        obj_plus=obj_fun(initial_theta+initial_c*Delta)[0]
+        obj_minus=obj_fun(initial_theta-initial_c*Delta)[0]
                  
-        DeltaE+=np.absolute(E_plus-E_minus)/stat
+        Delta_obj+=np.absolute(obj_plus-obj_minus)/stat
                  
-    SPSA_parameters[0]=target_update*2/DeltaE*SPSA_parameters[1]*(SPSA_parameters[4]+1) 
+    SPSA_parameters[0]=target_update*2/Delta_obj*SPSA_parameters[1]*(SPSA_parameters[4]+1) 
     
     print('calibrated SPSA_parameters[0] is '+str(SPSA_parameters[0]))
     
