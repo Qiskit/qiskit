@@ -54,6 +54,9 @@ def meas_basis_matrix(meas_basis):
     S = np.array([vectorize(m).conj() for m in meas_basis])
     return S.reshape(n,d)
 
+def is_pos_def(x):
+    return np.all(np.linalg.eigvals(x) > 0)
+    
 def outer(v1, v2=None):
     """
     Returns the matrix |v1><v2| resulting from the outer product of two vectors.
