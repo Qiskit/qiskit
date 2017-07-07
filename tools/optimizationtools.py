@@ -61,6 +61,50 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
     print('Final Energy is: ' + str(cost_final))
     return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
 
+def SPSA_calibration(obj_fun,initial_theta,initial_c,target_update,stat):
+    
+    """
+    Calibrates the first SPSA parameter such that the first theta update is on average (with statistics regulated by stat)
+    equivalent to target_update, given an initial_c (=SPSA_parameters[1]) value. 
+    Returns all 5 SPSA_parameters:
+    
+    SPSA_parameters[0] -> calibrated
+    SPSA_parameters[1] -> input by user (initial_c)
+    SPSA_parameters[2] -> fixed at 0.602
+    SPSA_parameters[3] -> fixed at 0.101
+    SPSA_parameters[4] -> fixed at 0
+    """
+    
+    SPSA_parameters=np.zeros((5))
+    SPSA_parameters[1] = initial_c
+    SPSA_parameters[2] = 0.602
+    SPSA_parameters[3] = 0.101
+    SPSA_parameters[4] = 0
+    
+    
+    DeltaE=0
+    for i in range(stat):
+        
+        if i%5==0:
+            print('calibration step # '+str(i)+' of '+str(stat))
+            
+        Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+        
+        E_plus=obj_fun(initial_theta+initial_c*Delta)[0]
+        E_minus=obj_fun(initial_theta-initial_c*Delta)[0]
+                 
+        DeltaE+=np.absolute(E_plus-E_minus)/stat
+                 
+    SPSA_parameters[0]=target_update*2/DeltaE*SPSA_parameters[1]*(SPSA_parameters[4]+1) 
+    
+    print('calibrated SPSA_parameters[0] is '+str(SPSA_parameters[0]))
+    
+    return SPSA_parameters
+    
+    
+    
+    
+
 
 # COST functions
 def Measure_pauli_z(data, pauli):
