@@ -19,10 +19,13 @@ except ImportError as ierr:
     sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
     import qiskit
 from qiskit import QuantumProgram
-from qiskit.simulators._unitarysimulator import UnitarySimulator
 from qiskit.simulators._qasmsimulator import QasmSimulator
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
+if __name__ == '__main__':
+    from _random_qasm_generator import RandomQasmGenerator
+else:
+    from test.python._random_qasm_generator import RandomQasmGenerator
 
 class LocalQasmSimulatorTest(unittest.TestCase):
     """Test local qasm simulator."""
@@ -105,34 +108,40 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         """
         Record the elapsed time of the simulators vs the number of qubits to
         the log file. Also creates a pdf file with this module name showing a
-        plot of the results.
+        plot of the results. Compilation is not included in speed.
         """
-        qubitRangeMax = 9
+        qubitRangeMax = 8
         nQubitList = range(1, qubitRangeMax+1)
-        nCircuits = 100
-        shots = 100
+        nCircuits = 10
+        shots = 1024
         seed = 1
         fmtStr = 'profile_nqubit_speed::nqubits:{0}, simulator:{1}, elapsed_time:{2:.2f}'
         pdf = PdfPages(self.moduleName + '.pdf')
         deviceList = ['local_qasm_simulator', 'local_unitary_simulator']
         fig = plt.figure(0)
         plt.clf()
+        ax = fig.add_subplot(111)
         for i, device in enumerate(deviceList):
             elapsedTime = np.zeros(len(nQubitList))
+            if device is 'local_unitary_simulator':
+                doMeasure = False
+            else:
+                doMeasure = True
             for j, nQubits in enumerate(nQubitList):
                 randomCircuits = RandomQasmGenerator(seed, maxQubits=nQubits,
                                                      minQubits=nQubits,
-                                                     maxDepth=40)
-                randomCircuits.add_circuits(nCircuits)
+                                                     minDepth=nQubits*10,
+                                                     maxDepth=nQubits*10)
+                randomCircuits.add_circuits(nCircuits, doMeasure=doMeasure)
                 qp = randomCircuits.getProgram()
                 print('-'*40)
                 cnames = qp.get_circuit_names()
+                qp.compile(cnames, device=device, shots=shots, seed=seed)
                 start = time.process_time()
-                qp.execute(cnames, device=device, shots=shots)
+                qp.run()
                 stop = time.process_time()
                 elapsedTime[j] = stop - start
                 logging.info(fmtStr.format(nQubits, device, elapsedTime[j]))
-            ax = fig.add_subplot(111)
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.plot(nQubitList, elapsedTime, label=device, marker='o')
             ax.set_yscale('log', basey=10)
@@ -142,82 +151,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         pdf.savefig(fig)
         pdf.close()
 
-class RandomQasmGenerator():
-    """
-    Generate random size circuits for profiling.
-    """
-    def __init__(self, seed=None,
-                 maxQubits=5, minQubits=1,
-                 maxDepth=100, minDepth=1):
-        """
-        Args:
-          seed: Random number seed. If none, don't seed the generator.
-          maxDepth: Maximum number of operations in a circuit.
-          maxQubits: Maximum number of qubits in a circuit.
-        """
-        self.maxDepth = maxDepth
-        self.maxQubits = maxQubits
-        self.minDepth = minDepth
-        self.minQubits = minQubits
-        self.qp = QuantumProgram()
-        self.qr = self.qp.create_quantum_registers('qr', maxQubits)
-        self.cr = self.qp.create_classical_registers('cr', maxQubits)
-        self.circuitNameList = []
-        self.nQubitList = []
-        self.depthList = []
-        if seed is not None:
-            random.seed(a=seed)
-            
-    def add_circuits(self, nCircuits, doMeasure=True):
-        """Adds circuits to program.
-
-        Generates a circuit with a random number of operations equally weighted
-        between U3 and CX. Also adds a random number of measurements in
-        [1,nQubits] to end of circuit.
-
-        Args:
-          nCircuits (int): Number of circuits to add.
-          doMeasure (boolean): whether to add measurements
-        """
-        self.circuitNameList = []
-        self.nQubitList = random.choices(
-            range(self.minQubits, self.maxQubits+1), k=nCircuits)
-        self.depthList = random.choices(
-            range(self.minDepth, self.maxDepth+1), k=nCircuits)
-        for i in range(nCircuits):
-            circuitName = ''.join(random.choices(string.ascii_uppercase
-                                                 + string.digits, k=10))
-            self.circuitNameList.append(circuitName)
-            nQubits = self.nQubitList[i]
-            depth = self.depthList[i]
-            circuit = self.qp.create_circuit(circuitName, ['qr'], ['cr'])
-            for j in range(depth):
-                if nQubits == 1:
-                    opInd = 0
-                else:
-                    opInd = random.randint(0, 1)
-                if opInd == 0: # U3
-                    qind = random.randint(0, nQubits-1)
-                    circuit.u3(random.random(), random.random(), random.random(),
-                               self.qr[qind])
-                elif opInd == 1: # CX
-                    source, target = random.sample(range(nQubits), 2)
-                    circuit.cx(self.qr[source], self.qr[target])
-            if doMeasure:
-                # add measurements to end of circuit
-                nmeasure = random.randint(0, nQubits-1)
-                for j in range(nmeasure):
-                    qind = random.randint(0, nQubits-1)
-                    circuit.measure(self.qr[qind], self.cr[qind])
-
-    def get_circuit_names(self):
-        return self.circuitNameList
-
-    def getProgram(self):
-        return self.qp
-    
-        
-    
 def generateTestSuite():
     """
     Generate module test suite.
