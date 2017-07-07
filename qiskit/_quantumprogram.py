@@ -30,7 +30,6 @@ import random
 from collections import Counter
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
-from . import basicplotter
 
 # Stable Modules
 from . import QuantumRegister
@@ -680,19 +679,6 @@ class QuantumProgram(object):
             return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
         except KeyError:
             return {"status": "Error", "result": 'Error in circuit name'}
-
-    def plotter(self, name, device=None, method="histogram", number_to_keep=None):
-        """Plot the results
-        method: histogram/qsphere
-        circuit: Print one circuit
-        """
-        data = self.get_counts(name, device)
-
-        if method == "histogram":
-            basicplotter.plot_histogram(data, number_to_keep)
-        else:
-            pass
-            # TODO: add basicplotter.plot_qsphere(data) for unitary simulator
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.

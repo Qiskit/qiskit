@@ -37,9 +37,9 @@ The input is a AST and a basis set and returns a json memory object
             "cbits": , //optional -- list[int]
             "conditional":  // optional -- map
                 {
-                    "type": , // string
-                    "mask": , // big int
-                    "val":  , // big int
+                    "type": "equals", // string
+                    "mask": "0xHexadecimalString", // big int
+                    "val":  "0xHexadecimalString", // big int
                 }
         },
     ]
@@ -157,10 +157,14 @@ class JsonBackend(UnrollerBackend):
             for cbit, index in self._cbit_order_internal.items():
                 if cbit[0] == self.creg:
                     mask |= (1 << index)
+                # Would be nicer to zero pad the mask, but we
+                # need to know the total number of cbits.
+                # format_spec = "{0:#0{%d}X}" % number_of_clbits
+                # format_spec.format(mask)
                 conditional = {
-                    'type': "==",
-                    'mask': mask,
-                    'val': self.cval
+                    'type': "equals",
+                    'mask': "0x%X" % mask,
+                    'val': "0x%X" % self.cval
                 }
             self.circuit['operations'][-1]['conditional'] = conditional
 
