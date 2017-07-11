@@ -62,5 +62,5 @@ class Opaque(Node):
         string = "opaque %s" % self.name
         if self.arguments is not None:
             string += "(" + self.arguments.qasm() + ")"
-        string += self.bitlist.qasm() + ";"
+        string += " " + self.bitlist.qasm() + ";"
         return string
