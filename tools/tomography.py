@@ -81,6 +81,7 @@ def bit_string_index(s):
 
 def plot_qsphere(state, number_of_qubits):
     """Plot the qsphere of data."""
+    # default setting for qsphere
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
     ax.axes.set_xlim3d(-1.0, 1.0)
@@ -98,20 +99,22 @@ def plot_qsphere(state, number_of_qubits):
                     linewidth=0)
     # wireframe
     # Get rid of the panes
-    # ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    # ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    # ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the spines
-    # ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    # ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    # ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
     # Get rid of the ticks
-    # ax.set_xticks([])
-    # ax.set_yticks([])
-    # ax.set_zticks([])
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+
     d = number_of_qubits
     for i in range(2**number_of_qubits):
+        # get x,y,z points
         element = bin(i)[2:].zfill(number_of_qubits)
         weight = element.count("1")
         zvalue = -2 * weight / d + 1
@@ -125,37 +128,39 @@ def plot_qsphere(state, number_of_qubits):
         angle = (weight_order) * 2 * np.pi / number_of_divisions
         xvalue = np.sqrt(1 - zvalue**2) * np.cos(angle)
         yvalue = np.sqrt(1 - zvalue**2) * np.sin(angle)
-        linewidth = np.real(np.dot(state[i], state[i].conj()))
+        ax.plot([xvalue], [yvalue], [zvalue], markerfacecolor=(.5,.5,.5), markeredgecolor=(.5,.5,.5), marker='o', markersize=10, alpha=1)
+        # get prob and angle - prob will be shade and angle color
+        prob = np.real(np.dot(state[i], state[i].conj()))
         angleround = int(np.angle(state[i])/(2*np.pi)*12)
-        if angleround == 0:
+        if angleround == 4:
             colorstate = (1, 0, 0)
-        elif angleround == 1:
-            colorstate = (1, 0.5, 0)
-        elif angleround == 2:
-            colorstate = (1, 1, 0)
-        elif angleround == 3:
-            colorstate = (0.5, 1, 0)
-        elif angleround == 4:
-            colorstate = (0, 1, 0)
         elif angleround == 5:
-            colorstate = (0, 1, 0.5)
+            colorstate = (1, 0.5, 0)
         elif angleround == 6:
-            colorstate = (0, 1, 1)
+            colorstate = (1, 1, 0)
         elif angleround == 7:
-            colorstate = (0, 0.5, 1)
+            colorstate = (0.5, 1, 0)
         elif angleround == 8:
-            colorstate = (0, 0, 1)
+            colorstate = (0, 1, 0)
         elif angleround == 9:
-            colorstate = (0.5, 0, 1)
+            colorstate = (0, 1, 0.5)
         elif angleround == 10:
-            colorstate = (1, 0, 1)
+            colorstate = (0, 1, 1)
         elif angleround == 11:
+            colorstate = (0, 0.5, 1)
+        elif angleround == 0:
+            colorstate = (0, 0, 1)
+        elif angleround == 1:
+            colorstate = (0.5, 0, 1)
+        elif angleround == 2:
+            colorstate = (1, 0, 1)
+        elif angleround == 3:
             colorstate = (1, 0, 0.5)
         # print("outcome = " + element + " weight " + str(weight) + " angle " + str(angle) + " amp " + str(linewidth))
         a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue], mutation_scale=20,
-                    alpha=linewidth, arrowstyle="-|>", color=colorstate)
-        ax.plot([xvalue], [yvalue], [zvalue], markerfacecolor=(.5,.5,.5), markeredgecolor=(.5,.5,.5), marker='o', markersize=10, alpha=1)
+                    alpha=prob, arrowstyle="-", color=colorstate, lw = 10)
         ax.add_artist(a)
+    # add weight lines
     for weight in range(d + 1):
         theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
         z = -2 * weight / d + 1
@@ -163,6 +168,7 @@ def plot_qsphere(state, number_of_qubits):
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         ax.plot(x, y, z, color=(.5,.5,.5))
+    # add center point
     ax.plot([0], [0], [0], markerfacecolor=(.5,.5,.5), markeredgecolor=(.5,.5,.5), marker='o', markersize=10, alpha=1)
     plt.show()
 
@@ -185,15 +191,15 @@ def plot_bloch_vector(bloch, number_of_qubits, title=""):
     z = np.outer(np.ones(np.size(u)), np.cos(v))
 
     for j in range(number_of_qubits):
-        fig = plt.figure()
+        fig = plt.figure(figsize=(6, 6))
         ax = fig.add_subplot(111, projection='3d')
         ax.set_aspect("equal")
-        ax.plot_surface(x, y, z, color="b", alpha=0.1)
+        ax.plot_surface(x, y, z, color=(.5,.5,.5), alpha=0.1)
 
         # Plot arrows (axes, Bloch vector, its projections)
-        xa = Arrow3D([0, arlen], [0, 0], [0, 0], mutation_scale=20, lw=1, arrowstyle="-|>", color="k")
-        ya = Arrow3D([0, 0], [0, arlen], [0, 0], mutation_scale=20, lw=1, arrowstyle="-|>", color="k")
-        za = Arrow3D([0, 0], [0, 0], [0, arlen], mutation_scale=20, lw=1, arrowstyle="-|>", color="k")
+        xa = Arrow3D([0, arlen], [0, 0], [0, 0], mutation_scale=20, lw=1, arrowstyle="-|>", color=(.5,.5,.5))
+        ya = Arrow3D([0, 0], [0, arlen], [0, 0], mutation_scale=20, lw=1, arrowstyle="-|>", color=(.5,.5,.5))
+        za = Arrow3D([0, 0], [0, 0], [0, arlen], mutation_scale=20, lw=1, arrowstyle="-|>", color=(.5,.5,.5))
         a = Arrow3D([0, bloch[j*3+0]], [0, bloch[j*3+1]], [0, bloch[j*3+2]], mutation_scale=20, lw=2, arrowstyle="simple", color="k")
         bax = Arrow3D([0, bloch[j*3+0]], [0, 0], [0, 0], mutation_scale=20, lw=2, arrowstyle="-", color="r")
         bay = Arrow3D([0, 0], [0, bloch[j*3+1]], [0, 0], mutation_scale=20, lw=2, arrowstyle="-", color="g")
@@ -251,23 +257,23 @@ def plot_state(rho, number_of_qubits, method='city'):
 
             ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
             ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+            ax1.axes.set_zlim3d(-1.0, 1.0001)
             ax1.set_zticks(np.arange(-1, 1, 0.5))
             ax1.w_xaxis.set_ticklabels(column_names, fontsize=12)
             ax1.w_yaxis.set_ticklabels(row_names, fontsize=12)
-            ax1.set_xlabel('basis state', fontsize=12)
-            ax1.set_ylabel('basis state', fontsize=12)
-            ax1.set_zlabel('probability', fontsize=12)
-            ax1.set_title("Real[rho]")
+            # ax1.set_xlabel('basis state', fontsize=12)
+            # ax1.set_ylabel('basis state', fontsize=12)
+            ax1.set_zlabel("Real[rho]")
 
             ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
             ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+            ax2.axes.set_zlim3d(-1.0, 1.0001)
             ax2.set_zticks(np.arange(-1, 1, 0.5))
             ax2.w_xaxis.set_ticklabels(column_names, fontsize=12)
             ax2.w_yaxis.set_ticklabels(row_names, fontsize=12)
-            ax2.set_xlabel('basis state', fontsize=12)
-            ax2.set_ylabel('basis state', fontsize=12)
-            ax2.set_zlabel('probability', fontsize=12)
-            ax2.set_title("Imag[rho]")
+            # ax2.set_xlabel('basis state', fontsize=12)
+            # ax2.set_ylabel('basis state', fontsize=12)
+            ax2.set_zlabel("Imag[rho]")
 
             plt.show()
         elif method == "paulivec":
