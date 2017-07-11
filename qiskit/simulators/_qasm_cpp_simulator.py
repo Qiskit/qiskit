@@ -1,16 +1,17 @@
-import random
+import numpy as np
 import subprocess
 from subprocess import PIPE
-import ast
 import json
-import re
 
 class QasmCppSimulator:
     def __init__(self, compiled_circuit, shots=1024, seed=None, threads=1,
-                 exe='qasm_simulator'):
-        self.circuit = compiled_circuit
-        self._number_of_qubits = self.circuit['header']['number_of_qubits']
-        self._number_of_cbits = self.circuit['header']['number_of_clbits']
+                 config=None, exe='./qasm_simulator'):
+        self.circuit = {'qasm': compiled_circuit}
+        if config:
+            self.circuit['config'] = config
+        self.siminput = {'qasm': self.circuit}
+        self._number_of_qubits = self.circuit['qasm']['header']['number_of_qubits']
+        self._number_of_cbits = self.circuit['qasm']['header']['number_of_clbits']
         self.result = {}
         self.result['data'] = {}
         self._quantum_state = 0
@@ -18,11 +19,12 @@ class QasmCppSimulator:
         self._shots = shots
         self._seed = seed
         self._threads = threads
-        self._number_of_operations = len(self.circuit['operations'])
-        self._pattern = re.compile('\{.*\}')
+        self._number_of_operations = len(self.circuit['qasm']['operations'])
+        self._exe = exe
+
         
     def run(self):
-        cmdFmt = 'qasm_simulator -i stdin -f json -n {shots:d} -t {threads}'
+        cmdFmt = self._exe + ' -i - -c - -f qiskit -n {shots:d} -t {threads}'
         cmd = cmdFmt.format(shots = self._shots,
                             threads = self._threads)
         if self._seed:
@@ -40,14 +42,63 @@ class QasmCppSimulator:
                               stderr=PIPE) as proc:
             procIn = json.dumps(self.circuit).encode()
             stdOut, errOut = proc.communicate(procIn)
-        match = re.search(self._pattern, stdOut.decode())
-        if match:
-            cresult = json.loads(match.group(0))
+        if len(errOut) == 0:
+            # no error messages, load stdOut
+            cresult = json.loads(stdOut)
+            # convert possible complex valued result fields
+            for s in ['state', 'saved_states', 'inner_products']:
+                self.__parseComplex(cresult, s)
         else:
             # custom "backend" or "result" exception handler here?
             raise Exception('local_qasm_cpp_simulator returned: {0}\n{1}'.format(
                 stdOut.decode(), errOut.decode()))
+        # add standard simulator output
         self.result['data']['counts'] = cresult['results']
+        # add optional simulator output
+        if 'measurements' in cresult:
+            # add measurement outcome history for each shot
+            self.result['data']['meas_history'] = cresult['measurements']
+        if 'state' in cresult:
+            # add final states for each shot
+            self.result['data']['state'] = cresult['state']
+        if 'probs' in cresult:
+            # add computational basis final probs for each shot
+            self.result['data']['meas_probs'] = cresult['probs']
+        if 'saved_states' in cresult:
+            # add saved states for each shot
+            self.result['data']['saved_states'] = cresult['saved_states']
+        if 'inner_products' in cresult:
+            # add inner products of final state with targets states for each shot
+            self.result['data']['inner_products'] = cresult['inner_products']  
+        if 'overlaps' in cresult:
+            # add overlap of final state with targets states for each shot
+            self.result['data']['overlaps'] = cresult['overlaps']
+        # add simulation time (in seconds)
         self.result['time_taken'] = cresult['time_taken']
         self.result['status'] = 'DONE'
         return self.result
+
+
+    def __parseComplex(self, output, key):
+        """
+        This function converts complex numbers in the c++ simulator output into python
+        complex numbers. In JSON c++ output complex entries are formatted as:
+            z = [re(z), im(z)]
+            vec = [re(vec), im(vec)]
+            ket = {'00':[re(v[00]), im(v[00])], '01': etc...}
+        """
+        if key in output:
+            ref = output[key]
+            if isinstance(ref, list):
+                if isinstance(ref[0], list):
+                    # convert complex vector
+                    for x in range(len(ref)):
+                        ref[x] = np.array(ref[x][0])+1j*np.array(ref[x][1])
+                elif isinstance(ref[0], dict):
+                    # convert complex ket-form
+                    for x in range(len(ref)):
+                        for k in ref[0].keys():
+                            ref[x][k] = ref[x][k][0]+1j*ref[x][k][1]
+                elif len(ref) == 2:
+                    # convert complex scalar
+                    ref = ref[0] + 1j*ref[1]
