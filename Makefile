@@ -34,8 +34,7 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
-	python3 -m unittest discover
-	python3 -m unittest discover -p "*_test.py"
+	python3 -m unittest discover -v
 
 profile:
-	python3 -m unittest discover -p "*_profile.py"
+	python3 -m unittest discover -p "profile*.py" -v

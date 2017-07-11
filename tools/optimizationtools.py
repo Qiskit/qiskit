@@ -7,14 +7,9 @@ Author: Jay Gambetta and Antonio Mezzacapo
 """
 import sys
 import os
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
-from qiskit.simulators._simulatortools import enlarge_single_opt, enlarge_two_opt
 import numpy as np
 from tools.pauli import Pauli, label_to_pauli
 
@@ -60,6 +55,47 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
     cost_final = obj_fun(theta)[0]
     print('Final Energy is: ' + str(cost_final))
     return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
+
+
+def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
+    """Calibrates the first SPSA parameter.
+    The calibration is chosen such that the first theta update is on average
+    (with statistics regulated by stat) equivalent to target_update, given
+    an initial_c (=SPSA_parameters[1]) value.
+
+    Returns all 5 SPSA_parameters:
+
+    SPSA_parameters[0] -> calibrated
+    SPSA_parameters[1] -> input by user (initial_c)
+    SPSA_parameters[2] -> fixed at 0.602
+    SPSA_parameters[3] -> fixed at 0.101
+    SPSA_parameters[4] -> fixed at 0
+    """
+
+    SPSA_parameters = np.zeros((5))
+    SPSA_parameters[1] = initial_c
+    SPSA_parameters[2] = 0.602
+    SPSA_parameters[3] = 0.101
+    SPSA_parameters[4] = 0
+
+    Delta_obj = 0
+    for i in range(stat):
+
+        if i % 5 == 0:
+            print('calibration step # '+str(i)+' of '+str(stat))
+
+        Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+
+        obj_plus = obj_fun(initial_theta+initial_c*Delta)[0]
+        obj_minus = obj_fun(initial_theta-initial_c*Delta)[0]
+
+        Delta_obj += np.absolute(obj_plus - obj_minus)/stat
+
+    SPSA_parameters[0] = target_update*2/Delta_obj*SPSA_parameters[1]*(SPSA_parameters[4]+1)
+
+    print('calibrated SPSA_parameters[0] is '+str(SPSA_parameters[0]))
+
+    return SPSA_parameters
 
 
 # COST functions
@@ -227,8 +263,7 @@ def make_Hamiltonian(pauli_list):
 
 
 def Hamiltonian_from_file(file_name):
-    """Compute the pauli_list from a file.
-    """
+    """Compute the pauli_list from a file."""
     file = open(file_name, 'r+')
     ham_array = file.readlines()
     ham_array = [x.strip() for x in ham_array]

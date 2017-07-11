@@ -35,7 +35,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 
 
-QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../examples/qasm/simple8qbit.qasm')
+QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../../examples/qasm/simple8qbit.qasm')
 
 
 # We need the environment variable for Travis.
