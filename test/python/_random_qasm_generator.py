@@ -69,11 +69,12 @@ class RandomQasmGenerator():
                 elif opInd == 1: # CX
                     source, target = random.sample(range(nQubits), 2)
                     circuit.cx(self.qr[source], self.qr[target])
-            if doMeasure:
-                # add measurements to end of circuit
-                nmeasure = random.randint(0, nQubits-1)
-                for j in range(nmeasure):
-                    qind = random.randint(0, nQubits-1)
+            nmeasure = random.randint(1, nQubits)            
+            for j in range(nmeasure):
+                qind = random.randint(0, nQubits-1)
+                if doMeasure:
+                    # doing this if here keeps the RNG from depending on
+                    # whether measurements are done.
                     circuit.measure(self.qr[qind], self.cr[qind])
 
     def get_circuit_names(self):

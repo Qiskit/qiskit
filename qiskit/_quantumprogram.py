@@ -56,7 +56,7 @@ class QuantumProgram(object):
      Class internal properties """
 
     __ONLINE_DEVICES = ["real", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
-    __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator"]
+    __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator", "local_qasm_cpp_simulator"]
 
     __quantum_program = {}
     __api = {}
@@ -427,8 +427,9 @@ class QuantumProgram(object):
             #       future. See future improvements at the top of this
             #       file.
             job["compiled_circuit"] = qasm_compiled
-            job["seed"] = random.random()
-            if seed is not None:
+            if seed is None:
+                job["seed"] = random.random()
+            else:
                 job["seed"] = seed
             self.__to_execute[device].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
@@ -523,10 +524,8 @@ class QuantumProgram(object):
                                  "seed": job["seed"]})
                 # TODO have an option to print this.
                 # print("running on backend: %s" % (backend))
-                if backend == "local_qasm_simulator":
-                    job_result = self.run_local_qasm_simulator(jobs)
-                elif backend == "local_unitary_simulator":
-                    job_result = self.run_local_unitary_simulator(jobs)
+                if backend in self.__LOCAL_DEVICES:
+                    job_result = self.run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
@@ -583,12 +582,16 @@ class QuantumProgram(object):
         # Get the results
         return job
 
-    def run_local_qasm_simulator(self, jobs):
-        """run_local_qasm_simulator, run a program (precompile of quantum circuits).
-        jobs is list of dicts {"compiled_circuit": simulator input data, "shots": integer num shots}
+    def run_local_simulator(self, backend, jobs):
+        """Run a program of compiled quantum circuits on the local machine.
 
-        returns
-        job_results = {
+        Args:
+          backend (str): the name of the local simulator to run
+          jobs: list of dicts {"compiled_circuit": simulator input data, "shots": integer num shots}
+
+        Returns:
+          Dictionary of form,
+          job_results = {
             "qasms": [
                 {
                     "result": DATA,
@@ -601,36 +604,10 @@ class QuantumProgram(object):
         job_results = {"qasms": []}
         for job in jobs:
             one_result = {'result': None, 'status': "Error"}
-            qasm_circuit = simulators.QasmSimulator(job["compiled_circuit"], job["shots"], job["seed"]).run()
-            one_result["result"]={}
-            one_result["result"]["data"] = qasm_circuit["data"]
-            one_result["status"] = qasm_circuit["status"]
-            job_results['qasms'].append(one_result)
-        return job_results
-
-    def run_local_unitary_simulator(self, jobs):
-        """run_local_unitary_simulator, run a program (precompile of quantum circuits).
-        jobs is list of dicts {"compiled_circuit": simulator input data}
-
-        returns
-        job_results = {
-            "qasms": [
-                {
-                    "result": DATA,
-                    "status": DATA,
-                },
-                ...
-            ]
-        }
-        """
-        job_results = {"qasms": []}
-        for job in jobs:
-            one_result = {'result': None, 'status': "Error"}
-            unitary_circuit = simulators.UnitarySimulator(job["compiled_circuit"]).run()
-            one_result["result"]={}
-            one_result["result"]["data"] = unitary_circuit["data"]
-            one_result["status"] = unitary_circuit["status"]
-            job_results['qasms'].append(one_result)
+            local_simulator = simulators.LocalSimulator(backend, job)
+            local_simulator.run()
+            this_result = local_simulator.result()
+            job_results['qasms'].append(this_result)
         return job_results
 
     def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
