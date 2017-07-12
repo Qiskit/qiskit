@@ -49,7 +49,7 @@ def plot_histogram(data, number_to_keep=None):
     # add some text for labels, title, and axes ticks
     ax.set_ylabel('Probabilities', fontsize=12)
     ax.set_xticks(ind)
-    ax.set_xticklabels(labels, fontsize=12)
+    ax.set_xticklabels(labels, fontsize=12, rotation=70)
     ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
     # attach some text labels
     for rect in rects:

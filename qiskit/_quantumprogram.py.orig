@@ -55,7 +55,12 @@ class QuantumProgram(object):
 
      Class internal properties """
 
+<<<<<<< HEAD
+    __ONLINE_DEVICES = ["real", "ibmqx2", "ibmqx3", "simulator", "ibmqx_qasm_simulator"]
     __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator", "local_qasm_cpp_simulator"]
+=======
+    __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator"]
+>>>>>>> Expose device name api
 
     __quantum_program = {}
     __api = {}
@@ -470,7 +475,7 @@ class QuantumProgram(object):
                     print("// *******************************************")
 
     #runners
-    def run(self, wait=5, timeout=60, silent=False):
+    def run(self, wait=5, timeout=60):
         """Run a program (a pre-compiled quantum program).
 
         All input for run comes from self.__to_execute
@@ -502,14 +507,14 @@ class QuantumProgram(object):
                             self.__to_execute = {}
                             return  {"status": "Error", "result":'Online devices only support job batches with equal max credits'}
 
-                if not silent:
-                    print("running on backend: %s" % (backend))
+                # TODO have an option to print this.
+                print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
                 if 'error' in output:
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": output['error']}
-                job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+                job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
 
                 if job_result['status'] == 'Error':
                     # Clear the list of compiled programs to execute
@@ -527,12 +532,10 @@ class QuantumProgram(object):
                     jobs.append({"compiled_circuit": json_circuit,
                                  "shots": job["shots"],
                                  "seed": job["seed"]})
-                if not silent:
-                    print("running on backend: %s" % (backend))
-                if backend == "local_qasm_simulator":
-                    job_result = self.run_local_qasm_simulator(jobs)
-                elif backend == "local_unitary_simulator":
-                    job_result = self.run_local_unitary_simulator(jobs)
+                # TODO have an option to print this.
+                # print("running on backend: %s" % (backend))
+                if backend in self.__LOCAL_DEVICES:
+                    job_result = self.run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
@@ -565,7 +568,7 @@ class QuantumProgram(object):
 
         return  {"status": "COMPLETED", "result": 'all done'}
 
-    def wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
+    def wait_for_job(self, jobid, wait=5, timeout=60):
         """Wait until all status results are 'COMPLETED'.
         jobids is a list of id strings.
         api is an IBMQuantumExperience object.
@@ -576,20 +579,13 @@ class QuantumProgram(object):
         timer = 0
         timeout_over = False
         job = self.__api.get_job(jobid)
-        if 'status' not in job:
-            from pprint import pformat
-            raise Exception("get_job didn't return status: %s" % (pformat(job)))
         while job['status'] == 'RUNNING':
             if timer == timeout:
                 return {"status": "Error", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
-            if not silent:
-                print("status = %s (%d seconds)" % (job['status'], timer))
+            print("status = %s (%d seconds)" % (job['status'], timer))
             job = self.__api.get_job(jobid)
-            if 'status' not in job:
-                from pprint import pformat
-                raise Exception("get_job didn't return status: %s" % (pformat(job)))
             if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
                 return {"status": "Error", "result": job['status']}
 
