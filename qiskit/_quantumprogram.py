@@ -529,10 +529,8 @@ class QuantumProgram(object):
                                  "seed": job["seed"]})
                 if not silent:
                     print("running on backend: %s" % (backend))
-                if backend == "local_qasm_simulator":
-                    job_result = self.run_local_qasm_simulator(jobs)
-                elif backend == "local_unitary_simulator":
-                    job_result = self.run_local_unitary_simulator(jobs)
+                if backend in self.__LOCAL_DEVICES:
+                    job_result = self.run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
