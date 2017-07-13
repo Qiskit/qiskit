@@ -55,7 +55,7 @@ class QuantumProgram(object):
 
      Class internal properties """
 
-    __LOCAL_DEVICES = ["local_unitary_simulator", "local_qasm_simulator", "local_qasm_cpp_simulator"]
+    __LOCAL_BACKENDS = ["local_unitary_simulator", "local_qasm_simulator", "local_qasm_cpp_simulator"]
 
     __quantum_program = {}
     __api = {}
@@ -179,7 +179,7 @@ class QuantumProgram(object):
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations via QX API call
-        device is the name of the local or online simulator or experiment
+        backend is the name of the local or online simulator or experiment
         """
 
         if backend in self.online_backends():
@@ -532,7 +532,7 @@ class QuantumProgram(object):
                                  "seed": job["seed"]})
                 if not silent:
                     print("running on backend: %s" % (backend))
-                if backend in self.__LOCAL_DEVICES:
+                if backend in self.__LOCAL_BACKENDS:
                     job_result = self.run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
