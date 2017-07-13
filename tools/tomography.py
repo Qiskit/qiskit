@@ -205,6 +205,10 @@ def plot_state(rho, number_of_qubits, method='city'):
             """Plot the qsphere."""
             # default setting for qsphere
             we, state = la.eigh(rho, eigvals=(2**number_of_qubits-1, 2**number_of_qubits-1))
+            location = 0
+            for i in range(len(state)):
+                if abs(state[i]) == max(abs(state)):
+                    location = i
             # print(we)
             state.flatten()
             fig = plt.figure(figsize=(10, 10))
@@ -256,7 +260,9 @@ def plot_state(rho, number_of_qubits, method='city'):
                 ax.plot([xvalue], [yvalue], [zvalue], markerfacecolor=(.5,.5,.5), markeredgecolor=(.5,.5,.5), marker='o', markersize=10, alpha=1)
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                angleround = int(((np.angle(state[i])-np.angle(state[0])) % 2*np.pi)/(2*np.pi)*12)
+
+                angleround = int(((np.angle(state[i])-np.angle(np.angle(state[location]))) % 2*np.pi)/(2*np.pi)*12)
+                print(angleround)
                 if angleround == 4:
                     colorstate = (1, 0, 0)
                 elif angleround == 5:

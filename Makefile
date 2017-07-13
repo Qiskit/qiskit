@@ -25,7 +25,11 @@ env:
 	bash -c "source activate QISKitenv;pip install -r requires.txt"
 
 run:
+	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
+
+run_tutorial:
 	bash -c "source activate QISKitenv;cd tutorial;jupyter notebook"
+
 
 # Ignoring generated ones with .py extension.
 lint:
