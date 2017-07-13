@@ -623,7 +623,7 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
-                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None):
+                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, seed=None):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api is the api for the device
@@ -634,7 +634,7 @@ class QuantumProgram(object):
         """
         self.compile(name_of_circuits, device, shots, max_credits,
                      basis_gates, coupling_map, seed)
-        output = self.run(wait, timeout)
+        output = self.run(wait, timeout, silent=False)
         return output
 
     # method to process the data
