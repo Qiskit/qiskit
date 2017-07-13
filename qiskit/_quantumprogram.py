@@ -634,7 +634,7 @@ class QuantumProgram(object):
         """
         self.compile(name_of_circuits, device, shots, max_credits,
                      basis_gates, coupling_map, seed)
-        output = self.run(wait, timeout, silent=False)
+        output = self.run(wait, timeout, silent=silent)
         return output
 
     # method to process the data
