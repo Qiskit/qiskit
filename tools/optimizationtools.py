@@ -85,12 +85,8 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
             print('calibration step # '+str(i)+' of '+str(stat))
 
         Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
-       
-
         obj_plus = obj_fun(initial_theta+initial_c*Delta)[0]
-        
         obj_minus = obj_fun(initial_theta-initial_c*Delta)[0]
-        
         Delta_obj += np.absolute(obj_plus - obj_minus)/stat
 
     SPSA_parameters[0] = target_update*2/Delta_obj*SPSA_parameters[1]*(SPSA_parameters[4]+1)
@@ -102,8 +98,10 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
 
 # COST functions
 def Measure_pauli_z(data, pauli):
-    """Compute the expectation value of Z which is represented by Z^v where
-    v has lenght number of qubits and is 1 if Z is present and 0 otherwise.
+    """Compute the expectation value of Z.
+
+    Z is represented by Z^v where v has lenght number of qubits and is 1
+    if Z is present and 0 otherwise.
 
     data = is a dictionary of the form data = {'00000': 10}
 
