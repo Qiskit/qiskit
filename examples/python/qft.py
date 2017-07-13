@@ -36,9 +36,9 @@ from qiskit import QuantumProgram
 import Qconfig
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "ibmqx2"
+backend = "ibmqx2"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -141,7 +141,7 @@ if not result:
     print("Error setting API")
     sys.exit(1)
 
-result = qp.execute(["qft3", "qft4", "qft5"], device='simulator',
+result = qp.execute(["qft3", "qft4", "qft5"], backend='Simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(qp.get_compiled_qasm("qft3"))
@@ -152,7 +152,7 @@ print(qp.get_counts("qft4"))
 print(qp.get_counts("qft5"))
 
 
-result = qp.execute(["qft3"], device=device,
+result = qp.execute(["qft3"], backend=backend,
                     coupling_map=coupling_map, shots=1024, timeout=120)
 print(result)
 print(qp.get_compiled_qasm("qft3"))

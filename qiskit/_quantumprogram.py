@@ -71,7 +71,7 @@ class QuantumProgram(object):
             --circuit name (string)--: {
                 "circuit": --circuit object (TBD)--,
                 "execution": {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
-                    --device name (string)--: {
+                    --backend name (string)--: {
                         "coupling_map": --adjacency list (dict)--,
                         "basis_gates": --comma separated gate names (string)--,
                         "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
@@ -91,7 +91,7 @@ class QuantumProgram(object):
         }
 
     __to_execute = {
-        --device name (string)--: [
+        --backend name (string)--: [
             {
                 "name": --circuit name (string)--,
                 "coupling_map": --adjacency list (dict)--,
@@ -117,7 +117,7 @@ class QuantumProgram(object):
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__init_circuit = None
-        self.__last_device_backend = ""
+        self.__last_backend = ""
         self.__to_execute = {}
         self.mapper = mapper
 
@@ -151,8 +151,9 @@ class QuantumProgram(object):
         api = self._setup_api(token, url, verify)
         return api
 
-    def online_device_names(self):
-        return [device['name'] for device in self.__api.available_devices() ] + [ 'real' ]
+    def online_backends(self):
+        # TODO: we would like API to use "backend"s instead of "device"s
+        return [backend['name'] for backend in self.__api.available_devices() ] + [ 'real' ]
 
     def set_api_token(self, token):
         """ Set the API Token """
@@ -165,25 +166,27 @@ class QuantumProgram(object):
     def get_api(self):
         return self.__api
 
-    def get_device_status(self, device):
-        """Return the online device status via QX API call
-        device is the name of the real chip
+    def get_backend_status(self, backend):
+        """Return the online backend status via QX API call
+        backend is the name of the local or online simulator or experiment
         """
 
-        if device in self.online_device_names():
-            return self.__api.device_status(device)
+        if backend in self.online_backends():
+            # TODO: we would like API to use "backend" instead of "device"
+            return self.__api.device_status(backend)
         else:
-            return {"status": "Error", "result": "This device doesn't exist"}
+            return {"status": "Error", "result": "This backend doesn't exist"}
 
-    def get_device_calibration(self, device):
-        """Return the online device calibrations via QX API call
-        device is the name of the real chip
+    def get_backend_calibration(self, backend):
+        """Return the online backend calibrations via QX API call
+        device is the name of the local or online simulator or experiment
         """
 
-        if device in self.online_device_names():
-            return self.__api.device_calibration(device)
+        if backend in self.online_backends():
+            # TODO: we would like API to use "backend" instead of "device"
+            return self.__api.device_calibration(backend)
         else:
-            return {"status": "Error", "result": "This device doesn't exist"}
+            return {"status": "Error", "result": "This backend doesn't exist"}
 
     # Building parts of the program
     def create_quantum_registers(self, name, size):
@@ -363,18 +366,18 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, name_of_circuits, device="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
+    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
         """Compile the name_of_circuits by names.
 
         name_of_circuits is a list of circuit names to compile.
-        device is the target device name.
+        backend is the target backend name.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         coupling_map is the adjacency list for coupling graph
 
         This method adds elements of the following form to the self.__to_execute
-        list corresponding to the device:
+        list corresponding to the backend:
 
-        --device name (string)--: [
+        --backend name (string)--: [
                 {
                     "name": --circuit name (string)--,
                     "coupling_map": --adjacency list (dict)--,
@@ -419,8 +422,8 @@ class QuantumProgram(object):
                 print("post-mapping properties: %s"
                       % dag_unrolled.property_summary())
             # TODO: add timestamp, compilation
-            if device not in self.__to_execute:
-                self.__to_execute[device] = []
+            if backend not in self.__to_execute:
+                self.__to_execute[backend] = []
 
             job = {}
             job["name"] = name
@@ -436,18 +439,18 @@ class QuantumProgram(object):
                 job["seed"] = random.random()
             else:
                 job["seed"] = seed
-            self.__to_execute[device].append(job)
+            self.__to_execute[backend].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
-    def get_compiled_qasm(self, name, device=None):
-        """Get the compiled qasm for the named circuit and device.
+    def get_compiled_qasm(self, name, backend=None):
+        """Get the compiled qasm for the named circuit and backend.
 
-        If device is None, it defaults to the last device.
+        If backend is None, it defaults to the last backend.
         """
-        if not device:
-            device = self.__last_device_backend
+        if not backend:
+            backend = self.__last_backend
         try:
-            return self.__quantum_program["circuits"][name]["execution"][device]["compiled_circuit"]
+            return self.__quantum_program["circuits"][name]["execution"][backend]["compiled_circuit"]
         except KeyError:
             return "No compiled qasm for this circuit"
 
@@ -456,8 +459,8 @@ class QuantumProgram(object):
 
         verbose controls how much is returned.
         """
-        for device, jobs in self.__to_execute.items():
-            print("%s:" % device)
+        for backend, jobs in self.__to_execute.items():
+            print("%s:" % backend)
             for job in jobs:
                 print("  %s:" % job["name"])
                 print("    shots = %d" % job["shots"])
@@ -478,8 +481,8 @@ class QuantumProgram(object):
         timeout is time until the execution stopa
         """
         for backend in self.__to_execute:
-            self.__last_device_backend = backend
-            if backend in self.online_device_names():
+            self.__last_backend = backend
+            if backend in self.online_backends():
                 last_shots = -1
                 last_max_credits = -1
                 jobs = []
@@ -493,14 +496,14 @@ class QuantumProgram(object):
                         if last_shots != shots:
                             # Clear the list of compiled programs to execute
                             self.__to_execute = {}
-                            return {"status": "Error", "result":'Online devices only support job batches with equal numbers of shots'}
+                            return {"status": "Error", "result":'Online backends only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
                     else:
                         if last_max_credits != max_credits:
                             # Clear the list of compiled programs to execute
                             self.__to_execute = {}
-                            return  {"status": "Error", "result":'Online devices only support job batches with equal max credits'}
+                            return  {"status": "Error", "result":'Online backends only support job batches with equal max credits'}
 
                 if not silent:
                     print("running on backend: %s" % (backend))
@@ -622,50 +625,50 @@ class QuantumProgram(object):
             job_results['qasms'].append(this_result)
         return job_results
 
-    def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
+    def execute(self, name_of_circuits, backend="local_qasm_simulator", shots=1024,
                 max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, seed=None):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
-        api is the api for the device
-        device is a string for real or simulator
+        api is the api for the backend
+        backend is a string for local or online backend name
         shots is the number of shots
         max_credits is the maximum credits for the experiments
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
-        self.compile(name_of_circuits, device, shots, max_credits,
+        self.compile(name_of_circuits, backend, shots, max_credits,
                      basis_gates, coupling_map, seed)
         output = self.run(wait, timeout, silent=silent)
         return output
 
     # method to process the data
-    def get_result(self, name, device=None):
+    def get_result(self, name, backend=None):
         """get the get_result from one circut and backend
         name of the circuit
-        device that is use to compile, run, or execute
+        backend that is use to compile, run, or execute
         """
-        if not device:
-            device = self.__last_device_backend
+        if not backend:
+            backend = self.__last_backend
 
         if name in self.__quantum_program["circuits"]:
-            return self.__quantum_program["circuits"][name]['execution'][device]['result']
+            return self.__quantum_program["circuits"][name]['execution'][backend]['result']
         else:
             return {"status": "Error", "result": 'Circuit not found'}
 
-    def get_data(self, name, device=None):
+    def get_data(self, name, backend=None):
         """Get the dict of labels and counts from the output of get_job.
         results are the list of results
         name is the name or index of one circuit."""
-        if not device:
-            device = self.__last_device_backend
-        return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']
+        if not backend:
+            backend = self.__last_backend
+        return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']
 
-    def get_counts(self, name, device=None):
+    def get_counts(self, name, backend=None):
         """Get the dict of labels and counts from the output of get_job.
         name is the name or index of one circuit."""
-        if not device:
-            device = self.__last_device_backend
+        if not backend:
+            backend = self.__last_backend
         try:
-            return self.__quantum_program["circuits"][name]['execution'][device]['result']['data']['counts']
+            return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']['counts']
         except KeyError:
             return {"status": "Error", "result": 'Error in circuit name'}
 

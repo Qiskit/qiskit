@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-GHZ state example illustrating mapping onto the device.
+GHZ state example illustrating mapping onto the backend.
 
 Author: Andrew Cross
         Jesus Perez <jesusper@us.ibm.com>
@@ -35,9 +35,9 @@ from qiskit import QuantumProgram
 import Qconfig
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "ibmqx2"
+backend = "ibmqx2"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -86,28 +86,28 @@ if not result:
 
 # First version: not compiled
 print("no compilation, simulator")
-result = qp.execute(["ghz"], device='simulator',
+result = qp.execute(["ghz"], backend='Simulator',
                     coupling_map=None, shots=1024)
 print(result)
 print(qp.get_counts("ghz"))
 
 # Second version: compiled to qc5qv2 coupling graph
-print("compilation to %s, simulator" % device)
-result = qp.execute(["ghz"], device='simulator',
+print("compilation to %s, simulator" % backend)
+result = qp.execute(["ghz"], backend='Simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(qp.get_counts("ghz"))
 
 # Third version: compiled to qc5qv2 coupling graph
-print("compilation to %s, local qasm simulator" % device)
-result = qp.execute(["ghz"], device='local_qasm_simulator',
+print("compilation to %s, local qasm simulator" % backend)
+result = qp.execute(["ghz"], backend='local_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(qp.get_counts("ghz"))
 
 # Fourth version: compiled to qc5qv2 coupling graph and run on qx5q
-print("compilation to %s, device" % device)
-result = qp.execute(["ghz"], device=device,
+print("compilation to %s, backend" % backend)
+result = qp.execute(["ghz"], backend=backend,
                     coupling_map=coupling_map, shots=1024, timeout=120)
 print(result)
 print(qp.get_counts("ghz"))

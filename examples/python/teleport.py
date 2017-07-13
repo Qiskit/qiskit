@@ -33,9 +33,9 @@ import Qconfig
 
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "simulator"
+backend = "Simulator"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -102,12 +102,12 @@ if not result:
 # Experiment does not support feedback, so we use the simulator
 
 # First version: not compiled
-result = qp.execute(["teleport"], device=device,
+result = qp.execute(["teleport"], backend=backend,
                     coupling_map=None, shots=1024)
 print(qp.get_counts("teleport"))
 
-# Second version: compiled to qx5qv2 coupling graph
-result = qp.execute(["teleport"], device=device,
+# Second version: compiled to ibmqx2 coupling graph
+result = qp.execute(["teleport"], backend=backend,
                     coupling_map=coupling_map, shots=1024)
 print(qp.get_compiled_qasm("teleport"))
 print(qp.get_counts("teleport"))
