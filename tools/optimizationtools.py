@@ -43,9 +43,9 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
         theta = theta - a_spsa*g_spsa
         # saving
         if k % save_steps == 0:
-            print('Energy at theta+ for step # ' + str(k))
+            print('objective function at theta+ for step # ' + str(k))
             print(cost_plus)
-            print(('Energy at theta- for step # '+str(k)))
+            print(('objective function at theta- for step # '+str(k)))
             print(cost_minus)
             theta_plus_save.append(theta_plus)
             theta_minus_save.append(theta_minus)
@@ -53,7 +53,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
             cost_minus_save.append(cost_minus)
     # final cost update
     cost_final = obj_fun(theta)[0]
-    print('Final Energy is: ' + str(cost_final))
+    print('Final objective function is: ' + str(cost_final))
     return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
 
 
@@ -85,10 +85,12 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
             print('calibration step # '+str(i)+' of '+str(stat))
 
         Delta = 2*np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+       
 
         obj_plus = obj_fun(initial_theta+initial_c*Delta)[0]
+        
         obj_minus = obj_fun(initial_theta-initial_c*Delta)[0]
-
+        
         Delta_obj += np.absolute(obj_plus - obj_minus)/stat
 
     SPSA_parameters[0] = target_update*2/Delta_obj*SPSA_parameters[1]*(SPSA_parameters[4]+1)
