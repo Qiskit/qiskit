@@ -151,10 +151,6 @@ class QuantumProgram(object):
         api = self._setup_api(token, url, verify)
         return api
 
-    def online_backends(self):
-        # TODO: we would like API to use "backend"s instead of "device"s
-        return [backend['name'] for backend in self.__api.available_devices() ] + [ 'real' ]
-
     def set_api_token(self, token):
         """ Set the API Token """
         self.set_api(token=token)
@@ -166,25 +162,60 @@ class QuantumProgram(object):
     def get_api(self):
         return self.__api
 
+    def online_backends(self):
+        # TODO: we would like API to use "backend"s instead of "device"s
+        return [backend['name'] for backend in self.__api.available_devices() ]
+
+    def available_backends(self):
+        return self.online_backends() + self.__LOCAL_BACKENDS
+
     def get_backend_status(self, backend):
-        """Return the online backend status via QX API call
+        """Return the online backend status via QX API call or by local
         backend is the name of the local or online simulator or experiment
         """
 
         if backend in self.online_backends():
             # TODO: we would like API to use "backend" instead of "device"
             return self.__api.device_status(backend)
+        elif  backend in self.__LOCAL_BACKENDS:
+            return {'available': True}
         else:
             return {"status": "Error", "result": "This backend doesn't exist"}
 
+    def get_backend_configuration(self, backend):
+        "Return the configuration of the backend"
+        for test_backend in self.__api.available_devices():
+            if test_backend['name'] == backend:
+                return test_backend
+        for test_backend in simulators.local_configuration:
+            if test_backend['name'] == backend:
+                return test_backend
+        return {"status": "Error", "result": "This backend doesn't exist"}
+
+
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations via QX API call
-        backend is the name of the local or online simulator or experiment
+        backend is the name of the experiment
         """
 
         if backend in self.online_backends():
             # TODO: we would like API to use "backend" instead of "device"
             return self.__api.device_calibration(backend)
+        elif  backend in self.__LOCAL_BACKENDS:
+            return {'calibrations': 'NA'}
+        else:
+            return {"status": "Error", "result": "This backend doesn't exist"}
+
+    def get_backend_parameters(self, backend):
+        """Return the online backend parameters via QX API call
+        backend is the name of the experiment
+        """
+
+        if backend in self.online_backends():
+            # TODO: we would like API to use "backend" instead of "device"
+            return self.__api.device_parameters(backend)
+        elif  backend in self.__LOCAL_BACKENDS:
+            return {'parameters': 'NA'}
         else:
             return {"status": "Error", "result": "This backend doesn't exist"}
 

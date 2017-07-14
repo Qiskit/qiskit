@@ -2,6 +2,30 @@ from ._qasmsimulator import QasmSimulator
 from ._unitarysimulator import UnitarySimulator
 from ._qasm_cpp_simulator import QasmCppSimulator
 
+
+local_configuration = [{"name": "local_qasm_simulator",
+                        "url": "https://github.com/IBM/qiskit-sdk-py",
+                        "simulator": True,
+                        "description": "A python simulator for qasm files",
+                        "nQubits": 10,
+                        "couplingMap": "all-to-all",
+                        "gateset": "SU2+CNOT"},
+                       {"name": "local_qasm_cpp_simulator",
+                        "url": "https://github.com/IBM/qiskit-sdk-py",
+                        "simulator": True,
+                        "description": "A python simulator for qasm files",
+                        "nQubits": 10,
+                        "couplingMap": "all-to-all",
+                        "gateset": "SU2+CNOT"},
+                       {"name": "local_unitary_simulator",
+                        "url": "https://github.com/IBM/qiskit-sdk-py",
+                        "simulator": True,
+                        "description": "A cpp simulator for qasm files",
+                        "nQubits": 10,
+                        "couplingMap": "all-to-all",
+                        "gateset": "SU2+CNOT"}]
+
+
 class LocalSimulator:
     def __init__(self, backend, job):
         self._backend = backend

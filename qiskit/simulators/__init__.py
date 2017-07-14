@@ -1,3 +1,4 @@
 from ._qasmsimulator import QasmSimulator
 from ._unitarysimulator import UnitarySimulator
 from ._localsimulator import LocalSimulator
+from ._localsimulator import local_configuration
