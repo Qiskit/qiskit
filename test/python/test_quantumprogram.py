@@ -592,6 +592,18 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program.set_api(API_TOKEN, URL)
         available_backends = QP_program.available_backends()
         self.assertTrue(available_backends)
+
+    def test_online_devices(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        devices = qp.online_devices()
+        self.assertTrue(isinstance(devices, list))
+
+    def test_online_simulators(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        simulators = qp.online_simulators()
+        self.assertTrue(isinstance(simulators, list))
         
 if __name__ == '__main__':
     unittest.main()
