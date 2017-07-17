@@ -88,8 +88,7 @@ def make_unrolled_circuit(fname, basis):
     """
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
-    u.execute()
-    return u.backend.circuit
+    return u.execute()
 
 
 def make_unrolled_circuit_from_data(dat, basis):
@@ -101,8 +100,7 @@ def make_unrolled_circuit_from_data(dat, basis):
     """
     ast = Qasm(data=dat).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
-    u.execute()
-    return u.backend.circuit
+    return u.execute()
 
 
 if len(sys.argv) < 2:

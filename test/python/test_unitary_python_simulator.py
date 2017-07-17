@@ -49,8 +49,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
-        unroller.execute()
-        circuit = unroller.backend.circuit
+        circuit = unroller.execute()
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']

@@ -43,8 +43,7 @@ def run_program(program, api, device, shots, max_credits=3):
         basis = "u1,u2,u3,cx"  # QE target basis
         u = unroll.Unroller(Qasm(data=p.qasm()).parse(), unroll.CircuitBackend(
                             basis.split(",")))
-        u.execute()
-        C = u.backend.circuit  # circuit DAG
+        C = u.execute()  # returns circuit DAG
 
         # Do stuff to circuit (not done yet)
         # this is what you send into the API
@@ -63,8 +62,7 @@ def program_to_text(program):
         basis = "u1,u2,u3,cx"  # QE target basis
         u = unroll.Unroller(Qasm(data=p.qasm()).parse(), unroll.CircuitBackend(
                             basis.split(",")))
-        u.execute()
-        C = u.backend.circuit  # circuit DAG
+        C = u.execute()  # returns circuit DAG
         jobs = jobs + C.qasm(qeflag=True) + "\n\n"
     return jobs
 

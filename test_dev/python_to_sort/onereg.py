@@ -34,8 +34,8 @@ class TestOneRegister(unittest.TestCase):
         basis = []  # empty basis, defaults to U, CX
         unroller = unroll.Unroller(Qasm(filename=fname).parse(),
                                    unroll.OneRegisterBackend(basis))
-        unroller.execute()
-        result = unroller.backend.circuit.qasm(qeflag=True)
+
+        result = unroller.execute().qasm(qeflag=True)
         self.assertEqual(len(result), 124)
 
 if __name__ == '__main__':

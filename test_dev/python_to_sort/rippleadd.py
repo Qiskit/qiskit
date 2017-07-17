@@ -93,8 +93,7 @@ print(qc.qasm())
 # Unroll this now just for the purpose of gate counting
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
                     unroll.CircuitBackend(["cx", "x", "ccx", "id"]))
-u.execute()
-C = u.backend.circuit
+C = u.execute()
 
 print("")
 print("size    = %d" % C.size())
@@ -112,8 +111,7 @@ for key, val in C.count_ops().items():
 
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
                     unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
-u.execute()
-C = u.backend.circuit
+C = u.execute()
 
 print("")
 print("Unrolled OPENQASM to QX basis")
@@ -181,8 +179,7 @@ for key, val in C_mapped.count_ops().items():
 ######################################################################
 u = unroll.Unroller(Qasm(data=C_mapped.qasm(qeflag=True)).parse(),
                     unroll.CircuitBackend(["u1", "u2", "u3", "cx", "id"]))
-u.execute()
-C_mapped_unrolled = u.backend.circuit
+C_mapped_unrolled = u.execute()
 C_directions = mapper.direction_mapper(C_mapped_unrolled, coupling)
 
 print("")

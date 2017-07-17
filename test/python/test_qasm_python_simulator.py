@@ -59,8 +59,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
-        unroller.execute()
-        circuit = unroller.backend.circuit
+        circuit = unroller.execute()
         job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
         result = QasmSimulator(job).run()
         self.assertEqual(result['status'], 'DONE')
@@ -73,8 +72,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
-        unroller.execute()
-        circuit = unroller.backend.circuit
+        circuit = unroller.execute()
         job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
         result = QasmSimulator(job).run()
         expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,

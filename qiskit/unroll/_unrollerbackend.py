@@ -143,3 +143,9 @@ class UnrollerBackend(object):
         qubits is list of (regname, idx) tuples.
         """
         raise BackendException("Backend end_gate unimplemented")
+
+    def get_circuit(self):
+        """Returns the generated circuit.
+        It must be called once the Qasm parsing has finished
+        """
+        raise BackendException("Backend get_circuit unimplemented")

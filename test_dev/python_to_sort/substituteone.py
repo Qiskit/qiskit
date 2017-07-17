@@ -27,8 +27,7 @@ def build_circuit(fname, basis):
     """Return a circuit given a QASM file."""
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
-    u.execute()
-    return u.backend.circuit
+    return u.execute()
 
 
 if len(sys.argv) < 3:

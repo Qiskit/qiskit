@@ -253,3 +253,7 @@ class PrinterBackend(UnrollerBackend):
         if self.listen and self.comments:
             print("// end %s, %s, %s" % (name, list(map(self._fs, args)),
                                          qubits))
+
+    def get_circuit(self):
+        """Returns the generated circuit."""
+        return self.circuit

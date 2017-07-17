@@ -22,8 +22,7 @@ def build_circuit(fname):
     """Build circuit."""
     ast = Qasm(filename=fname).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
-    u.execute()
-    return u.backend.circuit
+    return u.execute()
 
 
 if len(sys.argv) < 3:
