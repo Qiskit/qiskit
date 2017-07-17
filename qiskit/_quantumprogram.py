@@ -443,7 +443,9 @@ class QuantumProgram(object):
 
         unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
                                            unroll.CircuitBackend(basis_gates.split(",")))
-        circuit_unrolled = unrolled_circuit.execute()
+        unrolled_circuit.execute()
+
+        circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
@@ -605,7 +607,8 @@ class QuantumProgram(object):
                     # this will get pushed into the compiler when online supports json
                     basis_gates = []  # unroll to base gates
                     unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(),unroll.JsonBackend(basis_gates))
-                    json_circuit = unroller.execute()
+                    unroller.execute()
+                    json_circuit = unroller.backend.circuit
                     # converts qasm circuit to json circuit
                     jobs.append({"compiled_circuit": json_circuit,
                                  "shots": job["shots"],

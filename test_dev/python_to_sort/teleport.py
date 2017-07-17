@@ -58,7 +58,8 @@ print(qc.qasm())
 
 u = unroll.Unroller(Qasm(data=qc.qasm()).parse(),
                     unroll.CircuitBackend(["u1", "u2", "u3", "cx"]))
-C = u.execute()  # returns the circuit directed graph object
+u.execute()
+C = u.backend.circuit  # circuit directed graph object
 
 print("")
 print("size    = %d" % C.size())

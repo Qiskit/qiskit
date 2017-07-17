@@ -28,7 +28,8 @@ def make_unrolled_circuit(qasm, basis):
     """
     ast = Qasm(data=qasm).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis))
-    return u.execute()
+    u.execute()
+    return u.be.C
 
 
 # Register names to use for state tomography subcircuits

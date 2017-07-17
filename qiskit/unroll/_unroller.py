@@ -337,6 +337,5 @@ class Unroller(object):
         """Interpret OPENQASM and make appropriate backend calls."""
         if self.backend is not None:
             self._process_node(self.ast)
-            return self.backend.get_circuit()
         else:
             raise UnrollerException("backend not attached")

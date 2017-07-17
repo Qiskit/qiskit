@@ -228,7 +228,3 @@ class OneRegisterBackend(UnrollerBackend):
         if name == self.in_gate:
             self.in_gate = ""
             self.listen = True
-
-    def get_circuit(self):
-        """Returns the generated circuit."""
-        return self.circuit

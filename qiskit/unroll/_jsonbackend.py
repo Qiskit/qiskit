@@ -47,7 +47,6 @@ The input is a AST and a basis set and returns a json memory object
 """
 from qiskit.unroll import BackendException
 from qiskit.unroll import UnrollerBackend
-import json
 
 
 class JsonBackend(UnrollerBackend):
@@ -282,17 +281,3 @@ class JsonBackend(UnrollerBackend):
         if name == self.in_gate:
             self.in_gate = ""
             self.listen = True
-
-    def get_circuit(self):
-        """Returns the generated circuit.
-        It must be called once the qasm parser has finished.
-        """
-        assert self._is_circuit_valid(), "Invalid circuit! " \
-            "Has the Qasm parsing been called?. e.g: unroller.execute()"
-        # Convert simple quotes from the json strings to double quotes.
-        return json.dumps(self.circuit).encode()
-
-    def _is_circuit_valid(self):
-        """Checks whether the circuit object is a valid one or not."""
-        return len(self.circuit['header']) > 0 \
-               and len(self.circuit['operations']) > 0

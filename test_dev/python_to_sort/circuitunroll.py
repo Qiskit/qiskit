@@ -36,7 +36,8 @@ print("-----------------------------------------")
 
 basis = ["u1", "u2", "u3", "cx"]
 unroller = unroll.Unroller(ast, unroll.CircuitBackend(basis))
-C = unroller.execute()
+unroller.execute()
+C = unroller.backend.circuit
 
 print("QASM source output from the circuit graph")
 print("-----------------------------------------")

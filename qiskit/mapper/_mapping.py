@@ -203,7 +203,8 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                    "cx_flipped q[0],q[1];\n"
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
                         unroll.CircuitBackend(["cx", "h"]))
-    flipped_cx_circuit = u.execute()
+    u.execute()
+    flipped_cx_circuit = u.backend.circuit
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
@@ -383,7 +384,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
-    return u.execute(), initial_layout
+    u.execute()
+    return u.backend.circuit, initial_layout
 
 
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
@@ -548,7 +550,8 @@ def optimize_1q_gates(circuit):
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
                            unroll.CircuitBackend(qx_basis))
-    unrolled = urlr.execute()
+    urlr.execute()
+    unrolled = urlr.backend.circuit
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

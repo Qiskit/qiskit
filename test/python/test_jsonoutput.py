@@ -38,5 +38,5 @@ qp.load_qasm("example", qasm_file=filename)
 basis_gates = []  # unroll to base gates, change to test
 unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                            unroll.JsonBackend(basis_gates))
-circuit = unroller.execute()
-print(circuit)
+unroller.execute()
+print(unroller.backend.circuit)
