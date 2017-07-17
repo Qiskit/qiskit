@@ -95,13 +95,21 @@ from ._simulatortools import enlarge_single_opt, enlarge_two_opt
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+__configuration = {"name": "local_unitary_simulator",
+                   "url": "https://github.com/IBM/qiskit-sdk-py",
+                   "simulator": True,
+                   "description": "A cpp simulator for qasm files",
+                   "nQubits": 10,
+                   "couplingMap": "all-to-all",
+                   "gateset": "SU2+CNOT"}
+
 
 class UnitarySimulator(object):
     """Python implementation of a unitary simulator."""
 
-    def __init__(self, compiled_circuit):
+    def __init__(self, job):
         """Initial the UnitarySimulator object."""
-        self.circuit = compiled_circuit
+        self.circuit = job['compiled_circuit']
         self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self.result = {}
         self.result = {}

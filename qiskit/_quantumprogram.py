@@ -22,6 +22,7 @@ Authors: Andrew Cross
          Jay M. Gambetta <jay.gambetta@us.ibm.com>
          Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
+         Erick Winston <ewinston@us.ibm.com>
 """
 # pylint: disable=line-too-long
 
@@ -55,7 +56,9 @@ class QuantumProgram(object):
 
      Class internal properties """
 
-    __LOCAL_BACKENDS = ["local_unitary_simulator", "local_qasm_simulator", "local_qasm_cpp_simulator"]
+    # populate these in __init__()
+    __ONLINE_BACKENDS = []
+    __LOCAL_BACKENDS = []
 
     __quantum_program = {}
     __api = {}
@@ -119,8 +122,9 @@ class QuantumProgram(object):
         self.__init_circuit = None
         self.__last_backend = ""
         self.__to_execute = {}
+        self.__ONLINE_BACKENDS = []
+        self.__LOCAL_BACKENDS = self.local_backends()
         self.mapper = mapper
-
         if specs:
             self.__init_specs(specs)
 
@@ -132,10 +136,10 @@ class QuantumProgram(object):
     def _setup_api(self, token, url, verify=True):
         try:
             self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+            self.__ONLINE_BACKENDS = self.online_backends()
             return True
-        except BaseException:
-            print('---- Error: Exception connect to servers ----')
-
+        except Exception as err:
+            print('ERROR in _quantumprogram._setup_api:', err)
             return False
 
     def set_api(self, token=None, url=None, verify=True):
@@ -163,23 +167,62 @@ class QuantumProgram(object):
         return self.__api
 
     def online_backends(self):
-        # TODO: we would like API to use "backend"s instead of "device"s
-        if not self.__api:
-            return []
+
+        """
+        Queries network API if it exists. 
+
+        Returns
+        -------
+        List of online backends if the online api has been set or an empty 
+        list of it has not been set.
+        """
+        if self.get_api():
+            return [backend['name'] for backend in self.__api.available_backends() ]
         else:
-            return [backend['name'] for backend in self.__api.available_devices() ]
+            return []
+
+    def online_simulators(self):
+        """
+        Gets online simulators via QX API calls.
+        
+        Returns
+        -------
+        List of online simulator names.
+        """
+        simulators = []
+        if self.get_api():
+            for backend in self.__api.available_backends():
+                if backend['simulator']:
+                    simulators.append(backend['name'])
+        return simulators
+
+    def online_devices(self):
+        """
+        Gets online devices via QX API calls
+        """
+        devices = []
+        if self.get_api():
+            for backend in self.__api.available_backends():
+                if not backend['simulator']:
+                    backend.append(backend['name'])
+        return devices
+    
+    def local_backends(self):
+        """
+        Get the local backends. 
+        """
+        return simulators._localsimulator.local_backends()
 
     def available_backends(self):
-        return self.online_backends() + self.__LOCAL_BACKENDS
+        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
 
     def get_backend_status(self, backend):
         """Return the online backend status via QX API call or by local
         backend is the name of the local or online simulator or experiment
         """
 
-        if backend in self.online_backends():
-            # TODO: we would like API to use "backend" instead of "device"
-            return self.__api.device_status(backend)
+        if backend in self.__ONLINE_BACKENDS:
+            return self.__api.backend_status(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'available': True}
         else:
@@ -187,6 +230,9 @@ class QuantumProgram(object):
 
     def get_backend_configuration(self, backend):
         "Return the configuration of the backend"
+        for test_backend in self.__api.available_backends():
+            if test_backend['name'] == backend:
+                return test_backend
         for test_backend in simulators.local_configuration:
             if test_backend['name'] == backend:
                 return test_backend
@@ -204,9 +250,9 @@ class QuantumProgram(object):
         backend is the name of the experiment
         """
 
-        if backend in self.online_backends():
-            # TODO: we would like API to use "backend" instead of "device"
-            return self.__api.device_calibration(backend)
+        if backend in self.__ONLINE_BACKENDS:
+            # TODO: we would like API to use "backend" instead of "backend"
+            return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'calibrations': 'NA'}
         else:
@@ -217,9 +263,9 @@ class QuantumProgram(object):
         backend is the name of the experiment
         """
 
-        if backend in self.online_backends():
-            # TODO: we would like API to use "backend" instead of "device"
-            return self.__api.device_parameters(backend)
+        if backend in self.__ONLINE_BACKENDS:
+            # TODO: we would like API to use "backend" instead of "backend"
+            return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'parameters': 'NA'}
         else:
@@ -519,7 +565,7 @@ class QuantumProgram(object):
         """
         for backend in self.__to_execute:
             self.__last_backend = backend
-            if backend in self.online_backends():
+            if backend in self.__ONLINE_BACKENDS:
                 last_shots = -1
                 last_max_credits = -1
                 jobs = []
