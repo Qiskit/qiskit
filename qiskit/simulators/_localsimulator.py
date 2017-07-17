@@ -100,7 +100,8 @@ def local_backends():
         try:
             sim = backend(job)
         except FileNotFoundError as fnferr:
-            print(fnferr)
+            pass
+            #print('{0} not found in path'.format(str(fnferr)))
         else:
             backend_list.append(backend_id)
     return backend_list
