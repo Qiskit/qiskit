@@ -229,21 +229,31 @@ class QuantumProgram(object):
             return {"status": "Error", "result": "This backend doesn't exist"}
 
     def get_backend_configuration(self, backend):
-        "Return the configuration of the backend"
-        for test_backend in self.__api.available_backends():
-            if test_backend['name'] == backend:
-                return test_backend
-        for test_backend in simulators.local_configuration:
-            if test_backend['name'] == backend:
-                return test_backend
-        if not self.__api:
-            return {"status": "Error", "result": "This backend doesn't exist or you dont have connection"}
-        else:
-            for test_backend in self.__api.available_backends():
-                if test_backend['name'] == backend:
-                    return test_backend
-        return {"status": "Error", "result": "This backend doesn't exist"}
+        """Return the configuration of the backend.
+        
+        Parameters
+        ----------
+        backend : str
+           Name of the backend.
 
+        Returns
+        -------
+        The configuration of the named backend.
+
+        Raises
+        ------
+        If a configuration for the named backend can't be found
+        raise a LookupError.
+        """
+        if self.get_api():
+            for configuration in self.__api.available_backends():
+                if configuration['name'] == backend:
+                    return configuration
+        for configuration in simulators.local_configuration:
+            if configuration['name'] == backend:
+                return configuration
+        raise LookupError(
+            'backend configuration for "{0}" not found'.format(backend))
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations via QX API call
@@ -251,12 +261,12 @@ class QuantumProgram(object):
         """
 
         if backend in self.__ONLINE_BACKENDS:
-            # TODO: we would like API to use "backend" instead of "backend"
             return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'calibrations': 'NA'}
         else:
-            return {"status": "Error", "result": "This backend doesn't exist"}
+            raise LookupError(
+                'backend calibration for "{0}" not found'.format(backend))
 
     def get_backend_parameters(self, backend):
         """Return the online backend parameters via QX API call
@@ -264,7 +274,6 @@ class QuantumProgram(object):
         """
 
         if backend in self.__ONLINE_BACKENDS:
-            # TODO: we would like API to use "backend" instead of "backend"
             return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'parameters': 'NA'}

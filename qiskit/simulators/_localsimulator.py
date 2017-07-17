@@ -74,7 +74,7 @@ def local_backends():
     Mostly we are concerned about checking for whether the simulator executable
     associated with the discovered backend module exists. Discovery is done
     by instantiating the simulator object which should raise a
-    FileNotFoundError is the program has not been compiled and placed in
+    FileNotFoundError if the program has not been compiled and placed in
     the executable path.
 
     Returns

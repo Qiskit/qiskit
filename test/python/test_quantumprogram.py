@@ -569,6 +569,14 @@ class TestQuantumProgram(unittest.TestCase):
         for backend in backend_list:
             qp.get_backend_configuration(backend)
 
+    def test_get_backend_configuration_fail(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        backend = 'fail'
+        self.assertRaises(LookupError,
+                          qp.get_backend_configuration,
+                          backend)
+            
     def test_backend_calibration(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         
