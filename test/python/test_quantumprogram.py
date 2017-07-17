@@ -562,6 +562,12 @@ class TestQuantumProgram(unittest.TestCase):
         result = QP_program.get_backend_status(backend)
         self.assertIn(result['available'], [True,False])
 
+    def test_get_backend_configuration(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        backend_list = qp.available_backends()
+        for backend in backend_list:
+            qp.get_backend_configuration(backend)
 
     def test_backend_calibration(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)

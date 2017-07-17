@@ -204,7 +204,7 @@ class QuantumProgram(object):
         if self.get_api():
             for backend in self.__api.available_backends():
                 if not backend['simulator']:
-                    backend.append(backend['name'])
+                    devices.append(backend['name'])
         return devices
     
     def local_backends(self):
