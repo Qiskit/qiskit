@@ -164,7 +164,10 @@ class QuantumProgram(object):
 
     def online_backends(self):
         # TODO: we would like API to use "backend"s instead of "device"s
-        return [backend['name'] for backend in self.__api.available_devices() ]
+        if not self.__api:
+            return []
+        else:
+            return [backend['name'] for backend in self.__api.available_devices() ]
 
     def available_backends(self):
         return self.online_backends() + self.__LOCAL_BACKENDS
@@ -184,12 +187,15 @@ class QuantumProgram(object):
 
     def get_backend_configuration(self, backend):
         "Return the configuration of the backend"
-        for test_backend in self.__api.available_devices():
-            if test_backend['name'] == backend:
-                return test_backend
         for test_backend in simulators.local_configuration:
             if test_backend['name'] == backend:
                 return test_backend
+        if not self.__api:
+            return {"status": "Error", "result": "This backend doesn't exist or you dont have connection"}
+        else:
+            for test_backend in self.__api.available_devices():
+                if test_backend['name'] == backend:
+                    return test_backend
         return {"status": "Error", "result": "This backend doesn't exist"}
 
 

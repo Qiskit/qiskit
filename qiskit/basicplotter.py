@@ -26,14 +26,14 @@ import numpy as np
 from collections import Counter
 
 
-def plot_histogram(data, number_to_keep=None):
+def plot_histogram(data, number_to_keep=False):
     """Plot a histogram of data.
 
     data is a dictionary of  {'000': 5, '010': 113, ...}
     number_to_keep is the number of terms to plot and rest is made into a
     single bar called other values
     """
-    if number_to_keep is not None:
+    if number_to_keep is not False:
         data_temp = dict(Counter(data).most_common(number_to_keep))
         data_temp["rest"] = sum(data.values()) - sum(data_temp.values())
         data = data_temp
