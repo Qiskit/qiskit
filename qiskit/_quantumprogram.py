@@ -239,7 +239,7 @@ class QuantumProgram(object):
         if not self.__api:
             return {"status": "Error", "result": "This backend doesn't exist or you dont have connection"}
         else:
-            for test_backend in self.__api.available_devices():
+            for test_backend in self.__api.available_backends():
                 if test_backend['name'] == backend:
                     return test_backend
         return {"status": "Error", "result": "This backend doesn't exist"}
