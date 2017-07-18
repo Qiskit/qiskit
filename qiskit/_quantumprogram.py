@@ -78,6 +78,7 @@ class QuantumProgram(object):
                         "coupling_map": --adjacency list (dict)--,
                         "basis_gates": --comma separated gate names (string)--,
                         "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
+                        "layout": --layout computed by mapper (dict)--,
                         "shots": --shots (int)--,
                         "max_credits": --credits (int)--,
                         "result": {
@@ -475,6 +476,7 @@ class QuantumProgram(object):
                     "coupling_map": --adjacency list (dict)--,
                     "basis_gates": --comma separated gate names (string)--,
                     "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
+                    "layout": --layout computed by mapper (dict)--,
                     "shots": --shots (int)--,
                     "max_credits": --credits (int)--
                     "seed": --initial seed for the simulator (int) --
@@ -492,13 +494,15 @@ class QuantumProgram(object):
 
             # TODO: The circuit object has to have .qasm() method (be careful)
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
+            final_layout = None
             if coupling_map:
                 print("pre-mapping properties: %s"
                       % dag_unrolled.property_summary())
                 # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
+                # TODO: modify to pass in optional initial layout
                 dag_unrolled, final_layout = self.mapper.swap_mapper(
-                    dag_unrolled, coupling)
+                    dag_unrolled, coupling, verbose=False)
                 print("layout: %s" % final_layout)
                 # Expand swaps
                 qasm_compiled, dag_unrolled = self.unroller_code(
@@ -520,6 +524,7 @@ class QuantumProgram(object):
             job = {}
             job["name"] = name
             job["coupling_map"] = coupling_map
+            job["layout"] = final_layout
             job["basis_gates"] = basis_gates
             job["shots"] = shots
             job["max_credits"] = max_credits
@@ -545,6 +550,18 @@ class QuantumProgram(object):
             return self.__quantum_program["circuits"][name]["execution"][backend]["compiled_circuit"]
         except KeyError:
             return "No compiled qasm for this circuit"
+
+    def get_compiled_layout(self, name, backend=None):
+        """Get the compiled layout for the named circuit and backend.
+
+        If backend is None, it defaults to the last backend.
+        """
+        if not backend:
+            backend = self.__last_backend
+        try:
+            return self.__quantum_program["circuits"][name]["execution"][backend]["layout"]
+        except KeyError:
+            return "No compiled layout for this circuit"
 
     def print_execution_list(self, verbose=False):
         """Print the compiled circuits that are ready to run.
@@ -647,7 +664,7 @@ class QuantumProgram(object):
                 if backend not in self.__quantum_program["circuits"][name]["execution"]:
                     self.__quantum_program["circuits"][name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
-                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed"]:
+                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed", "layout"]:
                     self.__quantum_program["circuits"][name]["execution"][backend][field] = job[field]
                 self.__quantum_program["circuits"][name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
                 self.__quantum_program["circuits"][name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
