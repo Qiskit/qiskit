@@ -170,11 +170,11 @@ class QuantumProgram(object):
     def online_backends(self):
 
         """
-        Queries network API if it exists. 
+        Queries network API if it exists.
 
         Returns
         -------
-        List of online backends if the online api has been set or an empty 
+        List of online backends if the online api has been set or an empty
         list of it has not been set.
         """
         if self.get_api():
@@ -185,7 +185,7 @@ class QuantumProgram(object):
     def online_simulators(self):
         """
         Gets online simulators via QX API calls.
-        
+
         Returns
         -------
         List of online simulator names.
@@ -207,10 +207,10 @@ class QuantumProgram(object):
                 if not backend['simulator']:
                     devices.append(backend['name'])
         return devices
-    
+
     def local_backends(self):
         """
-        Get the local backends. 
+        Get the local backends.
         """
         return simulators._localsimulator.local_backends()
 
@@ -231,7 +231,7 @@ class QuantumProgram(object):
 
     def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
-        
+
         Parameters
         ----------
         backend : str
@@ -769,7 +769,10 @@ class QuantumProgram(object):
         name is the name or index of one circuit."""
         if not backend:
             backend = self.__last_backend
-        return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']
+        if name in self.__quantum_program["circuits"]:
+            return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']
+        else:
+            return {"status": "Error", "result": 'Circuit not found'}
 
     def get_counts(self, name, backend=None):
         """Get the dict of labels and counts from the output of get_job.
