@@ -208,24 +208,23 @@ def pauli_group(numberofqubits, case=0):
         print('please set the number of qubits to less than 5')
         return -1
 
-def pauli_singles(numberofqubits):
-    """Return the weight 1 Paulis."""
+def pauli_singles(jindex, numberofqubits):
+    """Return the single qubit pauli in numberofqubits."""
     # looping over all the qubits
     tempset =[]
-    for jindex in range(numberofqubits):
-        v = np.zeros(numberofqubits)
-        w = np.zeros(numberofqubits)
-        v[jindex] = 0
-        w[jindex] = 1
-        tempset.append(Pauli(v, w))
-        v = np.zeros(numberofqubits)
-        w = np.zeros(numberofqubits)
-        v[jindex] = 1
-        w[jindex] = 1
-        tempset.append(Pauli(v, w))
-        v = np.zeros(numberofqubits)
-        w = np.zeros(numberofqubits)
-        v[jindex] = 1
-        w[jindex] = 0
-        tempset.append(Pauli(v, w))
+    v = np.zeros(numberofqubits)
+    w = np.zeros(numberofqubits)
+    v[jindex] = 0
+    w[jindex] = 1
+    tempset.append(Pauli(v, w))
+    v = np.zeros(numberofqubits)
+    w = np.zeros(numberofqubits)
+    v[jindex] = 1
+    w[jindex] = 1
+    tempset.append(Pauli(v, w))
+    v = np.zeros(numberofqubits)
+    w = np.zeros(numberofqubits)
+    v[jindex] = 1
+    w[jindex] = 0
+    tempset.append(Pauli(v, w))
     return tempset
