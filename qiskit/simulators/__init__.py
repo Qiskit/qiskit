@@ -1,3 +1,2 @@
-from ._qasmsimulator import QasmSimulator
-from ._unitarysimulator import UnitarySimulator
-from ._localsimulator import LocalSimulator
+# just one import. _localsimulator takes care of the rest.
+from ._localsimulator import *

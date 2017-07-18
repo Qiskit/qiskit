@@ -99,6 +99,13 @@ from collections import Counter
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+__configuration ={"name": "local_qasm_simulator",
+                  "url": "https://github.com/IBM/qiskit-sdk-py",
+                  "simulator": True,
+                  "description": "A python simulator for qasm files",
+                  "nQubits": 10,
+                  "couplingMap": "all-to-all",
+                  "gateset": "SU2+CNOT"}
 
 class QasmSimulator(object):
     """Python implementation of a qasm simulator."""
@@ -142,17 +149,17 @@ class QasmSimulator(object):
             retval = QasmSimulator._index1(b1, i1, retval)
         return retval
 
-    def __init__(self, compiled_circuit, shots, seed=random.random()):
+    def __init__(self, job):
         """Initialize the QasmSimulator object."""
-        self.circuit = compiled_circuit
+        self.circuit = job['compiled_circuit']
         self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self._number_of_cbits = self.circuit['header']['number_of_clbits']
         self.result = {}
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
-        self._shots = shots
-        random.seed(seed)
+        self._shots = job['shots']
+        random.seed(job['seed'])
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):

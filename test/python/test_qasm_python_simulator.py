@@ -61,7 +61,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                       unroll.JsonBackend(basis_gates))
         unroller.execute()
         circuit = unroller.backend.circuit
-        result = QasmSimulator(circuit, shots, self.seed).run()
+        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        result = QasmSimulator(job).run()
         self.assertEqual(result['status'], 'DONE')
 
     def test_qasm_simulator(self):
@@ -74,7 +75,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                       unroll.JsonBackend(basis_gates))
         unroller.execute()
         circuit = unroller.backend.circuit
-        result = QasmSimulator(circuit, shots, self.seed).run()
+        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        result = QasmSimulator(job).run()
         expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,
                     '000000': 131, '010010': 141, '110110': 116, '001001': 124}
         self.assertEqual(result['data']['counts'], expected)
@@ -106,7 +108,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         self.qp = randomCircuits.getProgram()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        device='local_qasm_simulator',
+                        backend='local_qasm_simulator',
                         shots=shots)
         pr.disable()
         sout = io.StringIO()
@@ -131,20 +133,20 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         shots = 1024
         seed = 88
         maxTime = 30 # seconds; timing stops when simulation time exceeds this number
-        fmtStr1 = 'profile_nqubit_speed::nqubits:{0}, device:{1}, elapsed_time:{2:.2f}'
-        fmtStr2 = 'device:{0}, circuit:{1}, numOps:{2}, result:{3}'
+        fmtStr1 = 'profile_nqubit_speed::nqubits:{0}, backend:{1}, elapsed_time:{2:.2f}'
+        fmtStr2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
         fmtStr3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits}, shots={shots}'        
-        deviceList = ['local_qasm_simulator', 'local_unitary_simulator']
+        backendList = ['local_qasm_simulator', 'local_unitary_simulator']
         if shutil.which('qasm_simulator'):
-            deviceList.append('local_qasm_cpp_simulator')
+            backendList.append('local_qasm_cpp_simulator')
         else:
             logging.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
         fig = plt.figure(0)
         plt.clf()
         ax = fig.add_axes((0.1, 0.25, 0.8, 0.6))        
-        for i, device in enumerate(deviceList):
+        for i, backend in enumerate(backendList):
             elapsedTime = np.zeros(len(nQubitList))
-            if device is 'local_unitary_simulator':
+            if backend is 'local_unitary_simulator':
                 doMeasure = False
             else:
                 doMeasure = True
@@ -159,25 +161,25 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 randomCircuits.add_circuits(nCircuits, doMeasure=doMeasure)
                 qp = randomCircuits.getProgram()
                 cnames = qp.get_circuit_names()
-                qp.compile(cnames, device=device, shots=shots, seed=seed)
+                qp.compile(cnames, backend=backend, shots=shots, seed=seed)
                 start = time.perf_counter()
                 qp.run()
                 stop = time.perf_counter()
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
                     timedOut = True
-                logging.info(fmtStr1.format(nQubits, device, elapsedTime[j]))
-                if device is not 'local_unitary_simulator':                
+                logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
+                if backend is not 'local_unitary_simulator':                
                     for name in cnames:
                         logging.info(fmtStr2.format(
-                            device, name, len(qp.get_circuit(name)),
+                            backend, name, len(qp.get_circuit(name)),
                             qp.get_result(name)))
                 j += 1
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            if device is 'local_unitary_simulator':
-                ax.plot(nQubitList[:j], elapsedTime[:j], label=device, marker='o')
+            if backend is 'local_unitary_simulator':
+                ax.plot(nQubitList[:j], elapsedTime[:j], label=backend, marker='o')
             else:
-                ax.plot(nQubitList[:j], elapsedTime[:j]/shots, label=device,
+                ax.plot(nQubitList[:j], elapsedTime[:j]/shots, label=backend,
                         marker='o')
             ax.set_yscale('log', basey=10)
             ax.set_xlabel('number of qubits')
@@ -204,20 +206,20 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         shots = 1024
         seed = 88
         maxTime = 30 # seconds; timing stops when simulation time exceeds this number
-        fmtStr1 = 'profile_nqubit_speed::nqubits:{0}, device:{1}, elapsed_time:{2:.2f}'
-        fmtStr2 = 'device:{0}, circuit:{1}, numOps:{2}, result:{3}'
+        fmtStr1 = 'profile_nqubit_speed::nqubits:{0}, backend:{1}, elapsed_time:{2:.2f}'
+        fmtStr2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
         fmtStr3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits}, shots={shots}'
-        deviceList = ['local_qasm_simulator', 'local_unitary_simulator']
+        backendList = ['local_qasm_simulator', 'local_unitary_simulator']
         if shutil.which('qasm_simulator'):
-            deviceList.append('local_qasm_cpp_simulator')
+            backendList.append('local_qasm_cpp_simulator')
         else:
             logging.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
         fig = plt.figure(0)
         plt.clf()
         ax = fig.add_axes((0.1, 0.2, 0.8, 0.6))
-        for i, device in enumerate(deviceList):
+        for i, backend in enumerate(backendList):
             elapsedTime = np.zeros(len(nQubitList))
-            if device is 'local_unitary_simulator':
+            if backend is 'local_unitary_simulator':
                 doMeasure = False
             else:
                 doMeasure = True
@@ -232,25 +234,25 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 randomCircuits.add_circuits(nCircuits, doMeasure=doMeasure)
                 qp = randomCircuits.getProgram()
                 cnames = qp.get_circuit_names()
-                qp.compile(cnames, device=device, shots=shots, seed=seed)
+                qp.compile(cnames, backend=backend, shots=shots, seed=seed)
                 start = time.perf_counter()
                 qp.run()
                 stop = time.perf_counter()
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
                     timedOut = True
-                logging.info(fmtStr1.format(nQubits, device, elapsedTime[j]))
-                if device is not 'local_unitary_simulator':                
+                logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
+                if backend is not 'local_unitary_simulator':                
                     for name in cnames:
                         logging.info(fmtStr2.format(
-                            device, name, len(qp.get_circuit(name)),
+                            backend, name, len(qp.get_circuit(name)),
                             qp.get_result(name)))
                 j += 1
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            if device is 'local_unitary_simulator':
-                ax.plot(nQubitList[:j], elapsedTime[:j], label=device, marker='o')
+            if backend is 'local_unitary_simulator':
+                ax.plot(nQubitList[:j], elapsedTime[:j], label=backend, marker='o')
             else:
-                ax.plot(nQubitList[:j], elapsedTime[:j]/shots, label=device,
+                ax.plot(nQubitList[:j], elapsedTime[:j]/shots, label=backend,
                         marker='o')
             ax.set_yscale('log', basey=10)
             ax.set_xlabel('number of qubits')

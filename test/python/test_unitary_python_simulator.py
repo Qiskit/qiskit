@@ -54,6 +54,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
+        job = {'compiled_circuit': circuit}
         # numpy savetxt is currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -61,7 +62,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         expected = np.loadtxt(os.path.join(self.modulePath,
                                            'example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
-        result = UnitarySimulator(circuit).run()
+        result = UnitarySimulator(job).run()
         self.assertTrue(np.allclose(result['data']['unitary'], expected,
                                     rtol=1e-3))
 
@@ -86,7 +87,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         self.qp = randomCircuits.getProgram()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        device='local_unitary_simulator')
+                        backend='local_unitary_simulator')
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')

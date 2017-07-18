@@ -319,7 +319,7 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
 
 
 
-def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001,):
+def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001):
 
     """
     This function takes in a mapped fermionic Hamiltonian with an even number of modes n, obtained with the parity (for every even n) or binary-tree mapping (in case the number of modes is a power of 2, n=2^k, k integer) and removes two qubits at positions n/2,n according to the total number of particles m.

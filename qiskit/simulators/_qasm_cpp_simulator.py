@@ -1,5 +1,6 @@
 import numpy as np
 import subprocess
+<<<<<<< HEAD
 from subprocess import PIPE
 import json
 
@@ -7,6 +8,23 @@ class QasmCppSimulator:
     def __init__(self, compiled_circuit, shots=1024, seed=None, threads=1,
                  config=None, exe='./qasm_simulator'):
         self.circuit = {'qasm': compiled_circuit}
+=======
+from subprocess import PIPE, CalledProcessError
+import json
+
+__configuration = {"name": "local_qasm_cpp_simulator",
+                   "url": "https://github.com/IBM/qiskit-sdk-py",
+                   "simulator": True,
+                   "description": "A python simulator for qasm files",
+                   "nQubits": 10,
+                   "couplingMap": "all-to-all",
+                   "gateset": "SU2+CNOT"}
+
+class QasmCppSimulator:
+    def __init__(self, job, threads=1,
+                 config=None, exe='qasm_simulator'):
+        self.circuit = {'qasm': job['compiled_circuit']}
+>>>>>>> IBMQuantum/Dev
         if config:
             self.circuit['config'] = config
         self.siminput = {'qasm': self.circuit}
@@ -16,13 +34,35 @@ class QasmCppSimulator:
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
-        self._shots = shots
-        self._seed = seed
+        self._shots = job['shots']
+        self._seed = job['seed']
         self._threads = threads
         self._number_of_operations = len(self.circuit['qasm']['operations'])
+<<<<<<< HEAD
         self._exe = exe
 
         
+=======
+        # This assumes we are getting a quick return help message.
+        # so _localsimulator can quickly determine whether the compiled
+        # simulator is available.
+        try:
+            output = subprocess.check_output([exe], stderr=subprocess.STDOUT)
+        except CalledProcessError:
+            pass
+        except FileNotFoundError:
+            try:
+                output = subprocess.check_output(['./'+exe],
+                                                 stderr=subprocess.STDOUT)
+            except CalledProcessError:
+                pass
+            except FileNotFoundError:
+                cmd = '"{0}" or "{1}" '.format(exe, './'+exe)
+                raise FileNotFoundError(cmd)
+                
+                
+
+>>>>>>> IBMQuantum/Dev
     def run(self):
         cmdFmt = self._exe + ' -i - -c - -f qiskit -n {shots:d} -t {threads}'
         cmd = cmdFmt.format(shots = self._shots,
