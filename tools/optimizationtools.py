@@ -14,7 +14,7 @@ import numpy as np
 from tools.pauli import Pauli, label_to_pauli
 
 
-def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 10,last_avg=1):
+def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 1,last_avg=1):
     """Minimize the obj_fun(controls).
 
     initial_theta = the intial controls
