@@ -14,7 +14,7 @@ __configuration = {"name": "local_qasm_cpp_simulator",
 class QasmCppSimulator:
     def __init__(self, job, threads=1,
                  config=None, exe='qasm_simulator'):
-        self.circuit = {'qasm': job['compiled_circuit']}
+        self.circuit = {'qasm': json.loads(job['compiled_circuit'])}
         if config:
             self.circuit['config'] = config
         self.siminput = {'qasm': self.circuit}

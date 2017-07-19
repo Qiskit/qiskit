@@ -51,6 +51,7 @@ import pkgutil
 import importlib
 import sys
 import inspect
+import json
 
 local_configuration = []
 _simulator_classes = {}
@@ -93,7 +94,7 @@ def local_backends():
                     {'clbits': [0],
                      'name': 'measure',
                      'qubits': [0]}]}
-    job = {'compiled_circuit': circuit,
+    job = {'compiled_circuit': json.dumps(circuit).encode(),
            'shots': 1,
            'seed': None}
     for backend_id, backend in _simulator_classes.items():

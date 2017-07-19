@@ -24,6 +24,7 @@ if __name__ == '__main__':
     from _random_qasm_generator import RandomQasmGenerator
 else:
     from test.python._random_qasm_generator import RandomQasmGenerator
+import json
 
 class LocalUnitarySimulatorTest(unittest.TestCase):
     """Test local unitary simulator."""
@@ -49,12 +50,14 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
-        unroller.execute()
-        circuit = unroller.backend.circuit
+        circuit = unroller.execute()
+	# if we want to manipulate the circuit, we have to convert it to a dict
+        circuit = json.loads(circuit)
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
-        job = {'compiled_circuit': circuit}
+	# the simulator is expecting a JSON format, so we need to convert it back to JSON
+        job = {'compiled_circuit': json.dumps(circuit).encode()}
         # numpy savetxt is currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]

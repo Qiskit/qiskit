@@ -253,3 +253,8 @@ class PrinterBackend(UnrollerBackend):
         if self.listen and self.comments:
             print("// end %s, %s, %s" % (name, list(map(self._fs, args)),
                                          qubits))
+
+    def get_output(self):
+        """This backend will return nothing, as the output has been directly
+        written to screen"""
+        pass

@@ -43,8 +43,7 @@ temp = ""
 basis_gates = []  # unroll to base gates
 unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                            unroll.JsonBackend(basis_gates))
-unroller.execute()
-circuit = unroller.backend.circuit
+circuit = unroller.execute()
 
 if "unitary_simulator" in sys.argv:
     a = UnitarySimulator(circuit).run()
