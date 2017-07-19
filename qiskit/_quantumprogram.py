@@ -457,7 +457,7 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None):
+    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None, config=None):
         """Compile the name_of_circuits by names.
 
         name_of_circuits is a list of circuit names to compile.
@@ -476,8 +476,9 @@ class QuantumProgram(object):
                     "compiled_circuit": --compiled quantum circuit (currently QASM text)--,
                     "layout": --layout computed by mapper (dict)--,
                     "shots": --shots (int)--,
-                    "max_credits": --credits (int)--
-                    "seed": --initial seed for the simulator (int) --
+                    "max_credits": --credits (int)--,
+                    "seed": --initial seed for the simulator (int)--,
+                    "config": --dictionary of additional config settings (dict)--
                 },
                 ...
             ]
@@ -526,6 +527,9 @@ class QuantumProgram(object):
             job["basis_gates"] = basis_gates
             job["shots"] = shots
             job["max_credits"] = max_credits
+            if config is None:
+                config = {}  # default to empty config dict
+            job["config"] = config
             # TODO: This will become a new compiled circuit object in the
             #       future. See future improvements at the top of this
             #       file.
@@ -629,13 +633,17 @@ class QuantumProgram(object):
                 jobs = []
                 for job in self.__to_execute[backend]:
                     # this will get pushed into the compiler when online supports json
-                    basis_gates = []  # unroll to base gates
-                    unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(),unroll.JsonBackend(basis_gates))
+                    if job['basis_gates']:
+                        basis_gates = job['basis_gates'].split(',')
+                    else:
+                        basis_gates = []
+                    unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(), unroll.JsonBackend(basis_gates))
                     json_circuit = unroller.execute()
                     # converts qasm circuit to json circuit
                     jobs.append({"compiled_circuit": json_circuit,
                                  "shots": job["shots"],
-                                 "seed": job["seed"]})
+                                 "seed": job["seed"],
+                                 "config": job["config"]})
                 if not silent:
                     print("running on backend: %s" % (backend))
                 if backend in self.__LOCAL_BACKENDS:
@@ -732,7 +740,7 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator", shots=1024,
-                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, seed=None):
+                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, seed=None, config=None):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api is the api for the backend
@@ -742,7 +750,7 @@ class QuantumProgram(object):
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         self.compile(name_of_circuits, backend, shots, max_credits,
-                     basis_gates, coupling_map, seed)
+                     basis_gates, coupling_map, seed, config)
         output = self.run(wait, timeout, silent=silent)
         return output
 
