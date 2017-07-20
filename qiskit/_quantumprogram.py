@@ -575,7 +575,7 @@ class QuantumProgram(object):
             print("status = %s (%d seconds)" % (job['status'], timer))
             text_length = len(wait_text)
             if text_length!=0:
-                print("\n" + wait_text[text_start+wait_step] + "\n")
+                print("\n" + wait_text[(text_start+wait_step)%text_length] + "\n")
             job = self.__api.get_job(jobid)
             wait_step += 1
             job['waits'] = wait_step
