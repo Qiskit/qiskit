@@ -62,11 +62,11 @@ def plot_bloch_vector(bloch, title=""):
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[float]): array of three elements where [<x>, <y>,<z>]
+        bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
 
     Returns:
-        none: plot
+        none: plot is shown with matplotlib to the screen
 
     """
     # Set arrow lengths
@@ -118,12 +118,23 @@ def plot_bloch_vector(bloch, title=""):
                  ha='right', va='bottom')
 
     plt.title(title)
-    # plt.show()
-    return plt
+    plt.show()
 
 
-def plot_state_city(rho):
-    """Plot the cityscape of quantum state."""
+def plot_state_city(rho, title=""):
+    """Plot the cityscape of quantum state.
+
+    Plot two 3d bargraphs (two dimenstional) of the mixed state rho
+
+    Args:
+        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
+                                   numbers
+        title (str): a string that represents the plot title
+
+    Returns:
+        none: plot is shown with matplotlib to the screen
+
+    """
     num = int(np.log2(len(rho)))
 
     # get the real and imag parts of rho
@@ -174,11 +185,24 @@ def plot_state_city(rho):
     # ax2.set_xlabel('basis state', fontsize=12)
     # ax2.set_ylabel('basis state', fontsize=12)
     ax2.set_zlabel("Imag[rho]")
-    return plt
+    plt.title(title)
+    plt.show()
 
 
-def plot_state_paulivec(rho):
-    """Plot the paulivec representation of a quantum state."""
+def plot_state_paulivec(rho, title=""):
+    """Plot the paulivec representation of a quantum state.
+
+    Plot a bargraph of the mixed state rho over the pauli matricies
+
+    Args:
+        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
+                                   numbers
+        title (str): a string that represents the plot title
+
+    Returns:
+        none: plot is shown with matplotlib to the screen
+
+    """
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
     values = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
@@ -197,7 +221,9 @@ def plot_state_paulivec(rho):
     ax.set_xticklabels(labels, fontsize=12, rotation=70)
     ax.set_xlabel('Pauli', fontsize=12)
     ax.set_ylim([-1, 1])
-    return plt
+    plt.title(title)
+    plt.show()
+
 
 def n_choose_k(n, k):
     """Return the number of combinations for n choose k.
@@ -222,15 +248,14 @@ def lex_index(n, k, lst):
     """Return  the lex index of a combination..
 
     Args:
-        n (int): The first parameter.
-        k (str): The second parameter.
+        n (int): the total number of options .
+        k (int): The number of elements.
         lst
 
     Returns:
-        int: returns the binomial coefficient
+        int: returns int index for lex order
 
     """
-    """"""
     assert len(lst) == k, "list should have length k"
     comb = list(map(lambda x: n - 1 - x, lst))
     dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
@@ -382,22 +407,17 @@ def plot_state(rho, method='city'):
     num = int(np.log2(len(rho)))
     # Need updating to check its a matrix
     if method == 'city':
-        plot = plot_state_city(rho)
-        return plot
+        plot_state_city(rho)
     elif method == "paulivec":
-        plot = plot_state_paulivec(rho)
-        return plot
+        plot_state_paulivec(rho)
     elif method == "qsphere":
-        plot = plot_state_qsphere(rho)
-        return plot
+        plot_state_qsphere(rho)
     elif method == "bloch":
-        plot = []
         for i in range(num):
             bloch_state = list(map(lambda x: np.real(np.trace(
                                np.dot(x.to_matrix(), rho))),
                                pauli_singles(i, num)))
-            plot.append(plot_bloch_vector(bloch_state, "qubit " + str(i)))
-        return plot
+            plot_bloch_vector(bloch_state, "qubit " + str(i))
     else:
         print("No method given")
 
