@@ -120,7 +120,7 @@ The SDK includes tutorials in the form of Jupyter notebooks, which are essential
 * If running either Linux or Mac OS X with Xcode, simply run the following command from the QISKit SDK folder:
 
 ```sh
-make run
+make run_tutorial
 ```
 
 * If running either Windows or Mac OS X without Xcode, run the following set of commands from the QISKit SDK folder:

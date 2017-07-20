@@ -696,7 +696,7 @@ class QuantumProgram(object):
             from pprint import pformat
             raise Exception("get_job didn't return status: %s" % (pformat(job)))
         while job['status'] == 'RUNNING':
-            if timer == timeout:
+            if timer >= timeout:
                 return {"status": "Error", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
