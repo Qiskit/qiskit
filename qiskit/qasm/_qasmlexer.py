@@ -74,7 +74,8 @@ class QasmLexer(object):
         self.lexer.qasm_line = self.lineno
         self.stack.append(self.lexer)
         self.__mklexer__(filename)
-        self.data = open(filename).read()
+        with open(filename, 'r') as ifile:
+            self.data = ifile.read()
         self.lexer.input(self.data)
 
     # ---- Beginning of the PLY lexer ----

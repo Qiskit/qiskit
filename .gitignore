@@ -109,3 +109,5 @@ ENV/
 dummyscripts/*
 
 token.json
+
+tutorial/rst/_build/*

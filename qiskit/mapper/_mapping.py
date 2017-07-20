@@ -203,8 +203,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                    "cx_flipped q[0],q[1];\n"
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
                         unroll.CircuitBackend(["cx", "h"]))
-    u.execute()
-    flipped_cx_circuit = u.backend.circuit
+    flipped_cx_circuit = u.execute()
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
@@ -226,6 +225,58 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
             raise QISKitException("circuit incompatible with CouplingGraph: "
                                   + "cx on %s" % cxedge)
     return circuit_graph
+
+
+def update_qasm(i, first_layer, best_layout, best_d,
+                best_circ, circuit_graph, layer_list,
+                verbose=False):
+    """Update the QASM string for an iteration of swap_mapper.
+
+    i = layer number
+    first_layer = True if this is the first layer with multi-qubit gates
+    best_layout = layout returned from swap algorithm
+    best_d = depth returns from swap algorithm
+    best_circ = swap circuit returned from swap algorithm
+    circuit_graph = original input circuit
+    layer_list = list of circuit objects for each layer
+    verbose = set True for more print output
+
+    Return openqasm_output, the QASM string to append.
+    """
+    openqasm_output = ""
+    layout = best_layout
+
+    # If this is the first layer with multi-qubit gates,
+    # output all layers up to this point and ignore any
+    # swap gates. Set the initial layout.
+    if first_layer:
+        if verbose:
+            print("update_qasm_and_layout: first multi-qubit gate layer")
+        # Output all layers up to this point
+        openqasm_output += circuit_graph.qasm(
+            add_swap=True,
+            decls_only=True,
+            aliases=layout)
+        for j in range(i+1):
+            openqasm_output += layer_list[j]["graph"].qasm(
+                no_decls=True,
+                aliases=layout)
+    # Otherwise, we output the current layer and the associated swap gates.
+    else:
+        # Output any swaps
+        if best_d > 0:
+            if verbose:
+                print("update_qasm_and_layout: swaps in this layer, depth %d" %
+                      best_d)
+            openqasm_output += best_circ
+        else:
+            if verbose:
+                print("update_qasm_and_layout: no swaps in this layer")
+        # Output this layer
+        openqasm_output += layer_list[i]["graph"].qasm(
+            no_decls=True,
+            aliases=layout)
+    return openqasm_output
 
 
 def swap_mapper(circuit_graph, coupling_graph,
@@ -257,19 +308,21 @@ def swap_mapper(circuit_graph, coupling_graph,
         for i in range(len(layerlist)):
             print("    %d: %s" % (i, layerlist[i]["partition"]))
 
-    # Check input layout and create default layout if necessary
     if initial_layout is not None:
+        # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
         coup_qubits = coupling_graph.get_qubits()
         qubit_subset = []
         for k, v in initial_layout.values():
             qubit_subset.append(v)
             if k not in circ_qubits:
-                raise QISKitException("initial_layout qubit %s[%d] not " +
-                                      "in input Circuit" % (k[0], k[1]))
+                raise QISKitException("initial_layout qubit %s[%d] not " %
+                                      (k[0], k[1]) +
+                                      "in input Circuit")
             if v not in coup_qubits:
-                raise QISKitException("initial_layout qubit %s[%d] not " +
-                                      " in input CouplingGraph" % (v[0], v[1]))
+                raise QISKitException("initial_layout qubit %s[%d] not " %
+                                      (v[0], v[1]) +
+                                      " in input CouplingGraph")
     else:
         # Supply a default layout
         qubit_subset = coupling_graph.get_qubits()
@@ -281,111 +334,109 @@ def swap_mapper(circuit_graph, coupling_graph,
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
     first_layer = True  # True until first layer is output
-    first_swapping_layer = True  # True until first swap layer is output
+
     # Iterate over layers
-    for i in range(len(layerlist)):
+    for i, layer in enumerate(layerlist):
+
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
-            = layer_permutation(layerlist[i]["partition"], layout,
+            = layer_permutation(layer["partition"], layout,
                                 qubit_subset, coupling_graph, 20)
+        if verbose:
+            print("swap_mapper: layer %d" % i)
+            print("swap_mapper: success_flag=%s," % success_flag +
+                  "best_d=%d," % best_d +
+                  "trivial_flag=%s" % trivial_flag)
+
+        # If this layer is only single-qubit gates,
+        # and we have yet to see multi-qubit gates,
+        # continue to the next iteration
+        if trivial_flag and first_layer:
+            if verbose:
+                print("swap_mapper: skip to next layer")
+            continue
+
         # If this fails, try one gate at a time in this layer
         if not success_flag:
             if verbose:
                 print("swap_mapper: failed, layer %d, " % i,
                       " retrying sequentially")
-            serial_layerlist = layerlist[i]["graph"].serial_layers()
+            serial_layerlist = layer["graph"].serial_layers()
+
             # Go through each gate in the layer
-            for j in range(len(serial_layerlist)):
+            for j, serial_layer in enumerate(serial_layerlist):
+
                 success_flag, best_circ, best_d, best_layout, trivial_flag \
-                    = layer_permutation(serial_layerlist[j]["partition"],
+                    = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
                                         20)
+                if verbose:
+                    print("swap_mapper: layer %d, sublayer %d" % (i, j))
+                    print("swap_mapper: success_flag=%s," % success_flag +
+                          "best_d=%d," % best_d +
+                          "trivial_flag=%s" % trivial_flag)
+
                 # Give up if we fail again
                 if not success_flag:
                     raise QISKitException("swap_mapper failed: " +
                                           "layer %d, sublayer %d" % (i, j) +
                                           ", \"%s\"" %
-                                          serial_layerlist[j]["graph"].qasm(
+                                          serial_layer["graph"].qasm(
                                               no_decls=True,
                                               aliases=layout))
-                else:
-                    # Update the qubit positions each iteration
-                    layout = best_layout
-                    if best_d == 0:
-                        # Output qasm without swaps
-                        if first_layer:
-                            openqasm_output += circuit_graph.qasm(
-                                add_swap=True,
-                                decls_only=True,
-                                aliases=layout)
-                            first_layer = False
-                        if not trivial_flag and first_swapping_layer:
-                            initial_layout = layout
-                            first_swapping_layer = False
-                    else:
-                        # Output qasm with swaps
-                        if first_layer:
-                            openqasm_output += circuit_graph.qasm(
-                                add_swap=True,
-                                decls_only=True,
-                                aliases=layout)
-                            first_layer = False
-                            initial_layout = layout
-                            first_swapping_layer = False
-                        else:
-                            if not first_swapping_layer:
-                                if verbose:
-                                    print("swap_mapper: layer %d (%d), depth %d"
-                                          % (i, j, best_d))
-                                openqasm_output += best_circ
-                            else:
-                                initial_layout = layout
-                                first_swapping_layer = False
-                        openqasm_output += serial_layerlist[j]["graph"].qasm(
-                                    no_decls=True,
-                                    aliases=layout)
+
+                # If this layer is only single-qubit gates,
+                # and we have yet to see multi-qubit gates,
+                # continue to the next inner iteration
+                if trivial_flag and first_layer:
+                    if verbose:
+                        print("swap_mapper: skip to next sublayer")
+                        continue
+
+                # Update the record of qubit positions for each inner iteration
+                layout = best_layout
+                # Update the QASM
+                openqasm_output += update_qasm(j, first_layer,
+                                               best_layout, best_d,
+                                               best_circ, circuit_graph,
+                                               serial_layerlist, verbose)
+                # Update initial layout
+                if first_layer:
+                    initial_layout = layout
+                    first_layer = False
+
         else:
-            # Update the qubit positions each iteration
+            # Update the record of qubit positions for each iteration
             layout = best_layout
-            if best_d == 0:
-                # Output qasm without swaps
-                if first_layer:
-                    openqasm_output += circuit_graph.qasm(
-                                add_swap=True,
-                                decls_only=True,
-                                aliases=layout)
-                    first_layer = False
-                if not trivial_flag and first_swapping_layer:
-                    initial_layout = layout
-                    first_swapping_layer = False
-            else:
-                # Output qasm with swaps
-                if first_layer:
-                    openqasm_output += circuit_graph.qasm(
-                                add_swap=True,
-                                decls_only=True,
-                                aliases=layout)
-                    first_layer = False
-                    initial_layout = layout
-                    first_swapping_layer = False
-                else:
-                    if not first_swapping_layer:
-                        if verbose:
-                            print("swap_mapper: layer %d, depth %d"
-                                  % (i, best_d))
-                        openqasm_output += best_circ
-                    else:
-                        initial_layout = layout
-                        first_swapping_layer = False
-            openqasm_output += layerlist[i]["graph"].qasm(
-                                    no_decls=True,
-                                    aliases=layout)
+
+            # Update the QASM
+            openqasm_output += update_qasm(i, first_layer,
+                                           best_layout, best_d,
+                                           best_circ, circuit_graph,
+                                           layerlist, verbose)
+            # Update initial layout
+            if first_layer:
+                initial_layout = layout
+                first_layer = False
+
+    # If first_layer is still set, the circuit only has single-qubit gates
+    # so we can use the initial layout to output the entire circuit
+    if first_layer:
+        layout = initial_layout
+        openqasm_output += circuit_graph.qasm(
+            add_swap=True,
+            decls_only=True,
+            aliases=layout)
+        for i, layer in enumerate(layerlist):
+            openqasm_output += layer["graph"].qasm(
+                no_decls=True,
+                aliases=layout)
+
     # Parse openqasm_output into Circuit object
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
-    u.execute()
-    return u.backend.circuit, initial_layout
+    return u.execute(), initial_layout
 
 
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
@@ -550,8 +601,7 @@ def optimize_1q_gates(circuit):
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
                            unroll.CircuitBackend(qx_basis))
-    urlr.execute()
-    unrolled = urlr.backend.circuit
+    unrolled = urlr.execute()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

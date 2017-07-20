@@ -52,30 +52,49 @@ Several unroller backends and their outputs are summarized here:
 
 <img src="images/unroller_backends.png" alt="backends" width="500"/>
 
-
 ## Installation and setup
 
-### 1. Get the tools you'll need:
-* Install Anaconda: https://www.continuum.io/downloads
-* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
-* Optionally download Git: https://git-scm.com/download/
+### 1. Get the tools
 
-### 2. Clone the QISKit SDK repository and navigate to its folder on your local machine:
+You'll need:
+
+* Install [Python 3](https://docs.python.org/3/using/index.html).
+* [Jupyter](http://jupyter.readthedocs.io/en/latest/install.html) client is needed to run the tutorials, not to use as a library.
+* Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
+* Optionally download Git: https://git-scm.com/download/.
+
+### 2. Get the code
+
+Clone the QISKit SDK repository and navigate to its folder on your local machine:
 
 * If you have Git installed, run the following commands:
+
 ```sh
-git clone https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev
-cd qiskit-sdk-py-dev
+git clone https://github.com/IBM/qiskit-sdk-py
+cd qiskit-sdk-py
 ```
+
 * If you don't have Git installed, click the "Clone or download" button at the URL shown in the git clone command, unzip the file if needed, then navigate to that folder in a terminal window.
 
-### 3. Set up an Anaconda environment for working with QISKit, and install the required dependencies:
+### 3. Setup the environment
+
+To use as a library install the dependencies:
+
+```sh
+# Depending on the system and setup to append "sudo -H" before could be needed.
+pip3 install -r requires.txt
+```
+
+To get the tutorials working set up an Anaconda environment for working with QISKit, and install the required dependencies:
 
 * If running either Linux or Mac OS X with Xcode, simply run the following command:
+
 ```sh
 make env
 ```
+
 * If running either Windows or Mac OS X without Xcode, run the following set of commands:
+
 ```sh
 conda create -y -n QISKitenv python=3 pip scipy
 activate QISKitenv
@@ -83,72 +102,49 @@ pip install -r requires.txt
 ```
 
 ### 4. Configure your API token
+
 * Create an [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net) account if you haven't already done so
 * Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
 * You will insert your API token in a file called Qconfig.py. First copy the default version of this file from the tutorial folder to the main SDK folder (on Windows, replace `cp` with `copy`):
+
 ```sh
-cp tutorial/Qconfig.py.default Qconfig.py
+cp Qconfig.py.default Qconfig.py
 ```
+
 * Open your Qconfig.py, remove the `#` from the beginning of the API token line, and copy/paste your API token into the space between the quotation marks on that line. Save and close the file.
 
 ## Starting the Jupyter-based tutorials
+
 The SDK includes tutorials in the form of Jupyter notebooks, which are essentially web pages that contain "cells" of embedded Python code. To run a cell, click on it and hit `Shift+Enter` or use the toolbar at the top of the page. Any output from a cell is displayed immediately below it on the page. In most cases, the cells on each page must be run in sequential order from top to bottom in order to avoid errors. To get started with the tutorials, follow the instructions below.
 
 * If running either Linux or Mac OS X with Xcode, simply run the following command from the QISKit SDK folder:
+
 ```sh
 make run
 ```
+
 * If running either Windows or Mac OS X without Xcode, run the following set of commands from the QISKit SDK folder:
+
 ```sh
 activate QISKitenv
 cd tutorial
 jupyter notebook index.ipynb
 ```
 
-
 ## FAQ
 
-If you upgrade the dependencies and get an error, try this fix:
+If you upgrade the dependencies and get the error below, try the fix shown below the error:
 
 ```sh
-pip install --upgrade IBMQuantumExperience
-* Cannot remove entries from nonexistent file [PATH]/easy-install.pth
+# Depending on the system and setup to append "sudo -H" before could be needed.
+pip3 install --upgrade IBMQuantumExperience
+*Cannot remove entries from nonexistent file [PATH]/easy-install.pth
 
-# Fix
+# Fix: run the command below
 curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 ```
 
 For additional troubleshooting tips, see the QISKit troubleshooting page on the project's GitHub wiki.
-
-## Developer Guide
-
-Please use [GitHub pull requests](https://help.github.com/articles/using-pull-requests) to send contributions.
-
-We use [Pylint](https://www.pylint.org) and [PEP 8](https://www.python.org/dev/peps/pep-0008) style guide.
-
-
-### Dependencies
-
-```sh
-make env-dev
-```
-
-### Test
-
-- Please run this to be sure your code fits with the style guide and the tests keep passing:
-
-```sh
-make test
-```
-
-Note: You can get your "putYourQExperienceTokenHere" from [IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account)
-
-### Commit messages rules
-
-- Commit messages should have a one-line subject, followed by one line of white space, followed by one or more descriptive paragraphs, each separated by one line of white space, and all of them ending with a dot.
-- If it fixes an issue, it should include a reference to the issue ID in the first line of the commit.
-- It should provide enough information for a reviewer to understand the changes and their relation to the rest of the code.
-
 
 ## Authors (alphabetical)
 
@@ -158,9 +154,8 @@ In future releases, anyone who contributes code to this project can include thei
 
 ## License
 
-QISKit is released under the Apache 2 license.
+QISKit is released under the [Apache license, version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Do you want to help?
 
 :sunglasses: If you'd like to contribute please take a look to our [contribution guidelines](CONTRIBUTING.md).
-

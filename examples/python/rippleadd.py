@@ -35,9 +35,9 @@ from qiskit import QuantumProgram, QuantumCircuit
 import Qconfig
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "simulator"
+backend = "Simulator"
 coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
@@ -120,13 +120,13 @@ if not result:
     sys.exit(1)
 
 # First version: not compiled
-result = qp.execute(["rippleadd"], device=device,
+result = qp.execute(["rippleadd"], backend=backend,
                     coupling_map=None, shots=1024)
 print(result)
 print(qp.get_counts("rippleadd"))
 
 # Second version: compiled to 2x8 array coupling graph
-qp.compile(["rippleadd"], device=device,
+qp.compile(["rippleadd"], backend=backend,
            coupling_map=coupling_map, shots=1024)
 # qp.print_execution_list(verbose=True)
 result = qp.run()

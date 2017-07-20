@@ -35,9 +35,9 @@ from qiskit import QuantumProgram
 import Qconfig
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "ibmqx2"
+backend = "ibmqx2"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -105,12 +105,14 @@ if not result:
     print("Error setting API")
     sys.exit(1)
 
-qp.compile(["bell"], device='local_qasm_simulator', shots=1024)
-qp.compile(["ghz"], device='simulator', shots=1024,
+qp.compile(["bell"], backend='local_qasm_simulator', shots=1024)
+qp.compile(["ghz"], backend='Simulator', shots=1024,
            coupling_map=coupling_map)
 
-qp.run()
+print(qp.online_backend_names())
 
-print(qp.get_counts("bell")) # returns error, don't do this
-print(qp.get_counts("bell", device="local_qasm_simulator"))
-print(qp.get_counts("ghz"))
+print(qp.run())
+
+# print(qp.get_counts("bell")) # returns error, don't do this
+print(qp.get_counts("bell", backend="local_qasm_simulator"))
+print(qp.get_counts("ghz", backend="Simulator"))

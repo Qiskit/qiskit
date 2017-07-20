@@ -20,7 +20,7 @@
 Author: Jay Gambetta and John Smolin
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
-the simulator.
+the simulator. It is exponential in the number of qubits.
 
 The input is the circuit object and the output is the same circuit object with
 a result field added results['data']['unitary'] where the unitary is
@@ -39,42 +39,30 @@ In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
 Internal circuit_object
 
-circuit =
-    {
-    'number_of_qubits': 2,
-    'number_of_cbits': 2,
-    'number_of_operations': 4,
-    'qubit_order': {('q', 0): 0, ('v', 0): 1}
-    'cbit_order': {('c', 1): 1, ('c', 0): 0},
-    'qasm':
-        [{
-        'type': 'gate',
-        'name': 'U(1.570796326794897,0.000000000000000,3.141592653589793)',
-        'qubit_indices': [0],
-        'gate_size': 1,
-        'matrix': np.array([[ 0.70710678 +0.00000000e+00j,
-                           0.70710678 -8.65956056e-17j],
-                         [ 0.70710678 +0.00000000e+00j,
-                          -0.70710678 +8.65956056e-17j]])
+compiled_circuit =
+{
+ "header": {
+ "number_of_qubits": 2, // int
+ "number_of_clbits": 2, // int
+ "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
+ "clbit_labels": [["c", 2]], // list[list[string, int]]
+ }
+ "operations": // list[map]
+    [
+        {
+            "name": , // required -- string
+            "params": , // optional -- list[double]
+            "qubits": , // optional -- list[int]
+            "clbits": , //optional -- list[int]
+            "conditional":  // optional -- map
+                {
+                    "type": , // string
+                    "mask": , // big int
+                    "val":  , // big int
+                }
         },
-        {
-        'type': 'gate',
-        'name': 'CX',
-        'qubit_indices': [0, 1],
-        'gate_size': 2,
-        'matrix': np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
-        },
-        {
-        'type': 'reset',
-        'qubit_indices': [1]
-        }
-        {
-        'type': 'measure',
-        'cbit_indices': [0],
-        'qubit_indices': [0]
-        }],
-    }
+    ]
+}
 
 returned results object
 
@@ -103,69 +91,33 @@ result =
         }
 """
 import numpy as np
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-# TODO think about if this should be an error or just removed from circuit.
+from ._simulatortools import enlarge_single_opt, enlarge_two_opt
+import json
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
+
+__configuration = {"name": "local_unitary_simulator",
+                   "url": "https://github.com/IBM/qiskit-sdk-py",
+                   "simulator": True,
+                   "description": "A cpp simulator for qasm files",
+                   "nQubits": 10,
+                   "couplingMap": "all-to-all",
+                   "gateset": "SU2+CNOT"}
+
 
 class UnitarySimulator(object):
     """Python implementation of a unitary simulator."""
 
-    @staticmethod
-    def _index1(b, i, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bit b as the ith bit,
-        shifting bits >= i over to make room.
-        """
-        retval = k
-        lowbits = k & ((1 << i) - 1)  # get the low i bits
-
-        retval >>= i
-        retval <<= 1
-
-        retval |= b
-
-        retval <<= i
-        retval |= lowbits
-
-        return retval
-
-    @staticmethod
-    def _index2(b1, i1, b2, i2, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bits b1 as the i1th bit
-        and b2 as the i2th bit
-        """
-        assert(i1 != i2)
-
-        if i1 > i2:
-            # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = UnitarySimulator._index1(b1, i1-1, k)
-            retval = UnitarySimulator._index1(b2, i2, retval)
-        else:  # i2>i1
-            # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = UnitarySimulator._index1(b2, i2-1, k)
-            retval = UnitarySimulator._index1(b1, i1, retval)
-        return retval
-
-    def __init__(self, compiled_circuit):
+    def __init__(self, job):
         """Initial the UnitarySimulator object."""
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(qasm.Qasm(data=compiled_circuit).parse(),
-                                   unroll.SimulatorBackend(basis_gates))
-        unroller.backend.set_trace(False)
-        unroller.execute()
-        self.circuit = unroller.backend.circuit
-        self._number_of_qubits = self.circuit['number_of_qubits']
+        self.circuit = json.loads(job['compiled_circuit'])
+        self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self.result = {}
         self.result = {}
         self.result['data'] = {}
         self._unitary_state = np.identity(2**(self._number_of_qubits),
                                           dtype=complex)
-        self._number_of_operations = self.circuit['number_of_operations']
+        self._number_of_operations = len(self.circuit['operations'])
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -175,10 +127,7 @@ class UnitarySimulator(object):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-        temp_1 = np.identity(2**(self._number_of_qubits-qubit-1),
-                             dtype=complex)
-        temp_2 = np.identity(2**(qubit), dtype=complex)
-        unitaty_add = np.kron(temp_1, np.kron(gate, temp_2))
+        unitaty_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def _add_unitary_two(self, gate, q0, q1):
@@ -189,35 +138,38 @@ class UnitarySimulator(object):
         q1 is the second qubit (target)
         returns a complex numpy array
         """
-        temp1 = np.zeros([1 << (self._number_of_qubits),
-                          1 << (self._number_of_qubits)])
-        for i in range(1 << (self._number_of_qubits-2)):
-            for j in range(2):
-                for k in range(2):
-                    for jj in range(2):
-                        for kk in range(2):
-                            temp1[self._index2(j, q0, k, q1, i),
-                                  self._index2(jj, q0, kk, q1, i)] = gate[j+2*k, jj+2*kk]
-        self._unitary_state = np.dot(temp1, self._unitary_state)
+        unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
+        self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self):
         """Apply the single-qubit gate."""
         for j in range(self._number_of_operations):
             # each operations
-            test = self.circuit['qasm'][j]['type']
-            if test == 'gate':
-                gate = self.circuit['qasm'][j]['matrix']
-                if self.circuit['qasm'][j]['gate_size'] == 1:
-                    qubit = self.circuit['qasm'][j]['qubit_indices'][0]
-                    self._add_unitary_single(gate, qubit)
-                elif self.circuit['qasm'][j]['gate_size'] == 2:
-                    qubit0 = self.circuit['qasm'][j]['qubit_indices'][0]
-                    qubit1 = self.circuit['qasm'][j]['qubit_indices'][1]
-                    self._add_unitary_two(gate, qubit0, qubit1)
-            elif test == 'measure':
+            if self.circuit['operations'][j]['name'] == 'U':
+                qubit = self.circuit['operations'][j]['qubits'][0]
+                theta = self.circuit['operations'][j]['params'][0]
+                phi = self.circuit['operations'][j]['params'][1]
+                lam = self.circuit['operations'][j]['params'][2]
+                gate = np.array([[np.cos(theta/2.0),
+                                  -np.exp(1j*lam)*np.sin(theta/2.0)],
+                                 [np.exp(1j*phi)*np.sin(theta/2.0),
+                                  np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+                self._add_unitary_single(gate, qubit)
+            elif self.circuit['operations'][j]['name'] == 'CX':
+                qubit0 = self.circuit['operations'][j]['qubits'][0]
+                qubit1 = self.circuit['operations'][j]['qubits'][1]
+                gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
+                                 [0, 1, 0, 0]])
+                self._add_unitary_two(gate, qubit0, qubit1)
+            elif self.circuit['operations'][j]['name'] == 'measure':
                 print('Warning have dropped measure from unitary simulator')
-            elif test == 'reset':
+            elif self.circuit['operations'][j]['name'] == 'reset':
                 print('Warning have dropped reset from unitary simulator')
+            elif self.circuit['operations'][j]['name'] == 'barrier':
+                pass
+            else:
+                self.result['status'] = 'ERROR'
+                return self.result
         self.result['data']['unitary'] = self._unitary_state
         self.result['status'] = 'DONE'
         return self.result
