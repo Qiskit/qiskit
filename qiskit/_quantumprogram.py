@@ -264,7 +264,7 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'calibrations': 'NA'}
+            return {'calibrations': None}
         else:
             raise LookupError(
                 'backend calibration for "{0}" not found'.format(backend))
@@ -277,7 +277,7 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'parameters': 'NA'}
+            return {'parameters': None}
         else:
             return {"status": "Error", "result": "This backend doesn't exist"}
 
