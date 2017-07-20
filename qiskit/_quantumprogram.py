@@ -457,13 +457,14 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, seed=None, config=None):
+    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None):
         """Compile the name_of_circuits by names.
 
         name_of_circuits is a list of circuit names to compile.
         backend is the target backend name.
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         coupling_map is the adjacency list for coupling graph
+        initial_layout is dict mapping qubits of circuit onto qubits of backend
 
         This method adds elements of the following form to the self.__to_execute
         list corresponding to the backend:
@@ -499,10 +500,10 @@ class QuantumProgram(object):
                       % dag_unrolled.property_summary())
                 # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
-                # TODO: modify to pass in optional initial layout
+                print("initial layout: %s" % initial_layout)
                 dag_unrolled, final_layout = self.mapper.swap_mapper(
-                    dag_unrolled, coupling, verbose=False)
-                print("layout: %s" % final_layout)
+                    dag_unrolled, coupling, initial_layout, trials=20, verbose=False)
+                print("final layout: %s" % final_layout)
                 # Expand swaps
                 qasm_compiled, dag_unrolled = self.unroller_code(
                     dag_unrolled)
@@ -740,7 +741,7 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator", shots=1024,
-                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, seed=None, config=None):
+                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api is the api for the backend
@@ -750,7 +751,7 @@ class QuantumProgram(object):
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         self.compile(name_of_circuits, backend, shots, max_credits,
-                     basis_gates, coupling_map, seed, config)
+                     basis_gates, coupling_map, initial_layout, seed, config)
         output = self.run(wait, timeout, silent=silent)
         return output
 
