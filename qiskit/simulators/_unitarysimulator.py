@@ -92,6 +92,7 @@ result =
 """
 import numpy as np
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt
+import json
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
@@ -109,7 +110,7 @@ class UnitarySimulator(object):
 
     def __init__(self, job):
         """Initial the UnitarySimulator object."""
-        self.circuit = job['compiled_circuit']
+        self.circuit = json.loads(job['compiled_circuit'])
         self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self.result = {}
         self.result = {}

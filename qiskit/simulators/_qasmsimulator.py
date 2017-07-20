@@ -93,6 +93,7 @@ result =
 import numpy as np
 import random
 from collections import Counter
+import json
 
 
 # TODO add the IF qasm operation.
@@ -151,7 +152,7 @@ class QasmSimulator(object):
 
     def __init__(self, job):
         """Initialize the QasmSimulator object."""
-        self.circuit = job['compiled_circuit']
+        self.circuit = json.loads(job['compiled_circuit'])
         self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self._number_of_cbits = self.circuit['header']['number_of_clbits']
         self.result = {}

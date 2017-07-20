@@ -1,144 +1,146 @@
-import numpy as np
+"""Interface to a fast C++ QASM simulator.
+
+Authors: Erick Winston <ewinston@us.ibm.com>
+         Christopher J. Wood <cjwood@us.ibm.com>
+
+This links to the C++ QASM simulator
+https://github.ibm.com/IBMQuantum/qiskit-simulator
+"""
+
+import json
 import subprocess
-<<<<<<< HEAD
-from subprocess import PIPE
-import json
-
-class QasmCppSimulator:
-    def __init__(self, compiled_circuit, shots=1024, seed=None, threads=1,
-                 config=None, exe='./qasm_simulator'):
-        self.circuit = {'qasm': compiled_circuit}
-=======
 from subprocess import PIPE, CalledProcessError
-import json
+import numpy as np
 
-__configuration = {"name": "local_qasm_cpp_simulator",
-                   "url": "https://github.com/IBM/qiskit-sdk-py",
-                   "simulator": True,
-                   "description": "A python simulator for qasm files",
-                   "nQubits": 10,
-                   "couplingMap": "all-to-all",
-                   "gateset": "SU2+CNOT"}
+__configuration = {
+    "name": "local_qasm_cpp_simulator",
+    "url": "https://github.com/IBM/qiskit-sdk-py",
+    "simulator": True,
+    "description": "A python simulator for qasm files",
+    "nQubits": 28,
+    "couplingMap": "all-to-all",
+    "gateset": "SU2+CNOT"
+}
+
 
 class QasmCppSimulator:
-    def __init__(self, job, threads=1,
-                 config=None, exe='qasm_simulator'):
-        self.circuit = {'qasm': job['compiled_circuit']}
->>>>>>> IBMQuantum/Dev
-        if config:
-            self.circuit['config'] = config
-        self.siminput = {'qasm': self.circuit}
-        self._number_of_qubits = self.circuit['qasm']['header']['number_of_qubits']
-        self._number_of_cbits = self.circuit['qasm']['header']['number_of_clbits']
+    """
+    Interface to a fast C++ QASM simulator.
+    """
+
+    def __init__(self, job):
+        # check for config file
+        if 'config' in job:
+            self.config = job['config']
+        else:
+            self.config = {}
+        self.circuit = {'qasm': json.loads(job['compiled_circuit']),
+                        'config': self.config}
         self.result = {}
         self.result['data'] = {}
-        self._quantum_state = 0
-        self._classical_state = 0
         self._shots = job['shots']
         self._seed = job['seed']
-        self._threads = threads
+        # Number of threads for simulator
+        if 'threads' in self.config:
+            self._threads = self.config['threads']
+        else:
+            self._threads = 1
+        # Location of simulator exe
+        if 'exe' in self.config:
+            self._exe = self.config['exe']
+        else:
+            self._exe = 'qasm_simulator'
+        # C++ simulator backend
+        if 'simulator' in self.config:
+            self._cpp_backend = self.config['simulator']
+        else:
+            self._cpp_backend = 'qubit'
         self._number_of_operations = len(self.circuit['qasm']['operations'])
-<<<<<<< HEAD
-        self._exe = exe
-
-        
-=======
         # This assumes we are getting a quick return help message.
         # so _localsimulator can quickly determine whether the compiled
         # simulator is available.
         try:
-            output = subprocess.check_output([exe], stderr=subprocess.STDOUT)
+            subprocess.check_output([self._exe], stderr=subprocess.STDOUT)
         except CalledProcessError:
             pass
         except FileNotFoundError:
             try:
-                output = subprocess.check_output(['./'+exe],
-                                                 stderr=subprocess.STDOUT)
+                subprocess.check_output(
+                    ['./' + self._exe], stderr=subprocess.STDOUT)
             except CalledProcessError:
                 pass
             except FileNotFoundError:
-                cmd = '"{0}" or "{1}" '.format(exe, './'+exe)
+                cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
-                
-                
 
->>>>>>> IBMQuantum/Dev
     def run(self):
-        cmdFmt = self._exe + ' -i - -c - -f qiskit -n {shots:d} -t {threads}'
-        cmd = cmdFmt.format(shots = self._shots,
-                            threads = self._threads)
-        if self._seed:
+        """
+        Run simulation on C++ simulator.
+        """
+        # Build the command line execution string
+        cmd = self._exe + ' -i - -c - -f qiskit'
+        cmd += ' -n {shots:d}'.format(shots=self._shots)
+        cmd += ' -t {threads:d}'.format(threads=self._threads)
+        cmd += ' -b {backend:s}'.format(backend=self._cpp_backend)
+        if self._seed is not None:
             if self._seed >= 0:
                 if isinstance(self._seed, float):
-                    #_quantumprogram.py usually generates float in [0,1]
-                    #try to convert to integer which c++ random expects.
+                    # _quantumprogram.py usually generates float in [0,1]
+                    # try to convert to integer which C++ random expects.
                     self._seed = hash(self._seed)
-                cmd +=  ' -s {seed:d}'.format(seed=self._seed)
+                cmd += ' -s {seed:d}'.format(seed=self._seed)
             else:
                 raise TypeError('seed needs to be an unsigned integer')
+        # Open subprocess and execute external command
         with subprocess.Popen(cmd.split(),
-                              stdin=PIPE,
-                              stdout=PIPE,
-                              stderr=PIPE) as proc:
-            procIn = json.dumps(self.circuit).encode()
-            stdOut, errOut = proc.communicate(procIn)
-        if len(errOut) == 0:
-            # no error messages, load stdOut
-            cresult = json.loads(stdOut)
+                              stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
+            cin = json.dumps(self.circuit).encode()
+            cout, cerr = proc.communicate(cin)
+        if len(cerr) == 0:
+            # no error messages, load std::cout
+            cresult = json.loads(cout)
             # convert possible complex valued result fields
-            for s in ['state', 'saved_states', 'inner_products']:
-                self.__parseComplex(cresult, s)
+            for k in ['state', 'saved_states', 'inner_products']:
+                parse_complex(cresult['data'], k)
         else:
             # custom "backend" or "result" exception handler here?
-            raise Exception('local_qasm_cpp_simulator returned: {0}\n{1}'.format(
-                stdOut.decode(), errOut.decode()))
-        # add standard simulator output
-        self.result['data']['counts'] = cresult['results']
-        # add optional simulator output
-        if 'measurements' in cresult:
-            # add measurement outcome history for each shot
-            self.result['data']['meas_history'] = cresult['measurements']
-        if 'state' in cresult:
-            # add final states for each shot
-            self.result['data']['state'] = cresult['state']
-        if 'probs' in cresult:
-            # add computational basis final probs for each shot
-            self.result['data']['meas_probs'] = cresult['probs']
-        if 'saved_states' in cresult:
-            # add saved states for each shot
-            self.result['data']['saved_states'] = cresult['saved_states']
-        if 'inner_products' in cresult:
-            # add inner products of final state with targets states for each shot
-            self.result['data']['inner_products'] = cresult['inner_products']  
-        if 'overlaps' in cresult:
-            # add overlap of final state with targets states for each shot
-            self.result['data']['overlaps'] = cresult['overlaps']
-        # add simulation time (in seconds)
+            raise Exception('local_qasm_cpp_simulator returned: {0}\n{1}'.
+                            format(cout.decode(), cerr.decode()))
+        # Add simulator data
+        self.result['data'] = cresult['data']
+        # Add simulation time (in seconds)
         self.result['time_taken'] = cresult['time_taken']
+        # Report finished
         self.result['status'] = 'DONE'
         return self.result
 
 
-    def __parseComplex(self, output, key):
-        """
-        This function converts complex numbers in the c++ simulator output into python
-        complex numbers. In JSON c++ output complex entries are formatted as:
-            z = [re(z), im(z)]
-            vec = [re(vec), im(vec)]
-            ket = {'00':[re(v[00]), im(v[00])], '01': etc...}
-        """
-        if key in output:
-            ref = output[key]
-            if isinstance(ref, list):
-                if isinstance(ref[0], list):
-                    # convert complex vector
-                    for x in range(len(ref)):
-                        ref[x] = np.array(ref[x][0])+1j*np.array(ref[x][1])
-                elif isinstance(ref[0], dict):
-                    # convert complex ket-form
-                    for x in range(len(ref)):
-                        for k in ref[0].keys():
-                            ref[x][k] = ref[x][k][0]+1j*ref[x][k][1]
-                elif len(ref) == 2:
-                    # convert complex scalar
-                    ref = ref[0] + 1j*ref[1]
+def parse_complex(output, key):
+    """
+    Parse complex entries in C++ simulator output.
+
+    This function converts complex numbers in the C++ simulator output
+    into python complex numbers. In JSON c++ output complex entries are
+    formatted as:
+        z = [re(z), im(z)]
+        vec = [re(vec), im(vec)]
+        ket = {'00':[re(v[00]), im(v[00])], '01': etc...}
+    Args:
+        output (dict): simulator output.
+        key (str): the output key to search for.
+    """
+    if key in output:
+        ref = output[key]
+        if isinstance(ref, list):
+            if isinstance(ref[0], list):
+                # convert complex vector
+                for i, j in enumerate(ref):
+                    ref[i] = np.array(j[0]) + 1j * np.array(j[1])
+            elif isinstance(ref[0], dict):
+                # convert complex ket-form
+                for i, j in enumerate(ref):
+                    for k in j.keys():
+                        ref[i][k] = j[k][0] + 1j * j[k][1]
+            elif len(ref) == 2:
+                # convert complex scalar
+                ref = ref[0] + 1j * ref[1]

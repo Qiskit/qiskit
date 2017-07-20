@@ -203,8 +203,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                    "cx_flipped q[0],q[1];\n"
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
                         unroll.CircuitBackend(["cx", "h"]))
-    u.execute()
-    flipped_cx_circuit = u.backend.circuit
+    flipped_cx_circuit = u.execute()
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
@@ -282,7 +281,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
 
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
-                basis="cx,u1,u2,u3,id", verbose=False):
+                basis="cx,u1,u2,u3,id", verbose=False, trials=20):
     """Map a Circuit onto a CouplingGraph using swap gates.
 
     circuit_graph = input Circuit
@@ -314,7 +313,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         circ_qubits = circuit_graph.get_qubits()
         coup_qubits = coupling_graph.get_qubits()
         qubit_subset = []
-        for k, v in initial_layout.values():
+        for k, v in initial_layout.items():
             qubit_subset.append(v)
             if k not in circ_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " %
@@ -335,6 +334,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
     first_layer = True  # True until first layer is output
+    if verbose:
+        print("initial_layout = ", layout)
 
     # Iterate over layers
     for i, layer in enumerate(layerlist):
@@ -342,12 +343,12 @@ def swap_mapper(circuit_graph, coupling_graph,
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
-                                qubit_subset, coupling_graph, 20)
+                                qubit_subset, coupling_graph, trials)
         if verbose:
             print("swap_mapper: layer %d" % i)
             print("swap_mapper: success_flag=%s," % success_flag +
-                  "best_d=%d," % best_d +
-                  "trivial_flag=%s" % trivial_flag)
+                  "best_d=" + str(best_d) +
+                  ",trivial_flag=%s" % trivial_flag)
 
         # If this layer is only single-qubit gates,
         # and we have yet to see multi-qubit gates,
@@ -370,12 +371,12 @@ def swap_mapper(circuit_graph, coupling_graph,
                 success_flag, best_circ, best_d, best_layout, trivial_flag \
                     = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
-                                        20)
+                                        trials)
                 if verbose:
                     print("swap_mapper: layer %d, sublayer %d" % (i, j))
                     print("swap_mapper: success_flag=%s," % success_flag +
-                          "best_d=%d," % best_d +
-                          "trivial_flag=%s" % trivial_flag)
+                          "best_d=" + str(best_d) +
+                          ",trivial_flag=%s" % trivial_flag)
 
                 # Give up if we fail again
                 if not success_flag:
@@ -437,8 +438,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()
     u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
-    u.execute()
-    return u.backend.circuit, initial_layout
+    return u.execute(), initial_layout
 
 
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
@@ -603,8 +603,7 @@ def optimize_1q_gates(circuit):
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
                            unroll.CircuitBackend(qx_basis))
-    urlr.execute()
-    unrolled = urlr.backend.circuit
+    unrolled = urlr.execute()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

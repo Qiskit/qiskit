@@ -106,7 +106,7 @@ if not result:
     sys.exit(1)
 
 qp.compile(["bell"], backend='local_qasm_simulator', shots=1024)
-qp.compile(["ghz"], backend='Simulator', shots=1024,
+qp.compile(["ghz"], backend='ibmqx_qasm_simulator', shots=1024,
            coupling_map=coupling_map)
 
 print(qp.online_backend_names())
@@ -115,4 +115,4 @@ print(qp.run())
 
 # print(qp.get_counts("bell")) # returns error, don't do this
 print(qp.get_counts("bell", backend="local_qasm_simulator"))
-print(qp.get_counts("ghz", backend="Simulator"))
+print(qp.get_counts("ghz", backend="ibmqx_qasm_simualtor"))
