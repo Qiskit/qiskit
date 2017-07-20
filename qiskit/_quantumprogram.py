@@ -457,7 +457,7 @@ class QuantumProgram(object):
         qasm_source = circuit_unrolled.qasm(qeflag=True)
         return qasm_source, circuit_unrolled
 
-    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None):
+    def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None, silent=False):
         """Compile the name_of_circuits by names.
 
         name_of_circuits is a list of circuit names to compile.
@@ -465,6 +465,7 @@ class QuantumProgram(object):
         basis_gates are the base gates by default are: u1,u2,u3,cx,id
         coupling_map is the adjacency list for coupling graph
         initial_layout is dict mapping qubits of circuit onto qubits of backend
+        silent set True to not print
 
         This method adds elements of the following form to the self.__to_execute
         list corresponding to the backend:
@@ -496,14 +497,17 @@ class QuantumProgram(object):
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
             final_layout = None
             if coupling_map:
-                print("pre-mapping properties: %s"
-                      % dag_unrolled.property_summary())
+                if not silent:
+                    print("pre-mapping properties: %s"
+                          % dag_unrolled.property_summary())
                 # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
-                print("initial layout: %s" % initial_layout)
+                if not silent:
+                    print("initial layout: %s" % initial_layout)
                 dag_unrolled, final_layout = self.mapper.swap_mapper(
                     dag_unrolled, coupling, initial_layout, trials=20, verbose=False)
-                print("final layout: %s" % final_layout)
+                if not silent:
+                    print("final layout: %s" % final_layout)
                 # Expand swaps
                 qasm_compiled, dag_unrolled = self.unroller_code(
                     dag_unrolled)
@@ -515,8 +519,9 @@ class QuantumProgram(object):
                 # Simplify single qubit gates
                 dag_unrolled = mapper.optimize_1q_gates(dag_unrolled)
                 qasm_compiled = dag_unrolled.qasm(qeflag=True)
-                print("post-mapping properties: %s"
-                      % dag_unrolled.property_summary())
+                if not silent:
+                    print("post-mapping properties: %s"
+                          % dag_unrolled.property_summary())
             # TODO: add timestamp, compilation
             if backend not in self.__to_execute:
                 self.__to_execute[backend] = []
@@ -751,7 +756,7 @@ class QuantumProgram(object):
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         self.compile(name_of_circuits, backend, shots, max_credits,
-                     basis_gates, coupling_map, initial_layout, seed, config)
+                     basis_gates, coupling_map, initial_layout, seed, config, silent=silent)
         output = self.run(wait, timeout, silent=silent)
         return output
 
