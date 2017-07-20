@@ -141,7 +141,7 @@ if not result:
     print("Error setting API")
     sys.exit(1)
 
-result = qp.execute(["qft3", "qft4", "qft5"], backend='Simulator',
+result = qp.execute(["qft3", "qft4", "qft5"], backend='ibmqx_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(qp.get_compiled_qasm("qft3"))

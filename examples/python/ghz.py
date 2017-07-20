@@ -86,14 +86,14 @@ if not result:
 
 # First version: not compiled
 print("no compilation, simulator")
-result = qp.execute(["ghz"], backend='Simulator',
+result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=None, shots=1024)
 print(result)
 print(qp.get_counts("ghz"))
 
 # Second version: compiled to qc5qv2 coupling graph
 print("compilation to %s, simulator" % backend)
-result = qp.execute(["ghz"], backend='Simulator',
+result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(qp.get_counts("ghz"))
