@@ -34,7 +34,8 @@ class QasmCppSimulator:
             self.config = job['config']
         else:
             self.config = {}
-        self.circuit = {'qasm': json.loads(job['compiled_circuit']), 'config': self.config}
+        self.circuit = {'qasm': json.loads(job['compiled_circuit']),
+                        'config': self.config}
         self.result = {}
         self.result['data'] = {}
         self._shots = job['shots']
