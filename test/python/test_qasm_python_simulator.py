@@ -47,6 +47,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         self.qasmFileName = os.path.join(qiskit.__path__[0],
                                          '../test/python/qasm/example.qasm')
         self.qp = QuantumProgram()
+        import Qconfig
+        self.Qconfig = Qconfig
     
     def tearDown(self):
         pass
@@ -79,6 +81,32 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                     '000000': 131, '010010': 141, '110110': 116, '001001': 124}
         self.assertEqual(result['data']['counts'], expected)
 
+    def test_dag(self):
+        #backend = 'ibmqx2' # the backend to run on
+        backend = 'local_qasm_simulator'
+        shots = 1024    # the number of shots in the experiment 
+        self.qp.set_api(self.Qconfig.APItoken, self.Qconfig.config["url"]) # set the APIToken and API url
+
+        # Creating registers
+        qr = self.qp.create_quantum_registers("qr", 1)
+        cr = self.qp.create_classical_registers("cr", 1)
+
+        # Quantum circuit ground 
+        qc_ground = self.qp.create_circuit("ground", ["qr"], ["cr"])
+        qc_ground.measure(qr[0], cr[0])
+
+        # Quantum circuit excited 
+        qc_excited = self.qp.create_circuit("excited", ["qr"], ["cr"])
+        qc_excited.x(qr)
+        qc_excited.measure(qr[0], cr[0])
+
+
+        circuits = ['ground', 'excited']
+
+        self.qp.execute(circuits, backend=backend, shots=shots, max_credits=3, wait=10, timeout=240)
+        for circ in circuits:
+            print(circ, self.qp.get_counts(circ))
+        
     def profile_qasm_simulator(self):
         """Profile randomly generated circuits. 
 
@@ -267,6 +295,7 @@ def generateTestSuite():
     Generate module test suite.
     """
     testSuite = unittest.TestSuite()
+    testSuite.addTest(LocalQasmSimulatorTest('test_dag'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator_single_shot'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator'))
     return testSuite
@@ -290,7 +319,7 @@ def main():
     profSuite = generateProfileSuite()
     runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
     runner.run(testSuite)
-    runner.run(profSuite)
+    #runner.run(profSuite)
 
 if __name__ == '__main__':
     main()

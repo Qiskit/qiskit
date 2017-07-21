@@ -454,16 +454,15 @@ class QuantumProgram(object):
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-
+        print('basis gates', basis_gates)
         unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
-        qasm_source = circuit_unrolled.qasm(qeflag=True)
-        return qasm_source, circuit_unrolled
+        return circuit_unrolled
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 basis_gates=None, coupling_map=None, initial_layout=None,
-                config=None, silent=False, shots=1024, max_credits=3,
+                config=None, silent=True, shots=1024, max_credits=3,
                 seed=None):
         """Compile the name_of_circuits by names.
         Args:
@@ -502,40 +501,39 @@ class QuantumProgram(object):
         """
         if name_of_circuits == []:
             return {"status": "Error", "result": 'No circuits'}
-
         for name in name_of_circuits:
             if name not in self.__quantum_program["circuits"]:
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
 
             # TODO: The circuit object has to have .qasm() method (be careful)
-            qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
+            dag_circuit = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'],
+                                             basis_gates=basis_gates)
             final_layout = None
             if coupling_map:
                 if not silent:
                     print("pre-mapping properties: %s"
-                          % dag_unrolled.property_summary())
+                          % dag_circuit.property_summary())
                 # Insert swap gates
                 coupling = self.mapper.Coupling(coupling_map)
                 if not silent:
                     print("initial layout: %s" % initial_layout)
-                dag_unrolled, final_layout = self.mapper.swap_mapper(
-                    dag_unrolled, coupling, initial_layout, trials=20, verbose=False)
+                dag_circuit, final_layout = self.mapper.swap_mapper(
+                    dag_circuit, coupling, initial_layout, trials=20, verbose=False)
                 if not silent:
                     print("final layout: %s" % final_layout)
                 # Expand swaps
-                qasm_compiled, dag_unrolled = self.unroller_code(
-                    dag_unrolled)
+                dag_circuit = self.unroller_code(
+                    dag_circuit)
                 # Change cx directions
-                dag_unrolled = mapper.direction_mapper(dag_unrolled,
+                dag_circuit = mapper.direction_mapper(dag_circuit,
                                                        coupling)
                 # Simplify cx gates
-                mapper.cx_cancellation(dag_unrolled)
+                mapper.cx_cancellation(dag_circuit)
                 # Simplify single qubit gates
-                dag_unrolled = mapper.optimize_1q_gates(dag_unrolled)
-                qasm_compiled = dag_unrolled.qasm(qeflag=True)
+                dag_circuit = mapper.optimize_1q_gates(dag_circuit)
                 if not silent:
                     print("post-mapping properties: %s"
-                          % dag_unrolled.property_summary())
+                          % dag_circuit.property_summary())
             # TODO: add timestamp, compilation
             if backend not in self.__to_execute:
                 self.__to_execute[backend] = []
@@ -550,7 +548,7 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            job["compiled_circuit"] = dag_unrolled
+            job["compiled_circuit"] = dag_circuit
             if seed is None:
                 job["seed"] = random.random()
             else:
@@ -771,9 +769,11 @@ class QuantumProgram(object):
         max_credits is the maximum credits for the experiments
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
-        self.compile(name_of_circuits, backend, shots, max_credits,
-                     basis_gates, coupling_map, initial_layout, seed, config, silent=silent)
-        output = self.run(wait, timeout, silent=silent)
+        self.compile(name_of_circuits, backend=backend, shots=shots,
+                     max_credits=max_credits, basis_gates=basis_gates,
+                     coupling_map=coupling_map, initial_layout=initial_layout,
+                     seed=seed, config=config, silent=silent)
+        output = self.run(wait=wait, timeout=timeout, silent=silent)
         return output
 
     # method to process the data

@@ -370,13 +370,14 @@ class TestQuantumProgram(unittest.TestCase):
         circuits = ['qc2', 'qc3']
 
         shots = 1024  # the number of shots in the experiment.
-        credits = 3
+        max_credits = 3
         coupling_map = None
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        QP_program.compile(circuits, backend, shots, credits, coupling_map)
+        QP_program.compile(circuits, backend=backend, shots=shots,
+                           max_credits=max_credits, coupling_map=coupling_map)
 
         result = QP_program.run()
         # print(QP_program())
@@ -432,7 +433,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1024  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        result = QP_program.execute(circuits, backend, shots)
+        result = QP_program.execute(circuits, backend=backend, shots=shots)
         # print(result)
         self.assertEqual(result['status'], 'COMPLETED')
 
@@ -452,7 +453,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        result = QP_program.execute(circuits, backend, shots)
+        result = QP_program.execute(circuits, backend=backend, shots=shots)
         print(QP_program.get_qasms(['qc2', 'qc3']))
         self.assertEqual(result['status'], 'COMPLETED')
 
@@ -475,7 +476,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         credits = 3
         coupling_map = None
-        result = QP_program.execute(circuits, backend, shots)
+        result = QP_program.execute(circuits, backend=backend, shots=shots)
         # print(result)
         self.assertEqual(result['status'],'COMPLETED')
 
@@ -490,12 +491,13 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program = QuantumProgram()
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1  # the number of shots in the experiment.
-        credits = 3
+        max_credits = 3
         coupling_map = None
         QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
-        result = QP_program.compile(circuits, backend, shots, credits, coupling_map)
+        result = QP_program.compile(circuits, backend=backend, shots=shots,
+                                    max_credits=max_credits, coupling_map=coupling_map)
         to_check = QP_program.get_circuit("circuit-dev")
 
         self.assertEqual(len(to_check.qasm()),1569)
@@ -505,12 +507,13 @@ class TestQuantumProgram(unittest.TestCase):
         apiconnection = QP_program.set_api(API_TOKEN, URL)
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1  # the number of shots in the experiment.
-        credits = 3
+        max_credits = 3
         coupling_map = None
         QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
-        result = QP_program.compile(circuits, backend, shots, credits, coupling_map)
+        result = QP_program.compile(circuits, backend=backend, shots=shots,
+                                    max_credits=max_credits, coupling_map=coupling_map)
 
         result = QP_program.run()
    
@@ -521,12 +524,14 @@ class TestQuantumProgram(unittest.TestCase):
         apiconnection = QP_program.set_api(API_TOKEN, URL)
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1  # the number of shots in the experiment.
-        credits = 3
+        max_credits = 3
         coupling_map = None
         QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
         circuits = ["circuit-dev"]
 
-        result = QP_program.execute(circuits, backend, shots, credits, coupling_map)
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    max_credits=max_credits,
+                                    coupling_map=coupling_map)
     
         self.assertEqual(result['status'], "COMPLETED")
 
@@ -547,9 +552,9 @@ class TestQuantumProgram(unittest.TestCase):
 
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1  # the number of shots in the experiment.
-        credits = 3
+        max_credits = 3
         coupling_map = None
-        result = QP_program.execute(circuits, backend, shots)
+        result = QP_program.execute(circuits, backend=backend, shots=shots)
 
         self.assertEqual(result['status'], 'COMPLETED')
 
