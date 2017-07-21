@@ -100,13 +100,14 @@ import json
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
-__configuration ={"name": "local_qasm_simulator",
-                  "url": "https://github.com/IBM/qiskit-sdk-py",
-                  "simulator": True,
-                  "description": "A python simulator for qasm files",
-                  "nQubits": 10,
-                  "couplingMap": "all-to-all",
-                  "gateset": "SU2+CNOT"}
+__configuration = {"name": "local_qasm_simulator",
+                   "url": "https://github.com/IBM/qiskit-sdk-py",
+                   "simulator": True,
+                   "description": "A python simulator for qasm files",
+                   "nQubits": 10,
+                   "couplingMap": "all-to-all",
+                   "gateset": "SU2+CNOT"}
+
 
 class QasmSimulator(object):
     """Python implementation of a qasm simulator."""
@@ -257,6 +258,22 @@ class QasmSimulator(object):
         else:
             self._quantum_state = temp
 
+    def _qasm_single_params(self, gate, params=None):
+        """Apply a single qubit gate to the qubit.
+
+        Args:
+            gate(str): the single qubit gate name
+            params(list): the operation parameters op['params']
+        Returns:
+            a tuple of U gate parameters (theta, phi, lam)
+        """
+        if gate == 'U' or gate == 'u3':
+            return (params[0], params[1], params[2])
+        elif gate == 'u2':
+            return (np.pi/2, params[0], params[1])
+        elif gate == 'u1':
+            return (0., 0., params[0])
+
     def run(self):
         """Run."""
         outcomes = []
@@ -267,32 +284,36 @@ class QasmSimulator(object):
             self._classical_state = 0
             # Do each operation in this shot
             for j in range(self._number_of_operations):
+                # get operation name
+                op = self.circuit['operations'][j]
                 # Check if single  gate
-                if self.circuit['operations'][j]['name'] == 'U':
-                    qubit = self.circuit['operations'][j]['qubits'][0]
-                    theta = self.circuit['operations'][j]['params'][0]
-                    phi = self.circuit['operations'][j]['params'][1]
-                    lam = self.circuit['operations'][j]['params'][2]
+                if op["name"] in ['U', 'u1', 'u2', 'u3']:
+                    if 'params' in op:
+                        params = op['params']
+                    else:
+                        params = None
+                    (theta, phi, lam) = self._qasm_single_params(op['name'], params)
+                    qubit = op['qubits'][0]
                     gate = np.array([[np.cos(theta/2.0),
                                       -np.exp(1j*lam)*np.sin(theta/2.0)],
                                      [np.exp(1j*phi)*np.sin(theta/2.0),
                                       np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
-                elif self.circuit['operations'][j]['name'] == 'CX':
-                    qubit0 = self.circuit['operations'][j]['qubits'][0]
-                    qubit1 = self.circuit['operations'][j]['qubits'][1]
+                elif op['name'] == 'CX' or op['name'] == 'cx':
+                    qubit0 = op['qubits'][0]
+                    qubit1 = op['qubits'][1]
                     self._add_qasm_cx(qubit0, qubit1)
                 # Check if measure
-                elif self.circuit['operations'][j]['name'] == 'measure':
-                    qubit = self.circuit['operations'][j]['qubits'][0]
-                    cbit = self.circuit['operations'][j]['clbits'][0]
+                elif op['name'] == 'measure':
+                    qubit = op['qubits'][0]
+                    cbit = op['clbits'][0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif self.circuit['operations'][j]['name'] == 'reset':
-                    qubit = self.circuit['operations'][j]['qubits'][0]
+                elif op['name'] == 'reset':
+                    qubit = op['qubits'][0]
                     self._add_qasm_reset(qubit)
-                elif self.circuit['operations'][j]['name'] == 'barrier':
+                elif op['name'] == 'barrier' or op['name'] == 'id':
                     pass
                 else:
                     self.result['status'] = 'ERROR'
