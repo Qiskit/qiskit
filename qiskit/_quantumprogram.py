@@ -361,20 +361,22 @@ class QuantumProgram(object):
             self.__quantum_registers[list(self.__quantum_registers)[0]], \
             self.__classical_registers[list(self.__classical_registers)[0]]
 
-    def load_qasm(self, name="", qasm_file=None, basis_gates=None):
+    def load_qasm(self, name="", qasm_file=None, qasm_string=None,
+                  basis_gates=None):
         """ Load qasm file
         qasm_file qasm file name
         """
-        if not qasm_file:
-            print('"Not filename provided')
-            return {"status": "Error", "result": "Not filename provided"}
+        if not qasm_file and not qasm_string:
+            print('"No filename provided')
+            return {"status": "Error", "result": "No filename provided"}
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
 
-        if name == "":
+        if name == "" and qasm_file:
             name = qasm_file
 
-        circuit_object = qasm.Qasm(filename=qasm_file).parse()  # Node (AST)
+        circuit_object = qasm.Qasm(filename=qasm_file, 
+                                   data=qasm_string).parse()  # Node (AST)
 
         # TODO: add method to convert to QuantumCircuit object from Node
         self.__quantum_program['circuits'][name] = {"circuit": circuit_object}
