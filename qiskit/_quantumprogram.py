@@ -122,11 +122,8 @@ class QuantumProgram(object):
         }
     """
     # -- FUTURE IMPROVEMENTS --
-    # TODO: for status results choose ALL_CAPS, or This but be consistent
-    # TODO: coupling_map, basis_gates will move to compiled_circuit object
-    # TODO: compiled_circuit is currently QASM text. In the future we will
-    #       make a method in the QuantumCircuit object that makes an object
-    #       to be passed to the runner and this will live in compiled_circuit.
+    # TODO: for status results choose ALL_CAPS
+    # TODO: coupling_map, basis_gates will move to config object
 
     def __init__(self, specs=None, name=""):
         self.__quantum_program = {}
