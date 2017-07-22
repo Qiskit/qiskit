@@ -461,49 +461,6 @@ class QuantumProgram(object):
     # methods to compile quantum programs into __to_execute
     ###############################################################
 
-    def _dag2json(self, dag_circuit):
-        """Make a Json representation of the circuit.
-
-        Takes a circuit dag and returns json circuit obj. This is an internal
-        function.
-
-        Args:
-            dag_ciruit (dag object): a dag representation of the circuit
-
-        Returns:
-            the json version of the dag
-
-        JAY: I think this needs to become a method like .qasm() for the DAG.
-        """
-        qasm_circuit = dag_circuit.qasm(qeflag=True)
-        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit).parse(), unroll.JsonBackend(basis_gates.split(",")))
-        json_circuit = unroller.execute()
-        return json_circuit
-
-    def _unroller_code(self, dag_ciruit, basis_gates=None):
-        """ Unroll the code.
-
-        Circuit is the circuit to unroll using the DAG representation.
-        This is an internal function.
-
-        Args:
-            dag_ciruit (dag object): a dag representation of the circuit
-            basis_gates (str): a comma seperated string and are the base gates,
-                               which by default are: u1,u2,u3,cx,id
-        Return:
-            dag_ciruit (dag object): a dag representation of the circuit
-                                     unrolled to basis gates
-                                     
-        JAY: Why do we need this it could just be two lines in compile.
-        """
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
-                                           unroll.CircuitBackend(basis_gates.split(",")))
-        circuit_unrolled = unrolled_circuit.execute()
-        return circuit_unrolled
-
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, silent=True, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=3, seed=None):
@@ -669,6 +626,49 @@ class QuantumProgram(object):
                     print(json.dumps(parsed, indent=4, sort_keys=True))
                     print("// *******************************************")
 
+    def _dag2json(self, dag_circuit):
+        """Make a Json representation of the circuit.
+
+        Takes a circuit dag and returns json circuit obj. This is an internal
+        function.
+
+        Args:
+            dag_ciruit (dag object): a dag representation of the circuit
+
+        Returns:
+            the json version of the dag
+
+        JAY: I think this needs to become a method like .qasm() for the DAG.
+        """
+        qasm_circuit = dag_circuit.qasm(qeflag=True)
+        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+        unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit).parse(), unroll.JsonBackend(basis_gates.split(",")))
+        json_circuit = unroller.execute()
+        return json_circuit
+
+    def _unroller_code(self, dag_ciruit, basis_gates=None):
+        """ Unroll the code.
+
+        Circuit is the circuit to unroll using the DAG representation.
+        This is an internal function.
+
+        Args:
+            dag_ciruit (dag object): a dag representation of the circuit
+            basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
+        Return:
+            dag_ciruit (dag object): a dag representation of the circuit
+                                     unrolled to basis gates
+
+        JAY: Why do we need this it could just be two lines in compile.
+        """
+        if not basis_gates:
+            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
+                                           unroll.CircuitBackend(basis_gates.split(",")))
+        circuit_unrolled = unrolled_circuit.execute()
+        return circuit_unrolled
+
     ###############################################################
     # methods to ran quantum programs (run __to_execute)
     ###############################################################
@@ -720,7 +720,7 @@ class QuantumProgram(object):
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": output['error']}
-                job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+                job_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
 
                 if job_result['status'] == 'Error':
                     # Clear the list of compiled programs to execute
@@ -776,7 +776,7 @@ class QuantumProgram(object):
 
         return  {"status": "COMPLETED", "result": 'all done'}
 
-    def wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
+    def _wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
         """Wait until all online ran jobs are 'COMPLETED'.
 
         Args:
