@@ -790,30 +790,52 @@ circuits
 
     # method to process the data
     def get_data(self, name, backend=None):
-        """Get the dict of labels and counts from the output of get_job.
-        results are the list of results
-        name is the name or index of one circuit."""
+        """Get the data of cicuit name.
+
+        The data format will depend on the backend. For a real device it
+        will be for the form
+            "counts": {’00000’: XXXX, ’00001’: XXXX},
+            "time"  : xx.xxxxxxxx
+        for the qasm simulators of 1 shot
+            'quantum_state': array([ XXX,  ..., XXX]),
+            'classical_state': 0
+        for the qasm simulators of n shots
+            'counts': {'0000': XXXX, '1001': XXXX}
+        for the unitary simulators
+            'unitary': np.array([[ XX + XXj
+                                   ...
+                                   XX + XX]
+                                 ...
+                                 [ XX + XXj
+                                   ...
+                                   XX + XXj]]
+        Args:
+            name (str): the name of the quantum circuit.
+            backend (str): the name of the backend the data was run on.
+
+        Returns:
+            A dictionary of data for the different backends.
+        """
         if not backend:
             backend = self.__last_backend
-        if name in self.__quantum_program:
+        try:
             return self.__quantum_program[name]['execution'][backend]['result']['data']
-        else:
-            return {"status": "Error", "result": 'Circuit not found'}
+        except KeyError:
+            return {"status": "Error", "result": 'Error in circuit name'}
 
     def get_counts(self, name, backend=None):
         """Get the histogram data of cicuit name.
 
-        The data from the a qasm circuit is
-        "counts": {’00000’: XXXX, ’00001’: XXXXX}
+        The data from the a qasm circuit is dictionary of the format
+        {’00000’: XXXX, ’00001’: XXXXX}.
 
         Args:
-            name (str): the name of the quantum circuit
-            backend (str): the name of the backend the data was run on
+            name (str): the name of the quantum circuit.
+            backend (str): the name of the backend the data was run on.
 
         Returns:
-            A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}
+            A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
         """
-
         if not backend:
             backend = self.__last_backend
         try:
@@ -828,7 +850,13 @@ circuits
         calculates the sum_i value(i) P(i) where value(i) is the value of
         the observable for state i.
 
-        returns a double
+        Args:
+            name (str): the name of the quantum circuit
+            obsevable (dict): The observable to be averaged over. As an example
+            ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
+
+        Returns:
+            a double for the average of the observable
         """
         counts = self.get_counts(name)
         temp = 0
