@@ -95,8 +95,8 @@ def local_backends():
                      'name': 'measure',
                      'qubits': [0]}]}
     job = {'compiled_circuit': json.dumps(circuit).encode(),
-           'shots': 1,
-           'seed': None}
+           'config': {'shots': 1, 'seed': None}
+           }
     for backend_id, backend in _simulator_classes.items():
         try:
             sim = backend(job)

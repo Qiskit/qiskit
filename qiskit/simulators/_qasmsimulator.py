@@ -160,8 +160,8 @@ class QasmSimulator(object):
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
-        self._shots = job['shots']
-        random.seed(job['seed'])
+        self._shots = job['config']['shots']
+        random.seed(job['config']['seed'])
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):

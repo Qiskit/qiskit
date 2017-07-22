@@ -62,6 +62,7 @@ class QuantumProgram(object):
     __LOCAL_BACKENDS = []
 
     __quantum_program = {}
+    __to_execute ={}
     __api = {}
     __api_config = {}
 
@@ -79,7 +80,7 @@ class QuantumProgram(object):
                 {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                 --backend name (string)--:
                     {
-                    "compiled_circuit": --compiled quantum circuit object --,
+                    "compiled_circuit": --compiled quantum circuit object (DAG format) --,
                     "config":
                         {
                         "basis_gates": --comma separated gate names (string)--,
@@ -99,23 +100,26 @@ class QuantumProgram(object):
             }
         }
 
-circuits
 
-    --backend name (string)--: [
-            {
+    __to_execute =
+        {
+        --backend name (string)--:
+            [
+                {
                 "name": --circuit name (string)--,
-                "coupling_map": --adjacency list (dict)--,
-                "basis_gates": --comma separated gate names (string)--,
-                "compiled_circuit": --compiled quantum circuit --,
-                "layout": --layout computed by mapper (dict)--,
-                "shots": --shots (int)--,
-                "max_credits": --credits (int)--,
-                "seed": --initial seed for the simulator (int)--,
+                "compiled_circuit": --compiled quantum circuit (DAG format)--,
                 "config": --dictionary of additional config settings (dict)--
-            },
+                    "coupling_map": --adjacency list (dict)--,
+                    "basis_gates": --comma separated gate names (string)--,
+                    "layout": --layout computed by mapper (dict)--,
+                    "shots": (qasm only) --shots (int)--,
+                    "max_credits" (online only): --credits (int)--,
+                    "seed": (simulator only)--initial seed for the simulator (int)--,
+
+                },
             ...
-        ]
-    }
+            ]
+        }
     """
     # -- FUTURE IMPROVEMENTS --
     # TODO: for status results choose ALL_CAPS, or This but be consistent
@@ -452,76 +456,117 @@ circuits
             qasm_source.append(self.get_qasm(name))
         return qasm_source
 
-    # Compiling methods
-    def unroller_code(self, circuit, basis_gates=None):
-        """ Unroll the code
-        circuit is the circuit to unroll
-        basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
+
+    ###############################################################
+    # methods to compile quantum programs into __to_execute
+    ###############################################################
+
+    def _dag2json(self, dag_circuit):
+        """Make a Json representation of the circuit.
+
+        Takes a circuit dag and returns json circuit obj. This is an internal
+        function.
+
+        Args:
+            dag_ciruit (dag object): a dag representation of the circuit
+
+        Returns:
+            the json version of the dag
+
+        JAY: I think this needs to become a method like .qasm() for the DAG.
+        """
+        qasm_circuit = dag_circuit.qasm(qeflag=True)
+        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+        unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit).parse(), unroll.JsonBackend(basis_gates.split(",")))
+        json_circuit = unroller.execute()
+        return json_circuit
+
+    def _unroller_code(self, dag_ciruit, basis_gates=None):
+        """ Unroll the code.
+
+        Circuit is the circuit to unroll using the DAG representation.
+        This is an internal function.
+
+        Args:
+            dag_ciruit (dag object): a dag representation of the circuit
+            basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
+        Return:
+            dag_ciruit (dag object): a dag representation of the circuit
+                                     unrolled to basis gates
+                                     
+        JAY: Why do we need this it could just be two lines in compile.
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        # print('basis gates', basis_gates)
-        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=circuit.qasm()).parse(),
+        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         return circuit_unrolled
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
-                basis_gates=None, coupling_map=None, initial_layout=None,
-                config=None, silent=True, shots=1024, max_credits=3,
-                seed=None):
-        """Compile the name_of_circuits by names.
+                config=None, silent=True, basis_gates=None, coupling_map=None,
+                initial_layout=None, shots=1024, max_credits=3, seed=None):
+        """Compile the circuits into the exectution list.
+
+        This builds the internal "to execute" list which is list of quantum
+        circuits to run on different backends.
+
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
-            config (dict): a dictionayr of configurations parameters
+            backend (str): a string representing the backend to compile to
+            config (dict): a dictionary of configurations parameters for the
+                compiler
+            silent (bool): is an option to print out the compiling information
+            or not
+            basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
+            coupling_map (dict): A directed graph of coupling
+                                {
+                                control(int):
+                                    [
+                                    target1(int),
+                                    target2(int),
+                                    , ...
+                                    ],
+                                    ...
+                                }
+                                eg. {0: [2], 1: [2], 3: [2]}
+            intial_layout (dict): A mapping of qubit to qubit
+                                  {
+                                    ("q", strart(int)): ("q", final(int)),
+                                    ...
+                                  }
+                                  eg.
+                                  {
+                                    ("q", 0): ("q", 0),
+                                    ("q", 1): ("q", 1),
+                                    ("q", 2): ("q", 2),
+                                    ("q", 3): ("q", 3)
+                                  }
+            shots (int): the number of shots
+            max_credits (int): the max credits to use 3, or 5
+            seed (int): the intial seed the simulatros use
 
-            config
-                backend
+        Returns:
+            status done and populates the internal __to_exectute object
 
-
-            backend (str): is the target backend name.
-            basis_gates (str): comma separated gate names "u1,u2,u3,cx"
-            coupling_map (dict{i: [j,k],.. }): The adjacency list for coupling
-                                               graph
-            initial_layout (dict{('q', 0): ('q', 2)}: is dict mapping qubits of
-                                                      circuit onto qubits of backend
-            config (dict): a dictionary of extra configurations
-            silent (bool): set true to not print
-            shots
-            max_credits
-            seed
-
-
-        This method adds elements of the following form to the self.__to_execute
-        list corresponding to the backend:
-
-        --backend name (string)--: [
-                {
-                    "name": --circuit name (string)--,
-                    "compiled_circuit": --compiled quantum circuit --,
-                    "config": --dictionary of additional config settings (dict)--
-                        "coupling_map": --adjacency list (dict)--,
-                        "basis_gates": --comma separated gate names (string)--,
-                        "layout": --layout computed by mapper (dict)--,
-                        "shots": (opt qasm only) --shots (int)--,
-                        "max_credits" (opt online only): --credits (int)--,
-                        "seed": (opt simulator only)--initial seed for the simulator (int)--,
-
-                },
-                ...
-            ]
-        }
+        Jay: currently basis_gates, coupling_map, intial_layout, shots,
+             max_credits and seed are extra inputs but I would like them to go
+             into the confg.
         """
         if name_of_circuits == []:
             return {"status": "Error", "result": 'No circuits'}
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
-
+            if not basis_gates:
+                basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object has to have .qasm() method (be careful)
-            dag_circuit = self.unroller_code(self.__quantum_program[name]['circuit'],
+            dag_circuit = self._unroller_code(self.__quantum_program[name]['circuit'],
                                              basis_gates=basis_gates)
             final_layout = None
+            # if a coupling map is given compile to the map
             if coupling_map:
                 if not silent:
                     print("pre-mapping properties: %s"
@@ -535,11 +580,9 @@ circuits
                 if not silent:
                     print("final layout: %s" % final_layout)
                 # Expand swaps
-                dag_circuit = self.unroller_code(
-                    dag_circuit)
+                dag_circuit = self._unroller_code(dag_circuit)
                 # Change cx directions
-                dag_circuit = mapper.direction_mapper(dag_circuit,
-                                                       coupling)
+                dag_circuit = mapper.direction_mapper(dag_circuit, coupling)
                 # Simplify cx gates
                 mapper.cx_cancellation(dag_circuit)
                 # Simplify single qubit gates
@@ -547,75 +590,89 @@ circuits
                 if not silent:
                     print("post-mapping properties: %s"
                           % dag_circuit.property_summary())
-            # TODO: add timestamp, compilation
+
             if backend not in self.__to_execute:
                 self.__to_execute[backend] = []
 
+            # making the job to be added to __to_exectute
             job = {}
             job["name"] = name
+            # config parameters used by the runner
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            job["coupling_map"] = coupling_map
-            job["layout"] = final_layout
-            job["basis_gates"] = basis_gates
-            job["shots"] = shots
-            job["max_credits"] = max_credits
-
-            job["compiled_circuit"] = dag_circuit
+            job["config"]["coupling_map"] = coupling_map # TODO: why do we want this
+            job["config"]["layout"] = final_layout # TODO: why do we want this
+            job["config"]["basis_gates"] = basis_gates # TODO: why do we want this
+            job["config"]["shots"] = shots
+            job["config"]["max_credits"] = max_credits
             if seed is None:
-                job["seed"] = random.random()
+                job["config"]["seed"] = random.random() # TODO: we should only add if simulator
             else:
-                job["seed"] = seed
+                job["config"]["seed"] = seed
+            # the compuled circuit to be run saved as a dag
+            job["compiled_circuit"] = dag_circuit
+            # add job to the __to_exectute
             self.__to_execute[backend].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
-    def _dag2json(self, dag_circuit, basis_gates=None):
-        # This should just become a method of dag_circuit.json()
-        qasm_circuit = dag_circuit.qasm(qeflag=True)
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit).parse(), unroll.JsonBackend(basis_gates.split(",")))
-        json_circuit = unroller.execute()
-        return json_circuit
-
-    def get_compiled_layout(self, name, backend=None):
+    def get_compiled_configuration(self, name, backend=None):
         """Get the compiled layout for the named circuit and backend.
 
         If backend is None, it defaults to the last backend.
+
+        Args:
+            name (str):  the circuit name
+            backend (str): the name of hte backend
+
+        Returns:
+            the config of the circuit.
         """
         if not backend:
             backend = self.__last_backend
         try:
-            return self.__quantum_program[name]["execution"][backend]["layout"]
+            for configuration in self.__to_execute[backend]:
+                if configuration['name'] == name:
+                    return configuration["config"]
         except KeyError:
-            return "No compiled layout for this circuit"
+            return "No compiled configurations for this circuit"
 
     def delete_execution_list(self):
-        """Clears the exectuation list."""
+        """Clears the exectution list.
+
+        Args:
+            None
+        Returns:
+            Clears the internal self.__to_execute.
+        """
         self.__to_execute = {}
 
-    def print_execution_list(self, verbose=False):
+    def get_execution_list(self, verbose=False):
         """Print the compiled circuits that are ready to run.
 
-        verbose controls how much is returned.
+        Args:
+            verbose (bool): controls how much is returned.
         """
-        from pprint import pprint
         for backend, jobs in self.__to_execute.items():
             print("%s:" % backend)
             for job in jobs:
-                print("  %s:" % job["name"])
-                print("    shots = %d" % job["shots"])
-                print("    max_credits = %d" % job["max_credits"])
-                print("    seed (simulator only) = %d" % job["seed"])
-                if verbose:
+                if not verbose:
+                    print("  %s" % job["name"])
+                else:
+                    print("  %s:" % job["name"])
+                    print("    shots = %d" % job["config"]["shots"])
+                    print("    max_credits = %d" % job["config"]["max_credits"])
+                    print("    seed (simulator only) = %d" % job["config"]["seed"])
                     print("    compiled_circuit =")
                     print("// *******************************************")
                     parsed=json.loads(self._dag2json(job["compiled_circuit"]))
                     print(json.dumps(parsed, indent=4, sort_keys=True))
                     print("// *******************************************")
 
-    #runners
+    ###############################################################
+    # methods to ran quantum programs (run __to_execute)
+    ###############################################################
+
     def run(self, wait=5, timeout=60, silent=False):
         """Run a program (a pre-compiled quantum program).
 
@@ -624,11 +681,12 @@ circuits
         Args:
             wait (int): wait time is how long to check if the job is completed
             timeout (int): is time until the execution stops
-            silent (bool): is an option ot print out the running information or
+            silent (bool): is an option to print out the running information or
             not
 
         Returns:
-            Updates the self.__quantum_program
+            status done and populates the internal __quantum_program with the
+            data
         """
         for backend in self.__to_execute:
             self.__last_backend = backend
@@ -638,8 +696,8 @@ circuits
                 jobs = []
                 for job in self.__to_execute[backend]:
                     jobs.append({'qasm': job["compiled_circuit"].qasm(qeflag=True)})
-                    shots = job["shots"]
-                    max_credits = job["max_credits"]
+                    shots = job["config"]["shots"]
+                    max_credits = job["config"]["max_credits"]
                     if last_shots == -1:
                         last_shots = shots
                     else:
@@ -672,8 +730,6 @@ circuits
                 jobs = []
                 for job in self.__to_execute[backend]:
                     jobs.append({"compiled_circuit": self._dag2json(job["compiled_circuit"]),
-                                 "shots": job["shots"],
-                                 "seed": job["seed"],
                                  "config": job["config"]})
                 if not silent:
                     print("running on backend: %s" % (backend))
@@ -702,9 +758,9 @@ circuits
                     self.__quantum_program[name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
                 self.__quantum_program[name]["execution"][backend]["compiled_circuit"] = job["compiled_circuit"]
-                self.__quantum_program[name]["execution"][backend]["config"]={}
-                for field in ["coupling_map", "basis_gates", "shots", "max_credits", "seed", "layout"]:
-                    self.__quantum_program[name]["execution"][backend]["config"][field] = job[field]
+                self.__quantum_program[name]["execution"][backend]["config"]=job["config"]
+                #for field in ["coupling_map", "basis_gates", "shots", "max_credits", "seed", "layout"]:
+                #    self.__quantum_program[name]["execution"][backend]["config"][field] = job[field]
                 # results filled in
                 if backend in self.__ONLINE_BACKENDS:
                     self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["result"]["data"]
@@ -716,18 +772,18 @@ circuits
                 index += 1
 
         # Clear the list of compiled programs to execute
-        self.__to_execute = {}
+        self.delete_execution_list()
 
         return  {"status": "COMPLETED", "result": 'all done'}
 
     def wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
-        """Wait until all status results are 'COMPLETED'.
+        """Wait until all online ran jobs are 'COMPLETED'.
 
         Args:
             jobids:  is a list of id strings.
             wait (int):  is the time to wait between requests, in seconds
             timeout (int):  is how long we wait before failing, in seconds
-            silent (bool): is an option ot print out the running information or
+            silent (bool): is an option to print out the running information or
             not
 
         Returns:
@@ -762,7 +818,8 @@ circuits
 
         Args:
           backend (str): the name of the local simulator to run
-          jobs: list of dicts {"compiled_circuit": simulator input data, "shots": integer num shots}
+          jobs: list of dicts {"compiled_circuit": simulator input data,
+                "config": integer num shots}
 
         Returns:
           Dictionary of form,
@@ -786,24 +843,72 @@ circuits
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
-                shots=1024, max_credits=3, wait=5, timeout=60, silent=False,
-                basis_gates=None, coupling_map=None, initial_layout=None,
-                seed=None, config=None):
-        """Execute, compile, and run a program (array of quantum circuits).
-        program is a list of quantum_circuits
-        api is the api for the backend
-        backend is a string for local or online backend name
-        shots is the number of shots
-        max_credits is the maximum credits for the experiments
-        basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
+                config=None, wait=5, timeout=60, silent=False, basis_gates=None,
+                coupling_map=None, initial_layout=None, shots=1024,
+                max_credits=3, seed=None):
+
+        """Execute, compile, and run an array of quantum circuits).
+
+        This builds the internal "to execute" list which is list of quantum
+        circuits to run on different backends.
+
+        Args:
+            name_of_circuits (list[str]): circuit names to be compiled.
+            backend (str): a string representing the backend to compile to
+            config (dict): a dictionary of configurations parameters for the
+                compiler
+            wait (int): wait time is how long to check if the job is completed
+            timeout (int): is time until the execution stops
+            silent (bool): is an option to print out the compiling information
+            or not
+            basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
+            coupling_map (dict): A directed graph of coupling
+                                {
+                                control(int):
+                                    [
+                                    target1(int),
+                                    target2(int),
+                                    , ...
+                                    ],
+                                    ...
+                                }
+                                eg. {0: [2], 1: [2], 3: [2]}
+            intial_layout (dict): A mapping of qubit to qubit
+                                  {
+                                  ("q", strart(int)): ("q", final(int)),
+                                  ...
+                                  }
+                                  eg.
+                                  {
+                                  ("q", 0): ("q", 0),
+                                  ("q", 1): ("q", 1),
+                                  ("q", 2): ("q", 2),
+                                  ("q", 3): ("q", 3)
+                                  }
+            shots (int): the number of shots
+            max_credits (int): the max credits to use 3, or 5
+            seed (int): the intial seed the simulatros use
+
+        Returns:
+            status done and populates the internal __quantum_program with the
+            data
+
+        Jay: currently basis_gates, coupling_map, intial_layout, shots,
+            max_credits, and seed are extra inputs but I would like them to go
+            into the config
         """
-        self.compile(name_of_circuits, backend=backend, shots=shots,
-                     max_credits=max_credits, basis_gates=basis_gates,
+        self.compile(name_of_circuits, backend=backend, config=config,
+                     silent=silent, basis_gates=basis_gates,
                      coupling_map=coupling_map, initial_layout=initial_layout,
-                     seed=seed, config=config, silent=silent)
+                     shots=shots, max_credits=max_credits, seed=seed)
         output = self.run(wait=wait, timeout=timeout, silent=silent)
         return output
 
+
+    ###############################################################
+    # methods to process the quantum program after it has been run
+    ###############################################################
 
     def get_ran_qasm(self, name, backend=None):
         """Get the ran qasm for the named circuit and backend.
@@ -823,7 +928,6 @@ circuits
         except KeyError:
             return "No qasm has been ran for this circuit"
 
-    # method to process the data
     def get_data(self, name, backend=None):
         """Get the data of cicuit name.
 

@@ -38,8 +38,8 @@ class QasmCppSimulator:
                         'config': self.config}
         self.result = {}
         self.result['data'] = {}
-        self._shots = job['shots']
-        self._seed = job['seed']
+        self._shots = job['config']['shots']
+        self._seed = job['config']['seed']
         # Number of threads for simulator
         if 'threads' in self.config:
             self._threads = self.config['threads']
