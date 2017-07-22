@@ -70,29 +70,31 @@ class QuantumProgram(object):
     by "--description (type)--". For example, a circuit's name is denoted by
     "--circuit name (string)--" and might have the value "teleport".
 
-    __quantum_program = {
-        --circuit name (string)--:
+    __quantum_program =
         {
+        --circuit name (string)--:
+            {
             "circuit": --circuit object --,
             "execution":
-            {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
+                {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                 --backend name (string)--:
-                {
+                    {
                     "compiled_circuit": --compiled quantum circuit object --,
-
-                    "basis_gates": --comma separated gate names (string)--,
-                    "coupling_map": --adjacency list (dict)--,
-                    "layout": --layout computed by mapper (dict)--,
-                    "shots": --shots (int)--,
-                    "max_credits": --credits (int)--,
-
+                    "config":
+                        {
+                        "basis_gates": --comma separated gate names (string)--,
+                        "coupling_map": --adjacency list (dict)--,
+                        "layout": --layout computed by mapper (dict)--,
+                        "shots": --shots (int)--,
+                        "max_credits": --credits (int)--,
+                        },
                     "data":
                         {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                            "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                            "time"  : xx.xxxxxxxx
+                        "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                        "time"  : xx.xxxxxxxx
                         },
                     "status": --status (string)--
-                    }
+                    },
                 },
             }
         }
@@ -681,9 +683,10 @@ circuits
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": 'Not a local simulator'}
-
-            assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
-
+            if backend in self.__ONLINE_BACKENDS:
+                assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
+            else:
+                assert len(self.__to_execute[backend]) == len(job_result), "Internal error in QuantumProgram.run(), job_result"
             # Fill data into self.__quantum_program for this backend
             index = 0
             for job in self.__to_execute[backend]:
@@ -698,14 +701,18 @@ circuits
                 if backend not in self.__quantum_program[name]["execution"]:
                     self.__quantum_program[name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
+                self.__quantum_program[name]["execution"][backend]["compiled_circuit"] = job["compiled_circuit"]
                 self.__quantum_program[name]["execution"][backend]["config"]={}
-                for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed", "layout"]:
+                for field in ["coupling_map", "basis_gates", "shots", "max_credits", "seed", "layout"]:
                     self.__quantum_program[name]["execution"][backend]["config"][field] = job[field]
+                # results filled in
                 if backend in self.__ONLINE_BACKENDS:
                     self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["result"]["data"]
+                    self.__quantum_program[name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
                 else:
-                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["data"]
-                self.__quantum_program[name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
+                    self.__quantum_program[name]["execution"][backend]["data"] = job_result[index]["data"]
+                    self.__quantum_program[name]["execution"][backend]["status"] = job_result[index]["status"]
+
                 index += 1
 
         # Clear the list of compiled programs to execute
@@ -715,35 +722,40 @@ circuits
 
     def wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
         """Wait until all status results are 'COMPLETED'.
-        jobids is a list of id strings.
-        api is an IBMQuantumExperience object.
-        wait is the time to wait between requests, in seconds
-        timeout is how long we wait before failing, in seconds
-        Returns an list of results that correspond to the jobids.
+
+        Args:
+            jobids:  is a list of id strings.
+            wait (int):  is the time to wait between requests, in seconds
+            timeout (int):  is how long we wait before failing, in seconds
+            silent (bool): is an option ot print out the running information or
+            not
+
+        Returns:
+            A list of results that correspond to the jobids.
         """
         timer = 0
         timeout_over = False
-        job = self.__api.get_job(jobid)
-        if 'status' not in job:
+        job_result = self.__api.get_job(jobid)
+        if 'status' not in job_result:
             from pprint import pformat
             raise Exception("get_job didn't return status: %s" % (pformat(job)))
-        while job['status'] == 'RUNNING':
+        while job_result['status'] == 'RUNNING':
             if timer >= timeout:
                 return {"status": "Error", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
             if not silent:
-                print("status = %s (%d seconds)" % (job['status'], timer))
-            job = self.__api.get_job(jobid)
+                print("status = %s (%d seconds)" % (job_result['status'], timer))
+            job_result = self.__api.get_job(jobid)
 
-            if 'status' not in job:
+            if 'status' not in job_result:
                 from pprint import pformat
-                raise Exception("get_job didn't return status: %s" % (pformat(job)))
-            if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
-                return {"status": "Error", "result": job['status']}
+                raise Exception("get_job didn't return status: %s" % (pformat(job_result)))
+            if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
+                return {"status": "Error", "result": job_result['status']}
 
         # Get the results
-        return job
+        return job_result
 
     def run_local_simulator(self, backend, jobs):
         """Run a program of compiled quantum circuits on the local machine.
@@ -754,23 +766,23 @@ circuits
 
         Returns:
           Dictionary of form,
-          job_results = {
-            "qasms": [
+          job_results =
+            [
                 {
-                    "daya": DATA,
-                    "status": DATA,
+                "data": DATA,
+                "status": DATA,
                 },
                 ...
             ]
         }
         """
-        job_results = {"qasms": []}
+        job_results = []
         for job in jobs:
             one_result = {'result': None, 'status': "Error"}
             local_simulator = simulators.LocalSimulator(backend, job)
             local_simulator.run()
             this_result = local_simulator.result()
-            job_results['qasms'].append(this_result)
+            job_results.append(this_result)
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
