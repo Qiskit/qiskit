@@ -78,21 +78,20 @@ class QuantumProgram(object):
             {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                 --backend name (string)--:
                 {
-                    "coupling_map": --adjacency list (dict)--,
-                    "basis_gates": --comma separated gate names (string)--,
                     "compiled_circuit": --compiled quantum circuit object --,
+
+                    "basis_gates": --comma separated gate names (string)--,
+                    "coupling_map": --adjacency list (dict)--,
                     "layout": --layout computed by mapper (dict)--,
                     "shots": --shots (int)--,
                     "max_credits": --credits (int)--,
-                    "result":
-                    {
-                        "data":
+
+                    "data":
                         {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
                             "counts": {’00000’: XXXX, ’00001’: XXXXX},
                             "time"  : xx.xxxxxxxx
                         },
-                        "date"  : "2017−05−09Txx:xx:xx.xxxZ",
-                        "status": --status (string)--
+                    "status": --status (string)--
                     }
                 },
             }
@@ -472,6 +471,12 @@ circuits
         """Compile the name_of_circuits by names.
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
+            config (dict): a dictionayr of configurations parameters
+
+            config
+                backend
+
+
             backend (str): is the target backend name.
             basis_gates (str): comma separated gate names "u1,u2,u3,cx"
             coupling_map (dict{i: [j,k],.. }): The adjacency list for coupling
@@ -613,8 +618,15 @@ circuits
         """Run a program (a pre-compiled quantum program).
 
         All input for run comes from self.__to_execute
-        wait time is how long to check if the job is completed
-        timeout is time until the execution stopa
+
+        Args:
+            wait (int): wait time is how long to check if the job is completed
+            timeout (int): is time until the execution stops
+            silent (bool): is an option ot print out the running information or
+            not
+
+        Returns:
+            Updates the self.__quantum_program
         """
         for backend in self.__to_execute:
             self.__last_backend = backend
@@ -686,9 +698,13 @@ circuits
                 if backend not in self.__quantum_program[name]["execution"]:
                     self.__quantum_program[name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
+                self.__quantum_program[name]["execution"][backend]["config"]={}
                 for field in ["coupling_map", "basis_gates", "compiled_circuit", "shots", "max_credits", "seed", "layout"]:
-                    self.__quantum_program[name]["execution"][backend][field] = job[field]
-                self.__quantum_program[name]["execution"][backend]["result"] = job_result["qasms"][index]["result"]
+                    self.__quantum_program[name]["execution"][backend]["config"][field] = job[field]
+                if backend in self.__ONLINE_BACKENDS:
+                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["result"]["data"]
+                else:
+                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["data"]
                 self.__quantum_program[name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
                 index += 1
 
@@ -719,6 +735,7 @@ circuits
             if not silent:
                 print("status = %s (%d seconds)" % (job['status'], timer))
             job = self.__api.get_job(jobid)
+
             if 'status' not in job:
                 from pprint import pformat
                 raise Exception("get_job didn't return status: %s" % (pformat(job)))
@@ -740,7 +757,7 @@ circuits
           job_results = {
             "qasms": [
                 {
-                    "result": DATA,
+                    "daya": DATA,
                     "status": DATA,
                 },
                 ...
@@ -780,13 +797,19 @@ circuits
         """Get the ran qasm for the named circuit and backend.
 
         If backend is None, it defaults to the last backend.
+        Args:
+            name (str): the name of the quantum circuit.
+            backend (str): the name of the backend the data was run on.
+
+        Returns:
+            A text version of the qasm file that has been run.
         """
         if not backend:
             backend = self.__last_backend
         try:
-            return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm(qeflag=True)
+            return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm()
         except KeyError:
-            return "No compiled qasm for this circuit"
+            return "No qasm has been ran for this circuit"
 
     # method to process the data
     def get_data(self, name, backend=None):
@@ -819,7 +842,7 @@ circuits
         if not backend:
             backend = self.__last_backend
         try:
-            return self.__quantum_program[name]['execution'][backend]['result']['data']
+            return self.__quantum_program[name]['execution'][backend]['data']
         except KeyError:
             return {"status": "Error", "result": 'Error in circuit name'}
 
@@ -839,7 +862,7 @@ circuits
         if not backend:
             backend = self.__last_backend
         try:
-            return self.__quantum_program[name]['execution'][backend]['result']['data']['counts']
+            return self.__quantum_program[name]['execution'][backend]['data']['counts']
         except KeyError:
             return {"status": "Error", "result": 'Error in circuit name'}
 

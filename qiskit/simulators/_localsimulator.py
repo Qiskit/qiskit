@@ -114,13 +114,12 @@ class LocalSimulator:
     def __init__(self, backend, job):
         self._backend = backend
         self._job = job
-        self._result = {'result': None, 'status': "Error"}
+        self._result = {'data': None, 'status': "Error"}
         self._sim = _simulator_classes[backend](job)
 
     def run(self):
         simOutput = self._sim.run()
-        self._result["result"] = {}
-        self._result["result"]["data"] = simOutput["data"]
+        self._result["data"] = simOutput["data"]
         self._result["status"] = simOutput["status"]
 
     def result(self):
