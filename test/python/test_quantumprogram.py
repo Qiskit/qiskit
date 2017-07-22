@@ -262,7 +262,7 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         result = QP_program.execute(
-            ['circuitName'], backend, shots, max_credits=3)
+            ['circuitName'], backend=backend, shots=shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_several_circuits_simulator_online(self):
@@ -286,7 +286,7 @@ class TestQuantumProgram(unittest.TestCase):
             API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         result = QP_program.execute(
-            circuits, backend, shots, max_credits=3)
+            circuits, backend=backend, shots=shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_program_simulator_online(self):
@@ -307,7 +307,7 @@ class TestQuantumProgram(unittest.TestCase):
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        result = QP_program.execute(['qc2'], backend, shots, max_credits=3)
+        result = QP_program.execute(['qc2'], backend=backend, shots=shots, max_credits=3)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_one_circuit_real_online(self):
@@ -325,7 +325,8 @@ class TestQuantumProgram(unittest.TestCase):
 
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
-        result = QP_program.execute( ['circuitName'], backend, shots, max_credits=3)
+        result = QP_program.execute(['circuitName'], backend=backend,
+                                    shots=shots, max_credits=3)
         self.assertIn(result["status"], ["COMPLETED","Error"])
 
 
@@ -347,8 +348,8 @@ class TestQuantumProgram(unittest.TestCase):
         coupling_map = None
 
         result = QP_program.compile(['circuitName'],
-                                    backend,
-                                    coupling_map)
+                                    backend=backend,
+                                    coupling_map=coupling_map)
 
         to_test = QP_program.get_circuit('circuitName')
 
@@ -408,7 +409,7 @@ class TestQuantumProgram(unittest.TestCase):
         apiconnection = QP_program.set_api(
             API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        result = QP_program.execute(circuits, backend, shots, max_credits=3)
+        result = QP_program.execute(circuits, backend=backend, shots=shots, max_credits=3)
         self.assertEqual(result['status'], 'COMPLETED')
 
         # QP_program.plotter()

@@ -62,7 +62,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': circuit, 'config': config}
         result = QasmSimulator(job).run()
         self.assertEqual(result['status'], 'DONE')
 
@@ -75,7 +76,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': circuit, 'config': config}
         result = QasmSimulator(job).run()
         expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,
                     '000000': 131, '010010': 141, '110110': 116, '001001': 124}
@@ -105,7 +107,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
 
         self.qp.execute(circuits, backend=backend, shots=shots, max_credits=3, wait=10, timeout=240)
         for circ in circuits:
-            print(circ, self.qp.get_counts(circ))
+            logging.info('test_dag: {0} {1}'.format(circ, self.qp.get_counts(circ)))
         
     def profile_qasm_simulator(self):
         """Profile randomly generated circuits. 
