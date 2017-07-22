@@ -46,7 +46,8 @@ unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
 circuit = unroller.execute()
 
 if "unitary_simulator" in sys.argv:
-    a = UnitarySimulator(circuit).run()
+    job = {'compiled_circuit': circuit}
+    a = UnitarySimulator(job).run()
     dim = len(a['data']['unitary'])
     print('\nUnitary simulator on State |psi> = U|0> :')
     quantum_state = np.zeros(dim, dtype=complex)
@@ -56,7 +57,8 @@ if "unitary_simulator" in sys.argv:
 
 if "qasm_simulator_single_shot" in sys.argv:
     print('\nUsing the qasm simulator in single shot mode: ')
-    b = QasmSimulator(circuit, 1, seed).run()
+    job = {'compiled_circuit': circuit, 'shots': 1, 'seed': seed}
+    b = QasmSimulator(job).run()
     print(b['data']['quantum_state'])
     print(b['data']['classical_state'])
     temp = temp + "qasm simulator single shot: " + b['status'] + "\n"
@@ -64,7 +66,8 @@ if "qasm_simulator_single_shot" in sys.argv:
 if "qasm_simulator" in sys.argv:
     print('\nUsing the qasm simulator:')
     shots = 1024
-    c = QasmSimulator(circuit, shots, seed).run()
+    job = {'compiled_circuit': circuit, 'shots': shots, 'seed': seed}
+    c = QasmSimulator(job).run()
     print(c['data']['counts'])
     temp = temp + "qasm simulator: " + c['status'] + "\n"
 
