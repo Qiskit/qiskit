@@ -591,7 +591,7 @@ class QuantumProgram(object):
         except KeyError:
             return "No compiled configurations for this circuit"
 
-    def delete_execution_list(self):
+    def delete_execution_list(self, backend=None):
         """Clears the exectution list.
 
         Args:
@@ -599,7 +599,11 @@ class QuantumProgram(object):
         Returns:
             Clears the internal self.__to_execute.
         """
-        self.__to_execute = {}
+        if not backend:
+            self.__to_execute = {}
+        else:
+            del self.__to_execute[backend]
+
 
     def get_execution_list(self, verbose=False):
         """Print the compiled circuits that are ready to run.
@@ -607,6 +611,8 @@ class QuantumProgram(object):
         Args:
             verbose (bool): controls how much is returned.
         """
+        if not self.__to_execute:
+            print("no exectuions to run")
         for backend, jobs in self.__to_execute.items():
             print("%s:" % backend)
             for job in jobs:
@@ -700,14 +706,14 @@ class QuantumProgram(object):
                     else:
                         if last_shots != shots:
                             # Clear the list of compiled programs to execute
-                            self.__to_execute = {}
+                            self.delete_execution_list(backend)
                             return {"status": "Error", "result":'Online backends only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
                     else:
                         if last_max_credits != max_credits:
                             # Clear the list of compiled programs to execute
-                            self.__to_execute = {}
+                            self.delete_execution_list(backend)
                             return  {"status": "Error", "result":'Online backends only support job batches with equal max credits'}
 
                 if not silent:
@@ -715,15 +721,17 @@ class QuantumProgram(object):
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
                 if 'error' in output:
                     # Clear the list of compiled programs to execute
-                    self.__to_execute = {}
+                    self.delete_execution_list(backend)
                     return {"status": "Error", "result": output['error']}
                 job_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
 
                 if job_result['status'] == 'Error':
                     # Clear the list of compiled programs to execute
-                    self.__to_execute = {}
+                    self.delete_execution_list(backend)
                     return job_result
             else:
+                # making a list of jobs just for local backends. Name is droped
+                # but the list is made ordered
                 jobs = []
                 for job in self.__to_execute[backend]:
                     jobs.append({"compiled_circuit": self._dag2json(job["compiled_circuit"]),
@@ -734,8 +742,9 @@ class QuantumProgram(object):
                     job_result = self.run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
-                    self.__to_execute = {}
-                    return {"status": "Error", "result": 'Not a local simulator'}
+                    self.delete_execution_list(backend)
+                    return {"status": "Error", "result": "Not a valid backend"}
+
             if backend in self.__ONLINE_BACKENDS:
                 assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
             else:
@@ -756,8 +765,6 @@ class QuantumProgram(object):
                 # TODO: return date, executionId, ...
                 self.__quantum_program[name]["execution"][backend]["compiled_circuit"] = job["compiled_circuit"]
                 self.__quantum_program[name]["execution"][backend]["config"]=job["config"]
-                #for field in ["coupling_map", "basis_gates", "shots", "max_credits", "seed", "layout"]:
-                #    self.__quantum_program[name]["execution"][backend]["config"][field] = job[field]
                 # results filled in
                 if backend in self.__ONLINE_BACKENDS:
                     self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["result"]["data"]
