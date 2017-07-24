@@ -134,11 +134,11 @@ class QuantumProgram(object):
         self.__quantum_registers = {} # parameters used by all circuits
         self.__classical_registers = {} # parameters used by all circuits
         self.__quantum_program = {} # stores all the quantum programs
-        self.__to_execute = {} # strores the circuits to be ran
+        self.__init_circuit = None
         self.__ONLINE_BACKENDS = []
         self.__LOCAL_BACKENDS = self.local_backends()
-        self.__init_circuit = None
         self.__last_backend = ""
+        self.__to_execute = {} # strores the circuits to be ran
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
@@ -169,6 +169,7 @@ class QuantumProgram(object):
         Returns:
             Sets up a quantum circuit.
         """
+        
         quantumr = []
         classicalr = []
         if "api" in specs:
@@ -465,19 +466,13 @@ class QuantumProgram(object):
             qasm_source.append(self.get_qasm(name))
         return qasm_source
 
-    def get_quantum_elements(self, specs=None):
-        """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
-        return self.__init_circuit, \
-            self.__quantum_registers[list(self.__quantum_registers)[0]], \
-            self.__classical_registers[list(self.__classical_registers)[0]]
+    def get_initial_circuit(self):
+        """Return the initialization Circuit."""
+        return self.__init_circuit
 
     ###############################################################
     # methods for working with backends
     ###############################################################
-
-    def get_api_config(self):
-        """Return the program specs"""
-        return self.__api.req.credential.config
 
     def _setup_api(self, token, url, verify=True):
         try:
@@ -508,6 +503,10 @@ class QuantumProgram(object):
     def set_api_url(self, url):
         """ Set the API url """
         self.set_api(url=url)
+
+    def get_api_config(self):
+        """Return the program specs"""
+        return self.__api.req.credential.config
 
     def get_api(self):
         return self.__api
