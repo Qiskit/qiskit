@@ -60,6 +60,22 @@ class QuantumCircuit(object):
                     return True
         return False
 
+    def get_qregs(self):
+        """Get the qregs from the registers."""
+        qregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, QuantumRegister):
+                qregs[name] = register
+        return qregs
+
+    def get_cregs(self):
+        """Get the cregs from the registers."""
+        cregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, ClassicalRegister):
+                cregs[name] = register
+        return cregs
+
     def combine(self, rhs):
         """
         Append rhs to self if self contains rhs's registers.
@@ -97,11 +113,11 @@ class QuantumCircuit(object):
         return self.extend(rhs)
 
     def __len__(self):
-        """Return number of operations in circuit"""
+        """Return number of operations in circuit."""
         return len(self.data)
 
     def __getitem__(self, item):
-        """Return indexed operation"""
+        """Return indexed operation."""
         return self.data[item]
 
     def _attach(self, gate):

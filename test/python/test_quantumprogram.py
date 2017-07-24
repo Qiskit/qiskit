@@ -307,7 +307,7 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram()
         self.assertRaises(QISKitException,
-                          QP_program.load_qasm_file, "", name=None, verbose=False)
+                         QP_program.load_qasm_file, "", name=None, verbose=False)
 
     def test_load_qasm_text(self):
         """Test load_qasm_text and get_circuit.

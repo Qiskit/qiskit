@@ -335,9 +335,10 @@ class QuantumProgram(object):
         Returns:
             the quantum circuit is added to the object.
         """
-        # TODO: JAY If we are going to have registers i think we need to check
-        # the circut object and if the registers are new add them to the
-        # __quantum_registers and __classical_registers
+        for qname, qreg in circuit_object.get_qregs().items():
+            self.create_quantum_register(qname, len(qreg))
+        for cname, creg in circuit_object.get_cregs().items():
+            self.create_quantum_register(cname, len(creg))
         self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
 
     def load_qasm_file(self, qasm_file, name=None, verbose=False):
