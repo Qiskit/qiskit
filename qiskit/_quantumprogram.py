@@ -55,9 +55,94 @@ import qiskit.extensions.standard
 
 
 class QuantumProgram(object):
-    """ Quantum Program Class
+    """Quantum Program Class.
 
-     Class internal properties """
+     Class internal properties.
+
+     Elements that are not python identifiers or string constants are denoted
+     by "--description (type)--". For example, a circuit's name is denoted by
+     "--circuit name (string)--" and might have the value "teleport".
+
+     Internal:
+        __quantum_registers (list[dic]): An ordered list of quantum registers
+            used in the quantum program.
+            __quantum_registers =
+                [
+                    {
+                    "name": --name (str) --,
+                    "size": --size (int) --
+                    },
+                    ...
+                ]
+        __classical_registers (list[dic]): An ordered list of classical registers
+            used in the quantum program.
+            __classical_registers =
+                [
+                    {
+                    "name": --name (str) --,
+                    "size": --size (int) --
+                    },
+                    ...
+                ]
+        __quantum_program (dic): An dictionary of quantum circuits
+            __quantum_program =
+                {
+                --circuit name (string)--:
+                    {
+                    "circuit": --circuit object --,
+                    "execution":
+                        {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
+                        --backend name (string)--:
+                            {
+                            "compiled_circuit": --compiled quantum circuit object (DAG format) --,
+                            "config":
+                                {
+                                "basis_gates": --comma separated gate names (string)--,
+                                "coupling_map": --adjacency list (dict)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "shots": --shots (int)--,
+                                "max_credits": --credits (int)--,
+                                },
+                            "data":
+                                {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
+                                "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                                "time"  : xx.xxxxxxxx
+                                },
+                            "status": --status (string)--
+                            },
+                        },
+                    }
+                }
+        __init_circuit (obj): A quantum circuit object for the initial quantum
+            circuit
+        __ONLINE_BACKENDS (list[str]): A list of online backends
+        __LOCAL_BACKENDS (list[str]): A list of local backends
+        __last_backend (str): The last backend used.
+        __to_execute (list[dic]):  An ordered list quantum circuits to run on
+            diffferent backends.
+            __to_execute =
+                {
+                --backend name (string)--:
+                    [
+                        {
+                        "name": --circuit name (string)--,
+                        "compiled_circuit": --compiled quantum circuit (DAG format)--,
+                        "config": --dictionary of additional config settings (dict)--
+                            "coupling_map": --adjacency list (dict)--,
+                            "basis_gates": --comma separated gate names (string)--,
+                            "layout": --layout computed by mapper (dict)--,
+                            "shots": (qasm only) --shots (int)--,
+                            "max_credits" (online only): --credits (int)--,
+                            "seed": (simulator only)--initial seed for the simulator (int)--,
+
+                        },
+                    ...
+                    ]
+                }
+     """
+    # -- FUTURE IMPROVEMENTS --
+    # TODO: for status results make ALL_CAPS (check) or some unified method
+    # TODO: coupling_map, basis_gates will move to config object
 
     # populate these in __init__()
     __quantum_registers = {}
@@ -68,73 +153,17 @@ class QuantumProgram(object):
 
     __quantum_program = {}
     __to_execute ={}
+
+    # only exists once you set the api to use the online backends
     __api = {}
     __api_config = {}
 
-    """
-    Elements that are not python identifiers or string constants are denoted
-    by "--description (type)--". For example, a circuit's name is denoted by
-    "--circuit name (string)--" and might have the value "teleport".
-
-    __quantum_program =
-        {
-        --circuit name (string)--:
-            {
-            "circuit": --circuit object --,
-            "execution":
-                {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
-                --backend name (string)--:
-                    {
-                    "compiled_circuit": --compiled quantum circuit object (DAG format) --,
-                    "config":
-                        {
-                        "basis_gates": --comma separated gate names (string)--,
-                        "coupling_map": --adjacency list (dict)--,
-                        "layout": --layout computed by mapper (dict)--,
-                        "shots": --shots (int)--,
-                        "max_credits": --credits (int)--,
-                        },
-                    "data":
-                        {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                        "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                        "time"  : xx.xxxxxxxx
-                        },
-                    "status": --status (string)--
-                    },
-                },
-            }
-        }
-
-
-    __to_execute =
-        {
-        --backend name (string)--:
-            [
-                {
-                "name": --circuit name (string)--,
-                "compiled_circuit": --compiled quantum circuit (DAG format)--,
-                "config": --dictionary of additional config settings (dict)--
-                    "coupling_map": --adjacency list (dict)--,
-                    "basis_gates": --comma separated gate names (string)--,
-                    "layout": --layout computed by mapper (dict)--,
-                    "shots": (qasm only) --shots (int)--,
-                    "max_credits" (online only): --credits (int)--,
-                    "seed": (simulator only)--initial seed for the simulator (int)--,
-
-                },
-            ...
-            ]
-        }
-    """
-    # -- FUTURE IMPROVEMENTS --
-    # TODO: for status results make ALL_CAPS (check)
-    # TODO: coupling_map, basis_gates will move to config object
-
     def __init__(self, specs=None):
-        self.__quantum_registers = {} # parameters used by all circuits
-        self.__classical_registers = {} # parameters used by all circuits
+        self.__quantum_registers = {}
+        self.__classical_registers = {}
         self.__quantum_program = {} # stores all the quantum programs
-        self.__init_circuit = None
+        self.__init_circuit = None # stores the intial quantum circuit of the
+        # program
         self.__ONLINE_BACKENDS = []
         self.__LOCAL_BACKENDS = self.local_backends()
         self.__last_backend = ""
@@ -169,7 +198,6 @@ class QuantumProgram(object):
         Returns:
             Sets up a quantum circuit.
         """
-        
         quantumr = []
         classicalr = []
         if "api" in specs:
@@ -185,23 +213,9 @@ class QuantumProgram(object):
                     circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"], qregisters=quantumr,
                                     cregisters=classicalr)
-        else:
-            if "quantum_registers" in specs:
-                if verbose == True:
-                    print(">> quantum_registers created")
-                quantumr = specs["quantum_registers"]
-                self.create_quantum_register(
-                    quantumr["name"], quantumr["size"])
-            if "classical_registers" in specs:
-                if verbose == True:
-                    print(">> quantum_registers created")
-                classicalr = specs["classical_registers"]
-                self.create_classical_register(
-                    classicalr["name"], classicalr["size"])
-            if quantumr and classicalr:
-                self.create_circuit(name=specs["name"],
-                                    qregisters=quantumr["name"],
-                                    cregisters=classicalr["name"])
+        # TODO: Jay I think we should return function holders for the registers
+        # and circuit. So that we dont need to get them after we create them
+        # with get_quantum_register
 
     def create_quantum_register(self, name, size, verbose=False):
         """Create a new Quantum Register.
@@ -214,8 +228,10 @@ class QuantumProgram(object):
         Returns:
             internal reference to a quantum register in __quantum_register s
         """
-        # TODO: JAY if the name exists should we overide. If we want all the
+        # TODO: JAY if the name exists we overide it. If we want all the
         # quantum_registers to exists in the circuits in the quantum_programs
+        # i dont think we should overide but retern a Error unless the size is
+        # same.
         self.__quantum_registers[name] = QuantumRegister(name, size)
         if verbose == True:
             print(">> quantum_register created:", name, size)
@@ -254,8 +270,7 @@ class QuantumProgram(object):
         Returns:
             internal reference to a quantum register in __quantum_register s
         """
-        # TODO: JAY if the name exists should we overide. If we want all the
-        # classical_registers to exists in the circuits in the quantum_programs
+        # TODO: JAY same as the quantum register
         self.__classical_registers[name] = ClassicalRegister(name, size)
         if verbose == True:
             print(">> classical_register created:", name, size)
@@ -288,10 +303,10 @@ class QuantumProgram(object):
 
         Args:
             name (str): the name of the circuit
-            qregisters list(str/object): is an Array of Quantum Registers,
-                can be String, by name or the object reference
-            cregisters list(str/object): is an Array of Classical Registers,
-                can be String, by name or the object reference
+            qregisters list(object): is an Array of Quantum Registers by object
+                reference
+            cregisters list(object): is an Array of Classical Registers by
+                object reference
 
         Returns:
             A quantum circuit is created and added to the Quantum Program
@@ -305,16 +320,9 @@ class QuantumProgram(object):
             self.__init_circuit = circuit_object
         self.add_circuit(name, circuit_object)
         for register in qregisters:
-            if isinstance(register, str):
-                self.__quantum_program[name]['circuit'].add(self.__quantum_registers[register])
-            else:
-                self.__quantum_program[name]['circuit'].add(register)
+            self.__quantum_program[name]['circuit'].add(register)
         for register in cregisters:
-            if isinstance(register, str):
-                self.__quantum_program[name]['circuit'].add(self.__classical_registers[register])
-            else:
-                self.__quantum_program[name]['circuit'].add(register)
-
+            self.__quantum_program[name]['circuit'].add(register)
         return self.__quantum_program[name]['circuit']
 
     def add_circuit(self, name, circuit_object):

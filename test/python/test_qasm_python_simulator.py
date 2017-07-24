@@ -94,11 +94,11 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         cr = self.qp.create_classical_register("cr", 1)
 
         # Quantum circuit ground
-        qc_ground = self.qp.create_circuit("ground", ["qr"], ["cr"])
+        qc_ground = self.qp.create_circuit("ground", [qr], [cr])
         qc_ground.measure(qr[0], cr[0])
 
         # Quantum circuit excited
-        qc_excited = self.qp.create_circuit("excited", ["qr"], ["cr"])
+        qc_excited = self.qp.create_circuit("excited", [qr], [cr])
         qc_excited.x(qr)
         qc_excited.measure(qr[0], cr[0])
 
