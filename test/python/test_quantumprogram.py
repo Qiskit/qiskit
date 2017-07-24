@@ -157,6 +157,22 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertRaises(QISKitException, QP_program.create_quantum_register,
                           "qr", 2, verbose=True)
 
+    def test_double_create_quantum_register(self):
+        """Test create_quantum_register with existing register.
+
+        create_quantum_register should return the existing register
+        instance if it already exists.
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+        """
+        QP_program = QuantumProgram()
+        qr1 = QP_program.create_quantum_register("qr", 3, verbose=True)
+        qr2 = QP_program.create_quantum_register("qr", 3, verbose=True)
+        self.assertIs(qr1, qr2)
+        
     def test_create_classical_registers(self):
         """Test create_classical_registers.
 
