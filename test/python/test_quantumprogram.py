@@ -124,7 +124,7 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import ClassicalRegister
         """
         QP_program = QuantumProgram()
-        cr = QP_program.create_classical_register("cr", 3)
+        cr = QP_program.create_classical_register("cr", 3, verbose=False)
         self.assertIsInstance(cr, ClassicalRegister)
 
     def test_create_quantum_register(self):
@@ -138,13 +138,50 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumRegister
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3)
+        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
         self.assertIsInstance(qr, QuantumRegister)
 
     def test_fail_create_quantum_register(self):
         """Test create_quantum_register.
 
-        If all is correct we get a object intstance of QuantumRegister
+        If all is correct we get a object intstance of QuantumRegister and
+        QISKitException
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+                from qiskit import QISKitException
+        """
+        QP_program = QuantumProgram()
+        qr1 = QP_program.create_quantum_register("qr", 3, verbose=False)
+        self.assertIsInstance(qr1, QuantumRegister)
+        self.assertRaises(QISKitException, QP_program.create_quantum_register,
+                          "qr", 2, verbose=False)
+
+    def test_fail_create_classical_register(self):
+        """Test create_quantum_register.
+
+        If all is correct we get a object intstance of QuantumRegister and
+        QISKitException
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+                from qiskit import QISKitException
+        """
+        QP_program = QuantumProgram()
+        cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
+        self.assertIsInstance(cr1, ClassicalRegister)
+        self.assertRaises(QISKitException,
+                          QP_program.create_classical_register, "cr", 2,
+                          verbose=False)
+
+    def test_create_quantum_register_same(self):
+        """Test create_quantum_register.
+
+        If all is correct we get a single classical register
 
         Previusly:
             Libraries:
@@ -152,10 +189,24 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumRegister
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr", 3, verbose=True)
-        self.assertIsInstance(qr1, QuantumRegister)
-        self.assertRaises(QISKitException, QP_program.create_quantum_register,
-                          "qr", 2, verbose=True)
+        QP_program.create_quantum_register("qr", 3, verbose=False)
+        QP_program.create_quantum_register("qr", 3, verbose=False)
+        self.assertEqual(QP_program.get_quantum_register_names(), ['qr'])
+
+    def test_create_classical_register_same(self):
+        """Test create_classical_register.
+
+        If all is correct we get a single classical register
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import ClassicalRegister
+        """
+        QP_program = QuantumProgram()
+        QP_program.create_classical_register("cr", 3, verbose=False)
+        QP_program.create_classical_register("cr", 3, verbose=False)
+        self.assertEqual(QP_program.get_classical_register_names(), ['cr'])
 
     def test_double_create_quantum_register(self):
         """Test create_quantum_register with existing register.
@@ -218,8 +269,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumCircuit
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3)
-        cr = QP_program.create_classical_register("cr", 3)
+        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
+        cr = QP_program.create_classical_register("cr", 3, verbose=False)
         qc = QP_program.create_circuit("qc", [qr], [cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
@@ -234,10 +285,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumCircuit
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr1", 3)
-        cr1 = QP_program.create_classical_register("cr1", 3)
-        qr2 = QP_program.create_quantum_register("qr2", 3)
-        cr2 = QP_program.create_classical_register("cr2", 3)
+        qr1 = QP_program.create_quantum_register("qr1", 3, verbose=False)
+        cr1 = QP_program.create_classical_register("cr1", 3, verbose=False)
+        qr2 = QP_program.create_quantum_register("qr2", 3, verbose=False)
+        cr2 = QP_program.create_classical_register("cr2", 3, verbose=False)
         qc1 = QP_program.create_circuit("qc1", [qr1], [cr1])
         qc2 = QP_program.create_circuit("qc2", [qr2], [cr2])
         qc3 = QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
@@ -311,10 +362,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr1", 3)
-        cr1 = QP_program.create_classical_register("cr1", 3)
-        qr2 = QP_program.create_quantum_register("qr2", 3)
-        cr2 = QP_program.create_classical_register("cr2", 3)
+        qr1 = QP_program.create_quantum_register("qr1", 3, verbose=False)
+        cr1 = QP_program.create_classical_register("cr1", 3, verbose=False)
+        qr2 = QP_program.create_quantum_register("qr2", 3, verbose=False)
+        cr2 = QP_program.create_classical_register("cr2", 3, verbose=False)
         QP_program.create_circuit("qc1", [qr1], [cr1])
         QP_program.create_circuit("qc2", [qr2], [cr2])
         QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
@@ -358,8 +409,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3)
-        cr = QP_program.create_classical_register("cr", 3)
+        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
+        cr = QP_program.create_classical_register("cr", 3, verbose=False)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
         qc1.h(qr[0])

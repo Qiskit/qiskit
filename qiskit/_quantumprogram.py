@@ -207,7 +207,7 @@ class QuantumProgram(object):
                                     cregisters=classicalr)
         # TODO: Jay I think we should return function holders for the registers
         # and circuit. So that we dont need to get them after we create them
-        # with get_quantum_register
+        # with get_quantum_register etc
 
     def create_quantum_register(self, name, size, verbose=False):
         """Create a new Quantum Register.
@@ -267,8 +267,8 @@ class QuantumProgram(object):
         """
         if name in self.__classical_registers:
             if size != len(self.__classical_registers[name]):
-                raise QISKitException("Cant make this register: Already in \
-                                       program with different size")
+                raise QISKitException("Can't make this register: Already in"
+                                      " program with different size")
             if verbose == True:
                 print(">> classical register exists:", name, size)
         else:
@@ -319,11 +319,11 @@ class QuantumProgram(object):
         circuit_object = QuantumCircuit()
         if not self.__init_circuit:
             self.__init_circuit = circuit_object
-        self.add_circuit(name, circuit_object)
         for register in qregisters:
-            self.__quantum_program[name]['circuit'].add(register)
+            circuit_object.add(register)
         for register in cregisters:
-            self.__quantum_program[name]['circuit'].add(register)
+            circuit_object.add(register)
+        self.add_circuit(name, circuit_object)
         return self.__quantum_program[name]['circuit']
 
     def add_circuit(self, name, circuit_object):
@@ -354,7 +354,7 @@ class QuantumProgram(object):
         """
         if not qasm_file:
             print("No filename provided")
-            return {"status": "ERROR", "result": "No filename provided"}
+            raise QISKitException("No filename provided")
         if name == "" and qasm_file:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
         circuit_object = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
@@ -379,14 +379,12 @@ class QuantumProgram(object):
             quantum program.
         """
         if not qasm_string:
-            print("No qasm string provided")
-            return {"status": "ERROR", "result": "No qasm string provided"}
+            raise QISKitException("No qasm file in string format provided")
         circuit_object = qasm.Qasm(data=qasm_string).parse() # Node (AST)
         if name == "":
             # Get a random name if none is give
             name = "".join([random.choice(string.ascii_letters+string.digits)
                            for n in range(10)])
-            # TODO: JAY maybe if a //name: name is in the qasm file use this
         if verbose == True:
             print("circuit name: " + name)
             print("******************************")
@@ -735,13 +733,14 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            job["config"]["coupling_map"] = coupling_map # TODO: why do we want this
-            job["config"]["layout"] = final_layout # TODO: why do we want this
-            job["config"]["basis_gates"] = basis_gates # TODO: why do we want this
+            # TODO: make config options optional for different backends
+            job["config"]["coupling_map"] = coupling_map
+            job["config"]["layout"] = final_layout
+            job["config"]["basis_gates"] = basis_gates
             job["config"]["shots"] = shots
             job["config"]["max_credits"] = max_credits
             if seed is None:
-                job["config"]["seed"] = random.random() # TODO: we should only add if simulator
+                job["config"]["seed"] = random.random()
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag

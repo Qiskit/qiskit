@@ -103,7 +103,7 @@ class QuantumCircuit(object):
     def __getitem__(self, item):
         """Return indexed operation"""
         return self.data[item]
-    
+
     def _attach(self, gate):
         """Attach a gate."""
         self.data.append(gate)
