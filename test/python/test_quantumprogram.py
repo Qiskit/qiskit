@@ -33,6 +33,7 @@ from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
+from qiskit import QISKitException
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../../examples/qasm/simple8qbit.qasm')
@@ -140,6 +141,23 @@ class TestQuantumProgram(unittest.TestCase):
         qr = QP_program.create_quantum_register("qr", 3)
         self.assertIsInstance(qr, QuantumRegister)
 
+    def test_fail_create_quantum_register(self):
+        """Test create_quantum_register.
+
+        If all is correct we get a object intstance of QuantumRegister
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+        """
+        QP_program = QuantumProgram()
+        qr1 = QP_program.create_quantum_register("qr", 3, verbose=True)
+        try:
+            qr2 = QP_program.create_quantum_register("qr", 2, verbose=True)
+        self.assertIsInstance(qr1, QuantumRegister)
+        self.assertIsInstance(qr2, QISKitException)
+
     def test_create_classical_registers(self):
         """Test create_classical_registers.
 
@@ -190,7 +208,7 @@ class TestQuantumProgram(unittest.TestCase):
         qc = QP_program.create_circuit("qc", [qr], [cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
-    def test_create_create_several_circuits(self):
+    def test_create_several_circuits(self):
         """Test create_circuit with several inputs.
 
         If all is correct we get a object intstance of QuantumCircuit

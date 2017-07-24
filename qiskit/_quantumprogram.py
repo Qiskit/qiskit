@@ -64,26 +64,18 @@ class QuantumProgram(object):
      "--circuit name (string)--" and might have the value "teleport".
 
      Internal:
-        __quantum_registers (list[dic]): An ordered list of quantum registers
+        __quantum_registers (list[dic]): An dictionary of quantum registers
             used in the quantum program.
             __quantum_registers =
-                [
-                    {
-                    "name": --name (str) --,
-                    "size": --size (int) --
-                    },
-                    ...
-                ]
+                {"name": QuantumRegistor,
+                ...
+                }
         __classical_registers (list[dic]): An ordered list of classical registers
             used in the quantum program.
             __classical_registers =
-                [
-                    {
-                    "name": --name (str) --,
-                    "size": --size (int) --
-                    },
-                    ...
-                ]
+                {"name": ClassicalRegistor,
+                ...
+                }
         __quantum_program (dic): An dictionary of quantum circuits
             __quantum_program =
                 {
@@ -228,13 +220,16 @@ class QuantumProgram(object):
         Returns:
             internal reference to a quantum register in __quantum_register s
         """
-        # TODO: JAY if the name exists we overide it. If we want all the
-        # quantum_registers to exists in the circuits in the quantum_programs
-        # i dont think we should overide but retern a Error unless the size is
-        # same.
-        self.__quantum_registers[name] = QuantumRegister(name, size)
-        if verbose == True:
-            print(">> quantum_register created:", name, size)
+        if name in self.__quantum_registers:
+            if size != len(self.__quantum_registers[name]):
+                raise QISKitException("Cant make this register: Already in \
+                                       program with different size")
+            if verbose == True:
+                print(">> quantum_register exists:", name, size)
+        else:
+            if verbose == True:
+                print(">> new quantum_register created:", name, size)
+            self.__quantum_registers[name] = QuantumRegister(name, size)
         return self.__quantum_registers[name]
 
     def create_quantum_registers(self, register_array):
@@ -268,12 +263,18 @@ class QuantumProgram(object):
             size (int): the size of the quantum register
             verbose (bool): controls how information is returned.
         Returns:
-            internal reference to a quantum register in __quantum_register s
+            internal reference to a quantum register in __quantum_register
         """
-        # TODO: JAY same as the quantum register
-        self.__classical_registers[name] = ClassicalRegister(name, size)
-        if verbose == True:
-            print(">> classical_register created:", name, size)
+        if name in self.__classical_registers:
+            if size != len(self.__classical_registers[name]):
+                raise QISKitException("Cant make this register: Already in \
+                                       program with different size")
+            if verbose == True:
+                print(">> classical register exists:", name, size)
+        else:
+            if verbose == True:
+                print(">> new classical register created:", name, size)
+            self.__classical_registers[name] = ClassicalRegister(name, size)
         return self.__classical_registers[name]
 
     def create_classical_registers(self, registers_array):
