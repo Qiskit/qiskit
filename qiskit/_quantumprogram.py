@@ -340,22 +340,22 @@ class QuantumProgram(object):
         # __quantum_registers and __classical_registers
         self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
 
-    def load_qasm_file(self, name="", qasm_file=None, verbose=False):
+    def load_qasm_file(self, qasm_file, name=None, verbose=False):
         """ Load qasm file into the quantum program.
 
         Args:
-            name (str): the name of the quantum circuit after loading qasm
-                text into it. If no name is give the name is of the text file.
             qasm_file (str): a string for the filename including its location.
-            verbose (bool): controls how information is returned.
+            name (str or None, optional): the name of the quantum circuit after
+                loading qasm text into it. If no name is give the name is of
+                the text file.
+            verbose (bool, optional): controls how information is returned.
         Retuns:
             Adds a quantum circuit with the gates given in the qasm file to the
             quantum program and returns the name to be used to get this circuit
         """
-        if not qasm_file:
-            print("No filename provided")
-            raise QISKitException("No filename provided")
-        if name == "" and qasm_file:
+        if not os.path.exists(qasm_file):
+            raise QISKitException('qasm file "{0}" not found'.format(qasm_file))
+        if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
         circuit_object = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
         if verbose == True:
