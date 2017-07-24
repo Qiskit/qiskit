@@ -244,8 +244,7 @@ class TestQuantumProgram(unittest.TestCase):
 
     def test_setup_api(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        result = QP_program.set_api(API_TOKEN, URL)
-        self.assertTrue(result)
+        QP_program.set_api(API_TOKEN, URL)
 
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
