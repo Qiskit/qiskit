@@ -207,7 +207,7 @@ class TestQuantumProgram(unittest.TestCase):
         cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
         cr2 = QP_program.create_classical_register("cr", 3, verbose=False)
         self.assertIs(cr1, cr2)
-        
+
     def test_create_classical_registers(self):
         """Test create_classical_registers.
 
@@ -294,6 +294,20 @@ class TestQuantumProgram(unittest.TestCase):
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.assertEqual(len(to_check), 1767)
+
+    def test_fail_load_qasm_file(self):
+        """Test fail_load_qasm_file.
+
+        If all is correct we should get a QISKitException
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QISKitException
+        """
+        QP_program = QuantumProgram()
+        self.assertRaises(QISKitException,
+                          QP_program.load_qasm_file("", None, verbose=False))
 
     def test_load_qasm_text(self):
         """Test load_qasm_text and get_circuit.
