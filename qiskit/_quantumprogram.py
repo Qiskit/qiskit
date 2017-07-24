@@ -30,6 +30,8 @@ import time
 import random
 from collections import Counter
 import json
+import os
+import string
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
@@ -58,6 +60,9 @@ class QuantumProgram(object):
      Class internal properties """
 
     # populate these in __init__()
+    __quantum_registers = {}
+    __classical_registers = {}
+
     __ONLINE_BACKENDS = []
     __LOCAL_BACKENDS = []
 
@@ -122,23 +127,354 @@ class QuantumProgram(object):
         }
     """
     # -- FUTURE IMPROVEMENTS --
-    # TODO: for status results choose ALL_CAPS
+    # TODO: for status results make ALL_CAPS (check)
     # TODO: coupling_map, basis_gates will move to config object
 
-    def __init__(self, specs=None, name=""):
-        self.__quantum_program = {}
-        self.__quantum_registers = {}
-        self.__classical_registers = {}
-        self.__init_circuit = None
-        self.__last_backend = ""
-        self.__to_execute = {}
+    def __init__(self, specs=None):
+        self.__quantum_registers = {} # parameters used by all circuits
+        self.__classical_registers = {} # parameters used by all circuits
+        self.__quantum_program = {} # stores all the quantum programs
+        self.__to_execute = {} # strores the circuits to be ran
         self.__ONLINE_BACKENDS = []
         self.__LOCAL_BACKENDS = self.local_backends()
+        self.__init_circuit = None
+        self.__last_backend = ""
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
 
-    # API functions
+    ###############################################################
+    # methods to initiate an build a quantum program
+    ###############################################################
+
+    def __init_specs(self, specs, verbose=False):
+        """Populate the Quantum Program Object with initial Specs.
+
+        Args:
+            specs (dict):
+                    Q_SPECS = {
+                        "circuits": [{
+                            "name": "Circuit",
+                            "quantum_registers": [{
+                                "name": "qr",
+                                "size": 4
+                            }],
+                            "classical_registers": [{
+                                "name": "cr",
+                                "size": 4
+                            }]
+                        }],
+            verbose (bool): controls how information is returned.
+
+        Returns:
+            Sets up a quantum circuit.
+        """
+        quantumr = []
+        classicalr = []
+        if "api" in specs:
+            if specs["api"]["token"]:
+                self.__api_config["token"] = specs["api"]["token"]
+            if specs["api"]["url"]:
+                self.__api_config["url"] = specs["api"]["url"]
+        if "circuits" in specs:
+            for circuit in specs["circuits"]:
+                quantumr = self.create_quantum_registers(
+                    circuit["quantum_registers"])
+                classicalr = self.create_classical_registers(
+                    circuit["classical_registers"])
+                self.create_circuit(name=circuit["name"], qregisters=quantumr,
+                                    cregisters=classicalr)
+        else:
+            if "quantum_registers" in specs:
+                if verbose == True:
+                    print(">> quantum_registers created")
+                quantumr = specs["quantum_registers"]
+                self.create_quantum_register(
+                    quantumr["name"], quantumr["size"])
+            if "classical_registers" in specs:
+                if verbose == True:
+                    print(">> quantum_registers created")
+                classicalr = specs["classical_registers"]
+                self.create_classical_register(
+                    classicalr["name"], classicalr["size"])
+            if quantumr and classicalr:
+                self.create_circuit(name=specs["name"],
+                                    qregisters=quantumr["name"],
+                                    cregisters=classicalr["name"])
+
+    def create_quantum_register(self, name, size, verbose=False):
+        """Create a new Quantum Register.
+
+        Args:
+            name (str): the name of the quantum register
+            size (int): the size of the quantum register
+            verbose (bool): controls how information is returned.
+
+        Returns:
+            internal reference to a quantum register in __quantum_register s
+        """
+        # TODO: JAY if the name exists should we overide. If we want all the
+        # quantum_registers to exists in the circuits in the quantum_programs
+        self.__quantum_registers[name] = QuantumRegister(name, size)
+        if verbose == True:
+            print(">> quantum_register created:", name, size)
+        return self.__quantum_registers[name]
+
+    def create_quantum_registers(self, register_array):
+        """Create a new set of Quantum Registers based on a array of them.
+
+        Args:
+            register_array (list[dict]): An array of quantum registers in
+                dictionay fromat.
+                "quantum_registers": [
+                    {
+                    "name": "qr",
+                    "size": 4
+                    },
+                    ...
+                ]
+        Returns:
+            Array of quantum registers objects
+        """
+        new_registers = []
+        for register in register_array:
+            register = self.create_quantum_register(
+                register["name"], register["size"])
+            new_registers.append(register)
+        return new_registers
+
+    def create_classical_register(self, name, size, verbose=False):
+        """Create a new Classical Register.
+
+        Args:
+            name (str): the name of the quantum register
+            size (int): the size of the quantum register
+            verbose (bool): controls how information is returned.
+        Returns:
+            internal reference to a quantum register in __quantum_register s
+        """
+        # TODO: JAY if the name exists should we overide. If we want all the
+        # classical_registers to exists in the circuits in the quantum_programs
+        self.__classical_registers[name] = ClassicalRegister(name, size)
+        if verbose == True:
+            print(">> classical_register created:", name, size)
+        return self.__classical_registers[name]
+
+    def create_classical_registers(self, registers_array):
+        """Create a new set of Classical Registers based on a array of them.
+
+        Args:
+            register_array (list[dict]): An array of classical registers in
+                dictionay fromat.
+                "classical_registers": [
+                    {
+                    "name": "qr",
+                    "size": 4
+                    },
+                    ...
+                ]
+        Returns:
+            Array of clasical registers objects
+        """
+        new_registers = []
+        for register in registers_array:
+            new_registers.append(self.create_classical_register(
+                register["name"], register["size"]))
+        return new_registers
+
+    def create_circuit(self, name, qregisters=None, cregisters=None):
+        """Create a empty Quantum Circuit in the Quantum Program.
+
+        Args:
+            name (str): the name of the circuit
+            qregisters list(str/object): is an Array of Quantum Registers,
+                can be String, by name or the object reference
+            cregisters list(str/object): is an Array of Classical Registers,
+                can be String, by name or the object reference
+
+        Returns:
+            A quantum circuit is created and added to the Quantum Program
+        """
+        if not qregisters:
+            qregisters = []
+        if not cregisters:
+            cregisters = []
+        circuit_object = QuantumCircuit()
+        if not self.__init_circuit:
+            self.__init_circuit = circuit_object
+        self.add_circuit(name, circuit_object)
+        for register in qregisters:
+            if isinstance(register, str):
+                self.__quantum_program[name]['circuit'].add(self.__quantum_registers[register])
+            else:
+                self.__quantum_program[name]['circuit'].add(register)
+        for register in cregisters:
+            if isinstance(register, str):
+                self.__quantum_program[name]['circuit'].add(self.__classical_registers[register])
+            else:
+                self.__quantum_program[name]['circuit'].add(register)
+
+        return self.__quantum_program[name]['circuit']
+
+    def add_circuit(self, name, circuit_object):
+        """Add a new circuit based on an Object representation.
+
+        Args:
+            name (str): the name of the circuit to add.
+            circuit_object: a quantum circuit to add to the program-name
+        Returns:
+            the quantum circuit is added to the object.
+        """
+        # TODO: JAY If we are going to have registers i think we need to check
+        # the circut object and if the registers are new add them to the
+        # __quantum_registers and __classical_registers
+        self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
+
+    def load_qasm_file(self, name="", qasm_file=None, verbose=False):
+        """ Load qasm file into the quantum program.
+
+        Args:
+            name (str): the name of the quantum circuit after loading qasm
+                text into it. If no name is give the name is of the text file.
+            qasm_file (str): a string for the filename including its location.
+            verbose (bool): controls how information is returned.
+        Retuns:
+            Adds a quantum circuit with the gates given in the qasm file to the
+            quantum program and returns the name to be used to get this circuit
+        """
+        if not qasm_file:
+            print("No filename provided")
+            return {"status": "ERROR", "result": "No filename provided"}
+        if name == "" and qasm_file:
+            name = os.path.splitext(os.path.basename(qasm_file))[0]
+        circuit_object = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
+        if verbose == True:
+            print("circuit name: " + name)
+            print("******************************")
+            print(circuit_object.qasm())
+        # TODO: JAY we shoud add method to convert to QuantumCircuit object
+        self.add_circuit(name, circuit_object)
+        return name
+
+    def load_qasm_text(self, name="", qasm_string=None,  verbose=False):
+        """ Load qasm string in the quantum program.
+
+        Args:
+            name (str): the name of the quantum circuit after loading qasm
+                text into it. If no name is give the name is of the text file.
+            qasm_string (str): a string for the file name
+            verbose (bool): controls how information is returned.
+        Retuns:
+            Adds a quantum circuit with the gates given in the qasm string to the
+            quantum program.
+        """
+        if not qasm_string:
+            print("No qasm string provided")
+            return {"status": "ERROR", "result": "No qasm string provided"}
+        circuit_object = qasm.Qasm(data=qasm_string).parse() # Node (AST)
+        if name == "":
+            # Get a random name if none is give
+            name = "".join([random.choice(string.ascii_letters+string.digits)
+                           for n in range(10)])
+            # TODO: JAY maybe if a //name: name is in the qasm file use this
+        if verbose == True:
+            print("circuit name: " + name)
+            print("******************************")
+            print(circuit_object.qasm())
+        # TODO: JAY we shoud add method to convert to QuantumCircuit object
+        self.add_circuit(name, circuit_object)
+        return name
+
+    ###############################################################
+    # methods to get elements from a QuantumProgram
+    ###############################################################
+
+    def get_quantum_register(self, name):
+        """Return a Quantum Register by name.
+
+        Args:
+            name (str): the name of the quantum circuit
+        Returns:
+            The quantum registers with this name
+        """
+        try:
+            return self.__quantum_registers[name]
+        except KeyError:
+            return "No quantum register of name " + name
+
+    def get_classical_register(self, name):
+        """Return a Classical Register by name.
+
+        Args:
+            name (str): the name of the quantum circuit
+        Returns:
+            The classical registers with this name
+        """
+        try:
+            return self.__classical_registers[name]
+        except KeyError:
+            return "No classical register of name" + name
+
+    def get_quantum_register_names(self):
+        """Return all the names of the quantum Registers."""
+        return list(self.__quantum_registers.keys())
+
+    def get_classical_register_names(self):
+        """Return all the names of the classical Registers."""
+        return list(self.__classical_registers.keys())
+
+    def get_circuit(self, name):
+        """Return a Circuit Object by name
+        Args:
+            name (str): the name of the quantum circuit
+        Returns:
+            The quantum circuit with this name
+        """
+        try:
+            return self.__quantum_program[name]['circuit']
+        except KeyError:
+            return "No quantum circuit of this name" + name
+
+    def get_circuit_names(self):
+        """Return all the names of the quantum circuits."""
+        return list(self.__quantum_program.keys())
+
+    def get_qasm(self, name):
+        """Get qasm format of circuit by name.
+
+        Args:
+            name (str): name of the circuit
+
+        Returns:
+            The quantum circuit in qasm format
+        """
+        quantum_circuit = self.get_circuit(name)
+        return quantum_circuit.qasm()
+
+    def get_qasms(self, list_circuit_name):
+        """Get qasm format of circuit by list of names.
+
+        Args:
+            list_circuit_name (list[str]): names of the circuit
+
+        Returns:
+            List of quantum circuit in qasm format
+        """
+        qasm_source = []
+        for name in list_circuit_name:
+            qasm_source.append(self.get_qasm(name))
+        return qasm_source
+
+    def get_quantum_elements(self, specs=None):
+        """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
+        return self.__init_circuit, \
+            self.__quantum_registers[list(self.__quantum_registers)[0]], \
+            self.__classical_registers[list(self.__classical_registers)[0]]
+
+    ###############################################################
+    # methods for working with backends
+    ###############################################################
+
     def get_api_config(self):
         """Return the program specs"""
         return self.__api.req.credential.config
@@ -290,170 +626,6 @@ class QuantumProgram(object):
         else:
             return {"status": "Error", "result": "This backend doesn't exist"}
 
-    # Building parts of the program
-    def create_quantum_registers(self, name, size):
-        """Create a new set of Quantum Registers"""
-        self.__quantum_registers[name] = QuantumRegister(name, size)
-        print(">> quantum_registers created:", name, size)
-        return self.__quantum_registers[name]
-
-    def create_quantum_registers_group(self, registers_array):
-        """Create a new set of Quantum Registers based on a array of that"""
-        new_registers = []
-        for register in registers_array:
-            register = self.create_quantum_registers(
-                register["name"], register["size"])
-            new_registers.append(register)
-        return new_registers
-
-    def create_classical_registers(self, name, size):
-        """Create a new set of Classical Registers"""
-        self.__classical_registers[name] = ClassicalRegister(name, size)
-        print(">> classical_registers created:", name, size)
-        return self.__classical_registers[name]
-
-    def create_classical_registers_group(self, registers_array):
-        """Create a new set of Classical Registers based on a array of that"""
-        new_registers = []
-        for register in registers_array:
-            new_registers.append(self.create_classical_registers(
-                register["name"], register["size"]))
-        return new_registers
-
-    def create_circuit(self, name, qregisters=None, cregisters=None, circuit_object=None):
-        """Create a new Quantum Circuit into the Quantum Program
-        name is a string, the name of the circuit
-        qregisters is an Array of Quantum Registers, can be String, by name or the object reference
-        cregisters is an Array of Classical Registers, can be String, by name or the object reference
-        """
-        if not qregisters:
-            qregisters = []
-        if not cregisters:
-            cregisters = []
-
-        if not circuit_object:
-            circuit_object = QuantumCircuit()
-        self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
-
-        for register in qregisters:
-            if isinstance(register, str):
-                self.__quantum_program[name]['circuit'].add(self.__quantum_registers[register])
-            else:
-                self.__quantum_program[name]['circuit'].add(register)
-        for register in cregisters:
-            if isinstance(register, str):
-                self.__quantum_program[name]['circuit'].add(self.__classical_registers[register])
-            else:
-                self.__quantum_program[name]['circuit'].add(register)
-
-        return self.__quantum_program[name]['circuit']
-
-    def get_quantum_registers(self, name):
-        """Return a Quantum Register by name"""
-        return self.__quantum_registers[name]
-
-    def get_classical_registers(self, name):
-        """Return a Classical Register by name"""
-        return self.__classical_registers[name]
-
-    def get_circuit(self, name):
-        """Return a Circuit Object by name"""
-        return self.__quantum_program[name]['circuit']
-
-    def get_circuit_names(self):
-        """Return all circuit names"""
-        return list(self.__quantum_program.keys())
-
-    def get_quantum_elements(self, specs=None):
-        """Return the basic elements, Circuit, Quantum Registers, Classical Registers"""
-        return self.__init_circuit, \
-            self.__quantum_registers[list(self.__quantum_registers)[0]], \
-            self.__classical_registers[list(self.__classical_registers)[0]]
-
-    def load_qasm(self, name="", qasm_file=None, qasm_string=None,
-                  basis_gates=None):
-        """ Load qasm file
-        qasm_file qasm file name
-        """
-        if not qasm_file and not qasm_string:
-            print('"No filename provided')
-            return {"status": "Error", "result": "No filename provided"}
-        if not basis_gates:
-            basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-
-        if name == "" and qasm_file:
-            name = qasm_file
-
-        circuit_object = qasm.Qasm(filename=qasm_file,
-                                   data=qasm_string).parse()  # Node (AST)
-
-        # TODO: add method to convert to QuantumCircuit object from Node
-        self.__quantum_program[name] = {"circuit": circuit_object}
-
-        return {"status": "COMPLETED", "result": 'all done'}
-
-    def __init_specs(self, specs):
-        """Populate the Quantum Program Object with initial Specs"""
-        quantumr = []
-        classicalr = []
-        if "api" in specs:
-            if specs["api"]["token"]:
-                self.__api_config["token"] = specs["api"]["token"]
-            if specs["api"]["url"]:
-                self.__api_config["url"] = specs["api"]["url"]
-
-        if "circuits" in specs:
-            for circuit in specs["circuits"]:
-                quantumr = self.create_quantum_registers_group(
-                    circuit["quantum_registers"])
-                classicalr = self.create_classical_registers_group(
-                    circuit["classical_registers"])
-                self.__init_circuit = self.create_circuit(name=circuit["name"],
-                                                          qregisters=quantumr,
-                                                          cregisters=classicalr)
-        else:
-            if "quantum_registers" in specs:
-                print(">> quantum_registers created")
-                quantumr = specs["quantum_registers"]
-                self.create_quantum_registers(
-                    quantumr["name"], quantumr["size"])
-            if "classical_registers" in specs:
-                print(">> quantum_registers created")
-                classicalr = specs["classical_registers"]
-                self.create_classical_registers(
-                    classicalr["name"], classicalr["size"])
-            if quantumr and classicalr:
-                self.create_circuit(name=specs["name"],
-                                    qregisters=quantumr["name"],
-                                    cregisters=classicalr["name"])
-
-    def add_circuit(self, name, circuit_object):
-        """Add a new circuit based on an Object representation.
-        name is the name or index of one circuit."""
-        self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
-        return circuit_object
-
-    def get_qasm_image(self, circuit):
-        """Get image circuit representation from API."""
-        pass
-
-    def get_qasm(self, name):
-        """get the circut by name.
-        name of the circuit"""
-        if name in self.__quantum_program:
-            return self.__quantum_program[name]['circuit'].qasm()
-        else:
-            return {"status": "Error", "result": 'Circuit not found'}
-
-    def get_qasms(self, list_circuit_name):
-        """get the circut by name.
-        name of the circuit"""
-        qasm_source = []
-        for name in list_circuit_name:
-            qasm_source.append(self.get_qasm(name))
-        return qasm_source
-
-
     ###############################################################
     # methods to compile quantum programs into __to_execute
     ###############################################################
@@ -595,7 +767,8 @@ class QuantumProgram(object):
         """Clears the exectution list.
 
         Args:
-            None
+            backend (str): delete all the executions in the backend
+
         Returns:
             Clears the internal self.__to_execute.
         """
@@ -835,7 +1008,6 @@ class QuantumProgram(object):
                 },
                 ...
             ]
-        }
         """
         job_results = []
         for job in jobs:

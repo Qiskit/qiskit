@@ -20,11 +20,11 @@ Quantum Program QISKit Test
 
 Authors: Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
+         Jay Gambetta
 """
 
 import sys
 import os
-import json
 import unittest
 
 
@@ -57,7 +57,6 @@ except ImportError:
 
 # Define Program Specifications.
 QPS_SPECS = {
-    "name": "program-name",
     "circuits": [{
         "name": "circuitName",
         "quantum_registers": [{
@@ -71,13 +70,11 @@ QPS_SPECS = {
 
 
 class TestQuantumProgram(unittest.TestCase):
-    """
-    QISKIT QuatumProgram Object Tests.
-    """
-    @unittest.skip
+    """QISKIT QuatumProgram Object Tests."""
+
     def test_create_program_with_specs(self):
-        """
-        Test Quantum Object Factory creation using Specs deffinition object.
+        """Test Quantum Object Factory creation using Specs deffinition object.
+
         If all is correct we get a object intstance of QuantumProgram
 
         Previusly:
@@ -88,12 +85,11 @@ class TestQuantumProgram(unittest.TestCase):
 
         """
         result = QuantumProgram(specs=QPS_SPECS)
-        self.assertTrue(isinstance(result, QuantumProgram))
-
+        self.assertIsInstance(result, QuantumProgram)
 
     def test_create_program(self):
-        """
-        Test Quantum Object Factory creation Without Specs deffinition object.
+        """Test Quantum Object Factory creation Without Specs deffinition object.
+
         If all is correct we get a object intstance of QuantumProgram
 
         Previusly:
@@ -101,11 +97,11 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         result = QuantumProgram()
-        self.assertTrue(isinstance(result, QuantumProgram))
+        self.assertIsInstance(result, QuantumProgram)
 
     def test_config_scripts_file(self):
-        """
-        Test Qconfig
+        """Test Qconfig.
+
         in this case we check if the URL API is defined.
 
         Previusly:
@@ -116,6 +112,283 @@ class TestQuantumProgram(unittest.TestCase):
             URL,
             "https://quantumexperience.ng.bluemix.net/api")
 
+    def test_create_classical_register(self):
+        """Test create_classical_register.
+
+        If all is correct we get a object intstance of ClassicalRegister
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import ClassicalRegister
+        """
+        QP_program = QuantumProgram()
+        cr = QP_program.create_classical_register("cr", 3)
+        self.assertIsInstance(cr, ClassicalRegister)
+
+    def test_create_quantum_register(self):
+        """Test create_quantum_register.
+
+        If all is correct we get a object intstance of QuantumRegister
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 3)
+        self.assertIsInstance(qr, QuantumRegister)
+
+    def test_create_classical_registers(self):
+        """Test create_classical_registers.
+
+        If all is correct we get a object intstance of list[ClassicalRegister]
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import ClassicalRegister
+        """
+        QP_program = QuantumProgram()
+        classical_registers = [{"name": "c1", "size": 4},
+                               {"name": "c2", "size": 2}]
+        crs = QP_program.create_classical_registers(classical_registers)
+        for i in crs:
+            self.assertIsInstance(i, ClassicalRegister)
+
+    def test_create_quantum_registers(self):
+        """Test create_quantum_registers.
+
+        If all is correct we get a object intstance of list[QuantumRegister]
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumRegister
+        """
+        QP_program = QuantumProgram()
+        quantum_registers = [{"name": "q1", "size": 4},
+                             {"name": "q2", "size": 2}]
+        qrs = QP_program.create_quantum_registers(quantum_registers)
+        for i in qrs:
+            self.assertIsInstance(i, QuantumRegister)
+
+    def test_create_circuit(self):
+        """Test create_circuit.
+
+        If all is correct we get a object intstance of QuantumCircuit
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumCircuit
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 3)
+        cr = QP_program.create_classical_register("cr", 3)
+        qc = QP_program.create_circuit("qc", [qr], [cr])
+        self.assertIsInstance(qc, QuantumCircuit)
+
+    def test_create_circuit_option_2(self):
+        """Test create_circuit with strings as inputs.
+
+        If all is correct we get a object intstance of QuantumCircuit
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumCircuit
+        """
+        QP_program = QuantumProgram()
+        QP_program.create_quantum_register("qr", 3)
+        QP_program.create_classical_register("cr", 3)
+        qc = QP_program.create_circuit("qc", ["qr"], ["cr"])
+        self.assertIsInstance(qc, QuantumCircuit)
+
+    def test_create_create_several_circuits(self):
+        """Test create_circuit with several inputs.
+
+        If all is correct we get a object intstance of QuantumCircuit
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumCircuit
+        """
+        QP_program = QuantumProgram()
+        qr1 = QP_program.create_quantum_register("qr1", 3)
+        cr1 = QP_program.create_classical_register("cr1", 3)
+        qr2 = QP_program.create_quantum_register("qr2", 3)
+        cr2 = QP_program.create_classical_register("cr2", 3)
+        qc1 = QP_program.create_circuit("qc1", [qr1], [cr1])
+        qc2 = QP_program.create_circuit("qc2", [qr2], [cr2])
+        qc3 = QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
+        self.assertIsInstance(qc1, QuantumCircuit)
+        self.assertIsInstance(qc2, QuantumCircuit)
+        self.assertIsInstance(qc3, QuantumCircuit)
+
+    def test_create_create_several_circuits_option_2(self):
+        """Test create_circuit with several inputs and string option.
+
+        If all is correct we get a object intstance of QuantumCircuit
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+                from qiskit import QuantumCircuit
+        """
+        QP_program = QuantumProgram()
+        QP_program.create_quantum_register("qr1", 3)
+        QP_program.create_classical_register("cr1", 3)
+        QP_program.create_quantum_register("qr2", 3)
+        QP_program.create_classical_register("cr2", 3)
+        qc1 = QP_program.create_circuit("qc1", ["qr1"], ["cr1"])
+        qc2 = QP_program.create_circuit("qc2", ["qr2"], ["cr2"])
+        qc3 = QP_program.create_circuit("qc2", ["qr1", "qr2"], ["cr1", "cr2"])
+        self.assertIsInstance(qc1, QuantumCircuit)
+        self.assertIsInstance(qc2, QuantumCircuit)
+        self.assertIsInstance(qc3, QuantumCircuit)
+
+    def test_load_qasm_file(self):
+        """Test load_qasm_file and get_circuit.
+
+        If all is correct we should get the qasm file loaded in QASM_FILE_PATH
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+        """
+        QP_program = QuantumProgram()
+        name = QP_program.load_qasm_file("", QASM_FILE_PATH, verbose=False)
+        result = QP_program.get_circuit(name)
+        to_check = result.qasm()
+        self.assertEqual(len(to_check), 1767)
+
+    def test_load_qasm_text(self):
+        """Test load_qasm_text and get_circuit.
+
+        If all is correct we should get the qasm file loaded from the string
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+        """
+        QP_program = QuantumProgram()
+        QASM_string = "// A simple 8 qubit example\nOPENQASM 2.0;\n"
+        QASM_string += "include \"qelib1.inc\";\nqreg a[4];\n"
+        QASM_string += "qreg b[4];\ncreg c[4];\ncreg d[4];\nh a;\ncx a, b;\n"
+        QASM_string += "barrier a;\nbarrier b;\nmeasure a[0]->c[0];\n"
+        QASM_string += "measure a[1]->c[1];\nmeasure a[2]->c[2];\n"
+        QASM_string += "measure a[3]->c[3];\nmeasure b[0]->d[0];\n"
+        QASM_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
+        QASM_string += "measure b[3]->d[3];"
+        name = QP_program.load_qasm_text("", QASM_string, verbose=False)
+        result = QP_program.get_circuit(name)
+        to_check = result.qasm()
+        self.assertEqual(len(to_check), 1767)
+
+    def test_get_register_and_circuit(self):
+        """Test get_quantum_registers, get_classical_registers, and get_circuit.
+
+        If all is correct we get a object intstance of QuantumCircuit,
+        QuantumRegister, ClassicalRegister
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        self.assertIsInstance(qc, QuantumCircuit)
+        self.assertIsInstance(qr, QuantumRegister)
+        self.assertIsInstance(cr, ClassicalRegister)
+
+    def test_get_register_and_circuit_names(self):
+        """Get the names of the circuits and registers.
+
+        If all is correct we should get the arrays of the names
+
+        Previusly:
+            Libraries:
+                from qiskit import QuantumProgram
+        """
+        QP_program = QuantumProgram()
+        qr1 = QP_program.create_quantum_register("qr1", 3)
+        cr1 = QP_program.create_classical_register("cr1", 3)
+        qr2 = QP_program.create_quantum_register("qr2", 3)
+        cr2 = QP_program.create_classical_register("cr2", 3)
+        QP_program.create_circuit("qc1", [qr1], [cr1])
+        QP_program.create_circuit("qc2", [qr2], [cr2])
+        QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
+        qrn = QP_program.get_quantum_register_names()
+        crn = QP_program.get_classical_register_names()
+        qcn = QP_program.get_circuit_names()
+        self.assertEqual(qrn, ['qr1', 'qr2'])
+        self.assertEqual(crn, ['cr1', 'cr2'])
+        self.assertEqual(qcn, ['qc1', 'qc2'])
+
+    def test_get_qasm(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        qc.measure(qr[2], cr[2])
+        result = QP_program.get_qasm("circuitName")
+        self.assertEqual(len(result), 212)
+
+    def test_get_qasms(self):
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 3)
+        cr = QP_program.create_classical_register("cr", 3)
+        qc1 = QP_program.create_circuit("qc1", [qr], [cr])
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc1.h(qr[0])
+        qc1.cx(qr[0], qr[1])
+        qc1.cx(qr[1], qr[2])
+        qc1.measure(qr[0], cr[0])
+        qc1.measure(qr[1], cr[1])
+        qc1.measure(qr[2], cr[2])
+        qc2.h(qr)
+        qc2.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        qc2.measure(qr[2], cr[2])
+        result = QP_program.get_qasms(["qc1", "qc2"])
+        self.assertEqual(len(result[0]), 173)
+        self.assertEqual(len(result[1]), 159)
+
+    def test_get_qasm_all_gates(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc.u1(0.3, qr[0])
+        qc.u2(0.2, 0.1, qr[1])
+        qc.u3(0.3, 0.2, 0.1, qr[2])
+        qc.s(qr[1])
+        qc.s(qr[2]).inverse()
+        qc.cx(qr[1], qr[2])
+        qc.barrier()
+        qc.cx(qr[0], qr[1])
+        qc.h(qr[0])
+        qc.x(qr[2]).c_if(cr, 0)
+        qc.y(qr[2]).c_if(cr, 1)
+        qc.z(qr[2]).c_if(cr, 2)
+        qc.barrier(qr)
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        qc.measure(qr[2], cr[2])
+        result = QP_program.get_qasm('circuitName')
+        self.assertEqual(len(result), 535)
+
+# ____________
     def test_get_components(self):
         """
         Get the program componentes, like Circuits and Registers
@@ -126,94 +399,12 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(qr, QuantumRegister)
         self.assertIsInstance(cr, ClassicalRegister)
 
-    def test_get_individual_components(self):
-        """
-        Get the program componentes, like Circuits and Registers
-        """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_registers("qname")
-        cr = QP_program.get_classical_registers("cname")
-        self.assertIsInstance(qc, QuantumCircuit)
-        self.assertIsInstance(qr, QuantumRegister)
-        self.assertIsInstance(cr, ClassicalRegister)
-
-    def test_create_classical_register(self):
-        QP_program = QuantumProgram()
-        cr = QP_program.create_classical_registers("cr", 3)
-        self.assertIsInstance(cr, ClassicalRegister)
-
-    def test_create_quantum_register(self):
-        QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_registers("qr", 3)
-        self.assertIsInstance(qr, QuantumRegister)
-
-    def test_create_circuit(self):
-        QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_registers("qr", 3)
-        cr = QP_program.create_classical_registers("cr", 3)
-        qc = QP_program.create_circuit("qc", ["qr"], ["cr"])
-        self.assertIsInstance(qc, QuantumCircuit)
-
-    def test_create_create_several_circuits(self):
-        QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_registers("qr", 3)
-        cr = QP_program.create_classical_registers("cr", 3)
-        qc1 = QP_program.create_circuit("qc", ["qr"], ["cr"])
-        qc2 = QP_program.create_circuit("qc2", ["qr"], ["cr"])
-        qc3 = QP_program.create_circuit("qc2", ["qr"], ["cr"])
-        self.assertIsInstance(qc1, QuantumCircuit)
-        self.assertIsInstance(qc2, QuantumCircuit)
-        self.assertIsInstance(qc3, QuantumCircuit)
-
-
-    def test_print_circuit(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qc, qr, cr = QP_program.get_quantum_elements()
-
-        qc.h(qr[1])
-        result = qc.qasm()
-        self.assertEqual(len(result), 78)
-
-    def test_print_program(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-
-        qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_registers("qname")
-        cr = QP_program.get_classical_registers("cname")
-
-        qc.h(qr[1])
-        result = QP_program.get_qasm("circuitName")
-        self.assertEqual(len(result), 78)
-
-    def test_create_add_gates(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-
-        qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_registers("qname")
-        cr = QP_program.get_classical_registers("cname")
-
-        qc.u3(0.3, 0.2, 0.1, qr[0])
-        qc.h(qr[1])
-        qc.cx(qr[1], qr[2])
-        qc.barrier()
-        qc.cx(qr[0], qr[1])
-        qc.h(qr[0])
-        qc.z(qr[2]).c_if(cr, 1)
-        qc.x(qr[2]).c_if(cr, 1)
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-
-        result = QP_program.get_qasm('circuitName')
-
-        self.assertEqual(len(result), 348)
-
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_registers("qname")
         cr = QP_program.get_classical_registers("cname")
-        qr2 = QP_program.create_quantum_registers("qr", 3)
-        cr2 = QP_program.create_classical_registers("cr", 3)
+        qr2 = QP_program.create_quantum_register("qr", 3)
+        cr2 = QP_program.create_classical_register("cr", 3)
         qc_result = QP_program.create_circuit(name="qc2",
                                               qregisters=["qname", "qr"],
                                               cregisters=[cr, cr2])
@@ -412,7 +603,6 @@ class TestQuantumProgram(unittest.TestCase):
         result = QP_program.execute(circuits, backend=backend, shots=shots, max_credits=3)
         self.assertEqual(result['status'], 'COMPLETED')
 
-        # QP_program.plotter()
 
     def test_local_qasm_simulator(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -480,13 +670,6 @@ class TestQuantumProgram(unittest.TestCase):
         result = QP_program.execute(circuits, backend=backend, shots=shots)
         # print(result)
         self.assertEqual(result['status'],'COMPLETED')
-
-    def test_load_qasm(self):
-        QP_program = QuantumProgram()
-        QP_program.load_qasm("circuit-dev",QASM_FILE_PATH)
-        result = QP_program.get_circuit("circuit-dev")
-        to_check = result.qasm()
-        self.assertEqual(len(to_check),1569)
 
     def test_new_compile(self):
         QP_program = QuantumProgram()
@@ -592,7 +775,7 @@ class TestQuantumProgram(unittest.TestCase):
         if backend_list:
             backend = backend_list[0]
         result = QP_program.get_backend_calibration(backend)
-        
+
         self.assertEqual (len(result), 4)
 
     def test_online_backends_exist(self):
@@ -618,6 +801,7 @@ class TestQuantumProgram(unittest.TestCase):
         qp.set_api(API_TOKEN, URL)
         simulators = qp.online_simulators()
         self.assertTrue(isinstance(simulators, list))
+
 
 if __name__ == '__main__':
     unittest.main()
