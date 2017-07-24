@@ -222,8 +222,8 @@ class QuantumProgram(object):
         """
         if name in self.__quantum_registers:
             if size != len(self.__quantum_registers[name]):
-                raise QISKitException("Cant make this register: Already in \
-                                       program with different size")
+                raise QISKitException("Can't make this register: Already in"
+                                      " program with different size")
             if verbose == True:
                 print(">> quantum_register exists:", name, size)
         else:

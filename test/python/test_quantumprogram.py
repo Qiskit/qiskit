@@ -153,10 +153,9 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram()
         qr1 = QP_program.create_quantum_register("qr", 3, verbose=True)
-        try:
-            qr2 = QP_program.create_quantum_register("qr", 2, verbose=True)
         self.assertIsInstance(qr1, QuantumRegister)
-        self.assertIsInstance(qr2, QISKitException)
+        self.assertRaises(QISKitException, QP_program.create_quantum_register,
+                          "qr", 2, verbose=True)
 
     def test_create_classical_registers(self):
         """Test create_classical_registers.
