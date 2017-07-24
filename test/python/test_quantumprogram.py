@@ -179,7 +179,7 @@ class TestQuantumProgram(unittest.TestCase):
                           verbose=False)
 
     def test_create_quantum_register_same(self):
-        """Test create_quantum_register.
+        """Test create_quantum_register of same name and size.
 
         If all is correct we get a single classical register
 
@@ -189,12 +189,12 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumRegister
         """
         QP_program = QuantumProgram()
-        QP_program.create_quantum_register("qr", 3, verbose=False)
-        QP_program.create_quantum_register("qr", 3, verbose=False)
-        self.assertEqual(QP_program.get_quantum_register_names(), ['qr'])
+        qr1 = QP_program.create_quantum_register("qr", 3, verbose=False)
+        qr2 = QP_program.create_quantum_register("qr", 3, verbose=False)
+        self.assertIs(qr1, qr2)
 
     def test_create_classical_register_same(self):
-        """Test create_classical_register.
+        """Test create_classical_register of same name and size.
 
         If all is correct we get a single classical register
 
@@ -204,25 +204,9 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import ClassicalRegister
         """
         QP_program = QuantumProgram()
-        QP_program.create_classical_register("cr", 3, verbose=False)
-        QP_program.create_classical_register("cr", 3, verbose=False)
-        self.assertEqual(QP_program.get_classical_register_names(), ['cr'])
-
-    def test_double_create_quantum_register(self):
-        """Test create_quantum_register with existing register.
-
-        create_quantum_register should return the existing register
-        instance if it already exists.
-
-        Previusly:
-            Libraries:
-                from qiskit import QuantumProgram
-                from qiskit import QuantumRegister
-        """
-        QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr", 3, verbose=True)
-        qr2 = QP_program.create_quantum_register("qr", 3, verbose=True)
-        self.assertIs(qr1, qr2)
+        cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
+        cr2 = QP_program.create_classical_register("cr", 3, verbose=False)
+        self.assertIs(cr1, cr2)
         
     def test_create_classical_registers(self):
         """Test create_classical_registers.
