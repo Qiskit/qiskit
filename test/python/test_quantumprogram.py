@@ -209,6 +209,9 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(len(result), 348)
 
     def test_save(self):
+        """
+        Save a Quantum Program in Json file
+        """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
         qc = QP_program.get_circuit("circuitName")
@@ -230,10 +233,17 @@ class TestQuantumProgram(unittest.TestCase):
 
         self.assertEqual(result['status'], 'Done')
 
-        error_result = QP_program.save()
-        self.assertEqual(error_result['status'], 'Error')
+    def test_save_wrong(self):
+        """
+        Save a Quantum Program in Json file: Errors Control
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        self.assertRaises(LookupError, QP_program.load)
 
     def test_load(self):
+        """
+        Load a Json Quantum Program
+        """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
         result = QP_program.load("./test/python/test_load.json")
@@ -241,9 +251,13 @@ class TestQuantumProgram(unittest.TestCase):
         
         check_result = QP_program.get_qasm('circuitName')
         self.assertEqual(len(check_result), 1824)
-
-        error_result = QP_program.load()
-        self.assertEqual(error_result['status'], 'Error')
+    
+    def test_load_wrong(self):
+        """
+        Load a Json Quantum Program: Errors Control
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        self.assertRaises(LookupError, QP_program.load)
 
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)

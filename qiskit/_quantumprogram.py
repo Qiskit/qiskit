@@ -170,12 +170,29 @@ class QuantumProgram(object):
 
     def save(self, file_name=None, beauty=False):
         """
-        Save QJson.
+        Save Quantum Program in a Json file.
+
+        Parameters
+        ----------
+        file_name : str
+           file name and path.
+        
+        beauty: boolean
+            save the text with indent 4 to make it readable
+
+        Returns
+        -------
+        The dictionary with the status and result of the operation.
+
+        Raises
+        ------
+        - when you don't provide a correct file name
+        - When something happen with the file management
+
         """
         if file_name == None:
             error = {"status": "Error", "result": "Not filename provided"}
-            print(error)
-            return error
+            raise LookupError(error['result'])
 
         if beauty :
             indent = 4
@@ -187,45 +204,53 @@ class QuantumProgram(object):
         for circuit in elemements_to_save['circuits']:
             elemements_to_save['circuits'][circuit]['circuit'] = elemements_to_save['circuits'][circuit]['circuit'].qasm()
 
-        data_save = json.dumps(elemements_to_save)
-
         try:
             with open(file_name, 'w') as save_file:
-                json.dump(data_save, save_file, indent = indent)
-            return {'status': 'Done', 'result': data_save}
+                json.dump(elemements_to_save, save_file, indent = indent)
+            return {'status': 'Done', 'result': elemements_to_save}
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
-            print(error)
-            return error
+            raise LookupError(error['result'])
         
     def load(self, file_name=None):
         """
-        Load QJson.
+        Load Quantum Program Json file into the Quantum Program object.
 
+        Parameters
+        ----------
+        file_name : str
+           file name and path.
+       
+        Returns
+        -------
+        The dictionary with the status and result of the operation.
+        
+        Raises
+        ------
+        - when you don't provide a correct file name
+        - When something happen with the file management
         """
+
         if file_name == None:
             error = {"status": "Error", "result": "Not filename provided"}
-            print(error)
-            return error
+            raise LookupError(error['result'])
         
         elemements_to_load = {}
         
         try:
             with open(file_name, 'r') as load_file:  
-                loaded_file = json.load(load_file)
-            elemements_loaded = json.loads(loaded_file)
+                elemements_loaded = json.load(load_file)
             
             for circuit in elemements_loaded['circuits']:
                 circuit_qasm = elemements_loaded['circuits'][circuit]['circuit']
                 elemements_loaded['circuits'][circuit]['circuit'] = qasm.Qasm(data=circuit_qasm).parse()
             self.__quantum_program = elemements_loaded
             
-            return {'status': 'Done', 'result': self.__quantum_program}
+            return {"status": 'Done', 'result': self.__quantum_program}
         
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
-            print(error)
-            return error
+            raise LookupError(error['result'])
 
     def online_backends(self):
 
