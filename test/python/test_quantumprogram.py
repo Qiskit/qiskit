@@ -208,6 +208,43 @@ class TestQuantumProgram(unittest.TestCase):
 
         self.assertEqual(len(result), 348)
 
+    def test_save(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_registers("qname")
+        cr = QP_program.get_classical_registers("cname")
+
+        qc.u3(0.3, 0.2, 0.1, qr[0])
+        qc.h(qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.barrier()
+        qc.cx(qr[0], qr[1])
+        qc.h(qr[0])
+        qc.z(qr[2]).c_if(cr, 1)
+        qc.x(qr[2]).c_if(cr, 1)
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        result = QP_program.save("./test/python/test_save.json", beauty=True)
+
+        self.assertEqual(result['status'], 'Done')
+
+        error_result = QP_program.save()
+        self.assertEqual(error_result['status'], 'Error')
+
+    def test_load(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+
+        result = QP_program.load("./test/python/test_load.json")
+        self.assertEqual(result['status'], 'Done')
+        
+        check_result = QP_program.get_qasm('circuitName')
+        self.assertEqual(len(check_result), 1824)
+
+        error_result = QP_program.load()
+        self.assertEqual(error_result['status'], 'Error')
+
     def test_contact_create_circuit_multiregisters(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_registers("qname")
@@ -533,6 +570,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_add_circuit(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc, qr, cr = QP_program.get_quantum_elements()
+        print(API_TOKEN, URL)
         apiconnection = QP_program.set_api(API_TOKEN, URL)
         qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
         qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])

@@ -82,7 +82,7 @@ To use as a library install the dependencies:
 
 ```sh
 # Depending on the system and setup to append "sudo -H" before could be needed.
-pip3 install -r requires.txt
+pip3 install -U -r requires.txt
 ```
 
 To get the tutorials working set up an Anaconda environment for working with QISKit, and install the required dependencies:
@@ -98,7 +98,7 @@ make env
 ```sh
 conda create -y -n QISKitenv python=3 pip scipy
 activate QISKitenv
-pip install -r requires.txt
+pip install -U -r requires.txt
 ```
 
 ### 4. Configure your API token

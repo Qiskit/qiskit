@@ -28,6 +28,7 @@ Authors: Andrew Cross
 
 import time
 import random
+import json
 from collections import Counter
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
@@ -166,6 +167,65 @@ class QuantumProgram(object):
 
     def get_api(self):
         return self.__api
+
+    def save(self, file_name=None, beauty=False):
+        """
+        Save QJson.
+        """
+        if file_name == None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            print(error)
+            return error
+
+        if beauty :
+            indent = 4
+        else:
+            indent = 0
+        
+        elemements_to_save = self.__quantum_program
+        
+        for circuit in elemements_to_save['circuits']:
+            elemements_to_save['circuits'][circuit]['circuit'] = elemements_to_save['circuits'][circuit]['circuit'].qasm()
+
+        data_save = json.dumps(elemements_to_save)
+
+        try:
+            with open(file_name, 'w') as save_file:
+                json.dump(data_save, save_file, indent = indent)
+            return {'status': 'Done', 'result': data_save}
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
+            print(error)
+            return error
+        
+    def load(self, file_name=None):
+        """
+        Load QJson.
+
+        """
+        if file_name == None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            print(error)
+            return error
+        
+        elemements_to_load = {}
+        
+        try:
+            with open(file_name, 'r') as load_file:  
+                loaded_file = json.load(load_file)
+            elemements_loaded = json.loads(loaded_file)
+            
+            for circuit in elemements_loaded['circuits']:
+                circuit_qasm = elemements_loaded['circuits'][circuit]['circuit']
+                elemements_loaded['circuits'][circuit]['circuit'] = qasm.Qasm(data=circuit_qasm).parse()
+            self.__quantum_program = elemements_loaded
+            
+            return {'status': 'Done', 'result': self.__quantum_program}
+        
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
+            print(error)
+            return error
 
     def online_backends(self):
 
