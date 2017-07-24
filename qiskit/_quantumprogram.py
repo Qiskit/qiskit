@@ -135,13 +135,8 @@ class QuantumProgram(object):
         return self.__api.req.credential.config
 
     def _setup_api(self, token, url, verify=True):
-        try:
-            self.__api = IBMQuantumExperience(token, {"url": url}, verify)
-            self.__ONLINE_BACKENDS = self.online_backends()
-            return True
-        except Exception as err:
-            print('ERROR in _quantumprogram._setup_api:', err)
-            return False
+        self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+        self.__ONLINE_BACKENDS = self.online_backends()
 
     def set_api(self, token=None, url=None, verify=True):
         """Set the API conf"""
@@ -153,8 +148,7 @@ class QuantumProgram(object):
             url = self.__api_config["url"]
         else:
             self.__api_config["url"] = {"url": url}
-        api = self._setup_api(token, url, verify)
-        return api
+        self._setup_api(token, url, verify)
 
     def set_api_token(self, token):
         """ Set the API Token """
@@ -172,10 +166,9 @@ class QuantumProgram(object):
         """
         Queries network API if it exists.
 
-        Returns
-        -------
-        List of online backends if the online api has been set or an empty
-        list of it has not been set.
+        Returns:
+            List of online backends if the online api has been set or an empty
+            list of it has not been set.
         """
         if self.get_api():
             return [backend['name'] for backend in self.__api.available_backends() ]
@@ -227,7 +220,8 @@ class QuantumProgram(object):
         elif  backend in self.__LOCAL_BACKENDS:
             return {'available': True}
         else:
-            return {"status": "Error", "result": "This backend doesn't exist"}
+            err_str = 'the backend "{0}" is not available'.format(backend)
+            raise ValueError(err_str)
 
     def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
@@ -258,28 +252,40 @@ class QuantumProgram(object):
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations via QX API call
-        backend is the name of the experiment
+        Args:
+            backend (str): Name of backend.
+        Returns:
+            Dictionary of backend calibration.
+        Raises:
+            LookupError if backend not found.
         """
 
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'calibrations': None}
+            return {'backend': backend, 'calibrations': None}
         else:
             raise LookupError(
                 'backend calibration for "{0}" not found'.format(backend))
 
     def get_backend_parameters(self, backend):
         """Return the online backend parameters via QX API call
-        backend is the name of the experiment
+
+        Args:
+            backend (str): Name of backend.
+        Returns:
+            Dictionary of backend parameters.
+        Raises:
+            LookupError if backend not found.
         """
 
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'parameters': None}
+            return {'backend': backend, 'parameters': None}
         else:
-            return {"status": "Error", "result": "This backend doesn't exist"}
+            raise LookupError(
+                'backend parameters for "{0}" not found'.format(backend))
 
     # Building parts of the program
     def create_quantum_registers(self, name, size):
@@ -428,6 +434,24 @@ class QuantumProgram(object):
         """Get image circuit representation from API."""
         pass
 
+    def qasm(self, names=None):
+        """Get circuit qasm(s).
+
+        Args:
+            names: (None, str, list of str)
+                If None, return all qasms in a list.
+                If str, return qasm for named circuit.
+                if list of str, return list of qasms for each circuit in list.
+        """
+        if names is None:
+            return self.get_qasms(self.get_circuit_names())
+        elif isinstance(names, list):
+            return self.get_qasms(names)
+        elif isinstance(names, str):
+            return self.get_qasm(names)
+        else:
+            raise ValueError('Unrecognized circuit reference')
+
     def get_qasm(self, name):
         """get the circut by name.
         name of the circuit"""
@@ -462,12 +486,13 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits, backend="local_qasm_simulator", shots=1024, max_credits=3, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None, silent=False):
         """Compile the name_of_circuits by names.
 
-        name_of_circuits is a list of circuit names to compile.
-        backend is the target backend name.
-        basis_gates are the base gates by default are: u1,u2,u3,cx,id
-        coupling_map is the adjacency list for coupling graph
-        initial_layout is dict mapping qubits of circuit onto qubits of backend
-        silent set True to not print
+        Args:
+            name_of_circuits: circuit name or list of circuit names to compile.
+            backend: the target backend name.
+            basis_gates: base gates by default are: u1,u2,u3,cx,id
+            coupling_map: adjacency list for coupling graph
+            initial_layout: dict mapping qubits of circuit onto qubits of backend
+            silent (bool): set True to not print
 
         This method adds elements of the following form to the self.__to_execute
         list corresponding to the backend:
@@ -488,12 +513,13 @@ class QuantumProgram(object):
             ]
         }
         """
-        if name_of_circuits == []:
-            return {"status": "Error", "result": 'No circuits'}
-
+        if not name_of_circuits:
+            raise ValueError('"name_of_circuits" must be specified') 
+        if isinstance(name_of_circuits, str):
+            name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
             if name not in self.__quantum_program["circuits"]:
-                return {"status": "Error", "result": "%s not in QuantumProgram" % name}
+                raise KeyError('circuit "{0}" not found in program'.format(name))
 
             # TODO: The circuit object has to have .qasm() method (be careful)
             qasm_compiled, dag_unrolled = self.unroller_code(self.__quantum_program['circuits'][name]['circuit'], basis_gates)
@@ -559,7 +585,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]["execution"][backend]["compiled_circuit"]
         except KeyError:
-            return "No compiled qasm for this circuit"
+            raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
 
     def get_compiled_layout(self, name, backend=None):
         """Get the compiled layout for the named circuit and backend.
@@ -571,7 +597,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program["circuits"][name]["execution"][backend]["layout"]
         except KeyError:
-            return "No compiled layout for this circuit"
+            raise KeyError('No compiled layout for circuit "{0}"'.format(name))
 
     def print_execution_list(self, verbose=False):
         """Print the compiled circuits that are ready to run.
@@ -645,7 +671,9 @@ class QuantumProgram(object):
                         basis_gates = job['basis_gates'].split(',')
                     else:
                         basis_gates = []
-                    unroller = unroll.Unroller(qasm.Qasm(data=job["compiled_circuit"]).parse(), unroll.JsonBackend(basis_gates))
+                    unroller = unroll.Unroller(
+                        qasm.Qasm(data=job["compiled_circuit"]).parse(),
+                        unroll.JsonBackend(basis_gates))
                     json_circuit = unroller.execute()
                     # converts qasm circuit to json circuit
                     jobs.append({"compiled_circuit": json_circuit,
@@ -748,7 +776,8 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator", shots=1024,
-                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None, coupling_map=None, initial_layout=None, seed=None, config=None):
+                max_credits=3, wait=5, timeout=60, silent=False, basis_gates=None,
+                coupling_map=None, initial_layout=None, seed=None, config=None):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api is the api for the backend
@@ -758,7 +787,8 @@ class QuantumProgram(object):
         basis_gates are the base gates, which by default are: u1,u2,u3,cx,id
         """
         self.compile(name_of_circuits, backend, shots, max_credits,
-                     basis_gates, coupling_map, initial_layout, seed, config, silent=silent)
+                     basis_gates, coupling_map, initial_layout, seed, config,
+                     silent=silent)
         output = self.run(wait, timeout, silent=silent)
         return output
 
@@ -774,7 +804,7 @@ class QuantumProgram(object):
         if name in self.__quantum_program["circuits"]:
             return self.__quantum_program["circuits"][name]['execution'][backend]['result']
         else:
-            return {"status": "Error", "result": 'Circuit not found'}
+            raise KeyError('circuit "{0}" not found in program'.format(name))
 
     def get_data(self, name, backend=None):
         """Get the dict of labels and counts from the output of get_job.
@@ -785,17 +815,14 @@ class QuantumProgram(object):
         if name in self.__quantum_program["circuits"]:
             return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']
         else:
-            return {"status": "Error", "result": 'Circuit not found'}
+            raise KeyError('circuit "{0}" not found in program'.format(name))
 
     def get_counts(self, name, backend=None):
         """Get the dict of labels and counts from the output of get_job.
         name is the name or index of one circuit."""
         if not backend:
             backend = self.__last_backend
-        try:
-            return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']['counts']
-        except KeyError:
-            return {"status": "Error", "result": 'Error in circuit name'}
+        return self.__quantum_program["circuits"][name]['execution'][backend]['result']['data']['counts']
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
