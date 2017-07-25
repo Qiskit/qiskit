@@ -23,13 +23,13 @@ Author: Andrew Cross
 from ._backendexception import BackendException
 from ._unrollerbackend import UnrollerBackend
 
-import qiskit.QuantumRegister
-import qiskit.ClassicalRegister
-import qiskit.QuantumCircuit
-import qiskit.QISKitException
+from .._quantumregister import QuantumRegister
+from .._classicalregister import ClassicalRegister
+from .._quantumcircuit import QuantumCircuit
+from .._qiskitexception import QISKitException
 
 import sys
-sys.path.append("..")
+sys.path.append("../..")
 import qiskit.extensions.standard
 
 
@@ -99,6 +99,27 @@ class CircuitBackend(UnrollerBackend):
         """
         self.gates[name] = gatedata
 
+    def _map_qubit(self, qubit):
+        """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
+        qregs = self.circuit.get_qregs()
+        if qubit[0] not in qregs:
+            raise BackendException("qreg %s does not exist" % qubit[0])
+        return (qregs[qubit[0]], qubit[1])
+
+    def _map_bit(self, bit):
+        """Map bit tuple (regname, index) to (ClassicalRegister, index)."""
+        cregs = self.circuit.get_cregs()
+        if bit[0] not in cregs:
+            raise BackendException("creg %s does not exist" % bit[0])
+        return (cregs[bit[0]], bit[1])
+
+    def _map_creg(self, creg):
+        """Map creg name to ClassicalRegister."""
+        cregs = self.circuit.get_cregs()
+        if creg not in cregs:
+            raise BackendException("creg %s does not exist" % creg)
+        return cregs[creg]
+
     def u(self, arg, qubit):
         """Fundamental single qubit gate.
 
@@ -108,9 +129,9 @@ class CircuitBackend(UnrollerBackend):
         if self.listen:
             if "U" not in self.basis:
                 self.basis.append("U")
-            this_gate = self.circuit.u_base(arg, qubit)
+            this_gate = self.circuit.u_base(arg, self._map_qubit(qubit))
             if self.creg is not None:
-                this_gate.c_if(self.creg, self.cval)
+                this_gate.c_if(self._map_creg(self.creg), self.cval)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two qubit gate.
@@ -121,9 +142,10 @@ class CircuitBackend(UnrollerBackend):
         if self.listen:
             if "CX" not in self.basis:
                 self.basis.append("CX")
-            this_gate = self.circuit.cx_base(qubit0, qubit1)
+            this_gate = self.circuit.cx_base(self._map_qubit(qubit0),
+                                             self._map_qubit(qubit1))
             if self.creg is not None:
-                this_gate.c_if(self.creg, self.cval)
+                this_gate.c_if(self._map_creg(self.creg), self.cval)
 
     def measure(self, qubit, bit):
         """Measurement operation.
@@ -133,9 +155,10 @@ class CircuitBackend(UnrollerBackend):
         """
         if "measure" not in self.basis:
             self.basis.append("measure")
-        this_op = self.circuit.measure(qubit, bit)
+        this_op = self.circuit.measure(self._map_qubit(qubit),
+                                       self._map_bit(bit))
         if self.creg is not None:
-            this_op.c_if(self.creg, self.cval)
+            this_op.c_if(self._map_creg(self.creg), self.cval)
 
     def barrier(self, qubitlists):
         """Barrier instruction.
@@ -145,9 +168,10 @@ class CircuitBackend(UnrollerBackend):
         if self.listen:
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
-            flatlist = [qubit for qubitlist in qubitlists
-                        for qubit in qubitlist]
-            self.circuit.barrier(flatlist)
+            flatlist = map(self._map_qubit,
+                           [qubit for qubitlist in qubitlists
+                            for qubit in qubitlist])
+            self.circuit.barrier(*list(flatlist))
 
     def reset(self, qubit):
         """Reset instruction.
@@ -156,9 +180,9 @@ class CircuitBackend(UnrollerBackend):
         """
         if "reset" not in self.basis:
             self.basis.append("reset")
-        this_op = self.circuit.reset(qubit)
+        this_op = self.circuit.reset(self._map_qubit(qubit))
         if self.creg is not None:
-            this_op.c_if(self.creg, self.cval)
+            this_op.c_if(self._map_creg(self.creg), self.cval)
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -241,9 +265,10 @@ class CircuitBackend(UnrollerBackend):
                                        (name, len(args), len(qubits)) +
                                        "incompatible with the standard " +
                                        "extensions")
-            this_gate = gate_data[1]([args, qubits])
+            this_gate = gate_data[1]([args,
+                                      list(map(self._map_qubit, qubits))])
             if self.creg is not None:
-                this_gate.c_if(self.creg, self.cval)
+                this_gate.c_if(self._map_creg(self.creg), self.cval)
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.
