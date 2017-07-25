@@ -1,1 +1,1 @@
-from ._circuit import Circuit
+from ._dagcircuit import DAGCircuit

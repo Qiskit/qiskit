@@ -16,17 +16,17 @@
 # =============================================================================
 
 """
-Backend for the unroller that creates a Circuit object.
+Backend for the unroller that creates a DAGCircuit object.
 
 Author: Andrew Cross
 """
 from ._unrollerbackend import UnrollerBackend
 from ._backendexception import BackendException
-from ..circuit import Circuit
+from ..circuit import DAGCircuit
 
 
-class CircuitBackend(UnrollerBackend):
-    """Backend for the unroller that creates a Circuit object."""
+class DAGBackend(UnrollerBackend):
+    """Backend for the unroller that creates a DAGCircuit object."""
 
     def __init__(self, basis=None):
         """Setup this backend.
@@ -36,7 +36,7 @@ class CircuitBackend(UnrollerBackend):
         self.prec = 15
         self.creg = None
         self.cval = None
-        self.circuit = Circuit()
+        self.circuit = DAGCircuit()
         if basis:
             self.basis = basis
         else:
