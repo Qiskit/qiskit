@@ -145,10 +145,10 @@ class QuantumCircuit(object):
                 "register '%s' not in this circuit" %
                 register.name)
 
-    def _check_qubit(self, circuit):
-        """Raise exception if q is not in this circuit or invalid format."""
-        self._check_qreg(circuit[0])
-        circuit[0].check_range(circuit[1])
+    def _check_qubit(self, qubit):
+        """Raise exception if qubit is not in this circuit or bad format."""
+        self._check_qreg(qubit[0])
+        qubit[0].check_range(qubit[1])
 
     def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
