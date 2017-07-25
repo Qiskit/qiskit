@@ -900,25 +900,25 @@ class QuantumProgram(object):
                         if last_shots != shots:
                             # Clear the list of compiled programs to execute
                             self.delete_execution_list(backend)
-                            return {"status": "Error", "result":'Online backends only support job batches with equal numbers of shots'}
+                            return {"status": "ERROR", "result":'Online backends only support job batches with equal numbers of shots'}
                     if last_max_credits == -1:
                         last_max_credits = max_credits
                     else:
                         if last_max_credits != max_credits:
                             # Clear the list of compiled programs to execute
                             self.delete_execution_list(backend)
-                            return  {"status": "Error", "result":'Online backends only support job batches with equal max credits'}
+                            return  {"status": "ERROR", "result":'Online backends only support job batches with equal max credits'}
 
                 if not silent:
                     print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, last_shots, last_max_credits)
-                if 'error' in output:
+                if 'ERROR' in output:
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
-                    return {"status": "Error", "result": output['error']}
+                    return {"status": "ERROR", "result": output['ERROR']}
                 job_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
 
-                if job_result['status'] == 'Error':
+                if job_result['status'] == 'ERROR':
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
                     return job_result
@@ -936,7 +936,7 @@ class QuantumProgram(object):
                 else:
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
-                    return {"status": "Error", "result": "Not a valid backend"}
+                    return {"status": "ERROR", "result": "Not a valid backend"}
             if backend in self.__ONLINE_BACKENDS:
                 assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
             else:
@@ -948,7 +948,7 @@ class QuantumProgram(object):
                 if name not in self.__quantum_program:
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
-                    return {"status": "Error", "result": "Internal error, circuit not found"}
+                    return {"status": "ERROR", "result": "Internal error, circuit not found"}
                 if not "execution" in self.__quantum_program[name]:
                     self.__quantum_program[name]["execution"]={}
                 # We override the results
@@ -990,7 +990,7 @@ class QuantumProgram(object):
             raise Exception("get_job didn't return status: %s" % (pformat(job)))
         while job_result['status'] == 'RUNNING':
             if timer >= timeout:
-                return {"status": "Error", "result": "Time Out"}
+                return {"status": "ERROR", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
             if not silent:
@@ -1001,7 +1001,7 @@ class QuantumProgram(object):
                 from pprint import pformat
                 raise Exception("get_job didn't return status: %s" % (pformat(job_result)))
             if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-                return {"status": "Error", "result": job_result['status']}
+                return {"status": "ERROR", "result": job_result['status']}
 
         # Get the results
         return job_result
@@ -1027,7 +1027,7 @@ class QuantumProgram(object):
         """
         job_results = []
         for job in jobs:
-            one_result = {'result': None, 'status': "Error"}
+            one_result = {'result': None, 'status': "ERROR"}
             local_simulator = simulators.LocalSimulator(backend, job)
             local_simulator.run()
             this_result = local_simulator.result()

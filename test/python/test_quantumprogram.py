@@ -552,28 +552,43 @@ class TestQuantumProgram(unittest.TestCase):
         # print(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
 
-
     def test_backend_status(self):
+        """Test backend_status.
+
+        If all correct should return dictionary with available: True/False.
+        """
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
-        result = QP_program.get_backend_status(backend)
-        self.assertIn(result['available'], [True, False])
+        out = QP_program.get_backend_status("local_qasm_simulator")
+        self.assertIn(out['available'], [True])
+
+    def test_backend_status_fail(self):
+        """Test backend_status.
+
+        If all correct should return dictionary with available: True/False.
+        """
+        qp = QuantumProgram(specs=QPS_SPECS)
+        self.assertRaises(ValueError, qp.get_backend_status, "fail")
 
     def test_get_backend_configuration(self):
+        """Test backend_configuration.
+
+        If all correct should return configuration for the
+        local_qasm_simulator.
+        """
         qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        backend_list = qp.available_backends()
-        for backend in backend_list:
-            qp.get_backend_configuration(backend)
+        test = len(qp.get_backend_configuration("local_qasm_simulator"))
+        self.assertEqual(test, 7)
 
     def test_get_backend_configuration_fail(self):
+        """Test backend_configuration.
+
+        If all correct should return LookupError.
+        """
         qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        backend = 'fail'
-        self.assertRaises(LookupError, qp.get_backend_configuration, backend)
+        # qp.get_backend_configuration("fail")
+        self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
+
+########
 
     def test_backend_calibration(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -584,9 +599,9 @@ class TestQuantumProgram(unittest.TestCase):
         result = QP_program.get_backend_calibration(backend)
         self.assertEqual(len(result), 4)
 
-
-
-
+    ###############################################################
+    # Test to compile and run quantum programs
+    ###############################################################
 
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -652,7 +667,7 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program.set_api(API_TOKEN, URL)
         result = QP_program.execute(['circuitName'], backend=backend,
                                     shots=shots, max_credits=3)
-        self.assertIn(result["status"], ["COMPLETED", "Error"])
+        self.assertIn(result["status"], ["COMPLETED", "ERROR"])
 
     def test_compile_program(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
