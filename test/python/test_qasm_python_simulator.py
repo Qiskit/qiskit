@@ -89,8 +89,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         shots = 100
         max_qubits = 3
         qp = QuantumProgram()
-        qr = qp.create_quantum_registers('qr', max_qubits)
-        cr = qp.create_classical_registers('cr', max_qubits)
+        qr = qp.create_quantum_register('qr', max_qubits)
+        cr = qp.create_classical_register('cr', max_qubits)
         circuit = qp.create_circuit('test_if', [qr], [cr])
         circuit.x(qr[0])
         circuit.x(qr[1])
@@ -105,10 +105,11 @@ class LocalQasmSimulatorTest(unittest.TestCase):
             qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
             unroll.JsonBackend(basis_gates))
         ucircuit = json.loads(unroller.execute())
-        job = {'compiled_circuit': json.dumps(ucircuit), 'shots': shots, 'seed': self.seed}
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_true = QasmSimulator(job).run()
         del ucircuit['operations'][1] # remove x(qr[1]) operation
-        job = {'compiled_circuit': json.dumps(ucircuit), 'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_false = QasmSimulator(job).run()
 
         logging.info('result_if_true circuit:')
@@ -119,7 +120,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         logging.info('result_if_false circuit:')
         logging.info( circuit.qasm() )
         logging.info('result_if_false={0}'.format(result_if_false))
-
         self.assertTrue(result_if_true['data']['counts']['111'] == 100)
         self.assertTrue(result_if_false['data']['counts']['001'] == 100)
 
@@ -130,10 +130,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         pi = np.pi
         shots = 1000
         qp = QuantumProgram()
-        qr = qp.create_quantum_registers('qr', 3)
-        cr0 = qp.create_classical_registers('cr0', 1)
-        cr1 = qp.create_classical_registers('cr1', 1)
-        cr2 = qp.create_classical_registers('cr2', 1)
+        qr = qp.create_quantum_register('qr', 3)
+        cr0 = qp.create_classical_register('cr0', 1)
+        cr1 = qp.create_classical_register('cr1', 1)
+        cr2 = qp.create_classical_register('cr2', 1)
         circuit = qp.create_circuit('teleport', [qr],
                                     [cr0, cr1, cr2])
         circuit.h(qr[1])
@@ -359,7 +359,6 @@ def generateTestSuite():
     Generate module test suite.
     """
     testSuite = unittest.TestSuite()
-    testSuite.addTest(LocalQasmSimulatorTest('test_dag'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator_single_shot'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator'))
     testSuite.addTest(LocalQasmSimulatorTest('test_if_statement'))
