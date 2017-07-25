@@ -35,9 +35,11 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')
+        cls.pdf = PdfPages(cls.moduleName + '.pdf')        
         cls.logFileName = cls.moduleName + '.log'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO)
+        log_fmt = 'LocalQasmSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
+        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
+                            format=log_fmt)
 
     @classmethod        
     def tearDownClass(cls):
@@ -349,38 +351,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                                     nCircuits=nCircuits, shots=shots))
             ax.legend()
         self.pdf.savefig(fig)
-        
-def generateTestSuite():
-    """
-    Generate module test suite.
-    """
-    testSuite = unittest.TestSuite()
-    testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator_single_shot'))
-    testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator'))
-    testSuite.addTest(LocalQasmSimulatorTest('test_if_statement'))
-    testSuite.addTest(LocalQasmSimulatorTest('test_teleport'))
-    return testSuite
-
-def generateProfileSuite():
-    """
-    Generate module profile suite.
-    """
-    profSuite = unittest.TestSuite()
-    profSuite.addTest(LocalQasmSimulatorTest('profile_qasm_simulator'))
-    profSuite.addTest(LocalQasmSimulatorTest('profile_nqubit_speed_constant_depth'))
-    profSuite.addTest(LocalQasmSimulatorTest('profile_nqubit_speed_grow_depth'))
-    return profSuite
-
-def main():
-    """
-    Optional command line entry point for testing. 
-    """
-    moduleName = os.path.splitext(__file__)[0]
-    testSuite = generateTestSuite()
-    profSuite = generateProfileSuite()
-    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
-    runner.run(testSuite)
-    runner.run(profSuite)
 
 if __name__ == '__main__':
-    main()
+    unittest.main()

@@ -17,28 +17,48 @@
 """Test the the trial functions."""
 import sys
 import numpy as np
+import unittest
+import logging
+import os
 import sys
 sys.path.append("../..")
 from tools.optimizationtools import trial_circuit_ry
 
-entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
+class TestQuantumOptimization(unittest.TestCase):
+    """Tests for quantum optimization"""
 
-m = 1
-n = 6
-theta = np.zeros(m * n)
+    @classmethod
+    def setUpClass(cls):
+        cls.moduleName = os.path.splitext(__file__)[0]
+        cls.logFileName = cls.moduleName + '.log'
+        log_fmt = 'TestQuantumOptimization:%(levelname)s:%(asctime)s: %(message)s'
+        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
+                            format=log_fmt)
 
-trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
 
-print(trial_circuit.qasm())
+    def test_trial_functions(self):
+        entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
 
-print("With No measurement:\n")
-trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
+        m = 1
+        n = 6
+        theta = np.zeros(m * n)
 
-print(trial_circuit.qasm())
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
 
-print("With Y measurement:\n")
-meas_sting = ['Y' for x in range(n)]
+        logging.info(trial_circuit.qasm())
 
-trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
+        logging.info("With No measurement:\n")
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
 
-print(trial_circuit.qasm())
+        logging.info(trial_circuit.qasm())
+
+        logging.info("With Y measurement:\n")
+        meas_sting = ['Y' for x in range(n)]
+
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
+
+        logging.info(trial_circuit.qasm())
+
+if __name__ == '__main__':
+    unittest.main()
+        

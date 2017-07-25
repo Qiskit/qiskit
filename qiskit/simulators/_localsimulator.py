@@ -11,14 +11,14 @@ instantiated like::
 >>> results = sim.results()
 
 `simulator_list` is the list of names of known simulators and `job` is
-a dictionary of the form {'compiled_circuit': circuit, 'shots': shots,
+a dictionary of the form {'compiled_circuit': circuit, 'shots': shots, 
 'seed': seed}.
 
 The import does discovery of the simulator modules in this directory. The
 second command attempts to determine which modules are functional, in
 particular for modules which require making calls to compiled binaries.
 
-In order for a module to be registered in needs to define module-scope
+In order for a module to be registered it needs to define a module-scope
 dictionary of the form::
 
 __configuration ={"name": "local_qasm_simulator",
@@ -29,7 +29,7 @@ __configuration ={"name": "local_qasm_simulator",
                   "couplingMap": "all-to-all",
                   "gateset": "SU2+CNOT"}
 
-and it needs a class with a run method. The identifier for the backend
+and it needs a class with a "run" method. The identifier for the backend
 simulator comes from the "name" key in this dictionary. The class'
 __init__ method is called with a single `job` argument. The __init__
 method is also responsible for determining whether an associated
@@ -95,8 +95,7 @@ def local_backends():
                      'name': 'measure',
                      'qubits': [0]}]}
     job = {'compiled_circuit': json.dumps(circuit).encode(),
-           'shots': 1,
-           'seed': None}
+           'shots': 1, 'seed': None}
     for backend_id, backend in _simulator_classes.items():
         try:
             sim = backend(job)
