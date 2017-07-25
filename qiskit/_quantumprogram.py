@@ -331,7 +331,7 @@ class QuantumProgram(object):
         for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
         for cname, creg in quantum_circuit.get_cregs().items():
-            self.create_quantum_register(cname, len(creg))
+            self.create_classical_register(cname, len(creg))
         self.__quantum_program[name] = {"name":name, "circuit": quantum_circuit}
 
     def load_qasm_file(self, qasm_file, name=None, verbose=False):
@@ -706,7 +706,7 @@ class QuantumProgram(object):
         if isinstance(name_of_circuits, str):
             name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
-            if name not in self.__quantum_program["circuits"]:
+            if name not in self.__quantum_program:
                 raise KeyError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
@@ -860,7 +860,7 @@ class QuantumProgram(object):
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        dag_circuit_unrolled = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
+        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
                                            unroll.DAGBackend(basis_gates.split(",")))
         dag_circuit_unrolled = unrolled_circuit.execute()
         return dag_circuit_unrolled
@@ -937,7 +937,6 @@ class QuantumProgram(object):
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
                     return {"status": "Error", "result": "Not a valid backend"}
-
             if backend in self.__ONLINE_BACKENDS:
                 assert len(self.__to_execute[backend]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
             else:
@@ -965,12 +964,9 @@ class QuantumProgram(object):
                 else:
                     self.__quantum_program[name]["execution"][backend]["data"] = job_result[index]["data"]
                     self.__quantum_program[name]["execution"][backend]["status"] = job_result[index]["status"]
-
                 index += 1
-
         # Clear the list of compiled programs to execute
         self.delete_execution_list()
-
         return  {"status": "COMPLETED", "result": 'all done'}
 
     def _wait_for_job(self, jobid, wait=5, timeout=60, silent=False):

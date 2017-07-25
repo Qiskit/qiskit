@@ -45,7 +45,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
     def test_unitary_simulator(self):
         """test generation of circuit unitary"""
         shots = 1024
-        self.qp.load_qasm_file('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),

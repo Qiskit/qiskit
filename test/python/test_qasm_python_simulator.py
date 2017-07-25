@@ -56,7 +56,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qp.load_qasm_file('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
@@ -70,7 +70,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
         shots = 1024
-        self.qp.load_qasm_file('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),

@@ -298,7 +298,8 @@ class TestQuantumProgram(unittest.TestCase):
                                          verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
-        self.assertEqual(len(to_check), 1767)
+        # print(to_check)
+        self.assertEqual(len(to_check), 554)
 
     def test_fail_load_qasm_file(self):
         """Test fail_load_qasm_file.
@@ -333,10 +334,11 @@ class TestQuantumProgram(unittest.TestCase):
         QASM_string += "measure a[3]->c[3];\nmeasure b[0]->d[0];\n"
         QASM_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
         QASM_string += "measure b[3]->d[3];"
-        name = QP_program.load_qasm_text("", QASM_string, verbose=False)
+        name = QP_program.load_qasm_text(QASM_string, verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
-        self.assertEqual(len(to_check), 1767)
+        # print(to_check)
+        self.assertEqual(len(to_check), 554)
 
     def test_get_register_and_circuit(self):
         """Test get_quantum_registers, get_classical_registers, and get_circuit.
@@ -355,6 +357,8 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(qc, QuantumCircuit)
         self.assertIsInstance(qr, QuantumRegister)
         self.assertIsInstance(cr, ClassicalRegister)
+
+#####
 
     def test_get_register_and_circuit_names(self):
         """Get the names of the circuits and registers.
@@ -594,8 +598,8 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        result = QP_program.execute(
-            ['circuitName'], backend=backend, shots=shots, max_credits=3)
+        result = QP_program.execute(['circuitName'], backend=backend,
+                                    shots=shots, max_credits=3, silent=True)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_several_circuits_simulator_online(self):
@@ -612,8 +616,8 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        result = QP_program.execute(
-            circuits, backend=backend, shots=shots, max_credits=3)
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    max_credits=3, silent=True)
         self.assertEqual(result["status"], "COMPLETED")
 
     def test_execute_program_simulator_online(self):
@@ -769,7 +773,8 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program.compile(circuits, backend=backend, shots=shots,
                            max_credits=max_credits, coupling_map=coupling_map)
         to_check = QP_program.get_circuit("circuit-dev")
-        self.assertEqual(len(to_check.qasm()), 1767)
+        # print(to_check.qasm())
+        self.assertEqual(len(to_check.qasm()), 554)
 
     def test_new_run(self):
         QP_program = QuantumProgram()
