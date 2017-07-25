@@ -565,7 +565,7 @@ class QuantumProgram(object):
         local or online simulator or experiment.
 
         Args:
-            
+            banckend (str): The backend to check
         """
 
         if backend in self.__ONLINE_BACKENDS:
@@ -578,19 +578,17 @@ class QuantumProgram(object):
     def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
 
-        Parameters
-        ----------
-        backend : str
-           Name of the backend.
+        The return is via QX API call.
 
-        Returns
-        -------
-        The configuration of the named backend.
+        Args:
+            backend (str):  Name of the backend.
 
-        Raises
-        ------
-        If a configuration for the named backend can't be found
-        raise a LookupError.
+        Returns:
+            The configuration of the named backend.
+
+        Raises:
+            If a configuration for the named backend can't be found
+            raise a LookupError.
         """
         if self.get_api():
             for configuration in self.__api.available_backends():
@@ -603,10 +601,20 @@ class QuantumProgram(object):
             'backend configuration for "{0}" not found'.format(backend))
 
     def get_backend_calibration(self, backend):
-        """Return the online backend calibrations via QX API call
-        backend is the name of the experiment
-        """
+        """Return the online backend calibrations.
 
+        The return is via QX API call.
+
+        Args:
+            backend (str):  Name of the backend.
+
+        Returns:
+            The configuration of the named backend.
+
+        Raises:
+            If a configuration for the named backend can't be found
+            raise a LookupError.
+        """
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
@@ -616,16 +624,27 @@ class QuantumProgram(object):
                 'backend calibration for "{0}" not found'.format(backend))
 
     def get_backend_parameters(self, backend):
-        """Return the online backend parameters via QX API call
-        backend is the name of the experiment
-        """
+        """Return the online backend parameters.
 
+        The return is via QX API call.
+
+        Args:
+            backend (str):  Name of the backend.
+
+        Returns:
+            The configuration of the named backend.
+
+        Raises:
+            If a configuration for the named backend can't be found
+            raise a LookupError.
+        """
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
             return {'parameters': None}
         else:
-            return {"status": "Error", "result": "This backend doesn't exist"}
+            raise LookupError(
+                'backend parameters for "{0}" not found'.format(backend))
 
     ###############################################################
     # methods to compile quantum programs into __to_execute
