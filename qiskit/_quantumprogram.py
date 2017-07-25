@@ -139,16 +139,14 @@ class QuantumProgram(object):
     # populate these in __init__()
     __quantum_registers = {}
     __classical_registers = {}
-
-    __ONLINE_BACKENDS = []
-    __LOCAL_BACKENDS = []
-
     __quantum_program = {}
+    __LOCAL_BACKENDS = []
     __to_execute ={}
 
     # only exists once you set the api to use the online backends
     __api = {}
     __api_config = {}
+    __ONLINE_BACKENDS = []
 
     def __init__(self, specs=None):
         self.__quantum_registers = {}
@@ -192,11 +190,6 @@ class QuantumProgram(object):
         """
         quantumr = []
         classicalr = []
-        if "api" in specs:
-            if specs["api"]["token"]:
-                self.__api_config["token"] = specs["api"]["token"]
-            if specs["api"]["url"]:
-                self.__api_config["url"] = specs["api"]["url"]
         if "circuits" in specs:
             for circuit in specs["circuits"]:
                 quantumr = self.create_quantum_registers(
@@ -316,30 +309,30 @@ class QuantumProgram(object):
             qregisters = []
         if not cregisters:
             cregisters = []
-        circuit_object = QuantumCircuit()
+        quantum_circuit = QuantumCircuit()
         if not self.__init_circuit:
-            self.__init_circuit = circuit_object
+            self.__init_circuit = quantum_circuit
         for register in qregisters:
-            circuit_object.add(register)
+            quantum_circuit.add(register)
         for register in cregisters:
-            circuit_object.add(register)
-        self.add_circuit(name, circuit_object)
+            quantum_circuit.add(register)
+        self.add_circuit(name, quantum_circuit)
         return self.__quantum_program[name]['circuit']
 
-    def add_circuit(self, name, circuit_object):
+    def add_circuit(self, name, quantum_circuit):
         """Add a new circuit based on an Object representation.
 
         Args:
             name (str): the name of the circuit to add.
-            circuit_object: a quantum circuit to add to the program-name
+            quantum_circuit: a quantum circuit to add to the program-name
         Returns:
             the quantum circuit is added to the object.
         """
-        for qname, qreg in circuit_object.get_qregs().items():
+        for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
-        for cname, creg in circuit_object.get_cregs().items():
+        for cname, creg in quantum_circuit.get_cregs().items():
             self.create_quantum_register(cname, len(creg))
-        self.__quantum_program[name] = {"name":name, "circuit": circuit_object}
+        self.__quantum_program[name] = {"name":name, "circuit": quantum_circuit}
 
     def load_qasm_file(self, qasm_file, name=None, verbose=False):
         """ Load qasm file into the quantum program.
@@ -358,45 +351,43 @@ class QuantumProgram(object):
             raise QISKitException('qasm file "{0}" not found'.format(qasm_file))
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
-        circuit_ast = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
+        node_circuit = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
         if verbose == True:
             print("circuit name: " + name)
             print("******************************")
-            print(circuit_object.qasm())
+            print(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unrolled_circuit = unroll.Unroller(circuit_ast,
+        unrolled_circuit = unroll.Unroller(node_circuit,
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         self.add_circuit(name, circuit_unrolled)
         return name
 
-    def load_qasm_text(self, name="", qasm_string=None,  verbose=False):
+    def load_qasm_text(self, qasm_string, name=None,  verbose=False):
         """ Load qasm string in the quantum program.
 
         Args:
+            qasm_string (str): a string for the file name.
             name (str): the name of the quantum circuit after loading qasm
                 text into it. If no name is give the name is of the text file.
-            qasm_string (str): a string for the file name
             verbose (bool): controls how information is returned.
         Retuns:
             Adds a quantum circuit with the gates given in the qasm string to the
             quantum program.
         """
-        if not qasm_string:
-            raise QISKitException("No qasm file in string format provided")
-        circuit_object = qasm.Qasm(data=qasm_string).parse() # Node (AST)
-        if name == "":
+        node_circuit = qasm.Qasm(data=qasm_string).parse() # Node (AST)
+        if not name:
             # Get a random name if none is give
             name = "".join([random.choice(string.ascii_letters+string.digits)
                            for n in range(10)])
         if verbose == True:
             print("circuit name: " + name)
             print("******************************")
-            print(circuit_object.qasm())
+            print(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unrolled_circuit = unroll.Unroller(circuit_object,
+        unrolled_circuit = unroll.Unroller(node_circuit,
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         self.add_circuit(name, circuit_unrolled)
@@ -490,52 +481,51 @@ class QuantumProgram(object):
     # methods for working with backends
     ###############################################################
 
-    def _setup_api(self, token, url, verify=True):
+    def set_api(self, token, url, verify=True):
+        """ Setup the API.
+
+        Args:
+            Token (str): The token used to register on the online backend such
+                as the quantum experience.
+            URL (str): The url used for online backend such as the quantum
+                experience.
+        Returns:
+            True/False and fills the __ONLINE_BACKENDS, __api, and __api_config
+        """
         try:
             self.__api = IBMQuantumExperience(token, {"url": url}, verify)
             self.__ONLINE_BACKENDS = self.online_backends()
+            self.__api_config["token"] = token
+            self.__api_config["url"] =  {"url": url}
             return True
         except Exception as err:
             print('ERROR in _quantumprogram._setup_api:', err)
             return False
 
-    def set_api(self, token=None, url=None, verify=True):
-        """Set the API conf"""
-        if not token:
-            token = self.__api_config["token"]
-        else:
-            self.__api_config["token"] = token
-        if not url:
-            url = self.__api_config["url"]
-        else:
-            self.__api_config["url"] = {"url": url}
-        api = self._setup_api(token, url, verify)
-        return api
-
-    def set_api_token(self, token):
-        """ Set the API Token """
-        self.set_api(token=token)
-
-    def set_api_url(self, url):
-        """ Set the API url """
-        self.set_api(url=url)
-
     def get_api_config(self):
-        """Return the program specs"""
-        return self.__api.req.credential.config
+        """Return the program specs."""
+        return self.__api_config
 
     def get_api(self):
+        """Returns a function handle to the API."""
         return self.__api
 
+    def available_backends(self):
+        """All the backends that are seen by QISKIT."""
+        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
+
+    def local_backends(self):
+        """Get the local backends."""
+        return simulators._localsimulator.local_backends()
+
     def online_backends(self):
+        """Get the online backends.
 
-        """
-        Queries network API if it exists.
+        Queries network API if it exists and gets the backends that are online.
 
-        Returns
-        -------
-        List of online backends if the online api has been set or an empty
-        list of it has not been set.
+        Returns:
+            List of online backends if the online api has been set or an empty
+            list of it has not been set.
         """
         if self.get_api():
             return [backend['name'] for backend in self.__api.available_backends() ]
@@ -543,12 +533,10 @@ class QuantumProgram(object):
             return []
 
     def online_simulators(self):
-        """
-        Gets online simulators via QX API calls.
+        """Gets online simulators via QX API calls.
 
-        Returns
-        -------
-        List of online simulator names.
+        Returns:
+            List of online simulator names.
         """
         simulators = []
         if self.get_api():
@@ -558,8 +546,10 @@ class QuantumProgram(object):
         return simulators
 
     def online_devices(self):
-        """
-        Gets online devices via QX API calls
+        """Gets online devices via QX API calls.
+
+        Returns:
+            List of online simulator names.
         """
         devices = []
         if self.get_api():
@@ -568,18 +558,14 @@ class QuantumProgram(object):
                     devices.append(backend['name'])
         return devices
 
-    def local_backends(self):
-        """
-        Get the local backends.
-        """
-        return simulators._localsimulator.local_backends()
-
-    def available_backends(self):
-        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
-
     def get_backend_status(self, backend):
-        """Return the online backend status via QX API call or by local
-        backend is the name of the local or online simulator or experiment
+        """Return the online backend status.
+
+        It uses QX API call or by local backend is the name of the
+        local or online simulator or experiment.
+
+        Args:
+            
         """
 
         if backend in self.__ONLINE_BACKENDS:
@@ -691,11 +677,10 @@ class QuantumProgram(object):
 
         Returns:
             status done and populates the internal __to_exectute object
-
-        Jay: currently basis_gates, coupling_map, intial_layout, shots,
-             max_credits and seed are extra inputs but I would like them to go
-             into the confg.
         """
+        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # max_credits and seed are extra inputs but I would like them to go
+        # into the confg.
         if name_of_circuits == []:
             return {"status": "Error", "result": 'No circuits'}
         for name in name_of_circuits:
@@ -703,7 +688,7 @@ class QuantumProgram(object):
                 return {"status": "Error", "result": "%s not in QuantumProgram" % name}
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-            # TODO: The circuit object has to have .qasm() method (be careful)
+            # TODO: The circuit object going into this is to have .qasm() method (be careful)
             dag_circuit = self._unroller_code(self.__quantum_program[name]['circuit'],
                                              basis_gates=basis_gates)
             final_layout = None
@@ -829,9 +814,8 @@ class QuantumProgram(object):
 
         Returns:
             the json version of the dag
-
-        JAY: I think this needs to become a method like .qasm() for the DAG.
         """
+        # TODO: Jay I think this needs to become a method like .qasm() for the DAG.
         circuit_string = dag_circuit.qasm(qeflag=True)
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
         unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(), unroll.JsonBackend(basis_gates.split(",")))
@@ -851,18 +835,16 @@ class QuantumProgram(object):
         Return:
             dag_ciruit (dag object): a dag representation of the circuit
                                      unrolled to basis gates
-
-        JAY: Why do we need this it could just be two lines in compile.
         """
         if not basis_gates:
             basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unrolled_circuit = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
-                                           unroll.CircuitBackend(basis_gates.split(",")))
-        circuit_unrolled = unrolled_circuit.execute()
-        return circuit_unrolled
+        dag_circuit_unrolled = unroll.Unroller(qasm.Qasm(data=dag_ciruit.qasm()).parse(),
+                                           unroll.DAGBackend(basis_gates.split(",")))
+        dag_circuit_unrolled = unrolled_circuit.execute()
+        return dag_circuit_unrolled
 
     ###############################################################
-    # methods to ran quantum programs (run __to_execute)
+    # methods to run quantum programs (run __to_execute)
     ###############################################################
 
     def run(self, wait=5, timeout=60, silent=False):
@@ -1085,11 +1067,10 @@ class QuantumProgram(object):
         Returns:
             status done and populates the internal __quantum_program with the
             data
-
-        Jay: currently basis_gates, coupling_map, intial_layout, shots,
-            max_credits, and seed are extra inputs but I would like them to go
-            into the config
         """
+        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # max_credits, and seed are extra inputs but I would like them to go
+        # into the config
         self.compile(name_of_circuits, backend=backend, config=config,
                      silent=silent, basis_gates=basis_gates,
                      coupling_map=coupling_map, initial_layout=initial_layout,

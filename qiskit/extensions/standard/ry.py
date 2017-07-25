@@ -15,7 +15,8 @@
 # limitations under the License.
 # =============================================================================
 
-"""Rotation around the y-axis.
+"""
+Rotation around the y-axis.
 
 Author: Jay Gambetta and Andrew Cross
 """

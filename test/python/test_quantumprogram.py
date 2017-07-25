@@ -73,6 +73,10 @@ QPS_SPECS = {
 class TestQuantumProgram(unittest.TestCase):
     """QISKIT QuatumProgram Object Tests."""
 
+    ###############################################################
+    # Tests to initiate an build a quantum program
+    ###############################################################
+
     def test_create_program_with_specs(self):
         """Test Quantum Object Factory creation using Specs deffinition object.
 
@@ -290,7 +294,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        name = QP_program.load_qasm_file(QASM_FILE_PATH, name="", verbose=False)
+        name = QP_program.load_qasm_file(QASM_FILE_PATH, name="",
+                                         verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.assertEqual(len(to_check), 1767)
@@ -459,7 +464,7 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(len(result), 535)
 
     def test_get_initial_circuit(self):
-        """Get the initial quantum circuit.
+        """Test get_initial_circuit.
 
         If all correct is should be of the circuit form.
 
@@ -475,13 +480,110 @@ class TestQuantumProgram(unittest.TestCase):
     def test_contact_multiple_vertical_circuits(self):
         pass
 
-# EDITED COMMENTS UP TO HERE
-
+    ###############################################################
+    # Tests for working with backends
+    ###############################################################
 
     def test_setup_api(self):
+        """Check the api is set up.
+
+        If all correct is should be true.
+        """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         result = QP_program.set_api(API_TOKEN, URL)
         self.assertTrue(result)
+
+    def test_available_backends_exist(self):
+        """Test if there are available backends.
+
+        If all correct some should exists (even if offline).
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program.set_api(API_TOKEN, URL)
+        available_backends = QP_program.available_backends()
+        self.assertTrue(available_backends)
+
+    def test_local_backends_exist(self):
+        """Test if there are local backends.
+
+        If all correct some should exists (even if ofline).
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program.set_api(API_TOKEN, URL)
+        local_backends = QP_program.local_backends()
+        self.assertTrue(local_backends)
+
+    def test_online_backends_exist(self):
+        """Test if there are online backends.
+
+        If all correct some should exists.
+        """
+        # TODO: Jay should we check if we the QX is online before runing.
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program.set_api(API_TOKEN, URL)
+        online_backends = QP_program.online_backends()
+        # print(online_backends)
+        self.assertTrue(online_backends)
+
+    def test_online_devices(self):
+        """Test if there are online backends (which are devices).
+
+        If all correct some should exists. NEED internet connection for this.
+        """
+        # TODO: Jay should we check if we the QX is online before runing.
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        online_devices = qp.online_devices()
+        # print(online_devices)
+        self.assertTrue(isinstance(online_devices, list))
+
+    def test_online_simulators(self):
+        """Test if there are online backends (which are simulators).
+
+        If all correct some should exists. NEED internet connection for this.
+        """
+        # TODO: Jay should we check if we the QX is online before runing.
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        online_simulators = qp.online_simulators()
+        # print(online_simulators)
+        self.assertTrue(isinstance(online_simulators, list))
+
+
+    def test_backend_status(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program.set_api(API_TOKEN, URL)
+        backend_list = QP_program.online_backends()
+        if backend_list:
+            backend = backend_list[0]
+        result = QP_program.get_backend_status(backend)
+        self.assertIn(result['available'], [True, False])
+
+    def test_get_backend_configuration(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        backend_list = qp.available_backends()
+        for backend in backend_list:
+            qp.get_backend_configuration(backend)
+
+    def test_get_backend_configuration_fail(self):
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(API_TOKEN, URL)
+        backend = 'fail'
+        self.assertRaises(LookupError, qp.get_backend_configuration, backend)
+
+    def test_backend_calibration(self):
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program.set_api(API_TOKEN, URL)
+        backend_list = QP_program.online_backends()
+        if backend_list:
+            backend = backend_list[0]
+        result = QP_program.get_backend_calibration(backend)
+        self.assertEqual(len(result), 4)
+
+
+
+
 
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -717,61 +819,6 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         result = QP_program.execute(circuits, backend=backend, shots=shots)
         self.assertEqual(result['status'], 'COMPLETED')
-
-    def test_backend_status(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
-        result = QP_program.get_backend_status(backend)
-        self.assertIn(result['available'], [True, False])
-
-    def test_get_backend_configuration(self):
-        qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        backend_list = qp.available_backends()
-        for backend in backend_list:
-            qp.get_backend_configuration(backend)
-
-    def test_get_backend_configuration_fail(self):
-        qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        backend = 'fail'
-        self.assertRaises(LookupError, qp.get_backend_configuration, backend)
-
-    def test_backend_calibration(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
-        result = QP_program.get_backend_calibration(backend)
-        self.assertEqual(len(result), 4)
-
-    def test_online_backends_exist(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        online_backends = QP_program.online_backends()
-        self.assertTrue(online_backends)
-
-    def test_available_backends_exist(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        available_backends = QP_program.available_backends()
-        self.assertTrue(available_backends)
-
-    def test_online_devices(self):
-        qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        devices = qp.online_devices()
-        self.assertTrue(isinstance(devices, list))
-
-    def test_online_simulators(self):
-        qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(API_TOKEN, URL)
-        simulators = qp.online_simulators()
-        self.assertTrue(isinstance(simulators, list))
 
 
 if __name__ == '__main__':
