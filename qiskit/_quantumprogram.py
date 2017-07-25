@@ -358,13 +358,17 @@ class QuantumProgram(object):
             raise QISKitException('qasm file "{0}" not found'.format(qasm_file))
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
-        circuit_object = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
+        circuit_ast = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
         if verbose == True:
             print("circuit name: " + name)
             print("******************************")
             print(circuit_object.qasm())
-        # TODO: JAY we shoud add method to convert to QuantumCircuit object
-        self.add_circuit(name, circuit_object)
+        # current method to turn it a DAG quantum circuit.
+        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+        unrolled_circuit = unroll.Unroller(circuit_ast,
+                                           unroll.CircuitBackend(basis_gates.split(",")))
+        circuit_unrolled = unrolled_circuit.execute()
+        self.add_circuit(name, circuit_unrolled)
         return name
 
     def load_qasm_text(self, name="", qasm_string=None,  verbose=False):
@@ -390,8 +394,12 @@ class QuantumProgram(object):
             print("circuit name: " + name)
             print("******************************")
             print(circuit_object.qasm())
-        # TODO: JAY we shoud add method to convert to QuantumCircuit object
-        self.add_circuit(name, circuit_object)
+        # current method to turn it a DAG quantum circuit.
+        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+        unrolled_circuit = unroll.Unroller(circuit_object,
+                                           unroll.CircuitBackend(basis_gates.split(",")))
+        circuit_unrolled = unrolled_circuit.execute()
+        self.add_circuit(name, circuit_unrolled)
         return name
 
     ###############################################################
@@ -824,9 +832,9 @@ class QuantumProgram(object):
 
         JAY: I think this needs to become a method like .qasm() for the DAG.
         """
-        qasm_circuit = dag_circuit.qasm(qeflag=True)
+        circuit_string = dag_circuit.qasm(qeflag=True)
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-        unroller = unroll.Unroller(qasm.Qasm(data=qasm_circuit).parse(), unroll.JsonBackend(basis_gates.split(",")))
+        unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(), unroll.JsonBackend(basis_gates.split(",")))
         json_circuit = unroller.execute()
         return json_circuit
 

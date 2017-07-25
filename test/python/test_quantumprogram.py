@@ -290,7 +290,7 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        name = QP_program.load_qasm_file("", QASM_FILE_PATH, verbose=False)
+        name = QP_program.load_qasm_file(QASM_FILE_PATH, name="", verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.assertEqual(len(to_check), 1767)
@@ -307,7 +307,8 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram()
         self.assertRaises(QISKitException,
-                         QP_program.load_qasm_file, "", name=None, verbose=False)
+                          QP_program.load_qasm_file, "", name=None,
+                          verbose=False)
 
     def test_load_qasm_text(self):
         """Test load_qasm_text and get_circuit.
@@ -662,7 +663,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         max_credits = 3
         coupling_map = None
-        QP_program.load_qasm_file("circuit-dev", QASM_FILE_PATH)
+        QP_program.load_qasm_file(QASM_FILE_PATH, name="circuit-dev")
         circuits = ["circuit-dev"]
         QP_program.compile(circuits, backend=backend, shots=shots,
                            max_credits=max_credits, coupling_map=coupling_map)
@@ -676,7 +677,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         max_credits = 3
         coupling_map = None
-        QP_program.load_qasm_file("circuit-dev", QASM_FILE_PATH)
+        QP_program.load_qasm_file(QASM_FILE_PATH, name="circuit-dev")
         circuits = ["circuit-dev"]
         QP_program.compile(circuits, backend=backend, shots=shots,
                            max_credits=max_credits, coupling_map=coupling_map)
@@ -690,7 +691,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         max_credits = 3
         coupling_map = None
-        QP_program.load_qasm_file("circuit-dev", QASM_FILE_PATH)
+        QP_program.load_qasm_file(QASM_FILE_PATH, "circuit-dev")
         circuits = ["circuit-dev"]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
                                     max_credits=max_credits,
