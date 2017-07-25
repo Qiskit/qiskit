@@ -10,6 +10,7 @@ import io
 import logging
 import random
 import string
+import json
 import shutil
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -79,35 +80,96 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         config = {'shots': shots, 'seed': self.seed}
         job = {'compiled_circuit': circuit, 'config': config}
         result = QasmSimulator(job).run()
-        expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,
-                    '000000': 131, '010010': 141, '110110': 116, '001001': 124}
+        expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
+                    '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
         self.assertEqual(result['data']['counts'], expected)
 
-    def test_dag(self):
-        #backend = 'ibmqx2' # the backend to run on
+    def test_if_statement(self):
+        logging.info('test_if_statement_x')
+        shots = 100
+        max_qubits = 3
+        qp = QuantumProgram()
+        qr = qp.create_quantum_registers('qr', max_qubits)
+        cr = qp.create_classical_registers('cr', max_qubits)
+        circuit = qp.create_circuit('test_if', [qr], [cr])
+        circuit.x(qr[0])
+        circuit.x(qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.x(qr[2]).c_if(cr, 0x3)
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[2], cr[2])
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
+            unroll.JsonBackend(basis_gates))
+        ucircuit = json.loads(unroller.execute())
+        job = {'compiled_circuit': json.dumps(ucircuit), 'shots': shots, 'seed': self.seed}
+        result_if_true = QasmSimulator(job).run()
+        del ucircuit['operations'][1] # remove x(qr[1]) operation
+        job = {'compiled_circuit': json.dumps(ucircuit), 'shots': shots, 'seed': self.seed}
+        result_if_false = QasmSimulator(job).run()
+
+        logging.info('result_if_true circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('result_if_true={0}'.format(result_if_true))
+
+        del circuit.data[1]
+        logging.info('result_if_false circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('result_if_false={0}'.format(result_if_false))
+
+        self.assertTrue(result_if_true['data']['counts']['111'] == 100)
+        self.assertTrue(result_if_false['data']['counts']['001'] == 100)
+
+    def test_teleport(self):
+        """test teleportation as in tutorials"""
+
+        logging.info('test_teleport')
+        pi = np.pi
+        shots = 1000
+        qp = QuantumProgram()
+        qr = qp.create_quantum_registers('qr', 3)
+        cr0 = qp.create_classical_registers('cr0', 1)
+        cr1 = qp.create_classical_registers('cr1', 1)
+        cr2 = qp.create_classical_registers('cr2', 1)
+        circuit = qp.create_circuit('teleport', [qr],
+                                    [cr0, cr1, cr2])
+        circuit.h(qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.ry(pi/4, qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.h(qr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr0[0])
+        circuit.measure(qr[1], cr1[0])
+        circuit.z(qr[2]).c_if(cr0, 1)
+        circuit.x(qr[2]).c_if(cr1, 1)
+        circuit.measure(qr[2], cr2[0])
         backend = 'local_qasm_simulator'
-        shots = 1024    # the number of shots in the experiment
-        self.qp.set_api(self.Qconfig.APItoken, self.Qconfig.config["url"]) # set the APIToken and API url
-
-        # Creating registers
-        qr = self.qp.create_quantum_register("qr", 1)
-        cr = self.qp.create_classical_register("cr", 1)
-
-        # Quantum circuit ground
-        qc_ground = self.qp.create_circuit("ground", [qr], [cr])
-        qc_ground.measure(qr[0], cr[0])
-
-        # Quantum circuit excited
-        qc_excited = self.qp.create_circuit("excited", [qr], [cr])
-        qc_excited.x(qr)
-        qc_excited.measure(qr[0], cr[0])
-
-
-        circuits = ['ground', 'excited']
-
-        self.qp.execute(circuits, backend=backend, shots=shots, max_credits=3, wait=10, timeout=240)
-        for circ in circuits:
-            logging.info('test_dag: {0} {1}'.format(circ, self.qp.get_counts(circ)))
+        qp.compile('teleport', backend=backend, shots=shots,
+                   seed=self.seed)
+        qp.run()
+        data = qp.get_counts('teleport')
+        alice = {}
+        bob = {}
+        alice['00'] = data['0 0 0'] + data['1 0 0']
+        alice['01'] = data['0 1 0'] + data['1 1 0']
+        alice['10'] = data['0 0 1'] + data['1 0 1']
+        alice['11'] = data['0 1 1'] + data['1 1 1']
+        bob['0'] = data['0 0 0'] + data['0 1 0'] +  data['0 0 1'] + data['0 1 1']
+        bob['1'] = data['1 0 0'] + data['1 1 0'] +  data['1 0 1'] + data['1 1 1']
+        logging.info('test_telport: circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('test_teleport: data {0}'.format(data))
+        logging.info('test_teleport: alice {0}'.format(alice))
+        logging.info('test_teleport: bob {0}'.format(bob))
+        alice_ratio = 1/np.tan(pi/8)**2
+        bob_ratio = bob['0']/float(bob['1'])
+        error = abs(alice_ratio - bob_ratio) / alice_ratio
+        logging.info('test_teleport: relative error = {0:.4f}'.format(error))
+        self.assertLess(error, 0.05)
 
     def profile_qasm_simulator(self):
         """Profile randomly generated circuits.
@@ -300,6 +362,8 @@ def generateTestSuite():
     testSuite.addTest(LocalQasmSimulatorTest('test_dag'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator_single_shot'))
     testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator'))
+    testSuite.addTest(LocalQasmSimulatorTest('test_if_statement'))
+    testSuite.addTest(LocalQasmSimulatorTest('test_teleport'))
     return testSuite
 
 def generateProfileSuite():
