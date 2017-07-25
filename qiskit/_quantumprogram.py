@@ -484,23 +484,20 @@ class QuantumProgram(object):
     def set_api(self, token, url, verify=True):
         """ Setup the API.
 
+        Does not catch exceptions from IBMQuantumExperience.
+
         Args:
             Token (str): The token used to register on the online backend such
                 as the quantum experience.
             URL (str): The url used for online backend such as the quantum
                 experience.
         Returns:
-            True/False and fills the __ONLINE_BACKENDS, __api, and __api_config
+            Nothing but fills the __ONLINE_BACKENDS, __api, and __api_config
         """
-        try:
-            self.__api = IBMQuantumExperience(token, {"url": url}, verify)
-            self.__ONLINE_BACKENDS = self.online_backends()
-            self.__api_config["token"] = token
-            self.__api_config["url"] =  {"url": url}
-            return True
-        except Exception as err:
-            print('ERROR in _quantumprogram._setup_api:', err)
-            return False
+        self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+        self.__ONLINE_BACKENDS = self.online_backends()
+        self.__api_config["token"] = token
+        self.__api_config["url"] =  {"url": url}
 
     def get_api_config(self):
         """Return the program specs."""

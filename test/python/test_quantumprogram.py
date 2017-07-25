@@ -494,7 +494,9 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct is should be true.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        self.assertTrue(QP_program.set_api(API_TOKEN, URL))
+        QP_program.set_api(API_TOKEN, URL)
+        config = QP_program.get_api_config()
+        self.assertTrue(config)
 
     def test_available_backends_exist(self):
         """Test if there are available backends.
