@@ -22,7 +22,7 @@ Author: Andrew Cross
 """
 from ._unrollerbackend import UnrollerBackend
 from ._backendexception import BackendException
-from ..circuit import DAGCircuit
+from ..dagcircuit import DAGCircuit
 
 
 class DAGBackend(UnrollerBackend):

@@ -16,13 +16,13 @@
 # =============================================================================
 
 """
-Backend that creates a Circuit object with one "q" qreg.
+Backend that creates a DAGCircuit object with one "q" qreg.
 
 Author: Andrew Cross
 """
 from ._unrollerbackend import UnrollerBackend
 from ._backendexception import BackendException
-from ..circuit import Circuit
+from ..dagcircuit import DAGCircuit
 
 
 class OneRegisterBackend(UnrollerBackend):
@@ -36,7 +36,7 @@ class OneRegisterBackend(UnrollerBackend):
         self.prec = 15
         self.creg = None
         self.cval = None
-        self.circuit = Circuit()
+        self.circuit = DAGCircuit()
         if basis:
             self.basis = basis
         else:
@@ -49,7 +49,7 @@ class OneRegisterBackend(UnrollerBackend):
         self.created_qreg = False
 
     def initialize_qreg(self):
-        """Add the qreg to the Circuit."""
+        """Add the qreg to the DAGCircuit."""
         if not self.created_qreg:
             self.circuit.add_qreg("q", self.index_sum)
             self.created_qreg = True
