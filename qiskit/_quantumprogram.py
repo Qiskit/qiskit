@@ -18,7 +18,7 @@
 """
 Qasm Program Class
 
-Authors: Andrew Cross
+Authors: Andrew Cross <awcross@us.ibm.com>
          Jay M. Gambetta <jay.gambetta@us.ibm.com>
          Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
