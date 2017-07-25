@@ -573,7 +573,8 @@ class QuantumProgram(object):
         elif  backend in self.__LOCAL_BACKENDS:
             return {'available': True}
         else:
-            return {"status": "Error", "result": "This backend doesn't exist"}
+            err_str = 'the backend "{0}" is not available'.format(backend)
+            raise ValueError(err_str)
 
     def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
@@ -618,7 +619,7 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_calibration(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'calibrations': None}
+            return {'backend': backend, 'calibrations': None}
         else:
             raise LookupError(
                 'backend calibration for "{0}" not found'.format(backend))
@@ -700,11 +701,13 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits and seed are extra inputs but I would like them to go
         # into the confg.
-        if name_of_circuits == []:
-            return {"status": "Error", "result": 'No circuits'}
+        if not name_of_circuits:
+            raise ValueError('"name_of_circuits" must be specified')
+        if isinstance(name_of_circuits, str):
+            name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
-            if name not in self.__quantum_program:
-                return {"status": "Error", "result": "%s not in QuantumProgram" % name}
+            if name not in self.__quantum_program["circuits"]:
+                raise KeyError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
@@ -781,7 +784,7 @@ class QuantumProgram(object):
                 if configuration['name'] == name:
                     return configuration["config"]
         except KeyError:
-            return "No compiled configurations for this circuit"
+            raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
 
     def delete_execution_list(self, backend=None):
         """Clears the exectution list.
@@ -1115,10 +1118,10 @@ class QuantumProgram(object):
         """
         if not backend:
             backend = self.__last_backend
-        try:
+        if name in self.__quantum_program["circuits"]:
             return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm()
-        except KeyError:
-            return "No qasm has been ran for this circuit"
+        else:
+            raise KeyError('circuit "{0}" not found in program'.format(name))
 
     def get_data(self, name, backend=None):
         """Get the data of cicuit name.
@@ -1149,10 +1152,10 @@ class QuantumProgram(object):
         """
         if not backend:
             backend = self.__last_backend
-        try:
-            return self.__quantum_program[name]['execution'][backend]['data']
-        except KeyError:
-            return {"status": "Error", "result": 'Error in circuit name'}
+        if name in self.__quantum_program["circuits"]:
+            return self.__quantum_program["circuits"][name]['execution'][backend]['data']
+        else:
+            raise KeyError('circuit "{0}" not found in program'.format(name))
 
     def get_counts(self, name, backend=None):
         """Get the histogram data of cicuit name.
@@ -1169,10 +1172,10 @@ class QuantumProgram(object):
         """
         if not backend:
             backend = self.__last_backend
-        try:
+        if name in self.__quantum_program["circuits"]:
             return self.__quantum_program[name]['execution'][backend]['data']['counts']
-        except KeyError:
-            return {"status": "Error", "result": 'Error in circuit name'}
+        else:
+            raise KeyError('circuit "{0}" not found in program'.format(name))
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
