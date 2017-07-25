@@ -174,12 +174,12 @@ class QuantumCircuit(object):
             string += instruction.qasm() + "\n"
         return string
 
-    def measure(self, quantum_register, circuit):
-        """Measure quantum register into circuit (tuples)."""
-        self._check_qubit(quantum_register)
-        self._check_creg(circuit[0])
-        circuit[0].check_range(circuit[1])
-        return self._attach(Measure(quantum_register, circuit, self))
+    def measure(self, qubit, cbit):
+        """Measure quantum bit into classical bit (tuples)."""
+        self._check_qubit(qubit)
+        self._check_creg(cbit[0])
+        cbit[0].check_range(cbit[1])
+        return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""
