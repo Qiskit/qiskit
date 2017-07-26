@@ -753,7 +753,7 @@ class QuantumProgram(object):
             job["config"]["shots"] = shots
             job["config"]["max_credits"] = max_credits
             if seed is None:
-                job["config"]["seed"] = random.random()
+                job["config"]["seed"] = random.randint(0,1000) # get biggest int
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
@@ -914,7 +914,7 @@ class QuantumProgram(object):
                     self.delete_execution_list(backend)
                     return {"status": "ERROR", "result": output['ERROR']}
                 job_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-
+                # print(job_result)
                 if job_result['status'] == 'ERROR':
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
@@ -956,7 +956,7 @@ class QuantumProgram(object):
                 self.__quantum_program[name]["execution"][backend]["config"]=job["config"]
                 # results filled in
                 if backend in self.__ONLINE_BACKENDS:
-                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["result"]["data"]
+                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["data"]
                     self.__quantum_program[name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
                 else:
                     self.__quantum_program[name]["execution"][backend]["data"] = job_result[index]["data"]
