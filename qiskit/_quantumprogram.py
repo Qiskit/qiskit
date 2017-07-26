@@ -1145,8 +1145,8 @@ class QuantumProgram(object):
         """
         if not backend:
             backend = self.__last_backend
-        if name in self.__quantum_program["circuits"]:
-            return self.__quantum_program["circuits"][name]['execution'][backend]['data']
+        if name in self.__quantum_program:
+            return self.__quantum_program[name]['execution'][backend]['data']
         else:
             raise KeyError('circuit "{0}" not found in program'.format(name))
 
