@@ -1178,6 +1178,8 @@ class QuantumProgram(object):
         if not backend:
             backend = self.__last_backend
         if name in self.__quantum_program:
+            if backend not in self.__quantum_program[name]['execution']:
+                raise KeyError('backend "{0}" not found for circuit "{1}"'.format(backend, name))
             return self.__quantum_program[name]['execution'][backend]['data']['counts']
         else:
             raise KeyError('circuit "{0}" not found in program'.format(name))

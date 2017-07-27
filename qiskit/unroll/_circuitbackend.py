@@ -236,6 +236,7 @@ class CircuitBackend(UnrollerBackend):
                    "cx": [(0, 2), lambda x: self.circuit.cx(x[1][0], x[1][1])],
                    "cy": [(0, 2), lambda x: self.circuit.cy(x[1][0], x[1][1])],
                    "cz": [(0, 2), lambda x: self.circuit.cz(x[1][0], x[1][1])],
+                   "swap": [(0, 2), lambda x: self.circuit.swap(x[1][0], x[1][1])],
                    "h": [(0, 1), lambda x: self.circuit.h(x[1][0])],
                    "id": [(0, 1), lambda x: self.circuit.iden(x[1][0])],
                    "rx": [(1, 1), lambda x: self.circuit.rx(x[0][0], x[1][0])],

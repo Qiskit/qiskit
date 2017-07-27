@@ -74,8 +74,8 @@ QPS_SPECS = {
 qp = QuantumProgram(specs=QPS_SPECS)
 ghz = qp.get_circuit("ghz")
 bell = qp.get_circuit("bell")
-q = qp.get_quantum_registers("q")
-c = qp.get_classical_registers("c")
+q = qp.get_quantum_register("q")
+c = qp.get_classical_register("c")
 
 # Create a GHZ state
 ghz.h(q[0])
@@ -100,19 +100,16 @@ print(bell.qasm())
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 qp.compile(["bell"], backend='local_qasm_simulator', shots=1024)
 qp.compile(["ghz"], backend='ibmqx_qasm_simulator', shots=1024,
            coupling_map=coupling_map)
 
-print(qp.online_backend_names())
+print(qp.online_backends())
 
 print(qp.run())
 
 # print(qp.get_counts("bell")) # returns error, don't do this
 print(qp.get_counts("bell", backend="local_qasm_simulator"))
-print(qp.get_counts("ghz", backend="ibmqx_qasm_simualtor"))
+print(qp.get_counts("ghz", backend="ibmqx_qasm_simulator"))
