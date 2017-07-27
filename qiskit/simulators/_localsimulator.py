@@ -27,7 +27,7 @@ __configuration ={"name": "local_qasm_simulator",
                   "description": "A python simulator for qasm files",
                   "nQubits": 10,
                   "couplingMap": "all-to-all",
-                  "gateset": "SU2+CNOT"}
+                  "gateset": "u1,u2,u3,cx"}
 
 and it needs a class with a run method. The identifier for the backend
 simulator comes from the "name" key in this dictionary. The class'

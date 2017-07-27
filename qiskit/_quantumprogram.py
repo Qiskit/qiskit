@@ -25,13 +25,14 @@ Authors: Andrew Cross <awcross@us.ibm.com>
          Erick Winston <ewinston@us.ibm.com>
 """
 # pylint: disable=line-too-long
-
 import time
 import random
 from collections import Counter
 import json
 import os
 import string
+import re
+
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
@@ -53,6 +54,11 @@ import sys
 sys.path.append("..")
 import qiskit.extensions.standard
 
+first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+all_cap_re = re.compile('([a-z0-9])([A-Z])')
+def convert(name):
+    s1 = first_cap_re.sub(r'\1_\2', name)
+    return all_cap_re.sub(r'\1_\2', s1).lower()
 
 class QuantumProgram(object):
     """Quantum Program Class.
@@ -589,9 +595,13 @@ class QuantumProgram(object):
             raise a LookupError.
         """
         if self.get_api():
+            configuration_edit = {}
             for configuration in self.__api.available_backends():
                 if configuration['name'] == backend:
-                    return configuration
+                    for key in configuration:
+                        new_key = convert(key)
+                        configuration_edit[new_key] =configuration[key]
+                    return configuration_edit
         for configuration in simulators.local_configuration:
             if configuration['name'] == backend:
                 return configuration
@@ -639,7 +649,7 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             return self.__api.backend_parameters(backend)
         elif  backend in self.__LOCAL_BACKENDS:
-            return {'parameters': None}
+            return {'backend': backend, 'parameters': None}
         else:
             raise LookupError(
                 'backend parameters for "{0}" not found'.format(backend))

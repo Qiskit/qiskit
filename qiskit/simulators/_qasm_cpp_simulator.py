@@ -16,10 +16,9 @@ __configuration = {
     "name": "local_qasm_cpp_simulator",
     "url": "https://github.com/IBM/qiskit-sdk-py",
     "simulator": True,
-    "description": "A python simulator for qasm files",
-    "nQubits": 28,
-    "couplingMap": "all-to-all",
-    "gateset": "SU2+CNOT"
+    "description": "A c++ simulator for qasm files",
+    "coupling_map": "all-to-all",
+    "basis_gates": "u1,u2,u3,cx"
 }
 
 
