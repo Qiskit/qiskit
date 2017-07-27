@@ -32,10 +32,10 @@ Author: Andrew Cross
 import networkx as nx
 import itertools
 import copy
-from ._circuiterror import CircuitError
+from ._dagcircuiterror import DAGCircuitError
 
 
-class Circuit:
+class DAGCircuit:
     """
     Quantum circuit as a directed acyclic graph.
 
@@ -99,9 +99,9 @@ class Circuit:
         if regname == newname:
             return
         if newname in self.qregs or newname in self.cregs:
-            raise CircuitError("duplicate register name %s" % newname)
+            raise DAGCircuitError("duplicate register name %s" % newname)
         if regname not in self.qregs and regname not in self.cregs:
-            raise CircuitError("no register named %s" % regname)
+            raise DAGCircuitError("no register named %s" % regname)
         iscreg = False
         if regname in self.qregs:
             self.qregs[newname] = self.qregs[regname]
@@ -163,7 +163,7 @@ class Circuit:
     def add_qreg(self, name, size):
         """Add all wires in a quantum register named name with size."""
         if name in self.qregs or name in self.cregs:
-            raise CircuitError("duplicate register name %s" % name)
+            raise DAGCircuitError("duplicate register name %s" % name)
         self.qregs[name] = size
         for j in range(size):
             self._add_wire((name, j))
@@ -171,7 +171,7 @@ class Circuit:
     def add_creg(self, name, size):
         """Add all wires in a classical register named name with size."""
         if name in self.qregs or name in self.cregs:
-            raise CircuitError("duplicate register name %s" % name)
+            raise DAGCircuitError("duplicate register name %s" % name)
         self.cregs[name] = size
         for j in range(size):
             self._add_wire((name, j), True)
@@ -197,7 +197,7 @@ class Circuit:
             self.multi_graph.node[out_node]["name"] = name
             self.multi_graph.edge[in_node][out_node][0]["name"] = name
         else:
-            raise CircuitError("duplicate wire %s" % name)
+            raise DAGCircuitError("duplicate wire %s" % name)
 
     def add_basis_element(self, name, number_qubits,
                           number_classical=0, number_parameters=0):
@@ -220,8 +220,8 @@ class Circuit:
         if name in self.gates:
             if self.gates[name]["n_args"] != number_parameters or \
                     self.gates[name]["n_bits"] != number_qubits or number_classical != 0:
-                raise CircuitError("gate data does not match "
-                                   + "basis element specification")
+                raise DAGCircuitError("gate data does not match "
+                                      + "basis element specification")
 
     def add_gate_data(self, name, gatedata):
         """Add the definition of a gate.
@@ -240,8 +240,8 @@ class Circuit:
                 if self.basis[name][0] != self.gates[name]["n_bits"] or \
                         self.basis[name][1] != 0 or \
                         self.basis[name][2] != self.gates[name]["n_args"]:
-                    raise CircuitError("gate data does not match "
-                                       + "basis element specification")
+                    raise DAGCircuitError("gate data does not match "
+                                          + "basis element specification")
 
     def _check_basis_data(self, name, qargs, cargs, params):
         """Check the arguments against the data for this operation.
@@ -253,27 +253,31 @@ class Circuit:
         """
         # Check that we have this operation
         if name not in self.basis:
-            raise CircuitError("%s is not in the list of basis operations"
-                               % name)
+            raise DAGCircuitError("%s is not in the list of basis operations"
+                                  % name)
 
         # Check the number of arguments matches the signature
         if name != "barrier":
             if len(qargs) != self.basis[name][0]:
-                raise CircuitError("incorrect number of qubits for %s" % name)
+                raise DAGCircuitError("incorrect number of qubits for %s"
+                                      % name)
             if len(cargs) != self.basis[name][1]:
-                raise CircuitError("incorrect number of bits for %s" % name)
+                raise DAGCircuitError("incorrect number of bits for %s"
+                                      % name)
             if len(params) != self.basis[name][2]:
-                raise CircuitError("incorrect number of parameters for %s"
-                                   % name)
+                raise DAGCircuitError("incorrect number of parameters for %s"
+                                      % name)
         else:
             # "barrier" is a special case
             if len(qargs) == 0:
-                raise CircuitError("incorrect number of qubits for %s" % name)
+                raise DAGCircuitError("incorrect number of qubits for %s"
+                                      % name)
             if len(cargs) != 0:
-                raise CircuitError("incorrect number of bits for %s" % name)
+                raise DAGCircuitError("incorrect number of bits for %s"
+                                      % name)
             if len(params) != 0:
-                raise CircuitError("incorrect number of parameters for %s"
-                                   % name)
+                raise DAGCircuitError("incorrect number of parameters for %s"
+                                      % name)
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
@@ -283,7 +287,7 @@ class Circuit:
         """
         # Verify creg exists
         if condition is not None and condition[0] not in self.cregs:
-            raise CircuitError("invalid creg in condition for %s" % name)
+            raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap, bval):
         """Check the values of a list of (qu)bit arguments.
@@ -297,9 +301,10 @@ class Circuit:
         # Check for each wire
         for q in args:
             if q not in amap:
-                raise CircuitError("(qu)bit %s not found" % q)
+                raise DAGCircuitError("(qu)bit %s not found" % q)
             if self.wire_type[q] != bval:
-                raise CircuitError("expected wire type %s for %s" % (bval, q))
+                raise DAGCircuitError("expected wire type %s for %s"
+                                      % (bval, q))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits (regname,idx) in the given condition.
@@ -401,14 +406,14 @@ class Circuit:
 
         The new basis is a copy of self.basis with
         new elements of input_circuit.basis added.
-        input_circuit is a CircuitGraph
+        input_circuit is a DAGCircuit
         """
         union_basis = copy.deepcopy(self.basis)
         for g in input_circuit.basis:
             if g not in union_basis:
                 union_basis[g] = input_circuit.basis[g]
             if union_basis[g] != input_circuit.basis[g]:
-                raise CircuitError("incompatible basis")
+                raise DAGCircuitError("incompatible basis")
         return union_basis
 
     def _make_union_gates(self, input_circuit):
@@ -416,7 +421,7 @@ class Circuit:
 
         The new gates are a copy of self.gates with
         new elements of input_circuit.gates added.
-        input_circuit is a CircuitGraph
+        input_circuit is a DAGCircuit
 
         NOTE: gates in input_circuit that are also in self must
         be *identical* to the gates in self
@@ -430,13 +435,13 @@ class Circuit:
                union_gates[k]["n_bits"] != input_circuit.gates[k]["n_bits"] or\
                union_gates[k]["args"] != input_circuit.gates[k]["args"] or\
                union_gates[k]["bits"] != input_circuit.gates[k]["bits"]:
-                raise CircuitError("inequivalent gate definitions for %s"
-                                   % k)
+                raise DAGCircuitError("inequivalent gate definitions for %s"
+                                      % k)
             if not union_gates[k]["opaque"] and \
                union_gates[k]["body"].qasm() != \
                input_circuit.gates[k]["body"].qasm():
-                raise CircuitError("inequivalent gate definitions for %s"
-                                   % k)
+                raise DAGCircuitError("inequivalent gate definitions for %s"
+                                      % k)
         return union_gates
 
     def _check_wiremap_registers(self, wire_map, keyregs, valregs,
@@ -467,10 +472,10 @@ class Circuit:
             rname = ",".join(map(str, k))
             s = set(v.values())
             if len(s) == 2:
-                raise CircuitError("wire_map fragments reg %s" % rname)
+                raise DAGCircuitError("wire_map fragments reg %s" % rname)
             elif s == set([False]):
                 if k in self.qregs or k in self.cregs:
-                    raise CircuitError("unmapped duplicate reg %s" % rname)
+                    raise DAGCircuitError("unmapped duplicate reg %s" % rname)
                 else:
                     # Add registers that appear only in keyregs
                     add_regs.add((k, keyregs[k]))
@@ -497,19 +502,19 @@ class Circuit:
         in valmap
         keymap is a map whose keys are wire_map keys
         valmap is a map whose keys are wire_map values
-        input_circuit is a CircuitGraph
+        input_circuit is a DAGCircuit
         """
         for k, v in wire_map.items():
             kname = ",".join(map(str, k))
             vname = ",".join(map(str, v))
             if k not in keymap:
-                raise CircuitError("invalid wire mapping key %s" % kname)
+                raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
-                raise CircuitError("invalid wire mapping value %s"
-                                   % vname)
+                raise DAGCircuitError("invalid wire mapping value %s"
+                                      % vname)
             if input_circuit.wire_type[k] != self.wire_type[v]:
-                raise CircuitError("inconsistent wire_map at (%s,%s)"
-                                   % (kname, vname))
+                raise DAGCircuitError("inconsistent wire_map at (%s,%s)"
+                                      % (kname, vname))
 
     def _map_condition(self, wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
@@ -541,7 +546,7 @@ class Circuit:
 
         # Check the wire map for duplicate values
         if len(set(wire_map.values())) != len(wire_map):
-            raise CircuitError("duplicates in wire_map")
+            raise DAGCircuitError("duplicates in wire_map")
 
         add_qregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.qregs,
@@ -599,7 +604,7 @@ class Circuit:
 
         # Check the wire map
         if len(set(wire_map.values())) != len(wire_map):
-            raise CircuitError("duplicates in wire_map")
+            raise DAGCircuitError("duplicates in wire_map")
 
         add_qregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.qregs,
@@ -796,17 +801,17 @@ class Circuit:
         Raises an exception otherwise.
         """
         if len(set(wires)) != len(wires):
-            raise CircuitError("duplicate wires")
+            raise DAGCircuitError("duplicate wires")
 
         wire_tot = self.basis[name][0] + self.basis[name][1]
         if len(wires) != wire_tot:
-            raise CircuitError("expected %d wires, got %d"
-                               % (wire_tot, len(wires)))
+            raise DAGCircuitError("expected %d wires, got %d"
+                                  % (wire_tot, len(wires)))
 
         for w in wires:
             if w not in input_circuit.wire_type:
-                raise CircuitError("wire (%s,%d) not in input circuit"
-                                   % (w[0], w[1]))
+                raise DAGCircuitError("wire (%s,%d) not in input circuit"
+                                      % (w[0], w[1]))
 
     def _make_pred_succ_maps(self, n):
         """Return predecessor and successor dictionaries.
@@ -854,8 +859,8 @@ class Circuit:
     def substitute_circuit_all(self, name, input_circuit, wires=[]):
         """Replace every occurrence of named operation with input_circuit."""
         if name not in self.basis:
-            raise CircuitError("%s is not in the list of basis operations"
-                               % name)
+            raise DAGCircuitError("%s is not in the list of basis operations"
+                                  % name)
 
         self._check_wires_list(wires, name, input_circuit)
         union_basis = self._make_union_basis(input_circuit)
@@ -944,7 +949,7 @@ class Circuit:
         """Replace one node with input_circuit.
 
         node is a reference to a node of self.multi_graph of type "op"
-        input_circuit is a CircuitGraph
+        input_circuit is a DAGCircuit
         """
         nd = self.multi_graph.node[node]
 
@@ -979,8 +984,8 @@ class Circuit:
         self.gates = union_gates
 
         if nd["type"] != "op":
-            raise CircuitError("expected node type \"op\", got %s"
-                               % nd["type"])
+            raise DAGCircuitError("expected node type \"op\", got %s"
+                                  % nd["type"])
 
         if nd["condition"] is None:
             wire_map = {k: v for k, v in zip(wires,
@@ -1033,8 +1038,8 @@ class Circuit:
         """Return a list of "op" nodes with the given name."""
         nlist = []
         if name not in self.basis:
-            raise CircuitError("%s is not in the list of basis operations"
-                               % name)
+            raise DAGCircuitError("%s is not in the list of basis operations"
+                                  % name)
 
         # Iterate through the nodes of self in topological order
         ts = nx.topological_sort(self.multi_graph)
@@ -1114,7 +1119,7 @@ class Circuit:
         wires_with_ops_remaining = set(self.input_map.keys())
         while wires_with_ops_remaining:
             # Create a new circuit graph and populate with regs and basis
-            new_layer = Circuit()
+            new_layer = DAGCircuit()
             for k, v in self.qregs.items():
                 new_layer.add_qreg(k, v)
             for k, v in self.cregs.items():
@@ -1190,7 +1195,7 @@ class Circuit:
         for n in ts:
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
-                new_layer = Circuit()
+                new_layer = DAGCircuit()
                 for k, v in self.qregs.items():
                     new_layer.add_qreg(k, v)
                 for k, v in self.cregs.items():

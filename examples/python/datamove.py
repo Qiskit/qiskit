@@ -73,9 +73,9 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("swapping")
-q = qp.get_quantum_registers("q")
-r = qp.get_quantum_registers("r")
-ans = qp.get_classical_registers("ans")
+q = qp.get_quantum_register("q")
+r = qp.get_quantum_register("r")
+ans = qp.get_classical_register("ans")
 
 # Set the first bit of q
 qc.x(q[0])
@@ -96,19 +96,16 @@ for j in range(n):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: not compiled
 result = qp.execute(["swapping"], backend=backend, coupling_map=None, shots=1024)
-print(qp.get_compiled_qasm("swapping"))
+print(qp.get_ran_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Second version: compiled to coupling graph
 result = qp.execute(["swapping"], backend=backend, coupling_map=coupling_map, shots=1024)
-print(qp.get_compiled_qasm("swapping"))
+print(qp.get_ran_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Both versions should give the same distribution

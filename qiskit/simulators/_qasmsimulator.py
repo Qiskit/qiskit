@@ -94,6 +94,7 @@ import numpy as np
 import random
 from collections import Counter
 import json
+from ._simulatortools import single_gate_matrix
 
 
 # TODO add the IF qasm operation.
@@ -104,9 +105,8 @@ __configuration = {"name": "local_qasm_simulator",
                    "url": "https://github.com/IBM/qiskit-sdk-py",
                    "simulator": True,
                    "description": "A python simulator for qasm files",
-                   "nQubits": 10,
-                   "couplingMap": "all-to-all",
-                   "gateset": "SU2+CNOT"}
+                   "coupling_map": "all-to-all",
+                   "basis_gates": "u1,u2,u3,cx"}
 
 
 class QasmSimulator(object):
@@ -160,7 +160,7 @@ class QasmSimulator(object):
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
-        self._shots = job['shots']
+        self._shots = job['config']['shots']
         self._cl_reg_index = []
         self._cl_reg_nbits = []
         cbit_index = 0
@@ -168,7 +168,7 @@ class QasmSimulator(object):
             self._cl_reg_nbits.append(cl_reg[1])
             self._cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        random.seed(job['seed'])
+        random.seed(job['config']['seed'])
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):
@@ -265,22 +265,6 @@ class QasmSimulator(object):
         else:
             self._quantum_state = temp
 
-    def _qasm_single_params(self, gate, params=None):
-        """Apply a single qubit gate to the qubit.
-
-        Args:
-            gate(str): the single qubit gate name
-            params(list): the operation parameters op['params']
-        Returns:
-            a tuple of U gate parameters (theta, phi, lam)
-        """
-        if gate == 'U' or gate == 'u3':
-            return (params[0], params[1], params[2])
-        elif gate == 'u2':
-            return (np.pi/2, params[0], params[1])
-        elif gate == 'u1':
-            return (0., 0., params[0])
-
     def run(self):
         """Run."""
         outcomes = []
@@ -306,13 +290,8 @@ class QasmSimulator(object):
                         params = operation['params']
                     else:
                         params = None
-                    (theta, phi, lam) = self._qasm_single_params(
-                        operation['name'], params)
                     qubit = operation['qubits'][0]
-                    gate = np.array([[np.cos(theta/2.0),
-                                      -np.exp(1j*lam)*np.sin(theta/2.0)],
-                                     [np.exp(1j*phi)*np.sin(theta/2.0),
-                                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+                    gate = single_gate_matrix(operation['name'], params)
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
                 elif operation['name'] in ['CX', 'cx']:
