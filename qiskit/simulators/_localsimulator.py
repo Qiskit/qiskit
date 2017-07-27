@@ -21,13 +21,12 @@ particular for modules which require making calls to compiled binaries.
 In order for a module to be registered it needs to define a module-scope
 dictionary of the form::
 
-__configuration ={"name": "local_qasm_simulator",
-                  "url": "https://github.com/IBM/qiskit-sdk-py",
-                  "simulator": True,
-                  "description": "A python simulator for qasm files",
-                  "nQubits": 10,
-                  "couplingMap": "all-to-all",
-                  "gateset": "u1,u2,u3,cx"}
+    __configuration = {'name': 'local_qasm_simulator',
+                       'url': 'https://github.com/IBM/qiskit-sdk-py',
+                       'simulator': True,
+                       'description': 'A python simulator for qasm files',
+                       'coupling_map': 'all-to-all',
+                       'basis_gates': 'u1,u2,u3,cx'}
 
 and it needs a class with a "run" method. The identifier for the backend
 simulator comes from the "name" key in this dictionary. The class'
@@ -36,15 +35,14 @@ method is also responsible for determining whether an associated
 binary is available. If it is not, the FileNotFoundError exception
 should be raised.
 
-Attributes
-----------
-local_configruation : list of dict()
-   This list gets populated with the __configuration records from each
-   of the discovered modules.
+Attributes:
+    local_configuration : list of dict()
+        This list gets populated with the __configuration records from each
+        of the discovered modules.
 
-_simulator_classes : dict {"<simulator name>" : <simulator class>}
-   This dictionary associates a simulator name with the class which
-   generates its objects.
+    _simulator_classes : dict {"<simulator name>" : <simulator class>}
+        This dictionary associates a simulator name with the class which
+        generates its objects.
 """
 import os
 import pkgutil
