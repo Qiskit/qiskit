@@ -48,8 +48,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         self.qasmFileName = os.path.join(qiskit.__path__[0],
                                          '../test/python/qasm/example.qasm')
         self.qp = QuantumProgram()
-        import Qconfig
-        self.Qconfig = Qconfig
 
     def tearDown(self):
         pass
