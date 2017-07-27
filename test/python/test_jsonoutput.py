@@ -17,7 +17,7 @@
 
 """Quick program to test json backend
 
-python test_jsonoutput.py ../qasm/example.qasm
+python test_jsonoutput.py qasm/example.qasm
 
 """
 import unittest

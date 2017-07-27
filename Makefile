@@ -22,7 +22,7 @@
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
 	conda create -y -n QISKitenv python=3
-	bash -c "source activate QISKitenv;pip install -r requires.txt"
+	bash -c "source activate QISKitenv;pip install -U -r requires.txt"
 
 run:
 	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
@@ -38,6 +38,7 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
+	pip install -U -r requires.txt
 	python3 -m unittest discover -v
 
 profile:

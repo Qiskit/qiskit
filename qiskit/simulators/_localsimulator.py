@@ -27,7 +27,7 @@ __configuration ={"name": "local_qasm_simulator",
                   "description": "A python simulator for qasm files",
                   "nQubits": 10,
                   "couplingMap": "all-to-all",
-                  "gateset": "SU2+CNOT"}
+                  "gateset": "u1,u2,u3,cx"}
 
 and it needs a class with a "run" method. The identifier for the backend
 simulator comes from the "name" key in this dictionary. The class'
@@ -95,7 +95,8 @@ def local_backends():
                      'name': 'measure',
                      'qubits': [0]}]}
     job = {'compiled_circuit': json.dumps(circuit).encode(),
-           'shots': 1, 'seed': None}
+           'config': {'shots': 1, 'seed': None}
+           }
     for backend_id, backend in _simulator_classes.items():
         try:
             sim = backend(job)
@@ -113,13 +114,12 @@ class LocalSimulator:
     def __init__(self, backend, job):
         self._backend = backend
         self._job = job
-        self._result = {'result': None, 'status': "Error"}
+        self._result = {'data': None, 'status': "Error"}
         self._sim = _simulator_classes[backend](job)
 
     def run(self):
         simOutput = self._sim.run()
-        self._result["result"] = {}
-        self._result["result"]["data"] = simOutput["data"]
+        self._result["data"] = simOutput["data"]
         self._result["status"] = simOutput["status"]
 
     def result(self):

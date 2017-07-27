@@ -16,14 +16,14 @@
 # =============================================================================
 
 """
-Exception for errors raised by the Circuit object.
+Exception for errors raised by the DAGCircuit object.
 
 Author: Andrew Cross
 """
 
 
-class CircuitError(Exception):
-    """Base class for errors raised by the circuit object."""
+class DAGCircuitError(Exception):
+    """Base class for errors raised by the DAGCircuit object."""
 
     def __init__(self, *msg):
         """Set the error message."""
