@@ -557,7 +557,7 @@ class QuantumProgram(object):
         timeout_over = False
         job = self.__api.get_job(jobid)
         while job['status'] == 'RUNNING':
-            if timer == timeout:
+            if timer >= timeout:
                 return {"status": "Error", "result": "Time Out"}
             time.sleep(wait)
             timer += wait
