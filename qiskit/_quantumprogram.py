@@ -134,7 +134,7 @@ class QuantumProgram(object):
      """
     # -- FUTURE IMPROVEMENTS --
     # TODO: for status results make ALL_CAPS (check) or some unified method
-    # TODO: coupling_map, basis_gates will move to config object
+    # TODO: Jay: coupling_map, basis_gates will move into a config object
 
     # populate these in __init__()
     __quantum_registers = {}
@@ -198,7 +198,7 @@ class QuantumProgram(object):
                     circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"], qregisters=quantumr,
                                     cregisters=classicalr)
-        # TODO: Jay I think we should return function holders for the registers
+        # TODO: Jay: I think we should return function handles for the registers
         # and circuit. So that we dont need to get them after we create them
         # with get_quantum_register etc
 
@@ -746,14 +746,14 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            # TODO: make config options optional for different backends
+            # TODO: Jay: make config options optional for different backends
             job["config"]["coupling_map"] = coupling_map
             job["config"]["layout"] = final_layout
             job["config"]["basis_gates"] = basis_gates
             job["config"]["shots"] = shots
             job["config"]["max_credits"] = max_credits
             if seed is None:
-                job["config"]["seed"] = random.randint(0,1000) # get biggest int
+                job["config"]["seed"] = int.from_bytes(os.urandom(4), byteorder="big")
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
@@ -762,7 +762,7 @@ class QuantumProgram(object):
             self.__to_execute[backend].append(job)
         return {"status": "COMPLETED", "result": 'all done'}
 
-    def get_compiled_configuration(self, name, backend=None):
+    def get_compiled_configuration(self, name, backend):
         """Get the compiled layout for the named circuit and backend.
 
         If backend is None, it defaults to the last backend.
@@ -774,14 +774,41 @@ class QuantumProgram(object):
         Returns:
             the config of the circuit.
         """
-        if not backend:
-            backend = self.__last_backend
         try:
             for configuration in self.__to_execute[backend]:
                 if configuration['name'] == name:
                     return configuration["config"]
         except KeyError:
             raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
+
+    def get_execution_list(self, verbose=False):
+        """Print the compiled circuits that are ready to run.
+
+        Args:
+            verbose (bool): controls how much is returned.
+        """
+        if not self.__to_execute:
+            if verbose:
+                print("no exectuions to run")
+        execution_list_all = {}
+        for backend, jobs in self.__to_execute.items():
+            execution_list = []
+            if verbose:
+                print("%s:" % backend)
+            for job in jobs:
+                execution_list.append(job["name"])
+                if verbose:
+                    print("  %s:" % job["name"])
+                    print("    shots = %d" % job["config"]["shots"])
+                    print("    max_credits = %d" % job["config"]["max_credits"])
+                    print("    seed (simulator only) = %d" % job["config"]["seed"])
+                    print("    compiled_circuit =")
+                    print("// *******************************************")
+                    parsed=json.loads(self._dag2json(job["compiled_circuit"]))
+                    print(json.dumps(parsed, indent=4, sort_keys=True))
+                    print("// *******************************************")
+            execution_list_all[backend] =  execution_list
+        return execution_list_all
 
     def delete_execution_list(self, backend=None):
         """Clears the exectution list.
@@ -797,31 +824,6 @@ class QuantumProgram(object):
         else:
             del self.__to_execute[backend]
 
-
-    def get_execution_list(self, verbose=False):
-        """Print the compiled circuits that are ready to run.
-
-        Args:
-            verbose (bool): controls how much is returned.
-        """
-        if not self.__to_execute:
-            print("no exectuions to run")
-        for backend, jobs in self.__to_execute.items():
-            print("%s:" % backend)
-            for job in jobs:
-                if not verbose:
-                    print("  %s" % job["name"])
-                else:
-                    print("  %s:" % job["name"])
-                    print("    shots = %d" % job["config"]["shots"])
-                    print("    max_credits = %d" % job["config"]["max_credits"])
-                    print("    seed (simulator only) = %d" % job["config"]["seed"])
-                    print("    compiled_circuit =")
-                    print("// *******************************************")
-                    parsed=json.loads(self._dag2json(job["compiled_circuit"]))
-                    print(json.dumps(parsed, indent=4, sort_keys=True))
-                    print("// *******************************************")
-
     def _dag2json(self, dag_circuit):
         """Make a Json representation of the circuit.
 
@@ -834,7 +836,7 @@ class QuantumProgram(object):
         Returns:
             the json version of the dag
         """
-        # TODO: Jay I think this needs to become a method like .qasm() for the DAG.
+        # TODO: Jay: I think this needs to become a method like .qasm() for the DAG.
         circuit_string = dag_circuit.qasm(qeflag=True)
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
         unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(), unroll.JsonBackend(basis_gates.split(",")))
@@ -866,7 +868,7 @@ class QuantumProgram(object):
     # methods to run quantum programs (run __to_execute)
     ###############################################################
 
-    def run(self, wait=5, timeout=60, silent=False):
+    def run(self, wait=5, timeout=60, silent=True):
         """Run a program (a pre-compiled quantum program).
 
         All input for run comes from self.__to_execute
@@ -929,7 +931,7 @@ class QuantumProgram(object):
                 if not silent:
                     print("running on backend: %s" % (backend))
                 if backend in self.__LOCAL_BACKENDS:
-                    job_result = self.run_local_simulator(backend, jobs)
+                    job_result = self._run_local_simulator(backend, jobs)
                 else:
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
@@ -966,7 +968,7 @@ class QuantumProgram(object):
         self.delete_execution_list()
         return  {"status": "COMPLETED", "result": 'all done'}
 
-    def _wait_for_job(self, jobid, wait=5, timeout=60, silent=False):
+    def _wait_for_job(self, jobid, wait=5, timeout=60, silent=True):
         """Wait until all online ran jobs are 'COMPLETED'.
 
         Args:
@@ -1003,7 +1005,7 @@ class QuantumProgram(object):
         # Get the results
         return job_result
 
-    def run_local_simulator(self, backend, jobs):
+    def _run_local_simulator(self, backend, jobs):
         """Run a program of compiled quantum circuits on the local machine.
 
         Args:
@@ -1032,7 +1034,7 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
-                config=None, wait=5, timeout=60, silent=False, basis_gates=None,
+                config=None, wait=5, timeout=60, silent=True, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
                 max_credits=3, seed=None):
 
@@ -1111,7 +1113,7 @@ class QuantumProgram(object):
         """
         if not backend:
             backend = self.__last_backend
-        if name in self.__quantum_program["circuits"]:
+        if name in self.__quantum_program:
             return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm()
         else:
             raise KeyError('circuit "{0}" not found in program'.format(name))
