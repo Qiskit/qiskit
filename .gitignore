@@ -111,3 +111,5 @@ dummyscripts/*
 token.json
 
 tutorial/rst/_build/*
+
+test/python/test_qasm_python_simulator.pdf
