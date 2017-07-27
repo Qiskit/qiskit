@@ -42,15 +42,15 @@ class TestJsonOutput(unittest.TestCase):
         log_fmt = 'TestJsonOutput:%(levelname)s:%(asctime)s: %(message)s'
         logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
                             format=log_fmt)
-    
+
     def setUp(self):
         self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
                                            '../../examples/qasm/simple8qbit.qasm')
-        
+
     def test_json_output(self):
         seed = 88
         qp = QuantumProgram()
-        qp.load_qasm("example", qasm_file=self.QASM_FILE_PATH)
+        qp.load_qasm_file(self.QASM_FILE_PATH, name="example")
 
         basis_gates = []  # unroll to base gates, change to test
         unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),

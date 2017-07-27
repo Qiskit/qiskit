@@ -26,7 +26,7 @@ class LocalSimulatorTest(unittest.TestCase):
         logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
                             format=log_fmt)
 
-    @classmethod        
+    @classmethod
     def tearDownClass(cls):
         #cls.pdf.close()
         pass
@@ -37,14 +37,15 @@ class LocalSimulatorTest(unittest.TestCase):
                                          '../test/python/qasm/example.qasm')
         self.qp = QuantumProgram()
         shots = 1
-        self.qp.load_qasm('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        self.job = {'compiled_circuit': circuit, 'shots': shots,
-                    'seed': random.randint(0, 10)}
+        self.job = {'compiled_circuit': circuit,
+                    'config': {'shots': shots, 'seed': random.randint(0, 10)}
+                   }
 
     def tearDown(self):
         pass
@@ -57,9 +58,8 @@ class LocalSimulatorTest(unittest.TestCase):
                          'url',
                          'simulator',
                          'description',
-                         'nQubits',
-                         'couplingMap',
-                         'gateset']
+                         'coupling_map',
+                         'basis_gates']
         for conf in _localsimulator.local_configuration:
             for key in required_keys:
                 self.assertIn(key, conf.keys())
@@ -69,12 +69,12 @@ class LocalSimulatorTest(unittest.TestCase):
         cdict = getattr(_localsimulator, '_simulator_classes')
         logging.info('found local simulators: {0}'.format(repr(cdict)))
         self.assertTrue(cdict)
-                
+
     def test_local_backends(self):
         backends = _localsimulator.local_backends()
         logging.info('found local backends: {0}'.format(repr(backends)))
         self.assertTrue(backends)
-        
+
     def test_instantiation(self):
         """
         Test instantiation of LocalSimulator
@@ -90,7 +90,7 @@ class LocalSimulatorTest(unittest.TestCase):
 #     profSuite = unittest.TestSuite()
 #     profSuite.addTest(LocalSimulatorTest('test_local_configuration_present'))
 #     profSuite.addTest(LocalSimulatorTest('test_local_configurations'))
-#     profSuite.addTest(LocalSimulatorTest('test_simulator_classes'))        
+#     profSuite.addTest(LocalSimulatorTest('test_simulator_classes'))
 #     profSuite.addTest(LocalSimulatorTest('test_local_backends'))
 #     profSuite.addTest(LocalSimulatorTest('test_instantiation'))
 #     return profSuite
