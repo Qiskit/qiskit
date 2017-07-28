@@ -22,6 +22,8 @@ These include methods to plot Bloch vectors, histograms, and quantum spheres.
 Author: Andrew Cross, Jay Gambetta
 """
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 # function used to fit the exponetial decay
 def exp_fit_fun(x,a,tau,c):
