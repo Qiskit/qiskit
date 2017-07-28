@@ -14,9 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """
-Quantum Program QISKit Test
+Quantum Program QISKit Test.
 
 Authors: Ismael Faro <Ismael.Faro1@ibm.com>
          Jesus Perez <jesusper@us.ibm.com>
@@ -36,7 +35,8 @@ from qiskit import ClassicalRegister
 from qiskit import QISKitException
 
 
-QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), '../../examples/qasm/simple8qbit.qasm')
+QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
+                              '../../examples/qasm/simple8qbit.qasm')
 
 
 # We need the environment variable for Travis.
@@ -48,7 +48,8 @@ try:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     import Qconfig
     API_TOKEN = Qconfig.APItoken
-    # TODO: Why "APItoken" is in the root (the unique) and "url" inside "config"?
+    # TODO: Why "APItoken" is in the root (the unique) and
+    # "url" inside "config"?
     # (also unique) -> make it consistent.
     URL = Qconfig.config["url"]
 except ImportError:

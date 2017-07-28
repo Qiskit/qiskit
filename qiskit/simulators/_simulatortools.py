@@ -106,6 +106,7 @@ def enlarge_two_opt(opt, q0, q1, num):
                         enlarge_opt[index2(j, q0, k, q1, i), index2(jj, q0, kk, q1, i)] = opt[j+2*k, jj+2*kk]
     return enlarge_opt
 
+
 def single_gate_params(gate, params=None):
     """Apply a single qubit gate to the qubit.
 
@@ -121,8 +122,18 @@ def single_gate_params(gate, params=None):
         return (np.pi/2, params[0], params[1])
     elif gate == 'u1':
         return (0., 0., params[0])
+    elif gate == 'id':
+        return (0., 0., 0.)
+
 
 def single_gate_matrix(gate, params=None):
+    """Get the matrix for a single qubit.
+
+    Args:
+        params(list): the operation parameters op['params']
+    Returns:
+        A numpy array representing the matrix 
+    """
     (theta, phi, lam) = single_gate_params(gate, params)
     return np.array([[np.cos(theta/2.0),
                       -np.exp(1j*lam)*np.sin(theta/2.0)],

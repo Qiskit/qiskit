@@ -609,7 +609,21 @@ class QuantumProgram(object):
                 if configuration['name'] == backend:
                     for key in configuration:
                         new_key = convert(key)
-                        configuration_edit[new_key] =configuration[key]
+                        # TODO: removed these from the API code
+                        if new_key not in  ['id','serial_number','topology_id','status', 'coupling_map']:
+                            configuration_edit[new_key] =configuration[key]
+                        if new_key == 'coupling_map':
+                            if configuration[key] == 'all-to-all':
+                                configuration_edit[new_key] =configuration[key]
+                            else:
+                                cmap={}
+                                for i in configuration[key]:
+                                    #print(i[0])
+                                    if i[0] in cmap.keys():
+                                        cmap[i[0]].append(i[1])
+                                    else:
+                                        cmap[i[0]] = [i[1]]
+                                configuration_edit[new_key] = cmap
                     return configuration_edit
         for configuration in simulators.local_configuration:
             if configuration['name'] == backend:
@@ -633,7 +647,12 @@ class QuantumProgram(object):
             raise a LookupError.
         """
         if backend in self.__ONLINE_BACKENDS:
-            return self.__api.backend_calibration(backend)
+            calibrations = self.__api.backend_calibration(backend)
+            calibrations_edit = {}
+            for key, vals in calibrations.items():
+                new_key = convert(key)
+                calibrations_edit[new_key] = vals
+            return calibrations_edit
         elif  backend in self.__LOCAL_BACKENDS:
             return {'backend': backend, 'calibrations': None}
         else:
@@ -656,7 +675,12 @@ class QuantumProgram(object):
             raise a LookupError.
         """
         if backend in self.__ONLINE_BACKENDS:
-            return self.__api.backend_parameters(backend)
+            parameters = self.__api.backend_parameters(backend)
+            parameters_edit = {}
+            for key, vals in parameters.items():
+                new_key = convert(key)
+                parameters_edit[new_key] = vals
+            return parameters_edit
         elif  backend in self.__LOCAL_BACKENDS:
             return {'backend': backend, 'parameters': None}
         else:
@@ -950,7 +974,7 @@ class QuantumProgram(object):
                 if not silent:
                     print("running on backend: %s" % (backend))
                 if backend in self.__LOCAL_BACKENDS:
-                    job_result = self._run_local_simulator(backend, jobs)
+                    job_result = self._run_local_simulator(backend, jobs, silent)
                 else:
                     # Clear the list of compiled programs to execute
                     self.delete_execution_list(backend)
@@ -1024,7 +1048,7 @@ class QuantumProgram(object):
         # Get the results
         return job_result
 
-    def _run_local_simulator(self, backend, jobs):
+    def _run_local_simulator(self, backend, jobs, silent=True):
         """Run a program of compiled quantum circuits on the local machine.
 
         Args:
@@ -1047,7 +1071,7 @@ class QuantumProgram(object):
         for job in jobs:
             one_result = {'result': None, 'status': "ERROR"}
             local_simulator = simulators.LocalSimulator(backend, job)
-            local_simulator.run()
+            local_simulator.run(silent=silent)
             this_result = local_simulator.result()
             job_results.append(this_result)
         return job_results

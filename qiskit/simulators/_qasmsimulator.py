@@ -106,7 +106,7 @@ __configuration = {"name": "local_qasm_simulator",
                    "simulator": True,
                    "description": "A python simulator for qasm files",
                    "coupling_map": "all-to-all",
-                   "basis_gates": "u1,u2,u3,cx"}
+                   "basis_gates": "u1,u2,u3,cx,id"}
 
 
 class QasmSimulator(object):
@@ -265,12 +265,13 @@ class QasmSimulator(object):
         else:
             self._quantum_state = temp
 
-    def run(self):
+    def run(self, silent=True):
         """Run."""
         outcomes = []
         # Do each shot
         for shot in range(self._shots):
-            self._quantum_state = np.zeros(1 << self._number_of_qubits, dtype=complex)
+            self._quantum_state = np.zeros(1 << self._number_of_qubits,
+                                           dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
@@ -294,6 +295,8 @@ class QasmSimulator(object):
                     gate = single_gate_matrix(operation['name'], params)
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
+                elif operation['name'] in ['id', 'u0']:
+                    pass
                 elif operation['name'] in ['CX', 'cx']:
                     qubit0 = operation['qubits'][0]
                     qubit1 = operation['qubits'][1]
@@ -341,7 +344,8 @@ class QasmSimulator(object):
         fcounts = {}
         for key, value in counts.items():
             new_key = [key[-self._cl_reg_nbits[0]:]]
-            for index, nbits in zip(self._cl_reg_index[1:], self._cl_reg_nbits[1:]):
+            for index, nbits in zip(self._cl_reg_index[1:],
+                                    self._cl_reg_nbits[1:]):
                 new_key.insert(0, key[-(index+nbits):-index])
             fcounts[' '.join(new_key)] = value
         return fcounts
