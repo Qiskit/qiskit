@@ -72,7 +72,7 @@ class QasmCppSimulator:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
 
-    def run(self):
+    def run(self, silent=True):
         """
         Run simulation on C++ simulator.
         """
