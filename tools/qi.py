@@ -12,17 +12,19 @@
 # =============================================================================
 
 """
-A collection of useful quantum information functions. 
+A collection of useful quantum information functions.
 
 Author: Christopher J. Wood <cjwood@us.ibm.com>
+        Jay Gambetta
 
-Currently this file is very sparse. More functions will be added in
-the future.
+Currently this file is very sparse. More functions will be added
+over time.
 """
 
 
 import numpy as np
 from scipy.linalg import sqrtm
+from scipy import linalg as la
 from tools.pauli import pauli_group
 
 
@@ -50,7 +52,7 @@ def partial_trace(state, sys, dims=None):
     rho = np.array(state)
     if rho.ndim == 1:
         rho = outer(rho)  # convert state vector to density mat
-        
+
     # compute dims if not specified
     if dims is None:
         n = int(np.log2(len(rho)))
@@ -59,13 +61,13 @@ def partial_trace(state, sys, dims=None):
             print("ERRROR!")
     else:
         dims = list(dims)
-    
+
     # reverse sort trace sys
     if isinstance(sys, int):
         sys = [sys]
-    else: 
+    else:
         sys = sorted(sys, reverse=True)
-    
+
     # trace out subsystems
     for j in sys:
         # get trace dims
@@ -259,6 +261,48 @@ def state_fidelity(state1, state2):
         (s1sq, err1) = sqrtm(s1, disp=False)
         (s2sq, err2) = sqrtm(s2, disp=False)
         return np.linalg.norm(np.dot(s1sq, s2sq), ord='nuc')
+
+
+def purity(state):
+    """Calculate the purity of a quantum state.
+
+    Args:
+        state (np.array): a quantum state
+    Returns:
+        purity.
+    """
+    if state.ndim == 1:
+        rho = outer(state)
+    else:
+        rho = state
+    return np.real(np.trace(np.dot(rho, rho)))
+
+
+def concurrence(state):
+    """Calculate the concurrence.
+
+    Args:
+        state (np.array): a quantum state
+    Returns:
+        concurrence.
+    """
+    if state.ndim == 1:
+        rho = outer(state)
+    else:
+        rho = state
+    if len(state) != 4:
+        print("Concurence is not defined for more than two qubits")
+        return 0
+    sigmay = np.array([[0, -1j], [1j, 0]])
+    YY = np.kron(sigmay, sigmay)
+    A = np.dot(rho, np.dot(YY, np.dot(np.conj(rho), YY)))
+    we, values = la.eigh(A)
+
+    for i in range(len(we)):
+        if we[i] < 0:
+            we[i] = 0
+        we[i] = np.sqrt(we[i])
+    return 2*np.max(we)-np.sum(we)
 
 
 ###############################################################
