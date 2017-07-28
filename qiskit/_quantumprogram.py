@@ -824,6 +824,18 @@ class QuantumProgram(object):
         except KeyError:
             raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
 
+    def get_complied_qasm(self, name, backend):
+        """Print the compiled cricuit in qasm format.
+
+        Args:
+            name (str): name of the quantum circuit
+            backend (str): name of the banckend
+        """
+        for i in self.__to_execute[backend]:
+            if name in i['name']:
+                return i['compiled_circuit'].qasm()
+
+
     def get_execution_list(self, verbose=False):
         """Print the compiled circuits that are ready to run.
 
