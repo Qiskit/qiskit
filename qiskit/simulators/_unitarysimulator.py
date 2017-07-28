@@ -99,9 +99,9 @@ import json
 __configuration = {"name": "local_unitary_simulator",
                    "url": "https://github.com/IBM/qiskit-sdk-py",
                    "simulator": True,
-                   "description": "A cpp simulator for qasm files",
+                   "description": "A python simulator for unitary matrix",
                    "coupling_map": "all-to-all",
-                   "basis_gates": "u1,u2,u3,cx"}
+                   "basis_gates": "u1,u2,u3,cx,id"}
 
 
 class UnitarySimulator(object):
@@ -140,7 +140,7 @@ class UnitarySimulator(object):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self):
+    def run(self, silent=True):
         """Apply the single-qubit gate."""
         for operation in self.circuit['operations']:
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
@@ -151,6 +151,8 @@ class UnitarySimulator(object):
                 qubit = operation['qubits'][0]
                 gate = single_gate_matrix(operation['name'], params)
                 self._add_unitary_single(gate, qubit)
+            elif operation['name'] in ['id', 'u0']:
+                pass
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
@@ -158,9 +160,11 @@ class UnitarySimulator(object):
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
             elif operation['name'] == 'measure':
-                print('Warning have dropped measure from unitary simulator')
+                if silent is False:
+                    print('Warning have dropped measure from unitary simulator')
             elif operation['name'] == 'reset':
-                print('Warning have dropped reset from unitary simulator')
+                if silent is False:
+                    print('Warning have dropped reset from unitary simulator')
             elif operation['name'] == 'barrier':
                 pass
             else:

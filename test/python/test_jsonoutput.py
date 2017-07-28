@@ -20,23 +20,44 @@
 python test_jsonoutput.py qasm/example.qasm
 
 """
+import unittest
+import logging
+import os
 import sys
 import numpy as np
 from qiskit import QuantumProgram
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 
-if len(sys.argv) < 2:
-    print("./test_jsonoutput.py <filename.qasm>")
-    sys.exit(1)
+class TestJsonOutput(unittest.TestCase):
+    """Test Json output.
 
-seed = 88
-filename = sys.argv[1]
-qp = QuantumProgram()
-qp.load_qasm("example", qasm_file=filename)
+    This is mostly covered in test_quantumprogram.py but will leave
+    here for convenience.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.moduleName = os.path.splitext(__file__)[0]
+        cls.logFileName = cls.moduleName + '.log'
+        log_fmt = 'TestJsonOutput:%(levelname)s:%(asctime)s: %(message)s'
+        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
+                            format=log_fmt)
 
-basis_gates = []  # unroll to base gates, change to test
-unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
-                           unroll.JsonBackend(basis_gates))
-circuit = unroller.execute()
-print(circuit)
+    def setUp(self):
+        self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
+                                           '../../examples/qasm/simple8qbit.qasm')
+
+    def test_json_output(self):
+        seed = 88
+        qp = QuantumProgram()
+        qp.load_qasm_file(self.QASM_FILE_PATH, name="example")
+
+        basis_gates = []  # unroll to base gates, change to test
+        unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
+                                   unroll.JsonBackend(basis_gates))
+        circuit = unroller.execute()
+        logging.info('test_json_ouptut: {0}'.format(circuit))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -18,7 +18,7 @@ __configuration = {
     "simulator": True,
     "description": "A c++ simulator for qasm files",
     "coupling_map": "all-to-all",
-    "basis_gates": "u1,u2,u3,cx"
+    "basis_gates": "u1,u2,u3,cx,id"
 }
 
 

@@ -18,55 +18,54 @@ The import does discovery of the simulator modules in this directory. The
 second command attempts to determine which modules are functional, in
 particular for modules which require making calls to compiled binaries.
 
-In order for a module to be registered in needs to define module-scope
+In order for a module to be registered it needs to define a module-scope
 dictionary of the form::
 
-__configuration ={"name": "local_qasm_simulator",
-                  "url": "https://github.com/IBM/qiskit-sdk-py",
-                  "simulator": True,
-                  "description": "A python simulator for qasm files",
-                  "nQubits": 10,
-                  "couplingMap": "all-to-all",
-                  "gateset": "u1,u2,u3,cx"}
+    __configuration = {'name': 'local_qasm_simulator',
+                       'url': 'https://github.com/IBM/qiskit-sdk-py',
+                       'simulator': True,
+                       'description': 'A python simulator for qasm files',
+                       'coupling_map': 'all-to-all',
+                       'basis_gates': 'u1,u2,u3,cx,id'}
 
-and it needs a class with a run method. The identifier for the backend
+and it needs a class with a "run" method. The identifier for the backend
 simulator comes from the "name" key in this dictionary. The class'
 __init__ method is called with a single `job` argument. The __init__
 method is also responsible for determining whether an associated
 binary is available. If it is not, the FileNotFoundError exception
 should be raised.
 
-Attributes
-----------
-local_configruation : list of dict()
-   This list gets populated with the __configuration records from each
-   of the discovered modules.
+Attributes:
+    local_configuration : list of dict()
+        This list gets populated with the __configuration records from each
+        of the discovered modules.
 
-_simulator_classes : dict {"<simulator name>" : <simulator class>}
-   This dictionary associates a simulator name with the class which
-   generates its objects.
+    _simulator_classes : dict {"<simulator name>" : <simulator class>}
+        This dictionary associates a simulator name with the class which
+        generates its objects.
 """
 import os
 import pkgutil
 import importlib
-import sys
 import inspect
 import json
 
 local_configuration = []
 _simulator_classes = {}
 for mod_info, name, ispkg in pkgutil.iter_modules([os.path.dirname(__file__)]):
-    if name not in __name__: # skip this module
+    if name not in __name__:  # skip this module
         fullname = os.path.splitext(__name__)[0] + '.' + name
         modspec = importlib.util.find_spec(fullname)
         mod = importlib.util.module_from_spec(modspec)
         modspec.loader.exec_module(mod)
         if hasattr(mod, '__configuration'):
             local_configuration.append(mod.__configuration)
-            for class_name, class_obj in inspect.getmembers(mod, inspect.isclass):
+            for class_name, class_obj in inspect.getmembers(mod,
+                                                            inspect.isclass):
                 if hasattr(class_obj, 'run'):
                     class_obj = getattr(mod, class_name)
                     _simulator_classes[mod.__configuration['name']] = class_obj
+
 
 def local_backends():
     """
@@ -107,6 +106,7 @@ def local_backends():
             backend_list.append(backend_id)
     return backend_list
 
+
 class LocalSimulator:
     """
     Interface to simulators
@@ -117,8 +117,8 @@ class LocalSimulator:
         self._result = {'data': None, 'status': "Error"}
         self._sim = _simulator_classes[backend](job)
 
-    def run(self):
-        simOutput = self._sim.run()
+    def run(self, silent=False):
+        simOutput = self._sim.run(silent)
         self._result["data"] = simOutput["data"]
         self._result["status"] = simOutput["status"]
 

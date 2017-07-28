@@ -17,7 +17,7 @@
 #					 Jesus Perez <jesusper@us.ibm.com>
 
 
-.PHONY: env env-dev lint test run
+.PHONY: env env-dev lint test run doc
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -43,3 +43,10 @@ test:
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
+
+doc:
+	sphinx-apidoc -f -o doc -d 4 -P -e qiskit
+	make -C doc html
+
+clean:
+	make -C doc clean
