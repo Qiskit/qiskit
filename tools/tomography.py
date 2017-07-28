@@ -50,7 +50,7 @@ def build_state_tomography_circuits(Q_program, name, qubits, qreg, creg):
     
 
 # Make private for now, since fit method not yet implemented
-def __build_process_tomography_circuits(Q_program, name, qubits, qreg, creg):
+def build_process_tomography_circuits(Q_program, name, qubits, qreg, creg):
     """
     """
     # add preparation circuits
@@ -104,6 +104,7 @@ def __tomo_dicts(qubits, basis=None):
     
     return [dict(zip(qubits, b)) for b in product(basis, repeat=len(qubits))]
 
+
 def __add_meas_circuits(Q_program, name, qubits, qreg, creg, prep=None):
     """Helper function.
     """
@@ -144,6 +145,7 @@ def __add_meas_circuits(Q_program, name, qubits, qreg, creg, prep=None):
         del Q_program._QuantumProgram__quantum_program[label]
 
     return labels
+
 
 def __add_prep_circuits(Q_program, name, qubits, qreg, creg):
     """Helper function.
@@ -196,18 +198,23 @@ def __add_prep_circuits(Q_program, name, qubits, qreg, creg):
 # Tomography circuit labels
 ###############################################################
 
-def __tomo_labels(name, qubits, basis=None, subscript=None):
+def __tomo_labels(name, qubits, basis=None, subscripts=None):
     """Helper function.
     """
-    if subscript is None:
-        subscript = ''
+    if subscripts is None:
+        subscripts = ['']
+    elif isinstance(subscripts, str):
+        subscripts = [subscripts]
+
     labels = []
     for dic in __tomo_dicts(qubits, basis):
-        label = ''
-        for qubit, op in dic.items():
-            label += op + subscript + str(qubit)
-        labels.append(name+label)
+        for s in subscripts:
+            label = ''
+            for qubit, op in dic.items():
+                label += op + s + str(qubit)
+            labels.append(name+label)
     return labels
+
 
 def state_tomography_labels(name, qubits, basis=None):
     """
@@ -216,11 +223,10 @@ def state_tomography_labels(name, qubits, basis=None):
     
 
 # Make private for now, since fit method not yet implemented
-def __process_tomography_labels(name, qubits, basis=None):
+def process_tomography_labels(name, qubits, basis=None):
     """
     """
-    preps = __tomo_labels(name + '_prep', qubits, basis, subscript='p')
-    preps += __tomo_labels(name + '_prep', qubits, basis, subscript='m')
+    preps = __tomo_labels(name + '_prep', qubits, basis, subscripts=['p','m'])
     return reduce(lambda acc, c: acc + __tomo_labels(c + '_meas', qubits, basis), preps, [])
 
 ###############################################################
@@ -245,9 +251,15 @@ def __get_basis_ops(tup, basis):
     return reduce(lambda acc, b: [np.kron(a,j) for a in acc for j in basis[b]], tup, [1])
 
 
-def __counts_basis(n, basis):
+def __meas_basis(n, basis):
     return [dict(zip(__counts_keys(n), __get_basis_ops(key, basis))) 
             for key in product(basis.keys(), repeat=n)]
+
+
+def __prep_basis(n, basis):
+    lst = [__get_basis_ops(key, basis) 
+           for key in product(basis.keys(), repeat=n)]
+    return [val for sublst in lst for val in sublst]
 
 
 def marginal_counts(counts, meas_qubits):
@@ -288,10 +300,30 @@ def state_tomography_data(Q_program, name, meas_qubits, backend=None, basis=None
     labels = state_tomography_labels(name, meas_qubits)
     counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits) for circ in labels]
     shots = [sum(c.values()) for c in counts]
-    meas_basis = __counts_basis(len(meas_qubits), basis)
+    meas_basis = __meas_basis(len(meas_qubits), basis)
     ret = [{'counts': i, 'meas_basis': j, 'shots': k} for i, j, k in zip(counts, meas_basis, shots)]
     return ret
 
+
+def process_tomography_data(Q_program, name, meas_qubits, backend=None, basis=None):
+    """
+    """
+    if basis is None:
+        basis = __default_basis
+    n = len(meas_qubits)
+    labels = process_tomography_labels(name, meas_qubits)
+    counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits) for circ in labels]
+    shots = [sum(c.values()) for c in counts]
+    meas_basis = __meas_basis(n, basis)
+    prep_basis = __prep_basis(n, basis)
+
+    ret = [{'meas_basis': meas, 'prep_basis': prep} 
+           for prep in prep_basis for meas in meas_basis]
+
+    for dic, cts, sts in zip(ret, counts, shots):
+        dic['counts'] = cts
+        dic['shots'] = sts
+    return ret
 
 ###############################################################
 # Tomographic Reconstruction functions.
@@ -337,14 +369,14 @@ def __tomo_linear_inv(freqs, ops, weights=None, trace=1):
     return ret
 
 
-def __state_leastsq_fit(state_data, weights=None, beta=0.5):
+def __leastsq_fit(data, weights=None, beta=0.5):
     """
     """
-    ks = state_data[0]['counts'].keys()
+    ks = data[0]['counts'].keys()
     
     # Get counts and shots
-    ns = np.array([dat['counts'][k] for dat in state_data for k in ks])
-    shots = np.array([dat['shots'] for dat in state_data for k in ks])
+    ns = np.array([dat['counts'][k] for dat in data for k in ks])
+    shots = np.array([dat['shots'] for dat in data for k in ks])
     
     # convert to freqs
     freqs = (ns + beta) / (shots + 2 * beta)
@@ -354,7 +386,13 @@ def __state_leastsq_fit(state_data, weights=None, beta=0.5):
         weights = np.sqrt(shots / (freqs * (1 - freqs)))
     
     # Get measurement basis ops
-    ops = [dat['meas_basis'][k] for dat in state_data for k in ks]
+    if 'prep_basis' in data[0]:
+        # process tomography fit
+        ops = [np.kron(dat['prep_basis'].T, dat['meas_basis'][k])
+               for dat in data for k in ks]
+    else:
+        # state tomography fit
+        ops = [dat['meas_basis'][k] for dat in data for k in ks]
     
     return __tomo_linear_inv(freqs, ops, weights, trace=1)
 
@@ -385,9 +423,48 @@ def __wizard(rho, epsilon=0.):
 
 def fit_state(state_data, method='wizard', options=None):
     """
+    Reconstruct a density matrix from state tomography data.
+
+    Args:
+        data (dict): process tomography measurement data.
+        method (str, optional): the fitting method to use.
+            Available methods:
+                - 'wizard' (default)
+                - 'leastsq'
+        options (dict, optional): additional options for fitting method.
+
+    Returns:
+        The fitted density matrix.
     """
     if method in ['wizard', 'leastsq']:
-        rho = __state_leastsq_fit(state_data)
+        rho = __leastsq_fit(state_data)
+        if method == 'wizard':
+            rho = __wizard(rho)
+    else:
+        # TODO: raise exception for unknown method
+        print('error: method unrecongnized')
+        pass
+    
+    return rho
+
+
+def fit_process(state_data, method='wizard', options=None):
+    """
+    Reconstruct a Choi-matrix from process tomography data.
+
+    Args:
+        data (dict): process tomography measurement data.
+        method (str, optional): the fitting method to use.
+            Available methods:
+                - 'wizard' (default)
+                - 'leastsq'
+        options (dict, optional): additional options for fitting method.
+
+    Returns:
+        A Choi-matrix in the column-stacking standard basis.
+    """
+    if method in ['wizard', 'leastsq']:
+        rho = __leastsq_fit(state_data)
         if method == 'wizard':
             rho = __wizard(rho)
     else:
