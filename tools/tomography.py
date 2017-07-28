@@ -60,7 +60,7 @@ def __build_process_tomography_circuits(Q_program, name, qubits, qreg, creg):
     for circ in preps:
         labels += __add_meas_circuits(Q_program, circ, qubits, qreg, creg)
         # delete temp prep output
-        del Q_program._QuantumProgram__quantum_program['circuits'][circ]
+        del Q_program._QuantumProgram__quantum_program[circ]
     print('>> created process tomography circuits for "%s"' % name)
     return labels
 
@@ -141,7 +141,7 @@ def __add_meas_circuits(Q_program, name, qubits, qreg, creg, prep=None):
         # add label to output
         labels.append(name+label)
         # delete temp circuit
-        del Q_program._QuantumProgram__quantum_program['circuits'][label]
+        del Q_program._QuantumProgram__quantum_program[label]
 
     return labels
 
@@ -187,8 +187,8 @@ def __add_prep_circuits(Q_program, name, qubits, qreg, creg):
         # add label to output
         labels += [name+label_p, name+label_m]
         # delete temp circuit
-        del Q_program._QuantumProgram__quantum_program['circuits'][label_p]
-        del Q_program._QuantumProgram__quantum_program['circuits'][label_m]
+        del Q_program._QuantumProgram__quantum_program[label_p]
+        del Q_program._QuantumProgram__quantum_program[label_m]
 
     return labels
 
