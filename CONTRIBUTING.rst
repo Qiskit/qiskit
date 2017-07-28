@@ -8,7 +8,7 @@ You can contribute in many ways to this project.
 Issue reporting
 ---------------
 
-This is a goog point to start, when you find a problem please add
+This is a good point to start, when you find a problem please add
 it to the `issue traker <https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev/issues>`_.
 The ideal report should include the steps to reproduce it.
 

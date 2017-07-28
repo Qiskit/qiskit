@@ -6,7 +6,7 @@
 ==========
 QISKit SDK
 ==========
-Quantum Information Science Kit
+Quantum Information Software Kit
 
 Project Overview
 ================
@@ -23,8 +23,8 @@ The QISKit project comprises:
   simulators. The SDK also includes example scripts written for
   Jupyter Notebooks.
 
-* `QISKit OPENQASM <https://github.com/IBM/qiskit-openqasm>`_: Contains
-  specifications, examples, documentation, and tools for the OPENQASM
+* `QISKit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_: Contains
+  specifications, examples, documentation, and tools for the OpenQASM
   intermediate representation.
 
 Getting Started
@@ -44,15 +44,15 @@ this project, one can do,
 
    from qiskit import QuantumProgram
    qp = QuantumProgram()
-   qr = qp.create_quantum_registers('qr', 2)
-   cr = qp.create_classical_registers('cr', 2)
-   circuit = qp.create_circuit('super', ['qr'], ['cr'])
-   circuit.h(qr[0])
-   circuit.cx(qr[0], qr[1])
-   circuit.measure(qr[0], cr[0])
-   circuit.measure(qr[1], cr[1])
-   qp.execute('super')
-   qp.get_counts('super')
+   qr = qp.create_quantum_register('qr', 2)
+   cr = qp.create_classical_register('cr', 2)
+   qc = qp.create_circuit('Bell', [qr], [cr])
+   qc.h(qr[0])
+   qc.cx(qr[0], qr[1])
+   qc.measure(qr[0], cr[0])
+   qc.measure(qr[1], cr[1])
+   qp.execute('Bell')
+   qp.get_counts('Bell')
 
 The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 
@@ -71,7 +71,6 @@ The :code:`get_counts` method outputs a dictionary of state:counts pairs;
    :caption: Contents:
 
    contributing
-   tutorial4developer
    modules
 
 Indices and tables
