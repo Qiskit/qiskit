@@ -100,12 +100,12 @@ def __trace_middle(op, dim1=1, dim2=1, dim3=1):
     return op.trace(axis1=1, axis2=4).reshape(d, d)
 
 
-def vectorize(rho, basis='col'):
+def vectorize(rho, method='col'):
     """Flatten an operator to a vector in a specified basis.
 
     Args:
         rho (ndarray): a density matrix.
-        basis (str): the basis to vectorize in. Allowed values are
+        method (str): the method of vectorization. Allowed values are
             - 'col' (default) flattens to column-major vector.
             - 'row' flattens to row-major vector.
             - 'pauli'flattens in the n-qubit Pauli basis.
@@ -114,11 +114,11 @@ def vectorize(rho, basis='col'):
         ndarray: the resulting vector.
 
     """
-    if basis == 'col':
+    if method == 'col':
         return rho.flatten(order='F')
-    elif basis == 'row':
+    elif method == 'row':
         return rho.flatten(order='C')
-    elif basis == 'pauli':
+    elif method == 'pauli':
         num = int(np.log2(len(rho)))  # number of qubits
         if len(rho) != 2**num:
             print('error input state must be n-qubit state')
@@ -127,12 +127,12 @@ def vectorize(rho, basis='col'):
         return np.array(vals)
 
 
-def devectorize(vec, basis='col'):
+def devectorize(vec, method='col'):
     """Devectorize a vectorized square matrix.
 
     Args:
         vec (ndarray): a vectorized density matrix.
-        basis (str): the basis to vectorize in. Allowed values are
+        basis (str): the method of devectorizaation. Allowed values are
             - 'col' (default): flattens to column-major vector.
             - 'row': flattens to row-major vector.
             - 'pauli': flattens in the n-qubit Pauli basis.
@@ -141,20 +141,48 @@ def devectorize(vec, basis='col'):
         ndarray: the resulting matrix.
 
     """
-    d = int(np.sqrt(vec.size)) # the dimension of the matrix
+    d = int(np.sqrt(vec.size))  # the dimension of the matrix
     if len(vec) != d*d:
         print('error input is not a vectorized square matrix')
 
-    if basis == 'col':
+    if method == 'col':
         return vec.reshape(d, d, order='F')
-    elif basis == 'row':
+    elif method == 'row':
         return vec.reshape(d, d, order='C')
-    elif basis == 'pauli':
+    elif method == 'pauli':
         num = int(np.log2(d))  # number of qubits
         if d != 2 ** num:
             print('error input state must be n-qubit state')
-        pbasis = np.array([p.to_matrix() for p in pauli_group(2)]) / num**2
+        pbasis = np.array([p.to_matrix() for p in pauli_group(num)]) / 2 ** num
         return np.tensordot(vec, pbasis, axes=1)
+
+def choi_to_rauli(choi):
+    """
+    Convert a Choi-matrix to a Pauli-basis superoperator.
+    
+    Note that this function assumes that the Choi-matrix
+    is defined in the standard column-stacking converntion
+    and is normalized to have trace 1. For a channel E this
+    is defined as: choi = (I \otimes E)(bell_state).
+    
+    The resulting 'rauli' R acts on input states as
+    |rho_out>_p = R.|rho_in>_p
+    where |rho> = vectorize(rho, method='pauli')
+    
+    Args:
+        Choi (matrix): the input Choi-matrix.
+    
+    Returns:
+        A superoperator in the Pauli basis.
+    """
+    # get number of qubits'
+    n = int(np.log2(np.sqrt(len(choi))))
+    pgp = pauli_group(n)
+    rauli = np.array([ np.trace(np.dot(choi, 
+                   np.kron(j.to_matrix().T, i.to_matrix()))) 
+                  for i in pgp for j in pgp])
+    return rauli.reshape(4 ** n, 4 ** n)
+
 
 def chop(op, epsilon=1e-10):
     """
@@ -170,6 +198,7 @@ def chop(op, epsilon=1e-10):
     op.real[abs(op.real) < epsilon] = 0.0
     op.imag[abs(op.imag) < epsilon] = 0.0
     return op
+
 
 def outer(v1, v2=None):
     """
