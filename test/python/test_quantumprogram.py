@@ -707,6 +707,11 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result, {})
 
     def test_compile_coupling_map(self):
+        """Test compile_coupling_map.
+
+        If all correct should return data with the same stats. The circuit may
+        be different.
+        """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 3, verbose=False)
         c = QP_program.create_classical_register("c", 3, verbose=False)
@@ -718,18 +723,19 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1  # the number of shots in the experiment.
-        max_credits = 3
-        coupling_map = None
+        shots = 1024  # the number of shots in the experiment.
+        coupling_map = {0: [1], 1: [2]}
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2)}
         circuits = ["circuitName"]
         QP_program.compile(circuits, backend=backend, shots=shots,
-                           max_credits=max_credits, coupling_map=coupling_map,
-                           initial_layout=initial_layout)
+                           coupling_map=coupling_map,
+                           initial_layout=initial_layout, seed=88)
+        QP_program.run()
         to_check = QP_program.get_qasm("circuitName")
         self.assertEqual(len(to_check), 160)
-        #FIX WITH COUPLING MAP
+        self.assertEqual(QP_program.get_counts("circuitName"),
+                         {'000': 518, '111': 506})
 
     ###############################################################
     # Test for running programs

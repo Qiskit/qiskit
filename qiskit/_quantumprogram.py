@@ -121,21 +121,30 @@ class QuantumProgram(object):
             __to_execute =
                 {
                 --backend name (string)--:
-                    [
+                    {
+                    id: --job id (string),
+                    config: -- dictionary of config settings (dict)--,
                         {
-                        "name": --circuit name (string)--,
-                        "compiled_circuit": --compiled quantum circuit (DAG format)--,
-                        "config": --dictionary of additional config settings (dict)--
-                            "coupling_map": --adjacency list (dict)--,
-                            "basis_gates": --comma separated gate names (string)--,
-                            "layout": --layout computed by mapper (dict)--,
-                            "shots": (qasm only) --shots (int)--,
-                            "max_credits" (online only): --credits (int)--,
-                            "seed": (simulator only)--initial seed for the simulator (int)--,
-
-                        },
-                    ...
-                    ]
+                        "max_credits" (online only): -- credits (int) --,
+                        "shots": (qasm only) -- shots (int) --,
+                        }
+                    circuits:
+                        [
+                            {
+                            "name": --circuit name (string)--,
+                            "compiled_circuit": --compiled quantum circuit (DAG format)--,
+                            "config": --dictionary of additional config settings (dict)--,
+                                {
+                                "coupling_map": --adjacency list (dict)--,
+                                "basis_gates": --comma separated gate names (string)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "shots": (qasm only) --shots (int)--,
+                                "seed": (simulator only)--initial seed for the simulator (int)--,
+                                }
+                            },
+                        ...
+                        ]
+                    }
                 }
      """
     # -- FUTURE IMPROVEMENTS --
