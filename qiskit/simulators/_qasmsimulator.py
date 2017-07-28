@@ -76,6 +76,7 @@ result =
             {
             'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
             'classical_state': 0
+            'counts': {'0000': 1}
             }
         'status': 'DONE'
         }
@@ -323,7 +324,8 @@ class QasmSimulator(object):
         if self._shots == 1:
             self.result['data']['quantum_state'] = self._quantum_state
             self.result['data']['classical_state'] = self._classical_state
-
+            counts = dict(Counter(outcomes))
+            self.result['data']['counts'] = self._format_result(counts)
         else:
             counts = dict(Counter(outcomes))
             self.result['data']['counts'] = self._format_result(counts)
