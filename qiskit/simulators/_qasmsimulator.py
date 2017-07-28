@@ -94,6 +94,7 @@ import numpy as np
 import random
 from collections import Counter
 import json
+from ._simulatortools import single_gate_matrix
 
 
 # TODO add the IF qasm operation.
@@ -104,9 +105,8 @@ __configuration = {"name": "local_qasm_simulator",
                    "url": "https://github.com/IBM/qiskit-sdk-py",
                    "simulator": True,
                    "description": "A python simulator for qasm files",
-                   "nQubits": 10,
-                   "couplingMap": "all-to-all",
-                   "gateset": "SU2+CNOT"}
+                   "coupling_map": "all-to-all",
+                   "basis_gates": "u1,u2,u3,cx"}
 
 
 class QasmSimulator(object):
@@ -160,8 +160,15 @@ class QasmSimulator(object):
         self.result['data'] = {}
         self._quantum_state = 0
         self._classical_state = 0
-        self._shots = job['shots']
-        random.seed(job['seed'])
+        self._shots = job['config']['shots']
+        self._cl_reg_index = []
+        self._cl_reg_nbits = []
+        cbit_index = 0
+        for cl_reg in self.circuit['header']['clbit_labels']:
+            self._cl_reg_nbits.append(cl_reg[1])
+            self._cl_reg_index.append(cbit_index)
+            cbit_index += cl_reg[1]
+        random.seed(job['config']['seed'])
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):
@@ -258,22 +265,6 @@ class QasmSimulator(object):
         else:
             self._quantum_state = temp
 
-    def _qasm_single_params(self, gate, params=None):
-        """Apply a single qubit gate to the qubit.
-
-        Args:
-            gate(str): the single qubit gate name
-            params(list): the operation parameters op['params']
-        Returns:
-            a tuple of U gate parameters (theta, phi, lam)
-        """
-        if gate == 'U' or gate == 'u3':
-            return (params[0], params[1], params[2])
-        elif gate == 'u2':
-            return (np.pi/2, params[0], params[1])
-        elif gate == 'u1':
-            return (0., 0., params[0])
-
     def run(self):
         """Run."""
         outcomes = []
@@ -283,41 +274,46 @@ class QasmSimulator(object):
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
-            for j in range(self._number_of_operations):
-                # get operation name
-                op = self.circuit['operations'][j]
+            for operation in self.circuit['operations']:
+                if 'conditional' in operation:
+                    mask = int(operation['conditional']['mask'], 16)
+                    if mask > 0:
+                        value = self._classical_state & mask
+                        while ((mask & 0x1) == 0):
+                            mask >>= 1
+                            value >>= 1
+                        if value != int(operation['conditional']['val'], 16):
+                            continue
                 # Check if single  gate
-                if op["name"] in ['U', 'u1', 'u2', 'u3']:
-                    if 'params' in op:
-                        params = op['params']
+                if operation['name'] in ['U', 'u1', 'u2', 'u3']:
+                    if 'params' in operation:
+                        params = operation['params']
                     else:
                         params = None
-                    (theta, phi, lam) = self._qasm_single_params(op['name'], params)
-                    qubit = op['qubits'][0]
-                    gate = np.array([[np.cos(theta/2.0),
-                                      -np.exp(1j*lam)*np.sin(theta/2.0)],
-                                     [np.exp(1j*phi)*np.sin(theta/2.0),
-                                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+                    qubit = operation['qubits'][0]
+                    gate = single_gate_matrix(operation['name'], params)
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
-                elif op['name'] == 'CX' or op['name'] == 'cx':
-                    qubit0 = op['qubits'][0]
-                    qubit1 = op['qubits'][1]
+                elif operation['name'] in ['CX', 'cx']:
+                    qubit0 = operation['qubits'][0]
+                    qubit1 = operation['qubits'][1]
                     self._add_qasm_cx(qubit0, qubit1)
                 # Check if measure
-                elif op['name'] == 'measure':
-                    qubit = op['qubits'][0]
-                    cbit = op['clbits'][0]
+                elif operation['name'] == 'measure':
+                    qubit = operation['qubits'][0]
+                    cbit = operation['clbits'][0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif op['name'] == 'reset':
-                    qubit = op['qubits'][0]
+                elif operation['name'] == 'reset':
+                    qubit = operation['qubits'][0]
                     self._add_qasm_reset(qubit)
-                elif op['name'] == 'barrier' or op['name'] == 'id':
+                elif operation['name'] == 'barrier':
                     pass
                 else:
-                    self.result['status'] = 'ERROR'
-                    return self.result
+                    backend = globals()['__configuration']['name']
+                    err_msg = '{0} encountered unrecognized operation "{1}"'
+                    raise ValueError(err_msg.format(backend,
+                                                    operation['name']))
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))
         # Return the results
@@ -326,6 +322,26 @@ class QasmSimulator(object):
             self.result['data']['classical_state'] = self._classical_state
 
         else:
-            self.result['data']['counts'] = dict(Counter(outcomes))
+            counts = dict(Counter(outcomes))
+            self.result['data']['counts'] = self._format_result(counts)
         self.result['status'] = 'DONE'
         return self.result
+
+    def _format_result(self, counts):
+        """Format the result bit string.
+
+        This formats the result bit strings such that spaces are inserted
+        at register divisions.
+
+        Args:
+            counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
+        Returns:
+            spaces inserted into dictionary keys at register boundries.
+        """
+        fcounts = {}
+        for key, value in counts.items():
+            new_key = [key[-self._cl_reg_nbits[0]:]]
+            for index, nbits in zip(self._cl_reg_index[1:], self._cl_reg_nbits[1:]):
+                new_key.insert(0, key[-(index+nbits):-index])
+            fcounts[' '.join(new_key)] = value
+        return fcounts

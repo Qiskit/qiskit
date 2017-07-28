@@ -63,8 +63,8 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("ghz")
-q = qp.get_quantum_registers("q")
-c = qp.get_classical_registers("c")
+q = qp.get_quantum_register("q")
+c = qp.get_classical_register("c")
 
 # Create a GHZ state
 qc.h(q[0])
@@ -79,10 +79,7 @@ for i in range(5):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: not compiled
 print("no compilation, simulator")

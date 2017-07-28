@@ -178,13 +178,13 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
 def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     """Change the direction of CNOT gates to conform to CouplingGraph.
 
-    circuit_graph = input Circuit
+    circuit_graph = input DAGCircuit
     coupling_graph = corresponding CouplingGraph
     verbose = optional flag to print more information
 
     Adds "h" to the circuit basis.
 
-    Returns a Circuit object containing a circuit equivalent to
+    Returns a DAGCircuit object containing a circuit equivalent to
     circuit_graph but with CNOT gate directions matching the edges
     of coupling_graph. Raises an exception if the circuit_graph
     does not conform to the coupling_graph.
@@ -202,7 +202,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                    "qreg q[2];\n" + \
                    "cx_flipped q[0],q[1];\n"
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
-                        unroll.CircuitBackend(["cx", "h"]))
+                        unroll.DAGBackend(["cx", "h"]))
     flipped_cx_circuit = u.execute()
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
@@ -282,16 +282,16 @@ def update_qasm(i, first_layer, best_layout, best_d,
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
                 basis="cx,u1,u2,u3,id", verbose=False, trials=20):
-    """Map a Circuit onto a CouplingGraph using swap gates.
+    """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
-    circuit_graph = input Circuit
+    circuit_graph = input DAGCircuit
     coupling_graph = CouplingGraph to map onto
     initial_layout = dict from qubits of circuit_graph to qubits
       of coupling_graph (optional)
-    basis = basis string specifying basis of output Circuit
+    basis = basis string specifying basis of output DAGCircuit
     verbose = optional flag to print more information
 
-    Returns a Circuit object containing a circuit equivalent to
+    Returns a DAGCircuit object containing a circuit equivalent to
     circuit_graph that respects couplings in coupling_graph, and
     a layout dict mapping qubits of circuit_graph into qubits
     of coupling_graph. The layout may differ from the initial_layout
@@ -318,7 +318,7 @@ def swap_mapper(circuit_graph, coupling_graph,
             if k not in circ_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " %
                                       (k[0], k[1]) +
-                                      "in input Circuit")
+                                      "in input DAGCircuit")
             if v not in coup_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " %
                                       (v[0], v[1]) +
@@ -434,10 +434,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                 no_decls=True,
                 aliases=layout)
 
-    # Parse openqasm_output into Circuit object
+    # Parse openqasm_output into DAGCircuit object
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()
-    u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
+    u = unroll.Unroller(ast, unroll.DAGBackend(basis.split(",")))
     return u.execute(), initial_layout
 
 
@@ -602,7 +602,7 @@ def optimize_1q_gates(circuit):
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
-                           unroll.CircuitBackend(qx_basis))
+                           unroll.DAGBackend(qx_basis))
     unrolled = urlr.execute()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])

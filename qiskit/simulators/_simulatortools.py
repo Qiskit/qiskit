@@ -105,3 +105,26 @@ def enlarge_two_opt(opt, q0, q1, num):
                     for kk in range(2):
                         enlarge_opt[index2(j, q0, k, q1, i), index2(jj, q0, kk, q1, i)] = opt[j+2*k, jj+2*kk]
     return enlarge_opt
+
+def single_gate_params(gate, params=None):
+    """Apply a single qubit gate to the qubit.
+
+    Args:
+        gate(str): the single qubit gate name
+        params(list): the operation parameters op['params']
+    Returns:
+        a tuple of U gate parameters (theta, phi, lam)
+    """
+    if gate == 'U' or gate == 'u3':
+        return (params[0], params[1], params[2])
+    elif gate == 'u2':
+        return (np.pi/2, params[0], params[1])
+    elif gate == 'u1':
+        return (0., 0., params[0])
+
+def single_gate_matrix(gate, params=None):
+    (theta, phi, lam) = single_gate_params(gate, params)
+    return np.array([[np.cos(theta/2.0),
+                      -np.exp(1j*lam)*np.sin(theta/2.0)],
+                     [np.exp(1j*phi)*np.sin(theta/2.0),
+                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])

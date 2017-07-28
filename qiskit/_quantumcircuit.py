@@ -60,6 +60,22 @@ class QuantumCircuit(object):
                     return True
         return False
 
+    def get_qregs(self):
+        """Get the qregs from the registers."""
+        qregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, QuantumRegister):
+                qregs[name] = register
+        return qregs
+
+    def get_cregs(self):
+        """Get the cregs from the registers."""
+        cregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, ClassicalRegister):
+                cregs[name] = register
+        return cregs
+
     def combine(self, rhs):
         """
         Append rhs to self if self contains rhs's registers.
@@ -97,13 +113,13 @@ class QuantumCircuit(object):
         return self.extend(rhs)
 
     def __len__(self):
-        """Return number of operations in circuit"""
+        """Return number of operations in circuit."""
         return len(self.data)
 
     def __getitem__(self, item):
-        """Return indexed operation"""
+        """Return indexed operation."""
         return self.data[item]
-    
+
     def _attach(self, gate):
         """Attach a gate."""
         self.data.append(gate)
@@ -129,10 +145,10 @@ class QuantumCircuit(object):
                 "register '%s' not in this circuit" %
                 register.name)
 
-    def _check_qubit(self, circuit):
-        """Raise exception if q is not in this circuit or invalid format."""
-        self._check_qreg(circuit[0])
-        circuit[0].check_range(circuit[1])
+    def _check_qubit(self, qubit):
+        """Raise exception if qubit is not in this circuit or bad format."""
+        self._check_qreg(qubit[0])
+        qubit[0].check_range(qubit[1])
 
     def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
@@ -158,12 +174,12 @@ class QuantumCircuit(object):
             string += instruction.qasm() + "\n"
         return string
 
-    def measure(self, quantum_register, circuit):
-        """Measure quantum register into circuit (tuples)."""
-        self._check_qubit(quantum_register)
-        self._check_creg(circuit[0])
-        circuit[0].check_range(circuit[1])
-        return self._attach(Measure(quantum_register, circuit, self))
+    def measure(self, qubit, cbit):
+        """Measure quantum bit into classical bit (tuples)."""
+        self._check_qubit(qubit)
+        self._check_creg(cbit[0])
+        cbit[0].check_range(cbit[1])
+        return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""
