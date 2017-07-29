@@ -637,8 +637,8 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'test'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
-                                 coupling_map=coupling_map)
-        self.assertEqual(out["status"], "COMPLETED")
+                                 coupling_map=coupling_map, qobjid='cooljob')
+        self.assertEqual(out, 'cooljob')
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
@@ -655,11 +655,33 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         coupling_map = None
-        QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+        qobjid = QP_program.compile(['circuitName'], backend=backend,
+                                    coupling_map=coupling_map)
         result = QP_program.get_compiled_configuration('circuitName',
-                                                       'local_qasm_simulator')
-        self.assertEqual(len(result), 6)
+                                                       qobjid)
+        # print(result)
+        self.assertEqual(len(result), 4)
+
+    def test_get_complied_qasm(self):
+        """Test get_complied_qasm.
+
+        If all correct should return lenght  dictionary.
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        backend = 'local_qasm_simulator'
+        coupling_map = None
+        qobjid = QP_program.compile(['circuitName'], backend=backend,
+                                    coupling_map=coupling_map)
+        result = QP_program.get_complied_qasm('circuitName', qobjid)
+        # print(result)
+        self.assertEqual(len(result), 255)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
@@ -677,10 +699,10 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+                           coupling_map=coupling_map, qobjid="cooljob")
         result = QP_program.get_execution_list()
         # print(result)
-        self.assertEqual(result, {'local_qasm_simulator': ['circuitName']})
+        self.assertEqual(result, {'cooljob': ['circuitName']})
 
     def test_delete_execution_list(self):
         """Test get_execution_list.
@@ -698,10 +720,10 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+                           coupling_map=coupling_map, qobjid='cooljob')
         result = QP_program.get_execution_list()
         # print(result)
-        self.assertEqual(result, {'local_qasm_simulator': ['circuitName']})
+        self.assertEqual(result, {'cooljob': ['circuitName']})
         QP_program.delete_execution_list()
         result = QP_program.get_execution_list()
         # print(result)

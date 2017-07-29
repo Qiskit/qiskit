@@ -22,13 +22,46 @@ These include methods to plot Bloch vectors, histograms, and quantum spheres.
 Author: Andrew Cross, Jay Gambetta
 """
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 # function used to fit the exponetial decay
-def exp_fit_fun(x,a,tau,c):
+def exp_fit_fun(x, a, tau, c):
     return a * np.exp(-x/tau) + c
 
-# Functions used by randomized benchmarking. This we become basic curve fitting
-# exp, cosine, linear etc.
+
+# function used to fit the decay cosine
+def osc_fit_fun(x, a, tau, f, phi, c):
+    return a * np.exp(-x/tau)*np.cos(2*np.pi*f*x+phi) + c
+
+
+# Functions used by randomized benchmarking.
+def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
+                   qubit_label):
+    """Plot coherence data.
+
+    Args:
+        xdata
+        ydata
+        std_error
+        fit
+        fit_function
+        xunit
+        exp_str
+        qubit_label
+    """
+    plt.errorbar(xdata, ydata, std_error, marker='.',
+                 markersize=9, c='b', linestyle='')
+    plt.plot(xdata, fit_function(xdata, *fit), c='r', linestyle='--',
+             label=(exp_str + '= %s %s' % (str(round(fit[1])), xunit)))
+    plt.xticks(fontsize=14, rotation=70)
+    plt.yticks(fontsize=14)
+    plt.xlabel('time [%s]' % (xunit), fontsize=16)
+    plt.ylabel('P(1)', fontsize=16)
+    plt.title(exp_str + 'measurments of Q%s' % (str(qubit_label)), fontsize=18)
+    plt.legend(fontsize=12)
+    plt.show()
+
 
 def plot_rb_data(xdata, ydatas, yavg, fit, survival_prob):
     """Plot randomized benchmarking data.
