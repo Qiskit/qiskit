@@ -19,6 +19,7 @@
 Qasm Program Class
 
 Authors: Andrew Cross, Jay M. Gambetta, Ismael Faro
+James R. Wootton
 """
 # pylint: disable=line-too-long
 
@@ -458,12 +459,14 @@ class QuantumProgram(object):
                     print("// *******************************************")
 
     #runners
-    def run(self, wait=5, timeout=60):
+    def run(self, wait=5, timeout=60, wait_text=[], text_start=0):
         """Run a program (a pre-compiled quantum program).
 
         All input for run comes from self.__to_execute
         wait time is how long to check if the job is completed
-        timeout is time until the execution stopa
+        timeout is time until the execution stops
+        wait_text is a list of strings to output while the user waits
+        text_start is the list element that this should start at
         """
         for backend in self.__to_execute:
             self.__last_device_backend = backend
@@ -496,7 +499,7 @@ class QuantumProgram(object):
                     # Clear the list of compiled programs to execute
                     self.__to_execute = {}
                     return {"status": "Error", "result": output['error']}
-                job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout)
+                job_result = self.wait_for_job(output['id'], wait=wait, timeout=timeout, wait_text=wait_text, text_start=text_start)
 
                 if job_result['status'] == 'Error':
                     # Clear the list of compiled programs to execute
@@ -543,17 +546,25 @@ class QuantumProgram(object):
         # Clear the list of compiled programs to execute
         self.__to_execute = {}
 
-        return  {"status": "COMPLETED", "result": 'all done'}
+        # create output, adding the number of waits if there are any
+        dict_to_return = {"status": "COMPLETED", "result": 'all done'}
+        if 'waits' in job_result.keys():
+            dict_to_return['waits'] = job_result['waits']
+        
+        return  dict_to_return
 
-    def wait_for_job(self, jobid, wait=5, timeout=60):
+    def wait_for_job(self, jobid, wait=5, timeout=60, wait_text=[], text_start=0):
         """Wait until all status results are 'COMPLETED'.
         jobids is a list of id strings.
         api is an IBMQuantumExperience object.
         wait is the time to wait between requests, in seconds
         timeout is how long we wait before failing, in seconds
-        Returns an list of results that correspond to the jobids.
+        wait_text is a list of strings to output while the user waits
+        text_start is the list element that this should start at
+        Returns a list of results that correspond to the jobids, including a counter for the number of waiting messages printed
         """
         timer = 0
+        wait_step = 0
         timeout_over = False
         job = self.__api.get_job(jobid)
         while job['status'] == 'RUNNING':
@@ -562,7 +573,12 @@ class QuantumProgram(object):
             time.sleep(wait)
             timer += wait
             print("status = %s (%d seconds)" % (job['status'], timer))
+            text_length = len(wait_text)
+            if text_length!=0:
+                print("\n" + wait_text[(text_start+wait_step)%text_length] + "\n")
             job = self.__api.get_job(jobid)
+            wait_step += 1
+            job['waits'] = wait_step
             if job['status'] == 'ERROR_CREATING_JOB' or job['status'] == 'ERROR_RUNNING_JOB':
                 return {"status": "Error", "result": job['status']}
 
@@ -620,7 +636,7 @@ class QuantumProgram(object):
         return job_results
 
     def execute(self, name_of_circuits, device="local_qasm_simulator", shots=1024,
-                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None):
+                max_credits=3, wait=5, timeout=60, basis_gates=None, coupling_map=None, seed=None, wait_text=[], text_start=0):
         """Execute, compile, and run a program (array of quantum circuits).
         program is a list of quantum_circuits
         api is the api for the device
@@ -631,7 +647,7 @@ class QuantumProgram(object):
         """
         self.compile(name_of_circuits, device, shots, max_credits,
                      basis_gates, coupling_map, seed)
-        output = self.run(wait, timeout)
+        output = self.run(wait, timeout, wait_text, text_start)
         return output
 
     # method to process the data
