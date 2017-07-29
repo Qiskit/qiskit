@@ -662,6 +662,27 @@ class TestQuantumProgram(unittest.TestCase):
         # print(result)
         self.assertEqual(len(result), 4)
 
+    def test_get_complied_qasm(self):
+        """Test get_complied_qasm.
+
+        If all correct should return lenght  dictionary.
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        backend = 'local_qasm_simulator'
+        coupling_map = None
+        qobjid = QP_program.compile(['circuitName'], backend=backend,
+                                    coupling_map=coupling_map)
+        result = QP_program.get_complied_qasm('circuitName', qobjid)
+        # print(result)
+        self.assertEqual(len(result), 255)
+
     def test_get_execution_list(self):
         """Test get_execution_list.
 

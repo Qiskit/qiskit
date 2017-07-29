@@ -872,7 +872,7 @@ class QuantumProgram(object):
                 if qobj['id'] == qobjid:
                     for circuit in qobj["circuits"]:
                         if circuit['name'] == name:
-                            return circuit['compiled_dagcircuit'].qasm()
+                            return circuit['compiled_circuit'].qasm()
         except KeyError:
             raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
 
