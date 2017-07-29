@@ -637,8 +637,8 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'test'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
-                                 coupling_map=coupling_map)
-        self.assertEqual(out["status"], "COMPLETED")
+                                 coupling_map=coupling_map, qobjid='cooljob')
+        self.assertEqual(out, 'cooljob')
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
@@ -655,11 +655,12 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         coupling_map = None
-        QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+        qobjid = QP_program.compile(['circuitName'], backend=backend,
+                                    coupling_map=coupling_map)
         result = QP_program.get_compiled_configuration('circuitName',
-                                                       'local_qasm_simulator')
-        self.assertEqual(len(result), 6)
+                                                       qobjid)
+        # print(result)
+        self.assertEqual(len(result), 4)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
@@ -677,10 +678,10 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+                           coupling_map=coupling_map, qobjid="cooljob")
         result = QP_program.get_execution_list()
         # print(result)
-        self.assertEqual(result, {'local_qasm_simulator': ['circuitName']})
+        self.assertEqual(result, {'cooljob': ['circuitName']})
 
     def test_delete_execution_list(self):
         """Test get_execution_list.
@@ -698,10 +699,10 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map)
+                           coupling_map=coupling_map, qobjid='cooljob')
         result = QP_program.get_execution_list()
         # print(result)
-        self.assertEqual(result, {'local_qasm_simulator': ['circuitName']})
+        self.assertEqual(result, {'cooljob': ['circuitName']})
         QP_program.delete_execution_list()
         result = QP_program.get_execution_list()
         # print(result)
