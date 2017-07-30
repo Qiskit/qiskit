@@ -2,15 +2,18 @@
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
-# This file is intended only for use during the USEQIP Summer School 2017.
-# Do not distribute.
-# It is provided without warranty or conditions of any kind, either express or
-# implied.
-# An open source version of this file will be included in QISKIT-DEV-PY
-# reposity in the future. Keep an eye on the Github repository for updates!
-# https://github.com/IBM/qiskit-sdk-py
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # =============================================================================
-
 """
 A collection of useful quantum information functions.
 
@@ -161,27 +164,27 @@ def devectorize(vec, method='col'):
 def choi_to_rauli(choi):
     """
     Convert a Choi-matrix to a Pauli-basis superoperator.
-    
+
     Note that this function assumes that the Choi-matrix
     is defined in the standard column-stacking converntion
     and is normalized to have trace 1. For a channel E this
     is defined as: choi = (I \otimes E)(bell_state).
-    
+
     The resulting 'rauli' R acts on input states as
     |rho_out>_p = R.|rho_in>_p
     where |rho> = vectorize(rho, method='pauli')
-    
+
     Args:
         Choi (matrix): the input Choi-matrix.
-    
+
     Returns:
         A superoperator in the Pauli basis.
     """
     # get number of qubits'
     n = int(np.log2(np.sqrt(len(choi))))
     pgp = pauli_group(n)
-    rauli = np.array([ np.trace(np.dot(choi, 
-                   np.kron(j.to_matrix().T, i.to_matrix()))) 
+    rauli = np.array([ np.trace(np.dot(choi,
+                   np.kron(j.to_matrix().T, i.to_matrix())))
                   for i in pgp for j in pgp])
     return rauli.reshape(4 ** n, 4 ** n)
 
