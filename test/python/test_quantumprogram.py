@@ -904,7 +904,7 @@ class TestQuantumProgram(unittest.TestCase):
         cr = QP_program.get_classical_register("cname")
         qc.h(qr[1])
         qc.measure(qr[0], cr[0])
-        shots = 1  # the number of shots in the experiment.
+        shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         # print(backend)
@@ -923,7 +923,7 @@ class TestQuantumProgram(unittest.TestCase):
         qc2.measure(qr[0], cr[0])
         qc3.measure(qr[0], cr[0])
         circuits = ['qc2', 'qc3']
-        shots = 1  # the number of shots in the experiment.
+        shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
@@ -931,13 +931,17 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(result, Result)
 
     def test_execute_one_circuit_real_online(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qr = QP_program.get_quantum_register("qname")
-        cr = QP_program.get_classical_register("cname")
+        """Test execute_one_circuit_real_online.
+
+        If all correct should return a result object
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 1, verbose=False)
+        cr = QP_program.create_classical_register("cr", 1, verbose=False)
         qc = QP_program.get_circuit("circuitName")
-        qc.h(qr[1])
+        qc = QP_program.create_circuit("circuitName", [qr], [cr])
+        qc.h(qr)
         qc.measure(qr[0], cr[0])
-        backend = None
         QP_program.set_api(API_TOKEN, URL)
         backend_list = QP_program.online_backends()
         if backend_list:
