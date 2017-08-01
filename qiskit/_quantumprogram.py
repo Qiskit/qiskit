@@ -910,10 +910,10 @@ class QuantumProgram(object):
                 # Clear the list of compiled programs to execute
                 return {"status": "ERROR", "result": output['ERROR']}
             qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-            # print(job_result)
-            if job_result['status'] == 'ERROR':
+            # print(qobj_result)
+            if qobj_result[0]['status'] == 'ERROR':
                 # Clear the list of compiled programs to execute
-                return job_result
+                return qobj_result
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
@@ -964,7 +964,7 @@ class QuantumProgram(object):
                 from pprint import pformat
                 raise Exception("get_job didn't return status: %s" % (pformat(job_result)))
             if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-                return {"status": "ERROR", "result": job_result['status']}
+                return {"status": "ERROR", "result": [job_result['status']]}
 
         # Get the results
         job_result_return = []

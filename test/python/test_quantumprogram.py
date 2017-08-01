@@ -842,6 +842,10 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertAlmostEqual(norm, 1)
 
     def test_local_unitary_simulator(self):
+        """Test unitary simulator .
+
+        If all correct should the h\otimes h and cx.
+        """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 2, verbose=False)
         c = QP_program.create_classical_register("c", 2, verbose=False)
@@ -903,10 +907,10 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
+        # print(backend)
         result = QP_program.execute(['circuitName'], backend=backend,
                                     shots=shots, max_credits=3, silent=True)
         self.assertIsInstance(result, Result)
-
 
     def test_execute_several_circuits_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -926,7 +930,6 @@ class TestQuantumProgram(unittest.TestCase):
                                     max_credits=3, silent=True)
         self.assertIsInstance(result, Result)
 
-
     def test_execute_one_circuit_real_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
@@ -935,15 +938,18 @@ class TestQuantumProgram(unittest.TestCase):
         qc.h(qr[1])
         qc.measure(qr[0], cr[0])
         backend = None
+        QP_program.set_api(API_TOKEN, URL)
         backend_list = QP_program.online_backends()
         if backend_list:
             backend = backend_list[0]
         shots = 1  # the number of shots in the experiment.
-        QP_program.set_api(API_TOKEN, URL)
-        result = QP_program.execute(['circuitName'], backend=backend,
-                                    shots=shots, max_credits=3)
-        self.assertIsInstance(result, Result)
-
+        status = QP_program.get_backend_status(backend)
+        if status['available'] is False:
+            pass
+        else:
+            result = QP_program.execute(['circuitName'], backend=backend,
+                                        shots=shots, max_credits=3)
+            self.assertIsInstance(result, Result)
 
     ###############################################################
     # More test cases for interesting examples
@@ -968,7 +974,6 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         result = QP_program.execute(circuits, backend=backend, shots=shots)
         self.assertIsInstance(result, Result)
-
 
 
 if __name__ == '__main__':
