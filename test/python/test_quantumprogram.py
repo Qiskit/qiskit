@@ -999,19 +999,11 @@ class TestQuantumProgram(unittest.TestCase):
 
     def test_add_circuit(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
-<<<<<<< HEAD
-        qc, qr, cr = QP_program.get_quantum_elements()
-        print(API_TOKEN, URL)
-        apiconnection = QP_program.set_api(API_TOKEN, URL)
-        qc2 = QP_program.create_circuit("qc2", ["qname"], ["cname"])
-        qc3 = QP_program.create_circuit("qc3", ["qname"], ["cname"])
-=======
         QP_program.set_api(API_TOKEN, URL)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
         qc3 = QP_program.create_circuit("qc3", [qr], [cr])
->>>>>>> Dev
         qc2.h(qr[0])
         qc3.h(qr[1])
         qc2.measure(qr[0], cr[0])
