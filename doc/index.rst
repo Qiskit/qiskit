@@ -51,8 +51,8 @@ this project, one can do,
    qc.cx(qr[0], qr[1])
    qc.measure(qr[0], cr[0])
    qc.measure(qr[1], cr[1])
-   qp.execute('Bell')
-   qp.get_counts('Bell')
+   result = qp.execute('Bell')
+   result.get_counts('Bell')
 
 The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 
