@@ -556,8 +556,8 @@ class QuantumProgram(object):
         
         elemements_to_save = self.__quantum_program
         
-        for circuit in elemements_to_save['circuits']:
-            elemements_to_save['circuits'][circuit]['circuit'] = elemements_to_save['circuits'][circuit]['circuit'].qasm()
+        for circuit in elemements_to_save:
+            elemements_to_save[circuit]['circuit'] = elemements_to_save[circuit]['circuit'].qasm()
 
         try:
             with open(file_name, 'w') as save_file:
@@ -596,9 +596,9 @@ class QuantumProgram(object):
             with open(file_name, 'r') as load_file:  
                 elemements_loaded = json.load(load_file)
             
-            for circuit in elemements_loaded['circuits']:
-                circuit_qasm = elemements_loaded['circuits'][circuit]['circuit']
-                elemements_loaded['circuits'][circuit]['circuit'] = qasm.Qasm(data=circuit_qasm).parse()
+            for circuit in elemements_loaded:
+                circuit_qasm = elemements_loaded[circuit]['circuit']
+                elemements_loaded[circuit]['circuit'] = qasm.Qasm(data=circuit_qasm).parse()
             self.__quantum_program = elemements_loaded
             
             return {"status": 'Done', 'result': self.__quantum_program}

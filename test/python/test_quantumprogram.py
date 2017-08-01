@@ -485,8 +485,8 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
         qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_registers("qname")
-        cr = QP_program.get_classical_registers("cname")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
 
         qc.u3(0.3, 0.2, 0.1, qr[0])
         qc.h(qr[1])
@@ -520,7 +520,7 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result['status'], 'Done')
         
         check_result = QP_program.get_qasm('circuitName')
-        self.assertEqual(len(check_result), 1824)
+        self.assertEqual(len(check_result), 1872)
     
     def test_load_wrong(self):
         """
