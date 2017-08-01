@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
 """
 Quantum Optimization tools.
 
@@ -14,7 +30,7 @@ import numpy as np
 from tools.pauli import Pauli, label_to_pauli
 
 
-def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 10):
+def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 1,last_avg=1):
     """Minimize the obj_fun(controls).
 
     initial_theta = the intial controls
@@ -26,6 +42,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
     cost_plus_save = []
     cost_minus_save = []
     theta = initial_theta
+    theta_best=np.zeros(initial_theta.shape)
     for k in range(max_trials):
         # SPSA Paramaters
         a_spsa = float(SPSA_parameters[0])/np.power(k+1+SPSA_parameters[4], SPSA_parameters[2])
@@ -51,10 +68,14 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
             theta_minus_save.append(theta_minus)
             cost_plus_save.append(cost_plus)
             cost_minus_save.append(cost_minus)
+
+        if k>=max_trials-last_avg:
+            theta_best+=theta/last_avg
+
     # final cost update
-    cost_final = obj_fun(theta)[0]
+    cost_final = obj_fun(theta_best)[0]
     print('Final objective function is: ' + str(cost_final))
-    return cost_final, theta, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
+    return cost_final, theta_best, cost_plus_save, cost_minus_save, theta_plus_save, theta_minus_save
 
 
 def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):

@@ -10,6 +10,7 @@ import io
 import logging
 import random
 import string
+import json
 import shutil
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -34,53 +35,144 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')
+        cls.pdf = PdfPages(cls.moduleName + '.pdf')        
         cls.logFileName = cls.moduleName + '.log'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO)
+        log_fmt = 'LocalQasmSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
+        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
+                            format=log_fmt)
 
-    @classmethod        
+    @classmethod
     def tearDownClass(cls):
         cls.pdf.close()
-    
+
     def setUp(self):
         self.seed = 88
         self.qasmFileName = os.path.join(qiskit.__path__[0],
                                          '../test/python/qasm/example.qasm')
         self.qp = QuantumProgram()
-    
+
     def tearDown(self):
         pass
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qp.load_qasm('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': circuit, 'config': config}
         result = QasmSimulator(job).run()
         self.assertEqual(result['status'], 'DONE')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
         shots = 1024
-        self.qp.load_qasm('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        job = {'compiled_circuit': circuit, 'shots': shots, 'seed': self.seed}
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': circuit, 'config': config}
         result = QasmSimulator(job).run()
-        expected = {'100100': 137, '011011': 131, '101101': 117, '111111': 127,
-                    '000000': 131, '010010': 141, '110110': 116, '001001': 124}
+        expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
+                    '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
         self.assertEqual(result['data']['counts'], expected)
 
+    def test_if_statement(self):
+        logging.info('test_if_statement_x')
+        shots = 100
+        max_qubits = 3
+        qp = QuantumProgram()
+        qr = qp.create_quantum_register('qr', max_qubits)
+        cr = qp.create_classical_register('cr', max_qubits)
+        circuit = qp.create_circuit('test_if', [qr], [cr])
+        circuit.x(qr[0])
+        circuit.x(qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.x(qr[2]).c_if(cr, 0x3)
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[2], cr[2])
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
+            unroll.JsonBackend(basis_gates))
+        ucircuit = json.loads(unroller.execute())
+        config = {'shots': shots, 'seed': self.seed}
+        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
+        result_if_true = QasmSimulator(job).run()
+        del ucircuit['operations'][1] # remove x(qr[1]) operation
+        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
+        result_if_false = QasmSimulator(job).run()
+
+        logging.info('result_if_true circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('result_if_true={0}'.format(result_if_true))
+
+        del circuit.data[1]
+        logging.info('result_if_false circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('result_if_false={0}'.format(result_if_false))
+        self.assertTrue(result_if_true['data']['counts']['111'] == 100)
+        self.assertTrue(result_if_false['data']['counts']['001'] == 100)
+
+    def test_teleport(self):
+        """test teleportation as in tutorials"""
+
+        logging.info('test_teleport')
+        pi = np.pi
+        shots = 1000
+        qp = QuantumProgram()
+        qr = qp.create_quantum_register('qr', 3)
+        cr0 = qp.create_classical_register('cr0', 1)
+        cr1 = qp.create_classical_register('cr1', 1)
+        cr2 = qp.create_classical_register('cr2', 1)
+        circuit = qp.create_circuit('teleport', [qr],
+                                    [cr0, cr1, cr2])
+        circuit.h(qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.ry(pi/4, qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.h(qr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr0[0])
+        circuit.measure(qr[1], cr1[0])
+        circuit.z(qr[2]).c_if(cr0, 1)
+        circuit.x(qr[2]).c_if(cr1, 1)
+        circuit.measure(qr[2], cr2[0])
+        backend = 'local_qasm_simulator'
+        qp.compile('teleport', backend=backend, shots=shots,
+                   seed=self.seed)
+        qp.run()
+        data = qp.get_counts('teleport')
+        alice = {}
+        bob = {}
+        alice['00'] = data['0 0 0'] + data['1 0 0']
+        alice['01'] = data['0 1 0'] + data['1 1 0']
+        alice['10'] = data['0 0 1'] + data['1 0 1']
+        alice['11'] = data['0 1 1'] + data['1 1 1']
+        bob['0'] = data['0 0 0'] + data['0 1 0'] +  data['0 0 1'] + data['0 1 1']
+        bob['1'] = data['1 0 0'] + data['1 1 0'] +  data['1 0 1'] + data['1 1 1']
+        logging.info('test_telport: circuit:')
+        logging.info( circuit.qasm() )
+        logging.info('test_teleport: data {0}'.format(data))
+        logging.info('test_teleport: alice {0}'.format(alice))
+        logging.info('test_teleport: bob {0}'.format(bob))
+        alice_ratio = 1/np.tan(pi/8)**2
+        bob_ratio = bob['0']/float(bob['1'])
+        error = abs(alice_ratio - bob_ratio) / alice_ratio
+        logging.info('test_teleport: relative error = {0:.4f}'.format(error))
+        self.assertLess(error, 0.05)
+
     def profile_qasm_simulator(self):
-        """Profile randomly generated circuits. 
+        """Profile randomly generated circuits.
 
         Writes profile results to <this_module>.prof as well as recording
         to the log file.
@@ -119,7 +211,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         pr.dump_stats(self.moduleName + '.prof')
 
     def profile_nqubit_speed_grow_depth(self):
-        """simulation time vs the number of qubits 
+        """simulation time vs the number of qubits
 
         where the circuit depth is 10x the number of simulated
         qubits. Also creates a pdf file with this module name showing a
@@ -133,7 +225,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         maxTime = 30 # seconds; timing stops when simulation time exceeds this number
         fmtStr1 = 'profile_nqubit_speed::nqubits:{0}, backend:{1}, elapsed_time:{2:.2f}'
         fmtStr2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
-        fmtStr3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits}, shots={shots}'        
+        fmtStr3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits}, shots={shots}'
         backendList = ['local_qasm_simulator', 'local_unitary_simulator']
         if shutil.which('qasm_simulator'):
             backendList.append('local_qasm_cpp_simulator')
@@ -141,7 +233,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
             logging.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
         fig = plt.figure(0)
         plt.clf()
-        ax = fig.add_axes((0.1, 0.25, 0.8, 0.6))        
+        ax = fig.add_axes((0.1, 0.25, 0.8, 0.6))
         for i, backend in enumerate(backendList):
             elapsedTime = np.zeros(len(nQubitList))
             if backend is 'local_unitary_simulator':
@@ -167,7 +259,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 if elapsedTime[j] > maxTime:
                     timedOut = True
                 logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
-                if backend is not 'local_unitary_simulator':                
+                if backend is not 'local_unitary_simulator':
                     for name in cnames:
                         logging.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
@@ -190,7 +282,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         self.pdf.savefig(fig)
 
     def profile_nqubit_speed_constant_depth(self):
-        """simulation time vs the number of qubits 
+        """simulation time vs the number of qubits
 
         where the circuit depth is fixed at 40. Also creates a pdf file
         with this module name showing a plot of the results. Compilation
@@ -240,7 +332,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 if elapsedTime[j] > maxTime:
                     timedOut = True
                 logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
-                if backend is not 'local_unitary_simulator':                
+                if backend is not 'local_unitary_simulator':
                     for name in cnames:
                         logging.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
@@ -261,36 +353,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                                     nCircuits=nCircuits, shots=shots))
             ax.legend()
         self.pdf.savefig(fig)
-        
-def generateTestSuite():
-    """
-    Generate module test suite.
-    """
-    testSuite = unittest.TestSuite()
-    testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator_single_shot'))
-    testSuite.addTest(LocalQasmSimulatorTest('test_qasm_simulator'))
-    return testSuite
-
-def generateProfileSuite():
-    """
-    Generate module profile suite.
-    """
-    profSuite = unittest.TestSuite()
-    profSuite.addTest(LocalQasmSimulatorTest('profile_qasm_simulator'))
-    profSuite.addTest(LocalQasmSimulatorTest('profile_nqubit_speed_constant_depth'))
-    profSuite.addTest(LocalQasmSimulatorTest('profile_nqubit_speed_grow_depth'))
-    return profSuite
-
-def main():
-    """
-    Optional command line entry point for testing. 
-    """
-    moduleName = os.path.splitext(__file__)[0]
-    testSuite = generateTestSuite()
-    profSuite = generateProfileSuite()
-    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
-    runner.run(testSuite)
-    runner.run(profSuite)
 
 if __name__ == '__main__':
-    main()
+    unittest.main()

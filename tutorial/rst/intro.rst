@@ -28,7 +28,7 @@ Introduction
 
 Welcome to QISKit! Interested in quantum computing and programming a
 real live quantum processor? QISKit is a simple set of tools for anyone
-to get started exploring quantum information science. We have put
+interested in exploring quantum information science. We have put
 together a set of Jupyter notebooks to demonstrate how to use our tools
 and explore the quantum world.
 
@@ -40,7 +40,7 @@ The notebooks are organized into the following topics:
 		 
 :ref:`verification_tools_for_quantum_science`
 
-:ref:`appications_of_short_depth_quantum_circuits_on_quantum_computers`
+:ref:`applications_of_short_depth_quantum_circuits_on_quantum_computers`
 			
 :ref:`quantum-games`
 
@@ -52,7 +52,7 @@ Introducing the tools
 In this first topic, we break down the tools in this QISKit SDK, and
 introduce all the different parts to make this useful. Our list of
 introductory notebooks:
-- :doc:`Getting Started with QISKit SDK <tutorial4developer>` shows how to use the the QISKit SDK tools.
+- :doc:`Getting Started with QISKit SDK <tutorial4developer>` shows how to use the QISKit SDK tools.
 - Compiling and Running a Quantum Progam [coming soon]
 - Loading and Saving a Quantum Program [coming soon]
 - Visualizing a Quantum State [coming soon]
@@ -70,7 +70,7 @@ of quantum information science.
    and demonstrates concepts such as quantum superpositions and
    entanglement.
 -  Single-qubit states: amplitude and phase [coming soon] illustrates
-   more complicated single qubit states.
+   more complicated single-qubit states.
 -  :doc:`Entanglement revisited <entanglement_revisited>` -
    illustrates the CHSH inequality, and extensions for three qubits
    (Mermin).
@@ -97,13 +97,13 @@ randomized benchmarking.
 - Simultaneous randomized benchmarking [coming soon]
 - Gate set tomography [coming soon]
 
-.. _appications_of_short_depth_quantum_circuits_on_quantum_computers:
+.. _applications_of_short_depth_quantum_circuits_on_quantum_computers:
 
 Applications of quantum information science
 ===========================================
 
 To fully grasp the possibilities, this set of notebooks shows how you
-can explore applications of short depth quantum computers.
+can explore applications of short-depth quantum computers.
 
 Sampling
 --------
@@ -115,7 +115,7 @@ Sampling
    soon] - illustrates how to use a quantum computer to look at
    chemistry problems.
 
-Non Sampling
+Non-Sampling
 ------------
 
 -  Iterative phase estimation [coming soon]

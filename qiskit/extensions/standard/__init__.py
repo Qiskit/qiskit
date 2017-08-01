@@ -5,6 +5,7 @@ from .cx import cx
 from .cxbase import cx_base
 from .cy import cy
 from .cz import cz
+from .swap import swap
 from .h import h
 from .iden import iden
 from .s import s

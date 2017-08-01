@@ -5,7 +5,7 @@ VQE algorithm: Application to quantum chemistry
 The latest version of this notebook is available on
 https://github.com/IBM/qiskit-sdk-py/tree/master/scripts.
 
-For more information about how to use the IBM Q Experience (QX), consult
+For more information about how to use the IBM Q experience (QX), consult
 the `Quantum Experience
 tutorials <https://quantumexperience.ng.bluemix.net/qstage/#/tutorial?sectionId=c59b3710b928891a1420190148a72cce&pageIndex=0>`__,
 or check out the
@@ -22,19 +22,19 @@ Introduction
 One of the earliest and most compelling applications of quantum
 computation is the idea of using quantum computers to simulate other
 quantum systems. Quantum simulation encompasses a range of tasks,
-including most significantly
+including, most significantly:
 
-1. simulation of the time evolution of quantum systems
+1. simulation of the time evolution of quantum systems, and
 2. computation of thermal or ground state properties.
 
-These tasks are useful for applications such as quantum chemistry and in
+These tasks are useful for applications such as quantum chemistry and
 the simulation of properties of strongly correlated materials. Here we
 will focus on the second one. These states encode a lot of the
 information about the physical system of interest, and are highly
 relevant for understanding the properties of materials and complex
 molecules. The ground state is the starting point for mapping out the
-phase diagram of condensed matter Hamiltonians and encodes the central
-information of electronic structure problems in quantum Chemistry. The
+phase diagram of condensed-matter Hamiltonians and encodes the central
+information of electronic structure problems in quantum chemistry. The
 problem asks the following:
 
 For some physical Hamiltonian *H*, (approximately) prepare the
@@ -42,51 +42,51 @@ eigenstate :math:`|\psi_G\rangle`, i.e.
 :math:`H|\psi_G\rangle=E_G|\psi_G\rangle`, where :math:`E_G` is the
 smallest eigenvalue of :math:`H`.
 
-It is known that in general this problem is intractable even on a
+It is known that in general, this problem is intractable, even on a
 quantum computer. This means that we cannot expect an efficient quantum
-algorithm which prepares the ground state of general local Hamiltonians.
+algorithm that prepares the ground state of general local Hamiltonians.
 Despite this limitation, for a specific Hamiltonian of interest it might
-be possible to exploit special structure to solve the above problem
+be possible to exploit special structures to solve the above problem
 efficiently. Currently, (at least) four different methods exist to
 approach this problem.
 
 1. Quantum phase estimation: Here we assume that we can approximately
-   prepare the state :math:`|\psi_G\rangle` and then this routine is
-   used to give the eigenvalue.
-2. Adiabatic theorem of quantum mechanics. Here we assume that the
-   system can be moved from an easy prepared ground state adiabtically
+   prepare the state :math:`|\psi_G\rangle` and this routine is
+   then used to give the eigenvalue.
+2. Adiabatic theorem of quantum mechanics: Here we assume that the
+   system can be moved from an easy prepared ground state adiabatically
    to the harder state.
-3. Variational quantum eigensolver. Here we assume that ground state can
-   be represented by a prameterization containing a small (e.g.,
+3. Variational quantum eigensolver: Here we assume that the ground state
+   can be represented by a parameterization containing a small (e.g.,
    polynomial) number of parameters.
-4. Dissipative (non-unitary) quantum operation which has the ground
-   state as a fixed point. Here we assume that we can design this
-   dissiapation map.
+4. Dissipative (non-unitary) quantum operation: The ground
+   state is a fixed point. Here we assume that we can design this
+   dissipation map.
 
 Here we are interested in the third method as this is most likely the
-simplest to be realized on near term devices.
+simplest to be realized on near-term devices.
 
-The general idea is to define a paremeterization
+The general idea is to define a parameterization
 :math:`|\psi(\theta)\rangle` and minimize the energy
 
-.. math:: E(\theta) = \langle \psi(\theta)| H |\psi(\theta)\rangle,
+.. math:: E(\theta) = \langle \psi(\theta)| H |\psi(\theta)\rangle.
 
 Assumption 1. The set of controls :math:`\theta^*` that minimizes this
-objective funtion has a size :math:`|\theta|` that ploynomial in number
-of qubits.
+objective function has a size :math:`|\theta|` that polynomial in number
+of qubits. ? FIX THIS LAST SENTENCE
 
 For any Hamiltoian (and shown below) this can be rewritten as a sum over
-pauli operations
+Pauli operations
 
 .. math:: H = \sum_i^M w_i P_i,
 
 then E(:raw-latex:`\theta`) can be estimated by sampling
 
-.. math:: E(\theta) = \sum_i^M w_i \langle \psi(\theta)| P_i |\psi(\theta)\rangle,
+.. math:: E(\theta) = \sum_i^M w_i \langle \psi(\theta)| P_i |\psi(\theta)\rangle.
 
 Assumption 2. The number of terms to be estimated is polynomial in the
-number of qubits. In the most general case :math:`M=4^n` but for
-physical interesting Hamiltonians like chemisty M = N^4 where N is the
+number of qubits. In the most general case, :math:`M=4^n`, but for
+physical interesting Hamiltonians like chemisty, M = N^4, where N is the
 number of orbitals.
 
 Fermi Hamiltonian
@@ -102,19 +102,19 @@ H2, LiH, BeH2, Water
 Approximate Universal Quantum Computing for quantum chemisty problems
 =====================================================================
 
-Recently there has been interest in investgating approximate algorithims
-for optimization [ADD REFS]. Here we show a slight variation to them
-which we have been looking at under the general concept of approximate
-quantum computing. In general we dont expect this to have a expodential
-speed up but due to the nature and importance of these problems it is
-worth investigating Heuristic approaches on a quantum computer. The hope
-is that that due to the large space of a quantum computer we can explore
-the problem by exploiting entanglement to trade expodential calls for
+Recently there has been interest in investgating approximate algorithms
+for optimization [ADD REFS]. Here we show a slight variation on them,
+which we have been exploring under the general concept of approximate
+quantum computing. In general, we don't expect this to have a exponential
+speed-up, but the nature and importance of these problems makes it
+worth investigating heuristic approaches on a quantum computer. The hope
+is that the large space of a quantum computer can make it possible
+to exploit entanglement and trade exponential calls for
 quantum depth.
 
-The Algorithm works as follows: 1. Choose a Ising problem (can have
+The algorithm works as follows: 1. Choose a Ising problem (can have
 higher powers of Z). 2. Choose the maximum depth of the quantum circuit
-(this could be done adaptively. 3. Choos a set of controls
+(this could be done adaptively). 3. Choose a set of controls
 :math:`\theta` and make a trial function :math:`|\psi(\theta)\rangle`.
 4. Evaluate
 :math:`C = \langle\psi~|H|~\psi\rangle = \sum_i w_i \langle\psi~|Z_i|~\psi\rangle+ \sum_{i<j} w_{ij} \langle\psi~|Z_iZ_j|~\psi\rangle`
@@ -123,32 +123,32 @@ together. 5. Use a classical optimizer to choose a new set of controls.
 6. Continue until the C has reach a minimium and return
 :math:`|\langle z~|\psi\rangle|^2`.
 
-Not some benifits on this over making this is real hardware is we are
+FIX NEXT PARAGRAPH:
+Not some benefits on this over making this is real hardware is we are
 not limited to the connectivity of the device and it is trival to map
 optimize problems to the virtual Hamiltonain which we make though
 simulation. Getting higher orders such as :math:`Z_iZ_jZ_k` is simple
 which in real hardware is generally possible. The noise is mainly due to
-the gates and if the depth is small enough we can perform this high
-fidelity.
+the gates, and if the depth is small enough, we can perform this high-fidelity.
 
-It is our belief the difficult of finding good Heuristic algorithms will
-come down ot the trial funciton. Do we choose a trial function that has
+It is our belief thatthe difficulty of finding good heuristic algorithms will
+come down to the trial function. Do we choose a trial function that has
 entanglement in a way that best aligns with the problem (as indicated in
-[REF]). or do we make the amount of entanglement a variable [REF]. These
-questions are beyond our goals here and we will consider only the
+[REF]), or do we make the amount of entanglement a variable [REF]? These
+questions are beyond our goals here, and we will consider only the
 simplie trial functions
 
-.. math:: |\psi(\theta)\rangle  = [U_\mathrm{single}(\theta) U_\mathrm{entangler}]^m |+\rangle
+.. math:: |\psi(\theta)\rangle  = [U_\mathrm{single}(\theta) U_\mathrm{entangler}]^m |+\rangle,
 
 where :math:`U_\mathrm{entangler}` is a function of cPhase gates (fully
 entangling), and
 :math:`U_\mathrm{single}(\theta) = Z(\theta_2)Y(\theta_1)^{\otimes n}`,
 where :math:`n` is the number of qubits and :math:`m` is the depth of
 the quantum circuit. The motivation for this choice is that for these
-classical problems this choice allows us to search over the space of
-states that have only real superpostions and dont have to worry about
-refocusing out all the complex phases but still can exploit the
-entanglment to search for solutions.
+classical problems, it allows us to search over the space of
+states that have only real superpositions; we don't have to worry about
+refocusing out all the complex phases, but still can exploit the
+entanglement to search for solutions.
 
 .. code:: python
 

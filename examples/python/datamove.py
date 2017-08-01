@@ -38,7 +38,7 @@ import Qconfig
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "Simulator"
+backend = "ibmqx_qasm_simulator"
 coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
@@ -73,9 +73,9 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("swapping")
-q = qp.get_quantum_registers("q")
-r = qp.get_quantum_registers("r")
-ans = qp.get_classical_registers("ans")
+q = qp.get_quantum_register("q")
+r = qp.get_quantum_register("r")
+ans = qp.get_classical_register("ans")
 
 # Set the first bit of q
 qc.x(q[0])
@@ -96,19 +96,16 @@ for j in range(n):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: not compiled
 result = qp.execute(["swapping"], backend=backend, coupling_map=None, shots=1024)
-print(qp.get_compiled_qasm("swapping"))
+print(qp.get_ran_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Second version: compiled to coupling graph
 result = qp.execute(["swapping"], backend=backend, coupling_map=coupling_map, shots=1024)
-print(qp.get_compiled_qasm("swapping"))
+print(qp.get_ran_qasm("swapping"))
 print(qp.get_counts("swapping"))
 
 # Both versions should give the same distribution

@@ -1,4 +1,0 @@
-// missing (
-
-gate cx b )  {   }
-
