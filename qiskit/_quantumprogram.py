@@ -92,7 +92,7 @@ class QuantumProgram(object):
                         {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
                         --backend name (string)--:
                             {
-                            "compiled_circuit": --compiled quantum circuit object (DAG format) --,
+                            "compiled_circuit_qasm": --compiled quantum circuit object (JSON format) --,
                             "config":
                                 {
                                 "basis_gates": --comma separated gate names (string)--,
@@ -132,7 +132,8 @@ class QuantumProgram(object):
                         [
                             {
                             "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (DAG format)--,
+                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
+                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
                             "config": --dictionary of additional config settings (dict)--,
                                 {
                                 "coupling_map": --adjacency list (dict)--,
@@ -806,7 +807,8 @@ class QuantumProgram(object):
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
-            job["compiled_circuit"] = dag_circuit
+            job["compiled_circuit"] = self._dag2json(dag_circuit)
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
             # add job to the qobj
             qobj["circuits"].append(job)
         self.__to_execute.append(qobj)
@@ -872,7 +874,7 @@ class QuantumProgram(object):
                 if qobj['id'] == qobjid:
                     for circuit in qobj["circuits"]:
                         if circuit['name'] == name:
-                            return circuit['compiled_circuit'].qasm()
+                            return circuit['compiled_circuit_qasm']
         except KeyError:
             raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
 
@@ -963,7 +965,7 @@ class QuantumProgram(object):
                 shots = qobj["config"]["shots"]
                 jobs = []
                 for job in qobj["circuits"]:
-                    jobs.append({'qasm': job["compiled_circuit"].qasm(qeflag=True)})
+                    jobs.append({'qasm': job["compiled_circuit_qasm"]})
                 if not silent:
                     print("running on backend: %s" % (backend))
                 output = self.__api.run_job(jobs, backend, shots, max_credits)
@@ -982,7 +984,7 @@ class QuantumProgram(object):
                 # but the list is made ordered
                 jobs = []
                 for job in qobj["circuits"]:
-                    jobs.append({"compiled_circuit": self._dag2json(job["compiled_circuit"]),
+                    jobs.append({"compiled_circuit": job["compiled_circuit"],
                                  "config": {**job["config"], **qobj["config"]}})
                 if not silent:
                     print("running on backend: %s" % (backend))
@@ -1010,7 +1012,7 @@ class QuantumProgram(object):
                 if backend not in self.__quantum_program[name]["execution"]:
                     self.__quantum_program[name]["execution"][backend] = {}
                 # TODO: return date, executionId, ...
-                self.__quantum_program[name]["execution"][backend]["compiled_circuit"] = job["compiled_circuit"]
+                self.__quantum_program[name]["execution"][backend]["compiled_circuit_qasm"] = job["compiled_circuit_qasm"]
                 self.__quantum_program[name]["execution"][backend]["config"]=job["config"]
                 # results filled in
                 if backend in self.__ONLINE_BACKENDS:
@@ -1171,7 +1173,7 @@ class QuantumProgram(object):
         if not backend:
             backend = self.__last_backend
         if name in self.__quantum_program:
-            return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm()
+            return self.__quantum_program[name]["execution"][backend]["compiled_circuit_qasm"]
         else:
             raise KeyError('circuit "{0}" not found in program'.format(name))
 

@@ -681,7 +681,7 @@ class TestQuantumProgram(unittest.TestCase):
                                     coupling_map=coupling_map)
         result = QP_program.get_complied_qasm('circuitName', qobjid)
         # print(result)
-        self.assertEqual(len(result), 255)
+        self.assertEqual(len(result), 184)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
