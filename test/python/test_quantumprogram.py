@@ -25,6 +25,7 @@ Authors: Ismael Faro <Ismael.Faro1@ibm.com>
 import sys
 import os
 import unittest
+import numpy as np
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
@@ -638,7 +639,8 @@ class TestQuantumProgram(unittest.TestCase):
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobjid='cooljob')
-        self.assertEqual(out, 'cooljob')
+        # print(out)
+        self.assertEqual(len(out), 3)
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
@@ -655,10 +657,9 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         coupling_map = None
-        qobjid = QP_program.compile(['circuitName'], backend=backend,
-                                    coupling_map=coupling_map)
-        result = QP_program.get_compiled_configuration('circuitName',
-                                                       qobjid)
+        qobj = QP_program.compile(['circuitName'], backend=backend,
+                                  coupling_map=coupling_map)
+        result = QP_program.get_compiled_configuration(qobj, 'circuitName')
         # print(result)
         self.assertEqual(len(result), 4)
 
@@ -677,9 +678,9 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         coupling_map = None
-        qobjid = QP_program.compile(['circuitName'], backend=backend,
-                                    coupling_map=coupling_map)
-        result = QP_program.get_complied_qasm('circuitName', qobjid)
+        qobj = QP_program.compile(['circuitName'], backend=backend,
+                                  coupling_map=coupling_map)
+        result = QP_program.get_complied_qasm(qobj, 'circuitName',)
         # print(result)
         self.assertEqual(len(result), 184)
 
@@ -698,36 +699,11 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         coupling_map = None
-        QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map, qobjid="cooljob")
-        result = QP_program.get_execution_list()
+        qobj = QP_program.compile(['circuitName'], backend=backend,
+                                  coupling_map=coupling_map, qobjid="cooljob")
+        result = QP_program.get_execution_list(qobj)
         # print(result)
-        self.assertEqual(result, {'cooljob': ['circuitName']})
-
-    def test_delete_execution_list(self):
-        """Test get_execution_list.
-
-        If all correct should return {}.
-        """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_register("qname")
-        cr = QP_program.get_classical_register("cname")
-        qc.h(qr[0])
-        qc.cx(qr[0], qr[1])
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-        backend = 'local_qasm_simulator'
-        coupling_map = None
-        QP_program.compile(['circuitName'], backend=backend,
-                           coupling_map=coupling_map, qobjid='cooljob')
-        result = QP_program.get_execution_list()
-        # print(result)
-        self.assertEqual(result, {'cooljob': ['circuitName']})
-        QP_program.delete_execution_list()
-        result = QP_program.get_execution_list()
-        # print(result)
-        self.assertEqual(result, {})
+        self.assertEqual(result, ['circuitName'])
 
     def test_compile_coupling_map(self):
         """Test compile_coupling_map.
@@ -751,13 +727,13 @@ class TestQuantumProgram(unittest.TestCase):
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2)}
         circuits = ["circuitName"]
-        QP_program.compile(circuits, backend=backend, shots=shots,
-                           coupling_map=coupling_map,
-                           initial_layout=initial_layout, seed=88)
-        QP_program.run()
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  coupling_map=coupling_map,
+                                  initial_layout=initial_layout, seed=88)
+        result = QP_program.run(qobj)
         to_check = QP_program.get_qasm("circuitName")
         self.assertEqual(len(to_check), 160)
-        self.assertEqual(QP_program.get_counts("circuitName"),
+        self.assertEqual(result.get_counts("circuitName"),
                          {'000': 518, '111': 506})
 
     ###############################################################
@@ -787,11 +763,11 @@ class TestQuantumProgram(unittest.TestCase):
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        QP_program.compile(circuits, backend=backend, shots=shots, seed=88)
-        out = QP_program.run()
-        self.assertEqual(out['status'], 'COMPLETED')
-        results2 = QP_program.get_counts('qc2')
-        results3 = QP_program.get_counts('qc3')
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88)
+        out = QP_program.run(qobj)
+        results2 = out.get_counts('qc2')
+        results3 = out.get_counts('qc3')
         self.assertEqual(results2, {'000': 518, '111': 506})
         self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
                                     '100': 117, '000': 129, '101': 126,
@@ -822,9 +798,8 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         out = QP_program.execute(circuits, backend=backend, shots=shots,
                                  seed=88)
-        self.assertEqual(out['status'], 'COMPLETED')
-        results2 = QP_program.get_counts('qc2')
-        results3 = QP_program.get_counts('qc3')
+        results2 = out.get_counts('qc2')
+        results3 = out.get_counts('qc3')
         # print(QP_program.get_data('qc3'))
         self.assertEqual(results2, {'000': 518, '111': 506})
         self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
@@ -832,6 +807,10 @@ class TestQuantumProgram(unittest.TestCase):
                                     '010': 145, '011': 125})
 
     def test_local_qasm_simulator_one_shot(self):
+        """Test sinlge shot of local simulator .
+
+        If all correct should the quantum state.
+        """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -839,14 +818,27 @@ class TestQuantumProgram(unittest.TestCase):
         qc3 = QP_program.create_circuit("qc3", [qr], [cr])
         qc2.h(qr[0])
         qc3.h(qr[0])
-        qc2.measure(qr[0], cr[0])
-        qc3.measure(qr[0], cr[0])
+        qc3.cx(qr[0], qr[1])
+        qc3.cx(qr[0], qr[2])
         circuits = ['qc2', 'qc3']
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1  # the number of shots in the experiment.
-        result = QP_program.execute(circuits, backend=backend, shots=shots)
-        print(QP_program.get_qasms(['qc2', 'qc3']))
-        self.assertEqual(result['status'], 'COMPLETED')
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    seed=9)
+        quantum_state = np.array([0.70710678+0.j, 0.70710678+0.j,
+                                  0.00000000+0.j, 0.00000000+0.j,
+                                  0.00000000+0.j, 0.00000000+0.j,
+                                  0.00000000+0.j, 0.00000000+0.j])
+        norm = np.dot(np.conj(quantum_state),
+                      result.get_data('qc2')['quantum_state'])
+        self.assertAlmostEqual(norm, 1)
+        quantum_state = np.array([0.70710678+0.j, 0+0.j,
+                                  0.00000000+0.j, 0.00000000+0.j,
+                                  0.00000000+0.j, 0.00000000+0.j,
+                                  0.00000000+0.j, 0.70710678+0.j])
+        norm = np.dot(np.conj(quantum_state),
+                      result.get_data('qc3')['quantum_state'])
+        self.assertAlmostEqual(norm, 1)
 
     def test_local_unitary_simulator(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
