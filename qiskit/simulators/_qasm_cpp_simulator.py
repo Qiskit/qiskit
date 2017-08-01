@@ -71,6 +71,8 @@ class QasmCppSimulator:
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
+            else:
+                self._exe = './' + self._exe
 
     def run(self, silent=True):
         """
