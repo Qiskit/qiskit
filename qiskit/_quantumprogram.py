@@ -96,8 +96,8 @@ class QuantumProgram(object):
                             "config":
                                 {
                                 "basis_gates": --comma separated gate names (string)--,
-                                "coupling_map": --adjacency list (dict)--,
-                                "layout": --layout computed by mapper (dict)--,
+                                "coupling_map": --edge list (list of lists)--,
+                                "layout": --layout computed by mapper (list of lists)--,
                                 "shots": --shots (int)--,
                                 "max_credits": --credits (int)--,
                                 },
@@ -136,9 +136,9 @@ class QuantumProgram(object):
                             "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
                             "config": --dictionary of additional config settings (dict)--,
                                 {
-                                "coupling_map": --adjacency list (dict)--,
+                                "coupling_map": --edge list (list of lists)--,
                                 "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
+                                "layout": --layout computed by mapper (list of lists)--,
                                 "seed": (simulator only)--initial seed for the simulator (int)--,
                                 }
                             },
@@ -611,19 +611,16 @@ class QuantumProgram(object):
                     for key in configuration:
                         new_key = convert(key)
                         # TODO: removed these from the API code
-                        if new_key not in  ['id','serial_number','topology_id','status', 'coupling_map']:
-                            configuration_edit[new_key] =configuration[key]
+                        if new_key not in ['id', 'serial_number', 'topology_id',
+                                           'status', 'coupling_map']:
+                            configuration_edit[new_key] = configuration[key]
                         if new_key == 'coupling_map':
                             if configuration[key] == 'all-to-all':
-                                configuration_edit[new_key] =configuration[key]
+                                configuration_edit[new_key] = \
+                                    configuration[key]
                             else:
-                                cmap={}
-                                for i in configuration[key]:
-                                    #print(i[0])
-                                    if i[0] in cmap.keys():
-                                        cmap[i[0]].append(i[1])
-                                    else:
-                                        cmap[i[0]] = [i[1]]
+                                cmap = mapper.coupling_list2dict(
+                                                configuration[key])
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
         for configuration in simulators.local_configuration:
@@ -682,7 +679,7 @@ class QuantumProgram(object):
                 new_key = convert(key)
                 parameters_edit[new_key] = vals
             return parameters_edit
-        elif  backend in self.__LOCAL_BACKENDS:
+        elif backend in self.__LOCAL_BACKENDS:
             return {'backend': backend, 'parameters': None}
         else:
             raise LookupError(
@@ -721,7 +718,7 @@ class QuantumProgram(object):
                                     ...
                                 }
                                 eg. {0: [2], 1: [2], 3: [2]}
-            intial_layout (dict): A mapping of qubit to qubit
+            initial_layout (dict): A mapping of qubit to qubit
                                   {
                                     ("q", strart(int)): ("q", final(int)),
                                     ...
@@ -740,14 +737,14 @@ class QuantumProgram(object):
         Returns:
             the job id and populates the internal __to_exectute object
         """
-        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits and seed are extra inputs but I would like them to go
-        # into the confg.
+        # into the config.
 
         qobj = {}
         if not qobjid:
-            qobjid ="".join([random.choice(string.ascii_letters+string.digits)
-                                for n in range(30)])
+            qobjid = "".join([random.choice(string.ascii_letters+string.digits)
+                              for n in range(30)])
         qobj['id'] = qobjid
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
@@ -764,7 +761,7 @@ class QuantumProgram(object):
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             dag_circuit = self._unroller_code(self.__quantum_program[name]['circuit'],
-                                             basis_gates=basis_gates)
+                                              basis_gates=basis_gates)
             final_layout = None
             # if a coupling map is given compile to the map
             if coupling_map:
@@ -799,8 +796,12 @@ class QuantumProgram(object):
                 config = {}  # default to empty config dict
             job["config"] = config
             # TODO: Jay: make config options optional for different backends
-            job["config"]["coupling_map"] = coupling_map
-            job["config"]["layout"] = final_layout
+            job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
+            # Map the layout to a format that can be json encoded
+            list_layout = None
+            if final_layout:
+                list_layout = [[k, v] for k, v in final_layout.items()]
+            job["config"]["layout"] = list_layout
             job["config"]["basis_gates"] = basis_gates
             if seed is None:
                 job["config"]["seed"] = int.from_bytes(os.urandom(4), byteorder="big")
@@ -839,8 +840,8 @@ class QuantumProgram(object):
                     print('  circuit name: ' + circuit["name"])
                     print('  circuit config:')
                     for key in circuit['config']:
-                        print('   '+ key + ': ' + str(circuit['config'][key]))
-            execution_list_all[qobjs['id']] =  execution_list
+                        print('   ' + key + ': ' + str(circuit['config'][key]))
+            execution_list_all[qobjs['id']] = execution_list
         return execution_list_all
 
     def get_compiled_configuration(self, name, qobjid):

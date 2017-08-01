@@ -12,9 +12,7 @@ import random
 import string
 import json
 import shutil
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.ticker import MaxNLocator
 try:
     import qiskit
 except ImportError as ierr:
@@ -217,6 +215,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         qubits. Also creates a pdf file with this module name showing a
         plot of the results. Compilation is not included in speed.
         """
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
         qubitRangeMax = 15
         nQubitList = range(1,qubitRangeMax + 1)
         nCircuits = 10
@@ -288,6 +288,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         with this module name showing a plot of the results. Compilation
         is not included in speed.
         """
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
         qubitRangeMax = 15
         nQubitList = range(1,qubitRangeMax + 1)
         maxDepth = 40
