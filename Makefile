@@ -38,6 +38,7 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
+	pip install -U -r requires.txt
 	python3 -m unittest discover -v
 
 profile:
