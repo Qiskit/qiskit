@@ -767,7 +767,7 @@ class QuantumProgram(object):
             job["config"]["layout"] = list_layout
             job["config"]["basis_gates"] = basis_gates
             if seed is None:
-                job["config"]["seed"] = int.from_bytes(os.urandom(4), byteorder="big")
+                job["config"]["seed"] = random.getrandbits(128) # int.from_bytes(os.urandom(4), byteorder="big")
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag

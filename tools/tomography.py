@@ -329,14 +329,13 @@ def marginal_counts(counts, meas_qubits):
     return dict(zip(meas_keys, meas_counts))
 
 
-def state_tomography_data(Q_program, name, meas_qubits,
-                          backend=None, basis=None):
+def state_tomography_data(data, name, meas_qubits, basis=None):
     """
     """
     if basis is None:
         basis = __default_basis
     labels = state_tomography_labels(name, meas_qubits)
-    counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits)
+    counts = [marginal_counts(data.get_counts(circ), meas_qubits)
               for circ in labels]
     shots = [sum(c.values()) for c in counts]
     meas_basis = __meas_basis(len(meas_qubits), basis)
@@ -345,8 +344,7 @@ def state_tomography_data(Q_program, name, meas_qubits,
     return ret
 
 
-def process_tomography_data(Q_program, name, meas_qubits,
-                            backend=None, basis=None):
+def process_tomography_data(data, name, meas_qubits, basis=None):
     """
     """
     if basis is None:

@@ -914,6 +914,33 @@ class TestQuantumProgram(unittest.TestCase):
                                     initial_layout=initial_layout, seed=5455)
         self.assertEqual(result.get_counts("circuit-dev"), {'10010': 100})
 
+    def test_average_data(self):
+        """Test average_data.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram()
+        q = QP_program.create_quantum_register("q", 2, verbose=False)
+        c = QP_program.create_classical_register("c", 2, verbose=False)
+        qc = QP_program.create_circuit("qc", [q], [c])
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        circuits = ['qc']
+        shots = 10000  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        results = QP_program.execute(circuits, backend=backend, shots=shots)
+        observable = {"00": 1, "11": 1, "01": -1, "10": -1}
+        meanzz = results.average_data("qc", observable)
+        observable = {"00": 1, "11": -1, "01": 1, "10": -1}
+        meanzi = results.average_data("qc", observable)
+        observable = {"00": 1, "11": -1, "01": -1, "10": 1}
+        meaniz = results.average_data("qc", observable)
+        self.assertAlmostEqual(meanzz,  1, places=1)
+        self.assertAlmostEqual(meanzi,  0, places=1)
+        self.assertAlmostEqual(meaniz,  0, places=1)
+
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
