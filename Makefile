@@ -38,15 +38,13 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
-	pip install -U -r requires.txt
 	python3 -m unittest discover -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
 doc:
-	sphinx-apidoc -f -o doc -d 4 -P -e qiskit
-	make -C doc html
+	export PYTHONPATH=$(PWD);sphinx-apidoc -f -o doc -d 4 -P -e qiskit;make -C doc html
 
 clean:
 	make -C doc clean

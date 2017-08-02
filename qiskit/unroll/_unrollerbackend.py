@@ -16,15 +16,15 @@
 # =============================================================================
 
 """
-Base backend object for the unroller that raises BackendException.
+Base backend object for the unroller that raises BackendError.
 
 Author: Andrew Cross
 """
-from ._backendexception import BackendException
+from ._backenderror import BackendError
 
 
 class UnrollerBackend(object):
-    """Backend for the unroller that raises BackendException.
+    """Backend for the unroller that raises BackendError.
 
     This backend also serves as a base class for other unroller backends.
     """
@@ -36,21 +36,21 @@ class UnrollerBackend(object):
         """
         if basis:
             basis = []
-        raise BackendException("Backend __init__ unimplemented")
+        raise BackendError("Backend __init__ unimplemented")
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit.
 
         basis is a list of operation name strings.
         """
-        raise BackendException("Backend set_basis unimplemented")
+        raise BackendError("Backend set_basis unimplemented")
 
     def version(self, version):
         """Print the version string.
 
         v is a version number.
         """
-        raise BackendException("Backend version unimplemented")
+        raise BackendError("Backend version unimplemented")
 
     def new_qreg(self, name, size):
         """Create a new quantum register.
@@ -58,7 +58,7 @@ class UnrollerBackend(object):
         name = name of the register
         sz = size of the register
         """
-        raise BackendException("Backend new_qreg unimplemented")
+        raise BackendError("Backend new_qreg unimplemented")
 
     def new_creg(self, name, size):
         """Create a new classical register.
@@ -66,7 +66,7 @@ class UnrollerBackend(object):
         name = name of the register
         sz = size of the register
         """
-        raise BackendException("Backend new_creg unimplemented")
+        raise BackendError("Backend new_creg unimplemented")
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -74,7 +74,7 @@ class UnrollerBackend(object):
         name is a string.
         gatedata is the AST node for the gate.
         """
-        raise BackendException("Backend define_gate unimplemented")
+        raise BackendError("Backend define_gate unimplemented")
 
     def u(self, arg, qubit):
         """Fundamental single qubit gate.
@@ -82,7 +82,7 @@ class UnrollerBackend(object):
         arg is 3-tuple of float parameters.
         qubit is (regname,idx) tuple.
         """
-        raise BackendException("Backend u unimplemented")
+        raise BackendError("Backend u unimplemented")
 
     def cx(self, qubit0, qubit1):
         """Fundamental two qubit gate.
@@ -90,7 +90,7 @@ class UnrollerBackend(object):
         qubit0 is (regname,idx) tuple for the control qubit.
         qubit1 is (regname,idx) tuple for the target qubit.
         """
-        raise BackendException("Backend cx unimplemented")
+        raise BackendError("Backend cx unimplemented")
 
     def measure(self, qubit, bit):
         """Measurement operation.
@@ -98,21 +98,21 @@ class UnrollerBackend(object):
         qubit is (regname, idx) tuple for the input qubit.
         bit is (regname, idx) tuple for the output bit.
         """
-        raise BackendException("Backend measure unimplemented")
+        raise BackendError("Backend measure unimplemented")
 
     def barrier(self, qubitlists):
         """Barrier instruction.
 
         qubitlists is a list of lists of (regname, idx) tuples.
         """
-        raise BackendException("Backend barrier unimplemented")
+        raise BackendError("Backend barrier unimplemented")
 
     def reset(self, qubit):
         """Reset instruction.
 
         qubit is a (regname, idx) tuple.
         """
-        raise BackendException("Backend reset unimplemented")
+        raise BackendError("Backend reset unimplemented")
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -120,11 +120,11 @@ class UnrollerBackend(object):
         creg is a name string.
         cval is the integer value for the test.
         """
-        raise BackendException("Backend set_condition unimplemented")
+        raise BackendError("Backend set_condition unimplemented")
 
     def drop_condition(self):
         """Drop the current condition."""
-        raise BackendException("Backend drop_condition unimplemented")
+        raise BackendError("Backend drop_condition unimplemented")
 
     def start_gate(self, name, args, qubits):
         """Begin a custom gate.
@@ -133,7 +133,7 @@ class UnrollerBackend(object):
         args is list of floating point parameters.
         qubits is list of (regname, idx) tuples.
         """
-        raise BackendException("Backend start_gate unimplemented")
+        raise BackendError("Backend start_gate unimplemented")
 
     def end_gate(self, name, args, qubits):
         """End a custom gate.
@@ -142,11 +142,11 @@ class UnrollerBackend(object):
         args is list of floating point parameters.
         qubits is list of (regname, idx) tuples.
         """
-        raise BackendException("Backend end_gate unimplemented")
+        raise BackendError("Backend end_gate unimplemented")
 
     def get_output(self):
         """Returns the output generated by the backend.
         Depending on the type of Backend, the output could have different types.
         It must be called once the Qasm parsing has finished
         """
-        raise BackendException("Backend get_output unimplemented")
+        raise BackendError("Backend get_output unimplemented")

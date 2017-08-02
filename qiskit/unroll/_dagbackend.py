@@ -21,7 +21,7 @@ Backend for the unroller that creates a DAGCircuit object.
 Author: Andrew Cross
 """
 from ._unrollerbackend import UnrollerBackend
-from ._backendexception import BackendException
+from ._backenderror import BackendError
 from ..dagcircuit import DAGCircuit
 
 
@@ -179,7 +179,7 @@ class DAGBackend(UnrollerBackend):
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendException("opaque gate %s not in basis" % name)
+            raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             if self.creg is not None:
                 condition = (self.creg, self.cval)

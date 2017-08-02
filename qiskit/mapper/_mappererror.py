@@ -16,14 +16,15 @@
 # =============================================================================
 
 """
-Exception for errors raised by unroller backends.
+Exception for errors raised by mapper module.
 
-Author: Andrew Cross
+Author: Juan Gomez
 """
 
+from qiskit import QISKitError
 
-class BackendException(Exception):
-    """Base class for errors raised by unroller backends."""
+class MapperError(QISKitError):
+    """Base class for errors raised by mapper module."""
 
     def __init__(self, *message):
         """Set the error message."""
