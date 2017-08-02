@@ -18,8 +18,6 @@
 Basic plotting methods using matplotlib.
 
 These include methods to plot Bloch vectors, histograms, and quantum spheres.
-
-Author: Andrew Cross, Jay Gambetta
 """
 import matplotlib.pyplot as plt
 import numpy as np

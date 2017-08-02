@@ -17,8 +17,6 @@
 
 """Contains functions used by the simulators.
 
-Author: Jay Gambetta and John Smolin
-
 Functions
     index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
@@ -132,7 +130,7 @@ def single_gate_matrix(gate, params=None):
     Args:
         params(list): the operation parameters op['params']
     Returns:
-        A numpy array representing the matrix 
+        A numpy array representing the matrix
     """
     (theta, phi, lam) = single_gate_params(gate, params)
     return np.array([[np.cos(theta/2.0),

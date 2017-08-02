@@ -117,3 +117,5 @@ test/python/test_qasm_python_simulator.pdf
 doc/_build/*
 
 doc/qiskit.*
+
+qiskit/bin/*

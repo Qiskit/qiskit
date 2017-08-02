@@ -17,9 +17,6 @@
 """
 Functions for performing quantum state and process tomography experiments.
 
-Author: Christopher J. Wood <cjwood@us.ibm.com>
-        Jay Gambetta
-
 TODO:
     - Find and fix bug with 2-qubit process tomography basis
     - SDP fitting

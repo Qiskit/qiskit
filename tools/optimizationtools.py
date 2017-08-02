@@ -18,8 +18,6 @@
 Quantum Optimization tools.
 
 These are simple tools that are used in our optimization examples
-
-Author: Jay Gambetta and Antonio Mezzacapo
 """
 import sys
 import os

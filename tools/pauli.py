@@ -18,8 +18,6 @@
 Tools for working with Pauli Operators.
 
 A simple pauli class and some tools.
-
-Author: Jay Gambetta and Andrew Cross
 """
 import random
 import numpy as np

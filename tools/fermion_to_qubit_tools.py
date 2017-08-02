@@ -17,8 +17,6 @@
 """
 File: fermion_to_qubit_tools.py
 
-Author: Antonio Mezzacapo
-
 Description:
 
 A set of functions that map fermionic Hamiltonians to qubit Hamiltonians. fermionic_maps maps a one- and two-electron

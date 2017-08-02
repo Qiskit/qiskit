@@ -17,9 +17,6 @@
 """
 A collection of useful quantum information functions.
 
-Author: Christopher J. Wood <cjwood@us.ibm.com>
-        Jay Gambetta
-
 Currently this file is very sparse. More functions will be added
 over time.
 """

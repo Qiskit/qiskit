@@ -16,10 +16,6 @@
 # =============================================================================
 """
 Quantum Program QISKit Test.
-
-Authors: Ismael Faro <Ismael.Faro1@ibm.com>
-         Jesus Perez <jesusper@us.ibm.com>
-         Jay Gambetta
 """
 
 import sys
@@ -521,10 +517,10 @@ class TestQuantumProgram(unittest.TestCase):
 
         result = QP_program.load("./test/python/test_load.json")
         self.assertEqual(result['status'], 'Done')
-        
+
         check_result = QP_program.get_qasm('circuitName')
         self.assertEqual(len(check_result), 1872)
-    
+
     def test_load_wrong(self):
         """
         Load a Json Quantum Program: Errors Control

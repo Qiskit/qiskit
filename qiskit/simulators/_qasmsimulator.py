@@ -18,8 +18,6 @@
 
 """Contains a (slow) python simulator.
 
-Author: Jay Gambetta and John Smolin
-
 It simulates a qasm quantum circuit that has been compiled to run on the
 simulator. It is exponential in the number of qubits.
 

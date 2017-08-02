@@ -16,10 +16,6 @@
 # =============================================================================
 """
 Visualization functions for quantum states.
-
-Author: Jay Gambetta
-        Andrew Cross
-        Christopher J. Wood
 """
 
 import numpy as np
