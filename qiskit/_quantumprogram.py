@@ -360,7 +360,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_registers[name]
         except KeyError:
-            return "No quantum register of name " + name
+            raise KeyError('No quantum register "{0}"'.format(name))
 
     def get_classical_register(self, name):
         """Return a Classical Register by name.
@@ -373,7 +373,7 @@ class QuantumProgram(object):
         try:
             return self.__classical_registers[name]
         except KeyError:
-            return "No classical register of name" + name
+            raise KeyError('No classical register "{0}"'.format(name))
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
@@ -393,7 +393,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_program[name]
         except KeyError:
-            return "No quantum circuit of this name" + name
+            raise KeyError('No quantum circuit "{0}"'.format(name))
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
@@ -1034,7 +1034,7 @@ class QuantumProgram(object):
                                     ...
                                 }
                                 eg. {0: [2], 1: [2], 3: [2]}
-            intial_layout (dict): A mapping of qubit to qubit
+            initial_layout (dict): A mapping of qubit to qubit
                                   {
                                   ("q", strart(int)): ("q", final(int)),
                                   ...
