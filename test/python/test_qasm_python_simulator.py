@@ -106,7 +106,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         config = {'shots': shots, 'seed': self.seed}
         job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_true = QasmSimulator(job).run()
-        del ucircuit['operations'][1] # remove x(qr[1]) operation
+        del ucircuit['operations'][1]  # remove x(qr[1]) operation
         job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_false = QasmSimulator(job).run()
 

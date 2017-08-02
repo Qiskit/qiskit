@@ -789,10 +789,10 @@ class QuantumProgram(object):
         execution_list_all = {}
         execution_list = []
         if verbose:
-            print("qobj id: %s" % qobj['id'])
+            print("id: %s" % qobj['id'])
             print("backend: %s" % qobj['config']['backend'])
             print("qobj config:")
-            for key in qobjs['config']:
+            for key in qobj['config']:
                 if key != 'backend':
                     print(' '+ key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
@@ -1144,7 +1144,7 @@ class Result(object):
                 if qobj["circuits"][index]['name'] == name:
                     return self.__result[index]["data"]
         except KeyError:
-            raise KeyError('No  qasm for circuit "{0}"'.format(name))
+            raise KeyError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
         """Get the histogram data of cicuit name.
@@ -1159,7 +1159,10 @@ class Result(object):
         Returns:
             A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
         """
-        return self.get_data(name)['counts']
+        try:
+            return self.get_data(name)['counts']
+        except KeyError:
+            raise KeyError('No counts for circuit "{0}"'.format(name))
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.

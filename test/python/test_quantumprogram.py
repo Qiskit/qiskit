@@ -27,7 +27,6 @@ import os
 import unittest
 import numpy as np
 
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
 from qiskit import Result
@@ -39,6 +38,8 @@ from qiskit import QISKitException
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
                               '../../examples/qasm/simple8qbit.qasm')
+QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
+                                '../../examples/qasm/plaquettecheck.qasm')
 
 
 # We need the environment variable for Travis.
@@ -842,9 +843,9 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertAlmostEqual(norm, 1)
 
     def test_local_unitary_simulator(self):
-        """Test unitary simulator .
+        """Test unitary simulator.
 
-        If all correct should the h\otimes h and cx.
+        If all correct should the h otimes h and cx.
         """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 2, verbose=False)
@@ -869,33 +870,49 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertAlmostEqual(norm2, 4)
 
     def test_run_program_map(self):
+        """Test run_program_map.
+
+        If all correct should return 10010.
+        """
         QP_program = QuantumProgram()
         QP_program.set_api(API_TOKEN, URL)
         backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1  # the number of shots in the experiment.
+        shots = 100  # the number of shots in the experiment.
         max_credits = 3
-        coupling_map = None
-        QP_program.load_qasm_file(QASM_FILE_PATH, name="circuit-dev")
+        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
+                          ("q", 2): ("q", 2), ("q", 3): ("q", 3),
+                          ("q", 4): ("q", 4)}
+        QP_program.load_qasm_file(QASM_FILE_PATH_2, name="circuit-dev")
         circuits = ["circuit-dev"]
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
-                                  max_credits=max_credits,
-                                  coupling_map=coupling_map)
+                                  max_credits=max_credits, seed=65,
+                                  coupling_map=coupling_map,
+                                  initial_layout=initial_layout)
         result = QP_program.run(qobj)
-        self.assertIsInstance(result, Result)
+        self.assertEqual(result.get_counts("circuit-dev"), {'10010': 100})
 
     def test_execute_program_map(self):
+        """Test execute_program_map.
+
+        If all correct should return 10010.
+        """
         QP_program = QuantumProgram()
         QP_program.set_api(API_TOKEN, URL)
         backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1  # the number of shots in the experiment.
+        shots = 100  # the number of shots in the experiment.
         max_credits = 3
-        coupling_map = None
-        QP_program.load_qasm_file(QASM_FILE_PATH, "circuit-dev")
+        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
+                          ("q", 2): ("q", 2), ("q", 3): ("q", 3),
+                          ("q", 4): ("q", 4)}
+        QP_program.load_qasm_file(QASM_FILE_PATH_2, "circuit-dev")
         circuits = ["circuit-dev"]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
                                     max_credits=max_credits,
-                                    coupling_map=coupling_map)
-        self.assertIsInstance(result, Result)
+                                    coupling_map=coupling_map,
+                                    initial_layout=initial_layout, seed=5455)
+        self.assertEqual(result.get_counts("circuit-dev"), {'10010': 100})
 
     def test_execute_one_circuit_simulator_online(self):
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -959,24 +976,29 @@ class TestQuantumProgram(unittest.TestCase):
     ###############################################################
 
     def test_add_circuit(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        QP_program.set_api(API_TOKEN, URL)
-        qr = QP_program.get_quantum_register("qname")
-        cr = QP_program.get_classical_register("cname")
+        """Test add two circuits.
+
+        If all correct should return the data
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 2, verbose=False)
+        cr = QP_program.create_classical_register("cr", 2, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
-        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc3.h(qr[1])
-        qc2.measure(qr[0], cr[0])
-        qc3.measure(qr[0], cr[0])
-        new_circuit = qc2 + qc3
+        QP_program.set_api(API_TOKEN, URL)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        new_circuit = qc1 + qc2
         QP_program.add_circuit('new_circuit', new_circuit)
         # new_circuit.measure(qr[0], cr[0])
         circuits = ['new_circuit']
         backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1  # the number of shots in the experiment.
-        result = QP_program.execute(circuits, backend=backend, shots=shots)
-        self.assertIsInstance(result, Result)
+        shots = 1024  # the number of shots in the experiment.
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    seed=78)
+        self.assertEqual(result.get_counts('new_circuit'),
+                         {'00': 505, '01': 519})
 
 
 if __name__ == '__main__':
