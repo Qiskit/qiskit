@@ -52,14 +52,6 @@ from tools.qi import vectorize, devectorize, outer
 # Tomography circuit generation
 ###############################################################
 
-
-"""
-Basis should be specified as a dictionary
-Eg: {'X': [X0, X1], 'Y': [Y0, Y1], 'Z': [Z0, Z1]}
-where X0 is the projector onto the 0 outcome state of 'X'
-"""
-
-
 def build_state_tomography_circuits(Q_program, name, qubits, qreg, creg,
                                     silent=False):
     """
@@ -263,6 +255,7 @@ def __add_prep_circuits(Q_program, name, qubits, qreg, creg):
 ###############################################################
 # Tomography circuit labels
 ###############################################################
+
 def __tomo_labels(name, qubits, basis=None, states=False):
     """Helper function.
     """
@@ -322,6 +315,7 @@ def process_tomography_circuit_names(name, qubits):
 ###############################################################
 # Preformatting count data
 ###############################################################
+
 def __counts_keys(n):
     """Generate outcome bitstrings for n-qubits.
 
@@ -529,6 +523,7 @@ def process_tomography_data(Q_program, name, meas_qubits, backend=None,
 ###############################################################
 # Tomographic Reconstruction functions.
 ###############################################################
+
 def __tomo_basis_matrix(meas_basis):
     """Return a matrix of vectorized measurement operators.
 
