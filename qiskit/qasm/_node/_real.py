@@ -19,7 +19,9 @@
 Node for an OPENQASM real number.
 
 Author: Jim Challenger
+        Andrew Cross
 """
+import math
 from ._node import Node
 
 
@@ -39,6 +41,18 @@ class Real(Node):
         ind = indent * ' '
         print(ind, 'real', self.value)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "%0.15f" % self.value  # TODO: control the precision
+        fspec = "%%0.%df" % prec
+        return fspec % self.value
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the corresponding math mode latex string."""
+        if math.isclose(self.value, math.pi):
+            return "\\pi"
+        fspec = "%%0.%df" % prec
+        return fspec % self.value
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        return self.value

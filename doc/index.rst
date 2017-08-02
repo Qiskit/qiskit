@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-==========
-QISKit SDK
-==========
+======
+QISKit
+======
 Quantum Information Software Kit
 
 Project Overview
@@ -15,7 +15,7 @@ The QISKit project comprises:
 
 * `QISKit API <https://github.com/IBM/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
-  connect and and execute OPENQASM code.
+  connect and and execute OpenQASM code.
 
 * `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Provides
   support for the Quantum Experience circuit generation phase and lets
@@ -51,8 +51,8 @@ this project, one can do,
    qc.cx(qr[0], qr[1])
    qc.measure(qr[0], cr[0])
    qc.measure(qr[1], cr[1])
-   qp.execute('Bell')
-   qp.get_counts('Bell')
+   result = qp.execute('Bell')
+   result.get_counts('Bell')
 
 The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 

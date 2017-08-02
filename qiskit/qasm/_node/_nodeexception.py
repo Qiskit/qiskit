@@ -16,19 +16,19 @@
 # =============================================================================
 
 """
-Exception for errors raised by unroller backends.
+Exception for errors raised while interpreting nodes.
 
 Author: Andrew Cross
 """
 
 
-class BackendException(Exception):
-    """Base class for errors raised by unroller backends."""
+class NodeException(Exception):
+    """Base class for errors raised while interpreting nodes."""
 
-    def __init__(self, *message):
+    def __init__(self, *msg):
         """Set the error message."""
-        self.message = ' '.join(message)
+        self.msg = ' '.join(msg)
 
     def __str__(self):
         """Return the message."""
-        return repr(self.message)
+        return repr(self.msg)

@@ -12,9 +12,7 @@ import random
 import string
 import json
 import shutil
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.ticker import MaxNLocator
 try:
     import qiskit
 except ImportError as ierr:
@@ -35,7 +33,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')        
+        cls.pdf = PdfPages(cls.moduleName + '.pdf')
         cls.logFileName = cls.moduleName + '.log'
         log_fmt = 'LocalQasmSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
         logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
@@ -108,7 +106,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         config = {'shots': shots, 'seed': self.seed}
         job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_true = QasmSimulator(job).run()
-        del ucircuit['operations'][1] # remove x(qr[1]) operation
+        del ucircuit['operations'][1]  # remove x(qr[1]) operation
         job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
         result_if_false = QasmSimulator(job).run()
 
@@ -148,10 +146,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
         backend = 'local_qasm_simulator'
-        qp.compile('teleport', backend=backend, shots=shots,
+        qobj = qp.compile('teleport', backend=backend, shots=shots,
                    seed=self.seed)
-        qp.run()
-        data = qp.get_counts('teleport')
+        results = qp.run(qobj)
+        data = results.get_counts('teleport')
         alice = {}
         bob = {}
         alice['00'] = data['0 0 0'] + data['1 0 0']
@@ -217,6 +215,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         qubits. Also creates a pdf file with this module name showing a
         plot of the results. Compilation is not included in speed.
         """
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
         qubitRangeMax = 15
         nQubitList = range(1,qubitRangeMax + 1)
         nCircuits = 10
@@ -288,6 +288,8 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         with this module name showing a plot of the results. Compilation
         is not included in speed.
         """
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
         qubitRangeMax = 15
         nQubitList = range(1,qubitRangeMax + 1)
         maxDepth = 40

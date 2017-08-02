@@ -27,6 +27,7 @@ Authors: Andrew Cross <awcross@us.ibm.com>
 # pylint: disable=line-too-long
 import time
 import random
+import json
 from collections import Counter
 import json
 import os
@@ -40,7 +41,7 @@ from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
-from . import QISKitException
+from . import QISKitError
 
 # Beta Modules
 from . import unroll
@@ -56,9 +57,11 @@ import qiskit.extensions.standard
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
 def convert(name):
     s1 = first_cap_re.sub(r'\1_\2', name)
     return all_cap_re.sub(r'\1_\2', s1).lower()
+
 
 class QuantumProgram(object):
     """Quantum Program Class.
@@ -73,95 +76,32 @@ class QuantumProgram(object):
         __quantum_registers (list[dic]): An dictionary of quantum registers
             used in the quantum program.
             __quantum_registers =
-                {"name": QuantumRegistor,
-                ...
+                {
+                --register name (string)--: QuantumRegistor,
                 }
         __classical_registers (list[dic]): An ordered list of classical registers
             used in the quantum program.
             __classical_registers =
-                {"name": ClassicalRegistor,
-                ...
+                {
+                --register name (string)--: ClassicalRegistor,
                 }
         __quantum_program (dic): An dictionary of quantum circuits
             __quantum_program =
                 {
-                --circuit name (string)--:
-                    {
-                    "circuit": --circuit object --,
-                    "execution":
-                        {  #### FILLED IN AFTER RUN -- JAY WANTS THIS MOVED DOWN ONE LAYER ####
-                        --backend name (string)--:
-                            {
-                            "compiled_circuit": --compiled quantum circuit object (DAG format) --,
-                            "config":
-                                {
-                                "basis_gates": --comma separated gate names (string)--,
-                                "coupling_map": --adjacency list (dict)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "shots": --shots (int)--,
-                                "max_credits": --credits (int)--,
-                                },
-                            "data":
-                                {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                                "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                                "time"  : xx.xxxxxxxx
-                                },
-                            "status": --status (string)--
-                            },
-                        },
-                    }
+                --circuit name (string)--:  --circuit object --,
                 }
         __init_circuit (obj): A quantum circuit object for the initial quantum
             circuit
         __ONLINE_BACKENDS (list[str]): A list of online backends
         __LOCAL_BACKENDS (list[str]): A list of local backends
-        __last_backend (str): The last backend used.
-        __to_execute (list[dic]):  An ordered list quantum circuits to run on
-            diffferent backends.
-            __to_execute =
-                [
-                    {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (DAG format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    },
-                    ...
-                ]
      """
     # -- FUTURE IMPROVEMENTS --
     # TODO: for status results make ALL_CAPS (check) or some unified method
     # TODO: Jay: coupling_map, basis_gates will move into a config object
 
-    # populate these in __init__()
-    __quantum_registers = {}
-    __classical_registers = {}
-    __quantum_program = {}
-    __LOCAL_BACKENDS = []
-    __to_execute = []
-
     # only exists once you set the api to use the online backends
     __api = {}
     __api_config = {}
-    __ONLINE_BACKENDS = []
 
     def __init__(self, specs=None):
         self.__quantum_registers = {}
@@ -171,8 +111,6 @@ class QuantumProgram(object):
         # program
         self.__ONLINE_BACKENDS = []
         self.__LOCAL_BACKENDS = self.local_backends()
-        self.__last_backend = ""
-        self.__to_execute = [] # strores the circuits to be ran
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
@@ -230,7 +168,7 @@ class QuantumProgram(object):
         """
         if name in self.__quantum_registers:
             if size != len(self.__quantum_registers[name]):
-                raise QISKitException("Can't make this register: Already in"
+                raise QISKitError("Can't make this register: Already in"
                                       " program with different size")
             if verbose == True:
                 print(">> quantum_register exists:", name, size)
@@ -275,7 +213,7 @@ class QuantumProgram(object):
         """
         if name in self.__classical_registers:
             if size != len(self.__classical_registers[name]):
-                raise QISKitException("Can't make this register: Already in"
+                raise QISKitError("Can't make this register: Already in"
                                       " program with different size")
             if verbose == True:
                 print(">> classical register exists:", name, size)
@@ -332,7 +270,7 @@ class QuantumProgram(object):
         for register in cregisters:
             quantum_circuit.add(register)
         self.add_circuit(name, quantum_circuit)
-        return self.__quantum_program[name]['circuit']
+        return self.__quantum_program[name]
 
     def add_circuit(self, name, quantum_circuit):
         """Add a new circuit based on an Object representation.
@@ -347,7 +285,7 @@ class QuantumProgram(object):
             self.create_quantum_register(qname, len(qreg))
         for cname, creg in quantum_circuit.get_cregs().items():
             self.create_classical_register(cname, len(creg))
-        self.__quantum_program[name] = {"name":name, "circuit": quantum_circuit}
+        self.__quantum_program[name] = quantum_circuit
 
     def load_qasm_file(self, qasm_file, name=None, verbose=False):
         """ Load qasm file into the quantum program.
@@ -363,7 +301,7 @@ class QuantumProgram(object):
             quantum program and returns the name to be used to get this circuit
         """
         if not os.path.exists(qasm_file):
-            raise QISKitException('qasm file "{0}" not found'.format(qasm_file))
+            raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
         node_circuit = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
@@ -423,7 +361,7 @@ class QuantumProgram(object):
         try:
             return self.__quantum_registers[name]
         except KeyError:
-            return "No quantum register of name " + name
+            raise KeyError('No quantum register "{0}"'.format(name))
 
     def get_classical_register(self, name):
         """Return a Classical Register by name.
@@ -436,7 +374,7 @@ class QuantumProgram(object):
         try:
             return self.__classical_registers[name]
         except KeyError:
-            return "No classical register of name" + name
+            raise KeyError('No classical register "{0}"'.format(name))
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
@@ -454,9 +392,9 @@ class QuantumProgram(object):
             The quantum circuit with this name
         """
         try:
-            return self.__quantum_program[name]['circuit']
+            return self.__quantum_program[name]
         except KeyError:
-            return "No quantum circuit of this name" + name
+            raise KeyError('No quantum circuit "{0}"'.format(name))
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
@@ -521,6 +459,82 @@ class QuantumProgram(object):
     def get_api(self):
         """Returns a function handle to the API."""
         return self.__api
+
+    def save(self, file_name=None, beauty=False):
+        """ Save Quantum Program in a Json file.
+
+        Args:
+            file_name (str): file name and path.
+            beauty (boolean): save the text with indent 4 to make it readable.
+
+        Returns:
+            The dictionary with the status and result of the operation
+
+        Raises:
+            When you don't provide a correct file name
+                raise a LookupError.
+            When something happen with the file management
+                raise a LookupError.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+
+        if beauty:
+            indent = 4
+        else:
+            indent = 0
+        
+        elemements_to_save = self.__quantum_program
+        elements_saved = {}
+        
+        for circuit in elemements_to_save:
+            elements_saved[circuit] = {}
+            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
+
+        try:
+            with open(file_name, 'w') as save_file:
+                json.dump(elements_saved, save_file, indent = indent)
+            return {'status': 'Done', 'result': elemements_to_save}
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
+            raise LookupError(error['result'])
+        
+    def load(self, file_name=None):
+        """ Load Quantum Program Json file into the Quantum Program object.
+
+        Args:
+            file_name (str): file name and path.
+
+        Returns:
+            The dictionary with the status and result of the operation
+
+        Raises:
+            When you don't provide a correct file name
+                raise a LookupError.
+            When something happen with the file management
+                raise a LookupError.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+        
+        elemements_to_load = {}
+        
+        try:
+            with open(file_name, 'r') as load_file:  
+                elemements_loaded = json.load(load_file)
+            
+            for circuit in elemements_loaded:
+                circuit_qasm = elemements_loaded[circuit]["qasm"]
+                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
+            self.__quantum_program = elemements_loaded
+            
+            return {"status": 'Done', 'result': self.__quantum_program}
+        
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
+            raise LookupError(error['result'])
 
     def available_backends(self):
         """All the backends that are seen by QISKIT."""
@@ -588,7 +602,7 @@ class QuantumProgram(object):
             err_str = 'the backend "{0}" is not available'.format(backend)
             raise ValueError(err_str)
 
-    def get_backend_configuration(self, backend):
+    def get_backend_configuration(self, backend, list_format=False):
         """Return the configuration of the backend.
 
         The return is via QX API call.
@@ -610,19 +624,19 @@ class QuantumProgram(object):
                     for key in configuration:
                         new_key = convert(key)
                         # TODO: removed these from the API code
-                        if new_key not in  ['id','serial_number','topology_id','status', 'coupling_map']:
-                            configuration_edit[new_key] =configuration[key]
+                        if new_key not in ['id', 'serial_number', 'topology_id',
+                                           'status', 'coupling_map']:
+                            configuration_edit[new_key] = configuration[key]
                         if new_key == 'coupling_map':
                             if configuration[key] == 'all-to-all':
-                                configuration_edit[new_key] =configuration[key]
+                                configuration_edit[new_key] = \
+                                    configuration[key]
                             else:
-                                cmap={}
-                                for i in configuration[key]:
-                                    #print(i[0])
-                                    if i[0] in cmap.keys():
-                                        cmap[i[0]].append(i[1])
-                                    else:
-                                        cmap[i[0]] = [i[1]]
+                                if not type:
+                                    cmap = mapper.coupling_list2dict(
+                                                configuration[key])
+                                else:
+                                    cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
         for configuration in simulators.local_configuration:
@@ -681,14 +695,14 @@ class QuantumProgram(object):
                 new_key = convert(key)
                 parameters_edit[new_key] = vals
             return parameters_edit
-        elif  backend in self.__LOCAL_BACKENDS:
+        elif backend in self.__LOCAL_BACKENDS:
             return {'backend': backend, 'parameters': None}
         else:
             raise LookupError(
                 'backend parameters for "{0}" not found'.format(backend))
 
     ###############################################################
-    # methods to compile quantum programs into __to_execute
+    # methods to compile quantum programs into qobj
     ###############################################################
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
@@ -720,7 +734,7 @@ class QuantumProgram(object):
                                     ...
                                 }
                                 eg. {0: [2], 1: [2], 3: [2]}
-            intial_layout (dict): A mapping of qubit to qubit
+            initial_layout (dict): A mapping of qubit to qubit
                                   {
                                     ("q", strart(int)): ("q", final(int)),
                                     ...
@@ -737,16 +751,43 @@ class QuantumProgram(object):
             seed (int): the intial seed the simulatros use
 
         Returns:
-            the job id and populates the internal __to_exectute object
+            the job id and populates the qobj
+
+            qobj =
+                {
+                    id: --job id (string),
+                    config: -- dictionary of config settings (dict)--,
+                        {
+                        "max_credits" (online only): -- credits (int) --,
+                        "shots": -- number of shots (int) --.
+                        "backend": -- backend name (str) --
+                        }
+                    circuits:
+                        [
+                            {
+                            "name": --circuit name (string)--,
+                            "compiled_circuit": --compiled quantum circuit (DAG format)--,
+                            "config": --dictionary of additional config settings (dict)--,
+                                {
+                                "coupling_map": --adjacency list (dict)--,
+                                "basis_gates": --comma separated gate names (string)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "seed": (simulator only)--initial seed for the simulator (int)--,
+                                }
+                            },
+                            ...
+                        ]
+                    }
+
         """
-        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits and seed are extra inputs but I would like them to go
-        # into the confg.
+        # into the config.
 
         qobj = {}
         if not qobjid:
-            qobjid ="".join([random.choice(string.ascii_letters+string.digits)
-                                for n in range(30)])
+            qobjid = "".join([random.choice(string.ascii_letters+string.digits)
+                              for n in range(30)])
         qobj['id'] = qobjid
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
@@ -758,12 +799,12 @@ class QuantumProgram(object):
             name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
             if name not in self.__quantum_program:
-                raise KeyError('circuit "{0}" not found in program'.format(name))
+                raise QISKitError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
-            dag_circuit = self._unroller_code(self.__quantum_program[name]['circuit'],
-                                             basis_gates=basis_gates)
+            dag_circuit = self._unroller_code(self.__quantum_program[name],
+                                              basis_gates=basis_gates)
             final_layout = None
             # if a coupling map is given compile to the map
             if coupling_map:
@@ -798,103 +839,82 @@ class QuantumProgram(object):
                 config = {}  # default to empty config dict
             job["config"] = config
             # TODO: Jay: make config options optional for different backends
-            job["config"]["coupling_map"] = coupling_map
-            job["config"]["layout"] = final_layout
+            job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
+            # Map the layout to a format that can be json encoded
+            list_layout = None
+            if final_layout:
+                list_layout = [[k, v] for k, v in final_layout.items()]
+            job["config"]["layout"] = list_layout
             job["config"]["basis_gates"] = basis_gates
             if seed is None:
-                job["config"]["seed"] = int.from_bytes(os.urandom(4), byteorder="big")
+                job["config"]["seed"] = random.getrandbits(128) # int.from_bytes(os.urandom(4), byteorder="big")
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
-            job["compiled_circuit"] = dag_circuit
+            job["compiled_circuit"] = self._dag2json(dag_circuit)
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
             # add job to the qobj
             qobj["circuits"].append(job)
-        self.__to_execute.append(qobj)
-        return qobjid
+        return qobj
 
-    def get_execution_list(self, verbose=False):
+    def get_execution_list(self, qobj, verbose=False):
         """Print the compiled circuits that are ready to run.
 
         Args:
             verbose (bool): controls how much is returned.
         """
-        if not self.__to_execute:
+        if not qobj:
             if verbose:
                 print("no exectuions to run")
         execution_list_all = {}
-        for qobjs in self.__to_execute:
-            execution_list = []
+        execution_list = []
+        if verbose:
+            print("id: %s" % qobj['id'])
+            print("backend: %s" % qobj['config']['backend'])
+            print("qobj config:")
+            for key in qobj['config']:
+                if key != 'backend':
+                    print(' '+ key + ': ' + str(qobj['config'][key]))
+        for circuit in qobj['circuits']:
+            execution_list.append(circuit["name"])
             if verbose:
-                print("qobj id: %s" % qobjs['id'])
-                print("backend: %s" % qobjs['config']['backend'])
-                print("qobj config:")
-                for key in qobjs['config']:
-                    if key != 'backend':
-                        print(' '+ key + ': ' + str(qobjs['config'][key]))
-            for circuit in qobjs['circuits']:
-                execution_list.append(circuit["name"])
-                if verbose:
-                    print('  circuit name: ' + circuit["name"])
-                    print('  circuit config:')
-                    for key in circuit['config']:
-                        print('   '+ key + ': ' + str(circuit['config'][key]))
-            execution_list_all[qobjs['id']] =  execution_list
-        return execution_list_all
+                print('  circuit name: ' + circuit["name"])
+                print('  circuit config:')
+                for key in circuit['config']:
+                    print('   '+ key + ': ' + str(circuit['config'][key]))
+        return execution_list
 
-    def get_compiled_configuration(self, name, qobjid):
+    def get_compiled_configuration(self, qobj, name):
         """Get the compiled layout for the named circuit and backend.
 
         Args:
             name (str):  the circuit name
-            qobjid (str): the name of the qobjid
+            qobj (str): the name of the qobj
 
         Returns:
             the config of the circuit.
         """
         try:
-            for qobj in self.__to_execute:
-                if qobj['id'] == qobjid:
-                    for configuration in qobj["circuits"]:
-                        if configuration['name'] == name:
-                            return configuration["config"]
+            for index in range(len(qobj["circuits"])):
+                if qobj["circuits"][index]['name'] == name:
+                    return qobj["circuits"][index]["config"]
         except KeyError:
-            raise KeyError('No compiled configurations for circuit "{0}"'.format(name))
+            raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
-    def get_complied_qasm(self, name, qobjid):
+    def get_complied_qasm(self, qobj, name):
         """Print the compiled cricuit in qasm format.
 
         Args:
+            qobj (str): the name of the qobj
             name (str): name of the quantum circuit
-            qobjid (str): the name of the qobjid
+
         """
         try:
-            for qobj in self.__to_execute:
-                if qobj['id'] == qobjid:
-                    for circuit in qobj["circuits"]:
-                        if circuit['name'] == name:
-                            return circuit['compiled_circuit'].qasm()
+            for index in range(len(qobj["circuits"])):
+                if qobj["circuits"][index]['name'] == name:
+                    return qobj["circuits"][index]["compiled_circuit_qasm"]
         except KeyError:
-            raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
-
-
-    def delete_execution_list(self, qobjid=None):
-        """Clears the exectution list.
-
-        Args:
-            qobjid (str): delete all the executions in the qobjid
-
-        Returns:
-            Clears the internal self.__to_execute.
-        """
-        if not qobjid:
-            self.__to_execute = []
-        else:
-            for j in range(len(self.__to_execute)):
-                qobj = self.__to_execute[j]
-                if qobj['id'] == qobjid:
-                    del self.__to_execute[j]
-                    break
-
+            raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
     def _dag2json(self, dag_circuit):
         """Make a Json representation of the circuit.
@@ -937,15 +957,16 @@ class QuantumProgram(object):
         return dag_circuit_unrolled
 
     ###############################################################
-    # methods to run quantum programs (run __to_execute)
+    # methods to run quantum programs (run )
     ###############################################################
 
-    def run(self, wait=5, timeout=60, silent=True):
+    def run(self, qobj, wait=5, timeout=60, silent=True):
         """Run a program (a pre-compiled quantum program).
 
-        All input for run comes from self.__to_execute
+        All input for run comes from qobj
 
         Args:
+            qobj(dict): the dictionary of the quantum object to run
             wait (int): wait time is how long to check if the job is completed
             timeout (int): is time until the execution stops
             silent (bool): is an option to print out the running information or
@@ -956,74 +977,38 @@ class QuantumProgram(object):
             data
 
         """
-        for qobj in self.__to_execute:
-            backend = qobj['config']['backend']
-            if backend in self.__ONLINE_BACKENDS:
-                max_credits = qobj["config"]["max_credits"]
-                shots = qobj["config"]["shots"]
-                jobs = []
-                for job in qobj["circuits"]:
-                    jobs.append({'qasm': job["compiled_circuit"].qasm(qeflag=True)})
-                if not silent:
-                    print("running on backend: %s" % (backend))
-                output = self.__api.run_job(jobs, backend, shots, max_credits)
-                if 'ERROR' in output:
-                    # Clear the list of compiled programs to execute
-                    self.delete_execution_list(qobj['id'])
-                    return {"status": "ERROR", "result": output['ERROR']}
-                job_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-                # print(job_result)
-                if job_result['status'] == 'ERROR':
-                    # Clear the list of compiled programs to execute
-                    self.delete_execution_list(qobj['id'])
-                    return job_result
-            else:
-                # making a list of jobs just for local backends. Name is droped
-                # but the list is made ordered
-                jobs = []
-                for job in qobj["circuits"]:
-                    jobs.append({"compiled_circuit": self._dag2json(job["compiled_circuit"]),
-                                 "config": {**job["config"], **qobj["config"]}})
-                if not silent:
-                    print("running on backend: %s" % (backend))
-                if backend in self.__LOCAL_BACKENDS:
-                    job_result = self._run_local_simulator(backend, jobs, silent)
-                else:
-                    # Clear the list of compiled programs to execute
-                    self.delete_execution_list(qobj['id'])
-                    return {"status": "ERROR", "result": "Not a valid backend"}
-            if backend in self.__ONLINE_BACKENDS:
-                assert len(qobj["circuits"]) == len(job_result["qasms"]), "Internal error in QuantumProgram.run(), job_result"
-            else:
-                assert len(qobj["circuits"]) == len(job_result), "Internal error in QuantumProgram.run(), job_result"
-            # Fill data into self.__quantum_program for this backend
-            index = 0
+        backend = qobj['config']['backend']
+        if backend in self.__ONLINE_BACKENDS:
+            max_credits = qobj["config"]["max_credits"]
+            shots = qobj["config"]["shots"]
+            jobs = []
             for job in qobj["circuits"]:
-                name = job["name"]
-                if name not in self.__quantum_program:
-                    # Clear the list of compiled programs to execute
-                    self.delete_execution_list()
-                    return {"status": "ERROR", "result": "Internal error, circuit not found"}
-                if not "execution" in self.__quantum_program[name]:
-                    self.__quantum_program[name]["execution"]={}
-                # We override the results
-                if backend not in self.__quantum_program[name]["execution"]:
-                    self.__quantum_program[name]["execution"][backend] = {}
-                # TODO: return date, executionId, ...
-                self.__quantum_program[name]["execution"][backend]["compiled_circuit"] = job["compiled_circuit"]
-                self.__quantum_program[name]["execution"][backend]["config"]=job["config"]
-                # results filled in
-                if backend in self.__ONLINE_BACKENDS:
-                    self.__quantum_program[name]["execution"][backend]["data"] = job_result["qasms"][index]["data"]
-                    self.__quantum_program[name]["execution"][backend]["status"] = job_result["qasms"][index]["status"]
-                else:
-                    self.__quantum_program[name]["execution"][backend]["data"] = job_result[index]["data"]
-                    self.__quantum_program[name]["execution"][backend]["status"] = job_result[index]["status"]
-                index += 1
-            self.__last_backend = backend
-        # Clear the list of compiled programs to execute
-        self.delete_execution_list()
-        return  {"status": "COMPLETED", "result": 'all done'}
+                jobs.append({'qasm': job["compiled_circuit_qasm"]})
+            if not silent:
+                print("running on backend: %s" % (backend))
+            output = self.__api.run_job(jobs, backend, shots, max_credits)
+            if 'ERROR' in output:
+                # Clear the list of compiled programs to execute
+                qobj_result =  {"status": "ERROR", "result": [output['ERROR']]}
+            qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+        else:
+            # making a list of jobs just for local backends. Name is droped
+            # but the list is made ordered
+            jobs = []
+            for job in qobj["circuits"]:
+                jobs.append({"compiled_circuit": job["compiled_circuit"],
+                            "config": {**job["config"], **qobj["config"]}})
+            if not silent:
+                print("running on backend: %s" % (backend))
+            if backend in self.__LOCAL_BACKENDS:
+                qobj_result = self._run_local_simulator(backend, jobs, silent)
+            else:
+                # Clear the list of compiled programs to execute
+                qobj_result = {"status": "ERROR", "result": ["Not a valid backend"]}
+        if qobj_result['status'] == 'COMPLETED':
+            assert len(qobj["circuits"]) == len(qobj_result['result']), "Internal error in QuantumProgram.run(), job_result"
+        results  = Result(qobj_result, qobj)
+        return  results
 
     def _wait_for_job(self, jobid, wait=5, timeout=60, silent=True):
         """Wait until all online ran jobs are 'COMPLETED'.
@@ -1036,17 +1021,25 @@ class QuantumProgram(object):
             not
 
         Returns:
-            A list of results that correspond to the jobids.
+             Dictionary of form,
+             job_result_return =
+               [
+                   {
+                   "data": DATA,
+                   "status": DATA,
+                   },
+                   ...
+               ]
         """
         timer = 0
         timeout_over = False
         job_result = self.__api.get_job(jobid)
         if 'status' not in job_result:
             from pprint import pformat
-            raise Exception("get_job didn't return status: %s" % (pformat(job)))
+            raise QISKitError("get_job didn't return status: %s" % (pformat(job)))
         while job_result['status'] == 'RUNNING':
             if timer >= timeout:
-                return {"status": "ERROR", "result": "Time Out"}
+                return {"status": "ERROR", "result": ["Time Out"]}
             time.sleep(wait)
             timer += wait
             if not silent:
@@ -1055,12 +1048,16 @@ class QuantumProgram(object):
 
             if 'status' not in job_result:
                 from pprint import pformat
-                raise Exception("get_job didn't return status: %s" % (pformat(job_result)))
+                raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
             if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-                return {"status": "ERROR", "result": job_result['status']}
+                return {"status": "ERROR", "result": [job_result['status']]}
 
         # Get the results
-        return job_result
+        job_result_return = []
+        for index in range(len(job_result["qasms"])):
+            job_result_return.append({"data": job_result["qasms"][index]["data"],
+                                     "status": job_result["qasms"][index]["status"]})
+        return {'status': job_result['status'], 'result': job_result_return}
 
     def _run_local_simulator(self, backend, jobs, silent=True):
         """Run a program of compiled quantum circuits on the local machine.
@@ -1083,12 +1080,11 @@ class QuantumProgram(object):
         """
         job_results = []
         for job in jobs:
-            one_result = {'result': None, 'status': "ERROR"}
             local_simulator = simulators.LocalSimulator(backend, job)
             local_simulator.run(silent=silent)
             this_result = local_simulator.result()
             job_results.append(this_result)
-        return job_results
+        return {'status': 'COMPLETED', 'result': job_results}
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, silent=True, basis_gates=None,
@@ -1122,7 +1118,7 @@ class QuantumProgram(object):
                                     ...
                                 }
                                 eg. {0: [2], 1: [2], 3: [2]}
-            intial_layout (dict): A mapping of qubit to qubit
+            initial_layout (dict): A mapping of qubit to qubit
                                   {
                                   ("q", strart(int)): ("q", final(int)),
                                   ...
@@ -1145,37 +1141,74 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
-        self.compile(name_of_circuits, backend=backend, config=config,
+        qobj = self.compile(name_of_circuits, backend=backend, config=config,
                      silent=silent, basis_gates=basis_gates,
                      coupling_map=coupling_map, initial_layout=initial_layout,
                      shots=shots, max_credits=max_credits, seed=seed)
-        output = self.run(wait=wait, timeout=timeout, silent=silent)
-        return output
+        result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
+        return result
 
 
-    ###############################################################
-    # methods to process the quantum program after it has been run
-    ###############################################################
+class Result(object):
+    """ Result Class.
 
-    def get_ran_qasm(self, name, backend=None):
+    Class internal properties.
+
+    Methods to process the quantum program after it has been run
+
+    Internal:
+
+        qobj =  { -- the quantum object that was complied --}
+        result =
+            [
+                {
+                "data":
+                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
+                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "time"  : xx.xxxxxxxx
+                    },
+                "status": --status (string)--
+                },
+                ...
+            ]
+    """
+
+    def __init__(self, qobj_result, qobj):
+        self.__qobj = qobj
+        self.__result = qobj_result
+
+    def __str__(self):
+        """Get the status of the run.
+
+        Returns:
+            the status of the results.
+        """
+        return self.__result['status']
+
+    def get_error(self):
+        if self.__result['status'] == 'ERROR':
+            return self.__result['result'][0]
+        else:
+            return None
+
+    def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
 
-        If backend is None, it defaults to the last backend.
         Args:
             name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
 
         Returns:
             A text version of the qasm file that has been run.
         """
-        if not backend:
-            backend = self.__last_backend
-        if name in self.__quantum_program:
-            return self.__quantum_program[name]["execution"][backend]["compiled_circuit"].qasm()
-        else:
-            raise KeyError('circuit "{0}" not found in program'.format(name))
+        try:
+            qobj = self.__qobj
+            for index in range(len(qobj["circuits"])):
+                if qobj["circuits"][index]['name'] == name:
+                    return qobj["circuits"][index]["compiled_circuit_qasm"]
+        except KeyError:
+            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
-    def get_data(self, name, backend=None):
+    def get_data(self, name):
         """Get the data of cicuit name.
 
         The data format will depend on the backend. For a real device it
@@ -1197,19 +1230,19 @@ class QuantumProgram(object):
                                    XX + XXj]]
         Args:
             name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
 
         Returns:
             A dictionary of data for the different backends.
         """
-        if not backend:
-            backend = self.__last_backend
-        if name in self.__quantum_program:
-            return self.__quantum_program[name]['execution'][backend]['data']
-        else:
-            raise KeyError('circuit "{0}" not found in program'.format(name))
+        try:
+            qobj = self.__qobj
+            for index in range(len(qobj["circuits"])):
+                if qobj["circuits"][index]['name'] == name:
+                    return self.__result['result'][index]["data"]
+        except KeyError:
+            raise QISKitError('No data for circuit "{0}"'.format(name))
 
-    def get_counts(self, name, backend=None):
+    def get_counts(self, name):
         """Get the histogram data of cicuit name.
 
         The data from the a qasm circuit is dictionary of the format
@@ -1222,14 +1255,10 @@ class QuantumProgram(object):
         Returns:
             A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
         """
-        if not backend:
-            backend = self.__last_backend
-        if name in self.__quantum_program:
-            if backend not in self.__quantum_program[name]['execution']:
-                raise KeyError('backend "{0}" not found for circuit "{1}"'.format(backend, name))
-            return self.__quantum_program[name]['execution'][backend]['data']['counts']
-        else:
-            raise KeyError('circuit "{0}" not found in program'.format(name))
+        try:
+            return self.get_data(name)['counts']
+        except KeyError:
+            raise QISKitError('No counts for circuit "{0}"'.format(name))
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.

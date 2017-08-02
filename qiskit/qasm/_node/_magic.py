@@ -19,6 +19,7 @@
 Node for an OPENQASM file identifier/version statement.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
 
@@ -33,6 +34,6 @@ class Magic(Node):
         """Create the version node."""
         Node.__init__(self, 'magic', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         return "OPENQASM %.1f;" % self.children[0]

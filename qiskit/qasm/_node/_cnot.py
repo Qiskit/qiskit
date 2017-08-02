@@ -19,6 +19,7 @@
 Node for an OPENQASM CNOT statement.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
 
@@ -34,7 +35,7 @@ class Cnot(Node):
         """Create the cnot node."""
         Node.__init__(self, 'cnot', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "CX " + self.children[0].qasm() + "," + \
-               self.children[1].qasm() + ";"
+        return "CX " + self.children[0].qasm(prec) + "," + \
+               self.children[1].qasm(prec) + ";"

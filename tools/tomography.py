@@ -431,21 +431,17 @@ def __prep_basis(n, basis):
     return [__get_prep_basis_op(dic, basis) for dic in ordered]
 
 
-def state_tomography_data(Q_program, name, meas_qubits, backend=None,
-                          basis=None):
+def state_tomography_data(Q_result, name, meas_qubits, basis=None):
     """
     Return a list of state tomography measurement outcomes.
 
     Args:
-        Q_program (QuantumProgram): A quantum program containing count data
-                                    from execution on a backend.
+        Q_result (Result): Results from execution of a state tomography
+            circuits on a backend.
         name (string): The name of the base state preparation circuit.
         meas_qubits (list[int]): a list of the qubit indexes measured.
-        backend (str, optional): the backend the tomography circuits were
-                                 executed on. If not specified it will use the
-                                 default backend of QuantumProgram.get_counts.
         basis (basis dict, optional): the basis used for measurement. Default
-                                      is the Pauli basis.
+            is the Pauli basis.
 
     Returns:
         A list of dicts for the outcome of each state tomography
@@ -462,7 +458,7 @@ def state_tomography_data(Q_program, name, meas_qubits, backend=None,
     if basis is None:
         basis = __DEFAULT_BASIS
     labels = state_tomography_circuit_names(name, meas_qubits)
-    counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits)
+    counts = [marginal_counts(Q_result.get_counts(circ), meas_qubits)
               for circ in labels]
     shots = [sum(c.values()) for c in counts]
     meas_basis = __meas_basis(len(meas_qubits), basis)
@@ -471,21 +467,17 @@ def state_tomography_data(Q_program, name, meas_qubits, backend=None,
     return ret
 
 
-def process_tomography_data(Q_program, name, meas_qubits, backend=None,
-                            basis=None):
+def process_tomography_data(Q_result, name, meas_qubits, basis=None):
     """
     Return a list of process tomography measurement outcomes.
 
     Args:
-        Q_program (QuantumProgram): A quantum program containing count data
-                                    from execution on a backend.
+        Q_result (Result): Results from execution of a process tomography
+            circuits on a backend.
         name (string): The name of the circuit being reconstructed.
         meas_qubits (list[int]): a list of the qubit indexes measured.
-        backend (str, optional): the backend the tomography circuits were
-                                 executed on. If not specified it will use the
-                                 default backend of QuantumProgram.get_counts.
         basis (basis dict, optional): the basis used for measurement. Default
-                                      is the Pauli basis.
+            is the Pauli basis.
 
     Returns:
         A list of dicts for the outcome of each process tomography
@@ -505,7 +497,7 @@ def process_tomography_data(Q_program, name, meas_qubits, backend=None,
         basis = __DEFAULT_BASIS
     n = len(meas_qubits)
     labels = process_tomography_circuit_names(name, meas_qubits)
-    counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits)
+    counts = [marginal_counts(Q_result.get_counts(circ), meas_qubits)
               for circ in labels]
     shots = [sum(c.values()) for c in counts]
     meas_basis = __meas_basis(n, basis)

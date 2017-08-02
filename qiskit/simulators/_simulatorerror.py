@@ -16,27 +16,20 @@
 # =============================================================================
 
 """
-Node for an OPENQASM program.
+Exception for errors raised by simulators.
 
-Author: Jim Challenger
-        Andrew Cross
+Author: Juan Gomez
 """
-from ._node import Node
 
+from qiskit import QISKitError
 
-class Program(Node):
-    """Node for an OPENQASM program.
+class SimulatorError(QISKitError):
+    """Base class for errors raised by simulators."""
 
-    children is a list of nodes (statements).
-    """
+    def __init__(self, *message):
+        """Set the error message."""
+        self.message = ' '.join(message)
 
-    def __init__(self, children):
-        """Create the program node."""
-        Node.__init__(self, 'program', children, None)
-
-    def qasm(self, prec=15):
-        """Return the corresponding OPENQASM string."""
-        string = ""
-        for children in self.children:
-            string += children.qasm(prec) + "\n"
-        return string
+    def __str__(self):
+        """Return the message."""
+        return repr(self.message)

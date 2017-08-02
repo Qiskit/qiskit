@@ -111,7 +111,7 @@ combination of both.
 .. code:: ipython3
 
     device = 'ibmqx2' # the device to run on
-    shots = 1024    # the number of shots in the experiment. 
+    shots = 1024    # the number of shots in the experiment 
     # device = 'simulator' # the device test purpose
     
     QPS_SPECS = {

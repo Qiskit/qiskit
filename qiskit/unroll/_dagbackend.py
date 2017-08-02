@@ -21,7 +21,7 @@ Backend for the unroller that creates a DAGCircuit object.
 Author: Andrew Cross
 """
 from ._unrollerbackend import UnrollerBackend
-from ._backendexception import BackendException
+from ._backenderror import BackendError
 from ..dagcircuit import DAGCircuit
 
 
@@ -77,11 +77,13 @@ class DAGBackend(UnrollerBackend):
         """
         self.circuit.add_creg(name, size)
 
-    def u(self, arg, qubit):
+    def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.
 
-        arg is 3-tuple of float parameters.
+        arg is 3-tuple of Node expression objects.
         qubit is (regname,idx) tuple.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen:
             if self.creg is not None:
@@ -92,7 +94,8 @@ class DAGBackend(UnrollerBackend):
                 self.basis.append("U")
                 self.circuit.add_basis_element("U", 1, 0, 3)
             self.circuit.apply_operation_back(
-                "U", [qubit], [], list(arg), condition)
+                "U", [qubit], [], list(map(lambda x: x.real(nested_scope),
+                                           arg)), condition)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -170,16 +173,18 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits):
+    def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendException("opaque gate %s not in basis" % name)
+            raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             if self.creg is not None:
                 condition = (self.creg, self.cval)
@@ -189,14 +194,17 @@ class DAGBackend(UnrollerBackend):
             self.listen = False
             self.circuit.add_basis_element(name, len(qubits), 0, len(args))
             self.circuit.apply_operation_back(
-                name, qubits, [], args, condition)
+                name, qubits, [], list(map(lambda x: x.real(nested_scope),
+                                           args)), condition)
 
-    def end_gate(self, name, args, qubits):
+    def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if name == self.in_gate:
             self.in_gate = ""

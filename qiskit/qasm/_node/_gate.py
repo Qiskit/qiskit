@@ -19,6 +19,7 @@
 Node for an OPENQASM gate definition.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
 
@@ -61,11 +62,11 @@ class Gate(Node):
         """Return the number of qubit arguments."""
         return self.bitlist.size()
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         string = "gate " + self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm() + ")"
-        string += " " + self.bitlist.qasm() + "\n"
-        string += "{\n" + self.body.qasm() + "}"
+            string += "(" + self.arguments.qasm(prec) + ")"
+        string += " " + self.bitlist.qasm(prec) + "\n"
+        string += "{\n" + self.body.qasm(prec) + "}"
         return string

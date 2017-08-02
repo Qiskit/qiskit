@@ -19,8 +19,10 @@
 Node for an OPENQASM prefix expression.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
+from ._nodeexception import NodeException
 
 
 class Prefix(Node):
@@ -34,6 +36,22 @@ class Prefix(Node):
         """Create the prefix node."""
         Node.__init__(self, 'prefix', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return self.children[0] + "(" + self.children[1].qasm() + ")"
+        return self.children[0] + "(" + self.children[1].qasm(prec) + ")"
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the corresponding math mode latex string."""
+        return self.children[0] + "(" + \
+            self.children[1].latex(prec, nested_scope) + ")"
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        operation = self.children[0]
+        expr = self.children[1].real(nested_scope)
+        if operation == '+':
+            return expr
+        elif operation == '-':
+            return -expr
+        else:
+            raise NodeException("internal error: undefined prefix")

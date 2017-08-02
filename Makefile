@@ -45,8 +45,7 @@ profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
 doc:
-	sphinx-apidoc -f -o doc -d 4 -P -e qiskit
-	make -C doc html
+	export PYTHONPATH=$(PWD);sphinx-apidoc -f -o doc -d 4 -P -e qiskit;make -C doc html
 
 clean:
 	make -C doc clean
