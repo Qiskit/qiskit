@@ -14,17 +14,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""Quick program to test the cost function for different basis functions.
-"""
+"""Test the the trial functions."""
+import sys
+import numpy as np
 import unittest
 import logging
 import os
-import numpy as np
 from scipy import linalg as la
-import sys
 sys.path.append("../..")
+from tools.apps.optimization import trial_circuit_ry
 from tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
 from tools.qi.pauli import Pauli
+
+class TestQuantumOptimization(unittest.TestCase):
+    """Tests for quantum optimization"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.moduleName = os.path.splitext(__file__)[0]
+        cls.logFileName = cls.moduleName + '.log'
+        log_fmt = 'TestQuantumOptimization:%(levelname)s:%(asctime)s: %(message)s'
+        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
+                            format=log_fmt)
+
+
+    def test_trial_functions(self):
+        entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
+
+        m = 1
+        n = 6
+        theta = np.zeros(m * n)
+
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
+
+        logging.info(trial_circuit.qasm())
+
+        logging.info("With No measurement:\n")
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
+
+        logging.info(trial_circuit.qasm())
+
+        logging.info("With Y measurement:\n")
+        meas_sting = ['Y' for x in range(n)]
+
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
+
+        logging.info(trial_circuit.qasm())
 
 
 class TestHamiltonian(unittest.TestCase):

@@ -1,4 +1,4 @@
-// A simple 8 qubit example
+// A simple 8 qubit example entangling two 4 qubit registers
 OPENQASM 2.0;
 include "qelib1.inc";
 

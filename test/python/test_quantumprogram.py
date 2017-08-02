@@ -33,9 +33,9 @@ from qiskit import QISKitError
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                              '../../examples/qasm/simple8qbit.qasm')
+                              '../../examples/qasm/entangled_registers.qasm')
 QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
-                                '../../examples/qasm/plaquettecheck.qasm')
+                                '../../examples/qasm/plaquette_check.qasm')
 
 
 # We need the environment variable for Travis.
