@@ -45,7 +45,7 @@ The input is a AST and a basis set and returns a json memory object
     ]
 }
 """
-from qiskit.unroll import BackendException
+from qiskit.unroll import BackendError
 from qiskit.unroll import UnrollerBackend
 import json
 
@@ -259,7 +259,7 @@ class JsonBackend(UnrollerBackend):
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendException("opaque gate %s not in basis" % name)
+            raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             self.in_gate = name
             self.listen = False

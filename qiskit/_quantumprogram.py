@@ -40,7 +40,7 @@ from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
-from . import QISKitException
+from . import QISKitError
 
 # Beta Modules
 from . import unroll
@@ -167,7 +167,7 @@ class QuantumProgram(object):
         """
         if name in self.__quantum_registers:
             if size != len(self.__quantum_registers[name]):
-                raise QISKitException("Can't make this register: Already in"
+                raise QISKitError("Can't make this register: Already in"
                                       " program with different size")
             if verbose == True:
                 print(">> quantum_register exists:", name, size)
@@ -212,7 +212,7 @@ class QuantumProgram(object):
         """
         if name in self.__classical_registers:
             if size != len(self.__classical_registers[name]):
-                raise QISKitException("Can't make this register: Already in"
+                raise QISKitError("Can't make this register: Already in"
                                       " program with different size")
             if verbose == True:
                 print(">> classical register exists:", name, size)
@@ -300,7 +300,7 @@ class QuantumProgram(object):
             quantum program and returns the name to be used to get this circuit
         """
         if not os.path.exists(qasm_file):
-            raise QISKitException('qasm file "{0}" not found'.format(qasm_file))
+            raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
         node_circuit = qasm.Qasm(filename=qasm_file).parse() # Node (AST)
@@ -722,7 +722,7 @@ class QuantumProgram(object):
             name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
             if name not in self.__quantum_program:
-                raise KeyError('circuit "{0}" not found in program'.format(name))
+                raise QISKitError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
@@ -822,7 +822,7 @@ class QuantumProgram(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["config"]
         except KeyError:
-            raise KeyError('No compiled configurations for circuit "{0}"'.format(name))
+            raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
     def get_complied_qasm(self, qobj, name):
         """Print the compiled cricuit in qasm format.
@@ -837,7 +837,7 @@ class QuantumProgram(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
         except KeyError:
-            raise KeyError('No compiled qasm for circuit "{0}"'.format(name))
+            raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
     def _dag2json(self, dag_circuit):
         """Make a Json representation of the circuit.
@@ -959,7 +959,7 @@ class QuantumProgram(object):
         job_result = self.__api.get_job(jobid)
         if 'status' not in job_result:
             from pprint import pformat
-            raise Exception("get_job didn't return status: %s" % (pformat(job)))
+            raise QISKitError("get_job didn't return status: %s" % (pformat(job)))
         while job_result['status'] == 'RUNNING':
             if timer >= timeout:
                 return {"status": "ERROR", "result": ["Time Out"]}
@@ -971,7 +971,7 @@ class QuantumProgram(object):
 
             if 'status' not in job_result:
                 from pprint import pformat
-                raise Exception("get_job didn't return status: %s" % (pformat(job_result)))
+                raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
             if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
                 return {"status": "ERROR", "result": [job_result['status']]}
 
@@ -1129,7 +1129,7 @@ class Result(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
         except KeyError:
-            raise KeyError('No  qasm for circuit "{0}"'.format(name))
+            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_data(self, name):
         """Get the data of cicuit name.
@@ -1163,7 +1163,7 @@ class Result(object):
                 if qobj["circuits"][index]['name'] == name:
                     return self.__result['result'][index]["data"]
         except KeyError:
-            raise KeyError('No data for circuit "{0}"'.format(name))
+            raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
         """Get the histogram data of cicuit name.
@@ -1181,7 +1181,7 @@ class Result(object):
         try:
             return self.get_data(name)['counts']
         except KeyError:
-            raise KeyError('No counts for circuit "{0}"'.format(name))
+            raise QISKitError('No counts for circuit "{0}"'.format(name))
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.

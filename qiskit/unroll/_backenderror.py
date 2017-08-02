@@ -16,14 +16,15 @@
 # =============================================================================
 
 """
-Exception for errors raised by unroller.
+Exception for errors raised by unroller backends.
 
 Author: Andrew Cross
 """
 
+from qiskit import QISKitError
 
-class UnrollerException(Exception):
-    """Base class for errors raised by unroller."""
+class BackendError(QISKitError):
+    """Base class for errors raised by unroller backends."""
 
     def __init__(self, *message):
         """Set the error message."""

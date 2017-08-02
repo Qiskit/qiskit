@@ -16,19 +16,20 @@
 # =============================================================================
 
 """
-Exception for errors raised by the QISKit SDK.
+Exception for errors raised while parsing OPENQASM.
 
-Author: Andrew Cross
+Author: Jim Challenger
 """
 
+from qiskit import QISKitError
 
-class QISKitException(Exception):
-    """Base class for errors raised by the QISKit SDK."""
+class QasmError(QISKitError):
+    """Base class for errors raised while parsing OPENQASM."""
 
-    def __init__(self, *message):
+    def __init__(self, *msg):
         """Set the error message."""
-        self.message = ' '.join(message)
+        self.msg = ' '.join(msg)
 
     def __str__(self):
         """Return the message."""
-        return repr(self.message)
+        return repr(self.msg)

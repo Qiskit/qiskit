@@ -20,13 +20,11 @@ Backend for the unroller that produces a QuantumCircuit.
 
 Author: Andrew Cross
 """
-from ._backendexception import BackendException
+from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend
-
 from .._quantumregister import QuantumRegister
 from .._classicalregister import ClassicalRegister
 from .._quantumcircuit import QuantumCircuit
-from .._qiskitexception import QISKitException
 
 import sys
 sys.path.append("../..")
@@ -103,21 +101,21 @@ class CircuitBackend(UnrollerBackend):
         """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
         qregs = self.circuit.get_qregs()
         if qubit[0] not in qregs:
-            raise BackendException("qreg %s does not exist" % qubit[0])
+            raise BackendError("qreg %s does not exist" % qubit[0])
         return (qregs[qubit[0]], qubit[1])
 
     def _map_bit(self, bit):
         """Map bit tuple (regname, index) to (ClassicalRegister, index)."""
         cregs = self.circuit.get_cregs()
         if bit[0] not in cregs:
-            raise BackendException("creg %s does not exist" % bit[0])
+            raise BackendError("creg %s does not exist" % bit[0])
         return (cregs[bit[0]], bit[1])
 
     def _map_creg(self, creg):
         """Map creg name to ClassicalRegister."""
         cregs = self.circuit.get_cregs()
         if creg not in cregs:
-            raise BackendException("creg %s does not exist" % creg)
+            raise BackendError("creg %s does not exist" % creg)
         return cregs[creg]
 
     def u(self, arg, qubit):
@@ -207,7 +205,7 @@ class CircuitBackend(UnrollerBackend):
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendException("opaque gate %s not in basis" % name)
+            raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             self.in_gate = name
             self.listen = False
@@ -258,11 +256,11 @@ class CircuitBackend(UnrollerBackend):
                    "z": [(0, 1), lambda x: self.circuit.z(x[1][0])],
                    }
             if name not in lut:
-                raise BackendException("gate %s not in standard extensions" %
+                raise BackendError("gate %s not in standard extensions" %
                                        name)
             gate_data = lut[name]
             if gate_data[0] != (len(args), len(qubits)):
-                raise BackendException("gate %s signature (%d, %d) is " %
+                raise BackendError("gate %s signature (%d, %d) is " %
                                        (name, len(args), len(qubits)) +
                                        "incompatible with the standard " +
                                        "extensions")

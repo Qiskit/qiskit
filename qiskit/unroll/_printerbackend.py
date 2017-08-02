@@ -20,7 +20,7 @@ Backend for the unroller that prints OpenQASM.
 
 Author: Andrew Cross
 """
-from ._backendexception import BackendException
+from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend
 
 
@@ -228,7 +228,7 @@ class PrinterBackend(UnrollerBackend):
                                            qubits))
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendException("opaque gate %s not in basis" % name)
+            raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             self.in_gate = name
             self.listen = False

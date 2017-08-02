@@ -25,7 +25,7 @@ import copy
 import math
 import numpy as np
 import networkx as nx
-from qiskit import QISKitException
+from ._mappererror import MapperError
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
@@ -74,7 +74,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, v
     gates = []
     for layer in layer_partition:
         if len(layer) > 2:
-            raise QISKitException("Layer contains >2 qubit gates")
+            raise MapperError("Layer contains >2 qubit gates")
         elif len(layer) == 2:
             gates.append(tuple(layer))
 
@@ -228,7 +228,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     if "cx" not in circuit_graph.basis:
         return circuit_graph
     if circuit_graph.basis["cx"] != (2, 0, 0):
-        raise QISKitException("cx gate has unexpected signature %s"
+        raise MapperError("cx gate has unexpected signature %s"
                               % circuit_graph.basis["cx"])
     flipped_qasm = "OPENQASM 2.0;\n" + \
                    "gate cx c,t { CX c,t; }\n" + \
@@ -258,7 +258,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                 print("cx %s[%d], %s[%d] -FLIP" % (cxedge[0][0], cxedge[0][1],
                                                    cxedge[1][0], cxedge[1][1]))
         else:
-            raise QISKitException("circuit incompatible with CouplingGraph: "
+            raise MapperError("circuit incompatible with CouplingGraph: "
                                   + "cx on %s" % cxedge)
     return circuit_graph
 
@@ -335,7 +335,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     initial_layout.
     """
     if circuit_graph.width() > coupling_graph.size():
-        raise QISKitException("Not enough qubits in CouplingGraph")
+        raise MapperError("Not enough qubits in CouplingGraph")
 
     # Schedule the input circuit
     layerlist = circuit_graph.layers()
@@ -352,11 +352,11 @@ def swap_mapper(circuit_graph, coupling_graph,
         for k, v in initial_layout.items():
             qubit_subset.append(v)
             if k not in circ_qubits:
-                raise QISKitException("initial_layout qubit %s[%d] not " %
+                raise MapperError("initial_layout qubit %s[%d] not " %
                                       (k[0], k[1]) +
                                       "in input DAGCircuit")
             if v not in coup_qubits:
-                raise QISKitException("initial_layout qubit %s[%d] not " %
+                raise MapperError("initial_layout qubit %s[%d] not " %
                                       (v[0], v[1]) +
                                       " in input CouplingGraph")
     else:
@@ -416,7 +416,7 @@ def swap_mapper(circuit_graph, coupling_graph,
 
                 # Give up if we fail again
                 if not success_flag:
-                    raise QISKitException("swap_mapper failed: " +
+                    raise MapperError("swap_mapper failed: " +
                                           "layer %d, sublayer %d" % (i, j) +
                                           ", \"%s\"" %
                                           serial_layer["graph"].qasm(
