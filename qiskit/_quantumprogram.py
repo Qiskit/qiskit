@@ -486,19 +486,21 @@ class QuantumProgram(object):
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
 
-        if beauty :
+        if beauty:
             indent = 4
         else:
             indent = 0
         
         elemements_to_save = self.__quantum_program
+        elemetent_saved = {}
         
         for circuit in elemements_to_save:
-            elemements_to_save[circuit]['circuit'] = elemements_to_save[circuit]['circuit'].qasm()
+            elemetent_saved[circuit] = {}
+            elemetent_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
 
         try:
             with open(file_name, 'w') as save_file:
-                json.dump(elemements_to_save, save_file, indent = indent)
+                json.dump(elemetent_saved, save_file, indent = indent)
             return {'status': 'Done', 'result': elemements_to_save}
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
@@ -523,7 +525,7 @@ class QuantumProgram(object):
         - When something happen with the file management
         """
 
-        if file_name == None:
+        if file_name is None:
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
         
@@ -534,8 +536,8 @@ class QuantumProgram(object):
                 elemements_loaded = json.load(load_file)
             
             for circuit in elemements_loaded:
-                circuit_qasm = elemements_loaded[circuit]['circuit']
-                elemements_loaded[circuit]['circuit'] = qasm.Qasm(data=circuit_qasm).parse()
+                circuit_qasm = elemements_loaded[circuit]["qasm"]
+                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
             self.__quantum_program = elemements_loaded
             
             return {"status": 'Done', 'result': self.__quantum_program}
