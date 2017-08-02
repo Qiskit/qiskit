@@ -492,15 +492,15 @@ class QuantumProgram(object):
             indent = 0
         
         elemements_to_save = self.__quantum_program
-        elemetent_saved = {}
+        elements_saved = {}
         
         for circuit in elemements_to_save:
-            elemetent_saved[circuit] = {}
-            elemetent_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
+            elements_saved[circuit] = {}
+            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
 
         try:
             with open(file_name, 'w') as save_file:
-                json.dump(elemetent_saved, save_file, indent = indent)
+                json.dump(elements_saved, save_file, indent = indent)
             return {'status': 'Done', 'result': elemements_to_save}
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
