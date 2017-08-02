@@ -23,8 +23,8 @@ import numpy as np
 from scipy import linalg as la
 import sys
 sys.path.append("../..")
-from tools.optimizationtools import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
-from tools.pauli import Pauli
+from tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
+from tools.qi.pauli import Pauli
 
 
 class TestHamiltonian(unittest.TestCase):

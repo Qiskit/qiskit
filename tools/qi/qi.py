@@ -25,7 +25,7 @@ over time.
 import numpy as np
 from scipy.linalg import sqrtm
 from scipy import linalg as la
-from tools.pauli import pauli_group
+from tools.qi.pauli import pauli_group
 
 
 ###############################################################

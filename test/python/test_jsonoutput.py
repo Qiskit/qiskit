@@ -23,8 +23,6 @@ python test_jsonoutput.py qasm/example.qasm
 import unittest
 import logging
 import os
-import sys
-import numpy as np
 from qiskit import QuantumProgram
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll

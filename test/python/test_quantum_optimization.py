@@ -20,9 +20,8 @@ import numpy as np
 import unittest
 import logging
 import os
-import sys
 sys.path.append("../..")
-from tools.optimizationtools import trial_circuit_ry
+from tools.apps.optimization import trial_circuit_ry
 
 class TestQuantumOptimization(unittest.TestCase):
     """Tests for quantum optimization"""
@@ -61,4 +60,3 @@ class TestQuantumOptimization(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-        
