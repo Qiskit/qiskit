@@ -461,28 +461,22 @@ class QuantumProgram(object):
         return self.__api
 
     def save(self, file_name=None, beauty=False):
+        """ Save Quantum Program in a Json file.
+
+        Args:
+            file_name (str): file name and path.
+            beauty (boolean): save the text with indent 4 to make it readable.
+
+        Returns:
+            The dictionary with the status and result of the operation
+
+        Raises:
+            When you don't provide a correct file name
+                raise a LookupError.
+            When something happen with the file management
+                raise a LookupError.
         """
-        Save Quantum Program in a Json file.
-
-        Parameters
-        ----------
-        file_name : str
-           file name and path.
-        
-        beauty: boolean
-            save the text with indent 4 to make it readable
-
-        Returns
-        -------
-        The dictionary with the status and result of the operation.
-
-        Raises
-        ------
-        - when you don't provide a correct file name
-        - When something happen with the file management
-
-        """
-        if file_name == None:
+        if file_name is None:
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
 
@@ -507,24 +501,20 @@ class QuantumProgram(object):
             raise LookupError(error['result'])
         
     def load(self, file_name=None):
-        """
-        Load Quantum Program Json file into the Quantum Program object.
+        """ Load Quantum Program Json file into the Quantum Program object.
 
-        Parameters
-        ----------
-        file_name : str
-           file name and path.
-       
-        Returns
-        -------
-        The dictionary with the status and result of the operation.
-        
-        Raises
-        ------
-        - when you don't provide a correct file name
-        - When something happen with the file management
-        """
+        Args:
+            file_name (str): file name and path.
 
+        Returns:
+            The dictionary with the status and result of the operation
+
+        Raises:
+            When you don't provide a correct file name
+                raise a LookupError.
+            When something happen with the file management
+                raise a LookupError.
+        """
         if file_name is None:
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
