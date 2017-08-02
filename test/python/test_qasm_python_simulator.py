@@ -33,7 +33,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')        
+        cls.pdf = PdfPages(cls.moduleName + '.pdf')
         cls.logFileName = cls.moduleName + '.log'
         log_fmt = 'LocalQasmSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
         logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
@@ -146,10 +146,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
         backend = 'local_qasm_simulator'
-        qp.compile('teleport', backend=backend, shots=shots,
+        qobj = qp.compile('teleport', backend=backend, shots=shots,
                    seed=self.seed)
-        qp.run()
-        data = qp.get_counts('teleport')
+        results = qp.run(qobj)
+        data = results.get_counts('teleport')
         alice = {}
         bob = {}
         alice['00'] = data['0 0 0'] + data['1 0 0']
