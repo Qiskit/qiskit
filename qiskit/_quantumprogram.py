@@ -909,10 +909,10 @@ class QuantumProgram(object):
             output = self.__api.run_job(jobs, backend, shots, max_credits)
             if 'ERROR' in output:
                 # Clear the list of compiled programs to execute
-                return {"status": "ERROR", "result": output['ERROR']}
+                return {"status": "ERROR", "result": [output['ERROR']]}
             qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
             # print(qobj_result)
-            if qobj_result[0]['status'] == 'ERROR':
+            if qobj_result['status'] == 'ERROR':
                 # Clear the list of compiled programs to execute
                 return qobj_result
         else:
@@ -928,8 +928,8 @@ class QuantumProgram(object):
                 qobj_result = self._run_local_simulator(backend, jobs, silent)
             else:
                 # Clear the list of compiled programs to execute
-                return {"status": "ERROR", "result": "Not a valid backend"}
-        assert len(qobj["circuits"]) == len(qobj_result), "Internal error in QuantumProgram.run(), job_result"
+                return {"status": "ERROR", "result": ["Not a valid backend"]}
+        assert len(qobj["circuits"]) == len(qobj_result['result']), "Internal error in QuantumProgram.run(), job_result"
         results  = Result(qobj_result, qobj)
         return  results
 
@@ -944,7 +944,15 @@ class QuantumProgram(object):
             not
 
         Returns:
-            A list of results that correspond to the jobids.
+             Dictionary of form,
+             job_result_return =
+               [
+                   {
+                   "data": DATA,
+                   "status": DATA,
+                   },
+                   ...
+               ]
         """
         timer = 0
         timeout_over = False
@@ -954,7 +962,7 @@ class QuantumProgram(object):
             raise Exception("get_job didn't return status: %s" % (pformat(job)))
         while job_result['status'] == 'RUNNING':
             if timer >= timeout:
-                return {"status": "ERROR", "result": "Time Out"}
+                return {"status": "ERROR", "result": ["Time Out"]}
             time.sleep(wait)
             timer += wait
             if not silent:
@@ -972,7 +980,7 @@ class QuantumProgram(object):
         for index in range(len(job_result["qasms"])):
             job_result_return.append({"data": job_result["qasms"][index]["data"],
                                      "status": job_result["qasms"][index]["status"]})
-        return job_result_return
+        return {'status': job_result['status'], 'result': job_result_return}
 
     def _run_local_simulator(self, backend, jobs, silent=True):
         """Run a program of compiled quantum circuits on the local machine.
@@ -995,12 +1003,11 @@ class QuantumProgram(object):
         """
         job_results = []
         for job in jobs:
-            one_result = {'result': None, 'status': "ERROR"}
             local_simulator = simulators.LocalSimulator(backend, job)
             local_simulator.run(silent=silent)
             this_result = local_simulator.result()
             job_results.append(this_result)
-        return job_results
+        return {'status': 'COMPLETED', 'result': job_results}
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, silent=True, basis_gates=None,
@@ -1093,13 +1100,19 @@ class Result(object):
         self.__qobj = qobj
         self.__result = qobj_result
 
+    def get_status(self):
+        """Get the status of the run.
+
+        Returns:
+            the status of the results.
+        """
+        return self.__result['status']
+
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
 
-        If backend is None, it defaults to the last backend.
         Args:
             name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
 
         Returns:
             A text version of the qasm file that has been run.
@@ -1142,7 +1155,7 @@ class Result(object):
             qobj = self.__qobj
             for index in range(len(qobj["circuits"])):
                 if qobj["circuits"][index]['name'] == name:
-                    return self.__result[index]["data"]
+                    return self.__result['result'][index]["data"]
         except KeyError:
             raise KeyError('No data for circuit "{0}"'.format(name))
 
