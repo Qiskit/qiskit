@@ -22,7 +22,7 @@ Author: Andrew Cross
 """
 import math
 import copy
-from ._unrollerexception import UnrollerException
+from ._unrollererror import UnrollerError
 
 
 class Unroller(object):
@@ -66,7 +66,7 @@ class Unroller(object):
                     return [(node.name, j)
                             for j in range(self.cregs[node.name])]
                 else:
-                    raise UnrollerException("expected qreg or creg name:",
+                    raise UnrollerError("expected qreg or creg name:",
                                             "line=%s" % node.line,
                                             "file=%s" % node.file)
             else:
@@ -74,7 +74,7 @@ class Unroller(object):
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
                 else:
-                    raise UnrollerException("excepted local bit name:",
+                    raise UnrollerError("excepted local bit name:",
                                             "line=%s" % node.line,
                                             "file=%s" % node.file)
 
@@ -85,7 +85,7 @@ class Unroller(object):
         if node.name in id_dict:
             return float(id_dict[node.name])
         else:
-            raise UnrollerException("expected local parameter name:",
+            raise UnrollerError("expected local parameter name:",
                                     "line=%s" % node.line,
                                     "file=%s" % node.file)
 
@@ -123,7 +123,7 @@ class Unroller(object):
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
-            raise UnrollerException("internal error undefined gate:",
+            raise UnrollerError("internal error undefined gate:",
                                     "line=%s" % node.line, "file=%s" % node.file)
 
     def _process_gate(self, node, opaque=False):
@@ -152,7 +152,7 @@ class Unroller(object):
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
-            raise UnrollerException("internal error: qreg size mismatch",
+            raise UnrollerError("internal error: qreg size mismatch",
                                     "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
@@ -179,7 +179,7 @@ class Unroller(object):
         elif operation == '^':
             return self._process_node(lexpr) ** self._process_node(rexpr)
         else:
-            raise UnrollerException("internal error: undefined binop",
+            raise UnrollerError("internal error: undefined binop",
                                     "line=%s" % node.line, "file=%s" % node.file)
 
     def _process_prefix(self, node):
@@ -191,7 +191,7 @@ class Unroller(object):
         elif operation == '-':
             return -self._process_node(expr)
         else:
-            raise UnrollerException("internal error: undefined prefix",
+            raise UnrollerError("internal error: undefined prefix",
                                     "line=%s" % node.line, "file=%s" % node.file)
 
     def _process_measure(self, node):
@@ -199,7 +199,7 @@ class Unroller(object):
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if len(id0) != len(id1):
-            raise UnrollerException("internal error: reg size mismatch",
+            raise UnrollerError("internal error: reg size mismatch",
                                     "line=%s" % node.line, "file=%s" % node.file)
         for idx, idy in zip(id0, id1):
             self.backend.measure(idx, idy)
@@ -227,7 +227,7 @@ class Unroller(object):
         if op in dispatch:
             return dispatch[op](self._process_node(expr))
         else:
-            raise UnrollerException("internal error: undefined external",
+            raise UnrollerError("internal error: undefined external",
                                     "line=%s" % n.line, "file=%s" % n.file)
 
     def _process_children(self, node):
@@ -261,7 +261,7 @@ class Unroller(object):
 
         elif node.type == "indexed_id":
             # We should not get here.
-            raise UnrollerException("internal error n.type == indexed_id:",
+            raise UnrollerError("internal error n.type == indexed_id:",
                                     "line=%s" % node.line,
                                     "file=%s" % node.file)
 
@@ -325,7 +325,7 @@ class Unroller(object):
             return self._process_external(node)
 
         else:
-            raise UnrollerException("internal error: undefined node type",
+            raise UnrollerError("internal error: undefined node type",
                                     node.type, "line=%s" % node.line,
                                     "file=%s" % node.file)
 
@@ -339,4 +339,4 @@ class Unroller(object):
             self._process_node(self.ast)
             return self.backend.get_output()
         else:
-            raise UnrollerException("backend not attached")
+            raise UnrollerError("backend not attached")

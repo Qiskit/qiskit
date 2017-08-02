@@ -11,6 +11,7 @@ import json
 import subprocess
 from subprocess import PIPE, CalledProcessError
 import numpy as np
+from ._simulatorerror import SimulatorError
 
 __configuration = {
     "name": "local_qasm_cpp_simulator",
@@ -105,7 +106,7 @@ class QasmCppSimulator:
                 parse_complex(cresult['data'], k)
         else:
             # custom "backend" or "result" exception handler here?
-            raise Exception('local_qasm_cpp_simulator returned: {0}\n{1}'.
+            raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
                             format(cout.decode(), cerr.decode()))
         # Add simulator data
         self.result['data'] = cresult['data']

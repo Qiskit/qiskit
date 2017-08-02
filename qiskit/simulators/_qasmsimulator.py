@@ -96,6 +96,7 @@ import random
 from collections import Counter
 import json
 from ._simulatortools import single_gate_matrix
+from ._simulatorerror import SimulatorError
 
 
 # TODO add the IF qasm operation.
@@ -316,7 +317,7 @@ class QasmSimulator(object):
                 else:
                     backend = globals()['__configuration']['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise ValueError(err_msg.format(backend,
+                    raise SimulatorError(err_msg.format(backend,
                                                     operation['name']))
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))

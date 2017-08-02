@@ -21,7 +21,7 @@ Element of SU(2).
 Author: Andrew Cross
 """
 from qiskit import Gate
-from qiskit import QISKitException
+from qiskit.extensions._extensionerror import ExtensionError
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 
@@ -32,7 +32,7 @@ class UBase(Gate):
     def __init__(self, param, qubit, circ=None):
         """Create new reset instruction."""
         if len(param) != 3:
-            raise QISKitException("expected 3 parameters")
+            raise ExtensionError("expected 3 parameters")
         super(UBase, self).__init__("U", param, [qubit], circ)
 
     def qasm(self):

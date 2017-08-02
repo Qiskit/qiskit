@@ -33,7 +33,7 @@ from qiskit import Result
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit import QISKitException
+from qiskit import QISKitError
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
@@ -153,36 +153,36 @@ class TestQuantumProgram(unittest.TestCase):
         """Test create_quantum_register.
 
         If all is correct we get a object intstance of QuantumRegister and
-        QISKitException
+        QISKitError
 
         Previusly:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
-                from qiskit import QISKitException
+                from qiskit import QISKitError
         """
         QP_program = QuantumProgram()
         qr1 = QP_program.create_quantum_register("qr", 3, verbose=False)
         self.assertIsInstance(qr1, QuantumRegister)
-        self.assertRaises(QISKitException, QP_program.create_quantum_register,
+        self.assertRaises(QISKitError, QP_program.create_quantum_register,
                           "qr", 2, verbose=False)
 
     def test_fail_create_classical_register(self):
         """Test create_quantum_register.
 
         If all is correct we get a object intstance of QuantumRegister and
-        QISKitException
+        QISKitError
 
         Previusly:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
-                from qiskit import QISKitException
+                from qiskit import QISKitError
         """
         QP_program = QuantumProgram()
         cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
         self.assertIsInstance(cr1, ClassicalRegister)
-        self.assertRaises(QISKitException,
+        self.assertRaises(QISKitError,
                           QP_program.create_classical_register, "cr", 2,
                           verbose=False)
 
@@ -308,15 +308,15 @@ class TestQuantumProgram(unittest.TestCase):
     def test_fail_load_qasm_file(self):
         """Test fail_load_qasm_file.
 
-        If all is correct we should get a QISKitException
+        If all is correct we should get a QISKitError
 
         Previusly:
             Libraries:
                 from qiskit import QuantumProgram
-                from qiskit import QISKitException
+                from qiskit import QISKitError
         """
         QP_program = QuantumProgram()
-        self.assertRaises(QISKitException,
+        self.assertRaises(QISKitError,
                           QP_program.load_qasm_file, "", name=None,
                           verbose=False)
 
