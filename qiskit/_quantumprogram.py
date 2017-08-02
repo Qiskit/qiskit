@@ -75,14 +75,14 @@ class QuantumProgram(object):
         __quantum_registers (list[dic]): An dictionary of quantum registers
             used in the quantum program.
             __quantum_registers =
-                {"name": QuantumRegistor,
-                ...
+                {
+                --register name (string)--: QuantumRegistor,
                 }
         __classical_registers (list[dic]): An ordered list of classical registers
             used in the quantum program.
             __classical_registers =
-                {"name": ClassicalRegistor,
-                ...
+                {
+                --register name (string)--: ClassicalRegistor,
                 }
         __quantum_program (dic): An dictionary of quantum circuits
             __quantum_program =
@@ -525,7 +525,7 @@ class QuantumProgram(object):
             err_str = 'the backend "{0}" is not available'.format(backend)
             raise ValueError(err_str)
 
-    def get_backend_configuration(self, backend):
+    def get_backend_configuration(self, backend, list_format=False):
         """Return the configuration of the backend.
 
         The return is via QX API call.
@@ -555,8 +555,11 @@ class QuantumProgram(object):
                                 configuration_edit[new_key] = \
                                     configuration[key]
                             else:
-                                cmap = mapper.coupling_list2dict(
+                                if not type:
+                                    cmap = mapper.coupling_list2dict(
                                                 configuration[key])
+                                else:
+                                    cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
         for configuration in simulators.local_configuration:
@@ -909,12 +912,8 @@ class QuantumProgram(object):
             output = self.__api.run_job(jobs, backend, shots, max_credits)
             if 'ERROR' in output:
                 # Clear the list of compiled programs to execute
-                return {"status": "ERROR", "result": [output['ERROR']]}
+                qobj_result =  {"status": "ERROR", "result": [output['ERROR']]}
             qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-            # print(qobj_result)
-            if qobj_result['status'] == 'ERROR':
-                # Clear the list of compiled programs to execute
-                return qobj_result
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
@@ -928,8 +927,9 @@ class QuantumProgram(object):
                 qobj_result = self._run_local_simulator(backend, jobs, silent)
             else:
                 # Clear the list of compiled programs to execute
-                return {"status": "ERROR", "result": ["Not a valid backend"]}
-        assert len(qobj["circuits"]) == len(qobj_result['result']), "Internal error in QuantumProgram.run(), job_result"
+                qobj_result = {"status": "ERROR", "result": ["Not a valid backend"]}
+        if qobj_result['status'] == 'COMPLETED':
+            assert len(qobj["circuits"]) == len(qobj_result['result']), "Internal error in QuantumProgram.run(), job_result"
         results  = Result(qobj_result, qobj)
         return  results
 
@@ -1100,13 +1100,19 @@ class Result(object):
         self.__qobj = qobj
         self.__result = qobj_result
 
-    def get_status(self):
+    def __str__(self):
         """Get the status of the run.
 
         Returns:
             the status of the results.
         """
         return self.__result['status']
+
+    def get_error(self):
+        if self.__result['status'] == 'ERROR':
+            return self.__result['result'][0]
+        else:
+            return None
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
