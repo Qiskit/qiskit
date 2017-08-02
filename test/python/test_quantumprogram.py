@@ -471,7 +471,6 @@ class TestQuantumProgram(unittest.TestCase):
 
     def test_get_initial_circuit(self):
         """Test get_initial_circuit.
-
         If all correct is should be of the circuit form.
 
         Previusly:
@@ -481,6 +480,57 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc = QP_program.get_initial_circuit()
         self.assertIsInstance(qc, QuantumCircuit)
+
+    def test_save(self):
+        """
+        Save a Quantum Program in Json file
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+
+        qc = QP_program.get_circuit("circuitName")
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+
+        qc.u3(0.3, 0.2, 0.1, qr[0])
+        qc.h(qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.barrier()
+        qc.cx(qr[0], qr[1])
+        qc.h(qr[0])
+        qc.z(qr[2]).c_if(cr, 1)
+        qc.x(qr[2]).c_if(cr, 1)
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        result = QP_program.save("./test/python/test_save.json", beauty=True)
+
+        self.assertEqual(result['status'], 'Done')
+
+    def test_save_wrong(self):
+        """
+        Save a Quantum Program in Json file: Errors Control
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        self.assertRaises(LookupError, QP_program.load)
+
+    def test_load(self):
+        """
+        Load a Json Quantum Program
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+
+        result = QP_program.load("./test/python/test_load.json")
+        self.assertEqual(result['status'], 'Done')
+        
+        check_result = QP_program.get_qasm('circuitName')
+        self.assertEqual(len(check_result), 1872)
+    
+    def test_load_wrong(self):
+        """
+        Load a Json Quantum Program: Errors Control
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        self.assertRaises(LookupError, QP_program.load)
 
     @unittest.skip
     def test_contact_multiple_vertical_circuits(self):
