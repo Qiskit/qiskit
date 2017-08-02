@@ -27,7 +27,7 @@ from ._unrollerbackend import UnrollerBackend
 class PrinterBackend(UnrollerBackend):
     """Backend for the unroller that prints OpenQASM.
 
-    This backend also serves as a base class for other unroller backends.
+    This backend also serves as an example class for other unroller backends.
     """
 
     def __init__(self, basis=None):
@@ -58,14 +58,6 @@ class PrinterBackend(UnrollerBackend):
         basis is a list of operation name strings.
         """
         self.basis = basis
-
-    def _fs(self, f):
-        """Format a floating point number as a string.
-
-        Uses self.prec to determine the precision.
-        """
-        fmt = "{0:0.%sf}" % self.prec
-        return fmt.format(f)
 
     def version(self, version):
         """Print the version string.
@@ -129,19 +121,23 @@ class PrinterBackend(UnrollerBackend):
                 print(self._gate_string(name))
                 self.printed_gates.append(name)
 
-    def u(self, arg, qubit):
+    def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.
 
-        arg is 3-tuple of float parameters.
+        arg is 3-tuple of Node expression objects.
         qubit is (regname,idx) tuple.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen:
             if "U" not in self.basis:
                 self.basis.append("U")
             if self.creg is not None:
                 print("if(%s==%d) " % (self.creg, self.cval), end="")
-            print("U(%s,%s,%s) %s[%d];" % (self._fs(arg[0]), self._fs(arg[1]),
-                                           self._fs(arg[2]), qubit[0],
+            print("U(%s,%s,%s) %s[%d];" % (arg[0].real(nested_scope),
+                                           arg[1].real(nested_scope),
+                                           arg[2].real(nested_scope),
+                                           qubit[0],
                                            qubit[1]))
 
     def cx(self, qubit0, qubit1):
@@ -216,15 +212,20 @@ class PrinterBackend(UnrollerBackend):
         if self.comments:
             print("// drop condition")
 
-    def start_gate(self, name, args, qubits):
+    def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and self.comments:
-            print("// start %s, %s, %s" % (name, list(map(self._fs, args)),
+            print("// start %s, %s, %s" % (name,
+                                           list(map(lambda x:
+                                                    str(x.real(nested_scope)),
+                                                    args)),
                                            qubits))
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
@@ -237,21 +238,28 @@ class PrinterBackend(UnrollerBackend):
                 print("if(%s==%d) " % (self.creg, self.cval), end="")
             print(name, end="")
             if len(args) > 0:
-                print("(%s)" % ",".join(map(self._fs, args)), end="")
+                print("(%s)" % ",".join(map(lambda x:
+                                            str(x.real(nested_scope)),
+                                            args)), end="")
             print(" %s;" % ",".join(squbits))
 
-    def end_gate(self, name, args, qubits):
+    def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if name == self.in_gate:
             self.in_gate = ""
             self.listen = True
         if self.listen and self.comments:
-            print("// end %s, %s, %s" % (name, list(map(self._fs, args)),
+            print("// end %s, %s, %s" % (name,
+                                         list(map(lambda x:
+                                                  str(x.real(nested_scope)),
+                                                  args)),
                                          qubits))
 
     def get_output(self):

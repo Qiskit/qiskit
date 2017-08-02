@@ -37,6 +37,10 @@ class Qasm(object):
         self._filename = filename
         self._data = data
 
+    def get_filename(self):
+        """Return the filename."""
+        return self._filename
+
     def print_tokens(self):
         """Parse and print tokens."""
         if self._filename:

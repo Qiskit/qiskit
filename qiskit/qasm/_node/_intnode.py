@@ -19,6 +19,7 @@
 Node for an OPENQASM integer.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
 
@@ -39,6 +40,14 @@ class Int(Node):
         ind = indent * ' '
         print(ind, 'int', self.value)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         return "%d" % self.value
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the corresponding math mode latex string."""
+        return "%d" % self.value
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        return float(self.value)

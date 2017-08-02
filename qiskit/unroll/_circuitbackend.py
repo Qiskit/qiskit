@@ -118,16 +118,21 @@ class CircuitBackend(UnrollerBackend):
             raise BackendError("creg %s does not exist" % creg)
         return cregs[creg]
 
-    def u(self, arg, qubit):
+    def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.
 
-        arg is 3-tuple of float parameters.
+        arg is 3-tuple of Node expression objects.
         qubit is (regname,idx) tuple.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen:
             if "U" not in self.basis:
                 self.basis.append("U")
-            this_gate = self.circuit.u_base(arg, self._map_qubit(qubit))
+            this_gate = self.circuit.u_base(list(map(lambda x:
+                                                     x.real(nested_scope),
+                                                     arg)),
+                                            self._map_qubit(qubit))
             if self.creg is not None:
                 this_gate.c_if(self._map_creg(self.creg), self.cval)
 
@@ -196,12 +201,14 @@ class CircuitBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits):
+    def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
@@ -264,17 +271,20 @@ class CircuitBackend(UnrollerBackend):
                                        (name, len(args), len(qubits)) +
                                        "incompatible with the standard " +
                                        "extensions")
-            this_gate = gate_data[1]([args,
+            this_gate = gate_data[1]([list(map(lambda x:
+                                               x.real(nested_scope), args)),
                                       list(map(self._map_qubit, qubits))])
             if self.creg is not None:
                 this_gate.c_if(self._map_creg(self.creg), self.cval)
 
-    def end_gate(self, name, args, qubits):
+    def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if name == self.in_gate:
             self.in_gate = ""

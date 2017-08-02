@@ -19,6 +19,7 @@
 Node for an OPENQASM reset statement.
 
 Author: Jim Challenger
+        Andrew Cross
 """
 from ._node import Node
 
@@ -33,6 +34,6 @@ class Reset(Node):
         """Create the reset node."""
         Node.__init__(self, 'reset', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "reset " + self.children[0].qasm() + ";"
+        return "reset " + self.children[0].qasm(prec) + ";"

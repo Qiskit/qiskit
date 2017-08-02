@@ -33,6 +33,7 @@ The input is a AST and a basis set and returns a json memory object
         {
             "name": , // required -- string
             "params": , // optional -- list[double]
+            "texparams": , // optional -- list[string]
             "qubits": , // optional -- list[int]
             "cbits": , //optional -- list[int]
             "conditional":  // optional -- map
@@ -45,9 +46,9 @@ The input is a AST and a basis set and returns a json memory object
     ]
 }
 """
+import json
 from qiskit.unroll import BackendError
 from qiskit.unroll import UnrollerBackend
-import json
 
 
 class JsonBackend(UnrollerBackend):
@@ -131,11 +132,13 @@ class JsonBackend(UnrollerBackend):
         """
         self.gates[name] = gatedata
 
-    def u(self, arg, qubit):
+    def u(self, arg, qubit, nested_scope=None):
         """Fundamental single-qubit gate.
 
-        arg is 3-tuple of float parameters.
+        arg is 3-tuple of Node expression objects.
         qubit is (regname, idx) tuple.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen:
             if "U" not in self.basis:
@@ -143,7 +146,12 @@ class JsonBackend(UnrollerBackend):
             qubit_indices = [self._qubit_order_internal.get(qubit)]
             self.circuit['operations'].append({
                 'name': "U",
-                'params': [arg[0], arg[1], arg[2]],
+                'params': [arg[0].real(nested_scope),
+                           arg[1].real(nested_scope),
+                           arg[2].real(nested_scope)],
+                'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
+                              arg[1].latex(prec=8, nested_scope=nested_scope),
+                              arg[2].latex(prec=8, nested_scope=nested_scope)],
                 'qubits': qubit_indices
                 })
             self._add_condition()
@@ -250,12 +258,14 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits):
+    def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
@@ -267,17 +277,23 @@ class JsonBackend(UnrollerBackend):
                              for qubit in qubits]
             self.circuit['operations'].append({
                 'name': name,
-                'params': args,
-                'qubits': qubit_indices
+                'params': list(map(lambda x: x.real(nested_scope), args)),
+                'texparams': list(map(lambda x:
+                                      x.latex(prec=8,
+                                              nested_scope=nested_scope),
+                                      args)),
+                'qubits': qubit_indices,
                 })
             self._add_condition()
 
-    def end_gate(self, name, args, qubits):
+    def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         if name == self.in_gate:
             self.in_gate = ""

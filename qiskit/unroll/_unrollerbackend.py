@@ -76,11 +76,13 @@ class UnrollerBackend(object):
         """
         raise BackendError("Backend define_gate unimplemented")
 
-    def u(self, arg, qubit):
+    def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.
 
-        arg is 3-tuple of float parameters.
+        arg is 3-tuple of Node expression objects.
         qubit is (regname,idx) tuple.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         raise BackendError("Backend u unimplemented")
 
@@ -126,21 +128,25 @@ class UnrollerBackend(object):
         """Drop the current condition."""
         raise BackendError("Backend drop_condition unimplemented")
 
-    def start_gate(self, name, args, qubits):
+    def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         raise BackendError("Backend start_gate unimplemented")
 
-    def end_gate(self, name, args, qubits):
+    def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
         name is name string.
-        args is list of floating point parameters.
+        args is list of Node expression objects.
         qubits is list of (regname, idx) tuples.
+        nested_scope is a list of dictionaries mapping expression variables
+        to Node expression objects in order of increasing nesting depth.
         """
         raise BackendError("Backend end_gate unimplemented")
 
