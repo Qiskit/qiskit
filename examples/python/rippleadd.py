@@ -37,7 +37,7 @@ import Qconfig
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "Simulator"
+backend = "ibmqx_qasm_simulator"
 coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}
@@ -69,11 +69,11 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("rippleadd")
-a = qp.get_quantum_registers("a")
-b = qp.get_quantum_registers("b")
-cin = qp.get_quantum_registers("cin")
-cout = qp.get_quantum_registers("cout")
-ans = qp.get_classical_registers("ans")
+a = qp.get_quantum_register("a")
+b = qp.get_quantum_register("b")
+cin = qp.get_quantum_register("cin")
+cout = qp.get_quantum_register("cout")
+ans = qp.get_classical_register("ans")
 
 
 def majority(p, a, b, c):
@@ -114,10 +114,7 @@ qc.measure(cout[0], ans[n])
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: not compiled
 result = qp.execute(["rippleadd"], backend=backend,
@@ -128,11 +125,10 @@ print(qp.get_counts("rippleadd"))
 # Second version: compiled to 2x8 array coupling graph
 qp.compile(["rippleadd"], backend=backend,
            coupling_map=coupling_map, shots=1024)
-# qp.print_execution_list(verbose=True)
 result = qp.run()
 
 print(result)
-print(qp.get_compiled_qasm("rippleadd"))
+print(qp.get_ran_qasm("rippleadd"))
 print(qp.get_counts("rippleadd"))
 
 # Both versions should give the same distribution

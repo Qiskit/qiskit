@@ -17,12 +17,12 @@
 #					 Jesus Perez <jesusper@us.ibm.com>
 
 
-.PHONY: env env-dev lint test run
+.PHONY: env env-dev lint test run doc
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
 	conda create -y -n QISKitenv python=3
-	bash -c "source activate QISKitenv;pip install -r requires.txt"
+	bash -c "source activate QISKitenv;pip install -U -r requires.txt"
 
 run:
 	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
@@ -42,3 +42,9 @@ test:
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
+
+doc:
+	export PYTHONPATH=$(PWD);sphinx-apidoc -f -o doc -d 4 -P -e qiskit;make -C doc html
+
+clean:
+	make -C doc clean

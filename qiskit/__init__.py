@@ -8,4 +8,5 @@ from ._instructionset import InstructionSet
 from ._qiskitexception import QISKitException
 import qiskit.extensions.standard
 from ._quantumprogram import QuantumProgram
+from ._quantumprogram import Result
 #from .simulators import UnitarySimulator

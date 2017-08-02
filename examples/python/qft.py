@@ -100,8 +100,8 @@ def qft(circ, q, n):
 
 
 qp = QuantumProgram(specs=QPS_SPECS)
-q = qp.get_quantum_registers("q")
-c = qp.get_classical_registers("c")
+q = qp.get_quantum_register("q")
+c = qp.get_classical_register("c")
 
 qft3 = qp.get_circuit("qft3")
 qft4 = qp.get_circuit("qft4")
@@ -136,17 +136,14 @@ print(qft5.qasm())
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-result = qp.execute(["qft3", "qft4", "qft5"], backend='Simulator',
+result = qp.execute(["qft3", "qft4", "qft5"], backend='ibmqx_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
-print(qp.get_compiled_qasm("qft3"))
-print(qp.get_compiled_qasm("qft4"))
-print(qp.get_compiled_qasm("qft5"))
+print(qp.get_ran_qasm("qft3"))
+print(qp.get_ran_qasm("qft4"))
+print(qp.get_ran_qasm("qft5"))
 print(qp.get_counts("qft3"))
 print(qp.get_counts("qft4"))
 print(qp.get_counts("qft5"))
@@ -155,5 +152,5 @@ print(qp.get_counts("qft5"))
 result = qp.execute(["qft3"], backend=backend,
                     coupling_map=coupling_map, shots=1024, timeout=120)
 print(result)
-print(qp.get_compiled_qasm("qft3"))
+print(qp.get_ran_qasm("qft3"))
 print(qp.get_counts("qft3"))

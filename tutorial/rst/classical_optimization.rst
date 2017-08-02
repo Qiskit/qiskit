@@ -24,13 +24,13 @@ Many problems in finance and business are optimization problems.
 Optimization or combinatorial optimization means searching for an
 optimal solution in a finite or countably infinite set of potential
 solutions. Optimality is defined with respect to some criterion
-function, which is to be minimized or maximized, which is typically
+function, which is to be minimized or maximized, typically
 called the cost function.
 
 **Types of optimization problems**
 
 Minimization: cost, distance, length of a traversal, weight, processing
-time, material, energy consumption, number of objects
+time, material, energy consumption, number of objects.
 
 Maximization: profit, value, output, return, yield, utility, efficiency,
 capacity, number of objects.
@@ -40,38 +40,38 @@ The two problems that are consider in this notebook are:
 MaxCut
 ======
 
-MaxCut is an NP-Complete problem. MaxCut has applications in clustering,
-network science, and statistical physics. For example consider the
+MaxCut is an NP-complete problem. MaxCut has applications in clustering,
+network science, and statistical physics. For example, consider the
 problem of many different people (nodes) and how they can influence
-(weight) overs, and you want to answer the question of the best
-marketing stratety to maximize revenue by offering for free the product
+(weight) overs. OVERS? You want to answer the question of the best
+marketing stratety to maximize revenue, by offering for free the product
 to one subset of buyers, while determining how to approach the remaining
 buyers with a particular price. MaxCut derives its importance from its
-"hardness" and applications it has in aforementioned fields (SHOULD WE
-ADD THAT APPROXIMATIONS ARE ALSO HARD).
+``hardness" as well as the applications it has in aforementioned fields (SHOULD WE
+ADD THAT APPROXIMATIONS ARE ALSO HARD). 
 
 Consider a :math:`n`-node undirectional graph *G(V, E)* where *\|V\| =
 n* with edge weights :math:`w_{ij}>0` for :math:`(i, j)\in E`. A cut is
 defined as the partitioning into two sets. We define the cost as the sum
 of weights of edges crossing the cut. By assigning :math:`x_i=0` or
-:math:`x=1` to each node :math:`i` depding on its location to the cut
+:math:`x=1` to each node :math:`i` depding on its location to the cut,
 the maximum cut is a cut that maximizes
 
 .. math:: C(\textbf{x}) = \sum_{i,j} w_{ij} x_i (1-x_j).
 
 An extension of the MaxCut problem is to let the nodes themselves carry
-weights, which can be regarded as the nodes having a preference on their
-location. Doing this the cost function becomes
+weights, which can be regarded as the nodes having a preference for their
+location. The cost function then becomes
 
 .. math:: C(\textbf{x}) = \sum_i w_i x_i + \sum_{i,j} w_{ij} x_i (1-x_j).
 
-Mapping this to a Quantum Hamiltonian is trival
+Mapping this to a quantum Hamiltonian is trival:
 :math:`x_i\rightarrow (1-Z_i)/2` where :math:`Z_i` is the Pauli Z
-operator that has eigenvalues :math:`\pm 1`. Doing this we find that
+operator that has eigenvalues :math:`\pm 1`. Doing this, we find that
 
 .. math:: C(\textbf{Z}) = \sum_i w_i (1-Z_i)/2 + \sum_{i<j} \frac{w_{ij}}{2} (1-Z_iZ_j)= \frac{-1}{2}\left(\sum_i w_i Z_i + \sum_{i<j} w_{ij} Z_iZ_j\right)+\mathrm{const},
 
-where const = :math:`\sum_i w_i/2 + \sum_{i<j}w_{ij}/2`. That is the
+where const = :math:`\sum_i w_i/2 + \sum_{i<j}w_{ij}/2`. That is, the
 MAXCUT is equivalent to minimizing the Ising Hamiltonian
 
 .. math::  H = \sum_i w_i Z_i + \sum_{i<j} w_{ij} Z_iZ_j.
@@ -83,22 +83,20 @@ In addition to being a notorious NP-complete problem that has drawn the
 attention of computer scientists and mathematician for over two
 centuries, as the name suggests, the Traveling Salesman Problem (TSP)
 has important bearings on finance and marketing. Colloquially, the
-traveling salesman is one who goes from city to city to sell a
+traveling salesman is one who goes from city to city to sell
 merchandise. His/her objective (TSP) is to find the shortest path that
-would enable them to visit all the cities and return to their hometown
-(i.e., the city where he started). This way he/she gets to maximize
-their potential sales in the least amount of time.
+would enable a path to visit all the cities and return to the starting city. This way, potential sales  are maximized in the least amount of time.
 
-The problem derives its importance from its "hardness" and ubiquitous
+The problem derives its importance from its ``hardness" and ubiquitous
 equivalence to other relevant combinatorial optimization problems that
 arise in practice.
 
 The mathematical formulation with some early analysis was proposed by
-W.R. Hamilton in early 19th century. Mathematically the problem is best
+W.R. Hamilton in early 19th century. Mathematically, the problem is best
 abstracted in terms of graphs. The TSP on the nodes of a graph asks for
 the shortest Hamiltonian cycle that can be taken through each of the
-nodes. The general solution is unknown and finding an efficient solution
-(e.g., a polynomial time algorithm) is expected to not exists.
+nodes. The general solution is unknown, and finding an efficient solution
+(e.g., a polynomial time algorithm) is expected not to exist.
 
 Find the shortest Hamiltonian cycle in a given complete graph
 :math:`G=(V,E)` with :math:`n=|V|` vertices and distances,
@@ -106,22 +104,21 @@ Find the shortest Hamiltonian cycle in a given complete graph
 decission variable :math:`x_{ij}` = 1 if the cycle goes along arc
 :math:`i\rightarrow j` or 0 otherwise.
 
-Approximate Universal Quantum Computing for Optimization problems
+Approximate Universal Quantum Computing for Optimization problems 
 =================================================================
 
 Recently there has been interest in investgating approximate algorithims
-for optimization [ADD REFS]. Here we show a slight variation to them
-which we have been looking at under the general concept of approximate
-quantum computing. In general we dont expect this to have a exponential
-speed up but due to the nature and importance of these problems it is
-worth investigating Heuristic approaches on a quantum computer. The hope
-is that that due to the large space of a quantum computer we can explore
+for optimization [ADD REFS]. Here we show a slight variation, which we have been considering under the general concept of approximate
+quantum computing. In general, we don't expect this to have a exponential
+speed-up, but due to the nature and importance of these problems, it is
+worth investigating heuristic approaches on a quantum computer. The hope
+is that that the large space of a quantum computer will make it possible to explore
 the problem by exploiting entanglement to trade exponential calls for
 quantum depth.
 
-The Algorithm works as follows: 1. Choose a Ising problem (can have
+The algorithm works as follows: 1. Choose a Ising problem (can have
 higher powers of Z). 2. Choose the maximum depth of the quantum circuit
-(this could be done adaptively. 3. Choos a set of controls
+(this could be done adaptively.) 3. Choose a set of controls
 :math:`\theta` and make a trial function :math:`|\psi(\theta)\rangle`.
 4. Evaluate
 :math:`C = \langle\psi~|H|~\psi\rangle = \sum_i w_i \langle\psi~|Z_i|~\psi\rangle+ \sum_{i<j} w_{ij} \langle\psi~|Z_iZ_j|~\psi\rangle`
@@ -130,19 +127,19 @@ together. 5. Use a classical optimizer to choose a new set of controls.
 6. Continue until the C has reach a minimium and return
 :math:`|\langle z~|\psi\rangle|^2`.
 
-Not some benifits on this over making this is real hardware is we are
+FIX THIS NEXT SENTENCE: Not some benefits on this over making this is real hardware is we are
 not limited to the connectivity of the device and it is trival to map
 optimize problems to the virtual Hamiltonain which we make though
 simulation. Getting higher orders such as :math:`Z_iZ_jZ_k` is simple
 which in real hardware is generally possible. The noise is mainly due to
-the gates and if the depth is small enough we can perform this high
+the gates, and if the depth is small enough, we can perform this high
 fidelity.
 
-It is our belief the difficult of finding good Heuristic algorithms will
-come down ot the trial funciton. Do we choose a trial function that has
+It is our belief the difficulty of finding good heuristic algorithms will
+come down to the trial funciton. Do we choose a trial function that has
 entanglement in a way that best aligns with the problem (as indicated in
-[REF]). or do we make the amount of entanglement a variable [REF]. These
-questions are beyond our goals here and we will consider only the
+[REF]), or do we make the amount of entanglement a variable [REF]? These
+questions are beyond our goals here, and we will consider only the
 simplie trial functions
 
 .. math:: |\psi(\theta)\rangle  = [U_\mathrm{single}(\theta) U_\mathrm{entangler}]^m |+\rangle
@@ -152,9 +149,9 @@ entangling), and
 :math:`U_\mathrm{single}(\theta) = Y(\theta)^{\otimes n}`, where
 :math:`n` is the number of qubits and :math:`m` is the depth of the
 quantum circuit. The motivation for this choice is that for these
-classical problems this choice allows us to search over the space of
-states that have only real superpostions and dont have to worry about
-refocusing out all the complex phases but still can exploit the
+classical problems, this choice allows us to search over the space of
+states that have only real superpositions and don't have to worry about
+refocusing out all the complex phases, but still can exploit the
 entanglment to search for solutions.
 
 .. code:: python
@@ -183,7 +180,7 @@ entanglment to search for solutions.
     from tools.optimizationtools import trial_circuit_ryrz,trial_circuit_ry, SPSA_optimization
     from tools.optimizationtools import Energy_Estimate, Measure_pauli_z, Hamiltonian_from_file, make_Hamiltonian
 
-MaxCut on 4 Qubits
+MaxCut on Four Qubits
 ==================
 
 ::
@@ -243,7 +240,7 @@ The ground state is degenerate and is either :math:`|0110\rangle` or
 
 .. code:: python
 
-    #Making the Hamiltonian in its full form and getting the lowest eigenvalue and egienvector
+    #Making the Hamiltonian in its full form and getting the lowest eigenvalue and eigenvector
     H = make_Hamiltonian(n,alpha,beta)
     w, v = la.eigh(H, eigvals=(0, 1))
     print(w)
@@ -539,7 +536,7 @@ The ground state is degenerate and is either :math:`|100\rangle`,
     plt.plot(range(max_trials), cost_plus_depth_3, range(max_trials), cost_minus_depth_3)
     plot_histogram(get_data(results,2),n)
 
-Max Cut (DONNA)
+MaxCut (DONNA)
 ===============
 
 .. code:: python

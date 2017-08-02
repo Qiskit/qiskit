@@ -91,7 +91,7 @@ result =
         }
 """
 import numpy as np
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt
+from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 import json
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
@@ -99,10 +99,9 @@ import json
 __configuration = {"name": "local_unitary_simulator",
                    "url": "https://github.com/IBM/qiskit-sdk-py",
                    "simulator": True,
-                   "description": "A cpp simulator for qasm files",
-                   "nQubits": 10,
-                   "couplingMap": "all-to-all",
-                   "gateset": "SU2+CNOT"}
+                   "description": "A python simulator for unitary matrix",
+                   "coupling_map": "all-to-all",
+                   "basis_gates": "u1,u2,u3,cx,id"}
 
 
 class UnitarySimulator(object):
@@ -141,31 +140,32 @@ class UnitarySimulator(object):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self):
+    def run(self, silent=True):
         """Apply the single-qubit gate."""
-        for j in range(self._number_of_operations):
-            # each operations
-            if self.circuit['operations'][j]['name'] == 'U':
-                qubit = self.circuit['operations'][j]['qubits'][0]
-                theta = self.circuit['operations'][j]['params'][0]
-                phi = self.circuit['operations'][j]['params'][1]
-                lam = self.circuit['operations'][j]['params'][2]
-                gate = np.array([[np.cos(theta/2.0),
-                                  -np.exp(1j*lam)*np.sin(theta/2.0)],
-                                 [np.exp(1j*phi)*np.sin(theta/2.0),
-                                  np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+        for operation in self.circuit['operations']:
+            if operation['name'] in ['U', 'u1', 'u2', 'u3']:
+                if 'params' in operation:
+                    params = operation['params']
+                else:
+                    params = None
+                qubit = operation['qubits'][0]
+                gate = single_gate_matrix(operation['name'], params)
                 self._add_unitary_single(gate, qubit)
-            elif self.circuit['operations'][j]['name'] == 'CX':
-                qubit0 = self.circuit['operations'][j]['qubits'][0]
-                qubit1 = self.circuit['operations'][j]['qubits'][1]
+            elif operation['name'] in ['id', 'u0']:
+                pass
+            elif operation['name'] in ['CX', 'cx']:
+                qubit0 = operation['qubits'][0]
+                qubit1 = operation['qubits'][1]
                 gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
-            elif self.circuit['operations'][j]['name'] == 'measure':
-                print('Warning have dropped measure from unitary simulator')
-            elif self.circuit['operations'][j]['name'] == 'reset':
-                print('Warning have dropped reset from unitary simulator')
-            elif self.circuit['operations'][j]['name'] == 'barrier':
+            elif operation['name'] == 'measure':
+                if silent is False:
+                    print('Warning have dropped measure from unitary simulator')
+            elif operation['name'] == 'reset':
+                if silent is False:
+                    print('Warning have dropped reset from unitary simulator')
+            elif operation['name'] == 'barrier':
                 pass
             else:
                 self.result['status'] = 'ERROR'

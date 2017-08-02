@@ -23,45 +23,45 @@ Author: Andrew Cross, Jay Gambetta
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import Counter
 
 
-def plot_histogram(data, number_to_keep=False):
-    """Plot a histogram of data.
+# function used to fit the exponetial decay
+def exp_fit_fun(x, a, tau, c):
+    return a * np.exp(-x/tau) + c
 
-    data is a dictionary of  {'000': 5, '010': 113, ...}
-    number_to_keep is the number of terms to plot and rest is made into a
-    single bar called other values
+
+# function used to fit the decay cosine
+def osc_fit_fun(x, a, tau, f, phi, c):
+    return a * np.exp(-x/tau)*np.cos(2*np.pi*f*x+phi) + c
+
+
+# Functions used by randomized benchmarking.
+def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
+                   qubit_label):
+    """Plot coherence data.
+
+    Args:
+        xdata
+        ydata
+        std_error
+        fit
+        fit_function
+        xunit
+        exp_str
+        qubit_label
     """
-    if number_to_keep is not False:
-        data_temp = dict(Counter(data).most_common(number_to_keep))
-        data_temp["rest"] = sum(data.values()) - sum(data_temp.values())
-        data = data_temp
-
-    labels = sorted(data)
-    values = np.array([data[key] for key in labels], dtype=float)
-    pvalues = values / sum(values)
-    numelem = len(values)
-    ind = np.arange(numelem)  # the x locations for the groups
-    width = 0.35  # the width of the bars
-    fig, ax = plt.subplots()
-    rects = ax.bar(ind, pvalues, width, color='seagreen')
-    # add some text for labels, title, and axes ticks
-    ax.set_ylabel('Probabilities', fontsize=12)
-    ax.set_xticks(ind)
-    ax.set_xticklabels(labels, fontsize=12, rotation=70)
-    ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
-    # attach some text labels
-    for rect in rects:
-        height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                '%f' % float(height),
-                ha='center', va='bottom')
+    plt.errorbar(xdata, ydata, std_error, marker='.',
+                 markersize=9, c='b', linestyle='')
+    plt.plot(xdata, fit_function(xdata, *fit), c='r', linestyle='--',
+             label=(exp_str + '= %s %s' % (str(round(fit[1])), xunit)))
+    plt.xticks(fontsize=14, rotation=70)
+    plt.yticks(fontsize=14)
+    plt.xlabel('time [%s]' % (xunit), fontsize=16)
+    plt.ylabel('P(1)', fontsize=16)
+    plt.title(exp_str + 'measurments of Q%s' % (str(qubit_label)), fontsize=18)
+    plt.legend(fontsize=12)
     plt.show()
 
-
-# Functions used by randomized benchmarking. This we become basic curve fitting
-# exp, cosine, linear etc.
 
 def plot_rb_data(xdata, ydatas, yavg, fit, survival_prob):
     """Plot randomized benchmarking data.

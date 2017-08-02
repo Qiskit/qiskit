@@ -16,10 +16,9 @@ __configuration = {
     "name": "local_qasm_cpp_simulator",
     "url": "https://github.com/IBM/qiskit-sdk-py",
     "simulator": True,
-    "description": "A python simulator for qasm files",
-    "nQubits": 28,
-    "couplingMap": "all-to-all",
-    "gateset": "SU2+CNOT"
+    "description": "A c++ simulator for qasm files",
+    "coupling_map": "all-to-all",
+    "basis_gates": "u1,u2,u3,cx,id"
 }
 
 
@@ -34,11 +33,12 @@ class QasmCppSimulator:
             self.config = job['config']
         else:
             self.config = {}
-        self.circuit = {'qasm': json.loads(job['compiled_circuit']), 'config': self.config}
+        self.circuit = {'qasm': json.loads(job['compiled_circuit']),
+                        'config': self.config}
         self.result = {}
         self.result['data'] = {}
-        self._shots = job['shots']
-        self._seed = job['seed']
+        self._shots = job['config']['shots']
+        self._seed = job['config']['seed']
         # Number of threads for simulator
         if 'threads' in self.config:
             self._threads = self.config['threads']
@@ -71,8 +71,10 @@ class QasmCppSimulator:
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
+            else:
+                self._exe = './' + self._exe
 
-    def run(self):
+    def run(self, silent=True):
         """
         Run simulation on C++ simulator.
         """

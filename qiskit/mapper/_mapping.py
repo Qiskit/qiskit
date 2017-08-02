@@ -39,7 +39,7 @@ import qiskit.unroll as unroll
 # because the initial state is zero. We don't do this.
 
 
-def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
+def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, verbose=False):
     """Find a swap circuit that implements a permutation for this layer.
 
     The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -64,6 +64,12 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     swap circuit has been applied. The trivial_flag is set if the layer
     has no multi-qubit gates.
     """
+    if verbose:
+        print("layer_permutation: ----- enter -----")
+        print("layer_permutation: layer_partition = ", layer_partition)
+        print("layer_permutation: layout = ", layout)
+        print("layer_permutation: qubit_subset = ", qubit_subset)
+        print("layer_permutation: trials = ", trials)
     rev_layout = {b: a for a, b in layout.items()}
     gates = []
     for layer in layer_partition:
@@ -72,10 +78,18 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
         elif len(layer) == 2:
             gates.append(tuple(layer))
 
+    if verbose:
+        print("layer_permutation: gates = ", gates)
+
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]],
                                   layout[g[1]]) for g in gates])
+    if verbose:
+        print("layer_permutation: dist = ", dist)
     if dist == len(gates):
+        if verbose:
+            print("layer_permutation: done already")
+            print("layer_permutation: ----- exit -----")
         return True, "", 0, layout, len(gates) == 0
 
     # Begin loop over trials of randomized algorithm
@@ -85,6 +99,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     best_layout = None  # initialize best final layout
     for trial in range(trials):
 
+        if verbose:
+            print("layer_permutation: trial ", trial)
         trial_layout = copy.deepcopy(layout)
         rev_trial_layout = copy.deepcopy(rev_layout)
         trial_circ = ""  # circuit produced in this trial
@@ -128,6 +144,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
                                         for g in gates])
                         # Record progress if we succceed
                         if new_cost < min_cost:
+                            if verbose:
+                                print("layer_permutation: progress! min_cost = ", min_cost)
                             progress_made = True
                             min_cost = new_cost
                             opt_layout = new_layout
@@ -144,6 +162,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
                                                       opt_edge[0][1],
                                                       opt_edge[1][0],
                                                       opt_edge[1][1])
+                    if verbose:
+                        print("layer_permutation: chose pair ", opt_edge)
                 else:
                     break
 
@@ -151,40 +171,56 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             # Compute the coupling graph distance
             dist = sum([coupling.distance(trial_layout[g[0]],
                                           trial_layout[g[1]]) for g in gates])
+            if verbose:
+                print("layer_permutation: dist = ", dist)
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
             if dist == len(gates):
+                if verbose:
+                    print("layer_permutation: all can be applied now")
                 trial_circ += circ
                 break
 
             # Increment the depth
             d += 1
+            if verbose:
+                print("layer_permutation: increment depth to ", d)
 
         # Either we have succeeded at some depth d < dmax or failed
         dist = sum([coupling.distance(trial_layout[g[0]],
                                       trial_layout[g[1]]) for g in gates])
+        if verbose:
+            print("layer_permutation: dist = ", dist)
         if dist == len(gates):
             if d < best_d:
+                if verbose:
+                    print("layer_permutation: got circuit with depth ", d)
                 best_circ = trial_circ
                 best_layout = trial_layout
             best_d = min(best_d, d)
 
     if best_circ is None:
+        if verbose:
+            print("layer_permutation: failed!")
+            print("layer_permutation: ----- exit -----")
         return False, None, None, None, False
     else:
+        if verbose:
+            print("layer_permutation: done")
+            print("layer_permutation: ----- exit -----")
         return True, best_circ, best_d, best_layout, False
 
 
 def direction_mapper(circuit_graph, coupling_graph, verbose=False):
     """Change the direction of CNOT gates to conform to CouplingGraph.
 
-    circuit_graph = input Circuit
+    circuit_graph = input DAGCircuit
     coupling_graph = corresponding CouplingGraph
     verbose = optional flag to print more information
 
     Adds "h" to the circuit basis.
 
-    Returns a Circuit object containing a circuit equivalent to
+    Returns a DAGCircuit object containing a circuit equivalent to
     circuit_graph but with CNOT gate directions matching the edges
     of coupling_graph. Raises an exception if the circuit_graph
     does not conform to the coupling_graph.
@@ -202,7 +238,7 @@ def direction_mapper(circuit_graph, coupling_graph, verbose=False):
                    "qreg q[2];\n" + \
                    "cx_flipped q[0],q[1];\n"
     u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
-                        unroll.CircuitBackend(["cx", "h"]))
+                        unroll.DAGBackend(["cx", "h"]))
     flipped_cx_circuit = u.execute()
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
@@ -281,17 +317,17 @@ def update_qasm(i, first_layer, best_layout, best_d,
 
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
-                basis="cx,u1,u2,u3,id", verbose=False):
-    """Map a Circuit onto a CouplingGraph using swap gates.
+                basis="cx,u1,u2,u3,id", verbose=False, trials=20):
+    """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
-    circuit_graph = input Circuit
+    circuit_graph = input DAGCircuit
     coupling_graph = CouplingGraph to map onto
     initial_layout = dict from qubits of circuit_graph to qubits
       of coupling_graph (optional)
-    basis = basis string specifying basis of output Circuit
+    basis = basis string specifying basis of output DAGCircuit
     verbose = optional flag to print more information
 
-    Returns a Circuit object containing a circuit equivalent to
+    Returns a DAGCircuit object containing a circuit equivalent to
     circuit_graph that respects couplings in coupling_graph, and
     a layout dict mapping qubits of circuit_graph into qubits
     of coupling_graph. The layout may differ from the initial_layout
@@ -313,12 +349,12 @@ def swap_mapper(circuit_graph, coupling_graph,
         circ_qubits = circuit_graph.get_qubits()
         coup_qubits = coupling_graph.get_qubits()
         qubit_subset = []
-        for k, v in initial_layout.values():
+        for k, v in initial_layout.items():
             qubit_subset.append(v)
             if k not in circ_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " %
                                       (k[0], k[1]) +
-                                      "in input Circuit")
+                                      "in input DAGCircuit")
             if v not in coup_qubits:
                 raise QISKitException("initial_layout qubit %s[%d] not " %
                                       (v[0], v[1]) +
@@ -334,6 +370,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
     first_layer = True  # True until first layer is output
+    if verbose:
+        print("initial_layout = ", layout)
 
     # Iterate over layers
     for i, layer in enumerate(layerlist):
@@ -341,12 +379,12 @@ def swap_mapper(circuit_graph, coupling_graph,
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
-                                qubit_subset, coupling_graph, 20)
+                                qubit_subset, coupling_graph, trials)
         if verbose:
             print("swap_mapper: layer %d" % i)
             print("swap_mapper: success_flag=%s," % success_flag +
-                  "best_d=%d," % best_d +
-                  "trivial_flag=%s" % trivial_flag)
+                  "best_d=" + str(best_d) +
+                  ",trivial_flag=%s" % trivial_flag)
 
         # If this layer is only single-qubit gates,
         # and we have yet to see multi-qubit gates,
@@ -369,12 +407,12 @@ def swap_mapper(circuit_graph, coupling_graph,
                 success_flag, best_circ, best_d, best_layout, trivial_flag \
                     = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
-                                        20)
+                                        trials)
                 if verbose:
                     print("swap_mapper: layer %d, sublayer %d" % (i, j))
                     print("swap_mapper: success_flag=%s," % success_flag +
-                          "best_d=%d," % best_d +
-                          "trivial_flag=%s" % trivial_flag)
+                          "best_d=" + str(best_d) +
+                          ",trivial_flag=%s" % trivial_flag)
 
                 # Give up if we fail again
                 if not success_flag:
@@ -432,10 +470,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                 no_decls=True,
                 aliases=layout)
 
-    # Parse openqasm_output into Circuit object
+    # Parse openqasm_output into DAGCircuit object
     basis += ",swap"
     ast = Qasm(data=openqasm_output).parse()
-    u = unroll.Unroller(ast, unroll.CircuitBackend(basis.split(",")))
+    u = unroll.Unroller(ast, unroll.DAGBackend(basis.split(",")))
     return u.execute(), initial_layout
 
 
@@ -600,7 +638,7 @@ def optimize_1q_gates(circuit):
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
-                           unroll.CircuitBackend(qx_basis))
+                           unroll.DAGBackend(qx_basis))
     unrolled = urlr.execute()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])

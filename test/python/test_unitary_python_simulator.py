@@ -8,9 +8,9 @@ import cProfile
 import pstats
 import io
 import logging
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.ticker import MaxNLocator
+#import matplotlib.pyplot as plt
+#from matplotlib.backends.backend_pdf import PdfPages
+#from matplotlib.ticker import MaxNLocator
 try:
     import qiskit
 except ImportError as ierr:
@@ -28,7 +28,7 @@ import json
 
 class LocalUnitarySimulatorTest(unittest.TestCase):
     """Test local unitary simulator."""
-    
+
     def setUp(self):
         self.seed = 88
         self.qasmFileName = os.path.join(qiskit.__path__[0],
@@ -45,7 +45,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
     def test_unitary_simulator(self):
         """test generation of circuit unitary"""
         shots = 1024
-        self.qp.load_qasm('example', qasm_file=self.qasmFileName)
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
@@ -70,7 +70,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
                                     rtol=1e-3))
 
     def profile_unitary_simulator(self):
-        """Profile randomly generated circuits. 
+        """Profile randomly generated circuits.
 
         Writes profile results to <this_module>.prof as well as recording
         to the log file.
@@ -99,8 +99,8 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         logging.info(sout.getvalue())
         logging.info('------- stop profiling UnitarySimulator -----------')
         sout.close()
-        pr.dump_stats(self.moduleName + '.prof')        
-    
+        pr.dump_stats(self.moduleName + '.prof')
+
 def generateTestSuite():
     """
     Generate module test suite.
@@ -119,7 +119,7 @@ def generateProfileSuite():
 
 def main():
     """
-    Optional command line entry point for testing. 
+    Optional command line entry point for testing.
     """
     moduleName = os.path.splitext(__file__)[0]
     testSuite = generateTestSuite()
