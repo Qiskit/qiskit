@@ -938,7 +938,6 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program = QuantumProgram()
         qr = QP_program.create_quantum_register("qr", 1, verbose=False)
         cr = QP_program.create_classical_register("cr", 1, verbose=False)
-        qc = QP_program.get_circuit("circuitName")
         qc = QP_program.create_circuit("circuitName", [qr], [cr])
         qc.h(qr)
         qc.measure(qr[0], cr[0])

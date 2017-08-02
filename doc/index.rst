@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-==========
-QISKit SDK
-==========
+======
+QISKit
+======
 Quantum Information Software Kit
 
 Project Overview
@@ -15,7 +15,7 @@ The QISKit project comprises:
 
 * `QISKit API <https://github.com/IBM/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
-  connect and and execute OPENQASM code.
+  connect and and execute OpenQASM code.
 
 * `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Provides
   support for the Quantum Experience circuit generation phase and lets
