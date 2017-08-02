@@ -351,7 +351,7 @@ def process_tomography_data(data, name, meas_qubits, basis=None):
         basis = __default_basis
     n = len(meas_qubits)
     labels = process_tomography_labels(name, meas_qubits)
-    counts = [marginal_counts(Q_program.get_counts(circ, backend), meas_qubits)
+    counts = [marginal_counts(data.get_counts(circ), meas_qubits)
               for circ in labels]
     shots = [sum(c.values()) for c in counts]
     meas_basis = __meas_basis(n, basis)
