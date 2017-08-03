@@ -17,8 +17,6 @@
 
 """Contains a (slow) Python simulator that returns the unitary of the circuit.
 
-Author: Jay Gambetta and John Smolin
-
 It simulates a unitary of a quantum circuit that has been compiled to run on
 the simulator. It is exponential in the number of qubits.
 

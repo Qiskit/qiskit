@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM external function.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 import math
 from ._node import Node

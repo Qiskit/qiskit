@@ -17,8 +17,6 @@
 
 """
 Quantum circuit object.
-
-Author: Andrew Cross
 """
 import itertools
 from ._qiskiterror import QISKitError

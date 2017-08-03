@@ -17,8 +17,6 @@
 
 """
 Layout module to assist with mapping circuit qubits onto physical qubits.
-
-Author: Andrew Cross
 """
 import sys
 import copy

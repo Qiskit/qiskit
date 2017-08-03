@@ -14,15 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """
 Qasm Program Class
-
-Authors: Andrew Cross <awcross@us.ibm.com>
-         Jay M. Gambetta <jay.gambetta@us.ibm.com>
-         Ismael Faro <Ismael.Faro1@ibm.com>
-         Jesus Perez <jesusper@us.ibm.com>
-         Erick Winston <ewinston@us.ibm.com>
 """
 # pylint: disable=line-too-long
 import time
@@ -484,10 +477,10 @@ class QuantumProgram(object):
             indent = 4
         else:
             indent = 0
-        
+
         elemements_to_save = self.__quantum_program
         elements_saved = {}
-        
+
         for circuit in elemements_to_save:
             elements_saved[circuit] = {}
             elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
@@ -499,7 +492,7 @@ class QuantumProgram(object):
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
             raise LookupError(error['result'])
-        
+
     def load(self, file_name=None):
         """ Load Quantum Program Json file into the Quantum Program object.
 
@@ -518,20 +511,20 @@ class QuantumProgram(object):
         if file_name is None:
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
-        
+
         elemements_to_load = {}
-        
+
         try:
-            with open(file_name, 'r') as load_file:  
+            with open(file_name, 'r') as load_file:
                 elemements_loaded = json.load(load_file)
-            
+
             for circuit in elemements_loaded:
                 circuit_qasm = elemements_loaded[circuit]["qasm"]
                 elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
             self.__quantum_program = elemements_loaded
-            
+
             return {"status": 'Done', 'result': self.__quantum_program}
-        
+
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
             raise LookupError(error['result'])

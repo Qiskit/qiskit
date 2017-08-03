@@ -17,9 +17,6 @@
 
 """
 OPENQASM parser.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 import math
 from ._qasmlexer import QasmLexer

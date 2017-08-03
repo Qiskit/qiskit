@@ -17,9 +17,6 @@
 """
 A collection of useful quantum information functions.
 
-Author: Christopher J. Wood <cjwood@us.ibm.com>
-        Jay Gambetta
-
 Currently this file is very sparse. More functions will be added
 over time.
 """
@@ -28,7 +25,7 @@ over time.
 import numpy as np
 from scipy.linalg import sqrtm
 from scipy import linalg as la
-from tools.pauli import pauli_group
+from tools.qi.pauli import pauli_group
 
 
 ###############################################################

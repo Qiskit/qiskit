@@ -17,8 +17,6 @@
 
 """
 controlled-u3 gate.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumCircuit
 from qiskit import Gate

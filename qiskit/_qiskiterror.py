@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised by the QISKit SDK.
-
-Author: Andrew Cross
 """
 
 

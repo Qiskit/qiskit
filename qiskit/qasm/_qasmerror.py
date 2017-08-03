@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised while parsing OPENQASM.
-
-Author: Jim Challenger
 """
 
 from qiskit import QISKitError

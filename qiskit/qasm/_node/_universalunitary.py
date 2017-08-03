@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM U statement.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

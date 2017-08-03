@@ -17,8 +17,6 @@
 
 """
 Base backend object for the unroller that raises BackendError.
-
-Author: Andrew Cross
 """
 from ._backenderror import BackendError
 

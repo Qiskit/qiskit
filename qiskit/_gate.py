@@ -17,8 +17,6 @@
 
 """
 Unitary gate.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
 from ._quantumregister import QuantumRegister

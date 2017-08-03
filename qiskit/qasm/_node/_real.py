@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM real number.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 import math
 from ._node import Node

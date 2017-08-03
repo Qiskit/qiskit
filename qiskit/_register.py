@@ -17,8 +17,6 @@
 
 """
 Base register reference object.
-
-Author: Andrew Cross
 """
 from ._qiskiterror import QISKitError
 import re

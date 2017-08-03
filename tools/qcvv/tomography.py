@@ -18,8 +18,6 @@
 """
 Quantum Tomography Module
 
-Author: Christopher J. Wood <cjwood@us.ibm.com>
-
 Description:
     This module contains functions for performing quantum state and quantum
     process tomography. This includes:
@@ -45,7 +43,7 @@ from functools import reduce
 from re import match
 from itertools import product
 
-from tools.qi import vectorize, devectorize, outer
+from tools.qi.qi import vectorize, devectorize, outer
 
 
 ###############################################################

@@ -17,8 +17,6 @@
 
 """
 Base node object for the OPENQASM syntax tree.
-
-Author: Jim Challenger
 """
 
 

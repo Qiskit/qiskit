@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM idlist.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

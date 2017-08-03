@@ -17,8 +17,6 @@
 
 """
 S=diag(1,i) Clifford phase gate or its inverse.
-
-Author: Andrew Cross
 """
 import math
 from qiskit import QuantumRegister

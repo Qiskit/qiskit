@@ -17,8 +17,6 @@
 
 """
 Backend for the unroller that prints OpenQASM.
-
-Author: Andrew Cross
 """
 from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend

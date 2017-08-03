@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM binary operation expression.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 from ._nodeexception import NodeException

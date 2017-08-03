@@ -17,8 +17,6 @@
 
 """
 Methods to assist with compiling tasks.
-
-Author: Andrew Cross
 """
 import math
 import scipy
@@ -195,7 +193,7 @@ def two_qubit_kak(unitary_matrix):
     KAK = np.dot(K1, np.dot(A, K2))
     if np.linalg.norm(KAK - U, 2) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
-                              "unknown error in KAK decomposition")
+                          "unknown error in KAK decomposition")
     # Compute parameters alpha, beta, gamma so that
     # A = exp(i * (alpha * XX + beta * YY + gamma * ZZ))
     x = np.array([[0, 1], [1, 0]], dtype=complex)
@@ -238,11 +236,11 @@ def two_qubit_kak(unitary_matrix):
     if np.linalg.norm(np.kron(U1, U2) - K1) > 1e-4 or \
        np.linalg.norm(np.kron(V1, V2) - K2) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
-                              "error in SU(2) x SU(2) part")
+                          "error in SU(2) x SU(2) part")
     test = scipy.linalg.expm(1j*(alpha * xx + beta * yy + gamma * zz))
     if np.linalg.norm(A - test) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
-                              "error in A part")
+                          "error in A part")
     # Circuit that implements K1 * A * K2 (up to phase), using
     # Vatan and Williams Fig. 6 of quant-ph/0308006v3
     # Include prefix and suffix single-qubit gates into U2, V1 respectively.
@@ -288,7 +286,7 @@ def two_qubit_kak(unitary_matrix):
 
     if np.linalg.norm(V - U*phase.conjugate()) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
-                              "sequence incorrect, unknown error")
+                          "sequence incorrect, unknown error")
 
     v1_param = euler_angles_1q(V1)
     v2_param = euler_angles_1q(V2)
@@ -393,7 +391,6 @@ def two_qubit_kak(unitary_matrix):
        np.linalg.norm(-1*V - U) > 1e-6 and \
        np.linalg.norm(-1j*V - U) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
-                              "sequence incorrect, unknown error")
-
+                          "sequence incorrect, unknown error")
 
     return return_circuit

@@ -17,8 +17,6 @@
 
 """Backend for the unroller that composes qasm into json file.
 
-Author: Jay Gambetta and Andrew Cross
-
 The input is a AST and a basis set and returns a json memory object
 
 {

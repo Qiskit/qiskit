@@ -26,8 +26,6 @@ from node A to node B means that the (qu)bit passes from the output of A
 to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
-
-Author: Andrew Cross
 """
 import networkx as nx
 import itertools

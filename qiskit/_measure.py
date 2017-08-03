@@ -17,8 +17,6 @@
 
 """
 Quantum measurement in the computational basis.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
 

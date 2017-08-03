@@ -17,8 +17,6 @@
 
 """
 Quantum computer instruction.
-
-Author: Andrew Cross
 """
 from ._register import Register
 from ._qiskiterror import QISKitError

@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised by unroller backends.
-
-Author: Andrew Cross
 """
 
 from qiskit import QISKitError

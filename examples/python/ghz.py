@@ -17,9 +17,6 @@
 
 """
 GHZ state example illustrating mapping onto the backend.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 
 import sys
@@ -48,7 +45,6 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for the GHZ state.
 ###############################################################
 QPS_SPECS = {
-    "name": "ghz",
     "circuits": [{
         "name": "ghz",
         "quantum_registers": [{
@@ -81,30 +77,30 @@ for i in range(5):
 ###############################################################
 qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-# First version: not compiled
-print("no compilation, simulator")
+# First version: no mapping
+print("no mapping, simulator")
 result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=None, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Second version: compiled to qc5qv2 coupling graph
-print("compilation to %s, simulator" % backend)
+# Second version: map to qx2 coupling graph and simulate
+print("map to %s, simulator" % backend)
 result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Third version: compiled to qc5qv2 coupling graph
-print("compilation to %s, local qasm simulator" % backend)
+# Third version: map to qx2 coupling graph and simulate locally
+print("map to %s, local qasm simulator" % backend)
 result = qp.execute(["ghz"], backend='local_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Fourth version: compiled to qc5qv2 coupling graph and run on qx5q
-print("compilation to %s, backend" % backend)
+# Fourth version: map to qx2 coupling graph and run on qx2
+print("map to %s, backend" % backend)
 result = qp.execute(["ghz"], backend=backend,
                     coupling_map=coupling_map, shots=1024, timeout=120)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))

@@ -17,8 +17,6 @@
 
 """
 Element of SU(2).
-
-Author: Andrew Cross
 """
 from qiskit import Gate
 from qiskit.extensions._extensionerror import ExtensionError

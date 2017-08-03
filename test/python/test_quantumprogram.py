@@ -16,10 +16,6 @@
 # =============================================================================
 """
 Quantum Program QISKit Test.
-
-Authors: Ismael Faro <Ismael.Faro1@ibm.com>
-         Jesus Perez <jesusper@us.ibm.com>
-         Jay Gambetta
 """
 
 import sys
@@ -37,9 +33,9 @@ from qiskit import QISKitError
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                              '../../examples/qasm/simple8qbit.qasm')
+                              '../../examples/qasm/entangled_registers.qasm')
 QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
-                                '../../examples/qasm/plaquettecheck.qasm')
+                                '../../examples/qasm/plaquette_check.qasm')
 
 
 # We need the environment variable for Travis.
@@ -521,10 +517,10 @@ class TestQuantumProgram(unittest.TestCase):
 
         result = QP_program.load("./test/python/test_load.json")
         self.assertEqual(result['status'], 'Done')
-        
+
         check_result = QP_program.get_qasm('circuitName')
         self.assertEqual(len(check_result), 1872)
-    
+
     def test_load_wrong(self):
         """
         Load a Json Quantum Program: Errors Control
@@ -1076,6 +1072,137 @@ class TestQuantumProgram(unittest.TestCase):
                                     seed=78)
         self.assertEqual(result.get_counts('new_circuit'),
                          {'00': 505, '01': 519})
+
+    def test_example_multiple_compile(self):
+        """Test a toy example compiling multiple circuits.
+
+        Pass if the results are correct.
+        """
+        coupling_map = {0: [1, 2],
+                        1: [2],
+                        2: [],
+                        3: [2, 4],
+                        4: [2]}
+        QPS_SPECS = {
+            "circuits": [{
+                "name": "ghz",
+                "quantum_registers": [{
+                    "name": "q",
+                    "size": 5
+                }],
+                "classical_registers": [{
+                    "name": "c",
+                    "size": 5}
+                ]}, {
+                "name": "bell",
+                "quantum_registers": [{
+                    "name": "q",
+                    "size": 5
+                }],
+                "classical_registers": [{
+                    "name": "c",
+                    "size": 5
+                }]}
+            ]
+        }
+        qp = QuantumProgram(specs=QPS_SPECS)
+        ghz = qp.get_circuit("ghz")
+        bell = qp.get_circuit("bell")
+        q = qp.get_quantum_register("q")
+        c = qp.get_classical_register("c")
+        # Create a GHZ state
+        ghz.h(q[0])
+        for i in range(4):
+            ghz.cx(q[i], q[i+1])
+        # Insert a barrier before measurement
+        ghz.barrier()
+        # Measure all of the qubits in the standard basis
+        for i in range(5):
+            ghz.measure(q[i], c[i])
+        # Create a Bell state
+        bell.h(q[0])
+        bell.cx(q[0], q[1])
+        bell.barrier()
+        bell.measure(q[0], c[0])
+        bell.measure(q[1], c[1])
+        qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        bellobj = qp.compile(["bell"], backend='local_qasm_simulator',
+                             shots=2048, seed=10)
+        ghzobj = qp.compile(["ghz"], backend='local_qasm_simulator',
+                            shots=2048, coupling_map=coupling_map,
+                            seed=10)
+        bellresult = qp.run(bellobj)
+        ghzresult = qp.run(ghzobj)
+        print(bellresult.get_counts("bell"))
+        print(ghzresult.get_counts("ghz"))
+        self.assertEqual(bellresult.get_counts("bell"),
+                         {'00000': 1034, '00011': 1014})
+        self.assertEqual(ghzresult.get_counts("ghz"),
+                         {'00000': 1047, '11111': 1001})
+
+    def test_example_swap_bits(self):
+        """Test a toy example swapping a set bit around.
+
+        Uses the mapper. Pass if results are correct.
+        """
+        backend = "ibmqx_qasm_simulator"
+        coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
+                        5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
+                        11: [12], 12: [13], 13: [14], 14: [15]}
+        def swap(qc, q0, q1):
+            """Swap gate."""
+            qc.cx(q0, q1)
+            qc.cx(q1, q0)
+            qc.cx(q0, q1)
+        n = 3  # make this at least 3
+        QPS_SPECS = {
+            "circuits": [{
+                "name": "swapping",
+                "quantum_registers": [{
+                    "name": "q",
+                    "size": n},
+                    {"name": "r",
+                     "size": n}
+                ],
+                "classical_registers": [
+                    {"name": "ans",
+                     "size": 2*n},
+                ]
+            }]
+        }
+        qp = QuantumProgram(specs=QPS_SPECS)
+        qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        if backend not in qp.online_simulators():
+            return
+        qc = qp.get_circuit("swapping")
+        q = qp.get_quantum_register("q")
+        r = qp.get_quantum_register("r")
+        ans = qp.get_classical_register("ans")
+        # Set the first bit of q
+        qc.x(q[0])
+        # Swap the set bit
+        swap(qc, q[0], q[n-1])
+        swap(qc, q[n-1], r[n-1])
+        swap(qc, r[n-1], q[1])
+        swap(qc, q[1], r[1])
+        # Insert a barrier before measurement
+        qc.barrier()
+        # Measure all of the qubits in the standard basis
+        for j in range(n):
+            qc.measure(q[j], ans[j])
+            qc.measure(r[j], ans[j+n])
+        # First version: no mapping
+        result = qp.execute(["swapping"], backend=backend,
+                            coupling_map=None, shots=1024,
+                            seed=14)
+        self.assertEqual(result.get_counts("swapping"),
+                         {'010000': 1024})
+        # Second version: map to coupling graph
+        result = qp.execute(["swapping"], backend=backend,
+                            coupling_map=coupling_map, shots=1024,
+                            seed=14)
+        self.assertEqual(result.get_counts("swapping"),
+                         {'010000': 1024})
 
 
 if __name__ == '__main__':

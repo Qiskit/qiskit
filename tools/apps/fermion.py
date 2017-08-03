@@ -17,8 +17,6 @@
 """
 File: fermion_to_qubit_tools.py
 
-Author: Antonio Mezzacapo
-
 Description:
 
 A set of functions that map fermionic Hamiltonians to qubit Hamiltonians. fermionic_maps maps a one- and two-electron
@@ -33,9 +31,9 @@ References:
 
 """
 
-from tools.pauli import Pauli, label_to_pauli,sgn_prod
+from tools.qi.pauli import Pauli, label_to_pauli,sgn_prod
 import numpy as np
-from tools.optimizationtools import Hamiltonian_from_file
+from tools.apps.optimization import Hamiltonian_from_file
 
 
 """

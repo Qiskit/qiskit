@@ -17,8 +17,6 @@
 
 """
 OPENQASM interpreter.
-
-Author: Andrew Cross
 """
 import copy
 from ._unrollererror import UnrollerError

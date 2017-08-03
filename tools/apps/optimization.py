@@ -18,8 +18,6 @@
 Quantum Optimization tools.
 
 These are simple tools that are used in our optimization examples
-
-Author: Jay Gambetta and Antonio Mezzacapo
 """
 import sys
 import os
@@ -27,7 +25,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz
 import numpy as np
-from tools.pauli import Pauli, label_to_pauli
+from tools.qi.pauli import Pauli, label_to_pauli
 
 
 def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 1,last_avg=1):

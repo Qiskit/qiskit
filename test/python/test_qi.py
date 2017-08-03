@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 sys.path.append("../..")
-from tools.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
+from tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
 
 class TestPauli(unittest.TestCase):
     """Tests for Pauli class"""
@@ -87,4 +87,3 @@ class TestPauli(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-        
