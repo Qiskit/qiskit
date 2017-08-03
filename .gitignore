@@ -57,6 +57,9 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+test/python/*.log
+test/python/*.pdf
+test/python/*.prof
 
 # Translations
 *.mo
