@@ -74,10 +74,12 @@ def enlarge_single_opt(opt, qubit, number_of_qubits):
     """Enlarge single operator to n qubits.
 
     It is exponential in the number of qubits.
-    opt is the single-qubit opt.
-    qubit is the qubit to apply it on counts from 0 and order
-        is q_{n-1} ... otimes q_1 otimes q_0.
-    number_of_qubits is the number of qubits in the system.
+
+    Args:
+        opt: the single-qubit opt.
+        qubit: the qubit to apply it on counts from 0 and order
+            is q_{n-1} ... otimes q_1 otimes q_0.
+        number_of_qubits: the number of qubits in the system.
     """
     temp_1 = np.identity(2**(number_of_qubits-qubit-1), dtype=complex)
     temp_2 = np.identity(2**(qubit), dtype=complex)

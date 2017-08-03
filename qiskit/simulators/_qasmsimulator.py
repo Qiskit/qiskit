@@ -21,73 +21,89 @@
 It simulates a qasm quantum circuit that has been compiled to run on the
 simulator. It is exponential in the number of qubits.
 
-We advise using the c++ simulator or online for larger size systems.
+We advise using the c++ simulator or online simulator for larger size systems.
 
-The input is
-    compiled_circuit object
-    shots
-    seed
-and the output is the results object
+The input is a qobj dictionary
+
+and the output is a Results object
 
 if shots = 1
-    compiled_circuit['result']['data']['quantum_state'] and
-    results['data']['classical_state'] where quantum_state is
-a 2**n complex numpy array representing the quantum state vector and
-classical_state is a interger representing the state of the classical
-registors.
+
+    compiled_circuit['result']['data']['quantum_state']
+
+and
+
+    results['data']['classical_state']
+
+where 'quantum_state' is a 2\ :sup:`n` complex numpy array representing the
+quantum state vector and 'classical_state' is an integer representing
+the state of the classical registors.
+
 if shots > 1
+
     results['data']["counts"] where this is dict {"0000" : 454}
 
 The simulator is run using
 
+.. code-block:: python
+
     QasmSimulator(compiled_circuit,shots,seed).run().
 
-compiled_circuit =
-{
- "header": {
- "number_of_qubits": 2, // int
- "number_of_clbits": 2, // int
- "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
- "clbit_labels": [["c", 2]], // list[list[string, int]]
- }
- "operations": // list[map]
-    [
-        {
-            "name": , // required -- string
-            "params": , // optional -- list[double]
-            "qubits": , // optional -- list[int]
-            "clbits": , //optional -- list[int]
-            "conditional":  // optional -- map
-                {
-                    "type": , // string
-                    "mask": , // big int
-                    "val":  , // big int
-                }
-        },
-    ]
-}
+.. code-block:: guess
+
+       compiled_circuit =
+       {
+        "header": {
+        "number_of_qubits": 2, // int
+        "number_of_clbits": 2, // int
+        "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
+        "clbit_labels": [["c", 2]], // list[list[string, int]]
+        }
+        "operations": // list[map]
+           [
+               {
+                   "name": , // required -- string
+                   "params": , // optional -- list[double]
+                   "qubits": , // optional -- list[int]
+                   "clbits": , //optional -- list[int]
+                   "conditional":  // optional -- map
+                       {
+                           "type": , // string
+                           "mask": , // big int
+                           "val":  , // big int
+                       }
+               },
+           ]
+       }
 
 if shots = 1
-result =
-        {
-        'data':
-            {
-            'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
-            'classical_state': 0
-            'counts': {'0000': 1}
-            }
-        'status': 'DONE'
-        }
+
+.. code-block:: python
+
+       result =
+               {
+               'data':
+                   {
+                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
+                   'classical_state': 0
+                   'counts': {'0000': 1}
+                   }
+               'status': 'DONE'
+               }
 
 if shots > 1
-result =
-        {
-        'data':
-            {
-            'counts': {'0000': 50, '1001': 44},
-            }
-        'status': 'DONE'
-        }
+
+.. code-block:: python
+
+       result =
+               {
+               'data':
+                   {
+                   'counts': {'0000': 50, '1001': 44},
+                   }
+               'status': 'DONE'
+               }
+
 """
 import numpy as np
 import random

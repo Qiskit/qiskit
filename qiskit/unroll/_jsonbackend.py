@@ -17,32 +17,32 @@
 
 """Backend for the unroller that composes qasm into json file.
 
-The input is a AST and a basis set and returns a json memory object
+The input is a AST and a basis set and returns a json memory object::
 
-{
- "header": {
- "number_of_qubits": 2, // int
- "number_of_clbits": 2, // int
- "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
- "clbit_labels": [["c", 2]], // list[list[string, int]]
- }
- "operations": // list[map]
-    [
-        {
-            "name": , // required -- string
-            "params": , // optional -- list[double]
-            "texparams": , // optional -- list[string]
-            "qubits": , // optional -- list[int]
-            "cbits": , //optional -- list[int]
-            "conditional":  // optional -- map
-                {
-                    "type": "equals", // string
-                    "mask": "0xHexadecimalString", // big int
-                    "val":  "0xHexadecimalString", // big int
-                }
-        },
-    ]
-}
+    {
+     "header": {
+     "number_of_qubits": 2, // int
+     "number_of_clbits": 2, // int
+     "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
+     "clbit_labels": [["c", 2]], // list[list[string, int]]
+     }
+     "operations": // list[map]
+        [
+            {
+                "name": , // required -- string
+                "params": , // optional -- list[double]
+                "texparams": , // optional -- list[string]
+                "qubits": , // optional -- list[int]
+                "cbits": , //optional -- list[int]
+                "conditional":  // optional -- map
+                    {
+                        "type": "equals", // string
+                        "mask": "0xHexadecimalString", // big int
+                        "val":  "0xHexadecimalString", // big int
+                    }
+            },
+        ]
+    }
 """
 import json
 from qiskit.unroll import BackendError

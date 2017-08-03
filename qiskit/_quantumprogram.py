@@ -65,7 +65,8 @@ class QuantumProgram(object):
      by "--description (type)--". For example, a circuit's name is denoted by
      "--circuit name (string)--" and might have the value "teleport".
 
-     Internal:
+     Internal::
+
         __quantum_registers (list[dic]): An dictionary of quantum registers
             used in the quantum program.
             __quantum_registers =
@@ -176,14 +177,15 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionay fromat.
-                "quantum_registers": [
-                    {
-                    "name": "qr",
-                    "size": 4
-                    },
-                    ...
-                ]
+                dictionay format::
+
+                    "quantum_registers": [
+                        {
+                        "name": "qr",
+                        "size": 4
+                        },
+                        ...
+                    ]
         Returns:
             Array of quantum registers objects
         """
@@ -221,14 +223,15 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of classical registers in
-                dictionay fromat.
-                "classical_registers": [
-                    {
-                    "name": "qr",
-                    "size": 4
-                    },
-                    ...
-                ]
+                dictionay fromat::
+
+                    "classical_registers": [
+                        {
+                        "name": "qr",
+                        "size": 4
+                        },
+                        ...
+                    ]
         Returns:
             Array of clasical registers objects
         """
@@ -713,21 +716,25 @@ class QuantumProgram(object):
             config (dict): a dictionary of configurations parameters for the
                 compiler
             silent (bool): is an option to print out the compiling information
-            or not
+                or not
             basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
-            coupling_map (dict): A directed graph of coupling
-                                {
-                                control(int):
-                                    [
-                                    target1(int),
-                                    target2(int),
-                                    , ...
-                                    ],
-                                    ...
-                                }
-                                eg. {0: [2], 1: [2], 3: [2]}
-            initial_layout (dict): A mapping of qubit to qubit
+            coupling_map (dict): A directed graph of coupling::
+                
+                {
+                 control(int):
+                     [
+                         target1(int),
+                         target2(int),
+                         , ...
+                     ],
+                     ...
+                }
+
+                eg. {0: [2], 1: [2], 3: [2]}
+
+            initial_layout (dict): A mapping of qubit to qubit::
+
                                   {
                                     ("q", strart(int)): ("q", final(int)),
                                     ...
@@ -739,12 +746,13 @@ class QuantumProgram(object):
                                     ("q", 2): ("q", 2),
                                     ("q", 3): ("q", 3)
                                   }
+
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
 
         Returns:
-            the job id and populates the qobj
+            the job id and populates the qobj::
 
             qobj =
                 {
@@ -971,18 +979,17 @@ class QuantumProgram(object):
 
         """
         backend = qobj['config']['backend']
+        if not silent:
+            print("running on backend: %s" % (backend))
         if backend in self.__ONLINE_BACKENDS:
             max_credits = qobj["config"]["max_credits"]
             shots = qobj["config"]["shots"]
             jobs = []
             for job in qobj["circuits"]:
                 jobs.append({'qasm': job["compiled_circuit_qasm"]})
-            if not silent:
-                print("running on backend: %s" % (backend))
             output = self.__api.run_job(jobs, backend, shots, max_credits)
-            if 'ERROR' in output:
-                # Clear the list of compiled programs to execute
-                qobj_result =  {"status": "ERROR", "result": [output['ERROR']]}
+            if 'error' in output:
+                raise ResultError(output['error'])
             qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
         else:
             # making a list of jobs just for local backends. Name is droped
@@ -991,17 +998,12 @@ class QuantumProgram(object):
             for job in qobj["circuits"]:
                 jobs.append({"compiled_circuit": job["compiled_circuit"],
                             "config": {**job["config"], **qobj["config"]}})
-            if not silent:
-                print("running on backend: %s" % (backend))
-            if backend in self.__LOCAL_BACKENDS:
-                qobj_result = self._run_local_simulator(backend, jobs, silent)
-            else:
-                # Clear the list of compiled programs to execute
-                qobj_result = {"status": "ERROR", "result": ["Not a valid backend"]}
+            qobj_result = self._run_local_simulator(backend, jobs, silent)
         if qobj_result['status'] == 'COMPLETED':
-            assert len(qobj["circuits"]) == len(qobj_result['result']), "Internal error in QuantumProgram.run(), job_result"
-        results  = Result(qobj_result, qobj)
-        return  results
+            assert len(qobj["circuits"]) == len(qobj_result['result']), (
+                'Internal error in QuantumProgram.run(), job_result')
+        results = Result(qobj_result, qobj)
+        return results
 
     def _wait_for_job(self, jobid, wait=5, timeout=60, silent=True):
         """Wait until all online ran jobs are 'COMPLETED'.
@@ -1014,15 +1016,16 @@ class QuantumProgram(object):
             not
 
         Returns:
-             Dictionary of form,
-             job_result_return =
-               [
-                   {
-                   "data": DATA,
-                   "status": DATA,
-                   },
-                   ...
-               ]
+             Dictionary of form::
+
+                 job_result_return =
+                     [
+                        {
+                         "data": DATA,
+                         "status": DATA,
+                         },
+                         ...
+                     ]
         """
         timer = 0
         timeout_over = False
@@ -1100,13 +1103,14 @@ class QuantumProgram(object):
             or not
             basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
-            coupling_map (dict): A directed graph of coupling
+            coupling_map (dict): A directed graph of coupling::
+
                                 {
                                 control(int):
                                     [
-                                    target1(int),
-                                    target2(int),
-                                    , ...
+                                        target1(int),
+                                        target2(int),
+                                        , ...
                                     ],
                                     ...
                                 }
@@ -1149,7 +1153,7 @@ class Result(object):
 
     Methods to process the quantum program after it has been run
 
-    Internal:
+    Internal::
 
         qobj =  { -- the quantum object that was complied --}
         result =
@@ -1205,15 +1209,22 @@ class Result(object):
         """Get the data of cicuit name.
 
         The data format will depend on the backend. For a real device it
-        will be for the form
+        will be for the form::
+
             "counts": {’00000’: XXXX, ’00001’: XXXX},
             "time"  : xx.xxxxxxxx
-        for the qasm simulators of 1 shot
+
+        for the qasm simulators of 1 shot::
+
             'quantum_state': array([ XXX,  ..., XXX]),
             'classical_state': 0
-        for the qasm simulators of n shots
+
+        for the qasm simulators of n shots::
+
             'counts': {'0000': XXXX, '1001': XXXX}
-        for the unitary simulators
+
+        for the unitary simulators::
+
             'unitary': np.array([[ XX + XXj
                                    ...
                                    XX + XX]
@@ -1221,6 +1232,7 @@ class Result(object):
                                  [ XX + XXj
                                    ...
                                    XX + XXj]]
+
         Args:
             name (str): the name of the quantum circuit.
 
@@ -1275,3 +1287,22 @@ class Result(object):
             if key in observable:
                 temp += counts[key] * observable[key] / tot
         return temp
+
+
+class ResultError(QISKitError):
+    """Exceptions raised due to errors in result output.
+
+    It may be better for the QISKit API to raise this exception.
+
+    Args:
+        error (dict): This is the error record as it comes back from
+            the API. The format is like::
+
+                error = {'status': 403,
+                         'message': 'Your credits are not enough.',
+                         'code': 'MAX_CREDITS_EXCEEDED'}
+    """
+    def __init__(self, error):
+        self.status = error['status']
+        self.message = error['message']
+        self.code = error['code']
