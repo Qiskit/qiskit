@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM file identifier/version statement.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

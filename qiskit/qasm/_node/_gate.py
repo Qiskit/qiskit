@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM gate definition.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

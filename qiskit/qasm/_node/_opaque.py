@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM opaque gate declaration.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

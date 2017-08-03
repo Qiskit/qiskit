@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised while interpreting nodes.
-
-Author: Andrew Cross
 """
 
 

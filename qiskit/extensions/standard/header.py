@@ -17,8 +17,6 @@
 
 """
 Standard extension's OPENQASM header update.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumCircuit
 

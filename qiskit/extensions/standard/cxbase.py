@@ -17,8 +17,6 @@
 
 """
 Fundamental controlled-NOT gate.
-
-Author: Andrew Cross
 """
 from qiskit import Instruction
 from qiskit import Gate

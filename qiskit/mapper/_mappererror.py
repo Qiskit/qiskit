@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised by mapper module.
-
-Author: Juan Gomez
 """
 
 from qiskit import QISKitError

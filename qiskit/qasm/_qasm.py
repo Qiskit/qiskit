@@ -17,8 +17,6 @@
 
 """
 OPENQASM circuit object.
-
-Author: Jim Challenger
 """
 from ._qasmerror import QasmError
 from ._qasmparser import QasmParser

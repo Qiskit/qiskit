@@ -17,8 +17,6 @@
 
 """
 Instruction collection.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
 from ._qiskiterror import QISKitError

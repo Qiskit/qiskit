@@ -17,9 +17,6 @@
 
 """
 Illustrate compiling several circuits to different backends.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 
 import sys
@@ -48,7 +45,6 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for the GHZ and Bell states.
 ###############################################################
 QPS_SPECS = {
-    "name": "programs",
     "circuits": [{
         "name": "ghz",
         "quantum_registers": [{
@@ -102,14 +98,12 @@ print(bell.qasm())
 ###############################################################
 qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-qp.compile(["bell"], backend='local_qasm_simulator', shots=1024)
-qp.compile(["ghz"], backend='ibmqx_qasm_simulator', shots=1024,
-           coupling_map=coupling_map)
+bellobj = qp.compile(["bell"], backend='local_qasm_simulator', shots=1024)
+ghzobj = qp.compile(["ghz"], backend='ibmqx_qasm_simulator', shots=1024,
+                    coupling_map=coupling_map)
 
-print(qp.online_backends())
+bellresult = qp.run(bellobj)
+ghzresult = qp.run(ghzobj)
 
-print(qp.run())
-
-# print(qp.get_counts("bell")) # returns error, don't do this
-print(qp.get_counts("bell", backend="local_qasm_simulator"))
-print(qp.get_counts("ghz", backend="ibmqx_qasm_simulator"))
+print(bellresult.get_counts("bell"))
+print(ghzresult.get_counts("ghz"))

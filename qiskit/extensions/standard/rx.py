@@ -17,8 +17,6 @@
 
 """
 Rotation around the x-axis.
-
-Author: Jay Gambetta and Andrew Cross
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

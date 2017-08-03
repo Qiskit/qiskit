@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM qreg statement.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

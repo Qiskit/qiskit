@@ -17,9 +17,6 @@
 
 """
 Simple test of the mapper on an example that swaps a "1" state.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 
 import sys
@@ -56,7 +53,6 @@ def swap(qc, q0, q1):
 n = 3  # make this at least 3
 
 QPS_SPECS = {
-    "name": "Program",
     "circuits": [{
         "name": "swapping",
         "quantum_registers": [
@@ -98,14 +94,16 @@ for j in range(n):
 ###############################################################
 qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-# First version: not compiled
+# First version: no mapping
 result = qp.execute(["swapping"], backend=backend, coupling_map=None, shots=1024)
-print(qp.get_ran_qasm("swapping"))
-print(qp.get_counts("swapping"))
+print(result)
+print(result.get_ran_qasm("swapping"))
+print(result.get_counts("swapping"))
 
-# Second version: compiled to coupling graph
+# Second version: map to coupling graph
 result = qp.execute(["swapping"], backend=backend, coupling_map=coupling_map, shots=1024)
-print(qp.get_ran_qasm("swapping"))
-print(qp.get_counts("swapping"))
+print(result)
+print(result.get_ran_qasm("swapping"))
+print(result.get_counts("swapping"))
 
 # Both versions should give the same distribution

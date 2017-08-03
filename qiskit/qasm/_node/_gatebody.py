@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM custom gate body.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

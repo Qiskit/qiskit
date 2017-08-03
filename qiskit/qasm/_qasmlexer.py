@@ -20,9 +20,6 @@ OPENQASM Lexer.
 
 This is a wrapper around the PLY lexer to support the "include" statement
 by creating a stack of lexers.
-
-Authors: Jim Challenger
-         Jesus Perez <jesusper@us.ibm.com>
 """
 
 import os

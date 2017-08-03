@@ -17,8 +17,6 @@
 
 """
 Composite gate, a container for a sequence of unitary gates.
-
-Author: Andrew Cross
 """
 from ._gate import Gate
 from ._qiskiterror import QISKitError

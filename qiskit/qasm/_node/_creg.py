@@ -17,9 +17,6 @@
 
 """
 Node for an OPENQASM creg statement.
-
-Author: Jim Challenger
-        Andrew Cross
 """
 from ._node import Node
 

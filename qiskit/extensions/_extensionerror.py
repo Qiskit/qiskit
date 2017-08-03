@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised by extensions module.
-
-Author: Juan Gomez
 """
 from qiskit import QISKitError
 

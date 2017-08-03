@@ -17,8 +17,6 @@
 
 """
 Exception for errors raised by the DAGCircuit object.
-
-Author: Andrew Cross
 """
 from qiskit import QISKitError
 

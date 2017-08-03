@@ -17,9 +17,6 @@
 
 """
 Ripple adder example based on Cuccaro et al, quant-ph/0410184.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 
 import sys
@@ -48,7 +45,6 @@ coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
 n = 2
 
 QPS_SPECS = {
-    "name": "Program",
     "circuits": [{
         "name": "rippleadd",
         "quantum_registers": [
@@ -116,19 +112,19 @@ qc.measure(cout[0], ans[n])
 ###############################################################
 qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-# First version: not compiled
+# First version: not mapped
 result = qp.execute(["rippleadd"], backend=backend,
                     coupling_map=None, shots=1024)
 print(result)
-print(qp.get_counts("rippleadd"))
+print(result.get_counts("rippleadd"))
 
-# Second version: compiled to 2x8 array coupling graph
-qp.compile(["rippleadd"], backend=backend,
-           coupling_map=coupling_map, shots=1024)
-result = qp.run()
+# Second version: mapped to 2x8 array coupling graph
+obj = qp.compile(["rippleadd"], backend=backend,
+                 coupling_map=coupling_map, shots=1024)
+result = qp.run(obj)
 
 print(result)
-print(qp.get_ran_qasm("rippleadd"))
-print(qp.get_counts("rippleadd"))
+print(result.get_ran_qasm("rippleadd"))
+print(result.get_counts("rippleadd"))
 
 # Both versions should give the same distribution
