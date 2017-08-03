@@ -33,7 +33,7 @@ from tools.qi.pauli import pauli_group
 ###############################################################
 
 
-def partial_trace(state, sys, dims=None):
+def partial_trace(state, sys, dims=None, reverse=True):
     """
     Partial trace over subsystems of multi-partite matrix.
 
@@ -44,6 +44,9 @@ def partial_trace(state, sys, dims=None):
         sys (list(int): a list of subsystems (starting from 0) to trace over
         dims (list(int), optional): a list of the dimensions of the subsystems.
             If this is not set it will assume all subsystems are qubits.
+        reverse (bool, optional): ordering of systems in operator.
+            If True system-0 is the right most system in tensor product.
+            If False system-0 is the left most system in tensor product.
 
     Returns:
         A matrix with the appropriate subsytems traced over.
@@ -71,8 +74,12 @@ def partial_trace(state, sys, dims=None):
     # trace out subsystems
     for j in sys:
         # get trace dims
-        dpre = dims[:j]
-        dpost = dims[j+1:]
+        if reverse:
+            dpre = dims[j + 1:]
+            dpost = dims[:j]
+        else:
+            dpre = dims[:j]
+            dpost = dims[j + 1:]
         dim1 = int(np.prod(dpre))
         dim2 = int(dims[j])
         dim3 = int(np.prod(dpost))
@@ -81,6 +88,28 @@ def partial_trace(state, sys, dims=None):
         # do the trace over j
         rho = __trace_middle(rho, dim1, dim2, dim3)
     return rho
+
+
+def __trace_middle_dims(sys, dims, reverse=True):
+    """
+    Get system dimensions for __trace_middle.
+
+    Args:
+        j (int): system to trace over.
+        dims(list[int]): dimensions of all subsystems.
+        reverse (bool): if true system-0 is right-most system tensor product.
+
+    Returns:
+        Tuple (dim1, dims2, dims3)
+    """
+    dpre = dims[:sys]
+    dpost = dims[sys + 1:]
+    if reverse:
+        dpre, dpost = (dpost, dpre)
+    dim1 = int(np.prod(dpre))
+    dim2 = int(dims[sys])
+    dim3 = int(np.prod(dpost))
+    return (dim1, dim2, dim3)
 
 
 def __trace_middle(op, dim1=1, dim2=1, dim3=1):
@@ -111,6 +140,8 @@ def vectorize(rho, method='col'):
             - 'col' (default) flattens to column-major vector.
             - 'row' flattens to row-major vector.
             - 'pauli'flattens in the n-qubit Pauli basis.
+            - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
+               weight.
 
     Returns:
         ndarray: the resulting vector.
@@ -120,12 +151,15 @@ def vectorize(rho, method='col'):
         return rho.flatten(order='F')
     elif method == 'row':
         return rho.flatten(order='C')
-    elif method == 'pauli':
+    elif method in ['pauli', 'pauli_weights']:
         num = int(np.log2(len(rho)))  # number of qubits
         if len(rho) != 2**num:
             print('error input state must be n-qubit state')
-        vals = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                        pauli_group(num)))
+        if method is 'pauli_weights':
+            pgroup = pauli_group(num, case=0)
+        else:
+            pgroup = pauli_group(num, case=1)
+        vals = [np.real(np.trace(np.dot(p.to_matrix(), rho))) for p in pgroup]
         return np.array(vals)
 
 
@@ -138,6 +172,8 @@ def devectorize(vec, method='col'):
             - 'col' (default): flattens to column-major vector.
             - 'row': flattens to row-major vector.
             - 'pauli': flattens in the n-qubit Pauli basis.
+            - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
+               weight.
 
     Returns:
         ndarray: the resulting matrix.
@@ -151,14 +187,19 @@ def devectorize(vec, method='col'):
         return vec.reshape(d, d, order='F')
     elif method == 'row':
         return vec.reshape(d, d, order='C')
-    elif method == 'pauli':
+    elif method in ['pauli', 'pauli_weights']:
         num = int(np.log2(d))  # number of qubits
         if d != 2 ** num:
             print('error input state must be n-qubit state')
-        pbasis = np.array([p.to_matrix() for p in pauli_group(num)]) / 2 ** num
+        if method is 'pauli_weights':
+            pgroup = pauli_group(num, case=0)
+        else:
+            pgroup = pauli_group(num, case=1)
+        pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num
         return np.tensordot(vec, pbasis, axes=1)
 
-def choi_to_rauli(choi):
+
+def choi_to_rauli(choi, order=1):
     """
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
@@ -169,21 +210,29 @@ def choi_to_rauli(choi):
 
     The resulting 'rauli' R acts on input states as
     |rho_out>_p = R.|rho_in>_p
-    where |rho> = vectorize(rho, method='pauli')
+    where |rho> = vectorize(rho, method='pauli') for order=1
+    and |rho> = vectorize(rho, method='pauli_weights') for order=0.
 
     Args:
         Choi (matrix): the input Choi-matrix.
+        order (int, optional): ordering of the Pauli group vector.
+            order=1 (default) is standard lexicographic ordering.
+                Eg: [II, IX, IY, IZ, XI, XX, XY,...]
+            order=0 is ordered by weights.
+                Eg. [II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]
 
     Returns:
         A superoperator in the Pauli basis.
     """
     # get number of qubits'
     n = int(np.log2(np.sqrt(len(choi))))
-    pgp = pauli_group(n)
-    rauli = np.array([ np.trace(np.dot(choi,
-                   np.kron(j.to_matrix().T, i.to_matrix())))
-                  for i in pgp for j in pgp])
-    return rauli.reshape(4 ** n, 4 ** n)
+    pgp = pauli_group(n, case=order)
+    rauli = []
+    for i in pgp:
+        for j in pgp:
+            pauliop = np.kron(j.to_matrix().T, i.to_matrix())
+            rauli += [np.trace(np.dot(choi, pauliop))]
+    return np.array(rauli).reshape(4 ** n, 4 ** n)
 
 
 def chop(op, epsilon=1e-10):
