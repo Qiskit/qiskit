@@ -244,5 +244,5 @@ Do you want to help?
 If you'd like to contribute please take a look to our
 `contribution guidelines <CONTRIBUTING.rst>`__.
 
-.. |Build Status| image:: https://travis.com/QISKit/qiskit-sdk-py-dev.svg?token=GMH4xFrA9iezVJKqw2zH&branch=master
-   :target: https://travis.ibm.com/QISKit/qiskit-sdk-py
+.. |Build Status| image:: https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master
+   :target: https://travis-ci.org/QISKit/qiskit-sdk-py
