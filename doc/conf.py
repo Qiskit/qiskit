@@ -66,8 +66,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QISKit SDK'
-copyright = '2017, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin'
-author = 'Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin'
+copyright = ''
+author = ''
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
