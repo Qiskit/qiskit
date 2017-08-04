@@ -68,12 +68,12 @@ class QasmCppSimulator:
                 subprocess.check_output(
                     ['./' + self._exe], stderr=subprocess.STDOUT)
             except CalledProcessError:
-                pass
+                # simulator with no arguments returns 1
+                # so this is the "success" case
+                self._exe = './' + self._exe
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
-            else:
-                self._exe = './' + self._exe
 
     def run(self, silent=True):
         """

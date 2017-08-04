@@ -35,7 +35,7 @@ def euler_angles_1q(unitary_matrix):
     element of the tuple is the OpenQASM gate name with parameter
     values substituted.
     """
-    small = 1e-13
+    small = 1e-10
     if unitary_matrix.shape != (2, 2):
         raise MapperError("compiling.euler_angles_1q expected 2x2 matrix")
     phase = np.linalg.det(unitary_matrix)**(-1.0/2.0)
