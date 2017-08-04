@@ -9,7 +9,7 @@ Issue reporting
 ---------------
 
 This is a good point to start, when you find a problem please add
-it to the `issue traker <https://github.ibm.com/IBMQuantum/qiskit-sdk-py-dev/issues>`_.
+it to the `issue traker <https://github.com/QISKit/qiskit-sdk-py/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
