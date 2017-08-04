@@ -21,11 +21,24 @@ Currently this file is very sparse. More functions will be added
 over time.
 """
 
-
+import math
 import numpy as np
 from scipy.linalg import sqrtm
 from scipy import linalg as la
 from tools.qi.pauli import pauli_group
+
+###############################################################
+# circuit manipulation.
+###############################################################
+
+
+# Define methods for making QFT circuits
+def qft(circ, q, n):
+    """n-qubit QFT on q in circ."""
+    for j in range(n):
+        for k in range(j):
+            circ.cu1(math.pi/float(2**(j-k)), q[j], q[k])
+        circ.h(q[j])
 
 
 ###############################################################

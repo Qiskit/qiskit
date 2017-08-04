@@ -625,7 +625,7 @@ class QuantumProgram(object):
                                 configuration_edit[new_key] = \
                                     configuration[key]
                             else:
-                                if not type:
+                                if not list_format:
                                     cmap = mapper.coupling_list2dict(
                                                 configuration[key])
                                 else:
