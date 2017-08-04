@@ -77,9 +77,8 @@ def local_backends():
     FileNotFoundError if the program has not been compiled and placed in
     the executable path.
 
-    Returns
-    -------
-    A list of backend names.
+    Returns:
+        A list of backend names.
     """
     backend_list = []
     circuit = {'header': {'clbit_labels': [['cr', 1]],

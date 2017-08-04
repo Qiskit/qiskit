@@ -26,7 +26,9 @@ a 2**n x 2**n complex numpy array representing the unitary matrix.
 
 
 The input is
+
     compiled_circuit object
+
 and the output is the results object
 
 The simulator is run using
@@ -35,58 +37,58 @@ The simulator is run using
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
-Internal circuit_object
+Internal circuit_object::
 
-compiled_circuit =
-{
- "header": {
- "number_of_qubits": 2, // int
- "number_of_clbits": 2, // int
- "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
- "clbit_labels": [["c", 2]], // list[list[string, int]]
- }
- "operations": // list[map]
-    [
-        {
-            "name": , // required -- string
-            "params": , // optional -- list[double]
-            "qubits": , // optional -- list[int]
-            "clbits": , //optional -- list[int]
-            "conditional":  // optional -- map
-                {
-                    "type": , // string
-                    "mask": , // big int
-                    "val":  , // big int
-                }
-        },
-    ]
-}
-
-returned results object
-
-result =
-        {
-        'data':
+    compiled_circuit =
+    {
+     "header": {
+     "number_of_qubits": 2, // int
+     "number_of_clbits": 2, // int
+     "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
+     "clbit_labels": [["c", 2]], // list[list[string, int]]
+     }
+     "operations": // list[map]
+        [
             {
-            'unitary': np.array([[ 0.70710678 +0.00000000e+00j
-                                 0.70710678 -8.65956056e-17j
-                                 0.00000000 +0.00000000e+00j
-                                 0.00000000 +0.00000000e+00j]
-                               [ 0.00000000 +0.00000000e+00j
-                                 0.00000000 +0.00000000e+00j
-                                 0.70710678 +0.00000000e+00j
-                                 -0.70710678 +8.65956056e-17j]
-                               [ 0.00000000 +0.00000000e+00j
-                                 0.00000000 +0.00000000e+00j
-                                 0.70710678 +0.00000000e+00j
-                                 0.70710678 -8.65956056e-17j]
-                               [ 0.70710678 +0.00000000e+00j
-                                -0.70710678 +8.65956056e-17j
-                                 0.00000000 +0.00000000e+00j
-                                 0.00000000 +0.00000000e+00j]
+                "name": , // required -- string
+                "params": , // optional -- list[double]
+                "qubits": , // optional -- list[int]
+                "clbits": , //optional -- list[int]
+                "conditional":  // optional -- map
+                    {
+                        "type": , // string
+                        "mask": , // big int
+                        "val":  , // big int
+                    }
+            },
+        ]
+    }
+
+returned results object::
+
+    result =
+            {
+            'data':
+                {
+                'unitary': np.array([[ 0.70710678 +0.00000000e+00j
+                                     0.70710678 -8.65956056e-17j
+                                     0.00000000 +0.00000000e+00j
+                                     0.00000000 +0.00000000e+00j]
+                                   [ 0.00000000 +0.00000000e+00j
+                                     0.00000000 +0.00000000e+00j
+                                     0.70710678 +0.00000000e+00j
+                                     -0.70710678 +8.65956056e-17j]
+                                   [ 0.00000000 +0.00000000e+00j
+                                     0.00000000 +0.00000000e+00j
+                                     0.70710678 +0.00000000e+00j
+                                     0.70710678 -8.65956056e-17j]
+                                   [ 0.70710678 +0.00000000e+00j
+                                    -0.70710678 +8.65956056e-17j
+                                     0.00000000 +0.00000000e+00j
+                                     0.00000000 +0.00000000e+00j]
+                }
+            'state': 'DONE'
             }
-        'state': 'DONE'
-        }
 """
 import numpy as np
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix

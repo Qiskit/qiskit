@@ -71,7 +71,7 @@ The :code:`get_counts` method outputs a dictionary of state:counts pairs;
    :caption: Contents:
 
    contributing
-   modules
+   _autodoc/modules
 
 Indices and tables
 ==================

@@ -318,19 +318,22 @@ def swap_mapper(circuit_graph, coupling_graph,
                 basis="cx,u1,u2,u3,id", verbose=False, trials=20):
     """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
-    circuit_graph = input DAGCircuit
-    coupling_graph = CouplingGraph to map onto
-    initial_layout = dict from qubits of circuit_graph to qubits
-      of coupling_graph (optional)
-    basis = basis string specifying basis of output DAGCircuit
-    verbose = optional flag to print more information
+    Args:
+        circuit_graph (DAGCircuit): input DAG circuit
+        coupling_graph (CouplingGraph): coupling graph to map onto
+        initial_layout (dict): dict from qubits of circuit_graph to qubits
+            of coupling_graph (optional)
+        basis (str, optional): basis string specifying basis of output
+            DAGCircuit
+        verbose (bool, optional): print more information
 
-    Returns a DAGCircuit object containing a circuit equivalent to
-    circuit_graph that respects couplings in coupling_graph, and
-    a layout dict mapping qubits of circuit_graph into qubits
-    of coupling_graph. The layout may differ from the initial_layout
-    if the first layer of gates cannot be executed on the
-    initial_layout.
+    Returns:
+        Returns a DAGCircuit object containing a circuit equivalent to
+        circuit_graph that respects couplings in coupling_graph, and
+        a layout dict mapping qubits of circuit_graph into qubits
+        of coupling_graph. The layout may differ from the initial_layout
+        if the first layer of gates cannot be executed on the
+        initial_layout.
     """
     if circuit_graph.width() > coupling_graph.size():
         raise MapperError("Not enough qubits in CouplingGraph")
@@ -478,10 +481,14 @@ def swap_mapper(circuit_graph, coupling_graph,
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     """Test if arguments are a solution to a system of equations.
 
-    Cos[phi+lamb] * Cos[theta] = Cos[xi] * Cos[theta1+theta2]
-    Sin[phi+lamb] * Cos[theta] = Sin[xi] * Cos[theta1-theta2]
-    Cos[phi-lamb] * Sin[theta] = Cos[xi] * Sin[theta1+theta2]
-    Sin[phi-lamb] * Sin[theta] = Sin[xi] * Sin[-theta1+theta2]
+    .. math::
+       \cos(\phi+\lambda) \cos(\\theta) = \cos(xi) * \cos(\\theta1+\\theta2)
+
+       \sin(\phi+\lambda) \cos(\\theta) = \sin(xi) * \cos(\\theta1-\\theta2) 
+
+       \cos(\phi-\lambda) \sin(\\theta) = \cos(xi) * \sin(\\theta1+\\theta2)
+
+       \sin(\phi-\lambda) \sin(\\theta) = \sin(xi) * \sin(-\\theta1+\\theta2)
 
     Returns the maximum absolute difference between right and left hand sides.
     """
@@ -500,7 +507,11 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
     Solve the equation
+
+    .. math::
+
     Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
+
     for theta, phi, and lambda. This is equivalent to solving the system
     given in the comment for test_solution. Use eps for comparisons with zero.
 

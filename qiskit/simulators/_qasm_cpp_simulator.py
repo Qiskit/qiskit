@@ -123,10 +123,12 @@ def parse_complex(output, key):
 
     This function converts complex numbers in the C++ simulator output
     into python complex numbers. In JSON c++ output complex entries are
-    formatted as:
+    formatted as::
+
         z = [re(z), im(z)]
         vec = [re(vec), im(vec)]
         ket = {'00':[re(v[00]), im(v[00])], '01': etc...}
+
     Args:
         output (dict): simulator output.
         key (str): the output key to search for.
