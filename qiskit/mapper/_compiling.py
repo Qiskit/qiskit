@@ -17,14 +17,12 @@
 
 """
 Methods to assist with compiling tasks.
-
-Author: Andrew Cross
 """
 import math
 import scipy
 import numpy as np
 
-from qiskit import QISKitException
+from ._mappererror import MapperError
 
 
 def euler_angles_1q(unitary_matrix):
@@ -37,9 +35,9 @@ def euler_angles_1q(unitary_matrix):
     element of the tuple is the OpenQASM gate name with parameter
     values substituted.
     """
-    small = 1e-13
+    small = 1e-10
     if unitary_matrix.shape != (2, 2):
-        raise QISKitException("compiling.euler_angles_1q expected 2x2 matrix")
+        raise MapperError("compiling.euler_angles_1q expected 2x2 matrix")
     phase = np.linalg.det(unitary_matrix)**(-1.0/2.0)
     U = phase * unitary_matrix  # U in SU(2)
     # OpenQASM SU(2) parameterization:
@@ -79,7 +77,7 @@ def euler_angles_1q(unitary_matrix):
                          [0, np.exp(1j*lamb/2.0)]], dtype=complex)
     V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
     if np.linalg.norm(V - U) > small:
-        raise QISKitException("compiling.euler_angles_1q incorrect result")
+        raise MapperError("compiling.euler_angles_1q incorrect result")
     return theta, phi, lamb, "U(%.15f,%.15f,%.15f)" % (theta, phi, lamb)
 
 
@@ -158,7 +156,7 @@ def two_qubit_kak(unitary_matrix):
     unitary_matrix = numpy 4x4 unitary matrix
     """
     if unitary_matrix.shape != (4, 4):
-        raise QISKitException("compiling.two_qubit_kak expected 4x4 matrix")
+        raise MapperError("compiling.two_qubit_kak expected 4x4 matrix")
     phase = np.linalg.det(unitary_matrix)**(-1.0/4.0)
     # Make it in SU(4), correct phase at the end
     U = phase * unitary_matrix
@@ -194,8 +192,8 @@ def two_qubit_kak(unitary_matrix):
     K2 = np.dot(B, np.dot(np.transpose(P), np.transpose(B.conjugate())))
     KAK = np.dot(K1, np.dot(A, K2))
     if np.linalg.norm(KAK - U, 2) > 1e-6:
-        raise QISKitException("compiling.two_qubit_kak: " +
-                              "unknown error in KAK decomposition")
+        raise MapperError("compiling.two_qubit_kak: " +
+                          "unknown error in KAK decomposition")
     # Compute parameters alpha, beta, gamma so that
     # A = exp(i * (alpha * XX + beta * YY + gamma * ZZ))
     x = np.array([[0, 1], [1, 0]], dtype=complex)
@@ -237,12 +235,12 @@ def two_qubit_kak(unitary_matrix):
     V1[1, 1] = R[2, 2]
     if np.linalg.norm(np.kron(U1, U2) - K1) > 1e-4 or \
        np.linalg.norm(np.kron(V1, V2) - K2) > 1e-4:
-        raise QISKitException("compiling.two_qubit_kak: " +
-                              "error in SU(2) x SU(2) part")
+        raise MapperError("compiling.two_qubit_kak: " +
+                          "error in SU(2) x SU(2) part")
     test = scipy.linalg.expm(1j*(alpha * xx + beta * yy + gamma * zz))
     if np.linalg.norm(A - test) > 1e-4:
-        raise QISKitException("compiling.two_qubit_kak: " +
-                              "error in A part")
+        raise MapperError("compiling.two_qubit_kak: " +
+                          "error in A part")
     # Circuit that implements K1 * A * K2 (up to phase), using
     # Vatan and Williams Fig. 6 of quant-ph/0308006v3
     # Include prefix and suffix single-qubit gates into U2, V1 respectively.
@@ -287,8 +285,8 @@ def two_qubit_kak(unitary_matrix):
     V = np.dot(g7, V)
 
     if np.linalg.norm(V - U*phase.conjugate()) > 1e-6:
-        raise QISKitException("compiling.two_qubit_kak: " +
-                              "sequence incorrect, unknown error")
+        raise MapperError("compiling.two_qubit_kak: " +
+                          "sequence incorrect, unknown error")
 
     v1_param = euler_angles_1q(V1)
     v2_param = euler_angles_1q(V2)
@@ -392,8 +390,7 @@ def two_qubit_kak(unitary_matrix):
        np.linalg.norm(1j*V - U) > 1e-6 and \
        np.linalg.norm(-1*V - U) > 1e-6 and \
        np.linalg.norm(-1j*V - U) > 1e-6:
-        raise QISKitException("compiling.two_qubit_kak: " +
-                              "sequence incorrect, unknown error")
-
+        raise MapperError("compiling.two_qubit_kak: " +
+                          "sequence incorrect, unknown error")
 
     return return_circuit

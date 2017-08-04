@@ -22,3 +22,4 @@ from ._qreg import Qreg
 from ._real import Real
 from ._reset import Reset
 from ._universalunitary import UniversalUnitary
+from ._nodeexception import NodeException

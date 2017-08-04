@@ -17,9 +17,6 @@
 
 """
 Quantum teleportation example based on an OpenQASM example.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 import sys
 import os
@@ -46,7 +43,6 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for quantum teleportation.
 ###############################################################
 QPS_SPECS = {
-    "name": "Program",
     "circuits": [{
         "name": "teleport",
         "quantum_registers": [{
@@ -98,15 +94,17 @@ qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # Experiment does not support feedback, so we use the simulator
 
-# First version: not compiled
+# First version: not mapped
 result = qp.execute(["teleport"], backend=backend,
                     coupling_map=None, shots=1024)
-print(qp.get_counts("teleport"))
+print(result)
+print(result.get_counts("teleport"))
 
-# Second version: compiled to ibmqx2 coupling graph
+# Second version: mapped to qx2 coupling graph
 result = qp.execute(["teleport"], backend=backend,
                     coupling_map=coupling_map, shots=1024)
-print(qp.get_ran_qasm("teleport"))
-print(qp.get_counts("teleport"))
+print(result)
+print(result.get_ran_qasm("teleport"))
+print(result.get_counts("teleport"))
 
 # Both versions should give the same distribution

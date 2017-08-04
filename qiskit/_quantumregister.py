@@ -17,8 +17,6 @@
 
 """
 Quantum register reference object.
-
-Author: Andrew Cross
 """
 from ._register import Register
 from ._instructionset import InstructionSet

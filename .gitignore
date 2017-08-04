@@ -57,6 +57,9 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+test/python/*.log
+test/python/*.pdf
+test/python/*.prof
 
 # Translations
 *.mo
@@ -116,4 +119,6 @@ test/python/test_qasm_python_simulator.pdf
 
 doc/_build/*
 
-doc/qiskit.*
+doc/_autodoc/*
+
+qiskit/bin/*

@@ -17,12 +17,10 @@
 
 """
 Exception for errors raised by the DAGCircuit object.
-
-Author: Andrew Cross
 """
+from qiskit import QISKitError
 
-
-class DAGCircuitError(Exception):
+class DAGCircuitError(QISKitError):
     """Base class for errors raised by the DAGCircuit object."""
 
     def __init__(self, *msg):

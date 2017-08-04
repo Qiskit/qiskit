@@ -5,3 +5,4 @@ ply
 numpy
 scipy
 matplotlib
+sphinx

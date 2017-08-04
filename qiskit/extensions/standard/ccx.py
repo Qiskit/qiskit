@@ -17,8 +17,6 @@
 
 """
 Toffoli gate. Controlled-Controlled-X.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumCircuit
 from qiskit import Gate

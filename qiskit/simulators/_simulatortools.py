@@ -17,8 +17,6 @@
 
 """Contains functions used by the simulators.
 
-Author: Jay Gambetta and John Smolin
-
 Functions
     index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
@@ -76,10 +74,12 @@ def enlarge_single_opt(opt, qubit, number_of_qubits):
     """Enlarge single operator to n qubits.
 
     It is exponential in the number of qubits.
-    opt is the single-qubit opt.
-    qubit is the qubit to apply it on counts from 0 and order
-        is q_{n-1} ... otimes q_1 otimes q_0.
-    number_of_qubits is the number of qubits in the system.
+
+    Args:
+        opt: the single-qubit opt.
+        qubit: the qubit to apply it on counts from 0 and order
+            is q_{n-1} ... otimes q_1 otimes q_0.
+        number_of_qubits: the number of qubits in the system.
     """
     temp_1 = np.identity(2**(number_of_qubits-qubit-1), dtype=complex)
     temp_2 = np.identity(2**(qubit), dtype=complex)
@@ -132,7 +132,7 @@ def single_gate_matrix(gate, params=None):
     Args:
         params(list): the operation parameters op['params']
     Returns:
-        A numpy array representing the matrix 
+        A numpy array representing the matrix
     """
     (theta, phi, lam) = single_gate_params(gate, params)
     return np.array([[np.cos(theta/2.0),

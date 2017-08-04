@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM indexed id.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -44,6 +42,6 @@ class IndexedId(Node):
         ind = indent * ' '
         print(ind, 'indexed_id', self.name, self.index)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         return self.name + "[%d]" % self.index

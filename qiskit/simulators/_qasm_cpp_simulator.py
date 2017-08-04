@@ -11,6 +11,7 @@ import json
 import subprocess
 from subprocess import PIPE, CalledProcessError
 import numpy as np
+from ._simulatorerror import SimulatorError
 
 __configuration = {
     "name": "local_qasm_cpp_simulator",
@@ -67,12 +68,12 @@ class QasmCppSimulator:
                 subprocess.check_output(
                     ['./' + self._exe], stderr=subprocess.STDOUT)
             except CalledProcessError:
-                pass
+                # simulator with no arguments returns 1
+                # so this is the "success" case
+                self._exe = './' + self._exe
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
-            else:
-                self._exe = './' + self._exe
 
     def run(self, silent=True):
         """
@@ -105,7 +106,7 @@ class QasmCppSimulator:
                 parse_complex(cresult['data'], k)
         else:
             # custom "backend" or "result" exception handler here?
-            raise Exception('local_qasm_cpp_simulator returned: {0}\n{1}'.
+            raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
                             format(cout.decode(), cerr.decode()))
         # Add simulator data
         self.result['data'] = cresult['data']
@@ -122,10 +123,12 @@ def parse_complex(output, key):
 
     This function converts complex numbers in the C++ simulator output
     into python complex numbers. In JSON c++ output complex entries are
-    formatted as:
+    formatted as::
+
         z = [re(z), im(z)]
         vec = [re(vec), im(vec)]
         ket = {'00':[re(v[00]), im(v[00])], '01': etc...}
+
     Args:
         output (dict): simulator output.
         key (str): the output key to search for.

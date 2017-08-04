@@ -17,8 +17,6 @@
 
 """
 Qubit reset to computational zero.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
 

@@ -16,10 +16,6 @@
 # =============================================================================
 """
 Visualization functions for quantum states.
-
-Author: Jay Gambetta
-        Andrew Cross
-        Christopher J. Wood
 """
 
 import numpy as np
@@ -29,7 +25,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
-from tools.pauli import pauli_group, pauli_singles
+from tools.qi.pauli import pauli_group, pauli_singles
 
 ###############################################################
 # Plotting historgram

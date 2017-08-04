@@ -17,11 +17,9 @@
 
 """
 Instruction collection.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
-from ._qiskitexception import QISKitException
+from ._qiskiterror import QISKitError
 
 
 class InstructionSet(object):
@@ -34,7 +32,7 @@ class InstructionSet(object):
     def add(self, gate):
         """Add instruction to set."""
         if not isinstance(gate, Instruction):
-            raise QISKitException("attempt to add non-Instruction" +
+            raise QISKitError("attempt to add non-Instruction" +
                                   " to InstructionSet")
         self.instructions.add(gate)
 
