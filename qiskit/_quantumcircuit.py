@@ -17,11 +17,9 @@
 
 """
 Quantum circuit object.
-
-Author: Andrew Cross
 """
 import itertools
-from ._qiskitexception import QISKitException
+from ._qiskiterror import QISKitError
 from ._register import Register
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
@@ -60,6 +58,22 @@ class QuantumCircuit(object):
                     return True
         return False
 
+    def get_qregs(self):
+        """Get the qregs from the registers."""
+        qregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, QuantumRegister):
+                qregs[name] = register
+        return qregs
+
+    def get_cregs(self):
+        """Get the cregs from the registers."""
+        cregs = {}
+        for name, register in self.regs.items():
+            if isinstance(register, ClassicalRegister):
+                cregs[name] = register
+        return cregs
+
     def combine(self, rhs):
         """
         Append rhs to self if self contains rhs's registers.
@@ -68,7 +82,7 @@ class QuantumCircuit(object):
         """
         for register in rhs.regs.values():
             if not self.has_register(register):
-                raise QISKitException("circuits are not compatible")
+                raise QISKitError("circuits are not compatible")
         circuit = QuantumCircuit(
             *[register for register in self.regs.values()])
         for gate in itertools.chain(self.data, rhs.data):
@@ -83,7 +97,7 @@ class QuantumCircuit(object):
         """
         for register in rhs.regs.values():
             if not self.has_register(register):
-                raise QISKitException("circuits are not compatible")
+                raise QISKitError("circuits are not compatible")
         for gate in rhs.data:
             gate.reapply(self)
         return self
@@ -96,6 +110,14 @@ class QuantumCircuit(object):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
 
+    def __len__(self):
+        """Return number of operations in circuit."""
+        return len(self.data)
+
+    def __getitem__(self, item):
+        """Return indexed operation."""
+        return self.data[item]
+
     def _attach(self, gate):
         """Attach a gate."""
         self.data.append(gate)
@@ -105,33 +127,33 @@ class QuantumCircuit(object):
         """Add registers."""
         for register in regs:
             if not isinstance(register, Register):
-                raise QISKitException("expected a register")
+                raise QISKitError("expected a register")
             if register.name not in self.regs:
                 self.regs[register.name] = register
             else:
-                raise QISKitException("register name \"%s\" already exists"
+                raise QISKitError("register name \"%s\" already exists"
                                       % register.name)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
         if not isinstance(register, QuantumRegister):
-            raise QISKitException("expected quantum register")
+            raise QISKitError("expected quantum register")
         if not self.has_register(register):
-            raise QISKitException(
+            raise QISKitError(
                 "register '%s' not in this circuit" %
                 register.name)
 
-    def _check_qubit(self, circuit):
-        """Raise exception if q is not in this circuit or invalid format."""
-        self._check_qreg(circuit[0])
-        circuit[0].check_range(circuit[1])
+    def _check_qubit(self, qubit):
+        """Raise exception if qubit is not in this circuit or bad format."""
+        self._check_qreg(qubit[0])
+        qubit[0].check_range(qubit[1])
 
     def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
         if not isinstance(register, ClassicalRegister):
-            raise QISKitException("expected classical register")
+            raise QISKitError("expected classical register")
         if not self.has_register(register):
-            raise QISKitException(
+            raise QISKitError(
                 "register '%s' not in this circuit" %
                 register.name)
 
@@ -139,7 +161,7 @@ class QuantumCircuit(object):
         """Raise exception if list of qubits contains duplicates."""
         squbits = set(qubits)
         if len(squbits) != len(qubits):
-            raise QISKitException("duplicate qubit arguments")
+            raise QISKitError("duplicate qubit arguments")
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -150,12 +172,12 @@ class QuantumCircuit(object):
             string += instruction.qasm() + "\n"
         return string
 
-    def measure(self, quantum_register, circuit):
-        """Measure quantum register into circuit (tuples)."""
-        self._check_qubit(quantum_register)
-        self._check_creg(circuit[0])
-        circuit[0].check_range(circuit[1])
-        return self._attach(Measure(quantum_register, circuit, self))
+    def measure(self, qubit, cbit):
+        """Measure quantum bit into classical bit (tuples)."""
+        self._check_qubit(qubit)
+        self._check_creg(cbit[0])
+        cbit[0].check_range(cbit[1])
+        return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""

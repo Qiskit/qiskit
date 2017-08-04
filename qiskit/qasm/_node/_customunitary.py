@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM custom gate statement.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -49,10 +47,10 @@ class CustomUnitary(Node):
             self.arguments = None
             self.bitlist = children[1]
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         string = self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm() + ")"
-        string += " " + self.bitlist.qasm() + ";"
+            string += "(" + self.arguments.qasm(prec) + ")"
+        string += " " + self.bitlist.qasm(prec) + ";"
         return string

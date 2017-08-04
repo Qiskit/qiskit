@@ -17,8 +17,6 @@
 
 """
 Two-pulse single-qubit gate.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

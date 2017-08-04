@@ -17,14 +17,12 @@
 
 """
 Barrier instruction.
-
-Author: Andrew Cross
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
-from qiskit import QISKitException
+from qiskit.extensions._extensionerror import ExtensionError
 
 
 class Barrier(Instruction):
@@ -65,7 +63,7 @@ def barrier(self, *tuples):
                 if isinstance(register, QuantumRegister):
                     tuples.append(register)
     if len(tuples) == 0:
-        raise QISKitException("no arguments passed")
+        raise ExtensionError("no arguments passed")
     qubits = []
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):

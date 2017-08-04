@@ -17,8 +17,6 @@
 
 """
 Classical register reference object.
-
-Author: Andrew Cross
 """
 from ._register import Register
 
@@ -33,3 +31,7 @@ class ClassicalRegister(Register):
     def __str__(self):
         """Return a string representing the register."""
         return "ClassicalRegister(%s,%d)" % (self.name, self.size)
+
+    def __len__(self):
+        """Return a int representing the size."""
+        return self.size

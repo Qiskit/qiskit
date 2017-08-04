@@ -16,10 +16,7 @@
 # =============================================================================
 
 """
-GHZ state example illustrating mapping onto the device.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
+GHZ state example illustrating mapping onto the backend.
 """
 
 import sys
@@ -35,9 +32,9 @@ from qiskit import QuantumProgram
 import Qconfig
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "ibmqx2"
+backend = "ibmqx2"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -48,7 +45,6 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for the GHZ state.
 ###############################################################
 QPS_SPECS = {
-    "name": "ghz",
     "circuits": [{
         "name": "ghz",
         "quantum_registers": [{
@@ -63,8 +59,8 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("ghz")
-q = qp.get_quantum_registers("q")
-c = qp.get_classical_registers("c")
+q = qp.get_quantum_register("q")
+c = qp.get_classical_register("c")
 
 # Create a GHZ state
 qc.h(q[0])
@@ -79,35 +75,32 @@ for i in range(5):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-# First version: not compiled
-print("no compilation, simulator")
-result = qp.execute(["ghz"], device='simulator',
+# First version: no mapping
+print("no mapping, simulator")
+result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=None, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Second version: compiled to qc5qv2 coupling graph
-print("compilation to %s, simulator" % device)
-result = qp.execute(["ghz"], device='simulator',
+# Second version: map to qx2 coupling graph and simulate
+print("map to %s, simulator" % backend)
+result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Third version: compiled to qc5qv2 coupling graph
-print("compilation to %s, local qasm simulator" % device)
-result = qp.execute(["ghz"], device='local_qasm_simulator',
+# Third version: map to qx2 coupling graph and simulate locally
+print("map to %s, local qasm simulator" % backend)
+result = qp.execute(["ghz"], backend='local_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))
 
-# Fourth version: compiled to qc5qv2 coupling graph and run on qx5q
-print("compilation to %s, device" % device)
-result = qp.execute(["ghz"], device=device,
+# Fourth version: map to qx2 coupling graph and run on qx2
+print("map to %s, backend" % backend)
+result = qp.execute(["ghz"], backend=backend,
                     coupling_map=coupling_map, shots=1024, timeout=120)
 print(result)
-print(qp.get_counts("ghz"))
+print(result.get_counts("ghz"))

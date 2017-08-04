@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM creg statement.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -49,6 +47,6 @@ class Creg(Node):
         print(ind, 'creg')
         self.children[0].to_string(indent + 3)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "creg " + self.id.qasm() + ";"
+        return "creg " + self.id.qasm(prec) + ";"

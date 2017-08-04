@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM opaque gate declaration.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -57,10 +55,10 @@ class Opaque(Node):
         """Return the number of qubit arguments."""
         return self.bitlist.size()
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         string = "opaque %s" % self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm() + ")"
-        string += self.bitlist.qasm() + ";"
+            string += "(" + self.arguments.qasm(prec) + ")"
+        string += " " + self.bitlist.qasm(prec) + ";"
         return string
