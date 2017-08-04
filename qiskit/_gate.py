@@ -17,12 +17,10 @@
 
 """
 Unitary gate.
-
-Author: Andrew Cross
 """
 from ._instruction import Instruction
 from ._quantumregister import QuantumRegister
-from ._qiskitexception import QISKitException
+from ._qiskiterror import QISKitError
 
 
 class Gate(Instruction):
@@ -38,14 +36,14 @@ class Gate(Instruction):
         """
         for argument in args:
             if not isinstance(argument[0], QuantumRegister):
-                raise QISKitException("argument not (QuantumRegister, int) "
+                raise QISKitError("argument not (QuantumRegister, int) "
                                       + "tuple")
         super(Gate, self).__init__(name, param, args, circuit)
 
     def inverse(self):
         """Invert this gate."""
-        raise QISKitException("inverse not implemented")
+        raise QISKitError("inverse not implemented")
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
-        raise QISKitException("control not implemented")
+        raise QISKitError("control not implemented")

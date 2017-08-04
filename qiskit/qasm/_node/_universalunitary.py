@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM U statement.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -34,7 +32,7 @@ class UniversalUnitary(Node):
         """Create the U node."""
         Node.__init__(self, 'universal_unitary', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "U(" + self.children[0].qasm() + ") " + \
-               self.children[1].qasm() + ";"
+        return "U(" + self.children[0].qasm(prec) + ") " + \
+               self.children[1].qasm(prec) + ";"

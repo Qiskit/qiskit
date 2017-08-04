@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM barrier statement.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -33,6 +31,6 @@ class Barrier(Node):
         """Create the barrier node."""
         Node.__init__(self, 'barrier', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "barrier " + self.children[0].qasm() + ";"
+        return "barrier " + self.children[0].qasm(prec) + ";"

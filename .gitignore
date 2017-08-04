@@ -57,6 +57,9 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+test/python/*.log
+test/python/*.pdf
+test/python/*.prof
 
 # Translations
 *.mo
@@ -109,3 +112,13 @@ ENV/
 dummyscripts/*
 
 token.json
+
+tutorial/rst/_build/*
+
+test/python/test_qasm_python_simulator.pdf
+
+doc/_build/*
+
+doc/_autodoc/*
+
+qiskit/bin/*

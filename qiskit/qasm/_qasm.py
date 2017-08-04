@@ -17,10 +17,8 @@
 
 """
 OPENQASM circuit object.
-
-Author: Jim Challenger
 """
-from ._qasmexception import QasmException
+from ._qasmerror import QasmError
 from ._qasmparser import QasmParser
 
 
@@ -30,12 +28,16 @@ class Qasm(object):
     def __init__(self, filename=None, data=None):
         """Create an OPENQASM circuit object."""
         if filename is None and data is None:
-            raise QasmException("Missing input file and/or data")
+            raise QasmError("Missing input file and/or data")
         if filename is not None and data is not None:
-            raise QasmException("File and data must not both be"
+            raise QasmError("File and data must not both be"
                                 + " specified initializing qasm")
         self._filename = filename
         self._data = data
+
+    def get_filename(self):
+        """Return the filename."""
+        return self._filename
 
     def print_tokens(self):
         """Parse and print tokens."""
@@ -48,7 +50,8 @@ class Qasm(object):
     def parse(self):
         """Parse the data."""
         if self._filename:
-            self._data = open(self._filename).read()
+            with open(self._filename) as ifile:
+                self._data = ifile.read()
         qasm_p = QasmParser(self._filename)
         qasm_p.parse_debug(False)
         return qasm_p.parse(self._data)

@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM measure statement.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -34,7 +32,7 @@ class Measure(Node):
         """Create the measure node."""
         Node.__init__(self, 'measure', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "measure " + self.children[0].qasm() + " -> " + \
-               self.children[1].qasm() + ";"
+        return "measure " + self.children[0].qasm(prec) + " -> " + \
+               self.children[1].qasm(prec) + ";"

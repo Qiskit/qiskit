@@ -22,11 +22,49 @@ The nodes of the graph correspond to named qubits and the directed edges
 indicate which qubits are coupled and the permitted direction of CNOT gates.
 The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
-
-Author: Andrew Cross
 """
 import networkx as nx
 from ._couplingerror import CouplingError
+
+
+def coupling_dict2list(couplingdict):
+    """Convert coupling map dictionary into list.
+
+    Example dictionary format: {0: [1, 2], 1: [2]}
+    Example list format: [[0, 1], [0, 2], [1, 2]]
+
+    We do not do any checking of the input.
+
+    Return coupling map in list format.
+    """
+    if not couplingdict:
+        return None
+    couplinglist = []
+    for ctl, tgtlist in couplingdict.items():
+        for tgt in tgtlist:
+            couplinglist.append([ctl, tgt])
+    return couplinglist
+
+
+def coupling_list2dict(couplinglist):
+    """Convert coupling map list into dictionary.
+
+    Example list format: [[0, 1], [0, 2], [1, 2]]
+    Example dictionary format: {0: [1, 2], 1: [2]}
+
+    We do not do any checking of the input.
+
+    Return coupling map in dict format.
+    """
+    if not couplinglist:
+        return None
+    couplingdict = {}
+    for pair in couplinglist:
+        if pair[0] in couplingdict:
+            couplingdict[pair[0]].append(pair[1])
+        else:
+            couplingdict[pair[0]] = [pair[1]]
+    return couplingdict
 
 
 class Coupling:

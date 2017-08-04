@@ -17,8 +17,6 @@
 
 """
 One-pulse single-qubit gate.
-
-Author: Andrew Cross
 """
 import math
 from qiskit import QuantumRegister

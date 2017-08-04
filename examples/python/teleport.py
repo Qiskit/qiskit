@@ -17,9 +17,6 @@
 
 """
 Quantum teleportation example based on an OpenQASM example.
-
-Author: Andrew Cross
-        Jesus Perez <jesusper@us.ibm.com>
 """
 import sys
 import os
@@ -33,9 +30,9 @@ import Qconfig
 
 
 ###############################################################
-# Set the device name and coupling map.
+# Set the backend name and coupling map.
 ###############################################################
-device = "simulator"
+backend = "ibmqx_qasm_simulator"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
@@ -46,7 +43,6 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for quantum teleportation.
 ###############################################################
 QPS_SPECS = {
-    "name": "Program",
     "circuits": [{
         "name": "teleport",
         "quantum_registers": [{
@@ -65,10 +61,10 @@ QPS_SPECS = {
 
 qp = QuantumProgram(specs=QPS_SPECS)
 qc = qp.get_circuit("teleport")
-q = qp.get_quantum_registers("q")
-c0 = qp.get_classical_registers("c0")
-c1 = qp.get_classical_registers("c1")
-c2 = qp.get_classical_registers("c2")
+q = qp.get_quantum_register("q")
+c0 = qp.get_classical_register("c0")
+c1 = qp.get_classical_register("c1")
+c2 = qp.get_classical_register("c2")
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -94,22 +90,21 @@ qc.measure(q[2], c2[0])
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-result = qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-if not result:
-    print("Error setting API")
-    sys.exit(1)
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # Experiment does not support feedback, so we use the simulator
 
-# First version: not compiled
-result = qp.execute(["teleport"], device=device,
+# First version: not mapped
+result = qp.execute(["teleport"], backend=backend,
                     coupling_map=None, shots=1024)
-print(qp.get_counts("teleport"))
+print(result)
+print(result.get_counts("teleport"))
 
-# Second version: compiled to qx5qv2 coupling graph
-result = qp.execute(["teleport"], device=device,
+# Second version: mapped to qx2 coupling graph
+result = qp.execute(["teleport"], backend=backend,
                     coupling_map=coupling_map, shots=1024)
-print(qp.get_compiled_qasm("teleport"))
-print(qp.get_counts("teleport"))
+print(result)
+print(result.get_ran_qasm("teleport"))
+print(result.get_counts("teleport"))
 
 # Both versions should give the same distribution

@@ -17,8 +17,6 @@
 
 """
 Node for an OPENQASM primarylist.
-
-Author: Jim Challenger
 """
 from ._node import Node
 
@@ -37,6 +35,7 @@ class PrimaryList(Node):
         """Return the size of the list."""
         return len(self.children)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return ",".join([self.children[j].qasm() for j in range(self.size())])
+        return ",".join([self.children[j].qasm(prec)
+                         for j in range(self.size())])

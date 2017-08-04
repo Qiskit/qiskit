@@ -17,14 +17,13 @@
 
 """
 Node for an OPENQASM binary operation expression.
-
-Author: Jim Challenger
 """
 from ._node import Node
+from ._nodeexception import NodeException
 
 
 class BinaryOp(Node):
-    """Node for an OPENQASM binary operation exprssion.
+    """Node for an OPENQASM binary operation expression.
 
     children[0] is the operation, as a character.
     children[1] is the left expression.
@@ -35,7 +34,31 @@ class BinaryOp(Node):
         """Create the binaryop node."""
         Node.__init__(self, 'binop', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "(" + self.children[1].qasm() + self.children[0] + \
-               self.children[2].qasm() + ")"
+        return "(" + self.children[1].qasm(prec) + self.children[0] + \
+               self.children[2].qasm(prec) + ")"
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the corresponding math mode latex string."""
+        return "(" + self.children[1].latex(prec, nested_scope) + \
+            self.children[0] + \
+            self.children[2].latex(prec, nested_scope) + ")"
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        operation = self.children[0]
+        lhs = self.children[1].real(nested_scope)
+        rhs = self.children[2].real(nested_scope)
+        if operation == '+':
+            return lhs + rhs
+        elif operation == '-':
+            return lhs - rhs
+        elif operation == '*':
+            return lhs * rhs
+        elif operation == '/':
+            return lhs / rhs
+        elif operation == '^':
+            return lhs ** rhs
+        else:
+            raise NodeException("internal error: undefined binary op")
