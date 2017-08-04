@@ -1,13 +1,14 @@
 # Where component owners are known, add them here.
 
-qiskit/core/* @ewinston @awcross1 @pacomf @jaygambetta @ismael
-qiskit/core/simulators/* @ewinston @cjwood
+qiskit/core/* @ewinston @awcross1 @pacomf @jaygambetta @ismaelfaro
+qiskit/core/simulators/* @ewinston @chriseclectic
 qiskit/doc/* @ewinston @pacomf
 
-qiskit/tools/qcvv/* @cjwood
-qiskit/tools/qi/* @cjwood
+qiskit/tools/qcvv/* @chriseclectic
+qiskit/tools/qi/* @chriseclectic
 qiskit/tools/apps/* @amezzac
 
-#other repository
+# other repository
+
 qiskit-tutorial @ewinston @awcross1 @jaygambetta
 qiskit-api-py @pacomf

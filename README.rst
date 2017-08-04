@@ -1,5 +1,5 @@
-Quantum Information Software Kit (QISKit) SDK Python
-====================================================
+Quantum Information Software Kit (QISKit)
+=========================================
 
 |Build Status|
 
@@ -23,13 +23,7 @@ next instance.
 Organization
 ------------
 
-The *tutorial* directory contains Jupyter notebooks demonstrating
-components of the SDK. Take a look at the
-`index <tutorial/index.ipynb>`__ to get started. The SDK uses the
-`Python API <https://github.com/IBM/qiskit-api-py>`__ to interact with
-the QX and expresses quantum circuits using
-`OpenQASM <https://github.com/IBM/qiskit-openqasm>`__. Python example
-programs can be found in the *examples* directory, and test scripts are
+Python example programs can be found in the *examples* directory, and test scripts are
 located in *test*. The *qiskit* directory is the main module of the SDK.
 
 Structure
@@ -85,7 +79,15 @@ fixed couplings given by a *CouplingGraph*.
 The four circuit representations and how they are currently transformed
 into each other are summarized in this figure:
 
+.. image:: images/circuit_representations.png
+    :width: 200px
+    :align: center
+
 Several unroller backends and their outputs are summarized here:
+
+.. image:: images/unroller_backends.png
+    :width: 200px
+    :align: center
 
 Installation and setup
 ----------------------
@@ -112,7 +114,7 @@ machine:
 
 .. code:: sh
 
-    git clone https://github.com/IBM/qiskit-sdk-py
+    git clone https://github.com/QISKit/qiskit-sdk-py
     cd qiskit-sdk-py
 
 -  If you don't have Git installed, click the "Clone or download" button
@@ -216,11 +218,19 @@ on the project's GitHub wiki.
 Authors (alphabetical)
 ----------------------
 
-The first release of QISKit was developed by Jim Challenger, Andrew
-Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin.
+Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston, Chris Wood.
 
-In future releases, anyone who contributes code to this project can
-include their name here.
+In future releases, anyone who contributes code to this project can include their name here.
+
+Other QISKit projects
+---------------------
+
+- `OpenQasm <https://github.com/QISKit/qiskit-openqasm>`__  Examples and tools for the OpenQASM intermediate representation.
+- `Python API <https://github.com/QISKit/qiskit-api-py>`__  API Client to use IBM Q experience in Python.
+- `Tutorial <https://github.com/QISKit/qiskit-tutorial>`__  Jupyter notebooks for using QISKit. 
+- `QX Information <https://github.com/QISKit/qiskit-qx-info>`__  Information about the different IBM Q experience backends.
+- `QX User Guide <https://github.com/QISKit/qiskit-qx-user-guides>`__  The users guides for the IBM Q experience.
+
 
 License
 -------
@@ -231,8 +241,8 @@ QISKit is released under the `Apache license, version
 Do you want to help?
 --------------------
 
-:sunglasses: If you'd like to contribute please take a look to our
-`contribution guidelines <CONTRIBUTING.md>`__.
+If you'd like to contribute please take a look to our
+`contribution guidelines <CONTRIBUTING.rst>`__.
 
-.. |Build Status| image:: https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev.svg?token=GMH4xFrA9iezVJKqw2zH&branch=master
-   :target: https://travis.ibm.com/IBMQuantum/qiskit-sdk-py-dev
+.. |Build Status| image:: https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master
+   :target: https://travis-ci.org/QISKit/qiskit-sdk-py
