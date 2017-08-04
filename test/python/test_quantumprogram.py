@@ -1125,7 +1125,7 @@ class TestQuantumProgram(unittest.TestCase):
         bell.barrier()
         bell.measure(q[0], c[0])
         bell.measure(q[1], c[1])
-        qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        qp.set_api(API_TOKEN, URL)
         bellobj = qp.compile(["bell"], backend='local_qasm_simulator',
                              shots=2048, seed=10)
         ghzobj = qp.compile(["ghz"], backend='local_qasm_simulator',
@@ -1171,7 +1171,7 @@ class TestQuantumProgram(unittest.TestCase):
             }]
         }
         qp = QuantumProgram(specs=QPS_SPECS)
-        qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+        qp.set_api(API_TOKEN, URL)
         if backend not in qp.online_simulators():
             return
         qc = qp.get_circuit("swapping")
