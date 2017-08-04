@@ -241,7 +241,7 @@ QISKit is released under the `Apache license, version
 Do you want to help?
 --------------------
 
-:sunglasses: If you'd like to contribute please take a look to our
+If you'd like to contribute please take a look to our
 `contribution guidelines <CONTRIBUTING.rst>`__.
 
 .. |Build Status| image:: https://travis.com/QISKit/qiskit-sdk-py-dev.svg?token=GMH4xFrA9iezVJKqw2zH&branch=master
