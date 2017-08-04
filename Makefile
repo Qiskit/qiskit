@@ -13,10 +13,6 @@
 # limitations under the License.
 # =============================================================================
 
-# Authors: Ismael Faro <Ismael.Faro1@ibm.com>
-#					 Jesus Perez <jesusper@us.ibm.com>
-
-
 .PHONY: env env-dev lint test run doc
 
 # Dependencies need to be installed on the Anaconda virtual environment.
@@ -26,10 +22,6 @@ env:
 
 run:
 	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
-
-run_tutorial:
-	bash -c "source activate QISKitenv;cd tutorial;jupyter notebook"
-
 
 # Ignoring generated ones with .py extension.
 lint:
