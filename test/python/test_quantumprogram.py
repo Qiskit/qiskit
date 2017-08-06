@@ -711,8 +711,8 @@ class TestQuantumProgram(unittest.TestCase):
         # print(result)
         self.assertEqual(len(result), 4)
 
-    def test_get_complied_qasm(self):
-        """Test get_complied_qasm.
+    def test_get_compiled_qasm(self):
+        """Test get_compiled_qasm.
 
         If all correct should return lenght  dictionary.
         """
@@ -728,7 +728,7 @@ class TestQuantumProgram(unittest.TestCase):
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map)
-        result = QP_program.get_complied_qasm(qobj, 'circuitName',)
+        result = QP_program.get_compiled_qasm(qobj, 'circuitName',)
         # print(result)
         self.assertEqual(len(result), 184)
 

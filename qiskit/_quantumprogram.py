@@ -720,7 +720,7 @@ class QuantumProgram(object):
             basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
             coupling_map (dict): A directed graph of coupling::
-                
+
                 {
                  control(int):
                      [
@@ -902,7 +902,7 @@ class QuantumProgram(object):
         except KeyError:
             raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
-    def get_complied_qasm(self, qobj, name):
+    def get_compiled_qasm(self, qobj, name):
         """Print the compiled cricuit in qasm format.
 
         Args:
