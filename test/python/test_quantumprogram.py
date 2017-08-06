@@ -467,6 +467,7 @@ class TestQuantumProgram(unittest.TestCase):
 
     def test_get_initial_circuit(self):
         """Test get_initial_circuit.
+
         If all correct is should be of the circuit form.
 
         Previusly:
@@ -478,7 +479,8 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(qc, QuantumCircuit)
 
     def test_save(self):
-        """
+        """Test save.
+
         Save a Quantum Program in Json file
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -503,14 +505,16 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result['status'], 'Done')
 
     def test_save_wrong(self):
-        """
+        """Test save wrong.
+
         Save a Quantum Program in Json file: Errors Control
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         self.assertRaises(LookupError, QP_program.load)
 
     def test_load(self):
-        """
+        """Test load Json.
+
         Load a Json Quantum Program
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
@@ -522,15 +526,12 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(len(check_result), 1872)
 
     def test_load_wrong(self):
-        """
-        Load a Json Quantum Program: Errors Control
+        """Test load Json.
+
+        Load a Json Quantum Program: Errors Control.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         self.assertRaises(LookupError, QP_program.load)
-
-    @unittest.skip
-    def test_contact_multiple_vertical_circuits(self):
-        pass
 
     ###############################################################
     # Tests for working with backends
@@ -944,7 +945,6 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return 10010.
         """
         QP_program = QuantumProgram()
-        QP_program.set_api(API_TOKEN, URL)
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 100  # the number of shots in the experiment.
         max_credits = 3
@@ -963,7 +963,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_average_data(self):
         """Test average_data.
 
-        If all correct should the data.
+        If all correct should return the data.
         """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 2, verbose=False)
@@ -988,37 +988,54 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertAlmostEqual(meaniz,  0, places=1)
 
     def test_execute_one_circuit_simulator_online(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qc = QP_program.get_circuit("circuitName")
-        qr = QP_program.get_quantum_register("qname")
-        cr = QP_program.get_classical_register("cname")
-        qc.h(qr[1])
+        """Test execute_one_circuit_simulator_online.
+
+        If all correct should return the data.
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("q", 1, verbose=False)
+        cr = QP_program.create_classical_register("c", 1, verbose=False)
+        qc = QP_program.create_circuit("qc", [qr], [cr])
+        qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         # print(backend)
-        result = QP_program.execute(['circuitName'], backend=backend,
-                                    shots=shots, max_credits=3, silent=True)
-        self.assertIsInstance(result, Result)
+        result = QP_program.execute(['qc'], backend=backend,
+                                    shots=shots, max_credits=3, silent=True,
+                                    seed=73846087)
+        counts = result.get_counts('qc')
+        self.assertEqual(counts, {'0': 498, '1': 526})
 
     def test_execute_several_circuits_simulator_online(self):
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        qr = QP_program.get_quantum_register("qname")
-        cr = QP_program.get_classical_register("cname")
+        """Test execute_several_circuits_simulator_online.
+
+        If all correct should return the data.
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("q", 2, verbose=False)
+        cr = QP_program.create_classical_register("c", 2, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
-        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc1.h(qr)
         qc2.h(qr[0])
-        qc3.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc1.measure(qr[0], cr[0])
+        qc1.measure(qr[1], cr[1])
         qc2.measure(qr[0], cr[0])
-        qc3.measure(qr[0], cr[0])
-        circuits = ['qc2', 'qc3']
+        qc2.measure(qr[1], cr[1])
+        circuits = ['qc1', 'qc2']
         shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
-                                    max_credits=3, silent=True)
-        self.assertIsInstance(result, Result)
+                                    max_credits=3, silent=True,
+                                    seed=1287126141)
+        counts1 = result.get_counts('qc1')
+        counts2 = result.get_counts('qc2')
+        self.assertEqual(counts1,  {'10': 257, '11': 247, '00': 252, '01': 268})
+        self.assertEqual(counts2, {'11': 515, '00': 509})
 
     def test_execute_one_circuit_real_online(self):
         """Test execute_one_circuit_real_online.
@@ -1044,6 +1061,111 @@ class TestQuantumProgram(unittest.TestCase):
                                         shots=shots, max_credits=3)
             self.assertIsInstance(result, Result)
 
+    def test_local_qasm_simulator_two_registers(self):
+        """Test local_qasm_simulator_two_registers.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram()
+        q1 = QP_program.create_quantum_register("q1", 2, verbose=False)
+        c1 = QP_program.create_classical_register("c1", 2, verbose=False)
+        q2 = QP_program.create_quantum_register("q2", 2, verbose=False)
+        c2 = QP_program.create_classical_register("c2", 2, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [q1, q2], [c1, c2])
+        qc2 = QP_program.create_circuit("qc2", [q1, q2], [c1, c2])
+
+        qc1.x(q1[0])
+        qc2.x(q2[1])
+        qc1.measure(q1[0], c1[0])
+        qc1.measure(q1[1], c1[1])
+        qc1.measure(q2[0], c2[0])
+        qc1.measure(q2[1], c2[1])
+        qc2.measure(q1[0], c1[0])
+        qc2.measure(q1[1], c1[1])
+        qc2.measure(q2[0], c2[0])
+        qc2.measure(q2[1], c2[1])
+        circuits = ['qc1', 'qc2']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    seed=8458)
+        result1 = result.get_counts('qc1')
+        result2 = result.get_counts('qc2')
+        self.assertEqual(result1, {'00 01': 1024})
+        self.assertEqual(result2, {'10 00': 1024})
+
+    def test_online_qasm_simulator_two_registers(self):
+        """Test online_qasm_simulator_two_registers.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram()
+        q1 = QP_program.create_quantum_register("q1", 2, verbose=False)
+        c1 = QP_program.create_classical_register("c1", 2, verbose=False)
+        q2 = QP_program.create_quantum_register("q2", 2, verbose=False)
+        c2 = QP_program.create_classical_register("c2", 2, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [q1, q2], [c1, c2])
+        qc2 = QP_program.create_circuit("qc2", [q1, q2], [c1, c2])
+
+        qc1.x(q1[0])
+        qc2.x(q2[1])
+        qc1.measure(q1[0], c1[0])
+        qc1.measure(q1[1], c1[1])
+        qc1.measure(q2[0], c2[0])
+        qc1.measure(q2[1], c2[1])
+        qc2.measure(q1[0], c1[0])
+        qc2.measure(q1[1], c1[1])
+        qc2.measure(q2[0], c2[0])
+        qc2.measure(q2[1], c2[1])
+        circuits = ['qc1', 'qc2']
+        shots = 1024  # the number of shots in the experiment.
+        QP_program.set_api(API_TOKEN, URL)
+        backend = QP_program.online_simulators()[0]
+        result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    seed=8458)
+        result1 = result.get_counts('qc1')
+        result2 = result.get_counts('qc2')
+        self.assertEqual(result1, {'00 01': 1024})
+        self.assertEqual(result2, {'10 00': 1024})
+
+    def test_online_real_two_registers(self):
+        """Test online_real_two_registers.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram()
+        q1 = QP_program.create_quantum_register("q1", 2, verbose=False)
+        c1 = QP_program.create_classical_register("c1", 2, verbose=False)
+        q2 = QP_program.create_quantum_register("q2", 2, verbose=False)
+        c2 = QP_program.create_classical_register("c2", 2, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [q1, q2], [c1, c2])
+        qc2 = QP_program.create_circuit("qc2", [q1, q2], [c1, c2])
+
+        qc1.x(q1[0])
+        qc2.x(q2[1])
+        qc1.measure(q1[0], c1[0])
+        qc1.measure(q1[1], c1[1])
+        qc1.measure(q2[0], c2[0])
+        qc1.measure(q2[1], c2[1])
+        qc2.measure(q1[0], c1[0])
+        qc2.measure(q1[1], c1[1])
+        qc2.measure(q2[0], c2[0])
+        qc2.measure(q2[1], c2[1])
+        circuits = ['qc1', 'qc2']
+        shots = 1024  # the number of shots in the experiment.
+        QP_program.set_api(API_TOKEN, URL)
+        backend = QP_program.online_devices()[0]
+        status = QP_program.get_backend_status(backend)
+        if status['available'] is False:
+            pass
+        else:
+            result = QP_program.execute(circuits, backend=backend, shots=shots,
+                                    seed=8458)
+            result1 = result.get_counts('qc1')
+            result2 = result.get_counts('qc2')
+            self.assertEqual(result1, {'00 01': 1024})
+            self.assertEqual(result2, {'10 00': 1024})
+
     ###############################################################
     # More test cases for interesting examples
     ###############################################################
@@ -1058,7 +1180,6 @@ class TestQuantumProgram(unittest.TestCase):
         cr = QP_program.create_classical_register("cr", 2, verbose=False)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
-        QP_program.set_api(API_TOKEN, URL)
         qc1.h(qr[0])
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
@@ -1070,8 +1191,27 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1024  # the number of shots in the experiment.
         result = QP_program.execute(circuits, backend=backend, shots=shots,
                                     seed=78)
+        # print(QP_program.get_qasm('new_circuit'))
         self.assertEqual(result.get_counts('new_circuit'),
                          {'00': 505, '01': 519})
+
+    def test_add_circuit_fail(self):
+        """Test add two circuits fail.
+
+        If the circuits have different registers it should return a QISKitError
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 1, verbose=False)
+        cr = QP_program.create_classical_register("cr", 1, verbose=False)
+        q = QP_program.create_quantum_register("q", 1, verbose=False)
+        c = QP_program.create_classical_register("c", 1, verbose=False)
+        qc1 = QP_program.create_circuit("qc1", [qr], [cr])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(q[0], c[0])
+        # new_circuit = qc1 + qc2
+        self.assertRaises(QISKitError, qc1.__add__, qc2)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
@@ -1125,7 +1265,6 @@ class TestQuantumProgram(unittest.TestCase):
         bell.barrier()
         bell.measure(q[0], c[0])
         bell.measure(q[1], c[1])
-        qp.set_api(API_TOKEN, URL)
         bellobj = qp.compile(["bell"], backend='local_qasm_simulator',
                              shots=2048, seed=10)
         ghzobj = qp.compile(["ghz"], backend='local_qasm_simulator',
@@ -1133,8 +1272,8 @@ class TestQuantumProgram(unittest.TestCase):
                             seed=10)
         bellresult = qp.run(bellobj)
         ghzresult = qp.run(ghzobj)
-        print(bellresult.get_counts("bell"))
-        print(ghzresult.get_counts("ghz"))
+        # print(bellresult.get_counts("bell"))
+        # print(ghzresult.get_counts("ghz"))
         self.assertEqual(bellresult.get_counts("bell"),
                          {'00000': 1034, '00011': 1014})
         self.assertEqual(ghzresult.get_counts("ghz"),
@@ -1146,9 +1285,11 @@ class TestQuantumProgram(unittest.TestCase):
         Uses the mapper. Pass if results are correct.
         """
         backend = "ibmqx_qasm_simulator"
-        coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
-                        5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
-                        11: [12], 12: [13], 13: [14], 14: [15]}
+        coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11],
+                        4: [5, 12], 5: [6, 13], 6: [7, 14], 7: [15], 8: [9],
+                        9: [10], 10: [11], 11: [12], 12: [13], 13: [14],
+                        14: [15]}
+
         def swap(qc, q0, q1):
             """Swap gate."""
             qc.cx(q0, q1)

@@ -990,7 +990,8 @@ class QuantumProgram(object):
             output = self.__api.run_job(jobs, backend, shots, max_credits)
             if 'error' in output:
                 raise ResultError(output['error'])
-            qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+            qobj_result_unclean = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+            qobj_result = self._clean_up_result(qobj_result_unclean, qobj)
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
@@ -1004,6 +1005,16 @@ class QuantumProgram(object):
                 'Internal error in QuantumProgram.run(), job_result')
         results = Result(qobj_result, qobj)
         return results
+
+    def _clean_up_result(online_result_unclean, qobj):
+        """Function for making the output what the user requested"""
+        if qobj['config']['backend'] == 'ibmqx2':
+            online_result = online_result_unclean
+        elif qobj['config']['backend'] == 'ibmqx3':
+            online_result = online_result_unclean
+        else:
+            online_result = online_result_unclean
+        return online_results
 
     def _wait_for_job(self, jobid, wait=5, timeout=60, silent=True):
         """Wait until all online ran jobs are 'COMPLETED'.
