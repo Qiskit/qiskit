@@ -109,7 +109,7 @@ class UnitarySimulator(object):
 
     def __init__(self, job):
         """Initial the UnitarySimulator object."""
-        self.circuit = json.loads(job['compiled_circuit'].decode())
+        self.circuit = job['compiled_circuit']
         self._number_of_qubits = self.circuit['header']['number_of_qubits']
         self.result = {}
         self.result = {}
