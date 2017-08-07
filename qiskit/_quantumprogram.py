@@ -990,8 +990,9 @@ class QuantumProgram(object):
             output = self.__api.run_job(jobs, backend, shots, max_credits)
             if 'error' in output:
                 raise ResultError(output['error'])
-            qobj_result_unclean = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-            qobj_result = self._clean_up_result(qobj_result_unclean, qobj)
+            qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+            #qobj_result_unclean = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+            #qobj_result = self._clean_up_result(qobj_result_unclean, qobj)
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
