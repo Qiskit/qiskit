@@ -373,11 +373,11 @@ class QuantumProgram(object):
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
-        return list(self.__quantum_registers.keys())
+        return self.__quantum_registers.keys()
 
     def get_classical_register_names(self):
         """Return all the names of the classical Registers."""
-        return list(self.__classical_registers.keys())
+        return self.__classical_registers.keys()
 
     def get_circuit(self, name):
         """Return a Circuit Object by name
@@ -393,7 +393,7 @@ class QuantumProgram(object):
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
-        return list(self.__quantum_program.keys())
+        return self.__quantum_program.keys()
 
     def get_qasm(self, name):
         """Get qasm format of circuit by name.
