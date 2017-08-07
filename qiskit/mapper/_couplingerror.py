@@ -17,12 +17,10 @@
 
 """
 Exception for errors raised by the Coupling object.
-
-Author: Andrew Cross
 """
+from qiskit import QISKitError
 
-
-class CouplingError(Exception):
+class CouplingError(QISKitError):
     """Base class for errors raised by the coupling graph object."""
 
     def __init__(self, *msg):

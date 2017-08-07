@@ -17,8 +17,6 @@
 
 """
 Fredkin gate. Controlled-SWAP.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate

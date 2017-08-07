@@ -17,8 +17,6 @@
 
 """
 Pauli X (bit-flip) gate.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

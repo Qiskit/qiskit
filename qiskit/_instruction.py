@@ -17,11 +17,9 @@
 
 """
 Quantum computer instruction.
-
-Author: Andrew Cross
 """
 from ._register import Register
-from ._qiskitexception import QISKitException
+from ._qiskiterror import QISKitError
 
 
 class Instruction(object):
@@ -37,7 +35,7 @@ class Instruction(object):
         """
         for a in arg:
             if not isinstance(a[0], Register):
-                raise QISKitException("argument not (Register, int) tuple")
+                raise QISKitError("argument not (Register, int) tuple")
         self.name = name
         self.param = param
         self.arg = arg
@@ -47,14 +45,14 @@ class Instruction(object):
     def check_circuit(self):
         """Raise exception if self.circuit is None."""
         if self.circuit is None:
-            raise QISKitException("Instruction's circuit not assigned")
+            raise QISKitError("Instruction's circuit not assigned")
 
     def c_if(self, classical, val):
         """Add classical control on register clasical and value val."""
         self.check_circuit()
         self.circuit._check_creg(classical)
         if val < 0:
-            raise QISKitException("control value should be non-negative")
+            raise QISKitError("control value should be non-negative")
         self.control = (classical, val)
         return self
 
@@ -63,7 +61,7 @@ class Instruction(object):
         if self.control is not None:
             self.check_circuit()
             if not gate.circuit.has_register(self.control[0]):
-                raise QISKitException("control register %s not found"
+                raise QISKitError("control register %s not found"
                                       % self.control[0].name)
             gate.c_if(self.control[0], self.control[1])
 

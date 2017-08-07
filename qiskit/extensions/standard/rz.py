@@ -15,9 +15,8 @@
 # limitations under the License.
 # =============================================================================
 
-"""Rotation around the z-axis.
-
-Author: Jay Gambetta and Andrew Cross
+"""
+Rotation around the z-axis.
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

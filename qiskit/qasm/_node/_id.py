@@ -17,10 +17,9 @@
 
 """
 Node for an OPENQASM id.
-
-Author: Jim Challenger
 """
 from ._node import Node
+from ._nodeexception import NodeException
 
 
 class Id(Node):
@@ -45,6 +44,30 @@ class Id(Node):
         ind = indent * ' '
         print(ind, 'id', self.name)
 
-    def qasm(self):
+    def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         return self.name
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the correspond math mode latex string."""
+        if not nested_scope:
+            return "\textrm{" + self.name + "}"
+        else:
+            if self.name not in nested_scope[-1]:
+                raise NodeException("Expected local parameter name: ",
+                                    "name=%s, " % self.name,
+                                    "line=%s, " % self.line,
+                                    "file=%s" % self.file)
+            else:
+                return nested_scope[-1][self.name].latex(prec,
+                                                         nested_scope[0:-1])
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        if not nested_scope or self.name not in nested_scope[-1]:
+                raise NodeException("Expected local parameter name: ",
+                                    "name=%s, " % self.name,
+                                    "line=%s, " % self.line,
+                                    "file=%s" % self.file)
+        else:
+            return nested_scope[-1][self.name].real(nested_scope[0:-1])

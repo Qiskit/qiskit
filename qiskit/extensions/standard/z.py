@@ -17,8 +17,6 @@
 
 """
 Pauli Z (phase-flip) gate.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

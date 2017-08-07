@@ -17,10 +17,10 @@
 
 """
 Node for an OPENQASM external function.
-
-Author: Jim Challenger
 """
+import math
 from ._node import Node
+from ._nodeexception import NodeException
 
 
 class External(Node):
@@ -33,3 +33,33 @@ class External(Node):
     def __init__(self, children):
         """Create the external node."""
         Node.__init__(self, 'external', children, None)
+
+    def qasm(self, prec=15):
+        """Return the corresponding OPENQASM string."""
+        return self.children[0].qasm(prec) + "(" + \
+            self.children[1].qasm(prec) + ")"
+
+    def latex(self, prec=15, nested_scope=None):
+        """Return the corresponding math mode latex string."""
+        return "\\" + self.children[0].latex(prec, None) + "({" + \
+               self.children[1].latex(prec, nested_scope) + "})"
+
+    def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        op = self.children[0].name
+        expr = self.children[1]
+        dispatch = {
+            'sin': math.sin,
+            'cos': math.cos,
+            'tan': math.tan,
+            'exp': math.exp,
+            'ln': math.log,
+            'sqrt': math.sqrt
+        }
+        if op in dispatch:
+            arg = expr.real(nested_scope)
+            return dispatch[op](arg)
+        else:
+            raise NodeException("internal error: undefined external")
+
+        pass

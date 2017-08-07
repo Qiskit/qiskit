@@ -17,8 +17,6 @@
 
 """
 Hadamard gate.
-
-Author: Andrew Cross
 """
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister

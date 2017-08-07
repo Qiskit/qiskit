@@ -20,14 +20,11 @@ OPENQASM Lexer.
 
 This is a wrapper around the PLY lexer to support the "include" statement
 by creating a stack of lexers.
-
-Authors: Jim Challenger
-         Jesus Perez <jesusper@us.ibm.com>
 """
 
 import os
 import ply.lex as lex
-from ._qasmexception import QasmException
+from ._qasmerror import QasmError
 from . import _node as node
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
@@ -74,7 +71,8 @@ class QasmLexer(object):
         self.lexer.qasm_line = self.lineno
         self.stack.append(self.lexer)
         self.__mklexer__(filename)
-        self.data = open(filename).read()
+        with open(filename, 'r') as ifile:
+            self.data = ifile.read()
         self.lexer.input(self.data)
 
     # ---- Beginning of the PLY lexer ----
@@ -174,18 +172,18 @@ class QasmLexer(object):
         if isinstance(next.value, str):
             incfile = next.value.strip('"')
         else:
-            raise QasmException("Invalid include: must be a quoted string.")
+            raise QasmError("Invalid include: must be a quoted string.")
 
         if incfile in CORE_LIBS:
             incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
         next = self.lexer.token()
         if next is None or next.value != ';':
-            raise QasmException('Invalid syntax, missing ";" at line',
+            raise QasmError('Invalid syntax, missing ";" at line',
                                 str(lineno))
 
         if not os.path.exists(incfile):
-            raise QasmException('Include file', incfile,
+            raise QasmError('Include file', incfile,
                                 'cannot be found, line', str(next.lineno),
                                 ', file', self.filename)
         self.push(incfile)
