@@ -378,6 +378,7 @@ class TestQuantumProgram(unittest.TestCase):
         qrn = QP_program.get_quantum_register_names()
         crn = QP_program.get_classical_register_names()
         qcn = QP_program.get_circuit_names()
+        import pdb;pdb.set_trace()
         self.assertEqual(qrn, {'qr1', 'qr2'})
         self.assertEqual(crn, {'cr1', 'cr2'})
         self.assertEqual(qcn, {'qc1', 'qc2'})
