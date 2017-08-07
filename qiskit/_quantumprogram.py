@@ -22,7 +22,6 @@ import time
 import random
 import json
 from collections import Counter
-import json
 import os
 import string
 import re

@@ -98,25 +98,36 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[1])
         circuit.measure(qr[2], cr[2])
+        circuit2 = qp.create_circuit('test_if_case_2', [qr], [cr])
+        circuit2.x(qr[0])
+        circuit2.measure(qr[0], cr[0])
+        circuit2.measure(qr[1], cr[1])
+        circuit2.x(qr[2]).c_if(cr, 0x3)
+        circuit2.measure(qr[0], cr[0])
+        circuit2.measure(qr[1], cr[1])
+        circuit2.measure(qr[2], cr[2])
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit = json.loads(unroller.execute())
+        ucircuit = unroller.execute()
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=qp.get_qasm('test_if_case_2')).parse(),
+            unroll.JsonBackend(basis_gates))
+        ucircuit2 = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
+        job = {'compiled_circuit': ucircuit, 'config': config}
         result_if_true = QasmSimulator(job).run()
-        del ucircuit['operations'][1]  # remove x(qr[1]) operation
-        job = {'compiled_circuit': json.dumps(ucircuit), 'config': config}
+        job = {'compiled_circuit': ucircuit2, 'config': config}
         result_if_false = QasmSimulator(job).run()
 
         logging.info('result_if_true circuit:')
-        logging.info( circuit.qasm() )
+        logging.info(circuit.qasm())
         logging.info('result_if_true={0}'.format(result_if_true))
 
         del circuit.data[1]
         logging.info('result_if_false circuit:')
-        logging.info( circuit.qasm() )
+        logging.info(circuit.qasm())
         logging.info('result_if_false={0}'.format(result_if_false))
         self.assertTrue(result_if_true['data']['counts']['111'] == 100)
         self.assertTrue(result_if_false['data']['counts']['001'] == 100)
