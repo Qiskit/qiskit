@@ -36,7 +36,7 @@ def qft(circ, q, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
-            circ.cu1(math.pi/float(2**(j-k)), q[j], q[k])
+            circ.cu1(math.pi / float(2**(j - k)), q[j], q[k])
         circ.h(q[j])
 
 
@@ -195,7 +195,7 @@ def devectorize(vec, method='col'):
     """
     vec = np.array(vec)
     d = int(np.sqrt(vec.size))  # the dimension of the matrix
-    if len(vec) != d*d:
+    if len(vec) != d * d:
         raise Exception('Input is not a vectorized square matrix')
 
     if method == 'col':
@@ -376,7 +376,7 @@ def concurrence(state):
     A = rho.dot(YY).dot(rho.conj()).dot(YY)
     w = la.eigh(A, eigvals_only=True)
     w = np.sqrt(np.maximum(w, 0))
-    return max(0.0, w[-1]-np.sum(w[0:-1]))
+    return max(0.0, w[-1] - np.sum(w[0:-1]))
 
 
 ###############################################################
