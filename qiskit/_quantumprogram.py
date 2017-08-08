@@ -848,7 +848,7 @@ class QuantumProgram(object):
             job["config"]["layout"] = list_layout
             job["config"]["basis_gates"] = basis_gates
             if seed is None:
-                job["config"]["seed"] = random.getrandbits(128) # int.from_bytes(os.urandom(4), byteorder="big")
+                job["config"]["seed"] = None
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
@@ -984,15 +984,16 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             max_credits = qobj["config"]["max_credits"]
             shots = qobj["config"]["shots"]
+            seed = qobj["circuits"][0]["config"]["seed"]
             jobs = []
             for job in qobj["circuits"]:
                 jobs.append({'qasm': job["compiled_circuit_qasm"]})
-            output = self.__api.run_job(jobs, backend, shots, max_credits)
+            output = self.__api.run_job(jobs, backend, shots=shots,
+                                        max_credits=max_credits, seed=seed)
             if 'error' in output:
                 raise ResultError(output['error'])
-            qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-            #qobj_result_unclean = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
-            #qobj_result = self._clean_up_result(qobj_result_unclean, qobj)
+            qobj_result = self._wait_for_job(output['id'], wait=wait,
+                                             timeout=timeout, silent=silent)
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
@@ -1006,16 +1007,6 @@ class QuantumProgram(object):
                 'Internal error in QuantumProgram.run(), job_result')
         results = Result(qobj_result, qobj)
         return results
-
-    def _clean_up_result(online_result_unclean, qobj):
-        """Function for making the output what the user requested"""
-        if qobj['config']['backend'] == 'ibmqx2':
-            online_result = online_result_unclean
-        elif qobj['config']['backend'] == 'ibmqx3':
-            online_result = online_result_unclean
-        else:
-            online_result = online_result_unclean
-        return online_results
 
     def _wait_for_job(self, jobid, wait=5, timeout=60, silent=True):
         """Wait until all online ran jobs are 'COMPLETED'.

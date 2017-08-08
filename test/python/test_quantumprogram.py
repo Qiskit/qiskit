@@ -1034,7 +1034,7 @@ class TestQuantumProgram(unittest.TestCase):
                                     seed=1287126141)
         counts1 = result.get_counts('qc1')
         counts2 = result.get_counts('qc2')
-        self.assertEqual(counts1,  {'10': 257, '11': 247, '00': 252, '01': 268})
+        self.assertEqual(counts1,  {'10': 277, '11': 238, '01': 258, '00': 251})
         self.assertEqual(counts2, {'11': 515, '00': 509})
 
     def test_execute_one_circuit_real_online(self):

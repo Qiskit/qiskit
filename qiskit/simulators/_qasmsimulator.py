@@ -184,7 +184,11 @@ class QasmSimulator(object):
             self._cl_reg_nbits.append(cl_reg[1])
             self._cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        random.seed(job['config']['seed'])
+        if job['config']['seed'] is None:
+            random.seed(random.getrandbits(32))
+        else:
+            random.seed(job['config']['seed'])
+
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):
