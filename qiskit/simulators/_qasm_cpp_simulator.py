@@ -3,8 +3,6 @@
 Authors: Erick Winston <ewinston@us.ibm.com>
          Christopher J. Wood <cjwood@us.ibm.com>
 
-This links to the C++ QASM simulator
-https://github.ibm.com/IBMQuantum/qiskit-simulator
 """
 
 import json
