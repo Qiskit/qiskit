@@ -25,6 +25,7 @@ from collections import Counter
 import os
 import string
 import re
+import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
@@ -1180,6 +1181,39 @@ class Result(object):
             the status of the results.
         """
         return self.__result['status']
+
+    def __iadd__(self, other):
+        """Append a Result object to current Result object.
+
+        Arg:
+            other (Result): a Result object to append.
+        Returns:
+            The current object with appended results.
+        """
+        if self.__qobj['config'] == other.__qobj['config']:
+            if isinstance(self.__qobj['id'], str):
+                self.__qobj['id'] = [self.__qobj['id']]
+            self.__qobj['id'].append(other.__qobj['id'])
+            self.__qobj['circuits'] += other.__qobj['circuits']
+            self.__result['result'] += other.__result['result']
+            return self
+        else:
+            raise QISKitError('Result objects have different configs and cannot be combined.')
+
+    def __add__(self, other):
+        """Combine Result objects.
+
+        Note that the qobj id of the returned result will be the same as the
+        first result.
+
+        Arg:
+            other (Result): a Result object to combine.
+        Returns:
+            A new Result object consisting of combined objects.
+        """
+        ret = copy.deepcopy(self)
+        ret += other
+        return ret
 
     def get_error(self):
         if self.__result['status'] == 'ERROR':

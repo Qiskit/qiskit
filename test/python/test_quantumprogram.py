@@ -802,12 +802,8 @@ class TestQuantumProgram(unittest.TestCase):
         qc2.cx(qr[0], qr[1])
         qc2.cx(qr[0], qr[2])
         qc3.h(qr)
-        qc2.measure(qr[0], cr[0])
-        qc3.measure(qr[0], cr[0])
-        qc2.measure(qr[1], cr[1])
-        qc3.measure(qr[1], cr[1])
-        qc2.measure(qr[2], cr[2])
-        qc3.measure(qr[2], cr[2])
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
@@ -820,6 +816,29 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
                                     '100': 117, '000': 129, '101': 126,
                                     '010': 145, '011': 125})
+
+    def test_combine_results(self):
+        """Test run.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("qr", 1)
+        cr = QP_program.create_classical_register("cr", 1)
+        qc1 = QP_program.create_circuit("qc1", [qr], [cr])
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc1.measure(qr[0], cr[0])
+        qc2.x(qr[0])
+        qc2.measure(qr[0], cr[0])
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        res1 = QP_program.execute(['qc1'], backend=backend, shots=shots)
+        res2 = QP_program.execute(['qc2'], backend=backend, shots=shots)
+        counts1 = res1.get_counts('qc1')
+        counts2 = res2.get_counts('qc2')
+        res1 += res2 # combine results
+        counts12 = [res1.get_counts('qc1'), res1.get_counts('qc2')]
+        self.assertEqual(counts12, [counts1, counts2])
 
     def test_local_qasm_simulator(self):
         """Test execute.
