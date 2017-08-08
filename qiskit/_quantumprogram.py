@@ -1192,6 +1192,9 @@ class Result(object):
             The current object with appended results.
         """
         if self.__qobj['config'] == other.__qobj['config']:
+            if isinstance(self.__qobj['id'], str):
+                self.__qobj['id'] = [self.__qobj['id']]
+            self.__qobj['id'].append(other.__qobj['id'])
             self.__qobj['circuits'] += other.__qobj['circuits']
             self.__result['result'] += other.__result['result']
             return self
