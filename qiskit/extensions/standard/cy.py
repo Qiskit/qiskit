@@ -22,7 +22,8 @@ from qiskit import QuantumCircuit
 from qiskit import Gate
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
-
+from qiskit._quantumregister import QuantumRegister
+from qiskit._instructionset import InstructionSet
 
 class CyGate(Gate):
     """controlled-Y gate."""
@@ -49,10 +50,18 @@ class CyGate(Gate):
 
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(CyGate(ctl, tgt, self))
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+        # apply cx to qubits between two registers
+        instructions = InstructionSet()
+        for i in range(ctl.size):
+            instructions.add(self.cy((ctl, i), (tgt, i)))
+        return instructions
+    else:
+        self._check_qubit(ctl)
+        self._check_qubit(tgt)
+        self._check_dups([ctl, tgt])
+        return self._attach(CyGate(ctl, tgt, self))
 
 
 QuantumCircuit.cy = cy
