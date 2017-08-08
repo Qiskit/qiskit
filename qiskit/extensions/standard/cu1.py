@@ -22,6 +22,8 @@ from qiskit import QuantumCircuit
 from qiskit import Gate
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
+from qiskit._quantumregister import QuantumRegister
+from qiskit._instructionset import InstructionSet
 
 
 class Cu1Gate(Gate):
@@ -51,10 +53,18 @@ class Cu1Gate(Gate):
 
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(Cu1Gate(theta, ctl, tgt, self))
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+        # apply cx to qubits between two registers
+        instructions = InstructionSet()
+        for i in range(ctl.size):
+            instructions.add(self.cu1(theta, (ctl, i), (tgt, i)))
+        return instructions
+    else:
+        self._check_qubit(ctl)
+        self._check_qubit(tgt)
+        self._check_dups([ctl, tgt])
+        return self._attach(Cu1Gate(theta, ctl, tgt, self))
 
 
 QuantumCircuit.cu1 = cu1
