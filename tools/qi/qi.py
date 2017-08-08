@@ -23,8 +23,7 @@ over time.
 
 import math
 import numpy as np
-from scipy.linalg import sqrtm
-from scipy import linalg as la
+import scipy.linalg as la
 from tools.qi.pauli import pauli_group
 
 ###############################################################
@@ -74,7 +73,8 @@ def partial_trace(state, sys, dims=None, reverse=True):
         n = int(np.log2(len(rho)))
         dims = [2 for i in range(n)]
         if len(rho) != 2 ** n:
-            print("ERRROR!")
+            raise Exception("Input is not a multi-qubit state, \
+                specifify input state dims")
     else:
         dims = list(dims)
 
@@ -160,6 +160,7 @@ def vectorize(rho, method='col'):
         ndarray: the resulting vector.
 
     """
+    rho = np.array(rho)
     if method == 'col':
         return rho.flatten(order='F')
     elif method == 'row':
@@ -167,12 +168,12 @@ def vectorize(rho, method='col'):
     elif method in ['pauli', 'pauli_weights']:
         num = int(np.log2(len(rho)))  # number of qubits
         if len(rho) != 2**num:
-            print('error input state must be n-qubit state')
+            raise Exception('Input state must be n-qubit state')
         if method is 'pauli_weights':
             pgroup = pauli_group(num, case=0)
         else:
             pgroup = pauli_group(num, case=1)
-        vals = [np.real(np.trace(np.dot(p.to_matrix(), rho))) for p in pgroup]
+        vals = [np.trace(np.dot(p.to_matrix(), rho)) for p in pgroup]
         return np.array(vals)
 
 
@@ -192,9 +193,10 @@ def devectorize(vec, method='col'):
         ndarray: the resulting matrix.
 
     """
+    vec = np.array(vec)
     d = int(np.sqrt(vec.size))  # the dimension of the matrix
     if len(vec) != d*d:
-        print('error input is not a vectorized square matrix')
+        raise Exception('Input is not a vectorized square matrix')
 
     if method == 'col':
         return vec.reshape(d, d, order='F')
@@ -203,7 +205,7 @@ def devectorize(vec, method='col'):
     elif method in ['pauli', 'pauli_weights']:
         num = int(np.log2(d))  # number of qubits
         if d != 2 ** num:
-            print('error input state must be n-qubit state')
+            raise Exception('Input state must be n-qubit state')
         if method is 'pauli_weights':
             pgroup = pauli_group(num, case=0)
         else:
@@ -290,6 +292,23 @@ def outer(v1, v2=None):
 # Measures.
 ###############################################################
 
+def funm_svd(a, func):
+    """Apply real scalar function to singular values of a matrix.
+
+    Args:
+        a : (N, N) array_like
+            Matrix at which to evaluate the function.
+        func : callable
+            Callable object that evaluates a scalar function f.
+
+    Returns:
+        funm : (N, N) ndarray
+            Value of the matrix function specified by func evaluated at `A`.
+    """
+    U, s, Vh = la.svd(a, lapack_driver='gesvd')
+    S = np.diag(func(s))
+    return U.dot(S).dot(Vh)
+
 
 def state_fidelity(state1, state2):
     """Return the state fidelity between two quantum states.
@@ -310,19 +329,19 @@ def state_fidelity(state1, state2):
 
     # fidelity of two state vectors
     if s1.ndim == 1 and s2.ndim == 1:
-        return np.abs(np.dot(s2.conj(), s1))
+        return np.abs(s2.conj().dot(s1))
     # fidelity of vector and density matrix
     elif s1.ndim == 1:
         # psi = s1, rho = s2
-        return np.sqrt(np.abs(np.dot(s1.conj(), np.dot(s2, s1))))
+        return np.sqrt(np.abs(s1.conj().dot(s2).dot(s1)))
     elif s2.ndim == 1:
         # psi = s2, rho = s1
-        return np.sqrt(np.abs(np.dot(s2.conj(), np.dot(s1, s2))))
+        return np.sqrt(np.abs(s2.conj().dot(s1).dot(s2)))
     # fidelity of two density matrices
     else:
-        (s1sq, err1) = sqrtm(s1, disp=False)
-        (s2sq, err2) = sqrtm(s2, disp=False)
-        return np.linalg.norm(np.dot(s1sq, s2sq), ord='nuc')
+        s1sq = funm_svd(s1, np.sqrt)
+        s2sq = funm_svd(s2, np.sqrt)
+        return np.linalg.norm(s1sq.dot(s2sq), ord='nuc')
 
 
 def purity(state):
@@ -333,11 +352,10 @@ def purity(state):
     Returns:
         purity.
     """
-    if state.ndim == 1:
-        rho = outer(state)
-    else:
-        rho = state
-    return np.real(np.trace(np.dot(rho, rho)))
+    rho = np.array(state)
+    if rho.ndim == 1:
+        rho = outer(rho)
+    return np.real(np.trace(rho.dot(rho)))
 
 
 def concurrence(state):
@@ -348,23 +366,17 @@ def concurrence(state):
     Returns:
         concurrence.
     """
-    if state.ndim == 1:
+    rho = np.array(state)
+    if rho.ndim == 1:
         rho = outer(state)
-    else:
-        rho = state
     if len(state) != 4:
-        print("Concurence is not defined for more than two qubits")
-        return 0
-    sigmay = np.array([[0, -1j], [1j, 0]])
-    YY = np.kron(sigmay, sigmay)
-    A = np.dot(rho, np.dot(YY, np.dot(np.conj(rho), YY)))
-    we, values = la.eigh(A)
+        raise Exception("Concurence is not defined for more than two qubits")
 
-    for i in range(len(we)):
-        if we[i] < 0:
-            we[i] = 0
-        we[i] = np.sqrt(we[i])
-    return 2*np.max(we)-np.sum(we)
+    YY = np.fliplr(np.diag([-1, 1, 1, -1]))
+    A = rho.dot(YY).dot(rho.conj()).dot(YY)
+    w = la.eigh(A, eigvals_only=True)
+    w = np.sqrt(np.maximum(w, 0))
+    return max(0.0, w[-1]-np.sum(w[0:-1]))
 
 
 ###############################################################
