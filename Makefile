@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 .PHONY: env env-dev lint test run doc
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
-	conda create -y -n QISKitenv python=3
-	bash -c "source activate QISKitenv;pip install -U -r requires.txt"
+	if test $(findstring QISKitenv, $(shell conda info --envs)); then \
+		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+	else \
+		conda create -y -n QISKitenv python=3; \
+		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+	fi;
 
 run:
 	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
@@ -30,7 +33,6 @@ lint:
 # TODO: Uncomment when the lint one passes.
 # test: lint
 test:
-	pip install -U -r requires.txt
 	python3 -m unittest discover -v
 
 profile:
