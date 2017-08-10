@@ -1,5 +1,6 @@
 import random
 import string
+import numpy
 
 try:
     import qiskit
@@ -26,8 +27,8 @@ class RandomQasmGenerator():
         self.minDepth = minDepth
         self.minQubits = minQubits
         self.qp = QuantumProgram()
-        self.qr = self.qp.create_quantum_registers('qr', maxQubits)
-        self.cr = self.qp.create_classical_registers('cr', maxQubits)
+        self.qr = self.qp.create_quantum_register('qr', maxQubits)
+        self.cr = self.qp.create_classical_register('cr', maxQubits)
         self.circuitNameList = []
         self.nQubitList = []
         self.depthList = []
@@ -46,17 +47,17 @@ class RandomQasmGenerator():
           doMeasure (boolean): whether to add measurements
         """
         self.circuitNameList = []
-        self.nQubitList = random.choices(
-            range(self.minQubits, self.maxQubits+1), k=nCircuits)
-        self.depthList = random.choices(
-            range(self.minDepth, self.maxDepth+1), k=nCircuits)
+        self.nQubitList = numpy.random.choice(
+            range(self.minQubits, self.maxQubits+1), size=nCircuits)
+        self.depthList = numpy.random.choice(
+            range(self.minDepth, self.maxDepth+1), size=nCircuits)
         for i in range(nCircuits):
-            circuitName = ''.join(random.choices(string.ascii_uppercase
-                                                 + string.digits, k=10))
+            circuitName = ''.join(numpy.random.choice(
+                list(string.ascii_letters + string.digits), size=10))
             self.circuitNameList.append(circuitName)
             nQubits = self.nQubitList[i]
             depth = self.depthList[i]
-            circuit = self.qp.create_circuit(circuitName, ['qr'], ['cr'])
+            circuit = self.qp.create_circuit(circuitName, [self.qr], [self.cr])
             for j in range(depth):
                 if nQubits == 1:
                     opInd = 0

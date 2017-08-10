@@ -19,6 +19,7 @@
 Quantum circuit object.
 """
 import itertools
+from collections import OrderedDict
 from ._qiskiterror import QISKitError
 from ._register import Register
 from ._quantumregister import QuantumRegister
@@ -39,7 +40,7 @@ class QuantumCircuit(object):
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
-        self.regs = {}
+        self.regs = OrderedDict()
         self.add(*regs)
 
     def has_register(self, register):

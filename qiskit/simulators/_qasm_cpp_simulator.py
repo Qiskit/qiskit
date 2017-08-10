@@ -32,7 +32,7 @@ class QasmCppSimulator:
             self.config = job['config']
         else:
             self.config = {}
-        self.circuit = {'qasm': json.loads(job['compiled_circuit']),
+        self.circuit = {'qasm': json.loads(job['compiled_circuit'].decode()),
                         'config': self.config}
         self.result = {}
         self.result['data'] = {}
@@ -98,7 +98,7 @@ class QasmCppSimulator:
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout
-            cresult = json.loads(cout)
+            cresult = json.loads(cout.decode())
             # convert possible complex valued result fields
             for k in ['state', 'saved_states', 'inner_products']:
                 parse_complex(cresult['data'], k)
