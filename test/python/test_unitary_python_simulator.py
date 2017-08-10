@@ -101,32 +101,5 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 
-def generateTestSuite():
-    """
-    Generate module test suite.
-    """
-    testSuite = unittest.TestSuite()
-    testSuite.addTest(LocalUnitarySimulatorTest('test_unitary_simulator'))
-    return testSuite
-
-def generateProfileSuite():
-    """
-    Generate module profile suite.
-    """
-    profSuite = unittest.TestSuite()
-    profSuite.addTest(LocalUnitarySimulatorTest('profile_unitary_simulator'))
-    return profSuite
-
-def main():
-    """
-    Optional command line entry point for testing.
-    """
-    moduleName = os.path.splitext(__file__)[0]
-    testSuite = generateTestSuite()
-    profSuite = generateProfileSuite()
-    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
-    runner.run(testSuite)
-    runner.run(profSuite)
-
 if __name__ == '__main__':
-    main()
+    unittest.main()
