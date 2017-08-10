@@ -32,11 +32,16 @@ class TestQuantumOptimization(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestQuantumOptimization:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
-
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
 
     def test_trial_functions(self):
         entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
@@ -47,19 +52,19 @@ class TestQuantumOptimization(unittest.TestCase):
 
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
 
-        logging.info(trial_circuit.qasm())
+        self.log.info(trial_circuit.qasm())
 
-        logging.info("With No measurement:\n")
+        self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
 
-        logging.info(trial_circuit.qasm())
+        self.log.info(trial_circuit.qasm())
 
-        logging.info("With Y measurement:\n")
+        self.log.info("With Y measurement:\n")
         meas_sting = ['Y' for x in range(n)]
 
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
 
-        logging.info(trial_circuit.qasm())
+        self.log.info(trial_circuit.qasm())
 
 
 class TestHamiltonian(unittest.TestCase):
@@ -67,15 +72,22 @@ class TestHamiltonian(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestHamiltonian:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
+        cls.log.info('this is a test')
 
     def test_hamiltonian(self):
         # printing an example from a H2 file
         hfile = os.path.dirname(__file__) + "/H2Equilibrium.txt"
-        logging.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
+        self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
 
         # printing an example from a graph input
         n = 3
@@ -93,28 +105,28 @@ class TestHamiltonian(unittest.TestCase):
 
         pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))), (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
         a = make_Hamiltonian(pauli_list)
-        logging.info(a)
+        self.log.info(a)
 
         w, v = la.eigh(a, eigvals=(0, 0))
-        logging.info(w)
-        logging.info(v)
+        self.log.info(w)
+        self.log.info(v)
 
         data = {'000': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'001': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'010': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'011': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'100': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'101': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'110': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
         data = {'111': 10}
-        logging.info(Energy_Estimate(data, pauli_list))
+        self.log.info(Energy_Estimate(data, pauli_list))
 
 if __name__ == '__main__':
     unittest.main()

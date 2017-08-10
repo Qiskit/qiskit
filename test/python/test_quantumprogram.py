@@ -22,6 +22,7 @@ import sys
 import os
 import unittest
 import numpy as np
+import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
@@ -73,6 +74,20 @@ QPS_SPECS = {
 class TestQuantumProgram(unittest.TestCase):
     """QISKIT QuatumProgram Object Tests."""
 
+    @classmethod
+    def setUpClass(cls):
+        cls.moduleName = os.path.splitext(__file__)[0]
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
+        cls.log.info('this is a test')
     ###############################################################
     # Tests to initiate an build a quantum program
     ###############################################################
@@ -298,7 +313,7 @@ class TestQuantumProgram(unittest.TestCase):
                                          verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
-        # print(to_check)
+        self.log.info(to_check)
         self.assertEqual(len(to_check), 554)
 
     def test_fail_load_qasm_file(self):
@@ -337,7 +352,7 @@ class TestQuantumProgram(unittest.TestCase):
         name = QP_program.load_qasm_text(QASM_string, verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
-        # print(to_check)
+        self.log.info(to_check)
         self.assertEqual(len(to_check), 554)
 
     def test_get_register_and_circuit(self):
@@ -575,7 +590,7 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(API_TOKEN, URL)
         online_backends = QP_program.online_backends()
-        # print(online_backends)
+        self.log.info(online_backends)
         self.assertTrue(online_backends)
 
     def test_online_devices(self):
@@ -587,7 +602,7 @@ class TestQuantumProgram(unittest.TestCase):
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(API_TOKEN, URL)
         online_devices = qp.online_devices()
-        # print(online_devices)
+        self.log.info(online_devices)
         self.assertTrue(isinstance(online_devices, list))
 
     def test_online_simulators(self):
@@ -599,7 +614,7 @@ class TestQuantumProgram(unittest.TestCase):
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(API_TOKEN, URL)
         online_simulators = qp.online_simulators()
-        # print(online_simulators)
+        self.log.info(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
 
     def test_backend_status(self):
@@ -649,7 +664,7 @@ class TestQuantumProgram(unittest.TestCase):
         if backend_list:
             backend = backend_list[0]
         result = QP_program.get_backend_calibration(backend)
-        # print(result)
+        self.log.info(result)
         self.assertEqual(len(result), 4)
 
     def test_get_backend_parameters(self):
@@ -663,7 +678,7 @@ class TestQuantumProgram(unittest.TestCase):
         if backend_list:
             backend = backend_list[0]
         result = QP_program.get_backend_parameters(backend)
-        # print(result)
+        self.log.info(result)
         self.assertEqual(len(result), 4)
 
     ###############################################################
@@ -687,7 +702,7 @@ class TestQuantumProgram(unittest.TestCase):
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobjid='cooljob')
-        # print(out)
+        self.log.info(out)
         self.assertEqual(len(out), 3)
 
     def test_get_compiled_configuration(self):
@@ -708,7 +723,7 @@ class TestQuantumProgram(unittest.TestCase):
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_configuration(qobj, 'circuitName')
-        # print(result)
+        self.log.info(result)
         self.assertEqual(len(result), 4)
 
     def test_get_compiled_qasm(self):
@@ -729,7 +744,7 @@ class TestQuantumProgram(unittest.TestCase):
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_qasm(qobj, 'circuitName',)
-        # print(result)
+        self.log.info(result)
         self.assertEqual(len(result), 184)
 
     def test_get_execution_list(self):
@@ -750,7 +765,7 @@ class TestQuantumProgram(unittest.TestCase):
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map, qobjid="cooljob")
         result = QP_program.get_execution_list(qobj)
-        # print(result)
+        self.log.info(result)
         self.assertEqual(result, ['circuitName'])
 
     def test_compile_coupling_map(self):
@@ -867,7 +882,7 @@ class TestQuantumProgram(unittest.TestCase):
                                  seed=88)
         results2 = out.get_counts('qc2')
         results3 = out.get_counts('qc3')
-        # print(QP_program.get_data('qc3'))
+        self.log.info(results3)
         self.assertEqual(results2, {'000': 518, '111': 506})
         self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
                                     '100': 117, '000': 129, '101': 126,
@@ -1016,7 +1031,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(API_TOKEN, URL)
         backend = QP_program.online_simulators()[0]
-        # print(backend)
+        self.log.info(backend)
         result = QP_program.execute(['circuitName'], backend=backend,
                                     shots=shots, max_credits=3, silent=True)
         self.assertIsInstance(result, Result)
@@ -1152,8 +1167,8 @@ class TestQuantumProgram(unittest.TestCase):
                             seed=10)
         bellresult = qp.run(bellobj)
         ghzresult = qp.run(ghzobj)
-        print(bellresult.get_counts("bell"))
-        print(ghzresult.get_counts("ghz"))
+        self.log.info(bellresult.get_counts("bell"))
+        self.log.info(ghzresult.get_counts("ghz"))
         self.assertEqual(bellresult.get_counts("bell"),
                          {'00000': 1034, '00011': 1014})
         self.assertEqual(ghzresult.get_counts("ghz"),
