@@ -262,9 +262,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 randomCircuits.add_circuits(nCircuits, doMeasure=doMeasure)
                 qp = randomCircuits.getProgram()
                 cnames = qp.get_circuit_names()
-                qp.compile(cnames, backend=backend, shots=shots, seed=seed)
+                qobj = qp.compile(cnames, backend=backend, shots=shots,
+                                  seed=seed)
                 start = time.perf_counter()
-                qp.run()
+                results = qp.run(qobj)
                 stop = time.perf_counter()
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
@@ -274,7 +275,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                     for name in cnames:
                         logging.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
-                            qp.get_result(name)))
+                            results.get_data(name)))
                 j += 1
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             if backend is 'local_unitary_simulator':
@@ -337,9 +338,9 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 randomCircuits.add_circuits(nCircuits, doMeasure=doMeasure)
                 qp = randomCircuits.getProgram()
                 cnames = qp.get_circuit_names()
-                qp.compile(cnames, backend=backend, shots=shots, seed=seed)
+                qobj = qp.compile(cnames, backend=backend, shots=shots, seed=seed)
                 start = time.perf_counter()
-                qp.run()
+                results = qp.run(qobj)
                 stop = time.perf_counter()
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
@@ -349,7 +350,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                     for name in cnames:
                         logging.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
-                            qp.get_result(name)))
+                            results.get_data(name)))
                 j += 1
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             if backend is 'local_unitary_simulator':

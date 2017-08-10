@@ -83,17 +83,5 @@ class LocalSimulatorTest(unittest.TestCase):
         for backend_name in backend_list:
             backend = _localsimulator.LocalSimulator(backend_name, self.job)
 
-# def load_tests(loader, standard_tests, pattern):
-#     """
-#     test suite for unittest discovery
-#     """
-#     profSuite = unittest.TestSuite()
-#     profSuite.addTest(LocalSimulatorTest('test_local_configuration_present'))
-#     profSuite.addTest(LocalSimulatorTest('test_local_configurations'))
-#     profSuite.addTest(LocalSimulatorTest('test_simulator_classes'))
-#     profSuite.addTest(LocalSimulatorTest('test_local_backends'))
-#     profSuite.addTest(LocalSimulatorTest('test_instantiation'))
-#     return profSuite
-
 if __name__ == '__main__':
     unittest.main()
