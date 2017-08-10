@@ -225,11 +225,11 @@ In future releases, anyone who contributes code to this project can include thei
 Other QISKit projects
 ---------------------
 
-- `OpenQasm <https://github.com/QISKit/qiskit-openqasm>`__  Examples and tools for the OpenQASM intermediate representation.
-- `Python API <https://github.com/QISKit/qiskit-api-py>`__  API Client to use IBM Q experience in Python.
-- `Tutorial <https://github.com/QISKit/qiskit-tutorial>`__  Jupyter notebooks for using QISKit. 
-- `QX Information <https://github.com/QISKit/qiskit-qx-info>`__  Information about the different IBM Q experience backends.
-- `QX User Guide <https://github.com/QISKit/qiskit-qx-user-guides>`__  The users guides for the IBM Q experience.
+- `ibmqx backend information <https://github.com/QISKit/ibmqx-backend-information>`__ Information about the different IBM Q experience backends.
+- `ibmqx user guide <https://github.com/QISKit/ibmqx-user-guides>`__ The users guides for the IBM Q experience.
+- `OpenQasm <https://github.com/QISKit/openqasm>`__ Examples and tools for the OpenQASM intermediate representation.
+- `Python API <https://github.com/QISKit/qiskit-api-py>`__ API Client to use IBM Q experience in Python.
+- `Tutorials <https://github.com/QISKit/qiskit-tutorial>`__ Jupyter notebooks for using QISKit.
 
 
 License

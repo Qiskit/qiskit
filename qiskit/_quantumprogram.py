@@ -22,10 +22,10 @@ import time
 import random
 import json
 from collections import Counter
-import json
 import os
 import string
 import re
+import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
@@ -374,11 +374,11 @@ class QuantumProgram(object):
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
-        return list(self.__quantum_registers.keys())
+        return self.__quantum_registers.keys()
 
     def get_classical_register_names(self):
         """Return all the names of the classical Registers."""
-        return list(self.__classical_registers.keys())
+        return self.__classical_registers.keys()
 
     def get_circuit(self, name):
         """Return a Circuit Object by name
@@ -394,7 +394,7 @@ class QuantumProgram(object):
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
-        return list(self.__quantum_program.keys())
+        return self.__quantum_program.keys()
 
     def get_qasm(self, name):
         """Get qasm format of circuit by name.
@@ -720,7 +720,7 @@ class QuantumProgram(object):
             basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
             coupling_map (dict): A directed graph of coupling::
-                
+
                 {
                  control(int):
                      [
@@ -902,7 +902,7 @@ class QuantumProgram(object):
         except KeyError:
             raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
-    def get_complied_qasm(self, qobj, name):
+    def get_compiled_qasm(self, qobj, name):
         """Print the compiled cricuit in qasm format.
 
         Args:
@@ -1181,6 +1181,39 @@ class Result(object):
             the status of the results.
         """
         return self.__result['status']
+
+    def __iadd__(self, other):
+        """Append a Result object to current Result object.
+
+        Arg:
+            other (Result): a Result object to append.
+        Returns:
+            The current object with appended results.
+        """
+        if self.__qobj['config'] == other.__qobj['config']:
+            if isinstance(self.__qobj['id'], str):
+                self.__qobj['id'] = [self.__qobj['id']]
+            self.__qobj['id'].append(other.__qobj['id'])
+            self.__qobj['circuits'] += other.__qobj['circuits']
+            self.__result['result'] += other.__result['result']
+            return self
+        else:
+            raise QISKitError('Result objects have different configs and cannot be combined.')
+
+    def __add__(self, other):
+        """Combine Result objects.
+
+        Note that the qobj id of the returned result will be the same as the
+        first result.
+
+        Arg:
+            other (Result): a Result object to combine.
+        Returns:
+            A new Result object consisting of combined objects.
+        """
+        ret = copy.deepcopy(self)
+        ret += other
+        return ret
 
     def get_error(self):
         if self.__result['status'] == 'ERROR':

@@ -19,6 +19,7 @@
 Quantum circuit object.
 """
 import itertools
+from collections import OrderedDict
 from ._qiskiterror import QISKitError
 from ._register import Register
 from ._quantumregister import QuantumRegister
@@ -39,7 +40,7 @@ class QuantumCircuit(object):
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
-        self.regs = {}
+        self.regs = OrderedDict()
         self.add(*regs)
 
     def has_register(self, register):
@@ -132,7 +133,7 @@ class QuantumCircuit(object):
                 self.regs[register.name] = register
             else:
                 raise QISKitError("register name \"%s\" already exists"
-                                      % register.name)
+                                  % register.name)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
@@ -174,10 +175,17 @@ class QuantumCircuit(object):
 
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples)."""
-        self._check_qubit(qubit)
-        self._check_creg(cbit[0])
-        cbit[0].check_range(cbit[1])
-        return self._attach(Measure(qubit, cbit, self))
+        if isinstance(qubit, QuantumRegister) and \
+           isinstance(cbit, ClassicalRegister) and len(qubit) == len(cbit):
+            instructions = InstructionSet()
+            for i in range(qubit.size):
+                instructions.add(self.measure((qubit, i), (cbit, i)))
+            return instructions
+        else:
+            self._check_qubit(qubit)
+            self._check_creg(cbit[0])
+            cbit[0].check_range(cbit[1])
+            return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""

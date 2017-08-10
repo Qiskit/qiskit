@@ -52,7 +52,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
 	# if we want to manipulate the circuit, we have to convert it to a dict
-        circuit = json.loads(circuit)
+        circuit = json.loads(circuit.decode())
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']

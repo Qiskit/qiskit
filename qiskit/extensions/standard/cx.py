@@ -22,6 +22,8 @@ from qiskit import QuantumCircuit
 from qiskit import Gate
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
+from qiskit._quantumregister import QuantumRegister
+from qiskit._instructionset import InstructionSet
 
 
 class CnotGate(Gate):
@@ -49,10 +51,18 @@ class CnotGate(Gate):
 
 def cx(self, ctl, tgt):
     """Apply CNOT from ctl to tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(CnotGate(ctl, tgt, self))
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+        # apply cx to qubits between two registers
+        instructions = InstructionSet()
+        for i in range(ctl.size):
+            instructions.add(self.cx((ctl, i), (tgt, i)))
+        return instructions
+    else:
+        self._check_qubit(ctl)
+        self._check_qubit(tgt)
+        self._check_dups([ctl, tgt])
+        return self._attach(CnotGate(ctl, tgt, self))
 
 
 QuantumCircuit.cx = cx
