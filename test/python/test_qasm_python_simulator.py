@@ -44,7 +44,6 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
 
     @classmethod
     def tearDownClass(cls):

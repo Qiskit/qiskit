@@ -43,7 +43,6 @@ class TestQI(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
 
     def test_partial_trace(self):
         # reference
@@ -162,7 +161,6 @@ class TestPauli(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
 
     def test_pauli(self):
 

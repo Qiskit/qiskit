@@ -87,7 +87,6 @@ class TestQuantumProgram(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
     ###############################################################
     # Tests to initiate an build a quantum program
     ###############################################################

@@ -82,7 +82,6 @@ class TestHamiltonian(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
 
     def test_hamiltonian(self):
         # printing an example from a H2 file

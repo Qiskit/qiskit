@@ -43,7 +43,6 @@ class TestJsonOutput(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        cls.log.info('this is a test')
 
     def setUp(self):
         self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
