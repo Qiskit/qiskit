@@ -21,10 +21,17 @@ class LocalSimulatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'LocalSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
+        cls.log.info('this is a test')
 
     @classmethod
     def tearDownClass(cls):
@@ -67,12 +74,12 @@ class LocalSimulatorTest(unittest.TestCase):
     def test_simulator_classes(self):
         cdict = _localsimulator._simulator_classes
         cdict = getattr(_localsimulator, '_simulator_classes')
-        logging.info('found local simulators: {0}'.format(repr(cdict)))
+        self.log.info('found local simulators: {0}'.format(repr(cdict)))
         self.assertTrue(cdict)
 
     def test_local_backends(self):
         backends = _localsimulator.local_backends()
-        logging.info('found local backends: {0}'.format(repr(backends)))
+        self.log.info('found local backends: {0}'.format(repr(backends)))
         self.assertTrue(backends)
 
     def test_instantiation(self):
@@ -82,18 +89,6 @@ class LocalSimulatorTest(unittest.TestCase):
         backend_list = _localsimulator.local_backends()
         for backend_name in backend_list:
             backend = _localsimulator.LocalSimulator(backend_name, self.job)
-
-# def load_tests(loader, standard_tests, pattern):
-#     """
-#     test suite for unittest discovery
-#     """
-#     profSuite = unittest.TestSuite()
-#     profSuite.addTest(LocalSimulatorTest('test_local_configuration_present'))
-#     profSuite.addTest(LocalSimulatorTest('test_local_configurations'))
-#     profSuite.addTest(LocalSimulatorTest('test_simulator_classes'))
-#     profSuite.addTest(LocalSimulatorTest('test_local_backends'))
-#     profSuite.addTest(LocalSimulatorTest('test_instantiation'))
-#     return profSuite
 
 if __name__ == '__main__':
     unittest.main()
