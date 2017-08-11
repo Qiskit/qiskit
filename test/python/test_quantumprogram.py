@@ -1179,7 +1179,7 @@ class TestQuantumProgram(unittest.TestCase):
             pass
         else:
             result = QP_program.execute(circuits, backend=backend, shots=shots,
-                                    seed=8458)
+                                        seed=8458)
             result1 = result.get_counts('qc1')
             result2 = result.get_counts('qc2')
             self.assertEqual(result1, {'00 01': 1024})
