@@ -56,8 +56,8 @@ except ImportError:
     if 'QE_TOKEN' in os.environ and 'QE_URL' in os.environ:
         QE_TOKEN = os.environ["QE_TOKEN"]
         QE_URL = os.environ["QE_URL"]
-if 'TRAVIS_PULL_REQUEST' in os.environ:
-    if os.environ['TRAVIS_BRANCH'] == os.environ['TRAVIS_PULL_REQUEST_BRANCH']:
+if 'TRAVIS_PULL_REQUEST_SLUG' in os.environ:
+    if 'QISKit/qiskit-sdk-py' in os.environ['TRAVIS_PULL_REQUEST_SLUG']:
         TRAVIS_FORK_PULL_REQUEST = False
     else:
         TRAVIS_FORK_PULL_REQUEST = True
