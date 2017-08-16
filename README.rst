@@ -102,6 +102,7 @@ You'll need:
    client is needed to run the tutorials, not to use as a library.
 -  Mac OS X users will find Xcode useful:
    https://developer.apple.com/xcode/
+-  For Windows users we highly recommend to install `Anaconda 3 <https://www.continuum.io/downloads#windows>`_
 -  Optionally download Git: https://git-scm.com/download/.
 
 2. Get the code
@@ -141,14 +142,21 @@ with QISKit, and install the required dependencies:
 
     make env
 
--  If running either Windows or Mac OS X without Xcode, run the
-   following set of commands:
+-  If running on Mac OS X without Xcode, run the following set of commands:
 
 .. code:: sh
 
     conda create -y -n QISKitenv python=3 pip scipy
     activate QISKitenv
     pip install -r requires.txt
+    
+-  If running on Windows, make sure to execute an Anaconda Prompt and run
+   the following command:
+
+.. code:: sh
+
+    Make.bat env
+
 
 4. Configure your API token
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,9 +194,9 @@ started with the tutorials, follow the instructions below.
 
 .. code:: sh
 
-    make run_tutorial
+    make run
 
--  If running either Windows or Mac OS X without Xcode, run the
+-  If running on Mac OS X without Xcode, run the
    following set of commands from the QISKit SDK folder:
 
 .. code:: sh
@@ -196,6 +204,15 @@ started with the tutorials, follow the instructions below.
     activate QISKitenv
     cd tutorial
     jupyter notebook index.ipynb
+    
+-  If running on Windows, make sure you are running an Anaconda Prompt,
+   and then run the following commands from the QISKit SDK folder:
+
+.. code:: sh
+
+    Make.bat run
+    
+
 
 FAQ
 ---
