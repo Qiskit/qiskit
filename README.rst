@@ -155,7 +155,7 @@ with QISKit, and install the required dependencies:
 
 .. code:: sh
 
-    Make.bat env
+    .\make env
 
 
 4. Configure your API token
@@ -210,7 +210,7 @@ started with the tutorials, follow the instructions below.
 
 .. code:: sh
 
-    Make.bat run
+    .\make run
     
 
 

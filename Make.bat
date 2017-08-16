@@ -27,6 +27,17 @@ IF "%target%"=="test" GOTO :test
 IF "%target%"=="profile" GOTO :profile
 IF "%target%"=="doc" GOTO :doc
 IF "%target%"=="clean" GOTO :clean
+:usage
+ECHO.
+ECHO.Usage:
+ECHO.    .\make env     Switches to a Python virtual environment
+ECHO.    .\make run     Runs Jupyter tutorials
+ECHO.    .\make lint    Runs Pyhton source code analisys tool
+ECHO.    .\make test    Runs tests
+ECHO.    .\make prfile  Runs profiling tests
+ECHO.    .\make doc     Creates documentation
+ECHO.    .\make clean   Cleans previoulsy generated documentation
+ECHO.
 GOTO :end
 
 :env
