@@ -116,7 +116,6 @@ token.json
 tutorial/rst/_build/*
 
 test/python/test_qasm_python_simulator.pdf
-test/python/test_save.json
 
 doc/_build/*
 
