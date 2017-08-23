@@ -157,12 +157,6 @@ def Energy_Estimate(data, pauli_list):
         return energy
 
 
-
-def index_2_bit(state_index,max_index):
-    """ Returns bit string corresponding to quantum state index
-    """
-    return format(state_index,'0'+str(max_index)+'b')[::-1]
-
 def index_2_bit(state_index, max_index):
     """ Returns bit string corresponding to quantum state index."""
     return format(state_index, '0'+str(max_index)+'b')[::-1]
