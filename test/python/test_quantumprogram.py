@@ -59,7 +59,7 @@ except ImportError:
 
 TRAVIS_FORK_PULL_REQUEST = False
 if 'TRAVIS_PULL_REQUEST_SLUG' in os.environ:
-    if os.environ['TRAVIS_REPO_SLUG'] == os.environ['TRAVIS_PULL_REQUEST_SLUG']:
+    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
         TRAVIS_FORK_PULL_REQUEST = True
 
 # Define Program Specifications.
