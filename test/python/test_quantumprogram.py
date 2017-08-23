@@ -837,7 +837,7 @@ class TestQuantumProgram(unittest.TestCase):
         res2 = QP_program.execute(['qc2'], backend=backend, shots=shots)
         counts1 = res1.get_counts('qc1')
         counts2 = res2.get_counts('qc2')
-        res1 += res2 # combine results
+        res1 += res2  # combine results
         counts12 = [res1.get_counts('qc1'), res1.get_counts('qc2')]
         self.assertEqual(counts12, [counts1, counts2])
 
@@ -1027,6 +1027,27 @@ class TestQuantumProgram(unittest.TestCase):
         counts = result.get_counts('qc')
         self.assertEqual(counts, {'0': 498, '1': 526})
 
+    def test_simulator_online_size(self):
+        """Test test_simulator_online_size.
+
+        If all correct should return the data.
+        """
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register("q", 24, verbose=False)
+        cr = QP_program.create_classical_register("c", 24, verbose=False)
+        qc = QP_program.create_circuit("qc", [qr], [cr])
+        qc.h(qr)
+        qc.measure(qr, cr)
+        shots = 1  # the number of shots in the experiment.
+        QP_program.set_api(API_TOKEN, URL)
+        backend = QP_program.online_simulators()[0]
+        # print(backend)
+        result = QP_program.execute(['qc'], backend=backend,
+                                    shots=shots, max_credits=3, silent=True,
+                                    seed=73846087)
+        counts = result.get_counts('qc')
+        self.assertEqual(counts, {'0': 498, '1': 526})
+
     def test_execute_several_circuits_simulator_online(self):
         """Test execute_several_circuits_simulator_online.
 
@@ -1053,7 +1074,8 @@ class TestQuantumProgram(unittest.TestCase):
                                     seed=1287126141)
         counts1 = result.get_counts('qc1')
         counts2 = result.get_counts('qc2')
-        self.assertEqual(counts1,  {'10': 277, '11': 238, '01': 258, '00': 251})
+        self.assertEqual(counts1,  {'10': 277, '11': 238, '01': 258,
+                                    '00': 251})
         self.assertEqual(counts2, {'11': 515, '00': 509})
 
     def test_execute_one_circuit_real_online(self):
