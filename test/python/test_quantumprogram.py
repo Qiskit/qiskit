@@ -520,7 +520,8 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        result = QP_program.save("./test/python/test_save.json", beauty=True)
+        result = QP_program.save(os.path.dirname(os.path.abspath(__file__))
+                                 + "/test_save.json", beauty=True)
 
         self.assertEqual(result['status'], 'Done')
 
@@ -537,7 +538,8 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
-        result = QP_program.load("./test/python/test_load.json")
+        result = QP_program.load(os.path.dirname(os.path.abspath(__file__))
+                                 + "/test_load.json")
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
@@ -1083,9 +1085,7 @@ class TestQuantumProgram(unittest.TestCase):
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
+        backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
         if status['available'] is False:
@@ -1257,4 +1257,4 @@ class TestQuantumProgram(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
