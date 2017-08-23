@@ -33,6 +33,7 @@ from qiskit import ClassicalRegister
 from qiskit import QISKitError
 
 
+
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
                               '../../examples/qasm/entangled_registers.qasm')
 QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
