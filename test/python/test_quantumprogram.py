@@ -523,7 +523,8 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        result = QP_program.save("./test/python/test_save.json", beauty=True)
+        result = QP_program.save(os.path.dirname(os.path.abspath(__file__))
+                                 + "/test_save.json", beauty=True)
 
         self.assertEqual(result['status'], 'Done')
 
@@ -542,7 +543,8 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
-        result = QP_program.load("./test/python/test_load.json")
+        result = QP_program.load(os.path.dirname(os.path.abspath(__file__))
+                                 + "/test_load.json")
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
@@ -1395,4 +1397,4 @@ class TestQuantumProgram(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
