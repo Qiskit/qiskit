@@ -10,7 +10,7 @@ packages = ["qiskit",
             "qiskit.simulators",
             "qiskit.unroll"]
 
-requierments = ["IBMQuantumExperience>=1.8",
+requirements = ["IBMQuantumExperience>=1.8",
                   "requests>=2.18,<2.19",
                   "networkx>=1.11,<1.12",
                   "ply==3.10",
@@ -41,6 +41,6 @@ computing experiments, programs, and applications. Works with Python 3.5 and 3.6
     ],
     keywords="qiskit sdk quantum",
     packages=packages,
-    install_requires=requierments,
+    install_requires=requirements,
     python_requires=">=3.5",
 )
