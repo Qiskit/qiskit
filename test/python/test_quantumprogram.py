@@ -47,7 +47,7 @@ try:
     # http://stackoverflow.com/a/7506006
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     import Qconfig
-    API_TOKEN = Qconfig.APItoken
+    QE_TOKEN = Qconfig.APItoken
     # TODO: Why "APItoken" is in the root (the unique) and
     # "url" inside "config"?
     # (also unique) -> make it consistent.
@@ -56,14 +56,12 @@ except ImportError:
     if 'QE_TOKEN' in os.environ and 'QE_URL' in os.environ:
         QE_TOKEN = os.environ["QE_TOKEN"]
         QE_URL = os.environ["QE_URL"]
+
+TRAVIS_FORK_PULL_REQUEST = False
 if 'TRAVIS_PULL_REQUEST_SLUG' in os.environ:
-    if os.environ['TRAVIS_REPO_SLUG'] == os.environ['TRAVIS_PULL_REQUEST_SLUG']:
-        TRAVIS_FORK_PULL_REQUEST = False
-    else:
+    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
         TRAVIS_FORK_PULL_REQUEST = True
-else:
-    TRAVIS_FORK_PULL_REQUEST = False
-    
+
 # Define Program Specifications.
 QPS_SPECS = {
     "circuits": [{
@@ -969,7 +967,6 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return 10010.
         """
         QP_program = QuantumProgram()
-        #QP_program.set_api(QE_TOKEN, QE_URL)
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 100  # the number of shots in the experiment.
         max_credits = 3
@@ -992,7 +989,6 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return 10010.
         """
         QP_program = QuantumProgram()
-        #QP_program.set_api(QE_TOKEN, QE_URL)
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 100  # the number of shots in the experiment.
         max_credits = 3
@@ -1109,7 +1105,6 @@ class TestQuantumProgram(unittest.TestCase):
         cr = QP_program.create_classical_register("cr", 2, verbose=False)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
-        #QP_program.set_api(QE_TOKEN, QE_URL)
         qc1.h(qr[0])
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
