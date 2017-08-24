@@ -45,7 +45,7 @@ class External(Node):
                self.children[1].latex(prec, nested_scope) + "})"
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
+        """Return the corresponding floating point number."""
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {

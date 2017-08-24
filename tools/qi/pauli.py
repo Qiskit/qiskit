@@ -17,7 +17,7 @@
 """
 Tools for working with Pauli Operators.
 
-A simple pauli class and some tools.
+A simple Pauli class and some tools.
 """
 import random
 import numpy as np
@@ -154,7 +154,7 @@ def inverse_pauli(other):
     return Pauli(v, w)
 
 def label_to_pauli(label):
-    """Return the pauli of a string ."""
+    """Return the Pauli of a string ."""
     v = np.zeros(len(label))
     w = np.zeros(len(label))
     for j in range(len(label)):

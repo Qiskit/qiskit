@@ -18,7 +18,7 @@ The import does discovery of the simulator modules in this directory. The
 second command attempts to determine which modules are functional, in
 particular for modules which require making calls to compiled binaries.
 
-In order for a module to be registered it needs to define a module-scope
+In order for a module to be registered, it needs to define a module-scope
 dictionary of the form::
 
     __configuration = {'name': 'local_qasm_simulator',
@@ -41,7 +41,7 @@ Attributes:
         of the discovered modules.
 
     _simulator_classes : dict {"<simulator name>" : <simulator class>}
-        This dictionary associates a simulator name with the class which
+        This dictionary associates a simulator name with the class that
         generates its objects.
 """
 import os
@@ -69,11 +69,11 @@ for mod_info, name, ispkg in pkgutil.iter_modules([os.path.dirname(__file__)]):
 
 def local_backends():
     """
-    Attempt to determine the local simulator backends which are available.
+    Attempt to determine the available local simulator backends.
 
-    Mostly we are concerned about checking for whether the simulator executable
+    Mostly we are concerned about checking whether the simulator executable
     associated with the discovered backend module exists. Discovery is done
-    by instantiating the simulator object which should raise a
+    by instantiating the simulator object, which should raise a
     FileNotFoundError if the program has not been compiled and placed in
     the executable path.
 
@@ -99,7 +99,7 @@ def local_backends():
         try:
             sim = backend(job)
         except FileNotFoundError as fnferr:
-            # this is for discovery so just don't had to discovered list
+            # this is for discovery so just don't hand to discovered list
             pass
         else:
             backend_list.append(backend_id)

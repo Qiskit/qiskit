@@ -154,7 +154,7 @@ def plot_bloch_vector(bloch, title=""):
 def plot_state_city(rho, title=""):
     """Plot the cityscape of quantum state.
 
-    Plot two 3d bargraphs (two dimenstional) of the mixed state rho
+    Plot two 3d bargraphs (two-dimensional) of the mixed state rho
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -222,7 +222,7 @@ def plot_state_city(rho, title=""):
 def plot_state_paulivec(rho, title=""):
     """Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matricies
+    Plot a bargraph of the mixed state rho over the Pauli matrices
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -259,7 +259,7 @@ def n_choose_k(n, k):
     """Return the number of combinations for n choose k.
 
     Args:
-        n (int): the total number of options .
+        n (int): the total number of options.
         k (int): The number of elements.
 
     Returns:
@@ -275,10 +275,10 @@ def n_choose_k(n, k):
 
 
 def lex_index(n, k, lst):
-    """Return  the lex index of a combination..
+    """Return the lex index of a combination.
 
     Args:
-        n (int): the total number of options .
+        n (int): the total number of options.
         k (int): The number of elements.
         lst
 
@@ -304,7 +304,7 @@ def bit_string_index(s):
 def phase_to_color_wheel(complex_number):
     """Map a phase of a complexnumber to a color in (r,g,b).
 
-    complex_number is phase is first mapped to angle in the range
+    complex_number is phase first mapped to angle in the range
     [0, 2pi] and then to a color wheel with blue at zero phase.
     """
     angles = np.angle(complex_number)
@@ -329,7 +329,7 @@ def phase_to_color_wheel(complex_number):
 def plot_state_qsphere(rho):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigvenvalues
     we, stateall = la.eigh(rho)
     for i in range(2**num):
         # start with the max

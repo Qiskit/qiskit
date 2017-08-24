@@ -53,7 +53,7 @@ class JsonBackend(UnrollerBackend):
     """Backend for the unroller that makes a Json quantum circuit."""
 
     def __init__(self, basis=None):
-        """Setup this backend.
+        """Set up this backend.
 
         basis is a list of operation name strings.
         The default basis is ["U", "CX"].
@@ -133,8 +133,8 @@ class JsonBackend(UnrollerBackend):
     def u(self, arg, qubit, nested_scope=None):
         """Fundamental single-qubit gate.
 
-        arg is 3-tuple of Node expression objects.
-        qubit is (regname, idx) tuple.
+        arg is 3-tuple of Node expression objects
+        qubit is (regname, idx) tuple
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
@@ -178,8 +178,8 @@ class JsonBackend(UnrollerBackend):
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
 
-        qubit0 is (regname, idx) tuple for the control qubit.
-        qubit1 is (regname, idx) tuple for the target qubit.
+        qubit0 is (regname, idx) tuple for the control qubit
+        qubit1 is (regname, idx) tuple for the target qubit
         """
         if self.listen:
             if "CX" not in self.basis:

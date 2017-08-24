@@ -57,7 +57,7 @@ class Barrier(Instruction):
 def barrier(self, *tuples):
     """Apply barrier to tuples (reg, idx)."""
     tuples = list(tuples)
-    if len(tuples) == 0:  # TODO: implement this for all single qubit gates
+    if len(tuples) == 0:  # TODO: implement this for all single-qubit gates
         if isinstance(self, QuantumCircuit):
             for register in self.regs.values():
                 if isinstance(register, QuantumRegister):

@@ -404,7 +404,7 @@ def __get_meas_basis_ops(tup, basis):
 
 def __meas_basis(n, basis):
     """
-    Return an ordered list of n-qubit measurment projectors.
+    Return an ordered list of n-qubit measurement projectors.
     """
     return [dict(zip(__counts_keys(n), __get_meas_basis_ops(key, basis)))
             for key in product(basis.keys(), repeat=n)]
@@ -412,7 +412,7 @@ def __meas_basis(n, basis):
 
 def __get_prep_basis_op(dic, basis):
     """
-    Return an n-qubit projector for a given prepration.
+    Return an n-qubit projector for a given preparation.
     """
     keys = sorted(dic.keys())  # order qubits [0,1,...]
     tups = [dic[k] for k in keys]
@@ -616,7 +616,7 @@ def __leastsq_fit(data, weights=None, trace=None, beta=None):
 
 def __wizard(rho, epsilon=None):
     """
-    Returns the nearest postitive semidefinite operator to an operator.
+    Returns the nearest positive semidefinite operator to an operator.
 
     This method is based on reference [1]. It constrains positivity
     by setting negative eigenvalues to zero and rescaling the positive
@@ -635,7 +635,7 @@ def __wizard(rho, epsilon=None):
 
     dim = len(rho)
     rho_wizard = np.zeros([dim, dim])
-    v, w = np.linalg.eigh(rho)  # v eigenvecrors v[0] < v[1] <...
+    v, w = np.linalg.eigh(rho)  # v eigenvectors v[0] < v[1] <...
     for j in range(dim):
         if v[j] < epsilon:
             tmp = v[j]

@@ -19,7 +19,7 @@ File: fermion_to_qubit_tools.py
 
 Description:
 
-A set of functions that map fermionic Hamiltonians to qubit Hamiltonians. fermionic_maps maps a one- and two-electron
+A set of functions that map fermionic Hamiltonians to qubit Hamiltonians. fermionic_maps maps one- and two-electron
 fermionic operators into a qubit Hamiltonian, according to three types of mappings.
 
 References:
@@ -37,7 +37,7 @@ from tools.apps.optimization import Hamiltonian_from_file
 
 
 """
-The three functions parity_set, update_set and flip_set define three sets of qubit indices, associated to each fermionic mode j in a set of n qubits, used in the binary-tree mapping.
+The three functions parity_set, update_set, and flip_set define three sets of qubit indices, associated to each fermionic mode j in a set of n qubits, used in the binary-tree mapping.
 
 """
 
@@ -77,8 +77,8 @@ def pauli_term_append(pauli_term,pauli_list,threshold):
 
     """
     The function appends pauli_term to pauli_list if is not present in pauli_list.
-    If present in the list adjusts the coefficient of the existing pauli. If the new
-    coefficient is less than threshold the pauli term is deleted from the list
+    If present in the list, adjusts the coefficient of the existing pauli. If the new
+    coefficient is less than threshold, the Pauli term is deleted from the list
     """
 
     found=False
@@ -89,7 +89,7 @@ def pauli_term_append(pauli_term,pauli_list,threshold):
 
             for i in range(len(pauli_list)):
 
-                if pauli_list[i][1].to_label()==pauli_term[1].to_label():   # check if the new pauli belongs to the list
+                if pauli_list[i][1].to_label()==pauli_term[1].to_label():   # check if the new Pauli belongs to the list
 
                     pauli_list[i][0]+=pauli_term[0]    # if found renormalize the coefficient of existent pauli
 
@@ -99,11 +99,11 @@ def pauli_term_append(pauli_term,pauli_list,threshold):
                     found=True
                     break
 
-            if found==False:       # if not found add the new pauli
+            if found==False:       # if not found add the new Pauli
                 pauli_list.append(pauli_term)
 
         else:
-            pauli_list.append(pauli_term)      # if list is empty add the new pauli
+            pauli_list.append(pauli_term)      # if list is empty add the new Pauli
 
 
 
@@ -118,7 +118,7 @@ def fermionic_maps(h1,h2,map_type,out_file=None,threshold=0.000000000001):
     """ Takes fermionic one and two-body operators in the form of numpy arrays with real entries, e.g.
         h1=np.zeros((n,n))
         h2=np.zeros((n,n,n,n))
-        where n is the number of fermionic modes, and gives a pauli_list of mapped pauli terms and
+        where n is the number of fermionic modes, and gives a pauli_list of mapped Pauli terms and
         coefficients, according to the map_type specified, with values
 
         map_type:
@@ -370,7 +370,7 @@ def two_qubit_reduction(ham_in,m,out_file=None,threshold=0.000000000001):
     # number of qubits
     n=len(ham_in[0][1].v)
 
-    for pauli_term in ham_in:#loop over Pauli terms
+    for pauli_term in ham_in: # loop over Pauli terms
 
         coeff_out=pauli_term[0]
 

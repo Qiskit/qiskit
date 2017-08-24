@@ -33,10 +33,16 @@ class TestQI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestQI:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
 
     def test_partial_trace(self):
         # reference
@@ -145,10 +151,16 @@ class TestPauli(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestPauli:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
 
     def test_pauli(self):
 
@@ -160,45 +172,45 @@ class TestPauli(unittest.TestCase):
         w[2] = 1
 
         p = Pauli(v, w)
-        logging.info(p)
-        logging.info("In label form:")
-        logging.info(p.to_label())
-        logging.info("In matrix form:")
-        logging.info(p.to_matrix())
+        self.log.info(p)
+        self.log.info("In label form:")
+        self.log.info(p.to_label())
+        self.log.info("In matrix form:")
+        self.log.info(p.to_matrix())
 
 
         q = random_pauli(2)
-        logging.info(q)
+        self.log.info(q)
 
         r = inverse_pauli(p)
-        logging.info("In label form:")
-        logging.info(r.to_label())
+        self.log.info("In label form:")
+        self.log.info(r.to_label())
 
-        logging.info("Group in tensor order:")
+        self.log.info("Group in tensor order:")
         grp = pauli_group(3, case=1)
         for j in grp:
-            logging.info(j.to_label())
+            self.log.info(j.to_label())
 
-        logging.info("Group in weight order:")
+        self.log.info("Group in weight order:")
         grp = pauli_group(3)
         for j in grp:
-            logging.info(j.to_label())
+            self.log.info(j.to_label())
 
-        logging.info("sign product:")
+        self.log.info("sign product:")
         p1 = Pauli(np.array([0]), np.array([1]))
         p2 = Pauli(np.array([1]), np.array([1]))
         p3, sgn = sgn_prod(p1, p2)
-        logging.info(p1.to_label())
-        logging.info(p2.to_label())
-        logging.info(p3.to_label())
-        logging.info(sgn)
+        self.log.info(p1.to_label())
+        self.log.info(p2.to_label())
+        self.log.info(p3.to_label())
+        self.log.info(sgn)
 
-        logging.info("sign product reverse:")
+        self.log.info("sign product reverse:")
         p3, sgn = sgn_prod(p2, p1)
-        logging.info(p2.to_label())
-        logging.info(p1.to_label())
-        logging.info(p3.to_label())
-        logging.info(sgn)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p3.to_label())
+        self.log.info(sgn)
 
 if __name__ == '__main__':
     unittest.main()

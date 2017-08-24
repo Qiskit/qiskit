@@ -16,7 +16,7 @@
 # limitations under the License.
 # =============================================================================
 
-"""Contains a (slow) python simulator.
+"""Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit that has been compiled to run on the
 simulator. It is exponential in the number of qubits.
@@ -36,7 +36,7 @@ and
     results['data']['classical_state']
 
 where 'quantum_state' is a 2\ :sup:`n` complex numpy array representing the
-quantum state vector and 'classical_state' is an integer representing
+quantum state vector, and 'classical_state' is an integer representing
 the state of the classical registors.
 
 if shots > 1
@@ -114,7 +114,7 @@ from ._simulatorerror import SimulatorError
 
 
 # TODO add the IF qasm operation.
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
 
 __configuration = {"name": "local_qasm_simulator",
@@ -188,9 +188,9 @@ class QasmSimulator(object):
         self._number_of_operations = len(self.circuit['operations'])
 
     def _add_qasm_single(self, gate, qubit):
-        """Apply an arbitary 1-qubit operator to a qubit.
+        """Apply an arbitrary 1-qubit operator to a qubit.
 
-        Gate is the single qubit applied.
+        Gate is the single-qubit applied.
         qubit is the qubit the gate is applied to.
         """
         psi = self._quantum_state
@@ -258,7 +258,7 @@ class QasmSimulator(object):
     def _add_qasm_reset(self, qubit):
         """Apply the reset to the qubit.
 
-        This is done by doing a measruement and if 0 do nothing and
+        This is done by doing a measurement; if 0 do nothing and
         if 1 flip the qubit.
 
         qubit is the qubit that is reset.
@@ -301,7 +301,7 @@ class QasmSimulator(object):
                             value >>= 1
                         if value != int(operation['conditional']['val'], 16):
                             continue
-                # Check if single  gate
+                # Check if single gate
                 if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                     if 'params' in operation:
                         params = operation['params']
@@ -356,7 +356,7 @@ class QasmSimulator(object):
         Args:
             counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
         Returns:
-            spaces inserted into dictionary keys at register boundries.
+            spaces inserted into dictionary keys at register boundaries.
         """
         fcounts = {}
         for key, value in counts.items():

@@ -61,7 +61,7 @@ def partial_trace(state, sys, dims=None, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        A matrix with the appropriate subsytems traced over.
+        A matrix with the appropriate subsystems traced over.
     """
     # convert op to density matrix
     rho = np.array(state)
@@ -74,7 +74,7 @@ def partial_trace(state, sys, dims=None, reverse=True):
         dims = [2 for i in range(n)]
         if len(rho) != 2 ** n:
             raise Exception("Input is not a multi-qubit state, \
-                specifify input state dims")
+                specify input state dims")
     else:
         dims = list(dims)
 
@@ -182,7 +182,7 @@ def devectorize(vec, method='col'):
 
     Args:
         vec (ndarray): a vectorized density matrix.
-        basis (str): the method of devectorizaation. Allowed values are
+        basis (str): the method of devectorization. Allowed values are
             - 'col' (default): flattens to column-major vector.
             - 'row': flattens to row-major vector.
             - 'pauli': flattens in the n-qubit Pauli basis.
@@ -219,7 +219,7 @@ def choi_to_rauli(choi, order=1):
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
     Note that this function assumes that the Choi-matrix
-    is defined in the standard column-stacking converntion
+    is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
     is defined as: choi = (I \otimes E)(bell_state).
 
@@ -255,7 +255,7 @@ def chop(op, epsilon=1e-10):
     Truncate small values of a complex array.
 
     Args:
-        op (array_like): array to truncte small values.
+        op (array_like): array to truncate small values.
         epsilon (float): threshold.
 
     Returns:
@@ -370,7 +370,7 @@ def concurrence(state):
     if rho.ndim == 1:
         rho = outer(state)
     if len(state) != 4:
-        raise Exception("Concurence is not defined for more than two qubits")
+        raise Exception("Concurrence is not defined for more than two qubits")
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)

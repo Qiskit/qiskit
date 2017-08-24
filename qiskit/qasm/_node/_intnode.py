@@ -46,5 +46,5 @@ class Int(Node):
         return "%d" % self.value
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
+        """Return the corresponding floating point number."""
         return float(self.value)

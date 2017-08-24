@@ -117,10 +117,10 @@ class CircuitBackend(UnrollerBackend):
         return cregs[creg]
 
     def u(self, arg, qubit, nested_scope=None):
-        """Fundamental single qubit gate.
+        """Fundamental single-qubit gate.
 
-        arg is 3-tuple of Node expression objects.
-        qubit is (regname,idx) tuple.
+        arg is 3-tuple of Node expression objects
+        qubit is (regname,idx) tuple
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
@@ -135,10 +135,10 @@ class CircuitBackend(UnrollerBackend):
                 this_gate.c_if(self._map_creg(self.creg), self.cval)
 
     def cx(self, qubit0, qubit1):
-        """Fundamental two qubit gate.
+        """Fundamental two-qubit gate.
 
-        qubit0 is (regname,idx) tuple for the control qubit.
-        qubit1 is (regname,idx) tuple for the target qubit.
+        qubit0 is (regname,idx) tuple for the control qubit
+        qubit1 is (regname,idx) tuple for the target qubit
         """
         if self.listen:
             if "CX" not in self.basis:
@@ -151,8 +151,8 @@ class CircuitBackend(UnrollerBackend):
     def measure(self, qubit, bit):
         """Measurement operation.
 
-        qubit is (regname, idx) tuple for the input qubit.
-        bit is (regname, idx) tuple for the output bit.
+        qubit is (regname, idx) tuple for the input qubit
+        bit is (regname, idx) tuple for the output bit
         """
         if "measure" not in self.basis:
             self.basis.append("measure")
