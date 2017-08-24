@@ -58,7 +58,8 @@ except ImportError:
         QE_URL = os.environ["QE_URL"]
 
 TRAVIS_FORK_PULL_REQUEST = False
-if 'TRAVIS_PULL_REQUEST_SLUG' in os.environ:
+if ('TRAVIS_PULL_REQUEST_SLUG' in os.environ
+    and os.environ['TRAVIS_PULL_REQUEST_SLUG']):
     if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
         TRAVIS_FORK_PULL_REQUEST = True
 
