@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -767,7 +764,8 @@ class QuantumProgram(object):
                         [
                             {
                             "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (DAG format)--,
+                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
+                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
                             "config": --dictionary of additional config settings (dict)--,
                                 {
                                 "coupling_map": --adjacency list (dict)--,
@@ -848,7 +846,7 @@ class QuantumProgram(object):
             job["config"]["layout"] = list_layout
             job["config"]["basis_gates"] = basis_gates
             if seed is None:
-                job["config"]["seed"] = random.getrandbits(128) # int.from_bytes(os.urandom(4), byteorder="big")
+                job["config"]["seed"] = None
             else:
                 job["config"]["seed"] = seed
             # the compuled circuit to be run saved as a dag
@@ -984,13 +982,16 @@ class QuantumProgram(object):
         if backend in self.__ONLINE_BACKENDS:
             max_credits = qobj["config"]["max_credits"]
             shots = qobj["config"]["shots"]
+            seed = qobj["circuits"][0]["config"]["seed"]
             jobs = []
             for job in qobj["circuits"]:
                 jobs.append({'qasm': job["compiled_circuit_qasm"]})
-            output = self.__api.run_job(jobs, backend, shots, max_credits)
+            output = self.__api.run_job(jobs, backend, shots=shots,
+                                        max_credits=max_credits, seed=seed)
             if 'error' in output:
                 raise ResultError(output['error'])
-            qobj_result = self._wait_for_job(output['id'], wait=wait, timeout=timeout, silent=silent)
+            qobj_result = self._wait_for_job(output['id'], wait=wait,
+                                             timeout=timeout, silent=silent)
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
