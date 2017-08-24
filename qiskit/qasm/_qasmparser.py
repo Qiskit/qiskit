@@ -70,7 +70,7 @@ class QasmParser(object):
                                 + "' in argument list for gate, line",
                                 str(obj.line), 'file', obj.file)
 
-        # This insures the thing is from the bitlist and not from the
+        # This ensures the thing is from the bitlist and not from the
         # argument list.
         sym = self.current_symtab[obj.name]
         if not (sym.type == 'id' and sym.is_bit):
@@ -564,7 +564,7 @@ class QasmParser(object):
     #  gate_op_list : gate_op
     #               | gate_op_ist gate_op
     #
-    # Error handling: gete_op will throw if there's a problem so we won't
+    # Error handling: gate_op will throw if there's a problem so we won't
     #                 get here with errors
     # ----------------------------------------
     def p_gate_op_list_0(self, program):
@@ -767,7 +767,7 @@ class QasmParser(object):
     #        | OPAQUE id gate_scope '(' ')'              bit_list
     #        | OPAQUE id gate_scope '(' gate_id_list ')' bit_list
     #
-    # These are like gate declaratons only wihtout a body.
+    # These are like gate declaratons, only without a body.
     # ----------------------------------------
     def p_opaque_0(self, program):
         '''
@@ -827,7 +827,7 @@ class QasmParser(object):
     # ----------------------------------------
     # barrier : BARRIER primary_list
     #
-    # Errors are covered by handling erros in primary_list
+    # Errors are covered by handling errors in primary_list
     # ----------------------------------------
     def p_barrier(self, program):
         '''

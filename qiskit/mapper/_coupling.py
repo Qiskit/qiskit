@@ -18,7 +18,7 @@
 """
 Directed graph object for representing coupling between qubits.
 
-The nodes of the graph correspond to named qubits and the directed edges
+The nodes of the graph correspond to named qubits, and the directed edges
 indicate which qubits are coupled and the permitted direction of CNOT gates.
 The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.

@@ -21,11 +21,11 @@ Functions
     index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
 
-    enlarge_single_opt(opt, qubit, number_of_qubits) -- takes a single qubit
-    operator opt to a opterator on n qubits
+    enlarge_single_opt(opt, qubit, number_of_qubits) -- takes a single-qubit
+    operator opt to a operator on n qubits
 
     enlarge_two_opt(opt, q0, q1, number_of_qubits) -- takes a two-qubit
-    operator opt to a opterator on n qubits
+    operator opt to a operator on n qubits
 
 """
 import numpy as np
@@ -108,10 +108,10 @@ def enlarge_two_opt(opt, q0, q1, num):
 
 
 def single_gate_params(gate, params=None):
-    """Apply a single qubit gate to the qubit.
+    """Apply a single-qubit gate to the qubit.
 
     Args:
-        gate(str): the single qubit gate name
+        gate(str): the single-qubit gate name
         params(list): the operation parameters op['params']
     Returns:
         a tuple of U gate parameters (theta, phi, lam)

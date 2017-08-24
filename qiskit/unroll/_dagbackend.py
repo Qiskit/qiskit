@@ -27,7 +27,7 @@ class DAGBackend(UnrollerBackend):
     """Backend for the unroller that creates a DAGCircuit object."""
 
     def __init__(self, basis=None):
-        """Setup this backend.
+        """Set up this backend.
 
         basis is a list of operation name strings.
         """
@@ -76,10 +76,10 @@ class DAGBackend(UnrollerBackend):
         self.circuit.add_creg(name, size)
 
     def u(self, arg, qubit, nested_scope=None):
-        """Fundamental single qubit gate.
+        """Fundamental single-qubit gate.
 
-        arg is 3-tuple of Node expression objects.
-        qubit is (regname,idx) tuple.
+        arg is 3-tuple of Node expression objects
+        qubit is (regname,idx) tuple
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
@@ -115,8 +115,8 @@ class DAGBackend(UnrollerBackend):
     def measure(self, qubit, bit):
         """Measurement operation.
 
-        qubit is (regname, idx) tuple for the input qubit.
-        bit is (regname, idx) tuple for the output bit.
+        qubit is (regname, idx) tuple for the input qubit
+        bit is (regname, idx) tuple for the output bit
         """
         if self.creg is not None:
             condition = (self.creg, self.cval)
@@ -174,9 +174,9 @@ class DAGBackend(UnrollerBackend):
     def start_gate(self, name, args, qubits, nested_scope=None):
         """Begin a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
+        name is name string
+        args is list of Node expression objects
+        qubits is list of (regname, idx) tuples
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
@@ -198,9 +198,9 @@ class DAGBackend(UnrollerBackend):
     def end_gate(self, name, args, qubits, nested_scope=None):
         """End a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
+        name is name string
+        args is list of Node expression objects
+        qubits is list of (regname, idx) tuples
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """

@@ -367,7 +367,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         initial_layout = {a: b for a, b in
                           zip(circuit_graph.get_qubits(), qubit_subset)}
 
-    # Find swap circuit to preceed to each layer of input circuit
+    # Find swap circuit to proceed to each layer of input circuit
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
     first_layer = True  # True until first layer is output
@@ -490,7 +490,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
 
        \sin(\phi-\lambda) \sin(\\theta) = \sin(xi) * \sin(-\\theta1+\\theta2)
 
-    Returns the maximum absolute difference between right and left hand sides.
+    Returns the maximum absolute difference between right- and left-hand sides.
     """
     delta1 = math.cos(phi + lamb) * math.cos(theta) - \
         math.cos(xi) * math.cos(theta1 + theta2)
@@ -504,7 +504,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
 
 
 def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
-    """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
+    """Express a Y.Z.Y single-qubit gate as a Z.Y.Z gate.
 
     Solve the equation
 
@@ -641,7 +641,7 @@ def cx_cancellation(circuit):
 
 
 def optimize_1q_gates(circuit):
-    """Simplify runs of single qubit gates in the QX basis.
+    """Simplify runs of single-qubit gates in the QX basis.
 
     Return a new circuit that has been optimized.
     """

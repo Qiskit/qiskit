@@ -33,5 +33,5 @@ class ClassicalRegister(Register):
         return "ClassicalRegister(%s,%d)" % (self.name, self.size)
 
     def __len__(self):
-        """Return a int representing the size."""
+        """Return an int representing the size."""
         return self.size

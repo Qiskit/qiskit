@@ -29,7 +29,7 @@ The input is
 
     compiled_circuit object
 
-and the output is the results object
+and the output is the results object.
 
 The simulator is run using
 
@@ -93,7 +93,7 @@ returned results object::
 import numpy as np
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 import json
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
 
 __configuration = {"name": "local_unitary_simulator",

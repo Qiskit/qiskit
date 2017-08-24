@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 import unittest
 import time
 import numpy as np
@@ -8,9 +8,9 @@ import cProfile
 import pstats
 import io
 import logging
-#import matplotlib.pyplot as plt
-#from matplotlib.backends.backend_pdf import PdfPages
-#from matplotlib.ticker import MaxNLocator
+# import matplotlib.pyplot as plt
+# from matplotlib.backends.backend_pdf import PdfPages
+# from matplotlib.ticker import MaxNLocator
 try:
     import qiskit
 except ImportError as ierr:

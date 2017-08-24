@@ -31,7 +31,7 @@ from tools.qi.pauli import Pauli, label_to_pauli
 def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_steps = 1,last_avg=1):
     """Minimize the obj_fun(controls).
 
-    initial_theta = the intial controls
+    initial_theta = the initial controls
     SPSA_parameters = the numerical parameters
     max_trials = the maximum number of trials
     """
@@ -49,7 +49,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials, save_
         # plus and minus directions
         theta_plus = theta + c_spsa*Delta
         theta_minus = theta - c_spsa*Delta
-        # cost fuction for two directions
+        # cost function for two directions
         cost_plus = obj_fun(theta_plus)[0]
         cost_minus = obj_fun(theta_minus)[0]
         # derivative estimate
@@ -119,7 +119,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
 def Measure_pauli_z(data, pauli):
     """Compute the expectation value of Z.
 
-    Z is represented by Z^v where v has lenght number of qubits and is 1
+    Z is represented by Z^v where v has length number of qubits and is 1
     if Z is present and 0 otherwise.
 
     data = is a dictionary of the form data = {'00000': 10}
@@ -159,7 +159,7 @@ def Energy_Estimate(data, pauli_list):
     
     
 def index_2_bit(state_index,max_index):
-    """ Returns bit string corresponding to quantum state index
+    """ Returns bitstring corresponding to quantum state index
     """
     return format(state_index,'0'+str(max_index)+'b')[::-1]
 
@@ -167,7 +167,7 @@ def Energy_Estimate_Exact(quantum_state,pauli_list,is_diagonal):
     """ Compute exact mean energy from a quantum state and a list of Paulis w/o writing the full Hamiltonian of the system  
     
     """
-    n=int(np.log2(len(quantum_state)))  #number of qubits 
+    n=int(np.log2(len(quantum_state)))  # number of qubits 
     
     energy=0
     if is_diagonal:
@@ -234,8 +234,8 @@ def trial_circuit_computational(n, state, meas_string = None, measurement = True
     """Trial function for classical optimization problems.
 
     n = number of qubits
-    state = a bit string for the state prepared.
-    meas_string = the pauli to be measured
+    state = a bitstring for the state prepared.
+    meas_string = the Pauli to be measured
     measurement = true/false if measurement is to be done
     """
     q = QuantumRegister("q", n)

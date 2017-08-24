@@ -148,10 +148,10 @@ def two_qubit_kak(unitary_matrix):
 
     Based on MATLAB implementation by David Gosset.
 
-    Computes a sequence of 10 single and two qubit gates, including 3 CNOTs,
+    Computes a sequence of 10 single- and two-qubit gates, including 3 CNOTs,
     which multiply to U, including global phase. Uses Vatan and Williams
     optimal two-qubit circuit (quant-ph/0308006v3). The decomposition algorithm
-    which achieves this is explained well in Drury and Love, 0806.4015.
+    that achieves this is explained well in Drury and Love, 0806.4015.
 
     unitary_matrix = numpy 4x4 unitary matrix
     """
@@ -170,7 +170,7 @@ def two_qubit_kak(unitary_matrix):
     # M^2 = trans(U') . U'
     M2 = np.dot(np.transpose(Uprime), Uprime)
     # Diagonalize M2
-    # Must use diagonalization routine which finds a real orthogonal matrix P
+    # Must use diagonalization routine, which finds a real orthogonal matrix P
     # when M2 is real.
     D, P = np.linalg.eig(M2)
     # If det(P) == -1, apply a swap to make P in SO(4)
