@@ -29,15 +29,26 @@ import json
 class LocalUnitarySimulatorTest(unittest.TestCase):
     """Test local unitary simulator."""
 
+    @classmethod
+    def setUpClass(cls):
+        cls.moduleName = os.path.splitext(__file__)[0]
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
+
     def setUp(self):
         self.seed = 88
         self.qasmFileName = os.path.join(qiskit.__path__[0],
                                          '../test/python/qasm/example.qasm')
-        self.qp = QuantumProgram()
-        self.moduleName = os.path.splitext(__file__)[0]
         self.modulePath = os.path.dirname(__file__)
-        logFileName = self.moduleName + '.log'
-        logging.basicConfig(filename=logFileName, level=logging.INFO)
+        self.qp = QuantumProgram()
 
     def tearDown(self):
         pass
@@ -52,7 +63,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
 	# if we want to manipulate the circuit, we have to convert it to a dict
-        circuit = json.loads(circuit)
+        circuit = json.loads(circuit.decode())
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
@@ -94,39 +105,12 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
-        logging.info('------- start profiling UnitarySimulator -----------')
+        self.log.info('------- start profiling UnitarySimulator -----------')
         ps.print_stats()
-        logging.info(sout.getvalue())
-        logging.info('------- stop profiling UnitarySimulator -----------')
+        self.log.info(sout.getvalue())
+        self.log.info('------- stop profiling UnitarySimulator -----------')
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 
-def generateTestSuite():
-    """
-    Generate module test suite.
-    """
-    testSuite = unittest.TestSuite()
-    testSuite.addTest(LocalUnitarySimulatorTest('test_unitary_simulator'))
-    return testSuite
-
-def generateProfileSuite():
-    """
-    Generate module profile suite.
-    """
-    profSuite = unittest.TestSuite()
-    profSuite.addTest(LocalUnitarySimulatorTest('profile_unitary_simulator'))
-    return profSuite
-
-def main():
-    """
-    Optional command line entry point for testing.
-    """
-    moduleName = os.path.splitext(__file__)[0]
-    testSuite = generateTestSuite()
-    profSuite = generateProfileSuite()
-    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
-    runner.run(testSuite)
-    runner.run(profSuite)
-
 if __name__ == '__main__':
-    main()
+    unittest.main()
