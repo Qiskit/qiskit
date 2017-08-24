@@ -51,5 +51,5 @@ class Real(Node):
         return fspec % self.value
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
+        """Return the corresponding floating point number."""
         return self.value

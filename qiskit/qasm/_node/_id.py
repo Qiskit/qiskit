@@ -63,7 +63,7 @@ class Id(Node):
                                                          nested_scope[0:-1])
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
+        """Return the corresponding floating point number."""
         if not nested_scope or self.name not in nested_scope[-1]:
                 raise NodeException("Expected local parameter name: ",
                                     "name=%s, " % self.name,

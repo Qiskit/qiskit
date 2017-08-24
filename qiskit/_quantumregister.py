@@ -34,5 +34,5 @@ class QuantumRegister(Register):
         return "QuantumRegister(%s,%d)" % (self.name, self.size)
 
     def __len__(self):
-        """Return a int representing the size."""
+        """Return an int representing the size."""
         return self.size

@@ -43,7 +43,7 @@ class Prefix(Node):
             self.children[1].latex(prec, nested_scope) + ")"
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
+        """Return the corresponding floating point number."""
         operation = self.children[0]
         expr = self.children[1].real(nested_scope)
         if operation == '+':

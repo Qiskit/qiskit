@@ -63,7 +63,7 @@ class CompositeGate(Gate):
                                   % (qubit[0].name, qubit[1]))
 
     def _check_qreg(self, register):
-        """Raise exception.
+        """Raise exception
 
         if quantum register is not in this gate's circuit.
         """
@@ -71,7 +71,7 @@ class CompositeGate(Gate):
         self.circuit._check_qreg(register)
 
     def _check_creg(self, register):
-        """Raise exception.
+        """Raise exception
 
         if classical register is not in this gate's circuit.
         """
@@ -79,7 +79,7 @@ class CompositeGate(Gate):
         self.circuit._check_creg(register)
 
     def _check_dups(self, qubits):
-        """Raise exception.
+        """Raise exception
 
         if list of qubits contains duplicates.
         """

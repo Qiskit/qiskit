@@ -21,7 +21,7 @@ Quantum Program QISKit Test.
 import sys
 import os
 import unittest
-import numpy as np
+import numpy as np`
 import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
@@ -78,7 +78,7 @@ QPS_SPECS = {
 
 
 class TestQuantumProgram(unittest.TestCase):
-    """QISKIT QuatumProgram Object Tests."""
+    """QISKit QuatumProgram Object Tests."""
 
     @classmethod
     def setUpClass(cls):
@@ -98,11 +98,11 @@ class TestQuantumProgram(unittest.TestCase):
     ###############################################################
 
     def test_create_program_with_specs(self):
-        """Test Quantum Object Factory creation using Specs deffinition object.
+        """Test Quantum Object Factory creation using Specs definition object.
 
-        If all is correct we get a object intstance of QuantumProgram
+        If all is correct we get an object instance of QuantumProgram
 
-        Previusly:
+        Previously:
             Objects:
                 QPS_SPECS
             Libraries:
@@ -113,11 +113,11 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(result, QuantumProgram)
 
     def test_create_program(self):
-        """Test Quantum Object Factory creation Without Specs deffinition object.
+        """Test Quantum Object Factory creation Without Specs definition object.
 
-        If all is correct we get a object intstance of QuantumProgram
+        If all is correct we get an object instance of QuantumProgram
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -130,7 +130,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         in this case we check if the QE_URL API is defined.
 
-        Previusly:
+        Previously:
             Libraries:
                 import Qconfig
         """
@@ -141,9 +141,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_classical_register(self):
         """Test create_classical_register.
 
-        If all is correct we get a object intstance of ClassicalRegister
+        If all is correct we get an object instance of ClassicalRegister
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import ClassicalRegister
@@ -155,9 +155,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_quantum_register(self):
         """Test create_quantum_register.
 
-        If all is correct we get a object intstance of QuantumRegister
+        If all is correct we get an object instance of QuantumRegister
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
@@ -169,10 +169,10 @@ class TestQuantumProgram(unittest.TestCase):
     def test_fail_create_quantum_register(self):
         """Test create_quantum_register.
 
-        If all is correct we get a object intstance of QuantumRegister and
+        If all is correct we get an object instance of QuantumRegister and
         QISKitError
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
@@ -187,10 +187,10 @@ class TestQuantumProgram(unittest.TestCase):
     def test_fail_create_classical_register(self):
         """Test create_quantum_register.
 
-        If all is correct we get a object intstance of QuantumRegister and
+        If all is correct we get an object instance of QuantumRegister and
         QISKitError
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
@@ -208,7 +208,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we get a single classical register
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
@@ -223,7 +223,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we get a single classical register
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import ClassicalRegister
@@ -236,9 +236,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_classical_registers(self):
         """Test create_classical_registers.
 
-        If all is correct we get a object intstance of list[ClassicalRegister]
+        If all is correct we get an object instance of list[ClassicalRegister]
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import ClassicalRegister
@@ -253,9 +253,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_quantum_registers(self):
         """Test create_quantum_registers.
 
-        If all is correct we get a object intstance of list[QuantumRegister]
+        If all is correct we get an object instance of list[QuantumRegister]
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumRegister
@@ -270,9 +270,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_circuit(self):
         """Test create_circuit.
 
-        If all is correct we get a object intstance of QuantumCircuit
+        If all is correct we get an object instance of QuantumCircuit
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumCircuit
@@ -286,9 +286,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_create_several_circuits(self):
         """Test create_circuit with several inputs.
 
-        If all is correct we get a object intstance of QuantumCircuit
+        If all is correct we get an object instance of QuantumCircuit
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QuantumCircuit
@@ -310,7 +310,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we should get the qasm file loaded in QASM_FILE_PATH
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -327,7 +327,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we should get a QISKitError
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
                 from qiskit import QISKitError
@@ -342,7 +342,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we should get the qasm file loaded from the string
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -364,10 +364,10 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_register_and_circuit(self):
         """Test get_quantum_registers, get_classical_registers, and get_circuit.
 
-        If all is correct we get a object intstance of QuantumCircuit,
+        If all is correct we get an object instance of QuantumCircuit,
         QuantumRegister, ClassicalRegister
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -384,7 +384,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all is correct we should get the arrays of the names
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -406,9 +406,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_qasm(self):
         """Test the get_qasm.
 
-        If all correct the qasm output should be of a certain lenght
+        If all correct the qasm output should be of a certain length
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -429,9 +429,9 @@ class TestQuantumProgram(unittest.TestCase):
         """Test the get_qasms.
 
         If all correct the qasm output for each circuit should be of a certain
-        lenght
+        length
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -457,9 +457,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_qasm_all_gates(self):
         """Test the get_qasm for more gates.
 
-        If all correct the qasm output should be of a certain lenght
+        If all correct the qasm output should be of a certain length
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -488,9 +488,9 @@ class TestQuantumProgram(unittest.TestCase):
 
     def test_get_initial_circuit(self):
         """Test get_initial_circuit.
-        If all correct is should be of the circuit form.
+        If all correct, should be of the circuit form.
 
-        Previusly:
+        Previously:
             Libraries:
                 from qiskit import QuantumProgram
         """
@@ -561,7 +561,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_setup_api(self):
         """Check the api is set up.
 
-        If all correct is should be true.
+        If all correct, should be true.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
@@ -572,7 +572,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_available_backends_exist(self):
         """Test if there are available backends.
 
-        If all correct some should exists (even if offline).
+        If all correct, some should exist (even if offline).
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
@@ -582,7 +582,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_local_backends_exist(self):
         """Test if there are local backends.
 
-        If all correct some should exists (even if ofline).
+        If all correct, some should exist (even if offline).
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         local_backends = QP_program.local_backends()
@@ -592,9 +592,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_online_backends_exist(self):
         """Test if there are online backends.
 
-        If all correct some should exists.
+        If all correct some should exist.
         """
-        # TODO: Jay should we check if we the QX is online before runing.
+        # TODO: Jay: should we check if the QX is online before running?
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         online_backends = QP_program.online_backends()
@@ -605,9 +605,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_online_devices(self):
         """Test if there are online backends (which are devices).
 
-        If all correct some should exists. NEED internet connection for this.
+        If all correct some should exist. NEED Internet connection for this.
         """
-        # TODO: Jay should we check if we the QX is online before runing.
+        # TODO: Jay: should we check if the QX is online before running?
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_devices = qp.online_devices()
@@ -618,9 +618,9 @@ class TestQuantumProgram(unittest.TestCase):
     def test_online_simulators(self):
         """Test if there are online backends (which are simulators).
 
-        If all correct some should exists. NEED internet connection for this.
+        If all correct some should exist. NEED Internet connection for this.
         """
-        # TODO: Jay should we check if we the QX is online before runing.
+        # TODO: Jay: should we check if the QX is online before running?
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_simulators = qp.online_simulators()
@@ -668,7 +668,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_backend_calibration(self):
         """Test get_backend_calibration.
 
-        If all correct should return dictionay on length 4.
+        If all correct should return dictionary on length 4.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
@@ -683,7 +683,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_backend_parameters(self):
         """Test get_backend_parameters.
 
-        If all correct should return dictionay on length 4.
+        If all correct should return dictionary on length 4.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
@@ -721,7 +721,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
 
-        If all correct should return lenght 6 dictionary.
+        If all correct should return length 6 dictionary.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
@@ -742,7 +742,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_get_compiled_qasm(self):
         """Test get_compiled_qasm.
 
-        If all correct should return lenght  dictionary.
+        If all correct should return length dictionary.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
@@ -819,7 +819,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_run_program(self):
         """Test run.
 
-        If all correct should the data.
+        If all correct should output the data.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
@@ -848,7 +848,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_combine_results(self):
         """Test run.
 
-        If all correct should the data.
+        If all correct should output the data.
         """
         QP_program = QuantumProgram()
         qr = QP_program.create_quantum_register("qr", 1)
@@ -871,7 +871,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_local_qasm_simulator(self):
         """Test execute.
 
-        If all correct should the data.
+        If all correct should output the data.
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
@@ -902,9 +902,9 @@ class TestQuantumProgram(unittest.TestCase):
                                     '010': 145, '011': 125})
 
     def test_local_qasm_simulator_one_shot(self):
-        """Test sinlge shot of local simulator .
+        """Test single shot of local simulator.
 
-        If all correct should the quantum state.
+        If all correct should return the quantum state. 
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
@@ -938,7 +938,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_local_unitary_simulator(self):
         """Test unitary simulator.
 
-        If all correct should the h otimes h and cx.
+        If all correct should return the h otimes h and cx.
         """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 2, verbose=False)
@@ -1008,7 +1008,7 @@ class TestQuantumProgram(unittest.TestCase):
     def test_average_data(self):
         """Test average_data.
 
-        If all correct should the data.
+        If all correct should return the data.
         """
         QP_program = QuantumProgram()
         q = QP_program.create_quantum_register("q", 2, verbose=False)

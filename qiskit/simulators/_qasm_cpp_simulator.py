@@ -54,7 +54,7 @@ class QasmCppSimulator:
         else:
             self._cpp_backend = 'qubit'
         self._number_of_operations = len(self.circuit['qasm']['operations'])
-        # This assumes we are getting a quick return help message.
+        # This assumes we are getting a quick return help message
         # so _localsimulator can quickly determine whether the compiled
         # simulator is available.
         try:
@@ -120,7 +120,7 @@ def parse_complex(output, key):
     Parse complex entries in C++ simulator output.
 
     This function converts complex numbers in the C++ simulator output
-    into python complex numbers. In JSON c++ output complex entries are
+    into Python complex numbers. In JSON c++ output complex entries are
     formatted as::
 
         z = [re(z), im(z)]

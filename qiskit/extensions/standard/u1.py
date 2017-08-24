@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-Diagonal single qubit gate.
+Diagonal single-qubit gate.
 """
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit

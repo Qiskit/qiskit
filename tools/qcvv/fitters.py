@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# function used to fit the exponetial decay
+# function used to fit the exponential decay
 def exp_fit_fun(x, a, tau, c):
     return a * np.exp(-x/tau) + c
 
@@ -33,7 +33,7 @@ def osc_fit_fun(x, a, tau, f, phi, c):
     return a * np.exp(-x/tau)*np.cos(2*np.pi*f*x+phi) + c
 
 
-# Functions used by randomized benchmarking.
+# functions used by randomized benchmarking
 def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
                    qubit_label):
     """Plot coherence data.
@@ -56,7 +56,7 @@ def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
     plt.yticks(fontsize=14)
     plt.xlabel('time [%s]' % (xunit), fontsize=16)
     plt.ylabel('P(1)', fontsize=16)
-    plt.title(exp_str + 'measurments of Q%s' % (str(qubit_label)), fontsize=18)
+    plt.title(exp_str + 'measurements of Q%s' % (str(qubit_label)), fontsize=18)
     plt.legend(fontsize=12)
     plt.show()
 

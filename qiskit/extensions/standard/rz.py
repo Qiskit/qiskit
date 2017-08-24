@@ -30,7 +30,7 @@ class RZGate(Gate):
     """rotation around the z-axis."""
 
     def __init__(self, phi, qubit, circ=None):
-        """Create new rz single qubit gate."""
+        """Create new rz single-qubit gate."""
         super(RZGate, self).__init__("rz", [phi], [qubit], circ)
 
     def qasm(self):

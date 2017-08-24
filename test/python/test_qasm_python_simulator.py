@@ -226,7 +226,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         pr.dump_stats(self.moduleName + '.prof')
 
     def profile_nqubit_speed_grow_depth(self):
-        """simulation time vs the number of qubits
+        """simulation time vs. the number of qubits
 
         where the circuit depth is 10x the number of simulated
         qubits. Also creates a pdf file with this module name showing a
