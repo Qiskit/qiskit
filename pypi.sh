@@ -175,7 +175,7 @@ fi
 echo -e "[OK]"
 
 echo -n "Uploading distributable package to PyPi..."
-twine upload -u $USERNAME -p $PASSWORD sdist/* &>> $self.log
+twine upload -u $USERNAME -p $PASSWORD dist/* &>> $self.log
 if [[ $? != 0 ]]
 then
     echo -e "[ERROR]"
