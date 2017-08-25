@@ -33,10 +33,16 @@ class TestJsonOutput(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestJsonOutput:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
+        cls.log = logging.getLogger(__name__)
+        cls.log.setLevel(logging.INFO)
+        logFileName = cls.moduleName + '.log'
+        handler = logging.FileHandler(logFileName)
+        handler.setLevel(logging.INFO)
+        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                   ' %(message)s'.format(cls.__name__))
+        formatter = logging.Formatter(log_fmt)
+        handler.setFormatter(formatter)
+        cls.log.addHandler(handler)
 
     def setUp(self):
         self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
@@ -51,7 +57,7 @@ class TestJsonOutput(unittest.TestCase):
         unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                                    unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        logging.info('test_json_ouptut: {0}'.format(circuit))
+        self.log.info('test_json_ouptut: {0}'.format(circuit))
 
 
 if __name__ == '__main__':

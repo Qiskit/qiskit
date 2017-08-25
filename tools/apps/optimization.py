@@ -157,6 +157,34 @@ def Energy_Estimate(data, pauli_list):
         return energy
 
 
+def index_2_bit(state_index, max_index):
+    """ Returns bit string corresponding to quantum state index."""
+    return format(state_index, '0'+str(max_index)+'b')[::-1]
+
+
+def Energy_Estimate_Exact(quantum_state, pauli_list, is_diagonal):
+    """ Compute exact mean energy.
+
+    Takes in a quantum state and a list of Paulis w/o writing the full
+    Hamiltonian of the system
+    """
+    n = int(np.log2(len(quantum_state)))  # number of qubits
+
+    energy = 0
+    if is_diagonal:
+        for p in pauli_list:
+            for i in range(len(quantum_state)):
+                bit_string = index_2_bit(int(i), n)
+                sign = 1
+                for j in range(n):
+                    # checks for Z operator in p at qubit j and
+                    # qubit j is in 1 state
+                    if p[1].v[j] == 1 and bit_string[j] == '1':
+                        sign = -sign
+                energy += sign*p[0]*np.absolute(quantum_state[i])**2
+    return energy
+
+
 def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement = True):
     """Trial function for classical optimization problems.
 
