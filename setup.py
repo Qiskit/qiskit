@@ -11,20 +11,21 @@ packages = ["qiskit",
             "qiskit.unroll"]
 
 requirements = ["IBMQuantumExperience>=1.8",
-                  "requests>=2.18,<2.19",
-                  "networkx>=1.11,<1.12",
-                  "ply==3.10",
-                  "numpy>=1.13,<1.14",
-                  "scipy>=0.19,<0.20",
-                  "matplotlib>=2.0,<2.1",
-                  "sphinx>=1.6,<1.7"]
+                "requests>=2.18,<2.19",
+                "networkx>=1.11,<1.12",
+                "ply==3.10",
+                "numpy>=1.13,<1.14",
+                "scipy>=0.19,<0.20",
+                "matplotlib>=2.0,<2.1",
+                "sphinx>=1.6,<1.7"]
 
 setup(
     name="qiskit",
     version="0.3.2",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing quantum
-computing experiments, programs, and applications. Works with Python 3.5 and 3.6""",
+computing experiments, programs, and applications.
+Works with Python 3.5 and 3.6""",
     url="https://github.com/IBM/qiskit-sdk-py",
     author="QISKit Development Team",
     author_email="qiskit@us.ibm.com",
