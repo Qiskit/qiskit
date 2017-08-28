@@ -22,9 +22,9 @@ import logging
 import os
 import sys
 sys.path.append("../..")
-from tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
-from tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from tools.qi.qi import state_fidelity, purity, concurrence
+from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
+from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
+from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
 
 
 class TestQI(unittest.TestCase):
