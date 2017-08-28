@@ -22,9 +22,9 @@ import logging
 import os
 from scipy import linalg as la
 sys.path.append("../..")
-from tools.apps.optimization import trial_circuit_ry
-from tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
-from tools.qi.pauli import Pauli
+from qiskit.tools.apps.optimization import trial_circuit_ry
+from qiskit.tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
+from qiskit.tools.qi.pauli import Pauli
 
 class TestQuantumOptimization(unittest.TestCase):
     """Tests for quantum optimization"""
