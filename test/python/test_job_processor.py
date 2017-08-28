@@ -5,6 +5,7 @@ import sys
 import io
 import logging
 import random
+import pprint
 import qiskit
 from qiskit import QuantumProgram
 from qiskit import QuantumRegister
@@ -66,13 +67,45 @@ class TestJobProcessor(unittest.TestCase):
                                          '../test/python/qasm/example.qasm')
         with open(self.qasmFileName, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
-
+        # create QuantumCircuit
         qr = QuantumRegister('q', 2)
         cr = ClassicalRegister('c', 2)
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         self.qc = qc
+        # create qobj
+        compiled_circuit1 = oqc.compile(self.qc.qasm())
+        compiled_circuit2 = oqc.compile(self.qasm_text)
+        self.qobj = {'id': 'test_qobj',
+                     'config': {
+                         'max_credits': 3,
+                         'shots': 100,
+                         'backend': 'local_qasm_simulator',
+                     }
+                     'circuits': [
+                         {
+                             'name': 'test_circuit1',
+                             'compiled_circuit': compiled_circuit1,
+                             'basis_gates': 'u1,u2,u3,cx,id',
+                             'layout': None,
+                             'seed': None
+                         },
+                         {
+                             'name': 'test_circuit2',
+                             'compiled_circuit': compiled_circuit2,
+                             'basis_gates': 'u1,u2,u3,cx,id',
+                             'layout': None,
+                             'seed': None
+                         },
+                         
+                     ]
+                     }
+
+
+                     
+                         
+        
 
     def tearDown(self):
         pass
@@ -182,11 +215,16 @@ class TestJobProcessor(unittest.TestCase):
         njobs = 20
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())            
+            compiled_circuit = oqc.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
         jp = jobp.JobProcessor(job_list, max_workers=None)
         jp.submit(silent=True)
+        results = jp.results()
+        self.log.info(pprint.pformat(results))
+        for i in range(njobs):
+            self.assertTrue(results[i]['result'][0]['status'] == 'DONE')
+            
         
 
     def test_random_local(self):
