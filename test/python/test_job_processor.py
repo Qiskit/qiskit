@@ -82,7 +82,7 @@ class TestJobProcessor(unittest.TestCase):
                          'max_credits': 3,
                          'shots': 100,
                          'backend': 'local_qasm_simulator',
-                     }
+                     },
                      'circuits': [
                          {
                              'name': 'test_circuit1',
@@ -97,8 +97,7 @@ class TestJobProcessor(unittest.TestCase):
                              'basis_gates': 'u1,u2,u3,cx,id',
                              'layout': None,
                              'seed': None
-                         },
-                         
+                         }
                      ]
                      }
 

@@ -894,9 +894,6 @@ class QuantumProgram(object):
         except KeyError:
             raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
-        # for the DAG.
-                                   unroll.JsonBackend(basis_gates.split(",")))
-
     ###############################################################
     # methods to run quantum programs (run )
     ###############################################################
@@ -927,9 +924,6 @@ class QuantumProgram(object):
             qjob = jobp.QuantumJob(qobj, preformatted=True)
             qjob_list.append(qjob)
         jp = jobp.JobProcessor(qjob_list, max_workers=1, api=self.__api)
-                                        max_credits=max_credits, seed=seed)
-                                             timeout=timeout, silent=silent)
-
         jp.submit()
         qobj_result_list = jp.results()
         result_list = []

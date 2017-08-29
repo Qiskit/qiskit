@@ -66,9 +66,13 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
             jobs.append({'qasm': job['compiled_circuit_qasm'].decode()})
         else:
             jobs.append({'qasm': job['compiled_circuit_qasm']})
+    # currently api.run_job does not take per circuit seeds of qobj
+    # so just take the first seed
+    seed0 = qobj['circuits'][0]['config']['seed']
     output = api.run_job(jobs, qobj['config']['backend'],
                          shots=qobj['config']['shots'],
-                         max_credits=qobj['config']['max_credits'])
+                         max_credits=qobj['config']['max_credits'],
+                         seed=seed0)
     if 'ERROR' in output:
         raise QISKitError(output['ERROR'])
     job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout, silent=silent)
