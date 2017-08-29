@@ -1070,7 +1070,7 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr, cr)
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend = QP_program.online_simulators()[0]
+        backend = 'ibmqx_qasm_simulator'
         self.assertRaises(IBMQuantumExperience.RegisterSizeError,
                           QP_program.execute,
                           ['qc'], backend=backend,

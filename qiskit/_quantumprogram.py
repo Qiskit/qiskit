@@ -991,8 +991,11 @@ class QuantumProgram(object):
                                         max_credits=max_credits, seed=seed)
             if 'error' in output:
                 raise ResultError(output['error'])
-            qobj_result = self._wait_for_job(output['id'], wait=wait,
-                                             timeout=timeout, silent=silent)
+            if 'id' in output:
+                qobj_result = self._wait_for_job(output['id'], wait=wait,
+                                                 timeout=timeout, silent=silent)
+            else:
+                raise ResultError('unexpected job results: {}'.format(output))
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
