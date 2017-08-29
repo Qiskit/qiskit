@@ -71,16 +71,16 @@ class Unroller(object):
                             for j in range(self.cregs[node.name])]
                 else:
                     raise UnrollerError("expected qreg or creg name:",
-                                            "line=%s" % node.line,
-                                            "file=%s" % node.file)
+                                        "line=%s" % node.line,
+                                        "file=%s" % node.file)
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
                 else:
                     raise UnrollerError("excepted local bit name:",
-                                            "line=%s" % node.line,
-                                            "file=%s" % node.file)
+                                        "line=%s" % node.line,
+                                        "file=%s" % node.file)
 
     def _process_custom_unitary(self, node):
         """Process a custom unitary node."""
@@ -178,8 +178,8 @@ class Unroller(object):
 
     def _process_children(self, node):
         """Call process_node for all children of node."""
-        for c in node.children:
-            self._process_node(c)
+        for kid in node.children:
+            self._process_node(kid)
 
     def _process_node(self, node):
         """Carry out the action associated with node n."""

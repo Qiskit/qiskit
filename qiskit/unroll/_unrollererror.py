@@ -21,6 +21,7 @@ Exception for errors raised by unroller.
 
 from qiskit import QISKitError
 
+
 class UnrollerError(QISKitError):
     """Base class for errors raised by unroller."""
 
