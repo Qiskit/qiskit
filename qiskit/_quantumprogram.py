@@ -931,7 +931,6 @@ class QuantumProgram(object):
         except KeyError:
             raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
-
     ###############################################################
     # methods to run quantum programs (run )
     ###############################################################
@@ -962,7 +961,6 @@ class QuantumProgram(object):
             qjob = jobp.QuantumJob(qobj, preformatted=True)
             qjob_list.append(qjob)
         jp = jobp.JobProcessor(qjob_list, max_workers=1, api=self.__api)
-
         jp.submit()
         qobj_result_list = jp.results()
         result_list = []
