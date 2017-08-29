@@ -23,6 +23,7 @@ indicate which qubits are coupled and the permitted direction of CNOT gates.
 The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+from collections import OrderedDict
 import networkx as nx
 from ._couplingerror import CouplingError
 
@@ -84,7 +85,7 @@ class Coupling:
         couplingdict = {0: [1, 2], 1: [2]}.
         """
         # self.qubits is dict from qubit (regname,idx) tuples to node indices
-        self.qubits = {}
+        self.qubits = OrderedDict()
         # self.index_to_qubit is a dict from node indices to qubits
         self.index_to_qubit = {}
         # self.node_counter is integer counter for labeling nodes
