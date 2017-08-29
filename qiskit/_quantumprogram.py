@@ -1167,9 +1167,10 @@ class Result(object):
             for index in range(len(qobj["circuits"])):
                 if qobj["circuits"][index]['name'] == name:
                     return self.__result['result'][index]["data"]
-        except KeyError:
+        except (KeyError, TypeError) as err:
+            print(err)
             raise QISKitError('No data for circuit "{0}"'.format(name))
-
+        
     def get_counts(self, name):
         """Get the histogram data of cicuit name.
 
