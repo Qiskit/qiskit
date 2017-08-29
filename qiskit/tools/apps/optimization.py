@@ -157,6 +157,39 @@ def Energy_Estimate(data, pauli_list):
         return energy
 
 
+def index_2_bit(state_index,num_bits):
+    """ Returns bit string corresponding to quantum state index
+
+    state_index : integer index of the state to convert
+    num_bits : the number of bits in the returned string
+    """
+    return np.array([int(c) for c in np.binary_repr(state_index,num_bits)[::-1]], dtype=np.uint8)
+
+def Energy_Estimate_Exact(quantum_state,pauli_list,state_bitstring=None,is_diagonal=False):
+    """ Compute exact mean energy from a quantum state and a list of Paulis w/o writing the full Hamiltonian of the system  
+
+    quantum_state : numpy vector containing the full quantum state
+    pauli_list : list of (weight, Pauli)
+    state_bitstring : matrix containing the mapping of each state to 
+                      bitstring. If None, will be constructed.
+    is_diagonal : is the Hamiltonian diagonal?
+    
+    """
+    if (state_bitstring is None):
+        n=int(np.log2(len(quantum_state)))
+        state_bitstring=np.array([index_2_bit(i,n)
+                                  for i in range(2**n)])
+    energy=0
+    if is_diagonal:
+        for p in pauli_list:
+            energy += p[0]*(
+                np.dot((-1)**(np.sum(state_bitstring * p[1].v, 1) % 2),
+                       np.absolute(quantum_state**2)))
+    else:
+        raise NotImplementedError('Only diagonal operators implemented so far')
+            
+    return energy
+                                                                              
 def trial_circuit_ry(n, m, theta, entangler_map, meas_string = None, measurement = True):
     """Trial function for classical optimization problems.
 
