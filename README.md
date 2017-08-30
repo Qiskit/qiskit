@@ -119,8 +119,8 @@ more information about the [IBM Q experience backend information](https://github
 
 #### Configure your API token
 
--  Create an `IBM Quantum
-   Experience <https://quantumexperience.ng.bluemix.net>`__ account if
+-  Create an [IBM Quantum
+   Experience] (https://quantumexperience.ng.bluemix.net) account if
    you haven't already done so
 -  Get an API token from the Quantum Experience website under “My
    Account” > “Personal Access Token”
