@@ -991,6 +991,9 @@ class QuantumProgram(object):
                                         max_credits=max_credits, seed=seed)
             if 'error' in output:
                 raise ResultError(output['error'])
+            if 'id' not in output:
+                raise ResultError('unexpected job results: {}'.format(output))
+                
             qobj_result = self._wait_for_job(output['id'], wait=wait,
                                              timeout=timeout, silent=silent)
         else:

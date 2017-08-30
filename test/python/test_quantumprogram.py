@@ -31,6 +31,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QISKitError
+from IBMQuantumExperience import IBMQuantumExperience
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
@@ -1069,12 +1070,12 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr, cr)
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend = QP_program.online_simulators()[0]
-        # print(backend)
-        # result = QP_program.execute(['qc'], backend=backend,
-                           # shots=shots, max_credits=3, silent=True,
-                           # seed=73846087)
-        #TODO: THIS SHOULD GIVE AN ERROR MESSAGE THAT SIMULATION IS TOO LARGE
+        backend = 'ibmqx_qasm_simulator'
+        self.assertRaises(IBMQuantumExperience.RegisterSizeError,
+                          QP_program.execute,
+                          ['qc'], backend=backend,
+                          shots=shots, max_credits=3,
+                          silent=True, seed=73846087)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):
@@ -1120,9 +1121,7 @@ class TestQuantumProgram(unittest.TestCase):
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
+        backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
         if status['available'] is False:
