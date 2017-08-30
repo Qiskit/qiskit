@@ -995,7 +995,7 @@ class QuantumProgram(object):
                 raise ResultError('unexpected job results: {}'.format(output))
                 
             qobj_result = self._wait_for_job(output['id'], wait=wait,
-                                             timeout=timeout, silent=silent)      
+                                             timeout=timeout, silent=silent)
         else:
             # making a list of jobs just for local backends. Name is droped
             # but the list is made ordered
