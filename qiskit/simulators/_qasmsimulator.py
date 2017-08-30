@@ -64,13 +64,13 @@ The simulator is run using
                {
                    "name": , // required -- string
                    "params": , // optional -- list[double]
-                   "qubits": , // optional -- list[int]
-                   "clbits": , //optional -- list[int]
+                   "qubits": , // required -- list[int]
+                   "clbits": , // optional -- list[int]
                    "conditional":  // optional -- map
                        {
                            "type": , // string
-                           "mask": , // big int
-                           "val":  , // big int
+                           "mask": , // hex string
+                           "val":  , // bhex string
                        }
                },
            ]
