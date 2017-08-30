@@ -119,14 +119,14 @@ fixed couplings given by a *CouplingGraph*.
 The four circuit representations and how they are currently transformed
 into each other are summarized in this figure:
 
-.. image:: images/circuit_representations.png
-    :width: 200px
+.. image:: ../images/circuit_representations.png
+    :width: 600px
     :align: center
 
 Several unroller backends and their outputs are summarized here:
 
-.. image:: images/unroller_backends.png
-    :width: 200px
+.. image:: ../images/unroller_backends.png
+    :width: 600px
     :align: center
 
 

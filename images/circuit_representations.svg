@@ -1,382 +1,105 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="311.0722mm"
-   height="106.37197mm"
-   viewBox="0 0 1102.2243 376.90856"
-   id="svg2"
-   version="1.1"
-   inkscape:version="0.91 r13725"
-   sodipodi:docname="circuit_representations.svg">
-  <defs
-     id="defs4">
-    <marker
-       inkscape:stockid="Arrow1Mend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Mend"
-       style="overflow:visible"
-       inkscape:isstock="true">
-      <path
-         id="path4345"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.4,0,0,-0.4,-4,0)"
-         inkscape:connector-curvature="0" />
-    </marker>
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4198-1-0"
-       x="-0.024868421"
-       width="1.0497369"
-       y="-0.065172412"
-       height="1.1303447">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="0.79549511"
-         id="feGaussianBlur4200-9-6" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4198-1-0-7"
-       x="-0.024868421"
-       width="1.0497369"
-       y="-0.065172412"
-       height="1.1303447">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="0.79549511"
-         id="feGaussianBlur4200-9-6-5" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4198-1-0-3"
-       x="-0.024868421"
-       width="1.0497369"
-       y="-0.065172412"
-       height="1.1303447">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="0.79549511"
-         id="feGaussianBlur4200-9-6-4" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4198-1-0-3-3"
-       x="-0.024868421"
-       width="1.0497369"
-       y="-0.065172412"
-       height="1.1303447">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="0.79549511"
-         id="feGaussianBlur4200-9-6-4-8" />
-    </filter>
-    <marker
-       inkscape:stockid="Arrow1Mend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Mend-1"
-       style="overflow:visible"
-       inkscape:isstock="true">
-      <path
-         inkscape:connector-curvature="0"
-         id="path4345-0"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Mend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Mend-1-6"
-       style="overflow:visible"
-       inkscape:isstock="true">
-      <path
-         inkscape:connector-curvature="0"
-         id="path4345-0-5"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Mend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Mend-1-6-2"
-       style="overflow:visible"
-       inkscape:isstock="true">
-      <path
-         inkscape:connector-curvature="0"
-         id="path4345-0-5-4"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Mend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Mend-1-6-4"
-       style="overflow:visible"
-       inkscape:isstock="true">
-      <path
-         inkscape:connector-curvature="0"
-         id="path4345-0-5-5"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
-    </marker>
-  </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="540.1541"
-     inkscape:cy="117.28304"
-     inkscape:document-units="px"
-     inkscape:current-layer="layer1"
-     showgrid="false"
-     fit-margin-top="0.5"
-     fit-margin-left="0.5"
-     fit-margin-right="0.5"
-     fit-margin-bottom="0.5"
-     inkscape:window-width="1274"
-     inkscape:window-height="736"
-     inkscape:window-x="88"
-     inkscape:window-y="8"
-     inkscape:window-maximized="0" />
-  <metadata
-     id="metadata7">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1"
-     transform="translate(344.81261,-66.47935)">
-    <rect
-       style="fill:#ff9500;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4198-1-0-3-3)"
-       id="rect3336-7-6-5-6"
-       width="76.771591"
-       height="29.294424"
-       x="161.6244"
-       y="67.968552"
-       transform="matrix(5.2451769,0,0,3.3028092,-1170.8032,-149.93047)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-122.30367"
-       y="111.27385"
-       id="text4202"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         x="-122.30367"
-         y="111.27385"
-         id="tspan4206"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">Open QASM</tspan><tspan
-         sodipodi:role="line"
-         x="-122.30367"
-         y="161.27385"
-         id="tspan4222">(text)</tspan></text>
-    <rect
-       style="fill:#ff9500;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4198-1-0-3)"
-       id="rect3336-7-6-5"
-       width="76.771591"
-       height="29.294424"
-       x="161.6244"
-       y="67.968552"
-       transform="matrix(5.2451769,0,0,3.3028092,-1170.8032,113.78382)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-126.31633"
-       y="374.88373"
-       id="text4210"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan4212"
-         x="-126.31633"
-         y="374.88373"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">Node</tspan><tspan
-         sodipodi:role="line"
-         x="-126.31633"
-         y="424.88373"
-         id="tspan4224">(AST)</tspan></text>
-    <rect
-       style="fill:#ff9500;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4198-1-0)"
-       id="rect3336-7-6"
-       width="76.771591"
-       height="29.294424"
-       x="161.6244"
-       y="67.968552"
-       transform="matrix(5.2451769,0,0,3.3028092,-504.80317,-148.21618)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="548.69092"
-       y="109.18686"
-       id="text4214"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan4216"
-         x="548.69092"
-         y="109.18686"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'"
-           id="tspan4324"> QuantumCircuit</tspan></tspan><tspan
-         sodipodi:role="line"
-         x="548.69092"
-         y="159.18686"
-         id="tspan4226">(list of Instructions)</tspan></text>
-    <rect
-       style="fill:#ff9500;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4198-1-0-7)"
-       id="rect3336-7-6-0"
-       width="76.771591"
-       height="29.294424"
-       x="161.6244"
-       y="67.968552"
-       transform="matrix(5.2451769,0,0,3.3028092,-504.80317,114.06953)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="532.09021"
-       y="376.31995"
-       id="text4218"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan4220"
-         x="532.09021"
-         y="376.31995"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'"
-           id="tspan4326"> Circuit</tspan></tspan><tspan
-         sodipodi:role="line"
-         x="532.09021"
-         y="426.31995"
-         id="tspan4228">(DAG)</tspan></text>
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend)"
-       d="m -240,337.79078 0,-162.85715"
-       id="path4330"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend-1)"
-       d="m -10.571429,168.25647 0,162.85714"
-       id="path4330-1"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:4.82702589;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend-1-6)"
-       d="m 90.000286,381.74521 237.162454,0"
-       id="path4330-1-1"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:5.59183884;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend-1-6-2)"
-       d="M 326.01209,331.84767 95.56486,177.95204"
-       id="path4330-1-1-5"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:4.82702589;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend-1-6-4)"
-       d="m 332.61964,120.93363 -237.162446,0"
-       id="path4330-1-1-54"
-       inkscape:connector-curvature="0" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:22.5px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-240"
-       y="562.36218"
-       id="text7814"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7816"
-         x="-240"
-         y="562.36218" /></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-185.71429"
-       y="273.79077"
-       id="text7818"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7820"
-         x="-185.71429"
-         y="273.79077"
-         style="font-size:25px">Qasm.parse()</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-343.71429"
-       y="272.36221"
-       id="text7822"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7824"
-         x="-343.71429"
-         y="272.36221"
-         style="font-size:25px">.qasm()</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:25px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="152.85715"
-       y="425.21936"
-       id="text7826"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7828"
-         x="152.85715"
-         y="425.21936">Unroller</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="208.83963"
-       y="239.24698"
-       id="text7822-2"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7824-9"
-         x="208.83963"
-         y="239.24698"
-         style="font-size:25px">.qasm()</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="163.12535"
-       y="92.104103"
-       id="text7822-2-4"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan7824-9-2"
-         x="163.12535"
-         y="92.104103"
-         style="font-size:25px">.qasm()</tspan></text>
-  </g>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1103 377" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;">
+    <g id="Layer-1" transform="matrix(1,0,0,1,344.813,-66.4793)">
+        <g id="path4330.-1.-1" transform="matrix(1.11609,0,0,1,-22.3375,4.26326e-14)">
+            <path d="M90,381.745L327.163,381.745" style="fill:none;stroke:black;stroke-width:2px;"/>
+        </g>
+        <g id="path4330.-1.-1.-5" transform="matrix(1.14861,0,0,1.10358,-31.6561,-33.1503)">
+            <path d="M326.012,331.848L95.565,177.952" style="fill:none;stroke:black;stroke-width:2px;"/>
+        </g>
+        <g id="path4330.-1.-1.-54" transform="matrix(1.11609,0,0,1,-28.4279,-6.07733)">
+            <path d="M332.62,120.934L95.457,120.934" style="fill:none;stroke:black;stroke-width:2px;"/>
+        </g>
+        <g id="rect3336.-7.-6.-5.-6" transform="matrix(5.24518,0,0,3.30281,-1172.32,-155.008)">
+            <rect x="161.624" y="67.969" width="76.772" height="29.294" style="fill:rgb(255,149,0);stroke:black;stroke-width:0.46px;"/>
+        </g>
+        <g id="text4202" transform="matrix(1,0,0,1,-0.245714,-9.96555)">
+            <g transform="matrix(1,0,0,1,-122.304,121.274)">
+                <text x="-109.42px" y="0px" style="font-family:'HelveticaNeue-Light', 'Helvetica Neue';font-weight:300;font-size:40px;">Open QASM</text>
+            </g>
+            <g transform="matrix(1,0,0,1,-122.304,155.274)">
+                <text x="-32.929px" y="0px" style="font-family:'HelveticaNeue-Thin', 'Helvetica Neue', sans-serif;font-weight:200;font-size:34px;">(t<tspan x="-16.405px 0.833px 15.929px " y="0px 0px 0px ">ext</tspan>)</text>
+            </g>
+        </g>
+        <g id="rect3336.-7.-6.-5" transform="matrix(5.24518,0,0,3.30281,-1172.32,108.582)">
+            <rect x="161.624" y="67.969" width="76.772" height="29.294" style="fill:rgb(255,149,0);stroke:black;stroke-width:0.46px;"/>
+        </g>
+        <g id="text4210" transform="matrix(1,0,0,1,2.16123,-9.78609)">
+            <g transform="matrix(1,0,0,1,-126.316,384.884)">
+                <text x="-47.06px" y="0px" style="font-family:'HelveticaNeue-Light', 'Helvetica Neue';font-weight:300;font-size:40px;">Node</text>
+            </g>
+            <g transform="matrix(1,0,0,1,-126.316,419.884)">
+                <text x="-37.434px" y="0px" style="font-family:'HelveticaNeue-Thin', 'Helvetica Neue', sans-serif;font-weight:200;font-size:34px;">(AS<tspan x="11.594px 29.24px " y="0px 0px ">T)</tspan></text>
+            </g>
+        </g>
+        <g id="rect3336.-7.-6" transform="matrix(5.24518,0,0,3.30281,-504.943,-155.008)">
+            <rect x="161.624" y="67.969" width="76.772" height="29.294" style="fill:rgb(255,149,0);stroke:black;stroke-width:0.46px;"/>
+        </g>
+        <g id="text4214" transform="matrix(1,0,0,1,-4.60523,-10.8786)">
+            <g transform="matrix(1,0,0,1,548.691,119.187)">
+                <text x="-134.46px" y="0px" style="font-family:'HelveticaNeue-Light', 'Helvetica Neue';font-weight:300;font-size:40px;">QuantumCir<tspan x="72.98px 93.74px " y="0px 0px ">cu</tspan>it</text>
+            </g>
+            <g transform="matrix(1,0,0,1,548.691,156.187)">
+                <text x="-129.217px" y="0px" style="font-family:'HelveticaNeue-Thin', 'Helvetica Neue', sans-serif;font-weight:200;font-size:34px;">(list of Instructions)</text>
+            </g>
+        </g>
+        <g id="rect3336.-7.-6.-0" transform="matrix(5.24518,0,0,3.30281,-504.943,108.582)">
+            <rect x="161.624" y="67.969" width="76.772" height="29.294" style="fill:rgb(255,149,0);stroke:black;stroke-width:0.46px;"/>
+        </g>
+        <g id="text4218" transform="matrix(1,0,0,1,11.9155,-10.6223)">
+            <g transform="matrix(1,0,0,1,532.09,386.32)">
+                <text x="-54.46px" y="0px" style="font-family:'HelveticaNeue-Light', 'Helvetica Neue';font-weight:300;font-size:40px;">Cir<tspan x="-7.02px 13.74px " y="0px 0px ">cu</tspan>it</text>
+            </g>
+            <g transform="matrix(1,0,0,1,532.09,421.32)">
+                <text x="-41.497px" y="0px" style="font-family:'HelveticaNeue-Thin', 'Helvetica Neue', sans-serif;font-weight:200;font-size:34px;">(D<tspan x="-11.441px 8.109px 33.303px " y="0px 0px 0px ">AG)</tspan></text>
+            </g>
+        </g>
+        <g id="path4330" transform="matrix(1,0,0,1.04285,0.18739,-19.1961)">
+            <path d="M-240,337.791L-240,174.934" style="fill:none;stroke:black;stroke-width:2px;"/>
+        </g>
+        <g id="path4330.-1" transform="matrix(1,0,0,1.04285,-0.241181,-12.2329)">
+            <path d="M-10.571,168.256L-10.571,331.114" style="fill:none;stroke:black;stroke-width:2px;"/>
+        </g>
+        <g transform="matrix(-1,1.22465e-16,-1.22465e-16,-1,364.139,484.117)">
+            <path d="M374.952,136.097L389.903,166L360,166L374.952,136.097Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+        <g transform="matrix(-1.83697e-16,-1,1,-1.83697e-16,-72.9374,489.808)">
+            <path d="M374.952,136.097L389.903,166L360,166L374.952,136.097Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+        <g transform="matrix(0.559198,-0.829034,0.829034,0.559198,-256.785,389.615)">
+            <path d="M374.952,136.097L389.903,166L360,166L374.952,136.097Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+        <g transform="matrix(-1.66533e-16,-1,1,-1.66533e-16,-78.7086,756.697)">
+            <path d="M374.952,136.097L389.903,166L360,166L374.952,136.097Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+        <g transform="matrix(1,-2.44929e-16,2.44929e-16,1,-614.764,12.4794)">
+            <path d="M374.952,136.097L389.903,166L360,166L374.952,136.097Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+        <g transform="matrix(1,0,0,1,-183.235,197.754)">
+            <g id="text7818">
+                <text x="0px" y="0px" style="font-family:'LucidaGrande', 'Lucida Grande', sans-serif;font-weight:500;font-size:25px;">Qasm.parse()</text>
+            </g>
+        </g>
+        <g transform="matrix(1,0,0,1,-228.333,319.247)">
+            <g id="text7822">
+                <text x="0px" y="0px" style="font-family:'LucidaGrande', 'Lucida Grande', sans-serif;font-weight:500;font-size:25px;">.qasm()</text>
+            </g>
+        </g>
+        <g transform="matrix(1,0,0,1,156.94,415.972)">
+            <g id="text7826">
+                <text x="0px" y="0px" style="font-family:'LucidaGrande', 'Lucida Grande', sans-serif;font-weight:500;font-size:25px;">Unroller</text>
+            </g>
+        </g>
+        <g transform="matrix(1,0,0,1,297.438,299.754)">
+            <g id="text7822.-2">
+                <text x="0px" y="0px" style="font-family:'LucidaGrande', 'Lucida Grande', sans-serif;font-weight:500;font-size:25px;">.qasm()</text>
+            </g>
+        </g>
+        <g transform="matrix(1,0,0,1,241.784,104.131)">
+            <g id="text7822.-2.-4">
+                <text x="0px" y="0px" style="font-family:'LucidaGrande', 'Lucida Grande', sans-serif;font-weight:500;font-size:25px;">.qasm()</text>
+            </g>
+        </g>
+    </g>
 </svg>
