@@ -108,7 +108,7 @@ circuits. The program workflow consists of three stages: Build, Compile, and Run
 next instance.
 
 ### Quantum Chips
-If you want to execute your Quantum circuit in a real Chip, you can use the IBM Quantum Experience (QX) cloud service. Currently through QX you can use the next chips:
+If you want to execute your Quantum circuit in a real Chip, you can use the IBM Quantum Experience (QX) cloud service. Currently through QX you can use the following chips:
 
 -   ibmqx2: [5-qubit backend](https://ibm.biz/qiskit-ibmqx2)
 
