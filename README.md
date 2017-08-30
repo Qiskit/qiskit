@@ -11,7 +11,7 @@ Use **QISKit** to create quantum computing programs, compile them, and execute t
 
 Links to Sections:
 
-* [Installation (Python)](#python-installation)
+* [Installation and setup](#installation-and-setup)
 * [Installation (Anaconda)](#anaconda-installation)
 * [Getting Started](#getting-started)
 * [More Information](#more-information)
@@ -62,44 +62,39 @@ Now that the SDK is installed, it's time to begin working with QISKit. First, ge
 
 Now, try out some example QASM, which runs via the simulator online. It can both run using Python and Jupyter Notebooks.
 
-**CAN WE PROVIDE A DESCRIPTION OF WHAT THIS CODE DOES, HOW TO RUN?**
+### creating a superpesition example
 
 ```
-    from qiskit import QuantumProgram
-    import Qconfig
+from qiskit import QuantumProgram
+import Qconfig
+# Creating Programs create your first QuantumProgram object instance.
+Q_program = QuantumProgram()
 
-    # Creating Programs create your first QuantumProgram object instance.
-    Q_program = QuantumProgram()
+# Set up the API and execute the program.
+# You need the APItoken and the QX URL. 
+# Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-    # Set up the API and execute the program. You need the APItoken and the QX URL.
-    # Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
-    
-    # Creating Registers
-    # create your first Quantum Register called "qr" with 2 qubits
-    qr = Q_program.create_quantum_register("qr", 5)
-    # create your first Classical Register called "cr" with 2 bits
-    cr = Q_program.create_classical_register("cr", 5)
+# Creating Registers create your first Quantum Register called "qr" with 2 qubits
+qr = Q_program.create_quantum_register("qr", 2)
+# create your first Classical Register called "cr" with 2 bits
+cr = Q_program.create_classical_register("cr", 2)
+# Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr" # and your Classical Register "cr"
+qc = Q_program.create_circuit("superposition", [qr], [cr])
 
-    # Creating Circuits
-    # create your first Quantum Circuit called "qc" involving your Quantum Register "qr" # and your Classical Register "cr"
-    qc = Q_program.create_circuit("ghz", [qr], [cr])
+# add the H gate in the Qubit 0, we put this Qubit in superposition
+qc.h(qr[0])
 
-    # Create a GHZ state, for example
-    qc.h(qr[0])
-    for i in range(4):
-        qc.cx(qr[i], qr[i+1])
-    # Insert a barrier before measurement
-    qc.barrier()
-    # Measure all of the qubits in the standard basis
-    for i in range(5):
-        qc.measure(qr[i], cr[i])
+# add measure to see the state
+qc.measure(qr, cr)
 
-    # Compiled to qc5qv2 coupling graph
-    result = Q_program.execute(["ghz"], backend='local_qasm_simulator', shots=1024)
-    
-    # Show the results
-    print(result)
-    print(result.get_counts("ghz"))
+# Compiled  and execute in the local_qasm_simulator
+
+result = Q_program.execute(["superposition"], backend='local_qasm_simulator', shots=1024)
+
+# Show the results
+print(result)
+print(result.get_data("superposition"))
+
 
 ```
 
@@ -107,20 +102,16 @@ in this case the output will be:
 
 ```
 COMPLETED
-{'00000': 512, '11111': 512}
+{'00': 509, '11': 515} 
 ```
+
 The basic concept of our quantum program is an array of quantum
-circuits. The program workflow consists of three stages: Build, Compile,
-and Run. Build allows you to make different quantum circuits that
-represent the problem you are solving; Compile allows you to rewrite
-them to run on different backends (simulators/real chips of different
-quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After
-the jobs have been run, the data is collected. There are methods for
-putting this data together, depending on the program. This either gives
-you the answer you wanted or allows you to make a better program for the
+circuits. The program workflow consists of three stages: Build, Compile, and Run. Build allows you to make different quantum circuits that represent the problem you are solving; Compile allows you to rewrite them to run on different backends (simulators/real chips of different quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted or allows you to make a better program for the
 next instance.
 
 ### Next Steps
+
+You can review the QISKit documentation 
 
 Now you're set up and ready to check out some of our other examples in the [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository! Our tutorials are developed using [Jupyter Notebooks](https://jupyter.org/), but can be accessed as read-only from the github web page.
 
