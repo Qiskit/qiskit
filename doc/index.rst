@@ -60,6 +60,75 @@ The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 
 	 {'00': 531, '11': 493}
 
+Project Organization
+--------------------
+
+Python example programs can be found in the *examples* directory, and test scripts are
+located in *test*. The *qiskit* directory is the main module of the SDK.
+
+Structure
+---------
+
+Programming interface
+~~~~~~~~~~~~~~~~~~~~~
+
+The *qiskit* directory is the main Python module and contains the
+programming interface objects *QuantumProgram*, *QuantumRegister*,
+*ClassicalRegister*, and *QuantumCircuit*.
+
+At the highest level, users construct a *QuantumProgram* to create,
+modify, compile, and execute a collection of quantum circuits. Each
+*QuantumCircuit* has a set of data registers, each of type
+*QuantumRegister* or *ClassicalRegister*. Methods of these objects are
+used to apply instructions that define the circuit. The *QuantumCircuit*
+can then generate **OpenQASM** code that can flow through other
+components in the *qiskit* directory.
+
+The *extensions* directory extends quantum circuits as needed to support
+other gate sets and algorithms. Currently there is a *standard*
+extension defining some typical quantum gates.
+
+Internal modules
+~~~~~~~~~~~~~~~~
+
+The directory also contains internal modules that are still under
+development:
+
+-  a *qasm* module for parsing **OpenQASM** circuits
+-  an *unroll* module to interpret and "unroll" **OpenQASM** to a target
+   gate basis (expanding gate subroutines and loops as needed)
+-  a *circuit* module for working with circuits as graphs
+-  a *mapper* module for mapping all-to-all circuits to run on devices
+   with fixed couplings
+
+Quantum circuits flow through the components as follows. The programming
+interface is used to generate **OpenQASM** circuits. **OpenQASM**
+source, as a file or string, is passed into a *Qasm* object, whose
+*parse* method produces an abstract syntax tree (**AST**). The **AST**
+is passed to an *Unroller* that is attached to an *UnrollerBackend*.
+There is a *PrinterBackend* for outputting text, a *SimulatorBackend*
+for outputting simulator input data for the local simulators, and a
+*CircuitBackend* for constructing *Circuit* objects. The *Circuit*
+object represents an "unrolled" **OpenQASM** circuit as a directed
+acyclic graph (**DAG**). The *Circuit* provides methods for
+representing, transforming, and computing properties of a circuit and
+outputting the results again as **OpenQASM**. The whole flow is used by
+the *mapper* module to rewrite a circuit to execute on a device with
+fixed couplings given by a *CouplingGraph*.
+
+The four circuit representations and how they are currently transformed
+into each other are summarized in this figure:
+
+.. image:: images/circuit_representations.png
+    :width: 200px
+    :align: center
+
+Several unroller backends and their outputs are summarized here:
+
+.. image:: images/unroller_backends.png
+    :width: 200px
+    :align: center
+
 
 .. testoutput::
    :hide:
