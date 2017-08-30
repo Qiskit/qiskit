@@ -56,9 +56,9 @@ If you don't have Git installed, click the "Clone or download" button at the URL
 
 ## Getting Started
 
-Now that the SDK is installed, it's time to begin working with QISKit. First, get your [API token and configure your Qconfig file](QISKitDETAILS.rst#APIToken). 
+Now that the SDK is installed, it's time to begin working with QISKit. First, get your [API token and configure your Qconfig file](QISKitDETAILS.rst#APIToken), it allow to you to execute your programs in the IBM Quantum Experience chips.
 
-Now, try out some example QASM, which runs via the simulator online. It can both run using Python and Jupyter Notebooks.
+After, try out some example QASM, which runs via the local simulator or the online simulator or [real Quantum Chips](#quantum-chips).
 
 ### Creating your first Quantum Program 
 
