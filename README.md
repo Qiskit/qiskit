@@ -8,18 +8,16 @@ Use **QISKit** to create quantum computing programs, compile them, and execute t
 
 **We use GitHub issues for tracking requests and bugs. Please see the** [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for questions and discussion.** **If you'd like to contribute to QISKit, please take a look at our** [contribution guidelines](CONTRIBUTING.rst).
 
-
 Links to Sections:
 
 * [Installation and setup](#installation-and-setup)
-* [Installation (Anaconda)](#anaconda-installation)
 * [Getting Started](#getting-started)
+* [Quantum Chips](quantum-hips)
 * [More Information](#more-information)
+* [FAQ](#FAQ)
 * [License](#license)
 
-
 # Installation and setup
-
 ## Dependencies
 
 To use QISKit Python version you'll need to have installed [Python 3 or later](https://www.python.org/downloads/) and [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) (recommended to interact with tutorials). 
@@ -42,7 +40,7 @@ the fast way to install QISKit is using PIP tool (Python package manager):
 
 ### Source Installation 
 
-Clone the QISKit SDK repository and navigate to its folder on your local machine:
+Other common option is clone the QISKit SDK repository and navigate to its folder on your local machine:
 
 Select the "Clone or download" button at the top of this webpage (or from URL shown in the git clone command), unzip the file if needed, and navigate to **qiskit-sdk-py folder** in a terminal window.
 
@@ -62,7 +60,9 @@ Now that the SDK is installed, it's time to begin working with QISKit. First, ge
 
 Now, try out some example QASM, which runs via the simulator online. It can both run using Python and Jupyter Notebooks.
 
-### creating a superpesition example
+### Creating your first Quantum Program 
+
+This is a simple superpesition example.
 
 ```
 from qiskit import QuantumProgram
@@ -94,8 +94,6 @@ result = Q_program.execute(["superposition"], backend='local_qasm_simulator', sh
 # Show the results
 print(result)
 print(result.get_data("superposition"))
-
-
 ```
 
 in this case the output will be:
@@ -108,6 +106,36 @@ COMPLETED
 The basic concept of our quantum program is an array of quantum
 circuits. The program workflow consists of three stages: Build, Compile, and Run. Build allows you to make different quantum circuits that represent the problem you are solving; Compile allows you to rewrite them to run on different backends (simulators/real chips of different quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted or allows you to make a better program for the
 next instance.
+
+### Quantum Chips
+If you want to execute your Quantum circuit in a real Chip, you can use the IBM Quantum Experience (QX) cloud service. Currently through QX you can use the next chips:
+
+-   ibmqx2: [5-qubit backend](https://ibm.biz/qiskit-ibmqx2)
+
+-   ibmqx3: [16-qubit backend](https://ibm.biz/qiskit-ibmqx3)
+
+more information about the [IBM Q experience backend information](https://github.com/QISKit/ibmqx-backend-information)
+
+
+#### Configure your API token
+
+-  Create an `IBM Quantum
+   Experience <https://quantumexperience.ng.bluemix.net>`__ account if
+   you haven't already done so
+-  Get an API token from the Quantum Experience website under “My
+   Account” > “Personal Access Token”
+-  You will insert your API token in a file called Qconfig.py. First
+   copy the default version of this file from the tutorial folder to the
+   main SDK folder (on Windows, replace ``cp`` with ``copy``):
+
+```
+    cp Qconfig.py.default Qconfig.py
+```
+
+-  Open your Qconfig.py, remove the ``#`` from the beginning of the API
+   token line, and copy/paste your API token into the space between the
+   quotation marks on that line. Save and close the file.
+
 
 ### Next Steps
 
@@ -139,6 +167,27 @@ QISKit was originally developed by researchers and developers on the [IBM-Q]() T
 
 Visit the [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussion on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
+## FAQ
+
+If you upgrade the dependencies and get the error below, try the fix
+shown below the error:
+
+* Depending on the system and setup to append "sudo -H" before could be needed.
+    ```
+    pip install --upgrade IBMQuantumExperience
+    ```
+* Cannot remove entries from nonexistent file [PATH]
+    ```
+    /easy-install.pth
+    ```
+* Fix: run the command below
+    ```
+    curl https://bootstrap.pypa.io/ez_setup.py -o - | python
+    ```
+For additional troubleshooting tips, see the QISKit troubleshooting page on the project's GitHub wiki.
+
 ## License
 
 This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
+
+
