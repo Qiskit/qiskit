@@ -118,7 +118,7 @@ html_static_path = ['_static']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../images/QISKit-c.gif'
+html_logo = '../images/qiskit-logo.gif'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
