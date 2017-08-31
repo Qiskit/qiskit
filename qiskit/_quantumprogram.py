@@ -436,10 +436,15 @@ class QuantumProgram(object):
                 as the quantum experience.
             URL (str): The url used for online backend such as the quantum
                 experience.
+            Verify (Boolean): If False, ignores SSL certificates errors.
         Returns:
             Nothing but fills the __ONLINE_BACKENDS, __api, and __api_config
         """
-        self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+        try:
+            self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+        except Exception as ex:
+            raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
+                              .format(ex))
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
         self.__api_config["url"] = {"url": url}
@@ -543,10 +548,15 @@ class QuantumProgram(object):
 
         Returns:
             List of online backends if the online api has been set or an empty
-            list of it has not been set.
+            list if it has not been set.
         """
         if self.get_api():
-            return [backend['name'] for backend in self.__api.available_backends()]
+            try:
+                backends = self.__api.available_backends()
+            except Exception as ex:
+                raise ConnectionError("Couldn't get available backend list: {0}"
+                                      .format(ex))
+            return [backend['name'] for backend in backends]
         else:
             return []
 
@@ -558,7 +568,12 @@ class QuantumProgram(object):
         """
         simulators = []
         if self.get_api():
-            for backend in self.__api.available_backends():
+            try:
+                backends = self.__api.available_backends()
+            except Exception as ex:
+                raise ConnectionError("Couldn't get available backend list: {0}"
+                                      .format(ex))
+            for backend in backends:
                 if backend['simulator']:
                     simulators.append(backend['name'])
         return simulators
@@ -571,7 +586,12 @@ class QuantumProgram(object):
         """
         devices = []
         if self.get_api():
-            for backend in self.__api.available_backends():
+            try:
+                backends = self.__api.available_backends()
+            except Exception as ex:
+                raise ConnectionError("Couldn't get available backend list: {0}"
+                                      .format(ex))
+            for backend in backends:
                 if not backend['simulator']:
                     devices.append(backend['name'])
         return devices
@@ -587,12 +607,15 @@ class QuantumProgram(object):
         """
 
         if backend in self.__ONLINE_BACKENDS:
-            return self.__api.backend_status(backend)
+            try:
+                return self.__api.backend_status(backend)
+            except Exception as ex:
+                raise ConnectionError("Couldn't get backend status: {0}"
+                                      .format(ex))
         elif backend in self.__LOCAL_BACKENDS:
             return {'available': True}
         else:
-            err_str = 'the backend "{0}" is not available'.format(backend)
-            raise ValueError(err_str)
+            raise ValueError('the backend "{0}" is not available'.format(backend))
 
     def get_backend_configuration(self, backend, list_format=False):
         """Return the configuration of the backend.
@@ -611,7 +634,12 @@ class QuantumProgram(object):
         """
         if self.get_api():
             configuration_edit = {}
-            for configuration in self.__api.available_backends():
+            try:
+                backends = self.__api.available_backends()
+            except Exception as ex:
+                raise ConnectionError("Couldn't get available backend list: {0}"
+                                      .format(ex))
+            for configuration in backends:
                 if configuration['name'] == backend:
                     for key in configuration:
                         new_key = convert(key)
@@ -653,7 +681,11 @@ class QuantumProgram(object):
             raise a LookupError.
         """
         if backend in self.__ONLINE_BACKENDS:
-            calibrations = self.__api.backend_calibration(backend)
+            try:
+                calibrations = self.__api.backend_calibration(backend)
+            except Exception as ex:
+                raise ConnectionError("Couldn't get backend calibration: {0}"
+                                      .format(ex))
             calibrations_edit = {}
             for key, vals in calibrations.items():
                 new_key = convert(key)
@@ -681,7 +713,11 @@ class QuantumProgram(object):
             raise a LookupError.
         """
         if backend in self.__ONLINE_BACKENDS:
-            parameters = self.__api.backend_parameters(backend)
+            try:
+                parameters = self.__api.backend_parameters(backend)
+            except Exception as ex:
+                raise ConnectionError("Couldn't get backend paramters: {0}"
+                                      .format(ex))
             parameters_edit = {}
             for key, vals in parameters.items():
                 new_key = convert(key)
@@ -987,8 +1023,12 @@ class QuantumProgram(object):
             jobs = []
             for job in qobj["circuits"]:
                 jobs.append({'qasm': job["compiled_circuit_qasm"]})
-            output = self.__api.run_job(jobs, backend, shots=shots,
-                                        max_credits=max_credits, seed=seed)
+            try:
+                output = self.__api.run_job(jobs, backend, shots=shots,
+                                            max_credits=max_credits, seed=seed)
+            except Exception as ex:
+                raise ConnectionError("Error trying to run the jobs online: {}"
+                                  .format(ex))
             if 'error' in output:
                 raise ResultError(output['error'])
             if 'id' not in output:
@@ -1034,7 +1074,11 @@ class QuantumProgram(object):
         """
         timer = 0
         timeout_over = False
-        job_result = self.__api.get_job(jobid)
+        try:
+            job_result = self.__api.get_job(jobid)
+        except Exception as ex:
+            raise ConnectionError("get_job couldn't return a result: {0}".format(ex))
+
         if 'status' not in job_result:
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job)))
@@ -1045,7 +1089,10 @@ class QuantumProgram(object):
             timer += wait
             if not silent:
                 print("status = %s (%d seconds)" % (job_result['status'], timer))
-            job_result = self.__api.get_job(jobid)
+            try:
+                job_result = self.__api.get_job(jobid)
+            except Exception as ex:
+                raise ConnectionError("Couldn't get a remote job: {0}".format(ex))
 
             if 'status' not in job_result:
                 from pprint import pformat

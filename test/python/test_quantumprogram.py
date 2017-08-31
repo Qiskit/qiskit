@@ -1381,5 +1381,17 @@ class TestQuantumProgram(unittest.TestCase):
                          {'010000': 1024})
 
 
+    def test_offline(self):
+        import string
+        import random
+        qp = QuantumProgram()
+        FAKE_TOKEN = 'thistokenisnotgoingtobesentnowhere'
+        FAKE_URL = 'http://{0}.com'.format(
+            ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
+        )
+        # SDK will throw ConnectionError on every call that implies a connection
+        self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+
+
 if __name__ == '__main__':
     unittest.main()
