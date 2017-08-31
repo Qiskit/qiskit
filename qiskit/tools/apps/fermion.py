@@ -31,9 +31,9 @@ References:
 
 """
 
-from tools.qi.pauli import Pauli, label_to_pauli,sgn_prod
+from qiskit.tools.qi.pauli import Pauli, label_to_pauli,sgn_prod
 import numpy as np
-from tools.apps.optimization import Hamiltonian_from_file
+from qiskit.tools.apps.optimization import Hamiltonian_from_file
 
 
 """
