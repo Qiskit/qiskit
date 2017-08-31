@@ -43,7 +43,7 @@ from functools import reduce
 from re import match
 from itertools import product
 
-from tools.qi.qi import vectorize, devectorize, outer
+from qiskit.tools.qi.qi import vectorize, devectorize, outer
 
 
 ###############################################################

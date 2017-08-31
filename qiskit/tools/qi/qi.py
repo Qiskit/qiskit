@@ -24,7 +24,7 @@ over time.
 import math
 import numpy as np
 import scipy.linalg as la
-from tools.qi.pauli import pauli_group
+from qiskit.tools.qi.pauli import pauli_group
 
 ###############################################################
 # circuit manipulation.
