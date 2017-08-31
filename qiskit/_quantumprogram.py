@@ -25,6 +25,7 @@ import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError
 
 # Stable Modules
 from . import QuantumRegister
@@ -1026,6 +1027,8 @@ class QuantumProgram(object):
             try:
                 output = self.__api.run_job(jobs, backend, shots=shots,
                                             max_credits=max_credits, seed=seed)
+            except RegisterSizeError:
+                raise
             except Exception as ex:
                 raise ConnectionError("Error trying to run the jobs online: {}"
                                   .format(ex))
@@ -1033,7 +1036,7 @@ class QuantumProgram(object):
                 raise ResultError(output['error'])
             if 'id' not in output:
                 raise ResultError('unexpected job results: {}'.format(output))
-                
+
             qobj_result = self._wait_for_job(output['id'], wait=wait,
                                              timeout=timeout, silent=silent)
         else:
