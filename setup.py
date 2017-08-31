@@ -25,7 +25,7 @@ requirements = ["IBMQuantumExperience>=1.8",
 
 setup(
     name="qiskit",
-    version="0.3.4",
+    version="0.3.5",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing quantum
 computing experiments, programs, and applications. Works with Python 3.5 and 3.6""",
