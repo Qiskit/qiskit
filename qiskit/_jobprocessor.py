@@ -1,4 +1,5 @@
 from concurrent import futures
+from threading import Lock
 import sys
 import time
 import random
@@ -11,13 +12,13 @@ from qiskit import QISKitError
 # Local Simulator Modules
 from qiskit import simulators
 # compiler module
-from qiskit import oqc
+from qiskit import openquantumcompiler
 
-def run_local_simulator(qobj):
+def run_local_simulator(q_object):
     """Run a program of compiled quantum circuits on the local machine.
 
     Args:
-        qobj (dict): quantum object dictionary
+        q_object (dict): quantum object dictionary
 
     Returns:
       Dictionary of form,
@@ -30,54 +31,55 @@ def run_local_simulator(qobj):
             ...
         ]
     """
-    job_result = {'result': [],
-                  'name': qobj['id'],
-                  'backend': qobj['config']['backend']}
-    for job in qobj['circuits']:
+    job_result = {'status': '',
+                  'result': [],
+                  'name': q_object['id'],
+                  'backend': q_object['config']['backend']}
+    for job in q_object['circuits']:
         if job['compiled_circuit'] is None:
-            compiled_circuit = oqc.compile(job['circuit'])
-            job['compiled_circuit'] = oqc.dag2json(compiled_circuit)
+            compiled_circuit = objectquantumcompiler.compile(job['circuit'])
+            job['compiled_circuit'] = objectquantumcompiler.dag2json(compiled_circuit)
         sim_job = {'compiled_circuit': job['compiled_circuit'],
-                   'config': {**job['config'], **qobj['config']}}
+                   'config': {**job['config'], **q_object['config']}}
         local_simulator = simulators.LocalSimulator(
-            qobj['config']['backend'], sim_job)
+            q_object['config']['backend'], sim_job)
         local_simulator.run()
         job_result['result'].append(local_simulator.result())
-    job_result['name'] = qobj['id']
-    job_result['backend'] = qobj['config']['backend']
+        job_result['status'] = 'COMPLETED'
+    job_result['name'] = q_object['id']
+    job_result['backend'] = q_object['config']['backend']
     return job_result
 
-def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
+def run_remote_backend(q_object, api, wait=5, timeout=60, silent=True):
     """
     Args:
-        qobj (dict): quantum object dictionary
+        q_object (dict): quantum object dictionary
         api (IBMQuantumExperience): IBMQuantumExperience API connection
 
     Raises:
         QISKitError: if "ERROR" string in server response.
     """
     jobs = []
-    for job in qobj['circuits']:
+    for job in q_object['circuits']:
         if (('compiled_circuit_qasm' not in job) or
             (job['compiled_circuit_qasm'] is None)):
-            compiled_circuit = oqc.compile(job['circuit'].qasm())
+            compiled_circuit = objectquantumcompiler.compile(job['circuit'].qasm())
             job['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
         if isinstance(job['compiled_circuit_qasm'], bytes):
             jobs.append({'qasm': job['compiled_circuit_qasm'].decode()})
         else:
             jobs.append({'qasm': job['compiled_circuit_qasm']})
-    # currently api.run_job does not take per circuit seeds of qobj
-    # so just take the first seed
-    seed0 = qobj['circuits'][0]['config']['seed']
-    output = api.run_job(jobs, qobj['config']['backend'],
-                         shots=qobj['config']['shots'],
-                         max_credits=qobj['config']['max_credits'],
+
+    seed0 = q_object['circuits'][0]['config']['seed']
+    output = api.run_job(jobs, q_object['config']['backend'],
+                         shots=q_object['config']['shots'],
+                         max_credits=q_object['config']['max_credits'],
                          seed=seed0)
     if 'ERROR' in output:
         raise QISKitError(output['ERROR'])
     job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout, silent=silent)
-    job_result['name'] = qobj['id']
-    job_result['backend'] = qobj['config']['backend']
+    job_result['name'] = q_object['id']
+    job_result['backend'] = q_object['config']['backend']
     return job_result
 
 def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
@@ -95,7 +97,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         A list of results that correspond to the jobids.
 
     Raises:
-        QISKitError: 
+        QISKitError:
     """
     timer = 0
     timeout_over = False
@@ -103,9 +105,10 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
     if 'status' not in job_result:
         from pprint import pformat
         raise QISKitError("get_job didn't return status: %s" % (pformat(job)))
+
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {"status": "ERROR", "result": "Time Out"}
+            return {'status': 'ERROR', 'result': 'Time Out'}
         time.sleep(wait)
         timer += wait
         if not silent:
@@ -116,7 +119,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
         if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-            return {"status": "ERROR", "result": job_result['status']}
+            return {"status": 'ERROR', 'result': job_result['status']}
 
     # Get the results
     job_result_return = []
@@ -124,7 +127,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         job_result_return.append({"data": job_result["qasms"][index]["data"],
                                   "status": job_result["qasms"][index]["status"]})
     return {'status': job_result['status'], 'result': job_result_return}
-    #return job_result['qasms'][0]['data']['counts']
 
 def local_backends():
     """Get the local backends."""
@@ -143,14 +145,14 @@ def remote_backends(api):
 
 class QuantumJob():
     """Creates a quantum circuit job"""
-    
+
     def __init__(self, circuits, backend='local_qasm_simulator',
                  circuit_configs=None, timeout=60, seed=None,
                  resources={'max_credits': 3}, shots=1024, names=None,
                  doCompile=False, preformatted=False):
         """
         Args:
-            circuit (QuantumCircuit | qobj): QuantumCircuit or list of QuantumCircuit
+            circuit (QuantumCircuit | q_object): QuantumCircuit or list of QuantumCircuit
                 objects for job.
             backend (str): the backend to run the circuit on.
             resources (dict): resource requirements of job.
@@ -213,10 +215,10 @@ class QuantumJob():
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
-            self.qobj = circuits
-            self.backend = self.qobj['config']['backend']
+            self.q_object = circuits
+            self.backend = self.q_object['config']['backend']
             self.resources = {'max_credits':
-                              self.qobj['config']['max_credits']}
+                              self.q_object['config']['max_credits']}
         else:
             self.backend = backend
             self.resources = resources
@@ -229,11 +231,11 @@ class QuantumJob():
             else:
                 if backend in self._local_backends:
                     for circuit in self.circuits:
-                        formatted_circuits.append(oqc.dag2json(circuit))
+                        formatted_circuits.append(objectquantumcompiler.dag2json(circuit))
                 else:
                     for circuit in self.circuits:
                         formatted_circuits.append(circuit.qasm(qeflag=True))
-            # create circuit component of qobj
+            # create circuit component of q_object
             circuitRecords = []
             if circuit_configs is None:
                 config = {'coupling_map': None,
@@ -253,9 +255,9 @@ class QuantumJob():
                     'config': config
                 }
                 circuitRecords.append(record)
-            qobjid = ''.join([random.choice(
+            q_objectid = ''.join([random.choice(
                 string.ascii_letters + string.digits) for i in range(10)])
-            self.qobj = {'id': qobjid,
+            self.q_object = {'id': q_objectid,
                          'config': {
                              'max_credits': resources['max_credits'],
                              'shots': shots,
@@ -267,49 +269,52 @@ class QuantumJob():
         self.result = None
         self.doCompile = doCompile
 
+
+# TODO What if we send a large set of Jobs? Do we really want to capture the
+# frist error we found and discard the results of the rest?
+# What about the API server? I
+
 class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
-    def __init__(self, qjobs, max_workers=1, token=None, url=None, api=None):
+    def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:
-            qjobs (QuantumJob | QuantumJob list | qobj): QuantumJob, list of
-                QuantumJob objects, or qobj dictionary.
+            q_jobs (QuantumJob | QuantumJob list | q_object): QuantumJob, list of
+                QuantumJob objects, or q_object dictionary.
             online (bool): If true, establishes a connection to online server. This
-                should be set to True of /any/ of the jobs in qjobs use a networked
+                should be set to True of /any/ of the jobs in q_jobs use a networked
                 backend.
             max_workers (int): The maximum number of workers to use.
             token (str): server API token
             url (str): server URL.
-            api (IBMQuantumExperience): API instance to use. If set, 
+            api (IBMQuantumExperience): API instance to use. If set,
                 /token/ and /url/ are ignored.
         """
-        # check whether qobj was supplied.
-        if (isinstance(qjobs, dict)
-            and {'id', 'config', 'circuits'} <= qjobs.keys()):
-            qjobs = QuantumJob(qobj, preformatted=True)
-        if not isinstance(qjobs, list):
-            job_list = [qjobs]
-        else:
-            job_list = qjobs
-        self.qjobs = job_list
+        # check whether q_object was supplied.
+        if (isinstance(q_jobs, dict)
+            and {'id', 'config', 'circuits'} <= q_jobs.keys()):
+            q_jobs = QuantumJob(q_object, preformatted=True)
+
+        self.q_jobs = q_jobs if isinstance(q_jobs, list) else [q_jobs]
         self.max_workers = max_workers
         # check whether any jobs are remote
         self.online = False
         self._local_backends = local_backends()
-        for qj in self.qjobs:
+        for qj in self.q_jobs:
             if qj.backend not in self._local_backends:
                 self.online = True
                 break
         self.futures = {}
+        self.lock = Lock()
+        self.callback = callback
+        self.num_jobs = len(self.q_jobs)
+        self.results = []
         if self.online:
-            if api:
-                self._api = api
-            else:
-                self._api = IBMQuantumExperience(token,
-                                                 {"url": url},
-                                                 verify=True)
+            self._api = api if api else IBMQuantumExperience(token,
+                                                             {"url": url},
+                                                             verify=True)
             self._online_backends = remote_backends(self._api)
             self._api_config = {}
             self._api_config["token"] = token
@@ -325,47 +330,61 @@ class JobProcessor():
             # CPU intensive -> use ProcessPoolExecutor
             self.executor_class = futures.ProcessPoolExecutor
 
-            
+
+    def _job_done_callback(self, future):
+        # TODO: Handling exceptions
+        try:
+            result = future.result()
+        except Exception as ex:
+            result = {'status': 'ERROR', 'result': '{}'.format(ex) }
+
+        self.lock.acquire()
+        self.futures[future]['result'] = result
+        self.results.append((result, future.q_object))
+        if self.num_jobs != 0:
+            self.num_jobs -= 1
+        self.lock.release()
+        # Call the callback when all jobs have finished
+        if self.num_jobs == 0:
+            if not future.silent:
+                import pprint
+                pprint.pprint(f.result())
+                sys.stdout.flush()
+            self.callback(self.results)
+
+
     def submit(self, silent=True):
         """Process/submit jobs
 
         Args:
             silent (bool): print results if true.
         """
-        with self.executor_class(max_workers=self.max_workers) as executor:
-            for qjob in self.qjobs:
-                if qjob.backend in self._local_backends:
-                    self.futures[
-                        executor.submit(run_local_simulator,
-                                        qjob.qobj)
-                                ] = qjob.qobj
-                elif self.online and qjob.backend in self._online_backends:
-                    self.futures[
-                        executor.submit(run_remote_backend,
-                                        qjob.qobj,
-                                        self._api)
-                        ] = qjob.qobj
-            self.wait_for_results(silent=silent)
+        executor = self.executor_class(max_workers=self.max_workers)
+        for q_job in self.q_jobs:
+            if q_job.backend in self._local_backends:
+                future = executor.submit(run_local_simulator,
+                                         q_job.q_object)
+                future.silent = silent
+                future.q_object = q_job.q_object
+                future.add_done_callback(self._job_done_callback)
+                self.futures[future] = q_job.q_object
+            elif self.online and q_job.backend in self._online_backends:
+                future = executor.submit(run_remote_backend,
+                                         q_job.q_object,
+                                         self._api)
+                future.silent = silent
+                future.q_object = q_job.q_object
+                future.add_done_callback(self._job_done_callback)
+                self.futures[future] = q_job.q_object
 
-    def wait_for_results(self, silent=True):
-        """Wait for the results and store them with the QuantumJob internally.
+        #self.wait_for_results(silent=silent)
 
-        Args:
-            silent (bool): print results if true.
-        """
-        for f in futures.as_completed(self.futures):
-            self.futures[f]['result'] = f.result()
-            if not silent:
-                import pprint
-                pprint.pprint(f.result())
-                sys.stdout.flush()
-                
-    def results(self):
-        """Return list of results.
-
-        Results list may come back in different order than submitted.
-        """
-        result_list = []
-        for f in self.futures:
-            result_list.append(f.result())
-        return result_list
+    # def results(self):
+    #     """Return list of results.
+    #
+    #     Results list may come back in different order than submitted.
+    #     """
+    #     result_list = []
+    #     for f in self.futures:
+    #         result_list.append(f.result())
+    #     return result_list

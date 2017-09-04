@@ -139,7 +139,7 @@ class TestJobProcessor(unittest.TestCase):
             job_list.append(qjob)
         jp = jobp.JobProcessor(job_list)
 
-    def test_run_local_simulator(self):
+    def testrun_local_simulator(self):
         compiled_circuit = oqc.compile(self.qc.qasm())
         qjob = jobp.QuantumJob(compiled_circuit, doCompile=False,
                                backend='local_qasm_simulator')
@@ -154,7 +154,7 @@ class TestJobProcessor(unittest.TestCase):
                                    verify=True)
         jobp.run_remote_backend(qjob.qobj, api)
 
-    def test_run_local_simulator_compile(self):
+    def testrun_local_simulator_compile(self):
         qjob = jobp.QuantumJob(self.qasm_text, doCompile=True,
                                backend='local_qasm_simulator')
         jobp.run_local_simulator(qjob.qobj)
