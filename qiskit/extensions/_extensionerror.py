@@ -20,6 +20,7 @@ Exception for errors raised by extensions module.
 """
 from qiskit import QISKitError
 
+
 class ExtensionError(QISKitError):
     """Base class for errors raised by extensions module."""
 
