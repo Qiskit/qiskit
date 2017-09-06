@@ -3,79 +3,62 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-======
-QISKit
-======
-Quantum Information Software Kit
+.. include:: qiskit.rst
 
-Project Overview
-================
-The QISKit project comprises:
+Python Modules
+==============
+
+Main Modules
+------------
+
+* `Quantum Program <./_autodoc/qiskit._quantumprogram.html>`__
+* `Quantum Circuit <./_autodoc/qiskit._quantumcircuit.html>`__
+* :ref:`modindex`
+
+.. toctree::
+   :maxdepth: 4
+   :caption: Contents:
+             
+   _autodoc/modules
+
+.. include:: install.rst
+
+Authors (alphabetical)
+======================
+
+Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston, Chris Wood.
+
+In future releases, anyone who contributes code to this project can include their name here.
+
+Other QISKit projects
+=====================
+
+- `ibmqx backend information <https://github.com/QISKit/ibmqx-backend-information>`__ Information about the different IBM Q experience backends.
+- `ibmqx user guide <https://github.com/QISKit/ibmqx-user-guides>`__ The users guides for the IBM Q experience.
+- `OpenQasm <https://github.com/QISKit/openqasm>`__ Examples and tools for the OpenQASM intermediate representation.
+- `Python API <https://github.com/QISKit/qiskit-api-py>`__ API Client to use IBM Q experience in Python.
+- `Tutorials <https://github.com/QISKit/qiskit-tutorial>`__ Jupyter notebooks for using QISKit.
 
 
-* `QISKit API <https://github.com/IBM/qiskit-api-py>`_: A thin Python
-  wrapper around the Quantum Experience HTTP API that enables you to
-  connect and and execute OpenQASM code.
+License
+=======
 
-* `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Provides
-  support for the Quantum Experience circuit generation phase and lets
-  you use the QISKit API to access the Quantum Experience hardware and
-  simulators. The SDK also includes example scripts written for
-  Jupyter Notebooks.
+QISKit is released under the `Apache license, version
+2.0 <https://www.apache.org/licenses/LICENSE-2.0>`__.
 
-* `QISKit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_: Contains
-  specifications, examples, documentation, and tools for the OpenQASM
-  intermediate representation.
+Do you want to help?
+====================
 
-Getting Started
-===============
-
-The starting point for writing code is the QuantumProgram object. The
-QuantumProgram is a collection of circuits, or scores if you are
-coming from the Quantum Experience, quantum register objects, and
-classical register objects. The QuantumProgram methods can send these
-circuits to quantum hardware or simulator backends and collect the
-results for further analysis.
-
-To compose and run a circuit on a simulator, which is distributed with
-this project, one can do,
-
-.. code-block:: python
-
-   from qiskit import QuantumProgram
-   qp = QuantumProgram()
-   qr = qp.create_quantum_register('qr', 2)
-   cr = qp.create_classical_register('cr', 2)
-   qc = qp.create_circuit('Bell', [qr], [cr])
-   qc.h(qr[0])
-   qc.cx(qr[0], qr[1])
-   qc.measure(qr[0], cr[0])
-   qc.measure(qr[1], cr[1])
-   result = qp.execute('Bell')
-   result.get_counts('Bell')
-
-The :code:`get_counts` method outputs a dictionary of state:counts pairs;
-
-.. code-block:: python
-
-	 {'00': 531, '11': 493}
+If you'd like to contribute please take a look to our
+`contribution guidelines <../CONTRIBUTING.rst>`__.
 
 
 .. testoutput::
    :hide:
    :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
 
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   contributing
-   _autodoc/modules
-
-Indices and tables
-==================
+Index and Search
+================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
