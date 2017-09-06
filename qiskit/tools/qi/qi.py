@@ -494,11 +494,11 @@ def shannon_entropy(pvec, base=2):
         The Shannon entropy H(pvec).
     """
     if base == 2:
-        logfn = lambda x: - x * np.log2(x)
+        def logfn(x): return - x * np.log2(x)
     elif base == np.e:
-        logfn = lambda x: - x * np.log(x)
+        def logfn(x): return - x * np.log(x)
     else:
-        logfn = lambda x: -x * np.log(x) / np.log(base)
+        def logfn(x): return -x * np.log(x) / np.log(base)
 
     h = 0.
     for x in pvec:
