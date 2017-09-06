@@ -712,7 +712,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, silent=True, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=3, seed=None,
-                q_objectid=None):
+                q_object_id=None):
         """Compile the circuits into the exectution list.
 
         This builds the internal "to execute" list which is list of quantum
@@ -795,10 +795,10 @@ class QuantumProgram(object):
         # them to go into the config.
 
         q_object = {}
-        if not q_objectid:
-            q_objectid = "".join([random.choice(string.ascii_letters+string.digits)
+        if not q_object_id:
+            q_object_id = "".join([random.choice(string.ascii_letters+string.digits)
                               for n in range(30)])
-        q_object['id'] = q_objectid
+        q_object['id'] = q_object_id
         q_object["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
         q_object["circuits"] = []

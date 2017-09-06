@@ -37,8 +37,8 @@ def run_local_simulator(q_object):
                   'backend': q_object['config']['backend']}
     for job in q_object['circuits']:
         if job['compiled_circuit'] is None:
-            compiled_circuit = objectquantumcompiler.compile(job['circuit'])
-            job['compiled_circuit'] = objectquantumcompiler.dag2json(compiled_circuit)
+            compiled_circuit = openquantumcompiler.compile(job['circuit'])
+            job['compiled_circuit'] = openquantumcompiler.dag2json(compiled_circuit)
         sim_job = {'compiled_circuit': job['compiled_circuit'],
                    'config': {**job['config'], **q_object['config']}}
         local_simulator = simulators.LocalSimulator(
@@ -63,7 +63,7 @@ def run_remote_backend(q_object, api, wait=5, timeout=60, silent=True):
     for job in q_object['circuits']:
         if (('compiled_circuit_qasm' not in job) or
             (job['compiled_circuit_qasm'] is None)):
-            compiled_circuit = objectquantumcompiler.compile(job['circuit'].qasm())
+            compiled_circuit = openquantumcompiler.compile(job['circuit'].qasm())
             job['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
         if isinstance(job['compiled_circuit_qasm'], bytes):
             jobs.append({'qasm': job['compiled_circuit_qasm'].decode()})
@@ -112,20 +112,20 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         time.sleep(wait)
         timer += wait
         if not silent:
-            print("status = %s (%d seconds)" % (job_result['status'], timer))
+            print('status = %s (%d seconds)' % (job_result['status'], timer))
         job_result = api.get_job(jobid)
 
         if 'status' not in job_result:
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
         if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-            return {"status": 'ERROR', 'result': job_result['status']}
+            return {'status': 'ERROR', 'result': job_result['status']}
 
     # Get the results
     job_result_return = []
-    for index in range(len(job_result["qasms"])):
-        job_result_return.append({"data": job_result["qasms"][index]["data"],
-                                  "status": job_result["qasms"][index]["status"]})
+    for index in range(len(job_result['qasms'])):
+        job_result_return.append({'data': job_result['qasms'][index]['data'],
+                                  'status': job_result['qasms'][index]['status']})
     return {'status': job_result['status'], 'result': job_result_return}
 
 def local_backends():
@@ -184,7 +184,7 @@ class QuantumJob():
                                     ("q", 2): ("q", 2),
                                     ("q", 3): ("q", 3)
                                   }
-
+[]
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
@@ -231,7 +231,7 @@ class QuantumJob():
             else:
                 if backend in self._local_backends:
                     for circuit in self.circuits:
-                        formatted_circuits.append(objectquantumcompiler.dag2json(circuit))
+                        formatted_circuits.append(openquantumcompiler.dag2json(circuit))
                 else:
                     for circuit in self.circuits:
                         formatted_circuits.append(circuit.qasm(qeflag=True))
@@ -270,10 +270,6 @@ class QuantumJob():
         self.doCompile = doCompile
 
 
-# TODO What if we send a large set of Jobs? Do we really want to capture the
-# frist error we found and discard the results of the rest?
-# What about the API server? I
-
 class JobProcessor():
     """
     process a bunch of jobs and collect the results
@@ -308,7 +304,9 @@ class JobProcessor():
                 break
         self.futures = {}
         self.lock = Lock()
-        self.callback = callback
+        # Set a default dummy callback just in case the user doesn't want
+        # to pass any callback.
+        self.callback = (lambda rs:()) if callback == None else callback
         self.num_jobs = len(self.q_jobs)
         self.results = []
         if self.online:
@@ -330,13 +328,11 @@ class JobProcessor():
             # CPU intensive -> use ProcessPoolExecutor
             self.executor_class = futures.ProcessPoolExecutor
 
-
     def _job_done_callback(self, future):
-        # TODO: Handling exceptions
         try:
             result = future.result()
         except Exception as ex:
-            result = {'status': 'ERROR', 'result': '{}'.format(ex) }
+            result = [{'status': 'ERROR', 'data': '{}'.format(ex)}]
 
         self.lock.acquire()
         self.futures[future]['result'] = result
@@ -352,7 +348,6 @@ class JobProcessor():
                 sys.stdout.flush()
             self.callback(self.results)
 
-
     def submit(self, silent=True):
         """Process/submit jobs
 
@@ -364,27 +359,11 @@ class JobProcessor():
             if q_job.backend in self._local_backends:
                 future = executor.submit(run_local_simulator,
                                          q_job.q_object)
-                future.silent = silent
-                future.q_object = q_job.q_object
-                future.add_done_callback(self._job_done_callback)
-                self.futures[future] = q_job.q_object
             elif self.online and q_job.backend in self._online_backends:
                 future = executor.submit(run_remote_backend,
                                          q_job.q_object,
                                          self._api)
-                future.silent = silent
-                future.q_object = q_job.q_object
-                future.add_done_callback(self._job_done_callback)
-                self.futures[future] = q_job.q_object
-
-        #self.wait_for_results(silent=silent)
-
-    # def results(self):
-    #     """Return list of results.
-    #
-    #     Results list may come back in different order than submitted.
-    #     """
-    #     result_list = []
-    #     for f in self.futures:
-    #         result_list.append(f.result())
-    #     return result_list
+            future.silent = silent
+            future.q_object = q_job.q_object
+            future.add_done_callback(self._job_done_callback)
+            self.futures[future] = q_job.q_object

@@ -717,7 +717,7 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'test'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
-                                 coupling_map=coupling_map, qobjid='cooljob')
+                                 coupling_map=coupling_map, q_object_id='cooljob')
         self.log.info(out)
         self.assertEqual(len(out), 3)
 
@@ -779,7 +779,7 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
-                                  coupling_map=coupling_map, qobjid="cooljob")
+                                  coupling_map=coupling_map, q_object_id='cooljob')
         result = QP_program.get_execution_list(qobj)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
