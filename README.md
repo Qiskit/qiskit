@@ -74,7 +74,6 @@ This is a simple superpesition example.
 
 ```
 from qiskit import QuantumProgram
-import Qconfig
 
 # Set your API Token
 QX_TOKEN = "API_TOKEN"
