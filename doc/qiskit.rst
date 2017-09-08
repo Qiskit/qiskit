@@ -3,13 +3,15 @@ QISKit Documentation
 ====================
 
 Quantum Information Software Kit (QISKit), SDK Python version for working
-with `OpenQASM <https://github.com/IBM/qiskit-openqasm>`_ and the IBM Q experience (QX).
+with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience (QX).
 
 Philosophy
 ==========
 
-The basic concept of our quantum program is an array of quantum
-circuits. The program workflow consists of three stages: Build, Compile,
+QISKit is a collection of software for working with short depth quantum
+circuits and building near term applications and experiments on quantum
+computers. In QISKit, a quantum program is an array of quantum circuits.
+The program workflow consists of three stages: Build, Compile,
 and Run. Build allows you to make different quantum circuits that
 represent the problem you are solving; Compile allows you to rewrite
 them to run on different backends (simulators/real chips of different
@@ -102,33 +104,18 @@ extension defining some typical quantum gates.
 Internal modules
 ----------------
 
-The directory also contains internal modules that are still under
-development:
+The directory also contains internal modules that are still under development:
 
--  a *qasm* module for parsing **OpenQASM** circuits
--  an *unroll* module to interpret and "unroll" **OpenQASM** to a target
-   gate basis (expanding gate subroutines and loops as needed)
--  a *circuit* module for working with circuits as graphs
--  a *mapper* module for mapping all-to-all circuits to run on devices
-   with fixed couplings
+- a *qasm* module for parsing **OpenQASM** circuits
+- an *unroll* module to interpret and “unroll” **OpenQASM** to a target gate basis (expanding gate subroutines and loops as needed)
+- a *dagcircuit* module for working with circuits as graphs
+- a *mapper* module for mapping all-to-all circuits to run on devices with fixed couplings
+- a *simulators* module contains quantum circuit simulators
+- a *tools* directory contains methods for applications, analysis, and visualization
 
-Quantum circuits flow through the components as follows. The programming
-interface is used to generate **OpenQASM** circuits. **OpenQASM**
-source, as a file or string, is passed into a *Qasm* object, whose
-*parse* method produces an abstract syntax tree (**AST**). The **AST**
-is passed to an *Unroller* that is attached to an *UnrollerBackend*.
-There is a *PrinterBackend* for outputting text, a *SimulatorBackend*
-for outputting simulator input data for the local simulators, and a
-*CircuitBackend* for constructing *Circuit* objects. The *Circuit*
-object represents an "unrolled" **OpenQASM** circuit as a directed
-acyclic graph (**DAG**). The *Circuit* provides methods for
-representing, transforming, and computing properties of a circuit and
-outputting the results again as **OpenQASM**. The whole flow is used by
-the *mapper* module to rewrite a circuit to execute on a device with
-fixed couplings given by a *CouplingGraph*.
+Quantum circuits flow through the components as follows. The programming interface is used to generate **OpenQASM** circuits, as text or *QuantumCircuit* objects. **OpenQASM** source, as a file or string, is passed into a *Qasm* object, whose parse method produces an abstract syntax tree (**AST**). The **AST** is passed to an *Unroller* that is attached to an *UnrollerBackend*. There is a *PrinterBackend* for outputting text, a *JsonBackend* for producing input to simulator and experiment backends, a *DAGBackend* for constructing *DAGCircuit* objects, and a *CircuitBackend* for producing *QuantumCircuit* objects. The *DAGCircuit* object represents an “unrolled” **OpenQASM** circuit as a directed acyclic graph (DAG). The *DAGCircuit* provides methods for representing, transforming, and computing properties of a circuit and outputting the results again as **OpenQASM**. The whole flow is used by the *mapper* module to rewrite a circuit to execute on a device with fixed couplings given by a *CouplingGraph*. The structure of these components is subject to change.
 
-The four circuit representations and how they are currently transformed
-into each other are summarized in this figure:
+The circuit representations and how they are currently transformed into each other are summarized in this figure:
 
 
 
