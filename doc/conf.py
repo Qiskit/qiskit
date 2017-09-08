@@ -119,7 +119,7 @@ html_theme_options = {}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -180,3 +180,14 @@ texinfo_documents = [
      author, 'QISKit', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+
+# Avoid a warning and treat the docstrings of the QasmLexer tokens as verbatim,
+# as PLY uses docstring as a way to define the patterns the token matches.
+def remove_module_docstring(app, what, name, obj, options, lines):
+    if name.startswith('qiskit.qasm._qasmlexer.QasmLexer.t_') and lines:
+        lines[0] = u'Token matching: ``%s``' % lines[0]
+
+
+def setup(app):
+    app.connect('autodoc-process-docstring', remove_module_docstring)
