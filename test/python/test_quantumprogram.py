@@ -32,6 +32,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QISKitError
 from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import RegisterSizeError
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
@@ -1071,7 +1072,7 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmqx_qasm_simulator'
-        self.assertRaises(IBMQuantumExperience.RegisterSizeError,
+        self.assertRaises(RegisterSizeError,
                           QP_program.execute,
                           ['qc'], backend=backend,
                           shots=shots, max_credits=3,
