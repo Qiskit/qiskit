@@ -11,6 +11,22 @@
 
 @import url("basic.css");
 
+div.head {
+ height:30px;
+ background-color:#000;
+ text-align: left;
+ text-decoration:none; 
+     cursor:pointer;  
+ padding: 8px 0px 0px 8px;
+ 
+}
+
+div.head a {
+   color: #FFF!important;
+    text-decoration:none; 
+     cursor:pointer;  
+
+}
 /* -- page layout ----------------------------------------------------------- */
 
 body {
@@ -26,7 +42,7 @@ body {
     #border-right: 1px solid {{ theme_maincolor }};
     #border-left: 1px solid {{ theme_maincolor }};
 
-    margin: 0px 40px 0px 40px;
+    margin: 0px 0px 0px 0px;
 }
 
 div.document {
@@ -34,8 +50,7 @@ div.document {
     text-align: left;
     background-repeat: repeat-x;
 
-    -moz-box-shadow: 0px 0px 15px #aaa;
-    -webkit-box-shadow: 0px 0px 15px #aaa;
+
 }
 
 div.bodywrapper {
@@ -58,14 +73,12 @@ div.bodywrapper {
 div.related {
     font-size: 1em;
 
-    -moz-box-shadow: 0px 0px 15px #aaa;
-    -webkit-box-shadow: 0px 0px 15px #aaa;
+
 }
 
 div.related ul {
     background-color: {{ theme_maincolor }};
     height: 2em;
-    border-top: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
 }
 
@@ -149,8 +162,7 @@ div.footer {
     text-align: right;
     border-bottom: 1px solid {{ theme_maincolor }};
 
-    -moz-box-shadow: 0px 0px 15px #aaa;
-    -webkit-box-shadow: 0px 0px 15px #aaa;
+ 
 }
 
 div.footer a {
@@ -447,14 +459,14 @@ th {
 /* WIDE DESKTOP STYLE */
 @media only screen and (min-width: 1176px) {
 body {
-    margin: 0 40px 0 40px;
+    margin: 0 0px 0 0px;
 }
 }
 
 /* TABLET STYLE */
 @media only screen and (min-width: 768px) and (max-width: 991px) {
 body {
-    margin: 0 40px 0 40px;
+    margin: 0 0px 0 0px;
 }
 }
 
@@ -487,3 +499,4 @@ only screen and (min-device-pixel-ratio: 2) {
 }
 
 /* -- end ------------------------------------------------------------------- */
+

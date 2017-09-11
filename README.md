@@ -69,16 +69,8 @@ This is a simple superpesition example.
 ```
 from qiskit import QuantumProgram
 
-# Set your API Token
-QX_TOKEN = "API_TOKEN"
-QX_URL = "https://quantumexperience.ng.bluemix.net/api"
-
 # Creating Programs create your first QuantumProgram object instance.
 Q_program = QuantumProgram()
-
-# Set up the API and execute the program.
-# You need the API Token and the QX URL. 
-# Q_program.set_api(QX_TOKEN, QX_URL)
 
 # Creating Registers create your first Quantum Register called "qr" with 2 qubits
 qr = Q_program.create_quantum_register("qr", 2)
