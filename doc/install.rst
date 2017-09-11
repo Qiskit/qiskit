@@ -4,23 +4,23 @@ Installation and setup
 1. Get the tools
 ----------------
 
-To use QISKit Python version you'll need to have installed [Python 3 or later]
+To use QISKit you'll need to have installed at least [Python 3.5 or later]
 (https://www.python.org/downloads/) and [Jupyter Notebooks]
 (https://jupyter.readthedocs.io/en/latest/install.html) 
-(recommended to interact with tutorials). 
+(recommended for interacting with the tutorials). 
 
-For this reason e recomend to use [Anaconda 3](https://www.continuum.io/downloads) 
-python distribution for install all of this dependencies.
+For this reason we recommend installing [Anaconda 3](https://www.continuum.io/downloads) 
+python distribution, which already comes with all these dependecies pre-installed.
 
-if you are a Mac OS X users will find Xcode useful: https://developer.apple.com/xcode/
+if you are a Mac OS X user, you will find Xcode useful: https://developer.apple.com/xcode/
 
-if you nnedd to get the QISKit code to extend it you can download Git: https://git-scm.com/download/.
+if you are willing to contribute to QISKit or just wanted to extend it, you should install Git too: https://git-scm.com/download/.
 
 
 2. PIP Install 
 --------------
 
-the fast way to install QISKit is using PIP tool (Python package manager):
+The fastest way to install QISKit is by using the PIP tool (Python package manager):
 
 .. code:: sh
 
@@ -29,8 +29,7 @@ the fast way to install QISKit is using PIP tool (Python package manager):
 3 Repository Install
 ---------------------
 
-Other common option is clone the QISKit SDK repository and navigate to its 
-folder on your local machine:
+Other common option is to clone the QISKit SDK repository on your local machine, and change into the cloned directory:
 
 -  If you have Git installed, run the following commands:
 
@@ -40,17 +39,17 @@ folder on your local machine:
     cd qiskit-sdk-py
 
 -  If you don't have Git installed, click the "Clone or download" button
-   at the URL shown in the git clone command, unzip the file if needed,
-   then navigate to that folder in a terminal window.
+   at the URL shown in the git clone command, unzip the file if needed and
+   finally change into the unziped directory.
 
 3.1 Setup the environment
 -------------------------
 
-To use as a library install the dependencies:
+To use QISKit as standalone library, install all the dependencies:
 
 .. code:: sh
 
-    # Depending on the system and setup to append "sudo -H" before could be needed.
+    # Depending on the system and setup, appending "sudo -H" before this command could be needed.
     pip install -r requires.txt
 
 To get the tutorials working set up an Anaconda environment for working
@@ -102,7 +101,7 @@ with QISKit, and install the required dependencies:
 Install Jupyter-based tutorials
 ===============================
 
-The QISKit project provide you collection of tutorials in the form of Jupyter 
+The QISKit project provides you a collection of tutorials in the form of Jupyter 
 notebooks, which are essentially web pages that contain "cells" of embedded 
 Python code. To run a cell, click on it and hit ``Shift+Enter`` or use the 
 toolbar at the top of the page. Any output from a cell is displayed 
@@ -137,7 +136,7 @@ started with the tutorials, follow the instructions below.
 
     - download the tutorials: https://github.com/QISKit/qiskit-tutorial/archive/master.zip
     - uncompress the zip file
-    - move the content into the a new "tutorials" folder in the QISKit folder
+    - move the content into a new "tutorials" folder in the QISKit folder
 
 .. code:: sh
 
@@ -150,11 +149,11 @@ FAQ
 If you upgrade the dependencies and get the error below, try the fix
 shown below the error:
 
-- Depending on the system and setup to append "sudo -H" before could be needed.
+- Depending on the system and setup, appending "sudo -H" before this command could be needed.
 
 .. code:: sh
 
-    pip install --upgrade IBMQuantumExperience
+    pip install -U --no-cache-dir IBMQuantumExperience
     
 - Fix: run the command below
 
