@@ -719,7 +719,7 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'test'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
-                                 coupling_map=coupling_map, qobjid='cooljob')
+                                 coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
         self.assertEqual(len(out), 3)
 
@@ -781,7 +781,7 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
-                                  coupling_map=coupling_map, qobjid="cooljob")
+                                  coupling_map=coupling_map, qobj_id='cooljob')
         result = QP_program.get_execution_list(qobj)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
@@ -1074,11 +1074,11 @@ class TestQuantumProgram(unittest.TestCase):
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmqx_qasm_simulator'
-        self.assertRaises(RegisterSizeError,
-                          QP_program.execute,
-                          ['qc'], backend=backend,
-                          shots=shots, max_credits=3,
-                          silent=True, seed=73846087)
+        result = QP_program.execute(['qc'], backend=backend,
+                                    shots=shots, max_credits=3,
+                                    silent=True, seed=73846087)
+        self.assertEqual(result.get_error(), "device register size must be <= 24")
+
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):

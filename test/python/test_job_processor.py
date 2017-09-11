@@ -13,15 +13,25 @@ from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
-import qiskit.job_processor as jobp
+import qiskit._jobprocessor as jobp
 from qiskit.simulators import _localsimulator
-from qiskit import oqc
+from qiskit import openquantumcompiler as oqc
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+
+TRAVIS_FORK_PULL_REQUEST = False
+if ('TRAVIS_PULL_REQUEST_SLUG' in os.environ
+    and os.environ['TRAVIS_PULL_REQUEST_SLUG']):
+    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
+        TRAVIS_FORK_PULL_REQUEST = True
 
 if __name__ == '__main__':
     from _random_circuit_generator import RandomCircuitGenerator
 else:
     from ._random_circuit_generator import RandomCircuitGenerator
+
+
+def mock_run_local_simulator(self):
+    raise Exception("Mocking job error!!")
 
 class TestJobProcessor(unittest.TestCase):
     """
@@ -41,9 +51,17 @@ class TestJobProcessor(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
-        
-        cls.QE_TOKEN = os.environ["QE_TOKEN"]
-        cls.QE_URL = os.environ["QE_URL"]
+
+        try:
+            import Qconfig
+            cls.QE_TOKEN = Qconfig.APItoken
+            cls.QE_URL = Qconfig.config['url']
+        except ImportError:
+            if 'QE_TOKEN' in os.environ:
+                cls.QE_TOKEN = os.environ['QE_TOKEN']
+            if 'QE_URL' in os.environ:
+                cls.QE_URL = os.environ['QE_URL']
+
         nCircuits = 20
         minDepth = 1
         maxDepth = 40
@@ -102,16 +120,16 @@ class TestJobProcessor(unittest.TestCase):
                      }
 
 
-                     
-                         
-        
+
+
+
 
     def tearDown(self):
         pass
 
     def test_load_unroll_qasm_file(self):
         unrolled = oqc.load_unroll_qasm_file(self.qasmFileName)
-        
+
     def test_init_quantum_job(self):
         qjob = jobp.QuantumJob(self.qc)
 
@@ -137,14 +155,15 @@ class TestJobProcessor(unittest.TestCase):
         for i in range(njobs):
             qjob = jobp.QuantumJob(self.qc, doCompile=False)
             job_list.append(qjob)
-        jp = jobp.JobProcessor(job_list)
+        jp = jobp.JobProcessor(job_list, callback=None)
 
-    def test_run_local_simulator(self):
+    def testrun_local_simulator(self):
         compiled_circuit = oqc.compile(self.qc.qasm())
         qjob = jobp.QuantumJob(compiled_circuit, doCompile=False,
                                backend='local_qasm_simulator')
         jobp.run_local_simulator(qjob.qobj)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_remote_simulator(self):
         compiled_circuit = oqc.compile(self.qc.qasm())
         qjob = jobp.QuantumJob(compiled_circuit, doCompile=False,
@@ -154,11 +173,12 @@ class TestJobProcessor(unittest.TestCase):
                                    verify=True)
         jobp.run_remote_backend(qjob.qobj, api)
 
-    def test_run_local_simulator_compile(self):
+    def testrun_local_simulator_compile(self):
         qjob = jobp.QuantumJob(self.qasm_text, doCompile=True,
                                backend='local_qasm_simulator')
         jobp.run_local_simulator(qjob.qobj)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_remote_simulator_compile(self):
         qjob = jobp.QuantumJob(self.qc, doCompile=True,
                                backend='ibmqx_qasm_simulator')
@@ -166,12 +186,12 @@ class TestJobProcessor(unittest.TestCase):
                                    {"url": self.QE_URL},
                                    verify=True)
         jobp.run_remote_backend(qjob.qobj, api)
-        
+
     def test_compile_job(self):
         """Test compilation as part of job"""
         qjob = jobp.QuantumJob(self.qasm_text, doCompile=True,
                                backend='local_qasm_simulator')
-        jp = jobp.JobProcessor(qjob)
+        jp = jobp.JobProcessor(qjob, callback=None)
         jp.submit(silent=True)
 
     def test_run_job_processor_local(self):
@@ -183,25 +203,28 @@ class TestJobProcessor(unittest.TestCase):
                                    backend='local_qasm_simulator',
                                    doCompile=False)
             job_list.append(qjob)
-        jp = jobp.JobProcessor(job_list)
+        jp = jobp.JobProcessor(job_list, callback=None)
         jp.submit(silent=True)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_job_processor_online(self):
         njobs = 1
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())            
+            compiled_circuit = oqc.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='ibmqx_qasm_simulator')
             job_list.append(qjob)
         jp = jobp.JobProcessor(job_list, token=self.QE_TOKEN,
-                               url=self.QE_URL)
+                               url=self.QE_URL,
+                               callback=None)
         jp.submit(silent=True)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_quantum_program_online(self):
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', 2)
         cr = qp.create_classical_register('cr', 2)
-        qc = qp.create_circuit('qc', [qr], [cr])        
+        qc = qp.create_circuit('qc', [qr], [cr])
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         backend = 'ibmqx_qasm_simulator'  # the backend to run on
@@ -209,7 +232,7 @@ class TestJobProcessor(unittest.TestCase):
         qp.set_api(self.QE_TOKEN, self.QE_URL)
         result = qp.execute(['qc'], backend=backend, shots=shots,
                             seed=78)
-        
+
     def test_run_job_processor_local_parallel(self):
         njobs = 20
         job_list = []
@@ -217,14 +240,15 @@ class TestJobProcessor(unittest.TestCase):
             compiled_circuit = oqc.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
-        jp = jobp.JobProcessor(job_list, max_workers=None)
+
+        def job_done_callback(results):
+            self.log.info(pprint.pformat(results))
+            for result, _ in results:
+                self.assertTrue(result['result'][0]['status'] == 'DONE')
+
+        jp = jobp.JobProcessor(job_list, max_workers=None,
+                               callback=job_done_callback)
         jp.submit(silent=True)
-        results = jp.results()
-        self.log.info(pprint.pformat(results))
-        for i in range(njobs):
-            self.assertTrue(results[i]['result'][0]['status'] == 'DONE')
-            
-        
 
     def test_random_local(self):
         """test randomly generated circuits on local_qasm_simulator"""
@@ -236,13 +260,14 @@ class TestJobProcessor(unittest.TestCase):
             compiled_circuit = oqc.compile(circuit.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend=backend)
             job_list.append(qjob)
-        jp = jobp.JobProcessor(job_list, max_workers=1)
+        jp = jobp.JobProcessor(job_list, max_workers=1, callback=None)
         jp.submit(silent=True)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_mix_local_remote_jobs(self):
         """test mixing local and remote jobs
 
-        Internally local jobs execute in seperate processes since 
+        Internally local jobs execute in seperate processes since
         they are CPU bound and remote jobs execute in seperate threads
         since they are I/O bound. The module gets results from potentially
         both kinds in one list. Test that this works.
@@ -260,9 +285,33 @@ class TestJobProcessor(unittest.TestCase):
             job_list.append(qjob)
             i += 1
         jp = jobp.JobProcessor(job_list, max_workers=None,
-                               token=self.QE_TOKEN, url=self.QE_URL)
-        jp.submit(silent=True)            
-        
+                               token=self.QE_TOKEN, url=self.QE_URL,
+                               callback=None)
+        jp.submit(silent=True)
+
+
+    def test_error_in_job(self):
+        njobs = 5
+        job_list = []
+        for i in range(njobs):
+            compiled_circuit = oqc.compile(self.qc.qasm())
+            qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
+            job_list.append(qjob)
+
+        def job_done_callback(results):
+            for result, _ in results:
+                self.log.info(pprint.pformat(result))
+                self.assertTrue(result[0]['status'] == 'ERROR')
+
+        jp = jobp.JobProcessor(job_list, max_workers=None,
+                               callback=job_done_callback)
+
+        tmp = jobp.run_local_simulator
+        jobp.run_local_simulator = mock_run_local_simulator
+        jp.submit(silent=True)
+        jobp.run_local_simulator = tmp
+
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
