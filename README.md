@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
 
-The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Quantum Experience (QX)](https://quantumexperience.ng.bluemix.net/). 
+The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/). 
 
-Use **QISKit** to create quantum computing programs, compile them, and execute them on one of several backends (online Real Quantum Processors, online Simulators, and local Simulators). For the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py) to connect to the IBM Quantum Experience. 
+Use **QISKit** to create quantum computing programs, compile them, and execute them on one of several backends (online Real Quantum Processors, online Simulators, and local Simulators). For the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py) to connect to the IBM Q experience. 
 
-**We use GitHub issues for tracking requests and bugs. Please see the** [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for questions and discussion.** **If you'd like to contribute to QISKit, please take a look at our** [contribution guidelines](CONTRIBUTING.rst).
+**We use GitHub issues for tracking requests and bugs. Please see the** [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for questions and discussion.** **If you'd like to contribute to QISKit, please take a look at our** [contribution guidelines](CONTRIBUTING.rst).
 
 Links to Sections:
 
@@ -58,10 +58,10 @@ We recomend using python virtual environments to improve your experience. [Setup
 
 Now that the SDK is installed, it's time to begin working with QISKit. First, get your API token:
 
--  Create an `IBM Quantum Experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
--  Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
+-  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
+-  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
 
-This API token allows you to execute your programs into the IBM Quantum Experience backends.
+This API token allows you to execute your programs into the IBM Q wxperience backends.
 
 We are ready to try out some QASM examples, which runs via the local simulator.
 
@@ -132,7 +132,7 @@ For more information on how to use QISKit, tutorial examples, and other helpful 
 
 QISKit was originally developed by researchers and developers of the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team within [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
 
-Visit the [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
+Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
 
 ## Authors (alphabetical)
