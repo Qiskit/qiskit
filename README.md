@@ -10,19 +10,15 @@ Use **QISKit** to create quantum computing programs, compile them, and execute t
 
 Links to Sections:
 
-* [Installation and setup](#installation-and-setup)
-* [Getting Started](#getting-started)
-* [Quantum Chips](quantum-hips)
+* [Installation](#installation-and-setup)
+* [Creating your first Quantum Program](#getting-started)
 * [More Information](#more-information)
-* [FAQ](#FAQ)
 * [License](#license)
 
 # Installation and setup
 ## Dependencies
 
-To use QISKit Python version you'll need to have installed [Python 3 or later](https://www.python.org/downloads/) and [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) (recommended to interact with tutorials). 
-
-For this reason we recomend to use [Anaconda 3](https://www.continuum.io/downloads) python distribution for install all of this dependencies.
+To use QISKit Python version you'll need to have installed [Python 3 or later](https://www.python.org/downloads/) and [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) (recommended to interact with tutorials). For this reason we recomend to use [Anaconda 3](https://www.continuum.io/downloads) python distribution, install all of this dependencies for you.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with QISKit. If you're new to quantum, Start with our [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
 
@@ -40,7 +36,7 @@ The fast way to install QISKit is using PIP tool (Python package manager):
 
 ### Source Installation 
 
-Other common option is clone the QISKit SDK repository and navigate to its folder on your local machine:
+And alternative method is clone the QISKit SDK repository and navigate to its folder on your local machine:
 
 #### Download the code 
 
@@ -48,16 +44,16 @@ Select the "Clone or download" button at the top of this webpage (or from URL sh
 
 #### Clone the repository 
 
-Alternatively, if you have Git installed, run the following commands:
+If you have Git installed, run the following commands:
 ```
     git clone https://github.com/QISKit/qiskit-sdk-py
     cd qiskit-sdk-py
 ```
 #### Setup you enviroment
 
-We recomend that you use python Virtual enviroments to improve your experience. You can get more info about it in: [Setup the environment](doc/install.rst#3.1-Setup-the-environment)
+We recomend that you use python virtual enviroments to improve your experience. [Setup the environment](doc/install.rst#3.1-Setup-the-environment)
 
-## Getting Started
+## Creating your first Quantum Program
 
 Now that the SDK is installed, it's time to begin working with QISKit. First, get your API token:
 
@@ -66,9 +62,7 @@ Now that the SDK is installed, it's time to begin working with QISKit. First, ge
 
 This API token allows to you to execute your programs in the IBM Quantum Experience backends.
 
-After, try out some example QASM, which runs via the local simulator or the online simulator or [real Quantum Chips](#quantum-chips).
-
-### Creating your first Quantum Program 
+After, try out some example QASM, which runs via the local simulator.
 
 This is a simple superpesition example.
 
@@ -115,32 +109,18 @@ COMPLETED
 {'00': 509, '11': 515} 
 ```
 
-The basic concept of our quantum program is an array of quantum
-circuits. The program workflow consists of three stages: Build, Compile, and Run. Build allows you to make different quantum circuits that represent the problem you are solving; Compile allows you to rewrite them to run on different backends (simulators/real chips of different quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted or allows you to make a better program for the
-next instance.
 
-You can get more details in [doc/qiskit.rst](doc/qiskit.rst).
+You can execute your code in a [real Quantum Chips](https://github.com/QISKit/ibmqx-backend-information).
 
-### Quantum Chips
-If you want to execute your Quantum circuit in a real Chip, you can use the IBM Quantum Experience (QX) cloud platform. Currently through QX you can use the following chips:
-
--   ibmqx2: [5-qubit backend](https://ibm.biz/qiskit-ibmqx2)
-
--   ibmqx3: [16-qubit backend](https://ibm.biz/qiskit-ibmqx3)
-
-more information about the [IBM Q experience backend information](https://github.com/QISKit/ibmqx-backend-information)
-
+More details in [the Qiskit documentation](doc/qiskit.rst).
 
 ### Next Steps
 
-You can review the QISKit documentation 
-
-Now you're set up and ready to check out some of our other examples in the [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository! Our tutorials are developed using [Jupyter Notebooks](https://jupyter.org/), but can be accessed as read-only from the github web page. If you want to install it like part of QISKit read the steps [doc/install.rst](doc/install.rst#Install-Jupyter-based-tutorials)
+Now you're set up and ready to check out some of our other examples in the [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository! Our tutorials are developed using [Jupyter Notebooks](https://jupyter.org/), but can be accessed as read-only from the github web page. To install it like part of QISKit read installation details [installation details](doc/install.rst#Install-Jupyter-based-tutorials)
 
 Start with the [index](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If you have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), can copy and modify the notebooks to create experiments of your own.
 
-Additionally, Python example programs can be found in the *examples* directory, and test scripts are located in *test*. The *qiskit* directory is the main module of the SDK. and in the *doc* directory you can find the complete SDK documentation.
-
+The *qiskit* directory is the main module of the SDK. and in the *doc* directory you can find the complete SDK documentation.
 
 ## More Information
 
