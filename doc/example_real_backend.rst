@@ -1,8 +1,6 @@
 Example Real Chip Backend
 =========================
 
-from qiskit import QuantumProgram
-
 .. code:: python
 
     from qiskit import QuantumProgram
