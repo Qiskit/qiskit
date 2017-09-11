@@ -56,12 +56,7 @@ We recomend using python virtual environments to improve your experience. [Setup
 
 ## Creating your first Quantum Program
 
-Now that the SDK is installed, it's time to begin working with QISKit. First, get your API token:
-
--  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
--  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
-
-This API token allows you to execute your programs into the IBM Q wxperience backends.
+Now that the SDK is installed, it's time to begin working with QISKit.
 
 We are ready to try out some QASM examples, which runs via the local simulator.
 
@@ -102,8 +97,14 @@ COMPLETED
 {'00': 509, '11': 515} 
 ```
 
-
 You can execute your code in a [real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
+
+ First, get your API token:
+
+-  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
+-  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
+
+This API token allows you to execute your programs into the IBM Q wxperience backends.
 
 More details in [the Qiskit documentation](doc/qiskit.rst).
 
