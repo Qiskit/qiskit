@@ -1,6 +1,6 @@
 # Quantum Information Software Kit (QISKit)
 
-|Build Status|
+[![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
 
 The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Quantum Experience (QX)](https://quantumexperience.ng.bluemix.net/). 
 
@@ -49,13 +49,18 @@ If you have Git installed, run the following commands:
     git clone https://github.com/QISKit/qiskit-sdk-py
     cd qiskit-sdk-py
 ```
-### Setup you enviroment
+#### Setup you enviroment
 
 We recomend that you use python virtual enviroments to improve your experience. [Setup the environment](doc/install.rst#3.1-Setup-the-environment)
 
 ## Creating your first Quantum Program
 
-Now that the SDK is installed, it's time to begin working with QISKit. First, get your [API token and configure your Qconfig file](doc/install.rst#4-configure-your-api-token), it allow to you to execute your programs in the IBM Quantum Experience chips.
+Now that the SDK is installed, it's time to begin working with QISKit. First, get your API token:
+
+-  Create an `IBM Quantum Experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
+-  Get an API token from the Quantum Experience website under “My Account” > “Personal Access Token”
+
+This API token allows to you to execute your programs in the IBM Quantum Experience backends.
 
 After, try out some example QASM, which runs via the local simulator.
 
@@ -63,13 +68,17 @@ This is a simple superpesition example.
 
 ```
 from qiskit import QuantumProgram
-import Qconfig
+
+# Set your API Token
+QX_TOKEN = "API_TOKEN"
+QX_URL = "https://quantumexperience.ng.bluemix.net/api"
+
 # Creating Programs create your first QuantumProgram object instance.
 Q_program = QuantumProgram()
 
 # Set up the API and execute the program.
-# You need the APItoken and the QX URL. 
-# Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
+# You need the API Token and the QX URL. 
+# Q_program.set_api(QX_TOKEN, QX_URL)
 
 # Creating Registers create your first Quantum Register called "qr" with 2 qubits
 qr = Q_program.create_quantum_register("qr", 2)
@@ -99,6 +108,7 @@ in this case the output will be:
 COMPLETED
 {'00': 509, '11': 515} 
 ```
+
 
 You can execute your code in a [real Quantum Chips](https://github.com/QISKit/ibmqx-backend-information).
 
