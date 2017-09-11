@@ -944,8 +944,8 @@ class QuantumProgram(object):
 
     # TODO Async: Timeout management
     def run(self, qobjy, wait=5, timeout=60, silent=True):
-        """Run a program (a pre-compiled quantum program) asynchronously. This
-           function will return inmediately.
+        """Run a program (a pre-compiled quantum program). This function will
+        block until all Jobs are processed.
 
         All input for run comes from qobj.
 

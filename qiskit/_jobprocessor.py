@@ -188,7 +188,6 @@ class QuantumJob():
                                     ("q", 2): ("q", 2),
                                     ("q", 3): ("q", 3)
                                   }
-[]
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
