@@ -81,10 +81,10 @@ with QISKit, and install the required dependencies:
 4. Configure your API token
 ---------------------------
 
--  Create an `IBM Quantum
-   Experience <https://quantumexperience.ng.bluemix.net>`__ account if
+-  Create an `IBM Q
+   experience <https://quantumexperience.ng.bluemix.net>`__ account if
    you haven't already done so
--  Get an API token from the Quantum Experience website under “My
+-  Get an API token from the IBM Q experience website under “My
    Account” > “Personal Access Token”
 -  You will insert your API token in a file called Qconfig.py. First
    copy the default version of this file from the tutorial folder to the
