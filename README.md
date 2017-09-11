@@ -104,7 +104,7 @@ You can execute your code in a [real Quantum Chip](https://github.com/QISKit/ibm
 -  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
 -  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
 
-This API token allows you to execute your programs into the IBM Q experience backends.
+This API token allows you to execute your programs into the IBM Q experience backends. [Example] (doc/example_real_backend.rst)
 
 More details in [the Qiskit documentation](doc/qiskit.rst).
 
