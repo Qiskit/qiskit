@@ -43,7 +43,7 @@ Select the "Clone or download" button at the top of this webpage (or from the UR
 
 #### Git download 
 
-Or, ifyou have Git installed, run the following commands:
+Or, if you have Git installed, run the following commands:
 
 ```
     git clone https://github.com/QISKit/qiskit-sdk-py
