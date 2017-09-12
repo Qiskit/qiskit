@@ -38,10 +38,10 @@ Main Modules
    :maxdepth: 4
    :caption: Contents:
              
-   SDK reference (public) <_autodoc_stubs/qiskit.html>
+   SDK reference (public) <_autodoc_stubs/qiskit>
 
 .. include:: install.rst
-.. include:: entry_autodoc_public
+.. include:: entry_autodoc_public.rst
 
 Authors (alphabetical)
 ======================
