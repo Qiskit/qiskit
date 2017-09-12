@@ -33,6 +33,7 @@ from qiskit import __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
@@ -40,6 +41,8 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinxcontrib.fulltoc']
+
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance', 'inherited-members']
 
 # Napoleon settings
 napoleon_google_docstring = True

@@ -34,6 +34,15 @@ Main Modules
 * `Quantum Circuit <./_autodoc/qiskit._quantumcircuit.html>`__
 * :ref:`modindex`
 
+.. toctree::
+   :maxdepth: 4
+   :caption: Contents:
+             
+   SDK reference (public) <_autodoc_stubs/qiskit.html>
+
+.. include:: install.rst
+.. include:: entry_autodoc_public
+
 Authors (alphabetical)
 ======================
 
