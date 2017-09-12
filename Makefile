@@ -39,7 +39,10 @@ profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
 doc:
-	export PYTHONPATH=$(PWD);sphinx-apidoc -f -o doc/_autodoc -d 5 -P -e qiskit;make -C doc html
+	export PYTHONPATH=$(PWD); \
+	better-apidoc -f -o doc/_autodoc_stubs -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools; \
+	sphinx-autogen doc/entry_autodoc_public.rst doc/_autodoc_stubs/*; \
+	make -C doc html
 
 clean:
 	make -C doc clean
