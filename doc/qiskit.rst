@@ -8,18 +8,18 @@ with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience (
 Philosophy
 ==========
 
-QISKit is a collection of software for working with short depth quantum
-circuits and building near term applications and experiments on quantum
-computers. In QISKit, a quantum program is an array of quantum circuits.
-The program workflow consists of three stages: Build, Compile,
-and Run. Build allows you to make different quantum circuits that
-represent the problem you are solving; Compile allows you to rewrite
-them to run on different backends (simulators/real chips of different
-quantum volumes, sizes, fidelity, etc); and Run launches the jobs. After
-the jobs have been run, the data is collected. There are methods for
-putting this data together, depending on the program. This either gives
-you the answer you wanted or allows you to make a better program for the
-next instance.
+QISKit is a collection of software for working with short depth
+quantum circuits and building near term applications and experiments
+on quantum computers. In QISKit, a quantum program is an array of
+quantum circuits.  The program workflow consists of three stages:
+Build, Compile, and Run. Build allows you to make different quantum
+circuits that represent the problem you are solving. Compile allows
+you to rewrite them to run on different backends (simulators/real
+chips of different quantum volumes, sizes, fidelity, etc). Run
+launches the jobs. After the jobs have been run, the data is
+collected. There are methods for putting this data together, depending
+on the program. This either gives you the answer you wanted or allows
+you to make a better program for the next instance.
 
 Project Overview
 ================
@@ -73,26 +73,16 @@ The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 
 	 {'00': 531, '11': 493}
 
-The basic concept of our quantum program is an array of quantum
-circuits. The program workflow consists of three stages: Build, Compile,
-and Run. Build allows you to make different quantum circuits that represent 
-the problem you are solving; Compile allows you to rewrite them to run on different 
-backends (simulators/real chips of different quantum volumes, sizes, fidelity, etc);
-and Run launches the jobs. After the jobs have been run, the data is collected. 
-There are methods for putting this data together, depending on the program. 
-This either gives you the answer you wanted or allows you to make a better program for the
-next instance.
-
 Quantum Chips
 -------------
 
-you can execute your QASM circuits in a real Chip, you can use the IBM Quantum Experience (QX) cloud platform. Currently through QX you can use the following chips:
+You can execute your QASM circuits on a real chip by using the IBM Quantum Experience (QX) cloud platform. Currently through QX you can use the following chips:
 
 -   ibmqx2: `5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`_
 
 -   ibmqx3: `16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`_
 
-more information about the `IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
+For chip details visit the `IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
 
 `Example code <example_real_backend.html>`__
 
@@ -109,8 +99,7 @@ Programming interface
 ---------------------
 
 The *qiskit* directory is the main Python module and contains the
-programming interface objects `QuantumProgram <quantum_program.rst>`__, *QuantumRegister*,
-*ClassicalRegister*, and *QuantumCircuit*.
+programming interface objects :py:mod:`QuantumProgram <qiskit._quantumprogram>`, :py:mod:`QuantumRegister <qiskit._quantumregister>`, :py:mod:`ClassicalRegister <qiskit._classicalregister>`, and :py:mod:`QuantumCircuit <qiskit._quantumcircuit>`.
 
 At the highest level, users construct a *QuantumProgram* to create,
 modify, compile, and execute a collection of quantum circuits. Each

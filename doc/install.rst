@@ -4,13 +4,13 @@ Installation and setup
 1. Get the tools
 ----------------
 
-To use QISKit you'll need to have installed at least [Python 3.5 or later]
-(https://www.python.org/downloads/) and [Jupyter Notebooks]
-(https://jupyter.readthedocs.io/en/latest/install.html) 
-(recommended for interacting with the tutorials). 
+To use QISKit you'll need to have installed at least `Python 3.5 or
+later <https://www.python.org/downloads/`__ and `Jupyter Notebooks
+<https://jupyter.readthedocs.io/en/latest/install.html>`__
+(recommended for interacting with the tutorials).
 
-For this reason we recommend installing [Anaconda 3](https://www.continuum.io/downloads) 
-python distribution, which already comes with all these dependecies pre-installed.
+For this reason we recommend installing `Anaconda 3 <https://www.continuum.io/downloads>`__
+python distribution, which already comes with all these dependencies pre-installed.
 
 if you are a Mac OS X user, you will find Xcode useful: https://developer.apple.com/xcode/
 
@@ -38,9 +38,9 @@ Other common option is to clone the QISKit SDK repository on your local machine,
     git clone https://github.com/QISKit/qiskit-sdk-py
     cd qiskit-sdk-py
 
--  If you don't have Git installed, click the "Clone or download" button
-   at the URL shown in the git clone command, unzip the file if needed and
-   finally change into the unziped directory.
+- If you don't have Git installed, click the "Clone or download"
+  button on the `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-sdk-py>`__, unzip the file if
+  needed and finally change into the unziped directory.
 
 3.1 Setup the environment
 -------------------------
@@ -113,7 +113,7 @@ started with the tutorials, follow the instructions below.
 ----------------------
 - download the tutorials: https://github.com/QISKit/qiskit-tutorial/archive/master.zip
 - uncompress the zip file
-- in the terminal/commandline and into the folder "qiskit-tutorial-master" execute:
+- in the terminal/command-line and into the folder "qiskit-tutorial-master" execute:
 
 .. code:: sh
 
@@ -162,4 +162,4 @@ shown below the error:
     curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
 For additional troubleshooting tips, see the QISKit troubleshooting page
-on the project's GitHub wik
+on the project's GitHub wiki
