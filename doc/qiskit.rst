@@ -25,20 +25,20 @@ Project Overview
 ================
 The QISKit project comprises:
 
-* `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Provides
-  support for the Quantum Experience circuit generation phase and lets
-  you use the QISKit API to access the Quantum Experience hardware and
-  simulators. The SDK also includes example scripts written for
-  Jupyter Notebooks.
+* `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Python software 
+  development kit for writing quantum computing experiments, programs, and 
+  applications.
 
 * `QISKit API <https://github.com/IBM/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
-  connect and and execute OpenQASM code.
+  connect and and execute quantum programs.
 
 * `QISKit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_: Contains
   specifications, examples, documentation, and tools for the OpenQASM
   intermediate representation.
 
+* `QISKit Tutorial <https://github.com/IBM/qiskit-tutorial>`_: A 
+  collection of Jupyter notebooks using QISKit.
 
 Getting Started
 ===============
@@ -76,7 +76,8 @@ The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 Quantum Chips
 -------------
 
-You can execute your QASM circuits on a real chip by using the IBM Quantum Experience (QX) cloud platform. Currently through QX you can use the following chips:
+You can execute your QASM circuits on a real chip by using the IBM Q experience (QX) cloud platform. 
+Currently through QX you can use the following chips:
 
 -   ibmqx2: `5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`_
 
