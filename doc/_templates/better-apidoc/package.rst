@@ -13,6 +13,13 @@ Submodules
 {% for item in submodules %}
     {{ item }}
     {%- endfor %}
+
+.. toctree::
+    :hidden:
+{% for item in submodules %}
+    {{ fullname }}.{{ item }}
+    {%- endfor %}
+
 {%- endif %}
 
 
@@ -26,8 +33,14 @@ Subpackages
 {% for item in subpackages %}
     {{ item }}
     {%- endfor %}
-{%- endif %}
 
+.. toctree::
+    :hidden:
+{% for item in subpackages %}
+    {{ fullname }}.{{ item }}
+    {%- endfor %}
+
+{%- endif %}
 
 {% if members_imports_refs %}
 Contents
