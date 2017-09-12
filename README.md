@@ -10,26 +10,24 @@ Use **QISKit** to create quantum computing programs, compile them, and execute t
 
 Links to Sections:
 
-* [Installation](#installation-and-setup)
-* [Creating your first Quantum Program](#getting-started)
+* [Installation](#installation)
+* [Creating your first Quantum Program](#creating-your-first-quantum-program)
 * [More Information](#more-information)
+* [Authors](#authors-alphabetical)
 * [License](#license)
 
-# Installation and setup
-## Dependencies
+## Installation
 
-At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit and [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) is recommended for interacting with the tutorials.
-For this reason we recomend installing [Anaconda 3](https://www.continuum.io/downloads) python distribution, because it already comes with all of these dependencies pre-installed.
+### Dependencies
+
+At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit. In addition, [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) is recommended for interacting with the tutorials.
+For this reason we recomend installing [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with QISKit. If you're new to quantum, start with our [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
 
-## install QISKit
-
-For those who are familiar with python, go through the following install procedure:
-
 ### PIP Installation
 
-The fastest way to install QISKit is by using PIP tool (Python package manager):
+For those more familiar with python, the fastest way to install QISKit is by using the PIP tool (a python package manager):
 
 ```
     pip install qiskit
@@ -37,22 +35,24 @@ The fastest way to install QISKit is by using PIP tool (Python package manager):
 
 ### Source Installation 
 
-An alternative method is to clone the QISKit SDK repository in your local machine, and change into the cloned directory:
+An alternative method is to clone the QISKit SDK repository onto your local machine, and change into the cloned directory:
 
-#### Download the code 
+#### Manual download
 
 Select the "Clone or download" button at the top of this webpage (or from the URL shown in the git clone command), unzip the file if needed, and change into **qiskit-sdk-py folder** in a terminal window.
 
-#### Clone the repository 
+#### Git download 
 
-If you have Git installed, run the following commands:
+Or, ifyou have Git installed, run the following commands:
+
 ```
     git clone https://github.com/QISKit/qiskit-sdk-py
     cd qiskit-sdk-py
 ```
+
 #### Setup you enviroment
 
-We recomend using python virtual environments to improve your experience. [Setup the environment](doc/install.rst#3.1-Setup-the-environment)
+We recomend using python virtual environments to improve your experience. Refer to our [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
 
 ## Creating your first Quantum Program
 
@@ -90,14 +90,14 @@ print(result)
 print(result.get_data("superposition"))
 ```
 
-in this case the output will be:
+In this case, the output will be:
 
 ```
 COMPLETED
 {'00': 509, '11': 515} 
 ```
 
-You can execute your code in a [real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
+You can also use QISKit to execute your code on a [real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
 
  First, get your API token:
 
@@ -106,19 +106,18 @@ You can execute your code in a [real Quantum Chip](https://github.com/QISKit/ibm
 
 This API token allows you to execute your programs into the IBM Q experience backends. [Example](doc/example_real_backend.rst).
 
-More details in [the Qiskit documentation](doc/qiskit.rst).
+More details on this and more so in [our QISKit documentation](doc/qiskit.rst).
+
 
 ### Next Steps
 
-Now you're set up and ready to check out some of the other examples from our [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository! These tutorials are developed using [Jupyter Notebooks](https://jupyter.org/), but can be accessed as read-only from their own github web page. To install them as part of the QISKit SDK, read the installation details [installation details](doc/install.rst#Install-Jupyter-based-tutorials)
+Now you're set up and ready to check out some of the other examples from our [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository. Start with the [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), you can copy and modify the notebooks to create your own experiments.
 
-Start with the [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), you can copy and modify the notebooks to create your own experiments.
-
-The *qiskit* directory is the main module of the SDK, and the complete SDK documentation can be found into the *doc* directory.
+To install the tutorials as part of the QISKit SDK, see the following installation details [installation details](doc/install.rst#Install-Jupyter-based-tutorials). Complete SDK documentation can be found in the [*doc* directory](doc/qiskit.rst).
 
 ## More Information
 
-For more information on how to use QISKit, tutorial examples, and other helpful links, check this out:
+For more information on how to use QISKit, tutorial examples, and other helpful links, take a look at these resources:
 
 * **[User Guides](https://github.com/QISKit/ibmqx-user-guides)**,
   a good starting place for learning about quantum information and computing
@@ -131,7 +130,7 @@ For more information on how to use QISKit, tutorial examples, and other helpful 
 * **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, an API to use the IBM Quantum Experience in Python
 
 
-QISKit was originally developed by researchers and developers of the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team within [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
+QISKit was originally developed by researchers and developers on the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
 
 Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
@@ -146,5 +145,3 @@ In future releases, anyone who contributes with code to this project is welcome 
 ## License
 
 This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
-
-
