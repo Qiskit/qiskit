@@ -24,8 +24,8 @@ import re
 import copy
 
 # use the external IBMQuantumExperience Library
-from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError
+from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import RegisterSizeError
 
 # Stable Modules
 from . import QuantumRegister
