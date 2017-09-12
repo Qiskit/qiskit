@@ -72,7 +72,8 @@ Q_program = QuantumProgram()
 qr = Q_program.create_quantum_register("qr", 2)
 # create your first Classical Register called "cr" with 2 bits
 cr = Q_program.create_classical_register("cr", 2)
-# Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr" # and your Classical Register "cr"
+# Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr" 
+# and your Classical Register "cr"
 qc = Q_program.create_circuit("superposition", [qr], [cr])
 
 # add the H gate in the Qubit 0, we put this Qubit in superposition
