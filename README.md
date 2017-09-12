@@ -4,7 +4,7 @@
 
 The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/). 
 
-Use **QISKit** to create quantum computing programs, compile them, and execute them on one of several backends (online Real Quantum Processors, online Simulators, and local Simulators). For the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py) to connect to the IBM Q experience. 
+Use **QISKit** to create quantum computing programs, compile them, and execute them on one of several backends (online Real quantum processors, online simulators, and local simulators). For the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py) to connect to the IBM Q experience. 
 
 **We use GitHub issues for tracking requests and bugs. Please see the** [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for questions and discussion.** **If you'd like to contribute to QISKit, please take a look at our** [contribution guidelines](CONTRIBUTING.rst).
 
@@ -21,7 +21,7 @@ Links to Sections:
 ### Dependencies
 
 At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit. In addition, [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) is recommended for interacting with the tutorials.
-For this reason we recomend installing [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
+For this reason we recomend installing the [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with QISKit. If you're new to quantum, start with our [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
 
@@ -90,7 +90,7 @@ print(result)
 print(result.get_data("superposition"))
 ```
 
-In this case, the output will be:
+In this case, the output will be (approximately due to random fluctuations):
 
 ```
 COMPLETED
@@ -104,16 +104,16 @@ You can also use QISKit to execute your code on a [real Quantum Chip](https://gi
 -  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
 -  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
 
-This API token allows you to execute your programs into the IBM Q experience backends. [Example](doc/example_real_backend.rst).
+This API token allows you to execute your programs with the IBM Q experience backends. [Example](doc/example_real_backend.rst).
 
-More details on this and more so in [our QISKit documentation](doc/qiskit.rst).
+More details on this and more information see [our QISKit documentation](doc/qiskit.rst).
 
 
 ### Next Steps
 
-Now you're set up and ready to check out some of the other examples from our [Tutorials](https://github.com/QISKit/qiskit-tutorial) repository. Start with the [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), you can copy and modify the notebooks to create your own experiments.
+Now you're set up and ready to check out some of the other examples from our [Tutorial](https://github.com/QISKit/qiskit-tutorial) repository. Start with the [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), you can copy and modify the notebooks to create your own experiments.
 
-To install the tutorials as part of the QISKit SDK, see the following installation details [installation details](doc/install.rst#Install-Jupyter-based-tutorials). Complete SDK documentation can be found in the [*doc* directory](doc/qiskit.rst).
+To install the tutorials as part of the QISKit SDK, see the following [installation details](doc/install.rst#Install-Jupyter-based-tutorials). Complete SDK documentation can be found in the [*doc* directory](doc/qiskit.rst).
 
 ## More Information
 
