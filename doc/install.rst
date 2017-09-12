@@ -4,10 +4,7 @@ Installation and setup
 1. Get the tools
 ----------------
 
-To use QISKit you'll need to have installed at least `Python 3.5 or
-later <https://www.python.org/downloads/`__ and `Jupyter Notebooks
-<https://jupyter.readthedocs.io/en/latest/install.html>`__
-(recommended for interacting with the tutorials).
+To use QISKit you'll need to have installed at least `Python 3.5 or later <https://www.python.org/downloads/>`__ and `Jupyter Notebooks <https://jupyter.readthedocs.io/en/latest/install.html>`__ (recommended for interacting with the tutorials).
 
 For this reason we recommend installing `Anaconda 3 <https://www.continuum.io/downloads>`__
 python distribution, which already comes with all these dependencies pre-installed.
