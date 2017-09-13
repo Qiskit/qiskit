@@ -1,5 +1,9 @@
+======================
 Installation and setup
 ======================
+
+Installation
+============
 
 1. Get the tools
 ----------------
@@ -14,7 +18,7 @@ if you are a Mac OS X user, you will find Xcode useful: https://developer.apple.
 if you are willing to contribute to QISKit or just wanted to extend it, you should install Git too: https://git-scm.com/download/.
 
 
-2. PIP Install 
+2. PIP Install
 --------------
 
 The fastest way to install QISKit is by using the PIP tool (Python package manager):
@@ -23,7 +27,7 @@ The fastest way to install QISKit is by using the PIP tool (Python package manag
 
     pip install qiskit
 
-3 Repository Install
+3. Repository Install
 ---------------------
 
 Other common option is to clone the QISKit SDK repository on your local machine, and change into the cloned directory:
@@ -40,7 +44,7 @@ Other common option is to clone the QISKit SDK repository on your local machine,
   needed and finally change into the unziped directory.
 
 3.1 Setup the environment
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To use QISKit as standalone library, install all the dependencies:
 
