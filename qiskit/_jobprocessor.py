@@ -309,9 +309,9 @@ class JobProcessor():
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
-        self.callback = (lambda rs:()) if callback == None else callback
+        self.callback = (lambda rs:()) if callback is None else callback
         self.num_jobs = len(self.q_jobs)
-        self.jobs_result = []
+        self.jobs_results = []
         if self.online:
             self._api = api if api else IBMQuantumExperience(token,
                                                              {"url": url},
@@ -324,7 +324,7 @@ class JobProcessor():
             self._api = None
             self._online_backends = None
             self._api_config = None
-        if self.online == True:
+        if self.online:
             # I/O intensive -> use ThreadedPoolExecutor
             self.executor_class = futures.ThreadPoolExecutor
         else:
@@ -337,19 +337,18 @@ class JobProcessor():
         except Exception as ex:
             result = {'status': 'ERROR', 'result': '{}'.format(ex)}
 
-        self.lock.acquire()
-        self.futures[future]['result'] = result
-        self.jobs_result.append((result, future.qobj))
-        if self.num_jobs != 0:
-            self.num_jobs -= 1
-        self.lock.release()
+        with self.lock:
+            self.futures[future]['result'] = result
+            self.jobs_results.append((result, future.qobj))
+            if self.num_jobs != 0:
+                self.num_jobs -= 1
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
             if not future.silent:
                 import pprint
                 pprint.pprint(f.result())
                 sys.stdout.flush()
-            self.callback(self.jobs_result)
+            self.callback(self.jobs_results)
 
     def submit(self, silent=True):
         """Process/submit jobs

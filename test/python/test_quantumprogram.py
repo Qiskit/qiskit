@@ -850,6 +850,116 @@ class TestQuantumProgram(unittest.TestCase):
                                     '100': 117, '000': 129, '101': 126,
                                     '010': 145, '011': 125})
 
+    def test_run_async_program(self):
+        """Test run_async.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88)
+
+        def _job_done_callback(result):
+            results2 = result.get_counts('qc2')
+            results3 = result.get_counts('qc3')
+            self.assertEqual(results2, {'000': 518, '111': 506})
+            self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
+                                        '100': 117, '000': 129, '101': 126,
+                                        '010': 145, '011': 125})
+
+        out = QP_program.run_async(qobj, callback=_job_done_callback)
+
+
+    def test_run_batch(self):
+        """Test run_batch
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj_list = [ QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88) ]
+
+        results = QP_program.run_batch(qobj_list)
+        for result in results:
+            counts2 = result.get_counts('qc2')
+            counts3 = result.get_counts('qc3')
+            self.assertEqual(counts2, {'000': 518, '111': 506})
+            self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
+                                       '100': 117, '000': 129, '101': 126,
+                                       '010': 145, '011': 125})
+
+    def test_run_batch_async(self):
+        """Test run_batch_async
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj_list = [ QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88),
+                      QP_program.compile(circuits, backend=backend, shots=shots,
+                      seed=88) ]
+
+        def _jobs_done_callback(results):
+            for result in results:
+                counts2 = result.get_counts('qc2')
+                counts3 = result.get_counts('qc3')
+                self.assertEqual(counts2, {'000': 518, '111': 506})
+                self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
+                                           '100': 117, '000': 129, '101': 126,
+                                           '010': 145, '011': 125})
+
+        results = QP_program.run_batch_async(qobj_list, 
+                                             callback=_jobs_done_callback)
+
     def test_combine_results(self):
         """Test run.
 

@@ -113,7 +113,9 @@ class QuantumProgram(object):
 
         self.callback = None
         self.results = []
-        self.jobs_result_ready_event = Event()
+        self.jobs_results_ready_event = Event()
+        self.are_multiple_results = False # are we expecting multiple results?
+
 
     ###############################################################
     # methods to initiate an build a quantum program
@@ -939,101 +941,142 @@ class QuantumProgram(object):
             raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
     ###############################################################
-    # methods to run quantum programs (run )
+    # methods to run quantum programs
     ###############################################################
 
-    # TODO Async: Timeout management
-    def run(self, qobjy, wait=5, timeout=60, silent=True):
+    def run(self, qobj, wait=5, timeout=60, silent=True):
         """Run a program (a pre-compiled quantum program). This function will
-        block until all Jobs are processed.
+        block until the Job is processed.
 
-        All input for run comes from qobj.
+        The program to run is extracted from the qobj parameter.
 
         Args:
-            qobjy(dict|list(dict)): the dictionary of the quantum object to
-                run or list of qobj.
+            qobj (dict): the dictionary of the quantum object to run.
             wait (int): wait time is how long to check if the job is completed
             timeout (int): is time until the execution stops
             silent (bool): is an option to print out the running information or
             not
 
         Returns:
-            status done and populates the internal __quantum_program with the
-            data
-
+            A Result (class).
         """
         self.callback = None
-        self._run_internal(qobjy, wait, timeout, silent)
+        self._run_internal([qobj], wait, timeout, silent)
         self.wait_for_results(timeout)
-        # TODO Juan: Don't really like that. Input and Output arguments should be
-        # allways from the same type. Returning a list or an element of the list
-        # depending on the type of input, adds complexity so error-prone code
-        if isinstance(qobjy, dict): # ... so not a List
-            return self.jobs_result[0] if self.jobs_result != None else None
-        else:
-            return self.jobs_result
+        return self.jobs_results[0]
 
-    # TODO Async: Timeout management
-    def run_async(self, qobjy, callback, wait=5, timeout=60, silent=True):
+
+    def run_batch(self, qobj_list, wait=5, timeout=120, silent=True):
+        """Run various programs (a list of pre-compiled quantum programs). This
+        function will block until all programs are processed.
+
+        The programs to run are extracted from qobj elements of the list.
+
+        Args:
+            qobj_list (list(dict)): The list of quantum objects to run.
+            wait (int): Wait time is how long to check if all jobs is completed
+            timeout (int): Time until the execution stops
+            silent (bool): If true, prints out the running information
+
+        Returns:
+            A list of Result (class). The list will contain one Result object
+            per qobj in the input list.
+        """
+        self._run_internal(qobj_list, 
+                           wait=wait, 
+                           timeout=timeout, 
+                           silent=silent,
+                           are_multiple_results=True)
+        self.wait_for_results(timeout)
+        return self.jobs_results
+
+    def run_async(self, qobj, wait=5, timeout=60, silent=True, callback=None):
         """Run a program (a pre-compiled quantum program) asynchronously. This
-           function will return inmediately.
+        is a non-blocking function, so it will return inmediately.
 
         All input for run comes from qobj.
 
         Args:
-            qobjy(dict|list(dict)): the dictionary of the quantum object to
+            qobj(dict): the dictionary of the quantum object to
                 run or list of qobj.
-            callback: A function with signature: fn(results=None, error=None)
-                If there were no errors, results param will be set to a list of
-                Result objects, one Result per Job, and error param will be set
-                to None. If there was an error, error param will contain a
-                string explaning what happened and results param will be set to
-                an empty list.
-            wait (int): wait time is how long to check if the job is completed
-            timeout (int): is time until the execution stops
-            silent (bool): is an option to print out the running information or
-            not
-
-        Returns:
-            status done and populates the internal __quantum_program with the
-            data
-
+            wait (int): Wait time is how long to check if all jobs is completed
+            timeout (int): Time until the execution stops
+            silent (bool): If true, prints out the running information
+            callback (fn(result)): A function with signature: 
+                    fn(result):
+                    The result param will be a Result object.
         """
+        self._run_internal([qobj], 
+                           wait=wait, 
+                           timeout=timeout, 
+                           silent=silent,
+                           callback=callback)
+
+    def run_batch_async(self, qobj_list, wait=5, timeout=120, silent=True, 
+                        callback=None):
+        """Run various programs (a list of pre-compiled quantum program)
+        asynchronously. This is a non-blocking function, so it will return
+        inmediately.
+
+        All input for run comes from qobj.
+
+        Args:
+            qobj_list (list(dict)): The list of quantum objects to run.
+            wait (int): Wait time is how long to check if all jobs is completed
+            timeout (int): Time until the execution stops
+            silent (bool): If true, prints out the running information
+            callback (fn(results)): A function with signature: 
+                    fn(results):
+                    The results param will be a list of Result objects, one
+                    Result per qobj in the input list.
+        """
+        self._run_internal(qobj_list,
+                           wait=wait, 
+                           timeout=timeout, 
+                           silent=silent,
+                           callback=callback,
+                           are_multiple_results=True)
+
+
+    def _run_internal(self, qobj_list, wait=5, timeout=60, silent=True,
+                      callback=None, are_multiple_results=False):
+
         self.callback = callback
-        self._run_internal(qobjy, wait, timeout, silent)
-
-
-    def _run_internal(self, qobjy, wait=5, timeout=60, silent=True):
-        qobj_list = qobjy
-        if isinstance(qobjy, dict):
-            qobj_list = [qobjy]
+        self.are_multiple_results = are_multiple_results
 
         q_job_list = []
         for qobj in qobj_list:
             q_job = QuantumJob(qobj, preformatted=True)
             q_job_list.append(q_job)
 
-        jp = JobProcessor(q_job_list, max_workers=5, api=self.__api, callback=self._jobs_done_callback)
+        jp = JobProcessor(q_job_list, max_workers=5, api=self.__api,
+                          callback=self._jobs_done_callback)
         jp.submit()
 
 
-    def _jobs_done_callback(self, jobs_result):
+    def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have
             finished. NOT every time a job has finished."""
         results = []
-        for result, qobj in jobs_result:
+        for result, qobj in jobs_results:
             results.append(Result(result, qobj))
-        if self.callback != None:
-            # call user callback with the proper parameter
-            self.callback(results)
+
+        if self.callback is None:
+            # We are calling from blocking functions (run, run_batch...)
+            self.jobs_results = results
+            self.jobs_results_ready_event.set()
+            return
+
+        if self.are_multiple_results:
+            self.callback(results) # for run_batch_async() callback
         else:
-            self.jobs_result = results
-            self.jobs_result_ready_event.set()
+            self.callback(results[0]) # for run_async() callback
+            
 
     def wait_for_results(self, timeout):
-        is_ok = self.jobs_result_ready_event.wait(timeout)
-        self.jobs_result_ready_event.clear()
-        if is_ok == False:
+        is_ok = self.jobs_results_ready_event.wait(timeout)
+        self.jobs_results_ready_event.clear()
+        if not is_ok:
             raise QISKitError("""Error waiting for Job results: Timeout after %d
                     seconds. """ % timeout)
 

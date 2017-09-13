@@ -301,7 +301,7 @@ class TestJobProcessor(unittest.TestCase):
         def job_done_callback(results):
             for result, _ in results:
                 self.log.info(pprint.pformat(result))
-                self.assertTrue(result[0]['status'] == 'ERROR')
+                self.assertTrue(result['status'] == 'ERROR')
 
         jp = jobp.JobProcessor(job_list, max_workers=None,
                                callback=job_done_callback)
