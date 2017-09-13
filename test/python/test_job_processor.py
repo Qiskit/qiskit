@@ -191,7 +191,7 @@ class TestJobProcessor(unittest.TestCase):
         """Test compilation as part of job"""
         qjob = jobp.QuantumJob(self.qasm_text, doCompile=True,
                                backend='local_qasm_simulator')
-        jp = jobp.JobProcessor(qjob, callback=None)
+        jp = jobp.JobProcessor([qjob], callback=None)
         jp.submit(silent=True)
 
     def test_run_job_processor_local(self):

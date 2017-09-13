@@ -280,23 +280,18 @@ class JobProcessor():
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:
-            q_jobs (QuantumJob | QuantumJob list | qobj): QuantumJob, list of
-                QuantumJob objects, or qobj dictionary.
-            online (bool): If true, establishes a connection to online server. This
-                should be set to True of /any/ of the jobs in q_jobs use a networked
-                backend.
+            q_jobs (list(QuantumJob)): List of QuantumJob objects.
+            callback (fn(results)): The function that will be called when all
+                jobs finish. The signature of the function must be:
+                fn(results)
+                results: A list of (result, qobj) tuples.
             max_workers (int): The maximum number of workers to use.
-            token (str): server API token
-            url (str): server URL.
+            token (str): Server API token
+            url (str): Server URL.
             api (IBMQuantumExperience): API instance to use. If set,
                 /token/ and /url/ are ignored.
         """
-        # check whether qobj was supplied.
-        if (isinstance(q_jobs, dict)
-            and {'id', 'config', 'circuits'} <= q_jobs.keys()):
-            q_jobs = QuantumJob(qobj, preformatted=True)
-
-        self.q_jobs = q_jobs if isinstance(q_jobs, list) else [q_jobs]
+        self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
         self.online = False
