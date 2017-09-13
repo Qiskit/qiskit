@@ -151,7 +151,7 @@ def print_results_callback(results, error=None):
 
 print("Running jobs asynchronously....")
 # This call is asynchronous, it won't block!
-qp.run_async(qobjs, callback=print_results_callback)
+qp.run_batch_async(qobjs, callback=print_results_callback)
 
 # This will concurrently run while the jobs are being processed.
 for i in range(0,100):
@@ -160,7 +160,7 @@ for i in range(0,100):
     if end: break
 
 print("Running jobs synchronously...")
-results = qp.run(qobjs)
+results = qp.run_batch(qobjs)
 for result in results:
     print("result: {}".format(result))
     if result.get_error() != None:
