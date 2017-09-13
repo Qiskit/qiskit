@@ -30,8 +30,13 @@ Python Modules
 Main Modules
 ------------
 
-* `Quantum Program <./_autodoc/qiskit._quantumprogram.html>`__
-* `Quantum Circuit <./_autodoc/qiskit._quantumcircuit.html>`__
+.. autosummary::
+   :nosignatures:
+   :toctree: _autodoc_public
+
+   qiskit.QuantumProgram
+   qiskit.QuantumCircuit
+
 * :ref:`modindex`
 
 .. toctree::
