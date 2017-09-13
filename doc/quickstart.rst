@@ -43,7 +43,7 @@ Currently through QX you can use the following chips:
 
 For chip details visit the `IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
 
-`Example code <example_real_backend.html>`__
+.. include:: example_real_backend.rst
 
 Project Organization
 --------------------

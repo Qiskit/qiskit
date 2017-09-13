@@ -15,6 +15,15 @@ Main Modules
 * `Quantum Circuit <./_autodoc/qiskit._quantumcircuit.html>`__
 * :ref:`modindex`
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   install
+   Getting started <quickstart>
+   Developer documentation <dev_introduction>
+   SDK reference <_autodoc/modules>
+
 Authors (alphabetical)
 ======================
 
@@ -22,11 +31,3 @@ Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin
 
 In future releases, anyone who contributes code to this project can include their name here.
 
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
-
-   install
-   quickstart
-   dev_introduction
-   _autodoc/modules
