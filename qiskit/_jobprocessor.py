@@ -12,7 +12,7 @@ from qiskit import QISKitError
 # Local Simulator Modules
 from qiskit import simulators
 # compiler module
-from qiskit import openquantumcompiler
+from qiskit import _openquantumcompiler as openquantumcompiler
 
 def run_local_simulator(qobj):
     """Run a program of compiled quantum circuits on the local machine.
@@ -108,7 +108,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
     job_result = api.get_job(jobid)
     if 'status' not in job_result:
         from pprint import pformat
-        raise QISKitError("get_job didn't return status: %s" % (pformat(job)))
+        raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
@@ -294,12 +294,8 @@ class JobProcessor():
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self.online = False
         self._local_backends = local_backends()
-        for qj in self.q_jobs:
-            if qj.backend not in self._local_backends:
-                self.online = True
-                break
+        self.online = any(qj.backend not in self._local_backends for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
@@ -341,7 +337,7 @@ class JobProcessor():
         if self.num_jobs == 0:
             if not future.silent:
                 import pprint
-                pprint.pprint(f.result())
+                pprint.pprint(result)
                 sys.stdout.flush()
             self.callback(self.jobs_results)
 

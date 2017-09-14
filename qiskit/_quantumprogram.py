@@ -48,7 +48,7 @@ import sys
 sys.path.append("..")
 import qiskit.extensions.standard
 
-from qiskit import openquantumcompiler
+from qiskit import _openquantumcompiler as openquantumcompiler
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')

@@ -15,7 +15,7 @@ import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit._jobprocessor as jobp
 from qiskit.simulators import _localsimulator
-from qiskit import openquantumcompiler as oqc
+from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
 TRAVIS_FORK_PULL_REQUEST = False
@@ -93,8 +93,8 @@ class TestJobProcessor(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = oqc.compile(self.qc.qasm())
-        compiled_circuit2 = oqc.compile(self.qasm_text)
+        compiled_circuit1 = openquantumcompiler.compile(self.qc.qasm())
+        compiled_circuit2 = openquantumcompiler.compile(self.qasm_text)
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
@@ -128,7 +128,7 @@ class TestJobProcessor(unittest.TestCase):
         pass
 
     def test_load_unroll_qasm_file(self):
-        unrolled = oqc.load_unroll_qasm_file(self.qasmFileName)
+        unrolled = openquantumcompiler.load_unroll_qasm_file(self.qasmFileName)
 
     def test_init_quantum_job(self):
         qjob = jobp.QuantumJob(self.qc)
@@ -158,14 +158,14 @@ class TestJobProcessor(unittest.TestCase):
         jp = jobp.JobProcessor(job_list, callback=None)
 
     def testrun_local_simulator(self):
-        compiled_circuit = oqc.compile(self.qc.qasm())
+        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         qjob = jobp.QuantumJob(compiled_circuit, doCompile=False,
                                backend='local_qasm_simulator')
         jobp.run_local_simulator(qjob.qobj)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_remote_simulator(self):
-        compiled_circuit = oqc.compile(self.qc.qasm())
+        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         qjob = jobp.QuantumJob(compiled_circuit, doCompile=False,
                                backend='ibmqx_qasm_simulator')
         api = IBMQuantumExperience(self.QE_TOKEN,
@@ -198,7 +198,7 @@ class TestJobProcessor(unittest.TestCase):
         njobs = 5
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())
+            compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit,
                                    backend='local_qasm_simulator',
                                    doCompile=False)
@@ -211,7 +211,7 @@ class TestJobProcessor(unittest.TestCase):
         njobs = 1
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())
+            compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='ibmqx_qasm_simulator')
             job_list.append(qjob)
         jp = jobp.JobProcessor(job_list, token=self.QE_TOKEN,
@@ -237,7 +237,7 @@ class TestJobProcessor(unittest.TestCase):
         njobs = 20
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())
+            compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
 
@@ -257,7 +257,7 @@ class TestJobProcessor(unittest.TestCase):
         basis = 'u1,u2,u3,cx,id'
         backend = 'local_qasm_simulator'
         for circuit in self.rqg.get_circuits(format='QuantumCircuit')[:njobs]:
-            compiled_circuit = oqc.compile(circuit.qasm())
+            compiled_circuit = openquantumcompiler.compile(circuit.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend=backend)
             job_list.append(qjob)
         jp = jobp.JobProcessor(job_list, max_workers=1, callback=None)
@@ -278,7 +278,7 @@ class TestJobProcessor(unittest.TestCase):
         backend_type = ['local_qasm_simulator', 'ibmqx_qasm_simulator']
         i = 0
         for circuit in self.rqg.get_circuits(format='QuantumCircuit')[:njobs]:
-            compiled_circuit = oqc.compile(circuit.qasm())
+            compiled_circuit = openquantumcompiler.compile(circuit.qasm())
             backend = backend_type[i % len(backend_type)]
             self.log.info(backend)
             qjob = jobp.QuantumJob(compiled_circuit, backend=backend)
@@ -294,7 +294,7 @@ class TestJobProcessor(unittest.TestCase):
         njobs = 5
         job_list = []
         for i in range(njobs):
-            compiled_circuit = oqc.compile(self.qc.qasm())
+            compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
 
