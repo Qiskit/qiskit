@@ -6,25 +6,6 @@ import pdb
 import os
 import sys
 
-class ForkablePdb(pdb.Pdb):
-    """usage: ForkablePdb.set_trace()"""
-
-    _original_stdin_fd = sys.stdin.fileno()
-    _original_stdin = None
-
-    def __init__(self):
-        pdb.Pdb.__init__(self, nosigint=True)
-
-    def _cmdloop(self):
-        current_stdin = sys.stdin
-        try:
-            if not self._original_stdin:
-                self._original_stdin = os.fdopen(self._original_stdin_fd)
-            sys.stdin = self._original_stdin
-            self.cmdloop()
-        finally:
-            sys.stdin = current_stdin
-
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, silent=True, get_layout=False):
     """Compile the circuit.
