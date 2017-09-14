@@ -7,9 +7,9 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._qiskiterror import QISKitError
 import qiskit.extensions.standard
+from ._jobprocessor import JobProcessor, QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._quantumprogram import Result
-#from .simulators import UnitarySimulator
-
 
 __version__ = '0.3.5'
+
