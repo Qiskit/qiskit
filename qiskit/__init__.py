@@ -10,3 +10,6 @@ import qiskit.extensions.standard
 from ._jobprocessor import JobProcessor, QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._quantumprogram import Result
+
+__version__ = '0.3.5'
+
