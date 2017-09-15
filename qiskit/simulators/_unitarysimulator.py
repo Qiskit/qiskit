@@ -91,8 +91,10 @@ returned results object::
             }
 """
 import numpy as np
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 import json
+from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
+from qiskit._result import Result
+
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
@@ -107,16 +109,9 @@ __configuration = {"name": "local_unitary_simulator",
 class UnitarySimulator(object):
     """Python implementation of a unitary simulator."""
 
-    def __init__(self, job):
+    def __init__(self, qobj):
         """Initial the UnitarySimulator object."""
-        self.circuit = json.loads(job['compiled_circuit'].decode())
-        self._number_of_qubits = self.circuit['header']['number_of_qubits']
-        self.result = {}
-        self.result = {}
-        self.result['data'] = {}
-        self._unitary_state = np.identity(2**(self._number_of_qubits),
-                                          dtype=complex)
-        self._number_of_operations = len(self.circuit['operations'])
+        self.qobj = qobj
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -141,8 +136,26 @@ class UnitarySimulator(object):
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self, silent=True):
+        """Run circuits in qobj
+        
+        Args:
+            silent (bool, optional): Silence print statements. Default is True.
+        """
+        result_list = []
+        for circuit in self.qobj['circuits']:
+            result_list.append( self.run_circuit(circuit, silent=silent) )
+        return Result({'result': result_list, 'status': 'COMPLETED'},
+                      self.qobj)            
+        
+    def run_circuit(self, circuit, silent=True):
         """Apply the single-qubit gate."""
-        for operation in self.circuit['operations']:
+        ccircuit = json.loads(circuit['compiled_circuit'].decode())
+        self._number_of_qubits = ccircuit['header']['number_of_qubits']
+        result = {}
+        result['data'] = {}
+        self._unitary_state = np.identity(2**(self._number_of_qubits),
+                                          dtype=complex)
+        for operation in ccircuit['operations']:
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 if 'params' in operation:
                     params = operation['params']
@@ -168,8 +181,8 @@ class UnitarySimulator(object):
             elif operation['name'] == 'barrier':
                 pass
             else:
-                self.result['status'] = 'ERROR'
-                return self.result
-        self.result['data']['unitary'] = self._unitary_state
-        self.result['status'] = 'DONE'
-        return self.result
+                result['status'] = 'ERROR'
+                return result
+        result['data']['unitary'] = self._unitary_state
+        result['status'] = 'DONE'
+        return result

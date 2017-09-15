@@ -26,18 +26,49 @@ class QasmCppSimulator:
     Interface to a fast C++ QASM simulator.
     """
 
-    def __init__(self, job):
+    def __init__(self, qobj):
+        """
+        Args:
+            qobj (dict): qobj dictionary which has the structure::
+                {
+                    id: --job id (string),
+                    config: -- dictionary of config settings (dict)--,
+                        {
+                        "max_credits" (online only): -- credits (int) --,
+                        "shots": -- number of shots (int) --,
+                        "backend": -- backend name (str) --,
+                        "threads": -- number of threads (int) default=1,
+                        "exe": -- name of simulator executable
+                        "simulator": -- name of simulator engine. Choices are:
+                            "qubit", "qutrit", "qudit", "clifford", or
+                            "pauli_error". The default is "qubit", which is
+                            also used if the name is unrecognized.
+                        }
+                    circuits:
+                        [
+                            {
+                            "name": --circuit name (string)--,
+                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
+                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
+                            "config": --dictionary of additional config settings (dict)--,
+                                {
+                                "coupling_map": --adjacency list (dict)--,
+                                "basis_gates": --comma separated gate names (string)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "seed": (simulator only)--initial seed for the simulator (int)--,
+                                }
+                            },
+                            ...
+                        ]
+                    }
+
+        """
         # check for config file
-        if 'config' in job:
-            self.config = job['config']
+        self.qobj = qobj
+        if 'config' in qobj:
+            self.config = qobj['config']
         else:
             self.config = {}
-        self.circuit = {'qasm': json.loads(job['compiled_circuit'].decode()),
-                        'config': self.config}
-        self.result = {}
-        self.result['data'] = {}
-        self._shots = job['config']['shots']
-        self._seed = job['config']['seed']
         # Number of threads for simulator
         if 'threads' in self.config:
             self._threads = self.config['threads']
@@ -53,7 +84,6 @@ class QasmCppSimulator:
             self._cpp_backend = self.config['simulator']
         else:
             self._cpp_backend = 'qubit'
-        self._number_of_operations = len(self.circuit['qasm']['operations'])
         # This assumes we are getting a quick return help message.
         # so _localsimulator can quickly determine whether the compiled
         # simulator is available.
@@ -73,28 +103,48 @@ class QasmCppSimulator:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
 
-    def run(self, silent=True):
+    def run(self):
         """
         Run simulation on C++ simulator.
         """
+        result_list = []
+        for circuit in self.qobj['circuits']:
+            result_list.append( self.run_circuit(circuit) )
+        return Result(result_list, self.qobj)
+
+        
+    def run_circuit(self, circuit, silent=True):
+        """Run a single circuit on the C++ simulator
+
+        Args:
+            circuit (dict): JSON circuit from qobj circuits list
+        """
+        
+        cin_dict = {'qasm': json.loads(circuit['compiled_circuit'].decode()),
+                    'config': self.config}
+        result = {}
+        self.result['data'] = {}
+        shots = circuit['config']['shots']
+        seed = circuit['config']['seed']
+        
         # Build the command line execution string
         cmd = self._exe + ' -i - -c - -f qiskit'
-        cmd += ' -n {shots:d}'.format(shots=self._shots)
+        cmd += ' -n {shots:d}'.format(shots=shots)
         cmd += ' -t {threads:d}'.format(threads=self._threads)
         cmd += ' -b {backend:s}'.format(backend=self._cpp_backend)
-        if self._seed is not None:
-            if self._seed >= 0:
-                if isinstance(self._seed, float):
+        if seed is not None:
+            if seed >= 0:
+                if isinstance(seed, float):
                     # _quantumprogram.py usually generates float in [0,1]
                     # try to convert to integer which C++ random expects.
-                    self._seed = hash(self._seed)
-                cmd += ' -s {seed:d}'.format(seed=self._seed)
+                    seed = hash(seed)
+                cmd += ' -s {seed:d}'.format(seed=seed)
             else:
                 raise TypeError('seed needs to be an unsigned integer')
         # Open subprocess and execute external command
         with subprocess.Popen(cmd.split(),
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(self.circuit).encode()
+            cin = json.dumps(self.cin_dict).encode()
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout

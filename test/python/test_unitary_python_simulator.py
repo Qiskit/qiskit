@@ -59,7 +59,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
+            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
 	# if we want to manipulate the circuit, we have to convert it to a dict
@@ -68,16 +68,36 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
 	# the simulator is expecting a JSON format, so we need to convert it back to JSON
-        job = {'compiled_circuit': json.dumps(circuit).encode()}
-        # numpy savetxt is currently prints complex numbers in a way
+        qobj = {'id': 'unitary',
+                'config': {
+                    'max_credits': None,
+                    'shots': 1,
+                    'backend': 'local_unitary_simulator'
+                    },
+                'circuits': [
+                    {
+                        'name': 'test',
+                        'compiled_circuit': json.dumps(circuit).encode(),
+                        'compiled_circuit_qasm': self.qp.get_qasm('example'),
+                        'config': {
+                            'coupling_map': None,
+                            'basis_gates': None,
+                            'layout': None,
+                            'seed': None
+                            }
+                    }
+                ]
+        }
+        # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
         # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr, delimiter=',')
         expected = np.loadtxt(os.path.join(self.modulePath,
                                            'example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
-        result = UnitarySimulator(job).run()
-        self.assertTrue(np.allclose(result['data']['unitary'], expected,
+        result = UnitarySimulator(qobj).run()
+        self.assertTrue(np.allclose(result.get_data('test')['unitary'],
+                                    expected,
                                     rtol=1e-3))
 
     def profile_unitary_simulator(self):
