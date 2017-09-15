@@ -68,8 +68,13 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QISKit SDK'
-copyright = ''
-author = ''
+copyright = '2017 IBM Research'
+author = 'IBM Research'
+
+# Add description
+html_context = {
+    'description': 'Quantum Information Software Kit'
+}
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -125,7 +130,7 @@ html_static_path = []
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../images/qiskit-logo.gif'
+html_logo = 'theme/static/qiskit-logo-white-no-margin.gif'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
