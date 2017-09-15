@@ -10,10 +10,24 @@
 {% extends "basic/layout.html" %}
 
 {% set script_files = script_files + ["_static/bizstyle.js"] %}
+{# use bootstrap .collapse for the TOC toggle on mobile #}
+{% set script_files = script_files + ["_static/bootstrap.min.js"] %}
+{% set css_files = css_files + ['_static/bootstrap.min.css'] %}
 
 {# put the sidebar before the body #}
 {% block sidebar1 %}{{ sidebar() }}{% endblock %}
 {% block sidebar2 %}{% endblock %}
+
+{% block rootrellink %}
+<li id="toc-toggle">
+<a class="btn btn-primary" role="button" data-toggle="collapse"
+   href=".sphinxsidebar" aria-expanded="false" aria-controls="collapseExample">
+  TOC</a> |
+</li>
+
+<li class="nav-item nav-item-0"><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }}</a>{{ reldelim1 }}</li>
+{% endblock %}
+
 
 {# doctype override #}
 {%- block doctype %}

@@ -418,6 +418,10 @@ p.versionchanged span.versionmodified {
     background-color: #DCE6A0;
 }
 
+li#toc-toggle {
+    display: none;
+}
+
 /* -- table styles ---------------------------------------------------------- */
 
 table.docutils {
@@ -482,6 +486,12 @@ div.bodywrapper {
 }
 div.sphinxsidebar {
     display: none;
+    width: 100%;
+    background: white;
+    border-bottom: 2px solid #336699;
+}
+li#toc-toggle {
+    display: block;
 }
 }
 
