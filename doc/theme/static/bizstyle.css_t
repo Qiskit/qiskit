@@ -425,6 +425,25 @@ li#toc-toggle {
     display: block;
 }
 
+p.logo {
+    width: 60px;
+    display: inline-block;
+}
+p.logo-description {
+    width: 130px;
+    display: inline-block;
+    padding-left: 15px;
+    vertical-align: top;
+}
+
+p.logo img {
+    max-width: 100%;
+}
+
+p.spacer {
+    margin-bottom: 4em;
+}
+
 /* -- table styles ---------------------------------------------------------- */
 
 table.docutils {
@@ -495,6 +514,9 @@ div.sphinxsidebar {
 }
 li#toc-toggle {
     display: block;
+}
+p.logo, p.logo-description {
+    display: none;
 }
 }
 
