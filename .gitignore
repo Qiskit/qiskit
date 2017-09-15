@@ -3,7 +3,6 @@ Qconfig.py
 
 # ply outputs
 qiskit/qasm/parser.out
-qiskit/qasm/parsetab.py
 
 # editor files
 .vscode/

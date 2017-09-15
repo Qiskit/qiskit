@@ -19,8 +19,11 @@
 OPENQASM parser.
 """
 import math
-from ._qasmlexer import QasmLexer
+import tempfile
+
 import ply.yacc as yacc
+
+from ._qasmlexer import QasmLexer
 from ._qasmerror import QasmError
 from . import _node as node
 
@@ -35,7 +38,8 @@ class QasmParser(object):
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         # For yacc, also, write_tables = Bool and optimize = Bool
-        self.parser = yacc.yacc(module=self, debug=False)
+        parse_dir = tempfile.gettempdir()
+        self.parser = yacc.yacc(module=self, debug=False, outputdir=parse_dir)
         self.qasm = None
         self.parse_deb = False
         self.global_symtab = {}                          # global symtab
