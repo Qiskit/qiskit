@@ -1,12 +1,8 @@
-====================
-QISKit Documentation
-====================
-
-Quantum Information Software Kit (QISKit), SDK Python version for working
-with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience (QX).
+QISKit overview
+===============
 
 Philosophy
-==========
+----------
 
 QISKit is a collection of software for working with short depth
 quantum circuits and building near term applications and experiments
@@ -22,7 +18,7 @@ on the program. This either gives you the answer you wanted or allows
 you to make a better program for the next instance.
 
 Project Overview
-================
+----------------
 The QISKit project comprises:
 
 * `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Python software 
