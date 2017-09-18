@@ -5,10 +5,10 @@ Programming interface
 ---------------------
 
 The *qiskit* directory is the main Python module and contains the
-programming interface objects :py:mod:`QuantumProgram <qiskit._quantumprogram>`,
-:py:mod:`QuantumRegister <qiskit._quantumregister>`,
-:py:mod:`ClassicalRegister <qiskit._classicalregister>`,
-and :py:mod:`QuantumCircuit <qiskit._quantumcircuit>`.
+programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
+:py:class:`QuantumRegister <qiskit.QuantumRegister>`,
+:py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
+and :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
 
 At the highest level, users construct a *QuantumProgram* to create,
 modify, compile, and execute a collection of quantum circuits. Each
@@ -18,21 +18,26 @@ used to apply instructions that define the circuit. The *QuantumCircuit*
 can then generate **OpenQASM** code that can flow through other
 components in the *qiskit* directory.
 
-The *extensions* directory extends quantum circuits as needed to support
-other gate sets and algorithms. Currently there is a *standard*
-extension defining some typical quantum gates.
+The :py:mod:`extensions <qiskit.extensions>` directory extends quantum circuits
+as needed to support other gate sets and algorithms. Currently there is a
+:py:mod:`standard <qiskit.extensions.standard>` extension defining some typical
+quantum gates.
 
 Internal modules
 ----------------
 
 The directory also contains internal modules that are still under development:
 
-- a *qasm* module for parsing **OpenQASM** circuits
-- an *unroll* module to interpret and “unroll” **OpenQASM** to a target gate basis
-  (expanding gate subroutines and loops as needed)
-- a *dagcircuit* module for working with circuits as graphs
-- a *mapper* module for mapping all-to-all circuits to run on devices with fixed couplings
-- a *simulators* module contains quantum circuit simulators
+- a :py:mod:`qasm <qiskit.qasm>` module for parsing **OpenQASM** circuits
+- an :py:mod:`unroll <qiskit.unroll>` module to interpret and “unroll”
+  **OpenQASM** to a target gate basis (expanding gate subroutines and loops as
+  needed)
+- a :py:mod:`dagcircuit <qiskit.dagcircuit>` module for working with circuits as
+  graphs
+- a :py:mod:`mapper <qiskit.mapper>` module for mapping all-to-all circuits to
+  run on devices with fixed couplings
+- a :py:mod:`simulators <qiskit.simulators>` module contains quantum circuit
+  simulators
 - a *tools* directory contains methods for applications, analysis, and visualization
 
 Quantum circuits flow through the components as follows. The programming interface is used to
