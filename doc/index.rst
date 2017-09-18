@@ -22,7 +22,7 @@ Table of Contents
    Getting started <quickstart>
    QISKit overview <qiskit>
    Developer documentation <dev_introduction>
-   SDK reference <_autodoc/modules>
+   SDK reference (public) <_autodoc_stubs/qiskit>
 
 Python Modules
 ==============
@@ -32,21 +32,11 @@ Main Modules
 
 .. autosummary::
    :nosignatures:
-   :toctree: _autodoc_public
 
    qiskit.QuantumProgram
    qiskit.QuantumCircuit
 
-* :ref:`modindex`
-
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
-             
-   SDK reference (public) <_autodoc_stubs/qiskit>
-
-.. include:: install.rst
-.. include:: entry_autodoc_public.rst
+:ref:`modindex`
 
 Authors (alphabetical)
 ======================
