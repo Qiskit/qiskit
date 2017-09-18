@@ -8,14 +8,18 @@ Installation
 1. Get the tools
 ----------------
 
-To use QISKit you'll need to have installed at least `Python 3.5 or later <https://www.python.org/downloads/>`__ and `Jupyter Notebooks <https://jupyter.readthedocs.io/en/latest/install.html>`__ (recommended for interacting with the tutorials).
+To use QISKit you'll need to have installed at least
+`Python 3.5 or later <https://www.python.org/downloads/>`__ and
+`Jupyter Notebooks <https://jupyter.readthedocs.io/en/latest/install.html>`__
+(recommended for interacting with the tutorials).
 
 For this reason we recommend installing `Anaconda 3 <https://www.continuum.io/downloads>`__
 python distribution, which already comes with all these dependencies pre-installed.
 
 if you are a Mac OS X user, you will find Xcode useful: https://developer.apple.com/xcode/
 
-if you are willing to contribute to QISKit or just wanted to extend it, you should install Git too: https://git-scm.com/download/.
+if you are willing to contribute to QISKit or just wanted to extend it, you
+should install Git too: https://git-scm.com/download/.
 
 
 2. PIP Install
@@ -30,7 +34,8 @@ The fastest way to install QISKit is by using the PIP tool (Python package manag
 3. Repository Install
 ---------------------
 
-Other common option is to clone the QISKit SDK repository on your local machine, and change into the cloned directory:
+Other common option is to clone the QISKit SDK repository on your local machine,
+and change into the cloned directory:
 
 -  If you have Git installed, run the following commands:
 

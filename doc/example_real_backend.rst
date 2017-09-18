@@ -1,7 +1,8 @@
 Example Real Chip Backend
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: python
+.. code-block:: python
+    :linenos:
 
     from qiskit import QuantumProgram
     
@@ -9,7 +10,8 @@ Example Real Chip Backend
     Q_program = QuantumProgram()
 
     # Set your API Token
-    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account, looking for "Personal Access Token" section.
+    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
+    # looking for "Personal Access Token" section.
     QX_TOKEN = "API_TOKEN"
     QX_URL = "https://quantumexperience.ng.bluemix.net/api"
 
