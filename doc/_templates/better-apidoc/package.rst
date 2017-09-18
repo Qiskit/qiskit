@@ -13,23 +13,29 @@
 {%- set imported_other = [] -%}
 
 {% for item in members_imports_refs -%}
-    {%- set ref_type = item.split(':')[1] -%}
-    {%- set ref_name = item.split(' ')[0].split('`')[1] -%}
-    {%- if ref_type == 'mod' -%}
-        {%- if ref_name != fullname and fullname != 'qiskit.extensions.standard' -%}
-            {{- imported_modules.append(ref_name) or '' -}}
-        {%- endif %}
-    {%- elif ref_type == 'class' -%}
-        {{- imported_classes.append(ref_name) or '' -}}
-    {%- elif ref_type == 'exc' -%}
-        {{- imported_exceptions.append(ref_name) or '' -}}
-    {%- elif ref_type == 'func' -%}
-        {{- imported_functions.append(ref_name) or '' -}}
-    {%- else -%}
-        {{- imported_other.append(ref_name) or '' -}}
+    {%- if item.split('<')[1].split('>')[0].startswith('qiskit') -%}
+        {%- set ref_type = item.split(':')[1] -%}
+        {%- set ref_name = item.split(' ')[0].split('`')[1] -%}
+        {%- if ref_type == 'mod' -%}
+            {%- if ref_name != fullname and fullname != 'qiskit.extensions.standard' -%}
+                {{- imported_modules.append(ref_name) or '' -}}
+            {%- endif %}
+        {%- elif ref_type == 'class' -%}
+            {{- imported_classes.append(ref_name) or '' -}}
+        {%- elif ref_type == 'exc' -%}
+            {{- imported_exceptions.append(ref_name) or '' -}}
+        {%- elif ref_type == 'func' -%}
+            {{- imported_functions.append(ref_name) or '' -}}
+        {%- else -%}
+            {{- imported_other.append(ref_name) or '' -}}
+        {%- endif -%}
     {%- endif -%}
 {%- endfor -%}
 
+{# Bypass the automatic discovery of simulators at qiskit.simulators #}
+{%- if fullname == 'qiskit.simulators' -%}
+    {%- set imported_modules = [] -%}
+{%- endif -%}
 
 {% if imported_modules %}
 Submodules
