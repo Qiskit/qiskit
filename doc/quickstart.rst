@@ -1,7 +1,8 @@
 Getting Started
 ===============
 
-The starting point for writing code is the QuantumProgram object. The
+The starting point for writing code is the
+:py:class:`QuantumProgram <qiskit.QuantumProgram>` object. The
 QuantumProgram is a collection of circuits, or scores if you are
 coming from the Quantum Experience, quantum register objects, and
 classical register objects. The QuantumProgram methods can send these

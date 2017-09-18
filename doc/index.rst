@@ -22,7 +22,7 @@ Table of Contents
    Getting started <quickstart>
    QISKit overview <qiskit>
    Developer documentation <dev_introduction>
-   SDK reference (public) <_autodoc_stubs/qiskit>
+   SDK reference <_autodoc_stubs/qiskit>
 
 Python Modules
 ==============
