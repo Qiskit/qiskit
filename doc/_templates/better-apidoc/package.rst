@@ -55,16 +55,10 @@ Classes
 
 .. autosummary::
    :nosignatures:
-   :toctree: ../_autodoc_public
+   :toctree:
 {% for item in imported_classes %}
     {{ item }}
-    {%- endfor %}
-
-.. toctree::
-    :hidden:
-{% for item in imported_classes %}
-    {{ fullname }}.{{ item }}
-    {%- endfor %}
+{%- endfor %}
 {%- endif %}
 
 {% if imported_exceptions %}
@@ -73,16 +67,10 @@ Exceptions
 
 .. autosummary::
    :nosignatures:
-   :toctree: ../_autodoc_public
+   :toctree:
 {% for item in imported_exceptions %}
     {{ item }}
-    {%- endfor %}
-
-.. toctree::
-    :hidden:
-{% for item in imported_exceptions %}
-    {{ fullname }}.{{ item }}
-    {%- endfor %}
+{%- endfor %}
 {%- endif %}
 
 {% if imported_functions %}
@@ -91,14 +79,18 @@ Functions
 
 .. autosummary::
    :nosignatures:
-   :toctree: ../_autodoc_public
+   {% if fullname != 'qiskit.extensions.standard' -%}:toctree:{% endif %}
 {% for item in imported_functions %}
     {{ item }}
-    {%- endfor %}
+{%- endfor %}
 
-.. toctree::
-    :hidden:
-{% for item in imported_functions %}
-    {{ fullname }}.{{ item }}
-    {%- endfor %}
+{# Handle the qiskit.extensions.standard module, as the imports are in the form
+   "from .ABC import ABC" except in two cases, which makes the documentation
+   try to point to the submodules and not the actual functions. #}
+{% if fullname == 'qiskit.extensions.standard' -%}
+{%- for item in imported_functions %}
+.. autofunction:: {{ item }}
+{%- endfor %}
+{%- endif %}
+
 {%- endif %}
