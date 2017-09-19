@@ -24,26 +24,15 @@ from qiskit import QuantumProgram
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 
-class TestJsonOutput(unittest.TestCase):
+from .common import QiskitTestCase
+
+
+class TestJsonOutput(QiskitTestCase):
     """Test Json output.
 
     This is mostly covered in test_quantumprogram.py but will leave
     here for convenience.
     """
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
     def setUp(self):
         self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
                                            '../../examples/qasm/entangled_registers.qasm')

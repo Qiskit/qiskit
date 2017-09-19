@@ -18,6 +18,8 @@ from qiskit.simulators import _localsimulator
 from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
+from .common import QiskitTestCase
+
 TRAVIS_FORK_PULL_REQUEST = False
 if ('TRAVIS_PULL_REQUEST_SLUG' in os.environ
     and os.environ['TRAVIS_PULL_REQUEST_SLUG']):
@@ -33,24 +35,14 @@ else:
 def mock_run_local_simulator(self):
     raise Exception("Mocking job error!!")
 
-class TestJobProcessor(unittest.TestCase):
+class TestJobProcessor(QiskitTestCase):
     """
     Test job_pocessor module.
     """
 
     @classmethod
     def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+        super(TestJobProcessor, cls).setUpClass()
 
         try:
             import Qconfig

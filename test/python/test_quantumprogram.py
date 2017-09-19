@@ -34,6 +34,8 @@ from qiskit import QISKitError
 from IBMQuantumExperience import IBMQuantumExperience
 from IBMQuantumExperience import RegisterSizeError
 
+from .common import QiskitTestCase
+
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
                               '../../examples/qasm/entangled_registers.qasm')
@@ -79,22 +81,9 @@ QPS_SPECS = {
 }
 
 
-class TestQuantumProgram(unittest.TestCase):
+class TestQuantumProgram(QiskitTestCase):
     """QISKIT QuatumProgram Object Tests."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
     ###############################################################
     # Tests to initiate an build a quantum program
     ###############################################################

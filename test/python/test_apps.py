@@ -26,22 +26,11 @@ from qiskit.tools.apps.optimization import trial_circuit_ry
 from qiskit.tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
 from qiskit.tools.qi.pauli import Pauli
 
-class TestQuantumOptimization(unittest.TestCase):
-    """Tests for quantum optimization"""
+from .common import QiskitTestCase
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+
+class TestQuantumOptimization(QiskitTestCase):
+    """Tests for quantum optimization"""
 
     def test_trial_functions(self):
         entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
@@ -67,21 +56,7 @@ class TestQuantumOptimization(unittest.TestCase):
         self.log.info(trial_circuit.qasm())
 
 
-class TestHamiltonian(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+class TestHamiltonian(QiskitTestCase):
 
     def test_hamiltonian(self):
         # printing an example from a H2 file

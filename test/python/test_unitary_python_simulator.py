@@ -26,22 +26,10 @@ else:
     from test.python._random_qasm_generator import RandomQasmGenerator
 import json
 
-class LocalUnitarySimulatorTest(unittest.TestCase):
-    """Test local unitary simulator."""
+from .common import QiskitTestCase
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+class LocalUnitarySimulatorTest(QiskitTestCase):
+    """Test local unitary simulator."""
 
     def setUp(self):
         self.seed = 88

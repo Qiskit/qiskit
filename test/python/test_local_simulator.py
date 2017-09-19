@@ -13,25 +13,13 @@ import qiskit.unroll as unroll
 
 from qiskit.simulators import _localsimulator
 
-class LocalSimulatorTest(unittest.TestCase):
+from .common import QiskitTestCase
+
+
+class LocalSimulatorTest(QiskitTestCase):
     """
     Test interface to local simulators.
     """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
     @classmethod
     def tearDownClass(cls):
         #cls.pdf.close()
