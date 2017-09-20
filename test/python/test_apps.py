@@ -16,7 +16,6 @@
 # =============================================================================
 """Test the the trial functions."""
 
-import os
 import unittest
 
 from scipy import linalg as la
@@ -61,7 +60,7 @@ class TestHamiltonian(QiskitTestCase):
 
     def test_hamiltonian(self):
         # printing an example from a H2 file
-        hfile = os.path.dirname(__file__) + "/H2Equilibrium.txt"
+        hfile = self._get_resource_path("H2Equilibrium.txt")
         self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
 
         # printing an example from a graph input

@@ -18,14 +18,12 @@
 import cProfile
 import io
 import json
-import os
 import pstats
 import unittest
 
 import numpy as np
 
 from qiskit import qasm, unroll, QuantumProgram
-import qiskit
 from qiskit.simulators._unitarysimulator import UnitarySimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
@@ -37,9 +35,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
-        self.modulePath = os.path.dirname(__file__)
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
 
     def tearDown(self):
@@ -65,9 +61,9 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
         # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr, delimiter=',')
-        expected = np.loadtxt(os.path.join(self.modulePath,
-                                           'example_unitary_matrix.dat'),
-                              dtype='complex', delimiter=',')
+        expected = np.loadtxt(
+            self._get_resource_path('example_unitary_matrix.dat'),
+            dtype='complex', delimiter=',')
         result = UnitarySimulator(job).run()
         self.assertTrue(np.allclose(result['data']['unitary'], expected,
                                     rtol=1e-3))

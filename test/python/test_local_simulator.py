@@ -15,12 +15,12 @@
 # limitations under the License.
 
 # =============================================================================
-import os
+
 import random
 import unittest
 
 from qiskit import qasm, unroll, QuantumProgram
-import qiskit
+
 from qiskit.simulators import _localsimulator
 
 from .common import QiskitTestCase
@@ -37,8 +37,7 @@ class LocalSimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
         shots = 1
         self.qp.load_qasm_file(self.qasmFileName, name='example')

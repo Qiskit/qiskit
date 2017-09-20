@@ -17,7 +17,6 @@
 
 import cProfile
 import io
-import os
 import pstats
 import shutil
 import time
@@ -26,7 +25,6 @@ import unittest
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram
-import qiskit
 from qiskit.simulators._qasmsimulator import QasmSimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
@@ -47,8 +45,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
 
     def tearDown(self):
@@ -61,7 +58,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
+            unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
         job = {'compiled_circuit': circuit, 'config': config}
@@ -75,7 +72,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
+            unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
         job = {'compiled_circuit': circuit, 'config': config}

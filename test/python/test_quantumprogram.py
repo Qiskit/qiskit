@@ -24,13 +24,7 @@ import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
 
-from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
-
-
-QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                              '../../examples/qasm/entangled_registers.qasm')
-QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
-                                '../../examples/qasm/plaquette_check.qasm')
+from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
 
 # We need the environment variable for Travis.
@@ -63,6 +57,12 @@ QPS_SPECS = {
 
 class TestQuantumProgram(QiskitTestCase):
     """QISKIT QuatumProgram Object Tests."""
+
+    def setUp(self):
+        self.QASM_FILE_PATH = self._get_resource_path(
+            'qasm/entangled_registers.qasm', Path.EXAMPLES)
+        self.QASM_FILE_PATH_2 = self._get_resource_path(
+            'qasm/plaquette_check.qasm', Path.EXAMPLES)
 
     ###############################################################
     # Tests to initiate an build a quantum program
@@ -286,7 +286,7 @@ class TestQuantumProgram(QiskitTestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        name = QP_program.load_qasm_file(QASM_FILE_PATH, name="",
+        name = QP_program.load_qasm_file(self.QASM_FILE_PATH, name="",
                                          verbose=False)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
@@ -492,8 +492,8 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        result = QP_program.save(os.path.dirname(os.path.abspath(__file__)) +
-                                 "/test_save.json", beauty=True)
+        result = QP_program.save(self._get_resource_path('test_save.json'),
+                                 beauty=True)
 
         self.assertEqual(result['status'], 'Done')
 
@@ -512,8 +512,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
-        result = QP_program.load(os.path.dirname(os.path.abspath(__file__)) +
-                                 "/test_load.json")
+        result = QP_program.load(self._get_resource_path('test_load.json'))
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
@@ -1085,7 +1084,7 @@ class TestQuantumProgram(QiskitTestCase):
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
-        QP_program.load_qasm_file(QASM_FILE_PATH_2, name="circuit-dev")
+        QP_program.load_qasm_file(self.QASM_FILE_PATH_2, name="circuit-dev")
         circuits = ["circuit-dev"]
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
                                   max_credits=max_credits, seed=65,
@@ -1107,7 +1106,7 @@ class TestQuantumProgram(QiskitTestCase):
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
-        QP_program.load_qasm_file(QASM_FILE_PATH_2, "circuit-dev")
+        QP_program.load_qasm_file(self.QASM_FILE_PATH_2, "circuit-dev")
         circuits = ["circuit-dev"]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
                                     max_credits=max_credits,

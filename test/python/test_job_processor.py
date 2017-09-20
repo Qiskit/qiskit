@@ -23,7 +23,6 @@ from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister)
 from qiskit import _openquantumcompiler as openquantumcompiler
-import qiskit
 import qiskit._jobprocessor as jobp
 
 from ._random_circuit_generator import RandomCircuitGenerator
@@ -72,8 +71,7 @@ class TestJobProcessor(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         with open(self.qasmFileName, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
         # create QuantumCircuit

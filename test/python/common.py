@@ -16,16 +16,29 @@
 # =============================================================================
 """Shared functionality and helpers for the unit tests."""
 
+from enum import Enum
 import inspect
 import logging
 import os
 import unittest
+
+from qiskit import __path__ as qiskit_path
 
 
 TRAVIS_FORK_PULL_REQUEST = False
 if os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
     if os.getenv('TRAVIS_REPO_SLUG') != os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
         TRAVIS_FORK_PULL_REQUEST = True
+
+
+class Path(Enum):
+    """Helper with paths commonly used during the tests."""
+    # Main SDK path:    qiskit/
+    SDK = qiskit_path[0]
+    # test.python path: qiskit/test/python/
+    TEST = os.path.dirname(__file__)
+    # Examples path:    examples/
+    EXAMPLES = os.path.join(SDK, '../examples')
 
 
 class QiskitTestCase(unittest.TestCase):
@@ -44,3 +57,13 @@ class QiskitTestCase(unittest.TestCase):
         formatter = logging.Formatter(log_fmt)
         handler.setFormatter(formatter)
         cls.log.addHandler(handler)
+
+    @staticmethod
+    def _get_resource_path(filename, path=Path.TEST):
+        """ Get the absolute path to a resource.
+
+        Args:
+            filename (string): filename or relative path to the resource.
+            path (Path): path used as relative to the filename.
+        """
+        return os.path.normpath(os.path.join(path.value, filename))

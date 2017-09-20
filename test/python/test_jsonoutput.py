@@ -17,12 +17,11 @@
 
 """Quick program to test json backend
 """
-import os
 import unittest
 
 from qiskit import qasm, unroll, QuantumProgram
 
-from .common import QiskitTestCase
+from .common import QiskitTestCase, Path
 
 
 class TestJsonOutput(QiskitTestCase):
@@ -32,8 +31,8 @@ class TestJsonOutput(QiskitTestCase):
     here for convenience.
     """
     def setUp(self):
-        self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                                           '../../examples/qasm/entangled_registers.qasm')
+        self.QASM_FILE_PATH = self._get_resource_path(
+            'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
         seed = 88
