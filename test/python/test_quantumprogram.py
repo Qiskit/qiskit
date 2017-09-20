@@ -844,6 +844,19 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct should the data.
         """
+        def _job_done_callback(result):
+            try:
+                results2 = result.get_counts('qc2')
+                results3 = result.get_counts('qc3')
+                self.assertEqual(results2, {'000': 518, '111': 506})
+                self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
+                                            '100': 117, '000': 129, '101': 126,
+                                            '010': 145, '011': 125})
+            except Exception as e:
+                self.qp_program_exception = e
+            finally:
+                self.qp_program_finished = True
+
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -861,16 +874,16 @@ class TestQuantumProgram(QiskitTestCase):
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88)
 
-        def _job_done_callback(result):
-            results2 = result.get_counts('qc2')
-            results3 = result.get_counts('qc3')
-            self.assertEqual(results2, {'000': 518, '111': 506})
-            self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                        '100': 117, '000': 129, '101': 126,
-                                        '010': 145, '011': 125})
-
+        self.qp_program_finished = False
+        self.qp_program_exception = None
         out = QP_program.run_async(qobj, callback=_job_done_callback)
 
+        while not self.qp_program_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.qp_program_exception:
+            raise self.qp_program_exception
 
     def test_run_batch(self):
         """Test run_batch
@@ -914,6 +927,21 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct should the data.
         """
+        def _jobs_done_callback(results):
+            try:
+                for result in results:
+                    counts2 = result.get_counts('qc2')
+                    counts3 = result.get_counts('qc3')
+                    self.assertEqual(counts2, {'000': 518, '111': 506})
+                    self.assertEqual(counts3, {'001': 119, '111': 129,
+                                               '110': 134, '100': 117,
+                                               '000': 129, '101': 126,
+                                               '010': 145, '011': 125})
+            except Exception as e:
+                self.qp_program_exception = e
+            finally:
+                self.qp_program_finished = True
+
         QP_program = QuantumProgram(specs=QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -937,17 +965,16 @@ class TestQuantumProgram(QiskitTestCase):
                       QP_program.compile(circuits, backend=backend, shots=shots,
                       seed=88) ]
 
-        def _jobs_done_callback(results):
-            for result in results:
-                counts2 = result.get_counts('qc2')
-                counts3 = result.get_counts('qc3')
-                self.assertEqual(counts2, {'000': 518, '111': 506})
-                self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
-                                           '100': 117, '000': 129, '101': 126,
-                                           '010': 145, '011': 125})
-
+        self.qp_program_finished = False
+        self.qp_program_exception = None
         results = QP_program.run_batch_async(qobj_list, 
                                              callback=_jobs_done_callback)
+        while not self.qp_program_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.qp_program_exception:
+            raise self.qp_program_exception
 
     def test_combine_results(self):
         """Test run.

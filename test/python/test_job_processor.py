@@ -226,6 +226,16 @@ class TestJobProcessor(QiskitTestCase):
                             seed=78)
 
     def test_run_job_processor_local_parallel(self):
+        def job_done_callback(results):
+            try:
+                self.log.info(pprint.pformat(results))
+                for result, _ in results:
+                    self.assertTrue(result['result'][0]['status'] == 'DONE')
+            except Exception as e:
+                self.job_processor_exception = e
+            finally:
+                self.job_processor_finished = True
+
         njobs = 20
         job_list = []
         for i in range(njobs):
@@ -233,14 +243,18 @@ class TestJobProcessor(QiskitTestCase):
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
 
-        def job_done_callback(results):
-            self.log.info(pprint.pformat(results))
-            for result, _ in results:
-                self.assertTrue(result['result'][0]['status'] == 'DONE')
-
+        self.job_processor_finished = False
+        self.job_processor_exception = None
         jp = jobp.JobProcessor(job_list, max_workers=None,
                                callback=job_done_callback)
         jp.submit(silent=True)
+
+        while not self.job_processor_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.job_processor_exception:
+            raise self.job_processor_exception
 
     def test_random_local(self):
         """test randomly generated circuits on local_qasm_simulator"""
@@ -281,8 +295,17 @@ class TestJobProcessor(QiskitTestCase):
                                callback=None)
         jp.submit(silent=True)
 
-
     def test_error_in_job(self):
+        def job_done_callback(results):
+            try:
+                for result, _ in results:
+                    self.log.info(pprint.pformat(result))
+                    self.assertTrue(result['status'] == 'ERROR')
+            except Exception as e:
+                self.job_processor_exception = e
+            finally:
+                self.job_processor_finished = True
+
         njobs = 5
         job_list = []
         for i in range(njobs):
@@ -290,19 +313,22 @@ class TestJobProcessor(QiskitTestCase):
             qjob = jobp.QuantumJob(compiled_circuit, backend='local_qasm_simulator')
             job_list.append(qjob)
 
-        def job_done_callback(results):
-            for result, _ in results:
-                self.log.info(pprint.pformat(result))
-                self.assertTrue(result['status'] == 'ERROR')
-
         jp = jobp.JobProcessor(job_list, max_workers=None,
                                callback=job_done_callback)
 
+        self.job_processor_finished = False
+        self.job_processor_exception = None
         tmp = jobp.run_local_simulator
         jobp.run_local_simulator = mock_run_local_simulator
         jp.submit(silent=True)
         jobp.run_local_simulator = tmp
 
+        while not self.job_processor_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.job_processor_exception:
+            raise self.job_processor_exception
 
 
 if __name__ == '__main__':
