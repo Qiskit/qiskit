@@ -15,6 +15,7 @@
 # limitations under the License.
 # =============================================================================
 """Test the the trial functions."""
+
 import os
 import unittest
 
