@@ -18,13 +18,7 @@ from qiskit.simulators import _localsimulator
 from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
-from .common import QiskitTestCase
-
-TRAVIS_FORK_PULL_REQUEST = False
-if ('TRAVIS_PULL_REQUEST_SLUG' in os.environ
-    and os.environ['TRAVIS_PULL_REQUEST_SLUG']):
-    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
-        TRAVIS_FORK_PULL_REQUEST = True
+from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
 
 if __name__ == '__main__':
     from _random_circuit_generator import RandomCircuitGenerator

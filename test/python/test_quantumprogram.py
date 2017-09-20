@@ -34,7 +34,7 @@ from qiskit import QISKitError
 from IBMQuantumExperience import IBMQuantumExperience
 from IBMQuantumExperience import RegisterSizeError
 
-from .common import QiskitTestCase
+from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
 
 
 QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
@@ -60,12 +60,6 @@ except ImportError:
     if 'QE_TOKEN' in os.environ and 'QE_URL' in os.environ:
         QE_TOKEN = os.environ["QE_TOKEN"]
         QE_URL = os.environ["QE_URL"]
-
-TRAVIS_FORK_PULL_REQUEST = False
-if ('TRAVIS_PULL_REQUEST_SLUG' in os.environ
-    and os.environ['TRAVIS_PULL_REQUEST_SLUG']):
-    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
-        TRAVIS_FORK_PULL_REQUEST = True
 
 # Define Program Specifications.
 QPS_SPECS = {

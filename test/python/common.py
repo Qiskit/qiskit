@@ -22,6 +22,12 @@ import os
 import unittest
 
 
+TRAVIS_FORK_PULL_REQUEST = False
+if os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
+    if os.getenv('TRAVIS_REPO_SLUG') != os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
+        TRAVIS_FORK_PULL_REQUEST = True
+
+
 class QiskitTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
     @classmethod
