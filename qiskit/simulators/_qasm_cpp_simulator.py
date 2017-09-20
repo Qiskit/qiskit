@@ -10,6 +10,7 @@ import subprocess
 from subprocess import PIPE, CalledProcessError
 import numpy as np
 from ._simulatorerror import SimulatorError
+from qiskit._result import Result
 
 __configuration = {
     "name": "local_qasm_cpp_simulator",
@@ -63,12 +64,21 @@ class QasmCppSimulator:
                     }
 
         """
-        # check for config file
+        # TODO: use qobj schema for validation
         self.qobj = qobj
         if 'config' in qobj:
             self.config = qobj['config']
         else:
             self.config = {}
+        # defaults
+        if 'shots' in self.config:
+            self._default_shots = self.config['shots']
+        else:
+            self._default_shots = 1024
+        if 'seed' in self.config:
+            self._default_seed = self.config['seed']
+        else:
+            self._default_seed = 1
         # Number of threads for simulator
         if 'threads' in self.config:
             self._threads = self.config['threads']
@@ -110,8 +120,8 @@ class QasmCppSimulator:
         result_list = []
         for circuit in self.qobj['circuits']:
             result_list.append( self.run_circuit(circuit) )
-        return Result(result_list, self.qobj)
-
+        return Result({'result': result_list, 'status': 'COMPLETED'},
+                      self.qobj)            
         
     def run_circuit(self, circuit, silent=True):
         """Run a single circuit on the C++ simulator
@@ -120,13 +130,22 @@ class QasmCppSimulator:
             circuit (dict): JSON circuit from qobj circuits list
         """
         
-        cin_dict = {'qasm': json.loads(circuit['compiled_circuit'].decode()),
-                    'config': self.config}
-        result = {}
+        self.cin_dict = {'qasm': circuit['compiled_circuit'],
+                         'config': self.config}
+        self.result = {}
         self.result['data'] = {}
-        shots = circuit['config']['shots']
-        seed = circuit['config']['seed']
-        
+        if 'config' in circuit:
+            circuit_config = circuit['config']
+        else:
+            circuit_config = {}
+        if 'shots' in circuit_config:
+            shots = circuit['config']['shots']
+        else:
+            shots = self._default_shots
+        if 'seed' in circuit_config:
+            seed = circuit['config']['seed']
+        else:
+            seed = self._default_seed
         # Build the command line execution string
         cmd = self._exe + ' -i - -c - -f qiskit'
         cmd += ' -n {shots:d}'.format(shots=shots)

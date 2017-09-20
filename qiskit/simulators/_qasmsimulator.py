@@ -325,7 +325,7 @@ class QasmSimulator(object):
                 "status": --status (string)--
                 }
         """
-        ccircuit = json.loads(circuit['compiled_circuit'].decode())
+        ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0

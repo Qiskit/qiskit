@@ -1,3 +1,4 @@
+import copy
 from qiskit._qiskiterror import QISKitError
 
 class Result(object):
@@ -81,6 +82,15 @@ class Result(object):
     def get_status(self):
         """Return whole qobj result status."""
         return self.__result['status']
+
+    def circuit_statuses(self):
+        """Return statuses of all circuits
+
+        Return:
+            List of status result strings.
+        """
+        return [circuit_result['status']
+                for circuit_result in self.__result['result']]
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.

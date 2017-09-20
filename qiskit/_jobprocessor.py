@@ -37,10 +37,11 @@ def run_local_simulator(qobj):
         "backend": DATA
       }
     """
-    for circ in qobj['circuits']:
-        if circ['compiled_circuit'] is None:
-            compiled_circuit = openquantumcompiler.compile(circ['circuit'])
-            circ['compiled_circuit'] = openquantumcompiler.dag2json(compiled_circuit)
+    for circuit in qobj['circuits']:
+        if circuit['compiled_circuit'] is None:
+            compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
+                                                           format='json')
+            circuit['compiled_circuit'] = compiled_circuit
     local_simulator = simulators.LocalSimulator(qobj)
     local_simulator.run()
     return local_simulator.result()
@@ -54,19 +55,20 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     Raises:
         QISKitError: if "ERROR" string in server response.
     """
-    jobs = []
-    for job in qobj['circuits']:
-        if (('compiled_circuit_qasm' not in job) or
-            (job['compiled_circuit_qasm'] is None)):
-            compiled_circuit = openquantumcompiler.compile(job['circuit'].qasm())
-            job['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-        if isinstance(job['compiled_circuit_qasm'], bytes):
-            jobs.append({'qasm': job['compiled_circuit_qasm'].decode()})
+    api_jobs = []
+    for circuit in qobj['circuits']:
+        if (('compiled_circuit_qasm' not in circuit) or
+            (circuit['compiled_circuit_qasm'] is None)):
+            compiled_circuit = openquantumcompiler.compile(
+                circuit['circuit'].qasm())
+            circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
+        if isinstance(circuit['compiled_circuit_qasm'], bytes):
+            api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
         else:
-            jobs.append({'qasm': job['compiled_circuit_qasm']})
+            api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
 
     seed0 = qobj['circuits'][0]['config']['seed']
-    output = api.run_job(jobs, qobj['config']['backend'],
+    output = api.run_job(api_jobs, qobj['config']['backend'],
                          shots=qobj['config']['shots'],
                          max_credits=qobj['config']['max_credits'],
                          seed=seed0)
@@ -276,7 +278,7 @@ class JobProcessor():
             callback (fn(results)): The function that will be called when all
                 jobs finish. The signature of the function must be:
                 fn(results)
-                results: A list of (result, qobj) tuples.
+                results: A list of Result objects.
             max_workers (int): The maximum number of workers to use.
             token (str): Server API token
             url (str): Server URL.
