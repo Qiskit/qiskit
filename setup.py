@@ -14,7 +14,8 @@ packages = ["qiskit",
             "qiskit.tools",
             "qiskit.tools.apps",
             "qiskit.tools.qcvv",
-            "qiskit.tools.qi"]
+            "qiskit.tools.qi",
+            "Qconfig"]
 
 requirements = ["IBMQuantumExperience>=1.8",
                 "requests>=2.18,<2.19",
