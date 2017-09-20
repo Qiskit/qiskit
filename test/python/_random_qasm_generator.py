@@ -1,13 +1,10 @@
 import random
 import string
+
 import numpy
 
-try:
-    import qiskit
-except ImportError as ierr:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-    import qiskit
 from qiskit import QuantumProgram
+
 
 class RandomQasmGenerator():
     """
@@ -34,7 +31,7 @@ class RandomQasmGenerator():
         self.depthList = []
         if seed is not None:
             random.seed(a=seed)
-            
+
     def add_circuits(self, nCircuits, doMeasure=True):
         """Adds circuits to program.
 
@@ -63,14 +60,14 @@ class RandomQasmGenerator():
                     opInd = 0
                 else:
                     opInd = random.randint(0, 1)
-                if opInd == 0: # U3
+                if opInd == 0:  # U3
                     qind = random.randint(0, nQubits-1)
                     circuit.u3(random.random(), random.random(), random.random(),
                                self.qr[qind])
-                elif opInd == 1: # CX
+                elif opInd == 1:  # CX
                     source, target = random.sample(range(nQubits), 2)
                     circuit.cx(self.qr[source], self.qr[target])
-            nmeasure = random.randint(1, nQubits)            
+            nmeasure = random.randint(1, nQubits)
             for j in range(nmeasure):
                 qind = random.randint(0, nQubits-1)
                 if doMeasure:
@@ -83,5 +80,3 @@ class RandomQasmGenerator():
 
     def getProgram(self):
         return self.qp
-    
-                    

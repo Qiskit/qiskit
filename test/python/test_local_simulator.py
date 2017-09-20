@@ -1,16 +1,10 @@
 #!/usr/bin/env python
-import unittest
-import time
 import os
-import sys
-import io
-import logging
 import random
-import qiskit
-from qiskit import QuantumProgram
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
+import unittest
 
+from qiskit import qasm, unroll, QuantumProgram
+import qiskit
 from qiskit.simulators import _localsimulator
 
 from .common import QiskitTestCase
@@ -22,7 +16,7 @@ class LocalSimulatorTest(QiskitTestCase):
     """
     @classmethod
     def tearDownClass(cls):
-        #cls.pdf.close()
+        # cls.pdf.close()
         pass
 
     def setUp(self):
@@ -35,11 +29,11 @@ class LocalSimulatorTest(QiskitTestCase):
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
+            unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         self.job = {'compiled_circuit': circuit,
                     'config': {'shots': shots, 'seed': random.randint(0, 10)}
-                   }
+                    }
 
     def tearDown(self):
         pass

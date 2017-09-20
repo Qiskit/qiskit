@@ -1,32 +1,19 @@
 #!/usr/bin/env python
-import unittest
-import time
-import numpy as np
-import os
-import sys
 import cProfile
-import pstats
 import io
-import logging
-import random
-import string
-import json
+import os
+import pstats
 import shutil
-from matplotlib.backends.backend_pdf import PdfPages
-try:
-    import qiskit
-except ImportError as ierr:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-    import qiskit
-from qiskit import QuantumProgram
-from qiskit.simulators._qasmsimulator import QasmSimulator
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-if __name__ == '__main__':
-    from _random_qasm_generator import RandomQasmGenerator
-else:
-    from test.python._random_qasm_generator import RandomQasmGenerator
+import time
+import unittest
 
+from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
+from qiskit import qasm, unroll, QuantumProgram
+import qiskit
+from qiskit.simulators._qasmsimulator import QasmSimulator
+
+from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 

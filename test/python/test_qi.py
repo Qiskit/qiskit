@@ -15,16 +15,12 @@
 # limitations under the License.
 # =============================================================================
 """Quick program to test the Pauli class."""
-import numpy as np
-from scipy import linalg as la
 import unittest
-import logging
-import os
-import sys
-sys.path.append("../..")
+
+import numpy as np
 from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
-from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
+from qiskit.tools.qi.qi import (partial_trace, vectorize, devectorize, outer,
+                                state_fidelity, purity, concurrence)
 
 from .common import QiskitTestCase
 

@@ -17,22 +17,12 @@
 """
 Quantum Program QISKit Test.
 """
-
-import sys
 import os
 import unittest
-import numpy as np
-import logging
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qiskit import QuantumProgram
-from qiskit import Result
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
-from qiskit import QISKitError
-from IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience import RegisterSizeError
+import numpy as np
+from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
+                    QuantumRegister, QuantumProgram, Result)
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
 
@@ -45,12 +35,8 @@ QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
 
 # We need the environment variable for Travis.
 try:
-    # We don't know from where the user is running the example,
-    # so we need a relative position from this file path.
-    # TODO: Relative imports for intra-package imports are highly discouraged.
-    # http://stackoverflow.com/a/7506006
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     import Qconfig
+
     QE_TOKEN = Qconfig.APItoken
     # TODO: Why "APItoken" is in the root (the unique) and
     # "url" inside "config"?
@@ -506,8 +492,8 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        result = QP_program.save(os.path.dirname(os.path.abspath(__file__))
-                                 + "/test_save.json", beauty=True)
+        result = QP_program.save(os.path.dirname(os.path.abspath(__file__)) +
+                                 "/test_save.json", beauty=True)
 
         self.assertEqual(result['status'], 'Done')
 
@@ -526,8 +512,8 @@ class TestQuantumProgram(QiskitTestCase):
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
 
-        result = QP_program.load(os.path.dirname(os.path.abspath(__file__))
-                                 + "/test_load.json")
+        result = QP_program.load(os.path.dirname(os.path.abspath(__file__)) +
+                                 "/test_load.json")
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
@@ -650,7 +636,6 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=QPS_SPECS)
         # qp.get_backend_configuration("fail")
         self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
-
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_get_backend_calibration(self):
@@ -1199,7 +1184,6 @@ class TestQuantumProgram(QiskitTestCase):
                                     silent=True, seed=73846087)
         self.assertEqual(result.get_error(), "device register size must be <= 24")
 
-
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):
         """Test execute_several_circuits_simulator_online.
@@ -1321,7 +1305,6 @@ class TestQuantumProgram(QiskitTestCase):
         result2 = result.get_counts('qc2')
         self.assertEqual(result1, {'00 01': 1024})
         self.assertEqual(result2, {'10 00': 1024})
-
 
     ###############################################################
     # More test cases for interesting examples
@@ -1502,7 +1485,6 @@ class TestQuantumProgram(QiskitTestCase):
                             seed=14)
         self.assertEqual(result.get_counts("swapping"),
                          {'010000': 1024})
-
 
     def test_offline(self):
         import string

@@ -1,33 +1,21 @@
-import unittest
-import time
 import os
-import sys
-import io
-import logging
-import random
 import pprint
-import qiskit
-from qiskit import QuantumProgram
-from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
-from qiskit import QuantumCircuit
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-import qiskit._jobprocessor as jobp
-from qiskit.simulators import _localsimulator
-from qiskit import _openquantumcompiler as openquantumcompiler
+import unittest
+
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
+                    QuantumRegister)
+from qiskit import _openquantumcompiler as openquantumcompiler
+import qiskit
+import qiskit._jobprocessor as jobp
 
+from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
-
-if __name__ == '__main__':
-    from _random_circuit_generator import RandomCircuitGenerator
-else:
-    from ._random_circuit_generator import RandomCircuitGenerator
 
 
 def mock_run_local_simulator(self):
     raise Exception("Mocking job error!!")
+
 
 class TestJobProcessor(QiskitTestCase):
     """
@@ -104,11 +92,6 @@ class TestJobProcessor(QiskitTestCase):
                          }
                      ]
                      }
-
-
-
-
-
 
     def tearDown(self):
         pass

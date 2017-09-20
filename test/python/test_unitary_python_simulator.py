@@ -1,32 +1,20 @@
 #!/usr/bin/env python
-import unittest
-import time
-import numpy as np
-import os
-import sys
 import cProfile
-import pstats
 import io
-import logging
-#import matplotlib.pyplot as plt
-#from matplotlib.backends.backend_pdf import PdfPages
-#from matplotlib.ticker import MaxNLocator
-try:
-    import qiskit
-except ImportError as ierr:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-    import qiskit
-from qiskit import QuantumProgram
-from qiskit.simulators._unitarysimulator import UnitarySimulator
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-if __name__ == '__main__':
-    from _random_qasm_generator import RandomQasmGenerator
-else:
-    from test.python._random_qasm_generator import RandomQasmGenerator
 import json
+import os
+import pstats
+import unittest
 
+import numpy as np
+
+from qiskit import qasm, unroll, QuantumProgram
+import qiskit
+from qiskit.simulators._unitarysimulator import UnitarySimulator
+
+from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
+
 
 class LocalUnitarySimulatorTest(QiskitTestCase):
     """Test local unitary simulator."""
@@ -50,12 +38,12 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-	# if we want to manipulate the circuit, we have to convert it to a dict
+        # if we want to manipulate the circuit, we have to convert it to a dict
         circuit = json.loads(circuit.decode())
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
-	# the simulator is expecting a JSON format, so we need to convert it back to JSON
+        # the simulator is expecting a JSON format, so we need to convert it back to JSON
         job = {'compiled_circuit': json.dumps(circuit).encode()}
         # numpy savetxt is currently prints complex numbers in a way
         # loadtxt can't read. To save file do,

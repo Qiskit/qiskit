@@ -16,10 +16,11 @@
 # =============================================================================
 
 """Test for the QASM parser"""
-import unittest
 import os
+import unittest
 
 import qiskit.qasm as Qasm
+
 
 # TODO: Use a library to mock the fs avoiding this files.
 # Note that the "example.qasm" one is used in other tests.
@@ -49,7 +50,6 @@ class TestParser(unittest.TestCase):
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
         self.assertEqual(res[1644:1659], "measure r -> d;")
-
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""

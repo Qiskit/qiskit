@@ -15,15 +15,15 @@
 # limitations under the License.
 # =============================================================================
 """Test the the trial functions."""
-import sys
-import numpy as np
-import unittest
-import logging
 import os
+import unittest
+
 from scipy import linalg as la
-sys.path.append("../..")
-from qiskit.tools.apps.optimization import trial_circuit_ry
-from qiskit.tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
+import numpy as np
+
+from qiskit.tools.apps.optimization import (Energy_Estimate, make_Hamiltonian,
+                                            Hamiltonian_from_file,
+                                            trial_circuit_ry)
 from qiskit.tools.qi.pauli import Pauli
 
 from .common import QiskitTestCase
@@ -77,7 +77,8 @@ class TestHamiltonian(QiskitTestCase):
         v3[1] = 1
         v3[2] = 1
 
-        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))), (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
+        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))),
+                      (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
         a = make_Hamiltonian(pauli_list)
         self.log.info(a)
 

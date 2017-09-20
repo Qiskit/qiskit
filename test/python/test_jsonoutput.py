@@ -17,12 +17,10 @@
 
 """Quick program to test json backend
 """
-import unittest
-import logging
 import os
-from qiskit import QuantumProgram
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
+import unittest
+
+from qiskit import qasm, unroll, QuantumProgram
 
 from .common import QiskitTestCase
 
