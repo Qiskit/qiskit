@@ -122,7 +122,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     circuit_unrolled = unrolled_circuit.execute()
     return circuit_unrolled
     
-def dag2json(dag_circuit):
+def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     """Make a Json representation of the circuit.
 
     Takes a circuit dag and returns json circuit obj. This is an internal
@@ -139,7 +139,6 @@ def dag2json(dag_circuit):
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
         circuit_string = dag_circuit.qasm()
-    basis_gates = "u1,u2,u3,cx,id"  # QE target basis
     unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(),
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
