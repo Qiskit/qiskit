@@ -79,11 +79,11 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             print("post-mapping properties: %s"
                   % compiled_dag_circuit.property_summary())
     # choose output format
-    if format is 'dag':
+    if format == 'dag':
         compiled_circuit = compiled_dag_circuit
-    elif format is 'json':
+    elif format == 'json':
         compiled_circuit = dag2json(compiled_dag_circuit)
-    elif format is 'qasm':
+    elif format == 'qasm':
         compiled_circuit = compiled_dag_circuit.qasm()
     else:
         raise QiskitCompilerError('unrecognized circuit format')
