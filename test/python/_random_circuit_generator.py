@@ -14,6 +14,15 @@ from qiskit import ClassicalRegister
 from qiskit import unroll
 from qiskit import qasm
 
+
+def choices(population, weights=None, k=1):
+    """
+    Replacement for `random.choices()`, which is only available in Python 3.6+.
+    TODO: drop once Python 3.6 is required by the sdk.
+    """
+    return numpy.random.choice(population, size=k, p=weights)
+
+
 class RandomCircuitGenerator():
     """
     Generate random size circuits for profiling.
@@ -106,9 +115,11 @@ class RandomCircuitGenerator():
         #self.basis_gates = uop_basis
         self.basis_gates = basis
         self.circuitNameList = []
-        self.nQubit_list = random.choices(
+        # TODO: replace choices with random.choices() when python 3.6 is
+        # required.
+        self.nQubit_list = choices(
             range(self.minQubits, self.maxQubits+1), k=nCircuits)
-        self.depth_list = random.choices(
+        self.depth_list = choices(
             range(self.minDepth, self.maxDepth+1), k=nCircuits)
         for iCircuit in range(nCircuits):
             nQubits = self.nQubit_list[iCircuit]
@@ -128,7 +139,9 @@ class RandomCircuitGenerator():
                 qr = QuantumRegister(qr_name, size)
                 circuit.add(qr, cr)
             while depthCnt > 0:
-                opName = random.choices(basis, weights=basis_weights)[0]
+                # TODO: replace choices with random.choices() when python 3.6
+                # is required.
+                opName = choices(basis, weights=basis_weights)[0]
                 if hasattr(circuit, opName):
                     op = getattr(circuit, opName)
                 else:
@@ -155,7 +168,9 @@ class RandomCircuitGenerator():
                         for qind in range(qreg.size):
                             op(qreg[qind], creg[qind])
                         ifval = random.randint(0, (1 << qreg.size) - 1)
-                        uopName = random.choices(uop_basis, weights=uop_basis_weights)[0]
+                        # TODO: replace choices with random.choices() when
+                        # python 3.6 is required.
+                        uopName = choices(uop_basis, weights=uop_basis_weights)[0]
                         if hasattr(circuit, uopName):
                             uop = getattr(circuit, uopName)
                         else:
