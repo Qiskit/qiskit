@@ -876,7 +876,7 @@ class QuantumProgram(object):
                 job["config"]["seed"] = seed
             # the compiled circuit to be run saved as a dag
             job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
-                                                                   basis_gates)
+                                                                   basis_gates=basis_gates)
             job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
             # add job to the qobj
             qobj["circuits"].append(job)
