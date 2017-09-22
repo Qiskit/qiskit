@@ -34,7 +34,9 @@
 
 {# Bypass the automatic discovery of simulators at qiskit.simulators #}
 {%- if fullname == 'qiskit.simulators' -%}
-    {%- set imported_modules = [] -%}
+    {%- set imported_modules = ['_localsimulator', '_qasm_cpp_simulator',
+                                '_qasmsimulator', '_unitarysimulator'] -%}
+    {%- set imported_classes = [] -%}
 {%- endif -%}
 
 {% if imported_modules %}
