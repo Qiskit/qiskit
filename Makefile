@@ -41,7 +41,7 @@ profile:
 doc:
 	export PYTHONPATH=$(PWD); \
 	better-apidoc -f -o doc/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
-	sphinx-autogen doc/_autodoc/*; \
+	sphinx-autogen -t doc/_templates doc/_autodoc/*; \
 	make -C doc html
 
 clean:

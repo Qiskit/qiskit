@@ -58,6 +58,7 @@ Classes
 .. autosummary::
    :nosignatures:
    :toctree:
+   :template: autosummary/class.rst
 {% for item in imported_classes %}
     {{ item }}
 {%- endfor %}
