@@ -30,11 +30,6 @@ class LocalSimulatorTest(QiskitTestCase):
     """
     Test interface to local simulators.
     """
-    @classmethod
-    def tearDownClass(cls):
-        # cls.pdf.close()
-        pass
-
     def setUp(self):
         self.seed = 88
         self.qasmFileName = self._get_resource_path('qasm/example.qasm')
