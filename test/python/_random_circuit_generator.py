@@ -31,6 +31,15 @@ def choices(population, weights=None, k=1):
     return numpy.random.choice(population, size=k, p=weights)
 
 
+
+def choices(population, weights=None, k=1):
+    """
+    Replacement for `random.choices()`, which is only available in Python 3.6+.
+    TODO: drop once Python 3.6 is required by the sdk.
+    """
+    return numpy.random.choice(population, size=k, p=weights)
+
+
 class RandomCircuitGenerator():
     """
     Generate random size circuits for profiling.
