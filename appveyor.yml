@@ -1,0 +1,49 @@
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+version: 1.0.{build}
+
+environment:
+    matrix:
+        - PYTHON_VERSION: 3.5
+          MINICONDA: C:\Miniconda35
+        - PYTHON_VERSION: 3.6
+          MINICONDA: C:\Miniconda36
+    # Set Travis CI variables for skipping the CI-unavailable tests.
+    TRAVIS_PULL_REQUEST_SLUG: invalid
+    TRAVIS_REPO_SLUG: invalid-but-different
+
+build: false
+deploy: false
+skip_branch_with_pr: true
+
+install:
+    - "%MINICONDA%/Scripts/activate.bat"
+    # Install each dependency in requires.txt individually *from conda*. It
+    # cannot be pointed to "requirements.txt" directly as IBMQuantumExperience
+    # is not on the conda repositories.
+    - for /F "tokens=*" %%A in (requirements.txt) do conda install -y -q %%A
+    # Install the rest of dependencies via pip.
+    - pip.exe install -r requirements.txt
+    - pip.exe install pytest
+
+# Use py.test for output of xunit test results.
+test_script:
+    - py.test -s -v --junit-xml=test_results.xml
+
+# Upload the test results to appveyor so they are shown on the "Tests" tab.
+after_test:
+    - ps: $wc = New-Object 'System.Net.WebClient'
+    - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test_results.xml))
