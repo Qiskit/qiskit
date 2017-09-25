@@ -31,6 +31,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QISKitError
+import qiskit.backends
 from IBMQuantumExperience import IBMQuantumExperience
 from IBMQuantumExperience import RegisterSizeError
 
@@ -590,7 +591,7 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct some should exists (even if ofline).
         """
         QP_program = QuantumProgram(specs=QPS_SPECS)
-        local_backends = QP_program.local_backends()
+        local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -656,8 +657,10 @@ class TestQuantumProgram(unittest.TestCase):
         local_qasm_simulator.
         """
         qp = QuantumProgram(specs=QPS_SPECS)
-        test = len(qp.get_backend_configuration("local_qasm_simulator"))
-        self.assertEqual(test, 6)
+        config_keys = {'name', 'simulator', 'local', 'description',
+                       'coupling_map', 'basis_gates'}
+        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        self.assertTrue(config_keys < backend_config.keys())
 
     def test_get_backend_configuration_fail(self):
         """Test get_backend_configuration fail.

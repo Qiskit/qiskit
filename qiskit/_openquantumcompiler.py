@@ -1,10 +1,8 @@
+import os
+import sys
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
-
-import pdb
-import os
-import sys
 
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, silent=True, get_layout=False):

@@ -112,20 +112,56 @@ import json
 from ._simulatortools import single_gate_matrix
 from ._simulatorerror import SimulatorError
 from qiskit._result import Result
+from qiskit.backends._basebackend import BaseBackend
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
-__configuration = {"name": "local_qasm_simulator",
-                   "url": "https://github.com/IBM/qiskit-sdk-py",
-                   "simulator": True,
-                   "description": "A python simulator for qasm files",
-                   "coupling_map": "all-to-all",
-                   "basis_gates": "u1,u2,u3,cx,id"}
-
-
-class QasmSimulator(object):
+class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
+        
+    def __init__(self, qobj):
+        """
+        Args:
+            qobj (dict): qobj dictionary which has the structure::
+                {
+                    id: --job id (string),
+                    config: -- dictionary of config settings (dict)--,
+                        {
+                        "max_credits" (online only): -- credits (int) --,
+                        "shots": -- number of shots (int) --.
+                        "backend": -- backend name (str) --
+                        }
+                    circuits:
+                        [
+                            {
+                            "name": --circuit name (string)--,
+                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
+                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
+                            "config": --dictionary of additional config settings (dict)--,
+                                {
+                                "coupling_map": --adjacency list (dict)--,
+                                "basis_gates": --comma separated gate names (string)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "seed": (simulator only)--initial seed for the simulator (int)--,
+                                }
+                            },
+                            ...
+                        ]
+                    }
+
+        """
+        self.qobj = qobj
+        self._configuration = {
+            'name': 'local_qasm_simulator',
+            'url': 'https://github.com/IBM/qiskit-sdk-py',
+            'simulator': True,
+            'local': True,
+            'description': 'A python simulator for qasm files',
+            'coupling_map': 'all-to-all',
+            'basis_gates': 'u1,u2,u3,cx,id'
+        }
+        
 
     @staticmethod
     def _index1(b, i, k):
@@ -165,39 +201,6 @@ class QasmSimulator(object):
             retval = QasmSimulator._index1(b2, i2-1, k)
             retval = QasmSimulator._index1(b1, i1, retval)
         return retval
-        
-    def __init__(self, qobj):
-        """
-        Args:
-            qobj (dict): qobj dictionary which has the structure::
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
-
-        """
-        self.qobj = qobj
 
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitary 1-qubit operator to a qubit.
@@ -420,3 +423,11 @@ class QasmSimulator(object):
                 new_key.insert(0, key[-(index+nbits):-index])
             fcounts[' '.join(new_key)] = value
         return fcounts
+
+    @property
+    def configuration(self):
+        return self._configuration
+    
+    @configuration.setter
+    def configuration(self, configuration):
+        self._configuration = configuration

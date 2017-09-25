@@ -43,7 +43,7 @@ from . import qasm
 from . import mapper
 
 # Local Simulator Modules
-from . import simulators
+import qiskit.backends
 import qiskit.extensions.standard
 
 from qiskit import _openquantumcompiler as openquantumcompiler
@@ -104,7 +104,7 @@ class QuantumProgram(object):
         self.__init_circuit = None  # stores the intial quantum circuit of the
         # program
         self.__ONLINE_BACKENDS = []
-        self.__LOCAL_BACKENDS = self.local_backends()
+        self.__LOCAL_BACKENDS = qiskit.backends.local_backends()
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
@@ -547,10 +547,6 @@ class QuantumProgram(object):
         """All the backends that are seen by QISKIT."""
         return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
 
-    def local_backends(self):
-        """Get the local backends."""
-        return simulators._localsimulator.local_backends()
-
     def online_backends(self):
         """Get the online backends.
 
@@ -669,11 +665,8 @@ class QuantumProgram(object):
                                     cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
-        for configuration in simulators.local_configuration:
-            if configuration['name'] == backend:
-                return configuration
-        raise LookupError(
-            'backend configuration for "{0}" not found'.format(backend))
+        else:
+            return qiskit.backends.get_backend_configuration(backend)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.

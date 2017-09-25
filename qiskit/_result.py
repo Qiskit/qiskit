@@ -82,6 +82,14 @@ class Result(object):
         """Return whole qobj result status."""
         return self.__result['status']
 
+    def get_circuit_status(self, icircuit):
+        """Return the status of circuit at index icircuit.
+
+        Args:
+            icircuit (int): index of circuit
+        """
+        return self.__result['result'][icircuit]['status']
+
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
 

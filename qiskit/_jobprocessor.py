@@ -5,18 +5,13 @@ import time
 import random
 import string
 from qiskit._result import Result
-
-from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience.IBMQuantumExperience import ApiError
-
-# Stable Modules
+import qiskit.backends as backends
 from qiskit import QISKitError
-# Local Simulator Modules
-from qiskit import simulators
-# compiler module
 from qiskit import _openquantumcompiler as openquantumcompiler
+from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience,
+                                                       ApiError)
 
-def run_local_simulator(qobj):
+def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
 
     Args:
@@ -41,9 +36,9 @@ def run_local_simulator(qobj):
         if circ['compiled_circuit'] is None:
             compiled_circuit = openquantumcompiler.compile(circ['circuit'])
             circ['compiled_circuit'] = openquantumcompiler.dag2json(compiled_circuit)
-    local_simulator = simulators.LocalSimulator(qobj)
-    local_simulator.run()
-    return local_simulator.result()
+    BackendClass = backends.get_backend_class(qobj['config']['backend'])
+    backend = BackendClass(qobj)
+    return backend.run()
 
 def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     """
@@ -124,10 +119,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
                                   'status': job_result['qasms'][index]['status']})
     return {'status': job_result['status'], 'result': job_result_return}
 
-def local_backends():
-    """Get the local backends."""
-    return simulators._localsimulator.local_backends()
-
 def remote_backends(api):
     """Get the remote backends.
 
@@ -205,7 +196,7 @@ class QuantumJob():
             self.names = names
         else:
             self.names = [names]
-        self._local_backends = local_backends()
+        self._local_backends = backends.local_backends()
         self.timeout = timeout
         # check whether circuits have already been compiled
         # and formatted for backend.
@@ -286,7 +277,7 @@ class JobProcessor():
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self._local_backends = local_backends()
+        self._local_backends = backends.local_backends()
         self.online = any(qj.backend not in self._local_backends for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
@@ -343,7 +334,7 @@ class JobProcessor():
         executor = self.executor_class(max_workers=self.max_workers)
         for q_job in self.q_jobs:
             if q_job.backend in self._local_backends:
-                future = executor.submit(run_local_simulator,
+                future = executor.submit(run_local_backend,
                                          q_job.qobj)
             elif self.online and q_job.backend in self._online_backends:
                 future = executor.submit(run_remote_backend,

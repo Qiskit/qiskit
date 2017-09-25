@@ -17,7 +17,7 @@ except ImportError as ierr:
     sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
     import qiskit
 from qiskit import QuantumProgram
-from qiskit.simulators._unitarysimulator import UnitarySimulator
+from qiskit.backends._unitarysimulator import UnitarySimulator
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 if __name__ == '__main__':

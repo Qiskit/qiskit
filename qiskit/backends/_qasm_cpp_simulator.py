@@ -10,18 +10,10 @@ import subprocess
 from subprocess import PIPE, CalledProcessError
 import numpy as np
 from ._simulatorerror import SimulatorError
-
-__configuration = {
-    "name": "local_qasm_cpp_simulator",
-    "url": "https://github.com/IBM/qiskit-sdk-py",
-    "simulator": True,
-    "description": "A c++ simulator for qasm files",
-    "coupling_map": "all-to-all",
-    "basis_gates": "u1,u2,u3,cx,id"
-}
+from qiskit.backends._basebackend import BaseBackend
 
 
-class QasmCppSimulator:
+class QasmCppSimulator(BaseBackend):
     """
     Interface to a fast C++ QASM simulator.
     """
@@ -102,6 +94,18 @@ class QasmCppSimulator:
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
+        self._configuration = {
+            'name': 'local_qasm_cpp_simulator',
+            'url': 'https://github.com/IBM/qiskit-sdk-py',
+            'simulator': True,
+            'local': True,
+            'description': 'A c++ simulator for qasm files',
+            'coupling_map': 'all-to-all',
+            'basis_gates': 'u1,u2,u3,cx,id'
+        }
+        self._is_simulator = self._configuration['simulator']
+        self._is_local = True
+            
 
     def run(self):
         """
@@ -164,6 +168,13 @@ class QasmCppSimulator:
         self.result['status'] = 'DONE'
         return self.result
 
+    @property
+    def configuration(self):
+        return self._configuration
+    
+    @configuration.setter
+    def configuration(self, configuration):
+        self._configuration = configuration
 
 def parse_complex(output, key):
     """
@@ -196,3 +207,5 @@ def parse_complex(output, key):
             elif len(ref) == 2:
                 # convert complex scalar
                 ref = ref[0] + 1j * ref[1]
+
+                
