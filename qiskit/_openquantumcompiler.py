@@ -79,7 +79,8 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         return compiled_dag_circuit, final_layout
     else:
         return compiled_dag_circuit
-    
+
+
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
 
@@ -103,9 +104,10 @@ def _unroller_code(qasm_circuit, basis_gates=None):
     dag_circuit_unrolled = unroller_circuit.execute()
     return dag_circuit_unrolled
 
+
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
-    
+
     Args: 
         filename (str): a string for the filename including its location.
         basis_gates (str): basis to unroll circuit to.
@@ -119,15 +121,18 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
                                            basis_gates.split(",")))
     circuit_unrolled = unrolled_circuit.execute()
     return circuit_unrolled
-    
-def dag2json(dag_circuit):
+
+
+def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     """Make a Json representation of the circuit.
 
     Takes a circuit dag and returns json circuit obj. This is an internal
     function.
 
     Args:
-        dag_ciruit (dag object): a dag representation of the circuit
+        dag_ciruit (dag object): a dag representation of the circuit.
+        basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
 
     Returns:
         the json version of the dag
@@ -137,7 +142,6 @@ def dag2json(dag_circuit):
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
         circuit_string = dag_circuit.qasm()
-    basis_gates = "u1,u2,u3,cx,id"  # QE target basis
     unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(),
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
