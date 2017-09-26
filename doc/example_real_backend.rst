@@ -1,7 +1,8 @@
 Example Real Chip Backend
-=========================
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: python
+.. code-block:: python
+    :linenos:
 
     from qiskit import QuantumProgram
     
@@ -9,7 +10,8 @@ Example Real Chip Backend
     Q_program = QuantumProgram()
 
     # Set your API Token
-    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account, looking for "Personal Access Token" section.
+    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
+    # looking for "Personal Access Token" section.
     QX_TOKEN = "API_TOKEN"
     QX_URL = "https://quantumexperience.ng.bluemix.net/api"
 
@@ -21,7 +23,8 @@ Example Real Chip Backend
     qr = Q_program.create_quantum_register("qr", 2)
     # create your first Classical Register called "cr" with 2 bits
     cr = Q_program.create_classical_register("cr", 2)
-    # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr" # and your Classical Register "cr"
+    # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
+    # and your Classical Register "cr"
     qc = Q_program.create_circuit("superposition", [qr], [cr])
 
     # add the H gate in the Qubit 0, we put this Qubit in superposition

@@ -12,12 +12,11 @@
 @import url("basic.css");
 
 div.head {
- height:30px;
  background-color:#000;
  text-align: left;
  text-decoration:none; 
      cursor:pointer;  
- padding: 8px 0px 0px 8px;
+ padding: 8px 15px 8px 15px;
  
 }
 
@@ -418,6 +417,33 @@ p.versionchanged span.versionmodified {
     background-color: #DCE6A0;
 }
 
+li#toc-toggle {
+    display: none;
+}
+
+.collapse.in {
+    display: block;
+}
+
+p.logo {
+    width: 60px;
+    display: inline-block;
+}
+p.logo-description {
+    width: 130px;
+    display: inline-block;
+    padding-left: 15px;
+    vertical-align: top;
+}
+
+p.logo img {
+    max-width: 100%;
+}
+
+p.spacer {
+    margin-bottom: 4em;
+}
+
 /* -- table styles ---------------------------------------------------------- */
 
 table.docutils {
@@ -481,6 +507,15 @@ div.bodywrapper {
     border: none;
 }
 div.sphinxsidebar {
+    display: none;
+    width: 94%;
+    background: white;
+    border-bottom: 2px solid #336699;
+}
+li#toc-toggle {
+    display: block;
+}
+p.logo, p.logo-description {
     display: none;
 }
 }

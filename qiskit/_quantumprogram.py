@@ -289,7 +289,8 @@ class QuantumProgram(object):
             self.create_classical_register(cname, len(creg))
         self.__quantum_program[name] = quantum_circuit
 
-    def load_qasm_file(self, qasm_file, name=None, verbose=False):
+    def load_qasm_file(self, qasm_file, name=None, verbose=False,
+                       basis_gates='u1,u2,u3,cx,id'):
         """ Load qasm file into the quantum program.
 
         Args:
@@ -312,14 +313,14 @@ class QuantumProgram(object):
             print("******************************")
             print(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
-        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
         unrolled_circuit = unroll.Unroller(node_circuit,
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         self.add_circuit(name, circuit_unrolled)
         return name
 
-    def load_qasm_text(self, qasm_string, name=None, verbose=False):
+    def load_qasm_text(self, qasm_string, name=None, verbose=False, 
+                       basis_gates='u1,u2,u3,cx,id'):
         """ Load qasm string in the quantum program.
 
         Args:
@@ -341,7 +342,6 @@ class QuantumProgram(object):
             print("******************************")
             print(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
-        basis_gates = "u1,u2,u3,cx,id"  # QE target basis
         unrolled_circuit = unroll.Unroller(node_circuit,
                                            unroll.CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()

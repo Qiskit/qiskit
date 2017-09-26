@@ -5,6 +5,7 @@ import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 from qiskit._qiskiterror import QISKitError
 
+
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, silent=True, get_layout=False, format='dag'):
     """Compile the circuit.
@@ -93,6 +94,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     else:
         return compiled_circuit
     
+
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
 
@@ -116,9 +118,10 @@ def _unroller_code(qasm_circuit, basis_gates=None):
     dag_circuit_unrolled = unroller_circuit.execute()
     return dag_circuit_unrolled
 
+
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
-    
+
     Args: 
         filename (str): a string for the filename including its location.
         basis_gates (str): basis to unroll circuit to.
@@ -132,7 +135,8 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
                                            basis_gates.split(",")))
     circuit_unrolled = unrolled_circuit.execute()
     return circuit_unrolled
-    
+
+
 def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     """Make a Json representation of the circuit.
 
@@ -140,7 +144,9 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     function.
 
     Args:
-        dag_ciruit (dag object): a dag representation of the circuit
+        dag_ciruit (dag object): a dag representation of the circuit.
+        basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
 
     Returns:
         the json version of the dag
