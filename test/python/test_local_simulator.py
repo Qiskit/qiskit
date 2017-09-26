@@ -49,9 +49,22 @@ class LocalSimulatorTest(unittest.TestCase):
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        self.job = {'compiled_circuit': circuit,
-                    'config': {'shots': shots, 'seed': random.randint(0, 10)}
-                   }
+        self.qobj = {'id': 'test_qobj',
+                     'config': {
+                         'max_credits': 3,
+                         'shots': 100,
+                         'backend': 'local_qasm_simulator',
+                     },
+                     'circuits': [
+                         {
+                             'name': 'test_circuit',
+                             'compiled_circuit': circuit,
+                             'basis_gates': 'u1,u2,u3,cx,id',
+                             'layout': None,
+                             'seed': None
+                         }
+                     ]
+                     }
 
     def tearDown(self):
         pass
@@ -87,7 +100,7 @@ class LocalSimulatorTest(unittest.TestCase):
         """
         backend_list = _localsimulator.local_backends()
         for backend_name in backend_list:
-            backend = _localsimulator.LocalSimulator(backend_name, self.job)
+            backend = _localsimulator.LocalSimulator(self.qobj)
 
 if __name__ == '__main__':
     unittest.main()

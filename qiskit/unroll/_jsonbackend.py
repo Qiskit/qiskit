@@ -303,8 +303,7 @@ class JsonBackend(UnrollerBackend):
             Please check the syntax of your circuit.
             Has the Qasm parsing been called?. e.g: unroller.execute().
         """
-        # Convert simple quotes from the json strings to double quotes.
-        return json.dumps(self.circuit).encode()
+        return self.circuit
 
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
