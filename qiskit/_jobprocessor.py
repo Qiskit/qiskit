@@ -6,8 +6,8 @@ import random
 import string
 from qiskit._result import Result
 
-from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience.IBMQuantumExperience import ApiError
+from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import ApiError
 
 # Stable Modules
 from qiskit import QISKitError
@@ -302,6 +302,11 @@ class JobProcessor():
                                                              {"url": url},
                                                              verify=True)
             self._online_backends = remote_backends(self._api)
+            # Check for the existance of the backend
+            for qj in q_jobs:
+                if qj.backend not in self._online_backends + self._local_backends:
+                    raise QISKitError("Backend %s not found!" % qj.backend)
+
             self._api_config = {}
             self._api_config["token"] = token
             self._api_config["url"] =  {"url": url}
