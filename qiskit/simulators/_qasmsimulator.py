@@ -111,9 +111,8 @@ from collections import Counter
 import json
 from ._simulatortools import single_gate_matrix
 from ._simulatorerror import SimulatorError
+from qiskit._result import Result
 
-
-# TODO add the IF qasm operation.
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
@@ -166,30 +165,39 @@ class QasmSimulator(object):
             retval = QasmSimulator._index1(b2, i2-1, k)
             retval = QasmSimulator._index1(b1, i1, retval)
         return retval
+        
+    def __init__(self, qobj):
+        """
+        Args:
+            qobj (dict): qobj dictionary which has the structure::
+                {
+                    id: --job id (string),
+                    config: -- dictionary of config settings (dict)--,
+                        {
+                        "max_credits" (online only): -- credits (int) --,
+                        "shots": -- number of shots (int) --.
+                        "backend": -- backend name (str) --
+                        }
+                    circuits:
+                        [
+                            {
+                            "name": --circuit name (string)--,
+                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
+                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
+                            "config": --dictionary of additional config settings (dict)--,
+                                {
+                                "coupling_map": --adjacency list (dict)--,
+                                "basis_gates": --comma separated gate names (string)--,
+                                "layout": --layout computed by mapper (dict)--,
+                                "seed": (simulator only)--initial seed for the simulator (int)--,
+                                }
+                            },
+                            ...
+                        ]
+                    }
 
-    def __init__(self, job):
-        """Initialize the QasmSimulator object."""
-        self.circuit = json.loads(job['compiled_circuit'].decode())
-        self._number_of_qubits = self.circuit['header']['number_of_qubits']
-        self._number_of_cbits = self.circuit['header']['number_of_clbits']
-        self.result = {}
-        self.result['data'] = {}
-        self._quantum_state = 0
-        self._classical_state = 0
-        self._shots = job['config']['shots']
-        self._cl_reg_index = []
-        self._cl_reg_nbits = []
-        cbit_index = 0
-        for cl_reg in self.circuit['header']['clbit_labels']:
-            self._cl_reg_nbits.append(cl_reg[1])
-            self._cl_reg_index.append(cbit_index)
-            cbit_index += cl_reg[1]
-        if job['config']['seed'] is None:
-            random.seed(random.getrandbits(32))
-        else:
-            random.seed(job['config']['seed'])
-
-        self._number_of_operations = len(self.circuit['operations'])
+        """
+        self.qobj = qobj
 
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitary 1-qubit operator to a qubit.
@@ -286,16 +294,61 @@ class QasmSimulator(object):
             self._quantum_state = temp
 
     def run(self, silent=True):
-        """Run."""
+        """Run circuits in qobj
+        
+        Args:
+            silent (bool, optional): Silence print statements. Default is True.
+        """
+        result_list = []
+        self._shots = self.qobj['config']['shots']
+        for circuit in self.qobj['circuits']:
+            result_list.append( self.run_circuit(circuit) )
+        return Result({'result': result_list, 'status': 'COMPLETED'},
+                      self.qobj)            
+
+    def run_circuit(self, circuit):
+        """Run a circuit and return a single Result.
+
+        Args:
+            circuit (dict): JSON circuit from qobj circuits list
+            shots (int): number of shots to run circuit
+
+        Returns:
+            A dictionary of results which looks something like::
+
+                {
+                "data":
+                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
+                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "time"  : xx.xxxxxxxx
+                    },
+                "status": --status (string)--
+                }
+        """
+        ccircuit = circuit['compiled_circuit']
+        self._number_of_qubits = ccircuit['header']['number_of_qubits']
+        self._number_of_cbits = ccircuit['header']['number_of_clbits']
+        self._quantum_state = 0
+        self._classical_state = 0
+        cl_reg_index = [] # starting bit index of classical register
+        cl_reg_nbits = [] # number of bits in classical register
+        cbit_index = 0
+        for cl_reg in ccircuit['header']['clbit_labels']:
+            cl_reg_nbits.append(cl_reg[1])
+            cl_reg_index.append(cbit_index)
+            cbit_index += cl_reg[1]
+        if circuit['config']['seed'] is None:
+            random.seed(random.getrandbits(32))
+        else:
+            random.seed(circuit['config']['seed'])
         outcomes = []
-        # Do each shot
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
-                                           dtype=complex)
+                                          dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
-            for operation in self.circuit['operations']:
+            for operation in ccircuit['operations']:
                 if 'conditional' in operation:
                     mask = int(operation['conditional']['mask'], 16)
                     if mask > 0:
@@ -338,20 +391,17 @@ class QasmSimulator(object):
                     raise SimulatorError(err_msg.format(backend,
                                                     operation['name']))
             # Turn classical_state (int) into bit string
-            outcomes.append(bin(self._classical_state)[2:].zfill(self._number_of_cbits))
+            outcomes.append(bin(self._classical_state)[2:].zfill(
+                self._number_of_cbits))
         # Return the results
+        counts = dict(Counter(outcomes))
+        data = {'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
-            self.result['data']['quantum_state'] = self._quantum_state
-            self.result['data']['classical_state'] = self._classical_state
-            counts = dict(Counter(outcomes))
-            self.result['data']['counts'] = self._format_result(counts)
-        else:
-            counts = dict(Counter(outcomes))
-            self.result['data']['counts'] = self._format_result(counts)
-        self.result['status'] = 'DONE'
-        return self.result
+            data['quantum_state'] = self._quantum_state
+            data['classical_state'] = self._classical_state,
+        return {'data': data, 'status': 'DONE'}
 
-    def _format_result(self, counts):
+    def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
 
         This formats the result bit strings such that spaces are inserted
@@ -364,9 +414,9 @@ class QasmSimulator(object):
         """
         fcounts = {}
         for key, value in counts.items():
-            new_key = [key[-self._cl_reg_nbits[0]:]]
-            for index, nbits in zip(self._cl_reg_index[1:],
-                                    self._cl_reg_nbits[1:]):
+            new_key = [key[-cl_reg_nbits[0]:]]
+            for index, nbits in zip(cl_reg_index[1:],
+                                    cl_reg_nbits[1:]):
                 new_key.insert(0, key[-(index+nbits):-index])
             fcounts[' '.join(new_key)] = value
         return fcounts

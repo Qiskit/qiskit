@@ -9,7 +9,7 @@ from ._qiskiterror import QISKitError
 import qiskit.extensions.standard
 from ._jobprocessor import JobProcessor, QuantumJob
 from ._quantumprogram import QuantumProgram
-from ._quantumprogram import Result
+from ._result import Result
 
 __version__ = '0.4.0'
 

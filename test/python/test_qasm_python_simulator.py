@@ -47,6 +47,31 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         self.seed = 88
         self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
+                      unroll.JsonBackend(basis_gates))
+        circuit = unroller.execute()
+        self.qobj = {'id': 'test_sim_single_shot',
+                     'config': {
+                         'max_credits': 3,
+                         'shots': 1024,
+                         'backend': 'local_qasm_simulator',
+                     },
+                     'circuits': [
+                         {
+                             'name': 'test',
+                             'compiled_circuit': circuit,
+                             'compiled_circuit_qasm': None,
+                             'config': {'coupling_map': None,
+                                        'basis_gates': 'u1,u2,u3,cx,id',
+                                        'layout': None,
+                                        'seed': self.seed
+                             }
+                         }
+                     ]
+        }
 
     def tearDown(self):
         pass
@@ -54,32 +79,16 @@ class LocalQasmSimulatorTest(QiskitTestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-            unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': circuit, 'config': config}
-        result = QasmSimulator(job).run()
-        self.assertEqual(result['status'], 'DONE')
+        self.qobj['config']['shots'] = shots
+        result = QasmSimulator(self.qobj).run()
+        self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        shots = 1024
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-            unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': circuit, 'config': config}
-        result = QasmSimulator(job).run()
+        result = QasmSimulator(self.qobj).run()
         expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
                     '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
-        self.assertEqual(result['data']['counts'], expected)
+        self.assertEqual(result.get_counts('test'), expected)
 
     def test_if_statement(self):
         self.log.info('test_if_statement_x')
@@ -88,48 +97,75 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', max_qubits)
         cr = qp.create_classical_register('cr', max_qubits)
-        circuit = qp.create_circuit('test_if', [qr], [cr])
-        circuit.x(qr[0])
-        circuit.x(qr[1])
-        circuit.measure(qr[0], cr[0])
-        circuit.measure(qr[1], cr[1])
-        circuit.x(qr[2]).c_if(cr, 0x3)
-        circuit.measure(qr[0], cr[0])
-        circuit.measure(qr[1], cr[1])
-        circuit.measure(qr[2], cr[2])
-        circuit2 = qp.create_circuit('test_if_case_2', [qr], [cr])
-        circuit2.x(qr[0])
-        circuit2.measure(qr[0], cr[0])
-        circuit2.measure(qr[1], cr[1])
-        circuit2.x(qr[2]).c_if(cr, 0x3)
-        circuit2.measure(qr[0], cr[0])
-        circuit2.measure(qr[1], cr[1])
-        circuit2.measure(qr[2], cr[2])
+        circuit_if_true = qp.create_circuit('test_if_true', [qr], [cr])
+        circuit_if_true.x(qr[0])
+        circuit_if_true.x(qr[1])
+        circuit_if_true.measure(qr[0], cr[0])
+        circuit_if_true.measure(qr[1], cr[1])
+        circuit_if_true.x(qr[2]).c_if(cr, 0x3)
+        circuit_if_true.measure(qr[0], cr[0])
+        circuit_if_true.measure(qr[1], cr[1])
+        circuit_if_true.measure(qr[2], cr[2])
+        circuit_if_false = qp.create_circuit('test_if_false', [qr], [cr])
+        circuit_if_false.x(qr[0])
+        circuit_if_false.measure(qr[0], cr[0])
+        circuit_if_false.measure(qr[1], cr[1])
+        circuit_if_false.x(qr[2]).c_if(cr, 0x3)
+        circuit_if_false.measure(qr[0], cr[0])
+        circuit_if_false.measure(qr[1], cr[1])
+        circuit_if_false.measure(qr[2], cr[2])
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
+            qasm.Qasm(data=qp.get_qasm('test_if_true')).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit = unroller.execute()
+        ucircuit_true = unroller.execute()
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if_case_2')).parse(),
+            qasm.Qasm(data=qp.get_qasm('test_if_false')).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit2 = unroller.execute()
+        ucircuit_false = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': ucircuit, 'config': config}
-        result_if_true = QasmSimulator(job).run()
-        job = {'compiled_circuit': ucircuit2, 'config': config}
-        result_if_false = QasmSimulator(job).run()
+        qobj = {'id': 'test_if_qobj',
+                'config': {
+                    'max_credits': 3,
+                    'shots': shots,
+                    'backend': 'local_qasm_simulator',
+                },
+                'circuits': [
+                    {
+                        'name': 'test_if_true',
+                        'compiled_circuit': ucircuit_true,
+                        'compiled_circuit_qasm': None,
+                        'config': {'coupling_map': None,
+                                   'basis_gates': 'u1,u2,u3,cx,id',
+                                   'layout': None,
+                                   'seed': None
+                                   }
+                    },
+                    {
+                        'name': 'test_if_false',
+                        'compiled_circuit': ucircuit_false,
+                        'compiled_circuit_qasm': None,
+                        'config': {'coupling_map': None,
+                                   'basis_gates': 'u1,u2,u3,cx,id',
+                                   'layout': None,
+                                   'seed': None
+                                   }
+                    }
+                ]
+        }
 
+        result = QasmSimulator(qobj).run()
+        result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
-        self.log.info(circuit.qasm())
+        self.log.info(circuit_if_true.qasm())
         self.log.info('result_if_true={0}'.format(result_if_true))
 
-        del circuit.data[1]
+        result_if_false = result.get_data('test_if_false')        
         self.log.info('result_if_false circuit:')
-        self.log.info(circuit.qasm())
+        self.log.info(circuit_if_false.qasm())
         self.log.info('result_if_false={0}'.format(result_if_false))
-        self.assertTrue(result_if_true['data']['counts']['111'] == 100)
-        self.assertTrue(result_if_false['data']['counts']['001'] == 100)
+        self.assertTrue(result_if_true['counts']['111'] == 100)
+        self.assertTrue(result_if_false['counts']['001'] == 100)
 
     def test_teleport(self):
         """test teleportation as in tutorials"""

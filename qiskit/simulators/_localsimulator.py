@@ -92,14 +92,19 @@ def local_backends():
                     {'clbits': [0],
                      'name': 'measure',
                      'qubits': [0]}]}
-    job = {'compiled_circuit': json.dumps(circuit).encode(),
-           'config': {'shots': 1, 'seed': None}
+    qobj = {'id': 'simulator_discovery',
+            'config': {
+                'max_credits': 3,
+                'shots': 1,
+                'backend': None,
+                },
+            'circuits': [circuit]
            }
     for backend_id, backend in _simulator_classes.items():
         try:
-            sim = backend(job)
+            sim = backend(qobj)
         except FileNotFoundError as fnferr:
-            # this is for discovery so just don't had to discovered list
+            # this is for discovery so just don't add to discovered list
             pass
         else:
             backend_list.append(backend_id)
@@ -110,16 +115,14 @@ class LocalSimulator:
     """
     Interface to simulators
     """
-    def __init__(self, backend, job):
-        self._backend = backend
-        self._job = job
-        self._result = {'data': None, 'status': "Error"}
-        self._sim = _simulator_classes[backend](job)
+    def __init__(self, qobj):
+        self._backend = qobj['config']['backend']
+        self._qobj = qobj
+        self._result = None
+        self._sim = _simulator_classes[self._backend](qobj)
 
     def run(self, silent=False):
-        simOutput = self._sim.run(silent)
-        self._result["data"] = simOutput["data"]
-        self._result["status"] = simOutput["status"]
+        self._result = self._sim.run(silent=silent)
 
     def result(self):
         return self._result

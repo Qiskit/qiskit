@@ -33,6 +33,7 @@ from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
 from . import QISKitError
+from qiskit._result import Result
 from . import JobProcessor
 from . import QuantumJob
 
@@ -43,9 +44,6 @@ from . import mapper
 
 # Local Simulator Modules
 from . import simulators
-
-import sys
-sys.path.append("..")
 import qiskit.extensions.standard
 
 from qiskit import _openquantumcompiler as openquantumcompiler
@@ -1057,29 +1055,29 @@ class QuantumProgram(object):
 
     def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have
-            finished. NOT every time a job has finished."""
-        results = []
-        for result, qobj in jobs_results:
-            results.append(Result(result, qobj))
-
+            finished. NOT every time a job has finished.
+            
+        Args:
+            jobs_results (list): list of Result objects
+        """
         if self.callback is None:
             # We are calling from blocking functions (run, run_batch...)
-            self.jobs_results = results
+            self.jobs_results = jobs_results
             self.jobs_results_ready_event.set()
             return
 
         if self.are_multiple_results:
-            self.callback(results) # for run_batch_async() callback
+            self.callback(jobs_results) # for run_batch_async() callback
         else:
-            self.callback(results[0]) # for run_async() callback
+            self.callback(jobs_results[0]) # for run_async() callback
             
 
     def wait_for_results(self, timeout):
         is_ok = self.jobs_results_ready_event.wait(timeout)
         self.jobs_results_ready_event.clear()
         if not is_ok:
-            raise QISKitError("""Error waiting for Job results: Timeout after %d
-                    seconds. """ % timeout)
+            raise QISKitError('Error waiting for Job results: Timeout after {0} '
+                              'seconds.'.format(timeout))
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, silent=True, basis_gates=None,
@@ -1144,198 +1142,3 @@ class QuantumProgram(object):
         result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
         return result
 
-
-class Result(object):
-    """ Result Class.
-
-    Class internal properties.
-
-    Methods to process the quantum program after it has been run
-
-    Internal::
-
-        qobj =  { -- the quantum object that was complied --}
-        result =
-            [
-                {
-                "data":
-                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                    "time"  : xx.xxxxxxxx
-                    },
-                "status": --status (string)--
-                },
-                ...
-            ]
-    """
-
-    def __init__(self, qobj_result, qobj):
-        self.__qobj = qobj
-        self.__result = qobj_result
-
-    def __str__(self):
-        """Get the status of the run.
-
-        Returns:
-            the status of the results.
-        """
-        return self.__result['status']
-
-    def __iadd__(self, other):
-        """Append a Result object to current Result object.
-
-        Arg:
-            other (Result): a Result object to append.
-        Returns:
-            The current object with appended results.
-        """
-        if self.__qobj['config'] == other.__qobj['config']:
-            if isinstance(self.__qobj['id'], str):
-                self.__qobj['id'] = [self.__qobj['id']]
-            self.__qobj['id'].append(other.__qobj['id'])
-            self.__qobj['circuits'] += other.__qobj['circuits']
-            self.__result['result'] += other.__result['result']
-            return self
-        else:
-            raise QISKitError('Result objects have different configs and cannot be combined.')
-
-    def __add__(self, other):
-        """Combine Result objects.
-
-        Note that the qobj id of the returned result will be the same as the
-        first result.
-
-        Arg:
-            other (Result): a Result object to combine.
-        Returns:
-            A new Result object consisting of combined objects.
-        """
-        ret = copy.deepcopy(self)
-        ret += other
-        return ret
-
-    def get_error(self):
-        if self.__result['status'] == 'ERROR':
-            return self.__result['result']
-        else:
-            return None
-
-    def get_ran_qasm(self, name):
-        """Get the ran qasm for the named circuit and backend.
-
-        Args:
-            name (str): the name of the quantum circuit.
-
-        Returns:
-            A text version of the qasm file that has been run.
-        """
-        try:
-            qobj = self.__qobj
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
-        except KeyError:
-            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
-
-    def get_data(self, name):
-        """Get the data of cicuit name.
-
-        The data format will depend on the backend. For a real device it
-        will be for the form::
-
-            "counts": {’00000’: XXXX, ’00001’: XXXX},
-            "time"  : xx.xxxxxxxx
-
-        for the qasm simulators of 1 shot::
-
-            'quantum_state': array([ XXX,  ..., XXX]),
-            'classical_state': 0
-
-        for the qasm simulators of n shots::
-
-            'counts': {'0000': XXXX, '1001': XXXX}
-
-        for the unitary simulators::
-
-            'unitary': np.array([[ XX + XXj
-                                   ...
-                                   XX + XX]
-                                 ...
-                                 [ XX + XXj
-                                   ...
-                                   XX + XXj]]
-
-        Args:
-            name (str): the name of the quantum circuit.
-
-        Returns:
-            A dictionary of data for the different backends.
-        """
-        try:
-            qobj = self.__qobj
-            for index in range(len(qobj['circuits'])):
-                if qobj['circuits'][index]['name'] == name:
-                    return self.__result['result'][index]['data']
-        except (KeyError, TypeError) as err:
-            print(err)
-            raise QISKitError('No data for circuit "{0}"'.format(name))
-
-    def get_counts(self, name):
-        """Get the histogram data of cicuit name.
-
-        The data from the a qasm circuit is dictionary of the format
-        {’00000’: XXXX, ’00001’: XXXXX}.
-
-        Args:
-            name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
-
-        Returns:
-            A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
-        """
-        try:
-            return self.get_data(name)['counts']
-        except KeyError:
-            raise QISKitError('No counts for circuit "{0}"'.format(name))
-
-    def average_data(self, name, observable):
-        """Compute the mean value of an diagonal observable.
-
-        Takes in an observable in dictionary format and then
-        calculates the sum_i value(i) P(i) where value(i) is the value of
-        the observable for state i.
-
-        Args:
-            name (str): the name of the quantum circuit
-            obsevable (dict): The observable to be averaged over. As an example
-            ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
-
-        Returns:
-            a double for the average of the observable
-        """
-        counts = self.get_counts(name)
-        temp = 0
-        tot = sum(counts.values())
-        for key in counts:
-            if key in observable:
-                temp += counts[key] * observable[key] / tot
-        return temp
-
-
-class ResultError(QISKitError):
-    """Exceptions raised due to errors in result output.
-
-    It may be better for the QISKit API to raise this exception.
-
-    Args:
-        error (dict): This is the error record as it comes back from
-            the API. The format is like::
-
-                error = {'status': 403,
-                         'message': 'Your credits are not enough.',
-                         'code': 'MAX_CREDITS_EXCEEDED'}
-    """
-    def __init__(self, error):
-        self.status = error['status']
-        self.message = error['message']
-        self.code = error['code']
