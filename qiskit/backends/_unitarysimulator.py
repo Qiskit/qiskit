@@ -150,7 +150,7 @@ class UnitarySimulator(BaseBackend):
         
     def run_circuit(self, circuit, silent=True):
         """Apply the single-qubit gate."""
-        ccircuit = json.loads(circuit['compiled_circuit'].decode())
+        ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         result = {}
         result['data'] = {}

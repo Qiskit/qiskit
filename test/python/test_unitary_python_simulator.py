@@ -62,8 +62,6 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
             qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-	# if we want to manipulate the circuit, we have to convert it to a dict
-        circuit = json.loads(circuit.decode())
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
@@ -77,7 +75,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
                 'circuits': [
                     {
                         'name': 'test',
-                        'compiled_circuit': json.dumps(circuit).encode(),
+                        'compiled_circuit': circuit,
                         'compiled_circuit_qasm': self.qp.get_qasm('example'),
                         'config': {
                             'coupling_map': None,

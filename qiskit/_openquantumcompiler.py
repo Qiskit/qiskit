@@ -3,9 +3,10 @@ import sys
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
+from qiskit._qiskiterror import QISKitError
 
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-            initial_layout=None, silent=True, get_layout=False):
+            initial_layout=None, silent=True, get_layout=False, format='dag'):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -44,9 +45,11 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
+        format (str): The target format of the compilation:
+            {'dag', 'json', 'qasm'}
 
     Returns:
-        Compiled DAGCircuit.
+        Compiled circuit
     """
     compiled_dag_circuit = _unroller_code(qasm_circuit,
                                           basis_gates=basis_gates)
@@ -75,11 +78,21 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         if not silent:
             print("post-mapping properties: %s"
                   % compiled_dag_circuit.property_summary())
-    if get_layout:
-        return compiled_dag_circuit, final_layout
+    # choose output format
+    if format == 'dag':
+        compiled_circuit = compiled_dag_circuit
+    elif format == 'json':
+        compiled_circuit = dag2json(compiled_dag_circuit)
+    elif format == 'qasm':
+        compiled_circuit = compiled_dag_circuit.qasm()
     else:
-        return compiled_dag_circuit
+        raise QiskitCompilerError('unrecognized circuit format')
 
+    if get_layout:
+        return compiled_circuit, final_layout
+    else:
+        return compiled_circuit
+    
 
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
@@ -146,3 +159,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
     return json_circuit
+
+class QiskitCompilerError(QISKitError):
+    """Exceptions raised during compilation"""
+    pass
