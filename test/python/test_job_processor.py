@@ -321,11 +321,13 @@ class TestJobProcessor(unittest.TestCase):
         jp.submit(silent=True)
         jobprocessor.run_local_simulator = tmp
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_backend_not_found(self):
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
-        job = jobp.QuantumJob(compiled_circuit, backend='non_existing_backend')
-        self.assertRaises(QISKitError, jobp.JobProcessor, [job], callback=None,
-                          token=self.QE_TOKEN, url=self.QE_URL)
+        job = jobprocessor.QuantumJob(compiled_circuit, 
+                                      backend='non_existing_backend')
+        self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job], 
+                          callback=None, token=self.QE_TOKEN, url=self.QE_URL)
 
 
 if __name__ == '__main__':
