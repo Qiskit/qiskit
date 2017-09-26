@@ -17,7 +17,6 @@
 
 import cProfile
 import io
-import json
 import pstats
 import unittest
 
@@ -78,8 +77,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
         # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr, delimiter=',')
-        expected = np.loadtxt(os.path.join(self.modulePath,
-                                           'example_unitary_matrix.dat'),
+        expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
         result = UnitarySimulator(qobj).run()
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],

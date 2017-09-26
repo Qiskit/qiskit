@@ -16,7 +16,6 @@
 
 # =============================================================================
 
-import random
 import unittest
 
 from qiskit import qasm, unroll, QuantumProgram

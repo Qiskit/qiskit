@@ -229,8 +229,8 @@ class TestJobProcessor(QiskitTestCase):
         def job_done_callback(results):
             try:
                 self.log.info(pprint.pformat(results))
-                for result, _ in results:
-                    self.assertTrue(result['result'][0]['status'] == 'DONE')
+                for result in results:
+                    self.assertTrue(result.get_status() == 'COMPLETED')
             except Exception as e:
                 self.job_processor_exception = e
             finally:
@@ -301,9 +301,9 @@ class TestJobProcessor(QiskitTestCase):
     def test_error_in_job(self):
         def job_done_callback(results):
             try:
-                for result, _ in results:
+                for result in results:
                     self.log.info(pprint.pformat(result))
-                    self.assertTrue(result['status'] == 'ERROR')
+                    self.assertTrue(result.get_status() == 'ERROR')
             except Exception as e:
                 self.job_processor_exception = e
             finally:
