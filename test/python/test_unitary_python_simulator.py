@@ -1,53 +1,40 @@
-#!/usr/bin/env python
-import unittest
-import time
-import numpy as np
-import os
-import sys
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 import cProfile
-import pstats
 import io
-import logging
-#import matplotlib.pyplot as plt
-#from matplotlib.backends.backend_pdf import PdfPages
-#from matplotlib.ticker import MaxNLocator
-try:
-    import qiskit
-except ImportError as ierr:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-    import qiskit
-from qiskit import QuantumProgram
+import pstats
+import unittest
+
+import numpy as np
+
+from qiskit import qasm, unroll, QuantumProgram
 from qiskit.simulators._unitarysimulator import UnitarySimulator
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-if __name__ == '__main__':
-    from _random_qasm_generator import RandomQasmGenerator
-else:
-    from test.python._random_qasm_generator import RandomQasmGenerator
-import json
 
-class LocalUnitarySimulatorTest(unittest.TestCase):
+from ._random_qasm_generator import RandomQasmGenerator
+from .common import QiskitTestCase
+
+
+class LocalUnitarySimulatorTest(QiskitTestCase):
     """Test local unitary simulator."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
-        self.modulePath = os.path.dirname(__file__)
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
 
     def tearDown(self):
@@ -65,7 +52,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         #strip measurements from circuit to avoid warnings
         circuit['operations'] = [op for op in circuit['operations']
                                  if op['name'] != 'measure']
-	# the simulator is expecting a JSON format, so we need to convert it back to JSON
+        # the simulator is expecting a JSON format, so we need to convert it back to JSON
         qobj = {'id': 'unitary',
                 'config': {
                     'max_credits': None,
@@ -90,8 +77,7 @@ class LocalUnitarySimulatorTest(unittest.TestCase):
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
         # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr, delimiter=',')
-        expected = np.loadtxt(os.path.join(self.modulePath,
-                                           'example_unitary_matrix.dat'),
+        expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
         result = UnitarySimulator(qobj).run()
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],

@@ -15,33 +15,22 @@
 # limitations under the License.
 # =============================================================================
 """Test the the trial functions."""
-import sys
-import numpy as np
+
 import unittest
-import logging
-import os
+
 from scipy import linalg as la
-sys.path.append("../..")
-from qiskit.tools.apps.optimization import trial_circuit_ry
-from qiskit.tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
+import numpy as np
+
+from qiskit.tools.apps.optimization import (Energy_Estimate, make_Hamiltonian,
+                                            Hamiltonian_from_file,
+                                            trial_circuit_ry)
 from qiskit.tools.qi.pauli import Pauli
 
-class TestQuantumOptimization(unittest.TestCase):
-    """Tests for quantum optimization"""
+from .common import QiskitTestCase
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+
+class TestQuantumOptimization(QiskitTestCase):
+    """Tests for quantum optimization"""
 
     def test_trial_functions(self):
         entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
@@ -67,25 +56,11 @@ class TestQuantumOptimization(unittest.TestCase):
         self.log.info(trial_circuit.qasm())
 
 
-class TestHamiltonian(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+class TestHamiltonian(QiskitTestCase):
 
     def test_hamiltonian(self):
         # printing an example from a H2 file
-        hfile = os.path.dirname(__file__) + "/H2Equilibrium.txt"
+        hfile = self._get_resource_path("H2Equilibrium.txt")
         self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
 
         # printing an example from a graph input
@@ -102,7 +77,8 @@ class TestHamiltonian(unittest.TestCase):
         v3[1] = 1
         v3[2] = 1
 
-        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))), (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
+        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))),
+                      (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
         a = make_Hamiltonian(pauli_list)
         self.log.info(a)
 
