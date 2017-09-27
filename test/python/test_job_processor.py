@@ -21,7 +21,7 @@ import unittest
 
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
-                    QuantumRegister)
+                    QuantumRegister, QISKitError)
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit._jobprocessor as jobprocessor
 
@@ -334,6 +334,14 @@ class TestJobProcessor(QiskitTestCase):
 
         if self.job_processor_exception:
             raise self.job_processor_exception
+
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
+    def test_backend_not_found(self):
+        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
+        job = jobprocessor.QuantumJob(compiled_circuit,
+                                      backend='non_existing_backend')
+        self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job],
+                          callback=None, token=self.QE_TOKEN, url=self.QE_URL)
 
 
 if __name__ == '__main__':
