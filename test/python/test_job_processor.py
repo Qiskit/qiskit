@@ -13,7 +13,7 @@ from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
-import qiskit._jobprocessor as jobp
+import qiskit._jobprocessor as jobprocessor
 import qiskit.backends
 from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience

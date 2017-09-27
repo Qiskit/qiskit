@@ -36,6 +36,7 @@ def run_local_backend(qobj):
         if circuit['compiled_circuit'] is None:
             compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                            format='json')
+            circuit['compiled_circuit'] = compiled_circuit
     BackendClass = backends.get_backend_class(qobj['config']['backend'])
     backend = BackendClass(qobj)
     return backend.run()

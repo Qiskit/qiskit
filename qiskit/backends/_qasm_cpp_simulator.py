@@ -121,11 +121,28 @@ class QasmCppSimulator(BaseBackend):
         """
         Run simulation on C++ simulator.
         """
-        result_list = []
-        for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
-        return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
+        # result_list = []
+        # for circuit in self.qobj['circuits']:
+        #     result_list.append( self.run_circuit(circuit) )
+        # return Result({'result': result_list, 'status': 'COMPLETED'},
+        #               self.qobj)            
+        cmd = self._exe + ' - '
+        with subprocess.Popen(cmd.split(),
+                              stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
+            cin = json.dumps(self.qobj).encode()
+            cout, cerr = proc.communicate(cin)
+        if len(cerr) == 0:
+            # no error messages, load std::cout
+            cresult = json.loads(cout.decode())
+            # convert possible complex valued result fields
+            for result in cresult['result']:
+                for k in ['state', 'saved_states', 'inner_products']:
+                    parse_complex(result['data'], k)
+            return Result(cresult, self.qobj)            
+        else:
+            # custom "backend" or "result" exception handler here?
+            raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
+                            format(cout.decode(), cerr.decode()))
         
     def run_circuit(self, circuit, silent=True):
         """Run a single circuit on the C++ simulator
@@ -171,6 +188,7 @@ class QasmCppSimulator(BaseBackend):
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout
+            import pdb;pdb.set_trace()
             cresult = json.loads(cout.decode())
             # convert possible complex valued result fields
             for k in ['state', 'saved_states', 'inner_products']:

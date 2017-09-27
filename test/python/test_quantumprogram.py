@@ -592,7 +592,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct some should exists (even if ofline).
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
@@ -658,7 +658,7 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return configuration for the
         local_qasm_simulator.
         """
-        qp = QuantumProgram(specs=QPS_SPECS)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
         backend_config = qp.get_backend_configuration("local_qasm_simulator")
