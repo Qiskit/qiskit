@@ -68,8 +68,8 @@ def find_runnable_backends(backend_classes):
                 'shots': 1,
                 'backend': None,
                 },
-            'circuits': [circuit]
-           }
+            'circuits': [{'compiled_circuit': circuit}]
+            }
     for backend_id, backend in _backend_classes.items():
         try:
             backend(qobj)
