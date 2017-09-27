@@ -7,16 +7,20 @@ import logging
 import random
 import pprint
 import qiskit
+
 from qiskit import QuantumProgram
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
+from qiskit import QISKitError
+from IBMQuantumExperience import IBMQuantumExperience
+
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit._jobprocessor as jobprocessor
 from qiskit.simulators import _localsimulator
 from qiskit import _openquantumcompiler as openquantumcompiler
-from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+
 if __name__ == '__main__':
     from _random_circuit_generator import RandomCircuitGenerator
 else:
@@ -317,6 +321,13 @@ class TestJobProcessor(unittest.TestCase):
         jp.submit(silent=True)
         jobprocessor.run_local_simulator = tmp
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
+    def test_backend_not_found(self):
+        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
+        job = jobprocessor.QuantumJob(compiled_circuit, 
+                                      backend='non_existing_backend')
+        self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job], 
+                          callback=None, token=self.QE_TOKEN, url=self.QE_URL)
 
 
 if __name__ == '__main__':
