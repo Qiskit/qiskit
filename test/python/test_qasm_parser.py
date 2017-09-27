@@ -14,17 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """Test for the QASM parser"""
+
 import unittest
-import os
 
 import qiskit.qasm as Qasm
 
-# TODO: Use a library to mock the fs avoiding this files.
-# Note that the "example.qasm" one is used in other tests.
-QASM_FILE_PATH = os.path.join(os.path.dirname(__file__), './qasm/example.qasm')
-QASM_FILE_PATH_FAIL = os.path.join(os.path.dirname(__file__), './qasm/example_fail.qasm')
+from .common import QiskitTestCase
 
 
 def parse(file_path, prec=15):
@@ -37,25 +33,28 @@ def parse(file_path, prec=15):
     return qasm.parse().qasm(prec)
 
 
-class TestParser(unittest.TestCase):
+class TestParser(QiskitTestCase):
     """QasmParser"""
+    def setUp(self):
+        self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
+        self.QASM_FILE_PATH_FAIL = self._get_resource_path(
+            'qasm/example_fail.qasm')
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
 
-        res = parse(QASM_FILE_PATH)
+        res = parse(self.QASM_FILE_PATH)
         # TODO: For now only some basic checks.
         self.assertEqual(len(res), 1660)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
         self.assertEqual(res[1644:1659], "measure r -> d;")
 
-
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
 
         self.assertRaisesRegex(Qasm.QasmError, "Perhaps there is a missing",
-                               parse, file_path=QASM_FILE_PATH_FAIL)
+                               parse, file_path=self.QASM_FILE_PATH_FAIL)
 
 if __name__ == '__main__':
     unittest.main()
