@@ -339,7 +339,7 @@ class QasmParser(object):
         if program[4] != ']':
             raise QasmError("Missing ']' in indexed ID; received",
                                 str(program[4].value))
-        program[0] = node.IndexedId([program[1], program[3]])
+        program[0] = node.IndexedId([program[1], node.Int(program[3])])
 
     # ----------------------------------------
     #  primary : id
