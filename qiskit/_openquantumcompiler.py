@@ -1,5 +1,3 @@
-import os
-import sys
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
@@ -91,9 +89,8 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     if get_layout:
         return compiled_circuit, final_layout
-    else:
-        return compiled_circuit
-    
+    return compiled_circuit
+
 
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
@@ -122,14 +119,14 @@ def _unroller_code(qasm_circuit, basis_gates=None):
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
 
-    Args: 
+    Args:
         filename (str): a string for the filename including its location.
         basis_gates (str): basis to unroll circuit to.
     Returns:
         Returns a unrolled QuantumCircuit object
     """
     # create Program object Node (AST)
-    program_node_circuit = qasm.Qasm(filename=filename).parse() 
+    program_node_circuit = qasm.Qasm(filename=filename).parse()
     unrolled_circuit = unroll.Unroller(program_node_circuit,
                                        unroll.CircuitBackend(
                                            basis_gates.split(",")))
