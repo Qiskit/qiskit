@@ -26,3 +26,10 @@ install:
   - pip install -r requires-dev.txt
 
 script: make test
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: scripts/ghpages-documentation-deploy.sh
+  on:
+    branch: stable
