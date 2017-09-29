@@ -227,11 +227,11 @@ class JobProcessor():
         executor = self.executor_class(max_workers=self.max_workers)
         for q_job in self.q_jobs:
             if q_job.backend in self._local_backends:
-                future = executor.submit(run_local_simulator, 
+                future = executor.submit(run_local_simulator,
                                          q_job.qobj)
             elif self.online and q_job.backend in self._online_backends:
-                future = executor.submit(run_remote_backend, 
-                                         q_job.qobj, 
+                future = executor.submit(run_remote_backend,
+                                         q_job.qobj,
                                          self._api, wait=wait, timeout=timeout,
                                          silent=silent)
             future.silent = silent
