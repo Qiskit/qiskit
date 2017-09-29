@@ -243,7 +243,7 @@ class Unroller(object):
             self._process_measure(node)
 
         elif node.type == "magic":
-            self.version = float(node.children[0])
+            self.version = node.children[0].value
             self.backend.version(node.children[0])
 
         elif node.type == "barrier":
