@@ -18,7 +18,8 @@
 
 import unittest
 
-import qiskit.qasm as Qasm
+from qiskit.qasm import Qasm, QasmError
+from qiskit.qasm._node._node import Node
 
 from .common import QiskitTestCase
 
@@ -29,7 +30,7 @@ def parse(file_path, prec=15):
       - file_path: Path to the OpenQASM file
       - prec: Precision for the returned string
     """
-    qasm = Qasm.Qasm(file_path)
+    qasm = Qasm(file_path)
     return qasm.parse().qasm(prec)
 
 
@@ -53,8 +54,19 @@ class TestParser(QiskitTestCase):
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
 
-        self.assertRaisesRegex(Qasm.QasmError, "Perhaps there is a missing",
+        self.assertRaisesRegex(QasmError, "Perhaps there is a missing",
                                parse, file_path=self.QASM_FILE_PATH_FAIL)
+
+    def test_all_valid_nodes(self):
+        """Test that the tree contains only Node subclasses."""
+        def inspect(node):
+            for child in node.children:
+                self.assertTrue(isinstance(child, Node))
+                inspect(child)
+
+        qasm = Qasm(self.QASM_FILE_PATH)
+        res = qasm.parse()
+        inspect(res)
 
 if __name__ == '__main__':
     unittest.main()
