@@ -143,9 +143,9 @@ class Result(object):
             If there's an error, the function will throw.
         """
         if self._is_error():
-            raise self.__result['result']
+            raise self.__result['result'] # Rethrow exception!
 
-        try:    
+        try:
             qobj = self.__qobj
             for index in range(len(qobj['circuits'])):
                 if qobj['circuits'][index]['name'] == name:
