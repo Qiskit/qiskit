@@ -966,7 +966,7 @@ class QasmParser(object):
            prefix_expression : '+' prefix_expression
                              | '-' prefix_expression
         '''
-        program[0] = node.Prefix([program[1], program[2]])
+        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
 
     def p_additive_expression_0(self, program):
         '''
@@ -979,7 +979,8 @@ class QasmParser(object):
             additive_expression : additive_expression '+' prefix_expression
                                 | additive_expression '-' prefix_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     def p_multiplicative_expression_0(self, program):
         '''
@@ -992,7 +993,8 @@ class QasmParser(object):
         multiplicative_expression : multiplicative_expression '*' additive_expression
                                   | multiplicative_expression '/' additive_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     def p_expression_0(self, program):
         '''
