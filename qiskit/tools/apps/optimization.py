@@ -316,8 +316,8 @@ def make_Hamiltonian(pauli_list):
 
 def Hamiltonian_from_file(file_name):
     """Compute the pauli_list from a file."""
-    file = open(file_name, 'r+')
-    ham_array = file.readlines()
+    with open(file_name, 'r+') as file:
+        ham_array = file.readlines()
     ham_array = [x.strip() for x in ham_array]
     pauli_list = []
     for i in range(len(ham_array)//2):

@@ -1,57 +1,61 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+
 import unittest
-import time
-import os
-import sys
-import io
-import logging
-import random
-import qiskit
-from qiskit import QuantumProgram
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
+
+from qiskit import qasm, unroll, QuantumProgram
 
 from qiskit.simulators import _localsimulator
 
-class LocalSimulatorTest(unittest.TestCase):
+from .common import QiskitTestCase
+
+
+class LocalSimulatorTest(QiskitTestCase):
     """
     Test interface to local simulators.
     """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
-    @classmethod
-    def tearDownClass(cls):
-        #cls.pdf.close()
-        pass
-
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
         shots = 1
         self.qp.load_qasm_file(self.qasmFileName, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
+            unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        self.job = {'compiled_circuit': circuit,
-                    'config': {'shots': shots, 'seed': random.randint(0, 10)}
-                   }
+        self.qobj = {'id': 'test_qobj',
+                     'config': {
+                         'max_credits': 3,
+                         'shots': 100,
+                         'backend': 'local_qasm_simulator',
+                     },
+                     'circuits': [
+                         {
+                             'name': 'test_circuit',
+                             'compiled_circuit': circuit,
+                             'basis_gates': 'u1,u2,u3,cx,id',
+                             'layout': None,
+                             'seed': None
+                         }
+                     ]
+                     }
 
     def tearDown(self):
         pass
@@ -87,7 +91,7 @@ class LocalSimulatorTest(unittest.TestCase):
         """
         backend_list = _localsimulator.local_backends()
         for backend_name in backend_list:
-            backend = _localsimulator.LocalSimulator(backend_name, self.job)
+            backend = _localsimulator.LocalSimulator(self.qobj)
 
 if __name__ == '__main__':
     unittest.main()
