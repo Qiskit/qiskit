@@ -1006,7 +1006,8 @@ class QasmParser(object):
         '''
             expression : expression '^' multiplicative_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     # ----------------------------------------
     # exp_list : exp
