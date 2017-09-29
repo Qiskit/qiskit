@@ -105,7 +105,7 @@ class QuantumProgram(object):
             self.__init_specs(specs)
 
         self.callback = None
-        self.results = []
+        self.jobs_results = []
         self.jobs_results_ready_event = Event()
         self.are_multiple_results = False # are we expecting multiple results?
 
@@ -314,7 +314,7 @@ class QuantumProgram(object):
         self.add_circuit(name, circuit_unrolled)
         return name
 
-    def load_qasm_text(self, qasm_string, name=None, verbose=False, 
+    def load_qasm_text(self, qasm_string, name=None, verbose=False,
                        basis_gates='u1,u2,u3,cx,id'):
         """ Load qasm string in the quantum program.
 
@@ -329,7 +329,7 @@ class QuantumProgram(object):
         """
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
-            # Get a random name if none is give
+            # Get a random name if none is given
             name = "".join([random.choice(string.ascii_letters+string.digits)
                             for n in range(10)])
         if verbose is True:
@@ -521,8 +521,6 @@ class QuantumProgram(object):
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
 
-        elemements_to_load = {}
-
         try:
             with open(file_name, 'r') as load_file:
                 elemements_loaded = json.load(load_file)
@@ -570,7 +568,7 @@ class QuantumProgram(object):
         Returns:
             List of online simulator names.
         """
-        simulators = []
+        online_simulators_list = []
         if self.get_api():
             try:
                 backends = self.__api.available_backends()
@@ -579,8 +577,8 @@ class QuantumProgram(object):
                                       .format(ex))
             for backend in backends:
                 if backend['simulator']:
-                    simulators.append(backend['name'])
-        return simulators
+                    online_simulators_list.append(backend['name'])
+        return online_simulators_list
 
     def online_devices(self):
         """Gets online devices via QX API calls.
@@ -1040,9 +1038,9 @@ class QuantumProgram(object):
             q_job = QuantumJob(qobj, preformatted=True)
             q_job_list.append(q_job)
 
-        jp = JobProcessor(q_job_list, max_workers=5, api=self.__api,
-                          callback=self._jobs_done_callback)
-        jp.submit()
+        job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
+                                     callback=self._jobs_done_callback)
+        job_processor.submit()
 
 
     def _jobs_done_callback(self, jobs_results):
