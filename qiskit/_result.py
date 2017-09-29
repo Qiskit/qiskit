@@ -1,4 +1,5 @@
 import copy
+
 from qiskit._qiskiterror import QISKitError
 
 class Result(object):
@@ -73,11 +74,8 @@ class Result(object):
         ret += other
         return ret
 
-    def get_error(self):
-        if self.__result['status'] == 'ERROR':
-            return self.__result['result'][0]
-        else:
-            return None
+    def _is_error(self):
+         return self.__result['status'] == 'ERROR'
 
     def get_status(self):
         """Return whole qobj result status."""
@@ -142,14 +140,17 @@ class Result(object):
 
         Returns:
             A dictionary of data for the different backends.
+            If there's an error, the function will throw.
         """
-        try:
+        if self._is_error():
+            raise self.__result['result']
+
+        try:    
             qobj = self.__qobj
             for index in range(len(qobj['circuits'])):
                 if qobj['circuits'][index]['name'] == name:
                     return self.__result['result'][index]['data']
-        except (KeyError, TypeError) as err:
-            print(err)
+        except (KeyError, TypeError):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
