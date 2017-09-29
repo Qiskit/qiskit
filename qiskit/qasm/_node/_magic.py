@@ -24,7 +24,7 @@ from ._node import Node
 class Magic(Node):
     """Node for an OPENQASM file identifier/version statement ("magic number").
 
-    children[0] is a floating point number (not a node).
+    children[0] is a Real node.
     """
 
     def __init__(self, children):
@@ -33,4 +33,4 @@ class Magic(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "OPENQASM %.1f;" % self.children[0]
+        return "OPENQASM %.1f;" % self.children[0].value

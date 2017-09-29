@@ -298,7 +298,7 @@ class QasmParser(object):
         '''
            magic : MAGIC REAL
         '''
-        program[0] = node.Magic([program[2]])
+        program[0] = node.Magic([node.Real(program[2])])
 
     def p_magic_0(self, program):
         '''
