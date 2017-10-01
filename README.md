@@ -60,7 +60,7 @@ Now that the SDK is installed, it's time to begin working with QISKit.
 
 We are ready to try out some QASM examples, which runs via the local simulator.
 
-This is a simple superpesition example.
+This is a simple superposition example.
 
 ```
 from qiskit import QuantumProgram
