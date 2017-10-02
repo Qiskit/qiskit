@@ -1,5 +1,7 @@
 import copy
+
 from qiskit._qiskiterror import QISKitError
+from qiskit import RegisterSizeError
 
 class Result(object):
     """ Result Class.
@@ -73,11 +75,8 @@ class Result(object):
         ret += other
         return ret
 
-    def get_error(self):
-        if self.__result['status'] == 'ERROR':
-            return self.__result['result'][0]
-        else:
-            return None
+    def _is_error(self):
+         return self.__result['status'] == 'ERROR'
 
     def get_status(self):
         """Return whole qobj result status."""
@@ -142,14 +141,23 @@ class Result(object):
 
         Returns:
             A dictionary of data for the different backends.
+
+        Raises:
+            If there's an error the function will throw a QISKitError or a
+            RegisterSizeError.
         """
+        if self._is_error():
+            exception = self.__result['result']
+            if isinstance(exception, RegisterSizeError):
+                raise exception # Re-throw RegisterSizeError
+            raise QISKitError(str(exception))
+
         try:
             qobj = self.__qobj
             for index in range(len(qobj['circuits'])):
                 if qobj['circuits'][index]['name'] == name:
                     return self.__result['result'][index]['data']
-        except (KeyError, TypeError) as err:
-            print(err)
+        except (KeyError, TypeError):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
@@ -200,22 +208,4 @@ class Result(object):
             if key in observable:
                 temp += counts[key] * observable[key] / tot
         return temp
-
-
-class ResultError(QISKitError):
-    """Exceptions raised due to errors in result output.
-
-    It may be better for the QISKit API to raise this exception.
-
-    Args:
-        error (dict): This is the error record as it comes back from
-            the API. The format is like::
-
-                error = {'status': 403,
-                         'message': 'Your credits are not enough.',
-                         'code': 'MAX_CREDITS_EXCEEDED'}
-    """
-    def __init__(self, error):
-        self.status = error['status']
-        self.message = error['message']
-        self.code = error['code']
+    
