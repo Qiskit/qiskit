@@ -74,17 +74,8 @@ class Result(object):
         ret += other
         return ret
 
-<<<<<<< HEAD
     def _is_error(self):
          return self.__result['status'] == 'ERROR'
-=======
-    def get_error(self):
-        """Indicate if there was an error for this result.
-        """
-        if self.__result['status'] == 'ERROR':
-            return self.__result['result'][0]
-        return None
->>>>>>> Redone the corrections that were harmeless in the previously reverted commit
 
     def get_status(self):
         """Return whole qobj result status."""
