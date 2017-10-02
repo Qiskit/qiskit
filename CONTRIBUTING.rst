@@ -85,7 +85,7 @@ Good first contributions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 You are welcome to contribute wherever in the code you want to, of course, but
-we recommend taking a look at the "Good first bug" label into the issues and
+we recommend taking a look at the "Good first contribution" label into the issues and
 pick one. We would love to mentor you!
 
 Doc
