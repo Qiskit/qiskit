@@ -40,6 +40,8 @@ class TestParser(QiskitTestCase):
         self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
         self.QASM_FILE_PATH_FAIL = self._get_resource_path(
             'qasm/example_fail.qasm')
+        self.QASM_FILE_PATH_IF = self._get_resource_path(
+            'qasm/example_if.qasm')
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -64,9 +66,15 @@ class TestParser(QiskitTestCase):
                 self.assertTrue(isinstance(child, Node))
                 inspect(child)
 
+        # Test the canonical example file.
         qasm = Qasm(self.QASM_FILE_PATH)
         res = qasm.parse()
         inspect(res)
+
+        # Test a file containing if instructions.
+        qasm_if = Qasm(self.QASM_FILE_PATH_IF)
+        res_if = qasm_if.parse()
+        inspect(res_if)
 
 if __name__ == '__main__':
     unittest.main()

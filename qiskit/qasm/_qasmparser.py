@@ -879,7 +879,7 @@ class QasmParser(object):
         if program[7].type == 'barrier':
             raise QasmError("barrier not permitted in IF statement")
 
-        program[0] = node.If([program[3], program[5], program[7]])
+        program[0] = node.If([program[3], node.Int(program[5]), program[7]])
 
     # ----------------------------------------
     # These are all the things you can have outside of a gate declaration

@@ -1,0 +1,26 @@
+// Example file containing "if" instructions.
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr0[1];
+creg cr0[1];
+h qr0[0];
+measure qr0[0] -> cr0[0];
+if(cr0==0) x qr0[0];
+h qr0[0];
+reset qr0[0];
+measure qr0[0] -> cr0[0];
+h qr0[0];
+reset qr0[0];
+u1(0.562367489586523) qr0[0];
+measure qr0[0] -> cr0[0];
+reset qr0[0];
+reset qr0[0];
+reset qr0[0];
+h qr0[0];
+measure qr0[0] -> cr0[0];
+if(cr0==1) x qr0[0];
+h qr0[0];
+u1(0.083178154631269) qr0[0];
+h qr0[0];
+reset qr0[0];
+measure qr0[0] -> cr0[0];

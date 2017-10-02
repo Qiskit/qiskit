@@ -171,7 +171,7 @@ class Unroller(object):
     def _process_if(self, node):
         """Process an if node."""
         creg = node.children[0].name
-        cval = node.children[1]
+        cval = node.children[1].value
         self.backend.set_condition(creg, cval)
         self._process_node(node.children[2])
         self.backend.drop_condition()
