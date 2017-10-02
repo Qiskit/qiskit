@@ -1,5 +1,4 @@
 import copy
-
 from qiskit._qiskiterror import QISKitError
 from qiskit import RegisterSizeError
 

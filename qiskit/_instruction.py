@@ -62,11 +62,13 @@ class Instruction(object):
             self.check_circuit()
             if not gate.circuit.has_register(self.control[0]):
                 raise QISKitError("control register %s not found"
-                                  % self.control[0].name)
+                                      % self.control[0].name)
             gate.c_if(self.control[0], self.control[1])
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
         if self.control is None:
             return string
-        return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+        else:
+            return "if(%s==%d) " % (
+                self.control[0].name, self.control[1]) + string
