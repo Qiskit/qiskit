@@ -125,28 +125,9 @@ started with the tutorials, follow the instructions below.
 
     jupyter notebook index.ipynb
 
-1.2 Install into the QISKit folder
-----------------------------------
-
--  If running either Linux or Mac OS X with Xcode, simply run the
-   following command from the QISKit SDK folder:
-
-.. code:: sh
-
-    make install-tutorials
-
-    make run-tutorials
-    
--  If running on Windows, make sure you are running an Anaconda Prompt,
-   and then run the following commands from the QISKit SDK folder:
-
-    - download the tutorials: https://github.com/QISKit/qiskit-tutorial/archive/master.zip
-    - uncompress the zip file
-    - move the content into a new "tutorials" folder in the QISKit folder
-
-.. code:: sh
-
-    .\make run-tutorials
+Please refer to the
+`qiskit-tutorial repository <https://github.com/QISKit/qiskit-tutorial>`__
+for further instructions on how to execute them.
     
 
 FAQ
