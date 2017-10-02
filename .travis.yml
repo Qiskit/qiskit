@@ -30,6 +30,6 @@ script: make test
 deploy:
   provider: script
   skip_cleanup: true
-  script: scripts/ghpages-documentation-deploy.sh
+  script: tools/ghpages-documentation-deploy.sh
   on:
     branch: stable
