@@ -141,10 +141,11 @@ def print_results_callback(results, error=None):
 
     for result in results:
         print("result: {}".format(result))
-        if result.get_error() != None:
-            print(result.get_error())
-        else:
+        try:
             print(result.get_counts("rippleadd"))
+        except Exception as ex:
+            print("ERROR: {}".format(ex))
+
         print("============")
     global end
     end = True
@@ -163,10 +164,11 @@ print("Running jobs synchronously...")
 results = qp.run_batch(qobjs)
 for result in results:
     print("result: {}".format(result))
-    if result.get_error() != None:
-        print(result.get_error())
-    else:
-        print(result.get_counts("rippleadd"))
+    try:
+        print(result.get_counts("rippleadd"))    
+    except Exception as ex:
+        print("ERROR: {}".format(ex))
+        
     print("============")
 
 print("Done")

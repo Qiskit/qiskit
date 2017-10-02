@@ -22,7 +22,8 @@ import unittest
 
 import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram, Result)
+                    QuantumRegister, QuantumProgram, Result,
+                    RegisterSizeError)
 import qiskit.backends
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
@@ -1183,7 +1184,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.execute(['qc'], backend=backend,
                                     shots=shots, max_credits=3,
                                     silent=True, seed=73846087)
-        self.assertEqual(result.get_error(), "device register size must be <= 24")
+        self.assertRaises(RegisterSizeError, result.get_data, 'qc')
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):

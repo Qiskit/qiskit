@@ -171,7 +171,7 @@ class Unroller(object):
     def _process_if(self, node):
         """Process an if node."""
         creg = node.children[0].name
-        cval = node.children[1]
+        cval = node.children[1].value
         self.backend.set_condition(creg, cval)
         self._process_node(node.children[2])
         self.backend.drop_condition()
@@ -243,7 +243,7 @@ class Unroller(object):
             self._process_measure(node)
 
         elif node.type == "magic":
-            self.version = float(node.children[0])
+            self.version = node.children[0].value
             self.backend.version(node.children[0])
 
         elif node.type == "barrier":
