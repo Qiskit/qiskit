@@ -10,3 +10,6 @@ import qiskit.extensions.standard
 from ._quantumprogram import QuantumProgram
 from ._quantumprogram import Result
 #from .simulators import UnitarySimulator
+
+
+__version__ = '0.3.6'
