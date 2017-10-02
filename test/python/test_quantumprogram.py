@@ -22,7 +22,7 @@ import unittest
 
 import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram, Result, ResultError,
+                    QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path

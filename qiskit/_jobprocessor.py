@@ -2,14 +2,11 @@ from concurrent import futures
 from threading import Lock
 import sys
 import time
-import random
-import string
-
-from qiskit._result import Result, ResultError
 
 from IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience import ApiError
 
+from qiskit._result import Result
+from qiskit._resulterror import ResultError
 # Stable Modules
 from qiskit import QISKitError
 # Local Simulator Modules
