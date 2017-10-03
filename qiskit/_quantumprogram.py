@@ -941,8 +941,8 @@ class QuantumProgram(object):
 
         Args:
             qobj (dict): the dictionary of the quantum object to run.
-            wait (int): wait time is how long to check if the job is completed
-            timeout (int): is time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): is an option to print out the running information or
             not
 
@@ -963,8 +963,8 @@ class QuantumProgram(object):
 
         Args:
             qobj_list (list(dict)): The list of quantum objects to run.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
 
         Returns:
@@ -988,8 +988,8 @@ class QuantumProgram(object):
         Args:
             qobj(dict): the dictionary of the quantum object to
                 run or list of qobj.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
             callback (fn(result)): A function with signature:
                     fn(result):
@@ -1011,8 +1011,8 @@ class QuantumProgram(object):
 
         Args:
             qobj_list (list(dict)): The list of quantum objects to run.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
             callback (fn(results)): A function with signature:
                     fn(results):
@@ -1040,7 +1040,7 @@ class QuantumProgram(object):
 
         job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
                                      callback=self._jobs_done_callback)
-        job_processor.submit()
+        job_processor.submit(wait, timeout, silent)
 
 
     def _jobs_done_callback(self, jobs_results):
@@ -1084,8 +1084,8 @@ class QuantumProgram(object):
             backend (str): a string representing the backend to compile to
             config (dict): a dictionary of configurations parameters for the
                 compiler
-            wait (int): wait time is how long to check if the job is completed
-            timeout (int): is time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): is an option to print out the compiling information
             or not
             basis_gates (str): a comma seperated string and are the base gates,
