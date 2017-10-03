@@ -217,8 +217,8 @@ class JobProcessor():
         """Process/submit jobs
 
         Args:
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time waiting for the results
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time waiting for the results
             silent (bool): If true, prints out results
         """
         executor = self.executor_class(max_workers=self.max_workers)
