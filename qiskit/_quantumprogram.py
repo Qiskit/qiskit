@@ -15,25 +15,21 @@
 Qasm Program Class
 """
 # pylint: disable=line-too-long
-import time
 import random
 import json
 import os
 import string
 import re
-import copy
 from threading import Event
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience import RegisterSizeError
 
 # Stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
 from . import QuantumCircuit
 from . import QISKitError
-from qiskit._result import Result
 from . import JobProcessor
 from . import QuantumJob
 
@@ -44,17 +40,16 @@ from . import mapper
 
 # Local Simulator Modules
 import qiskit.backends
-import qiskit.extensions.standard
 
-from qiskit import _openquantumcompiler as openquantumcompiler
+from . import _openquantumcompiler as openquantumcompiler
 
-first_cap_re = re.compile('(.)([A-Z][a-z]+)')
-all_cap_re = re.compile('([a-z0-9])([A-Z])')
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
 def convert(name):
-    s1 = first_cap_re.sub(r'\1_\2', name)
-    return all_cap_re.sub(r'\1_\2', s1).lower()
+    s1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', s1).lower()
 
 
 class QuantumProgram(object):
@@ -110,7 +105,7 @@ class QuantumProgram(object):
             self.__init_specs(specs)
 
         self.callback = None
-        self.results = []
+        self.jobs_results = []
         self.jobs_results_ready_event = Event()
         self.are_multiple_results = False # are we expecting multiple results?
 
@@ -319,7 +314,7 @@ class QuantumProgram(object):
         self.add_circuit(name, circuit_unrolled)
         return name
 
-    def load_qasm_text(self, qasm_string, name=None, verbose=False, 
+    def load_qasm_text(self, qasm_string, name=None, verbose=False,
                        basis_gates='u1,u2,u3,cx,id'):
         """ Load qasm string in the quantum program.
 
@@ -334,7 +329,7 @@ class QuantumProgram(object):
         """
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
-            # Get a random name if none is give
+            # Get a random name if none is given
             name = "".join([random.choice(string.ascii_letters+string.digits)
                             for n in range(10)])
         if verbose is True:
@@ -454,7 +449,7 @@ class QuantumProgram(object):
             self.__api = IBMQuantumExperience(token, {"url": url}, verify)
         except Exception as ex:
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
-                              .format(ex))
+                                  .format(ex))
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
         self.__api_config["url"] = {"url": url}
@@ -526,8 +521,6 @@ class QuantumProgram(object):
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
 
-        elemements_to_load = {}
-
         try:
             with open(file_name, 'r') as load_file:
                 elemements_loaded = json.load(load_file)
@@ -563,8 +556,7 @@ class QuantumProgram(object):
                 raise ConnectionError("Couldn't get available backend list: {0}"
                                       .format(ex))
             return [backend['name'] for backend in backends]
-        else:
-            return []
+        return []
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -572,7 +564,7 @@ class QuantumProgram(object):
         Returns:
             List of online simulator names.
         """
-        simulators = []
+        online_simulators_list = []
         if self.get_api():
             try:
                 backends = self.__api.available_backends()
@@ -581,8 +573,8 @@ class QuantumProgram(object):
                                       .format(ex))
             for backend in backends:
                 if backend['simulator']:
-                    simulators.append(backend['name'])
-        return simulators
+                    online_simulators_list.append(backend['name'])
+        return online_simulators_list
 
     def online_devices(self):
         """Gets online devices via QX API calls.
@@ -659,8 +651,7 @@ class QuantumProgram(object):
                                     configuration[key]
                             else:
                                 if not list_format:
-                                    cmap = mapper.coupling_list2dict(
-                                                configuration[key])
+                                    cmap = mapper.coupling_list2dict(configuration[key])
                                 else:
                                     cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
@@ -824,7 +815,7 @@ class QuantumProgram(object):
         qobj = {}
         if not qobj_id:
             qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
-                              for n in range(30)])
+                               for n in range(30)])
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
@@ -842,10 +833,10 @@ class QuantumProgram(object):
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
-                                                    basis_gates=basis_gates,
-                                                    coupling_map=coupling_map,
-                                                    initial_layout=initial_layout,
-                                                    silent=silent, get_layout=True)
+                                                                    basis_gates=basis_gates,
+                                                                    coupling_map=coupling_map,
+                                                                    initial_layout=initial_layout,
+                                                                    silent=silent, get_layout=True)
             # making the job to be added to qobj
             job = {}
             job["name"] = name
@@ -882,7 +873,6 @@ class QuantumProgram(object):
         if not qobj:
             if verbose:
                 print("no exectuions to run")
-        execution_list_all = {}
         execution_list = []
         if verbose:
             print("id: %s" % qobj['id'])
@@ -974,9 +964,9 @@ class QuantumProgram(object):
             A list of Result (class). The list will contain one Result object
             per qobj in the input list.
         """
-        self._run_internal(qobj_list, 
-                           wait=wait, 
-                           timeout=timeout, 
+        self._run_internal(qobj_list,
+                           wait=wait,
+                           timeout=timeout,
                            silent=silent,
                            are_multiple_results=True)
         self.wait_for_results(timeout)
@@ -994,17 +984,17 @@ class QuantumProgram(object):
             wait (int): Wait time is how long to check if all jobs is completed
             timeout (int): Time until the execution stops
             silent (bool): If true, prints out the running information
-            callback (fn(result)): A function with signature: 
+            callback (fn(result)): A function with signature:
                     fn(result):
                     The result param will be a Result object.
         """
-        self._run_internal([qobj], 
-                           wait=wait, 
-                           timeout=timeout, 
+        self._run_internal([qobj],
+                           wait=wait,
+                           timeout=timeout,
                            silent=silent,
                            callback=callback)
 
-    def run_batch_async(self, qobj_list, wait=5, timeout=120, silent=True, 
+    def run_batch_async(self, qobj_list, wait=5, timeout=120, silent=True,
                         callback=None):
         """Run various programs (a list of pre-compiled quantum program)
         asynchronously. This is a non-blocking function, so it will return
@@ -1017,14 +1007,14 @@ class QuantumProgram(object):
             wait (int): Wait time is how long to check if all jobs is completed
             timeout (int): Time until the execution stops
             silent (bool): If true, prints out the running information
-            callback (fn(results)): A function with signature: 
+            callback (fn(results)): A function with signature:
                     fn(results):
                     The results param will be a list of Result objects, one
                     Result per qobj in the input list.
         """
         self._run_internal(qobj_list,
-                           wait=wait, 
-                           timeout=timeout, 
+                           wait=wait,
+                           timeout=timeout,
                            silent=silent,
                            callback=callback,
                            are_multiple_results=True)
@@ -1041,15 +1031,15 @@ class QuantumProgram(object):
             q_job = QuantumJob(qobj, preformatted=True)
             q_job_list.append(q_job)
 
-        jp = JobProcessor(q_job_list, max_workers=5, api=self.__api,
-                          callback=self._jobs_done_callback)
-        jp.submit()
+        job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
+                                     callback=self._jobs_done_callback)
+        job_processor.submit()
 
 
     def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have
             finished. NOT every time a job has finished.
-            
+
         Args:
             jobs_results (list): list of Result objects
         """
@@ -1063,7 +1053,7 @@ class QuantumProgram(object):
             self.callback(jobs_results) # for run_batch_async() callback
         else:
             self.callback(jobs_results[0]) # for run_async() callback
-            
+
 
     def wait_for_results(self, timeout):
         is_ok = self.jobs_results_ready_event.wait(timeout)
@@ -1129,9 +1119,8 @@ class QuantumProgram(object):
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
         qobj = self.compile(name_of_circuits, backend=backend, config=config,
-                     silent=silent, basis_gates=basis_gates,
-                     coupling_map=coupling_map, initial_layout=initial_layout,
-                     shots=shots, max_credits=max_credits, seed=seed)
+                            silent=silent, basis_gates=basis_gates,
+                            coupling_map=coupling_map, initial_layout=initial_layout,
+                            shots=shots, max_credits=max_credits, seed=seed)
         result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
         return result
-

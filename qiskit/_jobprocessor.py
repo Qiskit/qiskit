@@ -53,7 +53,7 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     api_jobs = []
     for circuit in qobj['circuits']:
         if (('compiled_circuit_qasm' not in circuit) or
-            (circuit['compiled_circuit_qasm'] is None)):
+                (circuit['compiled_circuit_qasm'] is None)):
             compiled_circuit = openquantumcompiler.compile(
                 circuit['circuit'].qasm())
             circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
@@ -130,7 +130,7 @@ def remote_backends(api):
         List of online backends if the online api has been set or an empty
         list of it has not been set.
     """
-    return [backend['name'] for backend in api.available_backends() ]
+    return [backend['name'] for backend in api.available_backends()]
 
 class JobProcessor():
     """
@@ -159,7 +159,7 @@ class JobProcessor():
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
-        self.callback = (lambda rs:()) if callback is None else callback
+        self.callback = (lambda rs: ()) if callback is None else callback
         self.num_jobs = len(self.q_jobs)
         self.jobs_results = []
         if self.online:
@@ -168,13 +168,13 @@ class JobProcessor():
                                                              verify=True)
             self._online_backends = remote_backends(self._api)
             # Check for the existance of the backend
-            for qj in q_jobs:
-                if qj.backend not in self._online_backends + self._local_backends:
-                    raise QISKitError("Backend %s not found!" % qj.backend)
+            for q_job in q_jobs:
+                if q_job.backend not in self._online_backends + self._local_backends:
+                    raise QISKitError("Backend %s not found!" % q_job.backend)
 
             self._api_config = {}
             self._api_config["token"] = token
-            self._api_config["url"] =  {"url": url}
+            self._api_config["url"] = {"url": url}
         else:
             self._api = None
             self._online_backends = None

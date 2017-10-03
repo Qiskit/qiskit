@@ -181,11 +181,10 @@ class QuantumCircuit(object):
             for i in range(qubit.size):
                 instructions.add(self.measure((qubit, i), (cbit, i)))
             return instructions
-        else:
-            self._check_qubit(qubit)
-            self._check_creg(cbit[0])
-            cbit[0].check_range(cbit[1])
-            return self._attach(Measure(qubit, cbit, self))
+        self._check_qubit(qubit)
+        self._check_creg(cbit[0])
+        cbit[0].check_range(cbit[1])
+        return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""
@@ -194,6 +193,5 @@ class QuantumCircuit(object):
             for sizes in range(quantum_register.size):
                 instructions.add(self.reset((quantum_register, sizes)))
             return instructions
-        else:
-            self._check_qubit(quantum_register)
-            return self._attach(Reset(quantum_register, self))
+        self._check_qubit(quantum_register)
+        return self._attach(Reset(quantum_register, self))
