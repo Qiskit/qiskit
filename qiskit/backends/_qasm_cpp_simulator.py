@@ -205,13 +205,6 @@ class QasmCppSimulator(BaseBackend):
         self.result['status'] = 'DONE'
         return self.result
 
-    @property
-    def configuration(self):
-        return self._configuration
-    
-    @configuration.setter
-    def configuration(self, configuration):
-        self._configuration = configuration
 
 def parse_complex(output, key):
     """

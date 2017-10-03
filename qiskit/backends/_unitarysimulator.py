@@ -187,11 +187,3 @@ class UnitarySimulator(BaseBackend):
         result['data']['unitary'] = self._unitary_state
         result['status'] = 'DONE'
         return result
-
-    @property
-    def configuration(self):
-        return self._configuration
-    
-    @configuration.setter
-    def configuration(self, configuration):
-        self._configuration = configuration

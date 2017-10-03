@@ -55,11 +55,3 @@ class QeLocal(BaseBackend):
                 os.killpg(os.getpgid(pipe_cl.pid), signal.SIGKILL)
             except:
                 pass
-
-    @property
-    def configuration(self):
-        return self._configuration
-
-    @configuration.setter
-    def configuration(self, configuration):
-        self._configuration = configuration
