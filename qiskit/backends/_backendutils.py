@@ -26,11 +26,15 @@ as its contents are a combination of:
 """
 
 
-def discover_sdk_backends():
+def discover_sdk_backends(directory=os.path.dirname(__file__)):
     """This function attempts to discover all backend modules.
 
     Discover the backends on modules on the directory of the current module
     and attempt to register them. Backend modules should subclass BaseBackend.
+
+    Args:
+        directory (str, optional): Directory to search for backends. Defaults
+            to the directory of this module.
     """
     for _, name, _ in pkgutil.iter_modules([os.path.dirname(__file__)]):
         # Iterate through the modules on the directory of the current one.
