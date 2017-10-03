@@ -1,43 +1,51 @@
 import unittest
-import logging
-import os
-import qiskit.backends
-from qiskit.backends._basebackend import BaseBackend
-from qiskit.backends._backendutils import (local_backends,
-                                           remote_backends)
 
-class TestBaseBackend(unittest.TestCase):
-    
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+from qiskit import QISKitError
+from qiskit.backends import (BaseBackend,
+                             local_backends,
+                             remote_backends,
+                             register_backend)
+from qiskit.backends._backendutils import (_REGISTERED_BACKENDS,
+                                           discover_sdk_backends)
 
-    def test_class_registration(self):
-        class SubclassTest(BaseBackend):
-            def __init__(self, qobj):
-                pass
-            def run(self):
-                pass
-            @property
-            def configuration(self):
-                pass
-            @configuration.setter
-            def configuration(self, conf):
-                pass
+from .common import QiskitTestCase
 
-        test = SubclassTest({})
-        self.assertTrue(issubclass(SubclassTest, BaseBackend))
-        self.assertTrue(isinstance(test, BaseBackend))
+
+class TestBaseBackend(QiskitTestCase):
+    def setUp(self):
+        QiskitTestCase.setUp(self)
+
+        # Manually clear and populate the list of registered backends, as it is
+        # defined at module scope and computed during the initial import.
+        _REGISTERED_BACKENDS = {}
+        discover_sdk_backends()
+
+    def test_register_valid_class(self):
+        """Test backend registration for a custom valid backend."""
+        backend_name = register_backend(ValidBackend)
+
+        # Check that it has been added to the list of backends.
+        self.assertIn(backend_name, _REGISTERED_BACKENDS.keys())
+        self.assertEqual(_REGISTERED_BACKENDS[backend_name].cls, ValidBackend)
+
+        # Second registration should fail as it is already registered.
+        with self.assertRaises(QISKitError):
+            register_backend(ValidBackend)
+
+    def test_register_invalid_class(self):
+        """Test backend registration for invalid backends."""
+        initial_backends_len = len(_REGISTERED_BACKENDS)
+
+        with self.assertRaises(QISKitError):
+            register_backend(NotSubclassBackend)
+
+        with self.assertRaises(QISKitError):
+            register_backend(NoConfigurationBackend)
+
+        with self.assertRaises(QISKitError):
+            register_backend(UninstantiableBackend)
+
+        self.assertEqual(initial_backends_len, len(_REGISTERED_BACKENDS))
 
     def test_fail_incomplete_implementation(self):
         class SubclassTest(BaseBackend):
@@ -47,25 +55,58 @@ class TestBaseBackend(unittest.TestCase):
             @property
             def configuration(self):
                 pass
-            @configuration.setter
-            def configuration(self, conf):
-                pass
 
         self.assertTrue(issubclass(SubclassTest, BaseBackend))
         with self.assertRaises(TypeError) as type_err:
-            test = SubclassTest({})
+            _ = SubclassTest({})
         exc = type_err.exception
         self.assertEqual(str(exc), ("Can't instantiate abstract class "
                                     "SubclassTest with abstract methods run"))
 
     def test_local_backends(self):
+        available_backends = local_backends()
         self.log.info('The discovered local devices are: {}'.format(
-            local_backends()))
+            available_backends))
+
+        # Some local backends should always be present.
+        self.assertIn('local_qasm_simulator', available_backends)
+        self.assertIn('local_unitary_simulator', available_backends)
 
     def test_remote_backends(self):
         self.log.info('The discovered remote devices are: {}'.format(
             remote_backends()))
-        
+
+
+# Dummy backend classes for testing registration.
+class NoConfigurationBackend(BaseBackend):
+    def __init__(self, qobj):
+        pass
+
+    def run(self):
+        pass
+
+    @property
+    def configuration(self):
+        pass
+
+
+class ValidBackend(NoConfigurationBackend):
+    def __init__(self, qobj):
+        self._configuration = {'name': 'valid_backend'}
+
+    @property
+    def configuration(self):
+        return self._configuration
+
+
+class UninstantiableBackend(ValidBackend):
+    def __init__(self, qobj):
+        raise Exception
+
+
+class NotSubclassBackend(object):
+    pass
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-

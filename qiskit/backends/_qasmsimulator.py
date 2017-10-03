@@ -423,11 +423,3 @@ class QasmSimulator(BaseBackend):
                 new_key.insert(0, key[-(index+nbits):-index])
             fcounts[' '.join(new_key)] = value
         return fcounts
-
-    @property
-    def configuration(self):
-        return self._configuration
-    
-    @configuration.setter
-    def configuration(self, configuration):
-        self._configuration = configuration
