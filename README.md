@@ -1,5 +1,6 @@
 # Quantum Information Software Kit (QISKit)
 
+[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
 
 The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/).
@@ -62,7 +63,7 @@ We are ready to try out some QASM examples, which runs via the local simulator.
 
 This is a simple superposition example.
 
-```
+```python
 from qiskit import QuantumProgram
 
 # Creating Programs create your first QuantumProgram object instance.
@@ -108,7 +109,7 @@ You can also use QISKit to execute your code on a [real Quantum Chip](https://gi
 
  First, get your API token:
 
--  Create an `IBM Q experience <https://quantumexperience.ng.bluemix.net>`__ account if you haven't already done so
+-  Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net) account if you haven't already done so
 -  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
 
 This API token allows you to execute your programs with the IBM Q experience backends. [Example](doc/example_real_backend.rst).
