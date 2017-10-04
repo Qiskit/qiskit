@@ -843,7 +843,7 @@ class QuantumProgram(object):
             # config parameters used by the runner
             if config is None:
                 config = {}  # default to empty config dict
-            job["config"] = config
+            job["config"] = config.copy()
             # TODO: Jay: make config options optional for different backends
             job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
             # Map the layout to a format that can be json encoded

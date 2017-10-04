@@ -1,4 +1,5 @@
 import copy
+import numpy
 from qiskit._qiskiterror import QISKitError
 from qiskit import RegisterSizeError
 
@@ -215,4 +216,41 @@ class Result(object):
             if key in observable:
                 temp += counts[key] * observable[key] / tot
         return temp
-    
+
+    def get_qubitpol_vs_xval(self, xvals_dict=None):
+        """Compute the polarization of each qubit for all circuits and pull out each circuits
+        xval into an array. Assumes that each circuit has the same number of qubits and that
+        all qubits are measured.
+
+        Args:
+            xvals_dict: dictionary of xvals for each circuit {'circuitname1': xval1,...}. If this
+            is none then the xvals list is just left as an array of zeros
+
+        Returns:
+            qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
+            xvals: mx1 array of the circuit xvals
+        """
+        ncircuits = len(self.__qobj['circuits'])
+        #Is this the best way to get the number of qubits?
+        nqubits = self.__qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
+        qubitpol = numpy.zeros([ncircuits,nqubits],dtype=float)
+        xvals = numpy.zeros([ncircuits],dtype=float)
+
+        #build Z operators for each qubit
+        z_dicts = []
+        for qubit_ind in range(nqubits):
+            z_dicts.append(dict())
+            for qubit_state in range(2**nqubits):
+                new_key = ("{0:0"+"{:d}".format(nqubits) + "b}").format(qubit_state)
+                z_dicts[-1][new_key] = -1
+                if new_key[nqubits-qubit_ind-1]=='1':
+                    z_dicts[-1][new_key] = 1
+
+        #go through each circuit and for eqch qubit and apply the operators using "average_data"
+        for circuit_ind in range(ncircuits):
+            if not xvals_dict is None:
+                xvals[circuit_ind] = xvals_dict[self.__qobj['circuits'][circuit_ind]['name']]
+            for qubit_ind in range(nqubits):
+                qubitpol[circuit_ind,qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+
+        return qubitpol,xvals
