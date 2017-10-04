@@ -36,7 +36,7 @@ The directory also contains internal modules that are still under development:
   graphs
 - a :py:mod:`mapper <qiskit.mapper>` module for mapping all-to-all circuits to
   run on devices with fixed couplings
-- a :py:mod:`simulators <qiskit.simulators>` module contains quantum circuit
+- a :py:mod:`backends <qiskit.backends>` module contains quantum circuit
   simulators
 - a *tools* directory contains methods for applications, analysis, and visualization
 

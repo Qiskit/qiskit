@@ -23,6 +23,7 @@ class QasmCppSimulator(BaseBackend):
         """
         Args:
             qobj (dict): qobj dictionary which has the structure::
+
                 {
                     id: --job id (string),
                     config: -- dictionary of config settings (dict)--,
