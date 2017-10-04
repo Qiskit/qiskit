@@ -342,8 +342,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     layerlist = circuit_graph.layers()
     if verbose:
         print("schedule:")
-        for i in range(len(layerlist)):
-            print("    %d: %s" % (i, layerlist[i]["partition"]))
+        for i,v in enumerate(layerlist):
+            print("    %d: %s" % (i, v["partition"]))
 
     if initial_layout is not None:
         # Check the input layout
