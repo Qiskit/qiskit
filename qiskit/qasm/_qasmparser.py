@@ -19,8 +19,11 @@
 OPENQASM parser.
 """
 import math
-from ._qasmlexer import QasmLexer
+import tempfile
+
 import ply.yacc as yacc
+
+from ._qasmlexer import QasmLexer
 from ._qasmerror import QasmError
 from . import _node as node
 
@@ -35,7 +38,8 @@ class QasmParser(object):
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         # For yacc, also, write_tables = Bool and optimize = Bool
-        self.parser = yacc.yacc(module=self, debug=False)
+        parse_dir = tempfile.gettempdir()
+        self.parser = yacc.yacc(module=self, debug=False, outputdir=parse_dir)
         self.qasm = None
         self.parse_deb = False
         self.global_symtab = {}                          # global symtab
@@ -294,7 +298,7 @@ class QasmParser(object):
         '''
            magic : MAGIC REAL
         '''
-        program[0] = node.Magic([program[2]])
+        program[0] = node.Magic([node.Real(program[2])])
 
     def p_magic_0(self, program):
         '''
@@ -335,7 +339,7 @@ class QasmParser(object):
         if program[4] != ']':
             raise QasmError("Missing ']' in indexed ID; received",
                                 str(program[4].value))
-        program[0] = node.IndexedId([program[1], program[3]])
+        program[0] = node.IndexedId([program[1], node.Int(program[3])])
 
     # ----------------------------------------
     #  primary : id
@@ -875,7 +879,7 @@ class QasmParser(object):
         if program[7].type == 'barrier':
             raise QasmError("barrier not permitted in IF statement")
 
-        program[0] = node.If([program[3], program[5], program[7]])
+        program[0] = node.If([program[3], node.Int(program[5]), program[7]])
 
     # ----------------------------------------
     # These are all the things you can have outside of a gate declaration
@@ -962,7 +966,7 @@ class QasmParser(object):
            prefix_expression : '+' prefix_expression
                              | '-' prefix_expression
         '''
-        program[0] = node.Prefix([program[1], program[2]])
+        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
 
     def p_additive_expression_0(self, program):
         '''
@@ -975,7 +979,8 @@ class QasmParser(object):
             additive_expression : additive_expression '+' prefix_expression
                                 | additive_expression '-' prefix_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     def p_multiplicative_expression_0(self, program):
         '''
@@ -988,7 +993,8 @@ class QasmParser(object):
         multiplicative_expression : multiplicative_expression '*' additive_expression
                                   | multiplicative_expression '/' additive_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     def p_expression_0(self, program):
         '''
@@ -1000,7 +1006,8 @@ class QasmParser(object):
         '''
             expression : expression '^' multiplicative_expression
         '''
-        program[0] = node.BinaryOp([program[2], program[1], program[3]])
+        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
+                                    program[1], program[3]])
 
     # ----------------------------------------
     # exp_list : exp

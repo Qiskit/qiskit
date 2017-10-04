@@ -1,5 +1,6 @@
 from ._barrier import Barrier
 from ._binaryop import BinaryOp
+from ._binaryoperator import BinaryOperator
 from ._cnot import Cnot
 from ._creg import Creg
 from ._customunitary import CustomUnitary
@@ -21,5 +22,6 @@ from ._program import Program
 from ._qreg import Qreg
 from ._real import Real
 from ._reset import Reset
+from ._unaryoperator import UnaryOperator
 from ._universalunitary import UniversalUnitary
 from ._nodeexception import NodeException

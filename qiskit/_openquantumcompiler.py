@@ -1,13 +1,10 @@
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
-
-import pdb
-import os
-import sys
+from qiskit._qiskiterror import QISKitError
 
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-            initial_layout=None, silent=True, get_layout=False):
+            initial_layout=None, silent=True, get_layout=False, format='dag'):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -46,9 +43,11 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
+        format (str): The target format of the compilation:
+            {'dag', 'json', 'qasm'}
 
     Returns:
-        Compiled DAGCircuit.
+        Compiled circuit
     """
     compiled_dag_circuit = _unroller_code(qasm_circuit,
                                           basis_gates=basis_gates)
@@ -77,11 +76,21 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         if not silent:
             print("post-mapping properties: %s"
                   % compiled_dag_circuit.property_summary())
-    if get_layout:
-        return compiled_dag_circuit, final_layout
+    # choose output format
+    if format == 'dag':
+        compiled_circuit = compiled_dag_circuit
+    elif format == 'json':
+        compiled_circuit = dag2json(compiled_dag_circuit)
+    elif format == 'qasm':
+        compiled_circuit = compiled_dag_circuit.qasm()
     else:
-        return compiled_dag_circuit
-    
+        raise QiskitCompilerError('unrecognized circuit format')
+
+    if get_layout:
+        return compiled_circuit, final_layout
+    return compiled_circuit
+
+
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
 
@@ -105,31 +114,35 @@ def _unroller_code(qasm_circuit, basis_gates=None):
     dag_circuit_unrolled = unroller_circuit.execute()
     return dag_circuit_unrolled
 
+
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
-    
-    Args: 
+
+    Args:
         filename (str): a string for the filename including its location.
         basis_gates (str): basis to unroll circuit to.
     Returns:
         Returns a unrolled QuantumCircuit object
     """
     # create Program object Node (AST)
-    program_node_circuit = qasm.Qasm(filename=filename).parse() 
+    program_node_circuit = qasm.Qasm(filename=filename).parse()
     unrolled_circuit = unroll.Unroller(program_node_circuit,
                                        unroll.CircuitBackend(
                                            basis_gates.split(",")))
     circuit_unrolled = unrolled_circuit.execute()
     return circuit_unrolled
-    
-def dag2json(dag_circuit):
+
+
+def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     """Make a Json representation of the circuit.
 
     Takes a circuit dag and returns json circuit obj. This is an internal
     function.
 
     Args:
-        dag_ciruit (dag object): a dag representation of the circuit
+        dag_ciruit (dag object): a dag representation of the circuit.
+        basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
 
     Returns:
         the json version of the dag
@@ -139,8 +152,11 @@ def dag2json(dag_circuit):
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
         circuit_string = dag_circuit.qasm()
-    basis_gates = "u1,u2,u3,cx,id"  # QE target basis
     unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(),
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
     return json_circuit
+
+class QiskitCompilerError(QISKitError):
+    """Exceptions raised during compilation"""
+    pass

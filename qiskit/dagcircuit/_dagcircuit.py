@@ -27,9 +27,9 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-import networkx as nx
 import itertools
 import copy
+import networkx as nx
 from ._dagcircuiterror import DAGCircuitError
 
 

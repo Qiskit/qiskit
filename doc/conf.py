@@ -19,8 +19,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
 from qiskit import __version__
+sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- General configuration ------------------------------------------------
@@ -33,12 +33,17 @@ from qiskit import __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.doctest',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages']
+              'sphinx.ext.autosummary',
+              'sphinx.ext.napoleon',
+              'sphinx.ext.doctest',
+              'sphinx.ext.coverage',
+              'sphinx.ext.mathjax',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.githubpages',
+              'sphinxcontrib.fulltoc']
+
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance',
+                         'inherited-members']
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -67,8 +72,13 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QISKit SDK'
-copyright = ''
-author = ''
+copyright = '2017 IBM Research'
+author = 'IBM Research'
+
+# Add description
+html_context = {
+    'description': 'Quantum Information Software Kit'
+}
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -89,7 +99,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '_autodoc/modules.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -105,10 +115,10 @@ todo_include_todos = False
 #
 # html_theme = 'alabaster'
 # html_theme = 'bizstyle'
-#html_theme = agogo
+# html_theme = agogo
 
-html_theme = 'theme' # use the theme in subdir 'theme'
-html_theme_path = ['./'] # make sphinx search for themes in current dir
+html_theme = 'theme'  # use the theme in subdir 'theme'
+html_theme_path = ['./']  # make sphinx search for themes in current dir
 
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -124,7 +134,11 @@ html_static_path = []
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../images/qiskit-logo.gif'
+html_logo = 'theme/static/qiskit-logo-white-no-margin.gif'
+
+html_favicon = 'theme/static/favicon.ico'
+
+html_last_updated_fmt = '%Y/%m/%d'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -157,7 +171,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'QISKit.tex', 'QISKit Documentation',
-     'Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez, and John Smolin', 'manual'),
+     '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez,
+     and John Smolin''', 'manual'),
 ]
 
 

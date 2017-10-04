@@ -171,7 +171,7 @@ class Unroller(object):
     def _process_if(self, node):
         """Process an if node."""
         creg = node.children[0].name
-        cval = node.children[1]
+        cval = node.children[1].value
         self.backend.set_condition(creg, cval)
         self._process_node(node.children[2])
         self.backend.drop_condition()
@@ -195,16 +195,16 @@ class Unroller(object):
             self.backend.new_creg(node.name, int(node.index))
 
         elif node.type == "id":
-            raise UnrollerException("internal error: _process_node on id")
+            raise UnrollerError("internal error: _process_node on id")
 
         elif node.type == "int":
-            raise UnrollerException("internal error: _process_node on int")
+            raise UnrollerError("internal error: _process_node on int")
 
         elif node.type == "real":
-            raise UnrollerException("internal error: _process_node on real")
+            raise UnrollerError("internal error: _process_node on real")
 
         elif node.type == "indexed_id":
-            raise UnrollerException("internal error: _process_node on indexed_id")
+            raise UnrollerError("internal error: _process_node on indexed_id")
 
         elif node.type == "id_list":
             # We process id_list nodes when they are leaves of barriers.
@@ -234,16 +234,16 @@ class Unroller(object):
             return node.children
 
         elif node.type == "binop":
-            raise UnrollerException("internal error: _process_node on binop")
+            raise UnrollerError("internal error: _process_node on binop")
 
         elif node.type == "prefix":
-            raise UnrollerException("internal error: _process_node on prefix")
+            raise UnrollerError("internal error: _process_node on prefix")
 
         elif node.type == "measure":
             self._process_measure(node)
 
         elif node.type == "magic":
-            self.version = float(node.children[0])
+            self.version = node.children[0].value
             self.backend.version(node.children[0])
 
         elif node.type == "barrier":
@@ -262,7 +262,7 @@ class Unroller(object):
             self._process_gate(node, opaque=True)
 
         elif node.type == "external":
-            raise UnrollerException("internal error: _process_node on external")
+            raise UnrollerError("internal error: _process_node on external")
 
         else:
             raise UnrollerError("internal error: undefined node type",

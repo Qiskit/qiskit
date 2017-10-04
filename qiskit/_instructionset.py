@@ -33,7 +33,7 @@ class InstructionSet(object):
         """Add instruction to set."""
         if not isinstance(gate, Instruction):
             raise QISKitError("attempt to add non-Instruction" +
-                                  " to InstructionSet")
+                              " to InstructionSet")
         self.instructions.add(gate)
 
     def inverse(self):
@@ -48,8 +48,8 @@ class InstructionSet(object):
             gate.q_if(*qregs)
         return self
 
-    def c_if(self, c, val):
+    def c_if(self, classical, val):
         """Add classical control register to all instructions."""
         for gate in self.instructions:
-            gate.c_if(c, val)
+            gate.c_if(classical, val)
         return self

@@ -14,35 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+
 """Quick program to test the Pauli class."""
-import numpy as np
-from scipy import linalg as la
+
 import unittest
-import logging
-import os
-import sys
-sys.path.append("../..")
+
+import numpy as np
 from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
-from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
+from qiskit.tools.qi.qi import (partial_trace, vectorize, devectorize, outer,
+                                state_fidelity, purity, concurrence)
+
+from .common import QiskitTestCase
 
 
-class TestQI(unittest.TestCase):
+class TestQI(QiskitTestCase):
     """Tests for qi.py"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
 
     def test_partial_trace(self):
         # reference
@@ -145,22 +131,8 @@ class TestQI(unittest.TestCase):
         self.assertTrue(test_pass)
 
 
-class TestPauli(unittest.TestCase):
+class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
 
     def test_pauli(self):
 
