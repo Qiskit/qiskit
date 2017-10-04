@@ -90,6 +90,14 @@ class Result(object):
         return [circuit_result['status']
                 for circuit_result in self.__result['result']]
 
+    def get_circuit_status(self, icircuit):
+        """Return the status of circuit at index icircuit.
+
+        Args:
+            icircuit (int): index of circuit
+        """
+        return self.__result['result'][icircuit]['status']
+
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
 

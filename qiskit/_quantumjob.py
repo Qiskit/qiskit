@@ -1,8 +1,7 @@
 import random
 import string
-
 from qiskit import _openquantumcompiler as openquantumcompiler
-from qiskit.simulators import _localsimulator as localsimulators
+import qiskit.backends as backends
 
 class QuantumJob():
     """Creates a quantum circuit job"""
@@ -73,15 +72,15 @@ class QuantumJob():
         if preformatted:
             self.qobj = circuits
         else:
-            self.qobj = self._create_qobj(circuits, circuit_config, backend, 
+            self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
 
         self.backend = self.qobj['config']['backend']
         self.resources = {'max_credits': self.qobj['config']['max_credits']}
         self.seed = seed
         self.result = None
-        
-    def _create_qobj(self, circuits, circuit_config, backend, seed, 
+
+    def _create_qobj(self, circuits, circuit_config, backend, seed,
                      resources, shots, do_compile):
         # local and remote backends currently need different
         # compilied circuit formats
@@ -90,7 +89,7 @@ class QuantumJob():
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            if backend in localsimulators.local_backends():
+            if backend in backends.local_backends():
                 for circuit in self.circuits:
                     formatted_circuits.append(openquantumcompiler.dag2json(circuit))
             else:
@@ -105,7 +104,7 @@ class QuantumJob():
                         'layout': None,
                         'seed': seed}
             circuit_config = [config] * len(self.circuits)
-    
+
         for circuit, fcircuit, name, config in zip(self.circuits,
                                                     formatted_circuits,
                                                     self.names,
@@ -126,7 +125,7 @@ class QuantumJob():
                            'backend': backend
                           },
                 'circuits': circuit_records}
-    
+
     def _generate_job_id(self, length=10):
         return ''.join([random.choice(
             string.ascii_letters + string.digits) for i in range(length)])

@@ -25,7 +25,7 @@ import unittest
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram
-from qiskit.simulators._qasmsimulator import QasmSimulator
+from qiskit.backends._qasmsimulator import QasmSimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
