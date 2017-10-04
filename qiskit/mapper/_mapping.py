@@ -387,14 +387,6 @@ def swap_mapper(circuit_graph, coupling_graph,
                   "best_d=" + str(best_d) +
                   ",trivial_flag=%s" % trivial_flag)
 
-        # If this layer is only single-qubit gates,
-        # and we have yet to see multi-qubit gates,
-        # continue to the next iteration
-        if trivial_flag and first_layer:
-            if verbose:
-                print("swap_mapper: skip to next layer")
-            continue
-
         # If this fails, try one gate at a time in this layer
         if not success_flag:
             if verbose:
