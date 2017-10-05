@@ -94,24 +94,25 @@ import numpy as np
 import json
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 from qiskit._result import Result
+from qiskit.backends._basebackend import BaseBackend
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
-__configuration = {"name": "local_unitary_simulator",
-                   "url": "https://github.com/IBM/qiskit-sdk-py",
-                   "simulator": True,
-                   "description": "A python simulator for unitary matrix",
-                   "coupling_map": "all-to-all",
-                   "basis_gates": "u1,u2,u3,cx,id"}
 
-
-class UnitarySimulator(object):
+class UnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     def __init__(self, qobj):
         """Initial the UnitarySimulator object."""
         self.qobj = qobj
+        self._configuration = {'name': 'local_unitary_simulator',
+                               'url': 'https://github.com/IBM/qiskit-sdk-py',
+                               'simulator': True,
+                               'local': True,
+                               'description': 'A python simulator for unitary matrix',
+                               'coupling_map': 'all-to-all',
+                               'basis_gates': 'u1,u2,u3,cx,id'}
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.

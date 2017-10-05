@@ -22,7 +22,9 @@ import unittest
 
 import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram, Result)
+                    QuantumRegister, QuantumProgram, Result,
+                    RegisterSizeError)
+import qiskit.backends
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
@@ -557,7 +559,7 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists (even if ofline).
         """
         QP_program = QuantumProgram(specs=self.QPS_SPECS)
-        local_backends = QP_program.local_backends()
+        local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -623,8 +625,10 @@ class TestQuantumProgram(QiskitTestCase):
         local_qasm_simulator.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        test = len(qp.get_backend_configuration("local_qasm_simulator"))
-        self.assertEqual(test, 6)
+        config_keys = {'name', 'simulator', 'local', 'description',
+                       'coupling_map', 'basis_gates'}
+        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        self.assertTrue(config_keys < backend_config.keys())
 
     def test_get_backend_configuration_fail(self):
         """Test get_backend_configuration fail.
@@ -1180,7 +1184,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.execute(['qc'], backend=backend,
                                     shots=shots, max_credits=3,
                                     silent=True, seed=73846087)
-        self.assertEqual(result.get_error(), "device register size must be <= 24")
+        self.assertRaises(RegisterSizeError, result.get_data, 'qc')
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):

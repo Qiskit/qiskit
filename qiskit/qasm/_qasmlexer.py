@@ -76,7 +76,7 @@ class QasmLexer(object):
         self.lexer.input(self.data)
 
     # ---- Beginning of the PLY lexer ----
-    literals = r'=()[]{};<>,.+-/*"'
+    literals = r'=()[]{};<>,.+-/*^"'
     tokens = (
         'NNINTEGER',
         'BARRIER',

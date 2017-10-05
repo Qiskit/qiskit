@@ -2,21 +2,16 @@ from concurrent import futures
 from threading import Lock
 import sys
 import time
-import random
-import string
+
+import qiskit.backends as backends
 from qiskit._result import Result
-
-from IBMQuantumExperience import IBMQuantumExperience
-from IBMQuantumExperience import ApiError
-
-# Stable Modules
+from qiskit._resulterror import ResultError
 from qiskit import QISKitError
-# Local Simulator Modules
-from qiskit import simulators
-# compiler module
 from qiskit import _openquantumcompiler as openquantumcompiler
+from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience,
+                                                       ApiError)
 
-def run_local_simulator(qobj):
+def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
 
     Args:
@@ -42,9 +37,9 @@ def run_local_simulator(qobj):
             compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                            format='json')
             circuit['compiled_circuit'] = compiled_circuit
-    local_simulator = simulators.LocalSimulator(qobj)
-    local_simulator.run()
-    return local_simulator.result()
+    BackendClass = backends.get_backend_class(qobj['config']['backend'])
+    backend = BackendClass(qobj)
+    return backend.run()
 
 def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     """
@@ -58,7 +53,7 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     api_jobs = []
     for circuit in qobj['circuits']:
         if (('compiled_circuit_qasm' not in circuit) or
-            (circuit['compiled_circuit_qasm'] is None)):
+                (circuit['compiled_circuit_qasm'] is None)):
             compiled_circuit = openquantumcompiler.compile(
                 circuit['circuit'].qasm())
             circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
@@ -72,8 +67,9 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
                          shots=qobj['config']['shots'],
                          max_credits=qobj['config']['max_credits'],
                          seed=seed0)
-    if 'ERROR' in output:
-        raise QISKitError(output['ERROR'])
+    if 'error' in output:
+        raise ResultError(output['error'])
+
     job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout, silent=silent)
     job_result['name'] = qobj['id']
     job_result['backend'] = qobj['config']['backend']
@@ -98,7 +94,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         QISKitError:
     """
     timer = 0
-    timeout_over = False
     job_result = api.get_job(jobid)
     if 'status' not in job_result:
         from pprint import pformat
@@ -126,10 +121,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
                                   'status': job_result['qasms'][index]['status']})
     return {'status': job_result['status'], 'result': job_result_return}
 
-def local_backends():
-    """Get the local backends."""
-    return simulators._localsimulator.local_backends()
-
 def remote_backends(api):
     """Get the remote backends.
 
@@ -139,133 +130,7 @@ def remote_backends(api):
         List of online backends if the online api has been set or an empty
         list of it has not been set.
     """
-    return [backend['name'] for backend in api.available_backends() ]
-
-class QuantumJob():
-    """Creates a quantum circuit job"""
-
-    def __init__(self, circuits, backend='local_qasm_simulator',
-                 circuit_configs=None, timeout=60, seed=None,
-                 resources={'max_credits': 3}, shots=1024, names=None,
-                 doCompile=False, preformatted=False):
-        """
-        Args:
-            circuit (QuantumCircuit | qobj): QuantumCircuit or list of QuantumCircuit
-                objects for job.
-            backend (str): the backend to run the circuit on.
-            resources (dict): resource requirements of job.
-            timeout (float): timeout for job in seconds.
-            coupling_map (dict): A directed graph of coupling::
-
-                {
-                 control(int):
-                     [
-                         target1(int),
-                         target2(int),
-                         , ...
-                    ],
-                     ...
-                }
-
-                eg. {0: [2], 1: [2], 3: [2]}
-
-            initial_layout (dict): A mapping of qubit to qubit::
-
-                                  {
-                                    ("q", strart(int)): ("q", final(int)),
-                                    ...
-                                  }
-                                  eg.
-                                  {
-                                    ("q", 0): ("q", 0),
-                                    ("q", 1): ("q", 1),
-                                    ("q", 2): ("q", 2),
-                                    ("q", 3): ("q", 3)
-                                  }
-            shots (int): the number of shots
-            max_credits (int): the max credits to use 3, or 5
-            seed (int): the intial seed the simulatros use
-            circuit_type (str): "compiled_dag" or "uncompiled_dag" or
-                "quantum_circuit"
-            preformated (bool): the objects in circuits are already compiled
-                and formatted (qasm for online, json for local). If true the
-                parameters "names" and "circuit_configs" must also be defined
-                of the same length as "circuits".
-        """
-        if isinstance(circuits, list):
-            self.circuits = circuits
-        else:
-            self.circuits = [circuits]
-        if names is None:
-            self.names = []
-            for circuit in range(len(self.circuits)):
-                self.names.append(
-                    ''.join([random.choice(string.ascii_letters +
-                                           string.digits)
-                             for i in range(10)]))
-        elif isinstance(names, list):
-            self.names = names
-        else:
-            self.names = [names]
-        self._local_backends = local_backends()
-        self.timeout = timeout
-        # check whether circuits have already been compiled
-        # and formatted for backend.
-        if preformatted:
-            self.qobj = circuits
-            self.backend = self.qobj['config']['backend']
-            self.resources = {'max_credits':
-                              self.qobj['config']['max_credits']}
-        else:
-            self.backend = backend
-            self.resources = resources
-            # local and remote backends currently need different
-            # compilied circuit formats
-            formatted_circuits = []
-            if doCompile:
-                for circuit in self.circuits:
-                    formatted_circuits.append(None)
-            else:
-                if backend in self._local_backends:
-                    for circuit in self.circuits:
-                        formatted_circuits.append(openquantumcompiler.dag2json(circuit))
-                else:
-                    for circuit in self.circuits:
-                        formatted_circuits.append(circuit.qasm(qeflag=True))
-            # create circuit component of qobj
-            circuitRecords = []
-            if circuit_configs is None:
-                config = {'coupling_map': None,
-                          'basis_gates': 'u1,u2,u3,cx,id',
-                          'layout': None,
-                          'seed': seed}
-                circuit_configs = [config] * len(self.circuits)
-            for circuit, fcircuit, name, config in zip(self.circuits,
-                                                       formatted_circuits,
-                                                       self.names,
-                                                       circuit_configs):
-                record = {
-                    'name': name,
-                    'compiled_circuit': None if doCompile else fcircuit,
-                    'compiled_circuit_qasm': None if doCompile else fcircuit,
-                    'circuit': circuit,
-                    'config': config
-                }
-                circuitRecords.append(record)
-            qobjid = ''.join([random.choice(
-                string.ascii_letters + string.digits) for i in range(10)])
-            self.qobj = {'id': qobjid,
-                         'config': {
-                             'max_credits': resources['max_credits'],
-                             'shots': shots,
-                             'backend': backend
-                         },
-                         'circuits': circuitRecords
-            }
-        self.seed = seed
-        self.result = None
-        self.doCompile = doCompile
-
+    return [backend['name'] for backend in api.available_backends()]
 
 class JobProcessor():
     """
@@ -288,13 +153,13 @@ class JobProcessor():
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self._local_backends = local_backends()
+        self._local_backends = backends.local_backends()
         self.online = any(qj.backend not in self._local_backends for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
-        self.callback = (lambda rs:()) if callback is None else callback
+        self.callback = (lambda rs: ()) if callback is None else callback
         self.num_jobs = len(self.q_jobs)
         self.jobs_results = []
         if self.online:
@@ -303,13 +168,13 @@ class JobProcessor():
                                                              verify=True)
             self._online_backends = remote_backends(self._api)
             # Check for the existance of the backend
-            for qj in q_jobs:
-                if qj.backend not in self._online_backends + self._local_backends:
-                    raise QISKitError("Backend %s not found!" % qj.backend)
+            for q_job in q_jobs:
+                if q_job.backend not in self._online_backends + self._local_backends:
+                    raise QISKitError("Backend %s not found!" % q_job.backend)
 
             self._api_config = {}
             self._api_config["token"] = token
-            self._api_config["url"] =  {"url": url}
+            self._api_config["url"] = {"url": url}
         else:
             self._api = None
             self._online_backends = None
@@ -326,7 +191,7 @@ class JobProcessor():
             result = future.result()
         except Exception as ex:
             result = Result({'status': 'ERROR',
-                             'result': [str(ex)]},
+                             'result': ex},
                             future.qobj)
         with self.lock:
             self.futures[future]['result'] = result
@@ -341,21 +206,24 @@ class JobProcessor():
                 sys.stdout.flush()
             self.callback(self.jobs_results)
 
-    def submit(self, silent=True):
+    def submit(self, wait=5, timeout=120, silent=True):
         """Process/submit jobs
 
         Args:
-            silent (bool): print results if true.
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time waiting for the results
+            silent (bool): If true, prints out results
         """
         executor = self.executor_class(max_workers=self.max_workers)
         for q_job in self.q_jobs:
             if q_job.backend in self._local_backends:
-                future = executor.submit(run_local_simulator,
+                future = executor.submit(run_local_backend,
                                          q_job.qobj)
             elif self.online and q_job.backend in self._online_backends:
                 future = executor.submit(run_remote_backend,
                                          q_job.qobj,
-                                         self._api)
+                                         self._api, wait=wait, timeout=timeout,
+                                         silent=silent)
             future.silent = silent
             future.qobj = q_job.qobj
             future.add_done_callback(self._job_done_callback)

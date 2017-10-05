@@ -39,17 +39,21 @@ from . import qasm
 from . import mapper
 
 # Local Simulator Modules
+<<<<<<< HEAD
 from . import simulators
+=======
+import qiskit.backends
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
 
-from qiskit import _openquantumcompiler as openquantumcompiler
+from . import _openquantumcompiler as openquantumcompiler
 
-first_cap_re = re.compile('(.)([A-Z][a-z]+)')
-all_cap_re = re.compile('([a-z0-9])([A-Z])')
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
 def convert(name):
-    s1 = first_cap_re.sub(r'\1_\2', name)
-    return all_cap_re.sub(r'\1_\2', s1).lower()
+    s1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', s1).lower()
 
 
 class QuantumProgram(object):
@@ -99,13 +103,13 @@ class QuantumProgram(object):
         self.__init_circuit = None  # stores the intial quantum circuit of the
         # program
         self.__ONLINE_BACKENDS = []
-        self.__LOCAL_BACKENDS = self.local_backends()
+        self.__LOCAL_BACKENDS = qiskit.backends.local_backends()
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
 
         self.callback = None
-        self.results = []
+        self.jobs_results = []
         self.jobs_results_ready_event = Event()
         self.are_multiple_results = False  # are we expecting multiple results?
 
@@ -328,8 +332,13 @@ class QuantumProgram(object):
         """
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
+<<<<<<< HEAD
             # Get a random name if none is give
             name = "".join([random.choice(string.ascii_letters + string.digits)
+=======
+            # Get a random name if none is given
+            name = "".join([random.choice(string.ascii_letters+string.digits)
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                             for n in range(10)])
         if verbose is True:
             print("circuit name: " + name)
@@ -520,8 +529,6 @@ class QuantumProgram(object):
             error = {"status": "Error", "result": "Not filename provided"}
             raise LookupError(error['result'])
 
-        elemements_to_load = {}
-
         try:
             with open(file_name, 'r') as load_file:
                 elemements_loaded = json.load(load_file)
@@ -541,10 +548,6 @@ class QuantumProgram(object):
         """All the backends that are seen by QISKIT."""
         return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
 
-    def local_backends(self):
-        """Get the local backends."""
-        return simulators._localsimulator.local_backends()
-
     def online_backends(self):
         """Get the online backends.
 
@@ -561,8 +564,7 @@ class QuantumProgram(object):
                 raise ConnectionError("Couldn't get available backend list: {0}"
                                       .format(ex))
             return [backend['name'] for backend in backends]
-        else:
-            return []
+        return []
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -570,7 +572,7 @@ class QuantumProgram(object):
         Returns:
             List of online simulator names.
         """
-        simulators = []
+        online_simulators_list = []
         if self.get_api():
             try:
                 backends = self.__api.available_backends()
@@ -579,8 +581,8 @@ class QuantumProgram(object):
                                       .format(ex))
             for backend in backends:
                 if backend['simulator']:
-                    simulators.append(backend['name'])
-        return simulators
+                    online_simulators_list.append(backend['name'])
+        return online_simulators_list
 
     def online_devices(self):
         """Gets online devices via QX API calls.
@@ -657,17 +659,18 @@ class QuantumProgram(object):
                                     configuration[key]
                             else:
                                 if not list_format:
+<<<<<<< HEAD
                                     cmap = mapper.coupling_list2dict(
                                         configuration[key])
+=======
+                                    cmap = mapper.coupling_list2dict(configuration[key])
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                                 else:
                                     cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
-        for configuration in simulators.local_configuration:
-            if configuration['name'] == backend:
-                return configuration
-        raise LookupError(
-            'backend configuration for "{0}" not found'.format(backend))
+        else:
+            return qiskit.backends.get_backend_configuration(backend)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
@@ -824,7 +827,11 @@ class QuantumProgram(object):
 
         qobj = {}
         if not qobj_id:
+<<<<<<< HEAD
             qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
+=======
+            qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                                for n in range(30)])
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
@@ -883,7 +890,6 @@ class QuantumProgram(object):
         if not qobj:
             if verbose:
                 print("no exectuions to run")
-        execution_list_all = {}
         execution_list = []
         if verbose:
             print("id: %s" % qobj['id'])
@@ -945,8 +951,8 @@ class QuantumProgram(object):
 
         Args:
             qobj (dict): the dictionary of the quantum object to run.
-            wait (int): wait time is how long to check if the job is completed
-            timeout (int): is time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): is an option to print out the running information or
             not
 
@@ -966,8 +972,8 @@ class QuantumProgram(object):
 
         Args:
             qobj_list (list(dict)): The list of quantum objects to run.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
 
         Returns:
@@ -991,8 +997,8 @@ class QuantumProgram(object):
         Args:
             qobj(dict): the dictionary of the quantum object to
                 run or list of qobj.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
             callback (fn(result)): A function with signature:
                     fn(result):
@@ -1014,8 +1020,8 @@ class QuantumProgram(object):
 
         Args:
             qobj_list (list(dict)): The list of quantum objects to run.
-            wait (int): Wait time is how long to check if all jobs is completed
-            timeout (int): Time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): If true, prints out the running information
             callback (fn(results)): A function with signature:
                     fn(results):
@@ -1040,9 +1046,9 @@ class QuantumProgram(object):
             q_job = QuantumJob(qobj, preformatted=True)
             q_job_list.append(q_job)
 
-        jp = JobProcessor(q_job_list, max_workers=5, api=self.__api,
-                          callback=self._jobs_done_callback)
-        jp.submit()
+        job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
+                                     callback=self._jobs_done_callback)
+        job_processor.submit(wait, timeout, silent)
 
     def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have
@@ -1060,7 +1066,12 @@ class QuantumProgram(object):
         if self.are_multiple_results:
             self.callback(jobs_results)  # for run_batch_async() callback
         else:
+<<<<<<< HEAD
             self.callback(jobs_results[0])  # for run_async() callback
+=======
+            self.callback(jobs_results[0]) # for run_async() callback
+
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
 
     def wait_for_results(self, timeout):
         is_ok = self.jobs_results_ready_event.wait(timeout)
@@ -1084,8 +1095,8 @@ class QuantumProgram(object):
             backend (str): a string representing the backend to compile to
             config (dict): a dictionary of configurations parameters for the
                 compiler
-            wait (int): wait time is how long to check if the job is completed
-            timeout (int): is time until the execution stops
+            wait (int): Time interval to wait between requests for results
+            timeout (int): Total time to wait until the execution stops
             silent (bool): is an option to print out the compiling information
             or not
             basis_gates (str): a comma seperated string and are the base gates,
@@ -1130,4 +1141,8 @@ class QuantumProgram(object):
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed)
         result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
+<<<<<<< HEAD
         return result
+=======
+        return result
+>>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
