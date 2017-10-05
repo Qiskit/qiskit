@@ -17,6 +17,7 @@ Qasm Program Class
 # pylint: disable=line-too-long
 import random
 import json
+import logging
 import os
 import string
 import re
@@ -35,6 +36,7 @@ from . import QuantumCircuit
 from . import QISKitError
 from . import JobProcessor
 from . import QuantumJob
+from ._logging import set_qiskit_logger, unset_qiskit_logger
 
 # Beta Modules
 from . import unroll
@@ -109,6 +111,39 @@ class QuantumProgram(object):
         self.jobs_results_ready_event = Event()
         self.are_multiple_results = False # are we expecting multiple results?
 
+    def enable_logs(self, level=logging.INFO):
+        """Enable the console output of the logging messages.
+
+        Enable the output of logging messages (above level `level`) to the
+        console, by configuring the `qiskit` logger accordingly.
+
+        Params:
+            level (int): minimum severity of the messages that are displayed.
+
+        Note:
+            This is a convenience method over the standard Python logging
+            facilities, and modifies the configuration of the 'qiskit.*'
+            loggers. If finer control over the logging configuration is needed,
+            it is encouraged to bypass this method.
+        """
+        # Update the handlers and formatters.
+        set_qiskit_logger()
+        # Set the logger level.
+        logging.getLogger('qiskit').setLevel(level)
+
+    def disable_logs(self):
+        """Disable the console output of the logging messages.
+
+        Disable the output of logging messages (above level `level`) to the
+        console, by removing the handlers from the `qiskit` logger.
+
+        Note:
+            This is a convenience method over the standard Python logging
+            facilities, and modifies the configuration of the 'qiskit.*'
+            loggers. If finer control over the logging configuration is needed,
+            it is encouraged to bypass this method.
+        """
+        unset_qiskit_logger()
 
     ###############################################################
     # methods to initiate an build a quantum program
