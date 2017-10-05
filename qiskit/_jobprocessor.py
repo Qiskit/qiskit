@@ -111,7 +111,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
         if (job_result['status'] == 'ERROR_CREATING_JOB' or
-                    job_result['status'] == 'ERROR_RUNNING_JOB'):
+                job_result['status'] == 'ERROR_RUNNING_JOB'):
             return {'status': 'ERROR', 'result': job_result['status']}
 
     # Get the results
@@ -136,7 +136,7 @@ class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
-    
+
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:
