@@ -86,8 +86,8 @@ class QuantumProgram(object):
         __LOCAL_BACKENDS (list[str]): A list of local backends
      """
     # -- FUTURE IMPROVEMENTS --
-    # Todo: for status results make ALL_CAPS (check) or some unified method
-    # Todo: Jay: coupling_map, basis_gates will move into a config object
+    # TODO: for status results make ALL_CAPS (check) or some unified method
+    # TODO: Jay: coupling_map, basis_gates will move into a config object
     # only exists once you set the api to use the online backends
     __api = {}
     __api_config = {}
@@ -146,7 +146,7 @@ class QuantumProgram(object):
                     circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"], qregisters=quantumr,
                                     cregisters=classicalr)
-        # Todo: Jay: I think we should return function handles for the
+        # TODO: Jay: I think we should return function handles for the
         # registers and circuit. So that we dont need to get them after we
         # create them with get_quantum_register etc
 
@@ -641,7 +641,7 @@ class QuantumProgram(object):
                 if configuration['name'] == backend:
                     for key in configuration:
                         new_key = convert(key)
-                        # Todo: removed these from the API code
+                        # TODO: removed these from the API code
                         if new_key not in ['id', 'serial_number', 'topology_id',
                                            'status', 'coupling_map']:
                             configuration_edit[new_key] = configuration[key]
@@ -808,7 +808,7 @@ class QuantumProgram(object):
                     }
 
         """
-        # Todo: Jay: currently basis_gates, coupling_map, initial_layout,
+        # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
 
@@ -830,7 +830,7 @@ class QuantumProgram(object):
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-            # Todo: The circuit object going into this is to have .qasm() method (be careful)
+            # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
                                                                     basis_gates=basis_gates,
@@ -844,7 +844,7 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            # Todo: Jay: make config options optional for different backends
+            # TODO: Jay: make config options optional for different backends
             job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
             # Map the layout to a format that can be json encoded
             list_layout = None
@@ -1115,7 +1115,7 @@ class QuantumProgram(object):
             status done and populates the internal __quantum_program with the
             data
         """
-        # Todo: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
         qobj = self.compile(name_of_circuits, backend=backend, config=config,
