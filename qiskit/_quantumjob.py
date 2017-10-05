@@ -3,7 +3,6 @@ import string
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
 
-
 class QuantumJob():
     """Creates a quantum circuit job"""
 

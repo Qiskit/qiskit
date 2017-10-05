@@ -157,7 +157,6 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     json_circuit = unroller.execute()
     return json_circuit
 
-
 class QiskitCompilerError(QISKitError):
     """Exceptions raised during compilation"""
     pass

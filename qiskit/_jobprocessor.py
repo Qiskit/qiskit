@@ -10,7 +10,6 @@ from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
 
-
 def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
 
@@ -40,7 +39,6 @@ def run_local_backend(qobj):
     backendclass = backends.get_backend_class(qobj['config']['backend'])
     backend = backendclass(qobj)
     return backend.run()
-
 
 def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     """
@@ -76,7 +74,6 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     job_result['backend'] = qobj['config']['backend']
     this_result = Result(job_result, qobj)
     return this_result
-
 
 def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
@@ -124,7 +121,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
                                   'status': job_result['qasms'][index]['status']})
     return {'status': job_result['status'], 'result': job_result_return}
 
-
 def remote_backends(api):
     """Get the remote backends.
 
@@ -136,12 +132,11 @@ def remote_backends(api):
     """
     return [backend['name'] for backend in api.available_backends()]
 
-
 class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
-
+    
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:

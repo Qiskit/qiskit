@@ -217,7 +217,7 @@ class DAGCircuit:
                 number_parameters)
         if name in self.gates:
             if self.gates[name]["n_args"] != number_parameters or \
-                            self.gates[name]["n_bits"] != number_qubits or number_classical != 0:
+                    self.gates[name]["n_bits"] != number_qubits or number_classical != 0:
                 raise DAGCircuitError("gate data does not match "
                                       + "basis element specification")
 
@@ -236,8 +236,8 @@ class DAGCircuit:
             self.gates[name] = gatedata
             if name in self.basis:
                 if self.basis[name][0] != self.gates[name]["n_bits"] or \
-                                self.basis[name][1] != 0 or \
-                                self.basis[name][2] != self.gates[name]["n_args"]:
+                        self.basis[name][1] != 0 or \
+                        self.basis[name][2] != self.gates[name]["n_args"]:
                     raise DAGCircuitError("gate data does not match "
                                           + "basis element specification")
 
@@ -428,16 +428,16 @@ class DAGCircuit:
         for k, v in input_circuit.gates.items():
             if k not in union_gates:
                 union_gates[k] = v
-            if union_gates[k]["opaque"] != input_circuit.gates[k]["opaque"] or \
-                            union_gates[k]["n_args"] != input_circuit.gates[k]["n_args"] or \
-                            union_gates[k]["n_bits"] != input_circuit.gates[k]["n_bits"] or \
-                            union_gates[k]["args"] != input_circuit.gates[k]["args"] or \
-                            union_gates[k]["bits"] != input_circuit.gates[k]["bits"]:
+            if union_gates[k]["opaque"] != input_circuit.gates[k]["opaque"] or\
+               union_gates[k]["n_args"] != input_circuit.gates[k]["n_args"] or\
+               union_gates[k]["n_bits"] != input_circuit.gates[k]["n_bits"] or\
+               union_gates[k]["args"] != input_circuit.gates[k]["args"] or\
+               union_gates[k]["bits"] != input_circuit.gates[k]["bits"]:
                 raise DAGCircuitError("inequivalent gate definitions for %s"
                                       % k)
             if not union_gates[k]["opaque"] and \
-                            union_gates[k]["body"].qasm() != \
-                            input_circuit.gates[k]["body"].qasm():
+               union_gates[k]["body"].qasm() != \
+               input_circuit.gates[k]["body"].qasm():
                 raise DAGCircuitError("inequivalent gate definitions for %s"
                                       % k)
         return union_gates
@@ -485,7 +485,7 @@ class DAGCircuit:
                     if not wire_map[(k, 0)][0] in valregs:
                         size = max(map(lambda x: x[1],
                                        filter(lambda x: x[0]
-                                                        == wire_map[(k, 0)][0],
+                                              == wire_map[(k, 0)][0],
                                               wire_map.values())))
                         add_regs.add((wire_map[(k, 0)][0], size + 1))
         return add_regs
@@ -771,8 +771,8 @@ class DAGCircuit:
                     else:
                         if nd["name"] == "measure":
                             assert len(nd["cargs"]) == 1 and \
-                                   len(nd["qargs"]) == 1 and \
-                                   len(nd["params"]) == 0, "bad node data"
+                                len(nd["qargs"]) == 1 and \
+                                len(nd["params"]) == 0, "bad node data"
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
                             if aliases:
@@ -849,7 +849,7 @@ class DAGCircuit:
                 full_succ_map[w] = self.output_map[w]
                 full_pred_map[w] = self.multi_graph.predecessors(self.output_map[w])[
                     0]
-                assert len(self.multi_graph.predecessors(self.output_map[w])) == 1, \
+                assert len(self.multi_graph.predecessors(self.output_map[w])) == 1,\
                     "too many predecessors for (%s,%d) output node" % (
                         w[0], w[1])
         return full_pred_map, full_succ_map
@@ -1241,13 +1241,13 @@ class DAGCircuit:
         for node in ts:
             nd = self.multi_graph.node[node]
             if nd["type"] == "op" and nd["name"] in namelist \
-                    and not nodes_seen[node]:
+               and not nodes_seen[node]:
                 group = [node]
                 nodes_seen[node] = True
                 s = self.multi_graph.successors(node)
                 while len(s) == 1 and \
-                                self.multi_graph.node[s[0]]["type"] == "op" and \
-                                self.multi_graph.node[s[0]]["name"] in namelist:
+                        self.multi_graph.node[s[0]]["type"] == "op" and \
+                        self.multi_graph.node[s[0]]["name"] in namelist:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = self.multi_graph.successors(s[0])
