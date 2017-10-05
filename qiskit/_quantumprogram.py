@@ -21,6 +21,7 @@ import os
 import string
 import re
 from threading import Event
+import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
@@ -843,9 +844,9 @@ class QuantumProgram(object):
             # config parameters used by the runner
             if config is None:
                 config = {}  # default to empty config dict
-            job["config"] = config.copy()
-            # TODO: Jay: make config options optional for different backends
+            job["config"] = copy.deepcopy(config)
             job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
+            # TODO: Jay: make config options optional for different backends
             # Map the layout to a format that can be json encoded
             list_layout = None
             if final_layout:
