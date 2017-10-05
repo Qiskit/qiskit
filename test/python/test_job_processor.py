@@ -185,7 +185,7 @@ class TestJobProcessor(QiskitTestCase):
         quantum_job = QuantumJob(self.qasm_text, do_compile=True,
                                  backend='local_qasm_simulator')
         jp = jobprocessor.JobProcessor([quantum_job], callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     def test_run_job_processor_local(self):
         njobs = 5
@@ -197,7 +197,7 @@ class TestJobProcessor(QiskitTestCase):
                                      do_compile=False)
             job_list.append(quantum_job)
         jp = jobprocessor.JobProcessor(job_list, callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_job_processor_online(self):
@@ -211,7 +211,7 @@ class TestJobProcessor(QiskitTestCase):
         jp = jobprocessor.JobProcessor(job_list, token=self.QE_TOKEN,
                                url=self.QE_URL,
                                callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_quantum_program_online(self):
@@ -250,7 +250,7 @@ class TestJobProcessor(QiskitTestCase):
         self.job_processor_exception = None
         jp = jobprocessor.JobProcessor(job_list, max_workers=None,
                                        callback=job_done_callback)
-        jp.submit(silent=True)
+        jp.submit()
 
         while not self.job_processor_finished:
             # Wait until the job_done_callback is invoked and completed.
@@ -271,7 +271,7 @@ class TestJobProcessor(QiskitTestCase):
                                      backend=backend)
             job_list.append(quantum_job)
         jp = jobprocessor.JobProcessor(job_list, max_workers=1, callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_mix_local_remote_jobs(self):
@@ -298,7 +298,7 @@ class TestJobProcessor(QiskitTestCase):
         jp = jobprocessor.JobProcessor(job_list, max_workers=None,
                                token=self.QE_TOKEN, url=self.QE_URL,
                                callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     def test_error_in_job(self):
         def job_done_callback(results):
@@ -326,7 +326,7 @@ class TestJobProcessor(QiskitTestCase):
         tmp = jobprocessor.run_local_backend
         jobprocessor.run_local_backend = mock_run_local_backend
 
-        jp.submit(silent=True)
+        jp.submit()
         jobprocessor.run_local_backend = tmp
 
         while not self.job_processor_finished:
