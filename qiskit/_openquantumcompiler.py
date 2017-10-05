@@ -147,7 +147,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     Returns:
         the json version of the dag
     """
-    # Todo: Jay: I think this needs to become a method like .qasm() for the DAG.
+    # TODO: Jay: I think this needs to become a method like .qasm() for the DAG.
     try:
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
