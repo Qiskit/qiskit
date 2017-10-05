@@ -1124,4 +1124,3 @@ class QuantumProgram(object):
                             shots=shots, max_credits=max_credits, seed=seed)
         result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
         return result
-    
