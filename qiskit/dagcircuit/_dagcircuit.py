@@ -1281,3 +1281,4 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+    
