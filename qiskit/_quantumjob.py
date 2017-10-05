@@ -6,7 +6,7 @@ import qiskit.backends as backends
 class QuantumJob():
     """Creates a quantum circuit job"""
 
-    # Todo We need to create more tests for checking all possible inputs.
+    # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
                  circuit_config=None, timeout=60, seed=None,
                  resources={'max_credits': 3}, shots=1024, names=None,
