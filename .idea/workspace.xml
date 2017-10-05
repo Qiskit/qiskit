@@ -3,11 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fbb8c40f-f590-43e6-9a8d-58e36f247765" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_compositegate.py" afterPath="$PROJECT_DIR$/qiskit/_compositegate.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_instruction.py" afterPath="$PROJECT_DIR$/qiskit/_instruction.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_jobprocessor.py" afterPath="$PROJECT_DIR$/qiskit/_jobprocessor.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_openquantumcompiler.py" afterPath="$PROJECT_DIR$/qiskit/_openquantumcompiler.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_quantumjob.py" afterPath="$PROJECT_DIR$/qiskit/_quantumjob.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qiskit/_quantumprogram.py" afterPath="$PROJECT_DIR$/qiskit/_quantumprogram.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -24,6 +20,18 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="_quantumprogram.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/qiskit/_quantumprogram.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="219">
+              <caret line="52" column="0" lean-forward="true" selection-start-line="52" selection-start-column="0" selection-end-line="52" selection-end-column="0" />
+              <folding>
+                <element signature="e#707#720#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="_quantumjob.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/qiskit/_quantumjob.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -63,14 +71,14 @@
       <file leaf-file-name="_instruction.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/qiskit/_instruction.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="74">
-              <caret line="61" column="32" lean-forward="false" selection-start-line="61" selection-start-column="32" selection-end-line="61" selection-end-column="32" />
+            <state relative-caret-position="360">
+              <caret line="72" column="0" lean-forward="true" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="_compositegate.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="_compositegate.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/qiskit/_compositegate.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="308">
@@ -85,6 +93,8 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>BackendClass</find>
+      <find>todo</find>
+      <find>s1</find>
     </findStrings>
     <replaceStrings>
       <replace />
@@ -97,12 +107,12 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/qiskit/dagcircuit/_dagcircuit.py" />
-        <option value="$PROJECT_DIR$/qiskit/_quantumprogram.py" />
         <option value="$PROJECT_DIR$/qiskit/_quantumjob.py" />
         <option value="$PROJECT_DIR$/qiskit/_openquantumcompiler.py" />
         <option value="$PROJECT_DIR$/qiskit/_instruction.py" />
         <option value="$PROJECT_DIR$/qiskit/_compositegate.py" />
         <option value="$PROJECT_DIR$/qiskit/_jobprocessor.py" />
+        <option value="$PROJECT_DIR$/qiskit/_quantumprogram.py" />
       </list>
     </option>
   </component>
@@ -250,7 +260,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+          <folding>
+            <element signature="e#707#720#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -268,14 +280,6 @@
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/qiskit/_quantumprogram.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="142" column="23" lean-forward="false" selection-start-line="142" selection-start-column="23" selection-end-line="142" selection-end-column="23" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -307,14 +311,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/qiskit/_instruction.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="74">
-          <caret line="61" column="32" lean-forward="false" selection-start-line="61" selection-start-column="32" selection-end-line="61" selection-end-column="32" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/qiskit/_jobprocessor.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="68">
@@ -330,6 +326,24 @@
         <state relative-caret-position="308">
           <caret line="67" column="39" lean-forward="false" selection-start-line="67" selection-start-column="39" selection-end-line="67" selection-end-column="39" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/qiskit/_instruction.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="72" column="0" lean-forward="true" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/qiskit/_quantumprogram.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="219">
+          <caret line="52" column="0" lean-forward="true" selection-start-line="52" selection-start-column="0" selection-end-line="52" selection-end-column="0" />
+          <folding>
+            <element signature="e#707#720#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

@@ -25,6 +25,9 @@ from threading import Event
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
 
+# Local Simulator Modules
+import qiskit.backends
+
 # Stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
@@ -37,13 +40,6 @@ from . import QuantumJob
 from . import unroll
 from . import qasm
 from . import mapper
-
-# Local Simulator Modules
-<<<<<<< HEAD
-from . import simulators
-=======
-import qiskit.backends
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
 
 from . import _openquantumcompiler as openquantumcompiler
 
@@ -90,8 +86,8 @@ class QuantumProgram(object):
         __LOCAL_BACKENDS (list[str]): A list of local backends
      """
     # -- FUTURE IMPROVEMENTS --
-    # ToDo: for status results make ALL_CAPS (check) or some unified method
-    # ToDo: Jay: coupling_map, basis_gates will move into a config object
+    # Todo: for status results make ALL_CAPS (check) or some unified method
+    # Todo: Jay: coupling_map, basis_gates will move into a config object
     # only exists once you set the api to use the online backends
     __api = {}
     __api_config = {}
@@ -111,7 +107,8 @@ class QuantumProgram(object):
         self.callback = None
         self.jobs_results = []
         self.jobs_results_ready_event = Event()
-        self.are_multiple_results = False  # are we expecting multiple results?
+        self.are_multiple_results = False # are we expecting multiple results?
+
 
     ###############################################################
     # methods to initiate an build a quantum program
@@ -149,9 +146,9 @@ class QuantumProgram(object):
                     circuit["classical_registers"])
                 self.create_circuit(name=circuit["name"], qregisters=quantumr,
                                     cregisters=classicalr)
-                # ToDo: Jay: I think we should return function handles for the
-                # registers and circuit. So that we dont need to get them after we
-                # create them with get_quantum_register etc
+        # Todo: Jay: I think we should return function handles for the
+        # registers and circuit. So that we dont need to get them after we
+        # create them with get_quantum_register etc
 
     def create_quantum_register(self, name, size, verbose=False):
         """Create a new Quantum Register.
@@ -332,13 +329,8 @@ class QuantumProgram(object):
         """
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
-<<<<<<< HEAD
-            # Get a random name if none is give
-            name = "".join([random.choice(string.ascii_letters + string.digits)
-=======
             # Get a random name if none is given
             name = "".join([random.choice(string.ascii_letters+string.digits)
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                             for n in range(10)])
         if verbose is True:
             print("circuit name: " + name)
@@ -649,7 +641,7 @@ class QuantumProgram(object):
                 if configuration['name'] == backend:
                     for key in configuration:
                         new_key = convert(key)
-                        # ToDo: removed these from the API code
+                        # Todo: removed these from the API code
                         if new_key not in ['id', 'serial_number', 'topology_id',
                                            'status', 'coupling_map']:
                             configuration_edit[new_key] = configuration[key]
@@ -659,12 +651,7 @@ class QuantumProgram(object):
                                     configuration[key]
                             else:
                                 if not list_format:
-<<<<<<< HEAD
-                                    cmap = mapper.coupling_list2dict(
-                                        configuration[key])
-=======
                                     cmap = mapper.coupling_list2dict(configuration[key])
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                                 else:
                                     cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
@@ -698,7 +685,7 @@ class QuantumProgram(object):
                 new_key = convert(key)
                 calibrations_edit[new_key] = vals
             return calibrations_edit
-        elif backend in self.__LOCAL_BACKENDS:
+        elif  backend in self.__LOCAL_BACKENDS:
             return {'backend': backend, 'calibrations': None}
         else:
             raise LookupError(
@@ -821,17 +808,13 @@ class QuantumProgram(object):
                     }
 
         """
-        # ToDo: Jay: currently basis_gates, coupling_map, initial_layout,
+        # Todo: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
 
         qobj = {}
         if not qobj_id:
-<<<<<<< HEAD
-            qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
-=======
             qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
                                for n in range(30)])
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
@@ -847,7 +830,7 @@ class QuantumProgram(object):
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
             if not basis_gates:
                 basis_gates = "u1,u2,u3,cx,id"  # QE target basis
-            # ToDo: The circuit object going into this is to have .qasm() method (be careful)
+            # Todo: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
                                                                     basis_gates=basis_gates,
@@ -861,7 +844,7 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = config
-            # ToDo: Jay: make config options optional for different backends
+            # Todo: Jay: make config options optional for different backends
             job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
             # Map the layout to a format that can be json encoded
             list_layout = None
@@ -897,14 +880,14 @@ class QuantumProgram(object):
             print("qobj config:")
             for key in qobj['config']:
                 if key != 'backend':
-                    print(' ' + key + ': ' + str(qobj['config'][key]))
+                    print(' '+ key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
             if verbose:
                 print('  circuit name: ' + circuit["name"])
                 print('  circuit config:')
                 for key in circuit['config']:
-                    print('   ' + key + ': ' + str(circuit['config'][key]))
+                    print('   '+ key + ': ' + str(circuit['config'][key]))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):
@@ -963,6 +946,7 @@ class QuantumProgram(object):
         self._run_internal([qobj], wait, timeout, silent)
         self.wait_for_results(timeout)
         return self.jobs_results[0]
+
 
     def run_batch(self, qobj_list, wait=5, timeout=120, silent=True):
         """Run various programs (a list of pre-compiled quantum programs). This
@@ -1035,6 +1019,7 @@ class QuantumProgram(object):
                            callback=callback,
                            are_multiple_results=True)
 
+
     def _run_internal(self, qobj_list, wait=5, timeout=60, silent=True,
                       callback=None, are_multiple_results=False):
 
@@ -1050,6 +1035,7 @@ class QuantumProgram(object):
                                      callback=self._jobs_done_callback)
         job_processor.submit(wait, timeout, silent)
 
+
     def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have
             finished. NOT every time a job has finished.
@@ -1064,14 +1050,10 @@ class QuantumProgram(object):
             return
 
         if self.are_multiple_results:
-            self.callback(jobs_results)  # for run_batch_async() callback
+            self.callback(jobs_results) # for run_batch_async() callback
         else:
-<<<<<<< HEAD
-            self.callback(jobs_results[0])  # for run_async() callback
-=======
             self.callback(jobs_results[0]) # for run_async() callback
 
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
 
     def wait_for_results(self, timeout):
         is_ok = self.jobs_results_ready_event.wait(timeout)
@@ -1133,7 +1115,7 @@ class QuantumProgram(object):
             status done and populates the internal __quantum_program with the
             data
         """
-        # ToDo: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # Todo: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
         qobj = self.compile(name_of_circuits, backend=backend, config=config,
@@ -1141,8 +1123,4 @@ class QuantumProgram(object):
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed)
         result = self.run(qobj, wait=wait, timeout=timeout, silent=silent)
-<<<<<<< HEAD
         return result
-=======
-        return result
->>>>>>> 949fe46a36146303c46515169df5116e291e3ec6
