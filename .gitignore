@@ -123,3 +123,5 @@ doc/_autodoc/*
 qiskit/bin/*
 
 test/python/test_save.json
+
+.idea/
