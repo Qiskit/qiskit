@@ -69,13 +69,13 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     has no multi-qubit gates.
     """
     logger.debug("layer_permutation: ----- enter -----")
-    logger.debug("layer_permutation: layer_partition = %s" %
-                pprint.pformat(layer_partition))
-    logger.debug("layer_permutation: layout = %s" %
-                pprint.pformat(layout))
-    logger.debug("layer_permutation: qubit_subset = %s" %
-                pprint.pformat(qubit_subset))
-    logger.debug("layer_permutation: trials = %s" % trials)
+    logger.debug("layer_permutation: layer_partition = %s",
+                 pprint.pformat(layer_partition))
+    logger.debug("layer_permutation: layout = %s",
+                 pprint.pformat(layout))
+    logger.debug("layer_permutation: qubit_subset = %s",
+                 pprint.pformat(qubit_subset))
+    logger.debug("layer_permutation: trials = %s", trials)
     rev_layout = {b: a for a, b in layout.items()}
     gates = []
     for layer in layer_partition:
@@ -84,12 +84,12 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
         elif len(layer) == 2:
             gates.append(tuple(layer))
 
-    logger.debug("layer_permutation: gates = %s" % pprint.pformat(gates))
+    logger.debug("layer_permutation: gates = %s", pprint.pformat(gates))
 
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]],
                                   layout[g[1]]) for g in gates])
-    logger.debug("layer_permutation: dist = %s" % dist)
+    logger.debug("layer_permutation: dist = %s", dist)
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
         logger.debug("layer_permutation: ----- exit -----")
@@ -102,7 +102,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     best_layout = None  # initialize best final layout
     for trial in range(trials):
 
-        logger.debug("layer_permutation: trial %s" % trial)
+        logger.debug("layer_permutation: trial %s", trial)
         trial_layout = copy.deepcopy(layout)
         rev_trial_layout = copy.deepcopy(rev_layout)
         trial_circ = ""  # circuit produced in this trial
@@ -147,7 +147,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
                         # Record progress if we succceed
                         if new_cost < min_cost:
                             logger.debug("layer_permutation: progress! "
-                                        "min_cost = %s" % min_cost)
+                                         "min_cost = %s", min_cost)
                             progress_made = True
                             min_cost = new_cost
                             opt_layout = new_layout
@@ -164,8 +164,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
                                                       opt_edge[0][1],
                                                       opt_edge[1][0],
                                                       opt_edge[1][1])
-                    logger.debug("layer_permutation: chose pair %s" %
-                                pprint.pformat(opt_edge))
+                    logger.debug("layer_permutation: chose pair %s",
+                                 pprint.pformat(opt_edge))
                 else:
                     break
 
@@ -173,7 +173,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             # Compute the coupling graph distance
             dist = sum([coupling.distance(trial_layout[g[0]],
                                           trial_layout[g[1]]) for g in gates])
-            logger.debug("layer_permutation: dist = %s" % dist)
+            logger.debug("layer_permutation: dist = %s", dist)
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
             if dist == len(gates):
@@ -183,15 +183,15 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
 
             # Increment the depth
             d += 1
-            logger.debug("layer_permutation: increment depth to %s" % d)
+            logger.debug("layer_permutation: increment depth to %s", d)
 
         # Either we have succeeded at some depth d < dmax or failed
         dist = sum([coupling.distance(trial_layout[g[0]],
                                       trial_layout[g[1]]) for g in gates])
-        logger.debug("layer_permutation: dist = %s" % dist)
+        logger.debug("layer_permutation: dist = %s", dist)
         if dist == len(gates):
             if d < best_d:
-                logger.debug("layer_permutation: got circuit with depth %s" % d)
+                logger.debug("layer_permutation: got circuit with depth %s", d)
                 best_circ = trial_circ
                 best_layout = trial_layout
             best_d = min(best_d, d)
@@ -240,20 +240,20 @@ def direction_mapper(circuit_graph, coupling_graph):
         nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["qargs"])
         if cxedge in cg_edges:
-            logger.debug("cx %s[%d], %s[%d] -- OK" %
-                        (cxedge[0][0], cxedge[0][1],
-                         cxedge[1][0], cxedge[1][1]))
+            logger.debug("cx %s[%d], %s[%d] -- OK",
+                         cxedge[0][0], cxedge[0][1],
+                         cxedge[1][0], cxedge[1][1])
             continue
         elif (cxedge[1], cxedge[0]) in cg_edges:
             circuit_graph.substitute_circuit_one(cx_node,
                                                  flipped_cx_circuit,
                                                  wires=[("q", 0), ("q", 1)])
-            logger.debug("cx %s[%d], %s[%d] -FLIP" %
-                        (cxedge[0][0], cxedge[0][1],
-                         cxedge[1][0], cxedge[1][1]))
+            logger.debug("cx %s[%d], %s[%d] -FLIP",
+                         cxedge[0][0], cxedge[0][1],
+                         cxedge[1][0], cxedge[1][1])
         else:
             raise MapperError("circuit incompatible with CouplingGraph: "
-                              "cx on %s" % pprint.pformat(cxedge))
+                              "cx on %s", pprint.pformat(cxedge))
     return circuit_graph
 
 
@@ -293,7 +293,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
         # Output any swaps
         if best_d > 0:
             logger.debug("update_qasm_and_layout: swaps in this layer, "
-                        "depth %d" % best_d)
+                         "depth %d", best_d)
             openqasm_output += best_circ
         else:
             logger.debug("update_qasm_and_layout: no swaps in this layer")
@@ -332,7 +332,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     layerlist = circuit_graph.layers()
     logger.debug("schedule:")
     for i in range(len(layerlist)):
-        logger.debug("    %d: %s" % (i, layerlist[i]["partition"]))
+        logger.debug("    %d: %s", i, layerlist[i]["partition"])
 
     if initial_layout is not None:
         # Check the input layout
@@ -358,7 +358,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     layout = copy.deepcopy(initial_layout)
     openqasm_output = ""
     first_layer = True  # True until first layer is output
-    logger.debug("initial_layout = %s" % layout)
+    logger.debug("initial_layout = %s", layout)
 
     # Iterate over layers
     for i, layer in enumerate(layerlist):
@@ -367,9 +367,9 @@ def swap_mapper(circuit_graph, coupling_graph,
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
                                 qubit_subset, coupling_graph, trials)
-        logger.debug("swap_mapper: layer %d" % i)
-        logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s" %
-                    (success_flag, str(best_d), trivial_flag))
+        logger.debug("swap_mapper: layer %d", i)
+        logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s",
+                     success_flag, str(best_d), trivial_flag)
 
         # If this layer is only single-qubit gates,
         # and we have yet to see multi-qubit gates,
@@ -380,8 +380,8 @@ def swap_mapper(circuit_graph, coupling_graph,
 
         # If this fails, try one gate at a time in this layer
         if not success_flag:
-            logger.debug("swap_mapper: failed, layer %d, " % i,
-                        " retrying sequentially")
+            logger.debug("swap_mapper: failed, layer %d, "
+                         "retrying sequentially", i)
             serial_layerlist = layer["graph"].serial_layers()
 
             # Go through each gate in the layer
@@ -391,10 +391,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                     = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
                                         trials)
-                logger.debug("swap_mapper: layer %d, sublayer %d" % (i, j))
+                logger.debug("swap_mapper: layer %d, sublayer %d", i, j)
                 logger.debug("swap_mapper: success_flag=%s,best_d=%s,"
-                            "trivial_flag=%s" % (success_flag, str(best_d),
-                                                 trivial_flag))
+                             "trivial_flag=%s",
+                             success_flag, str(best_d), trivial_flag)
 
                 # Give up if we fail again
                 if not success_flag:
@@ -569,11 +569,11 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     for delta_sol in zip(deltas, solutions):
         if delta_sol[0] < eps:
             return delta_sol[1]
-    logger.debug("xi=%s" % xi)
-    logger.debug("theta1=%s" % theta1)
-    logger.debug("theta2=%s" % theta2)
-    logger.debug("solutions=%s" % pprint.pformat(solutions))
-    logger.debug("deltas=%s" % pprint.pformat(deltas))
+    logger.debug("xi=%s", xi)
+    logger.debug("theta1=%s", theta1)
+    logger.debug("theta2=%s", theta2)
+    logger.debug("solutions=%s", pprint.pformat(solutions))
+    logger.debug("deltas=%s", pprint.pformat(deltas))
     assert False, "Error! No solution found. This should not happen."
 
 

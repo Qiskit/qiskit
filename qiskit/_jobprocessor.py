@@ -107,7 +107,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
             return {'status': 'ERROR', 'result': 'Time Out'}
         time.sleep(wait)
         timer += wait
-        logger.info('status = %s (%d seconds)' % (job_result['status'], timer))
+        logger.info('status = %s (%d seconds)', job_result['status'], timer)
         job_result = api.get_job(jobid)
 
         if 'status' not in job_result:

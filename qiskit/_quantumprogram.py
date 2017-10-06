@@ -200,12 +200,10 @@ class QuantumProgram(object):
             if size != len(self.__quantum_registers[name]):
                 raise QISKitError("Can't make this register: Already in"
                                   " program with different size")
-            logger.info(">> quantum_register exists: "
-                        "{0} {1}".format(name, size))
+            logger.info(">> quantum_register exists: %s %s", name, size)
         else:
             self.__quantum_registers[name] = QuantumRegister(name, size)
-            logger.info(">> new quantum_register created: "
-                        " {} {}".format(name, size))
+            logger.info(">> new quantum_register created: %s %s", name, size)
         return self.__quantum_registers[name]
 
     def create_quantum_registers(self, register_array):
@@ -245,11 +243,9 @@ class QuantumProgram(object):
             if size != len(self.__classical_registers[name]):
                 raise QISKitError("Can't make this register: Already in"
                                   " program with different size")
-            logger.info(">> classical register exists: "
-                        "{0} {1}".format(name, size))
+            logger.info(">> classical register exists: %s %s", name, size)
         else:
-            logger.info(">> new classical register created: "
-                        "{0} {1}".format(name, size))
+            logger.info(">> new classical register created: %s %s", name, size)
             self.__classical_registers[name] = ClassicalRegister(name, size)
         return self.__classical_registers[name]
 
@@ -898,18 +894,18 @@ class QuantumProgram(object):
             logger.info("no executions to run")
         execution_list = []
 
-        logger.info("id: %s" % qobj['id'])
-        logger.info("backend: %s" % qobj['config']['backend'])
+        logger.info("id: %s", qobj['id'])
+        logger.info("backend: %s", qobj['config']['backend'])
         logger.info("qobj config:")
         for key in qobj['config']:
             if key != 'backend':
-                logger.info(' '+ key + ': ' + str(qobj['config'][key]))
+                logger.info(' %s: %s', key, str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
-            logger.info('  circuit name: ' + circuit["name"])
+            logger.info('  circuit name: %s', circuit["name"])
             logger.info('  circuit config:')
             for key in circuit['config']:
-                logger.info('   '+ key + ': ' + str(circuit['config'][key]))
+                logger.info('   %s: ', str(circuit['config'][key]))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):

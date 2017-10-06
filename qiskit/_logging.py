@@ -28,8 +28,8 @@ QISKIT_LOGGING_CONFIG = {
     },
     'handlers': {
         'h': {
-              'class': 'logging.StreamHandler',
-              'formatter': 'f'
+            'class': 'logging.StreamHandler',
+            'formatter': 'f'
         }
     },
     'loggers': {
