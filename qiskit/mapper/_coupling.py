@@ -75,6 +75,7 @@ class Coupling:
     Nodes correspond to qubits and directed edges correspond to permitted
     CNOT gates
     """
+    # pylint: disable=invalid-name
 
     def __init__(self, couplingdict=None):
         """

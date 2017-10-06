@@ -1,5 +1,5 @@
-# pylint: disable=line-too-long
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
