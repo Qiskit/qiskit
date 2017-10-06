@@ -100,15 +100,15 @@ class QuantumJob():
         circuit_records = []
         if circuit_config is None:
             config = {'coupling_map': None,
-                        'basis_gates': 'u1,u2,u3,cx,id',
-                        'layout': None,
-                        'seed': seed}
+                      'basis_gates': 'u1,u2,u3,cx,id',
+                      'layout': None,
+                      'seed': seed}
             circuit_config = [config] * len(self.circuits)
 
         for circuit, fcircuit, name, config in zip(self.circuits,
-                                                    formatted_circuits,
-                                                    self.names,
-                                                    circuit_config):
+                                                   formatted_circuits,
+                                                   self.names,
+                                                   circuit_config):
             record = {
                 'name': name,
                 'compiled_circuit': None if do_compile else fcircuit,
@@ -120,10 +120,10 @@ class QuantumJob():
 
         return {'id': self._generate_job_id(length=10),
                 'config': {
-                           'max_credits': resources['max_credits'],
-                           'shots': shots,
-                           'backend': backend
-                          },
+                    'max_credits': resources['max_credits'],
+                    'shots': shots,
+                    'backend': backend
+                },
                 'circuits': circuit_records}
 
     def _generate_job_id(self, length=10):

@@ -8,8 +8,7 @@ from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
-from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience,
-                                                       ApiError)
+from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
 
 def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
@@ -37,8 +36,8 @@ def run_local_backend(qobj):
             compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                            format='json')
             circuit['compiled_circuit'] = compiled_circuit
-    BackendClass = backends.get_backend_class(qobj['config']['backend'])
-    backend = BackendClass(qobj)
+    backendclass = backends.get_backend_class(qobj['config']['backend'])
+    backend = backendclass(qobj)
     return backend.run()
 
 def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
@@ -111,7 +110,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         if 'status' not in job_result:
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
-        if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
+        if (job_result['status'] == 'ERROR_CREATING_JOB' or
+                job_result['status'] == 'ERROR_RUNNING_JOB'):
             return {'status': 'ERROR', 'result': job_result['status']}
 
     # Get the results
@@ -136,6 +136,7 @@ class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
+
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:

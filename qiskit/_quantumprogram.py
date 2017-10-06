@@ -25,6 +25,9 @@ from threading import Event
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
 
+# Local Simulator Modules
+import qiskit.backends
+
 # Stable Modules
 from . import QuantumRegister
 from . import ClassicalRegister
@@ -37,9 +40,6 @@ from . import QuantumJob
 from . import unroll
 from . import qasm
 from . import mapper
-
-# Local Simulator Modules
-import qiskit.backends
 
 from . import _openquantumcompiler as openquantumcompiler
 
