@@ -105,7 +105,7 @@ family of "`qiskit.*`" loggers, and abides by the standard convention for the lo
 For convenience, :py:class:`QuantumProgram <qiskit.QuantumProgram>` provides two convenience
 methods (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` and
 :py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`) that modify the handlers
-and the level of the `qiskit` logger. Using these methods might interfer with the global
+and the level of the `qiskit` logger. Using these methods might interfere with the global
 logging setup of your environment - please take it into consideration if developing an
 application on top of the SDK.
 
