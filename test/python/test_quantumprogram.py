@@ -787,6 +787,42 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result.get_counts("circuitName"),
                          {'000': 518, '111': 506})
 
+    def test_change_circuit_qobj_after_compile(self):
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        config = {'seed': 10, 'shots': 1, 'xvals':[1, 2, 3, 4]}
+        qobj1 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88, config=config)
+        qobj1['circuits'][0]['config']['shots'] = 50
+        qobj1['circuits'][0]['config']['xvals'] = [1,1,1]
+        config['shots'] = 1000
+        config['xvals'][0] = 'only for qobj2'
+        qobj2 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88, config=config)
+        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
+        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
+        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1,1,1])
+        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1,2,3,4])
+        self.assertTrue(qobj1['config']['shots'] == 1024)
+        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
+        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
+
     ###############################################################
     # Test for running programs
     ###############################################################
@@ -948,7 +984,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         self.qp_program_finished = False
         self.qp_program_exception = None
-        results = QP_program.run_batch_async(qobj_list, 
+        results = QP_program.run_batch_async(qobj_list,
                                              callback=_jobs_done_callback)
         while not self.qp_program_finished:
             # Wait until the job_done_callback is invoked and completed.
@@ -1180,6 +1216,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr, cr)
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
+        qiskit.backends.discover_api_backends(QP_program.get_api())
         backend = 'ibmqx_qasm_simulator'
         result = QP_program.execute(['qc'], backend=backend,
                                     shots=shots, max_credits=3,
@@ -1230,6 +1267,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         QP_program.set_api(QE_TOKEN, QE_URL)
+        qiskit.backends.discover_api_backends(QP_program.get_api())        
         backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
@@ -1456,8 +1494,9 @@ class TestQuantumProgram(QiskitTestCase):
         }
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
+        qiskit.backends.discover_api_backends(qp.get_api())
         if backend not in qp.online_simulators():
-            return
+            unittest.skip('backend "{}" not available'.format(backend))
         qc = qp.get_circuit("swapping")
         q = qp.get_quantum_register("q")
         r = qp.get_quantum_register("r")
@@ -1482,6 +1521,9 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result.get_counts("swapping"),
                          {'010000': 1024})
         # Second version: map to coupling graph
+        # result = qp.execute(["swapping"], backend=backend,
+        #                     coupling_map=None, shots=1024,
+        #                     seed=14)
         result = qp.execute(["swapping"], backend=backend,
                             coupling_map=coupling_map, shots=1024,
                             seed=14)

@@ -3,13 +3,12 @@ from threading import Lock
 import sys
 import time
 
-import qiskit.backends as backends
+import qiskit.backends
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
-from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience,
-                                                       ApiError)
+from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
 
 def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
@@ -18,108 +17,31 @@ def run_local_backend(qobj):
         qobj (dict): quantum object dictionary
 
     Returns:
-      Dictionary of form,
-      job_result = {
-        "status": DATA,
-        "result" : [
-          {
-            "data": DATA,
-            "status": DATA,
-          },
-            ...
-        ]
-        "name": DATA,
-        "backend": DATA
-      }
+        Result object.
     """
     for circuit in qobj['circuits']:
         if circuit['compiled_circuit'] is None:
             compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                            format='json')
             circuit['compiled_circuit'] = compiled_circuit
-    BackendClass = backends.get_backend_class(qobj['config']['backend'])
+    BackendClass = qiskit.backends.get_backend_class(qobj['config']['backend'])
     backend = BackendClass(qobj)
     return backend.run()
 
-def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
+def run_remote_backend(qobj, wait=5, timeout=60, silent=True):
     """
     Args:
         qobj (dict): quantum object dictionary
-        api (IBMQuantumExperience): IBMQuantumExperience API connection
-
+        wait (float): seconds between run attempts
+        timeout (float): seconds
+    Returns:
+        Result object.
     Raises:
         QISKitError: if "ERROR" string in server response.
     """
-    api_jobs = []
-    for circuit in qobj['circuits']:
-        if (('compiled_circuit_qasm' not in circuit) or
-                (circuit['compiled_circuit_qasm'] is None)):
-            compiled_circuit = openquantumcompiler.compile(
-                circuit['circuit'].qasm())
-            circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-        if isinstance(circuit['compiled_circuit_qasm'], bytes):
-            api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
-        else:
-            api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
-
-    seed0 = qobj['circuits'][0]['config']['seed']
-    output = api.run_job(api_jobs, qobj['config']['backend'],
-                         shots=qobj['config']['shots'],
-                         max_credits=qobj['config']['max_credits'],
-                         seed=seed0)
-    if 'error' in output:
-        raise ResultError(output['error'])
-
-    job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout, silent=silent)
-    job_result['name'] = qobj['id']
-    job_result['backend'] = qobj['config']['backend']
-    this_result = Result(job_result, qobj)
-    return this_result
-
-def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
-    """Wait until all online ran circuits of a qobj are 'COMPLETED'.
-
-    Args:
-        jobid:  is a list of id strings.
-        api (IBMQuantumExperience): IBMQuantumExperience API connection
-        wait (int):  is the time to wait between requests, in seconds
-        timeout (int):  is how long we wait before failing, in seconds
-        silent (bool): is an option to print out the running information or
-            not
-
-    Returns:
-        A list of results that correspond to the jobids.
-
-    Raises:
-        QISKitError:
-    """
-    timer = 0
-    job_result = api.get_job(jobid)
-    if 'status' not in job_result:
-        from pprint import pformat
-        raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
-
-    while job_result['status'] == 'RUNNING':
-        if timer >= timeout:
-            return {'status': 'ERROR', 'result': 'Time Out'}
-        time.sleep(wait)
-        timer += wait
-        if not silent:
-            print('status = %s (%d seconds)' % (job_result['status'], timer))
-        job_result = api.get_job(jobid)
-
-        if 'status' not in job_result:
-            from pprint import pformat
-            raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
-        if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
-            return {'status': 'ERROR', 'result': job_result['status']}
-
-    # Get the results
-    job_result_return = []
-    for index in range(len(job_result['qasms'])):
-        job_result_return.append({'data': job_result['qasms'][index]['data'],
-                                  'status': job_result['qasms'][index]['status']})
-    return {'status': job_result['status'], 'result': job_result_return}
+    BackendClass = qiskit.backends.get_backend_class(qobj['config']['backend'])
+    backend = BackendClass(qobj)
+    return backend.run(wait=wait, timeout=timeout, silent=silent)
 
 def remote_backends(api):
     """Get the remote backends.
@@ -136,6 +58,7 @@ class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
+
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:
@@ -153,7 +76,7 @@ class JobProcessor():
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self._local_backends = backends.local_backends()
+        self._local_backends = qiskit.backends.local_backends()
         self.online = any(qj.backend not in self._local_backends for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
@@ -222,9 +145,9 @@ class JobProcessor():
             elif self.online and q_job.backend in self._online_backends:
                 future = executor.submit(run_remote_backend,
                                          q_job.qobj,
-                                         self._api, wait=wait, timeout=timeout,
+                                         wait=wait, timeout=timeout,
                                          silent=silent)
             future.silent = silent
             future.qobj = q_job.qobj
-            future.add_done_callback(self._job_done_callback)
             self.futures[future] = q_job.qobj
+            future.add_done_callback(self._job_done_callback)

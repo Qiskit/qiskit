@@ -21,9 +21,13 @@ import os
 import string
 import re
 from threading import Event
+import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
+
+# Local Simulator Modules
+import qiskit.backends
 
 # Stable Modules
 from . import QuantumRegister
@@ -37,9 +41,6 @@ from . import QuantumJob
 from . import unroll
 from . import qasm
 from . import mapper
-
-# Local Simulator Modules
-import qiskit.backends
 
 from . import _openquantumcompiler as openquantumcompiler
 
@@ -843,9 +844,9 @@ class QuantumProgram(object):
             # config parameters used by the runner
             if config is None:
                 config = {}  # default to empty config dict
-            job["config"] = config
-            # TODO: Jay: make config options optional for different backends
+            job["config"] = copy.deepcopy(config)
             job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
+            # TODO: Jay: make config options optional for different backends
             # Map the layout to a format that can be json encoded
             list_layout = None
             if final_layout:
@@ -943,7 +944,10 @@ class QuantumProgram(object):
             A Result (class).
         """
         self.callback = None
-        self._run_internal([qobj], wait, timeout, silent)
+        self._run_internal([qobj],
+                           wait=wait,
+                           timeout=timeout,
+                           silent=silent)
         self.wait_for_results(timeout)
         return self.jobs_results[0]
 
@@ -1033,7 +1037,7 @@ class QuantumProgram(object):
 
         job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
                                      callback=self._jobs_done_callback)
-        job_processor.submit(wait, timeout, silent)
+        job_processor.submit(wait=wait, timeout=timeout, silent=silent)
 
 
     def _jobs_done_callback(self, jobs_results):

@@ -55,6 +55,22 @@ def discover_sdk_backends(directory=os.path.dirname(__file__)):
                         # Ignore backends that could not be initialized.
                         pass
 
+def discover_api_backends(api):
+    """Discover backends available on the Quantum Experience
+
+    Args:
+        api (IBMQuantumExperience): Quantum Experience API
+    """
+    from ._qeremote import QeRemote
+    QeRemote._api = api
+    configuration_list = api.available_backends()
+    for configuration in configuration_list:
+        backend_name = configuration['name']
+        configuration['local'] = False
+        registered_backend = RegisteredBackend(backend_name,
+                                               QeRemote,
+                                               configuration)
+        _REGISTERED_BACKENDS[backend_name] = registered_backend
 
 def register_backend(cls):
     """Register a backend in the list of available backends.

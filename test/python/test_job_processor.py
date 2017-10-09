@@ -66,6 +66,11 @@ class TestJobProcessor(QiskitTestCase):
                                                 maxDepth=maxDepth)
         randomCircuits.add_circuits(nCircuits)
         cls.rqg = randomCircuits
+        cls._api = IBMQuantumExperience(cls.QE_TOKEN,
+                                        {"url": cls.QE_URL},
+                                        verify=True)
+        qiskit.backends.discover_api_backends(cls._api)
+        
 
     @classmethod
     def tearDownClass(cls):
@@ -108,7 +113,7 @@ class TestJobProcessor(QiskitTestCase):
                              'seed': None
                          }
                      ]
-                     }
+                     }        
 
     def tearDown(self):
         pass
@@ -161,10 +166,7 @@ class TestJobProcessor(QiskitTestCase):
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend='ibmqx_qasm_simulator')
-        api = IBMQuantumExperience(self.QE_TOKEN,
-                                   {"url": self.QE_URL},
-                                   verify=True)
-        jobprocessor.run_remote_backend(quantum_job.qobj, api)
+        jobprocessor.run_remote_backend(quantum_job.qobj, self._api)
 
     def test_run_local_backend_compile(self):
         quantum_job = QuantumJob(self.qasm_text, do_compile=True,
@@ -175,10 +177,7 @@ class TestJobProcessor(QiskitTestCase):
     def test_run_remote_simulator_compile(self):
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend='ibmqx_qasm_simulator')
-        api = IBMQuantumExperience(self.QE_TOKEN,
-                                   {"url": self.QE_URL},
-                                   verify=True)
-        jobprocessor.run_remote_backend(quantum_job.qobj, api)
+        jobprocessor.run_remote_backend(quantum_job.qobj, self._api)
 
     def test_compile_job(self):
         """Test compilation as part of job"""
