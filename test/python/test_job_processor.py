@@ -66,10 +66,11 @@ class TestJobProcessor(QiskitTestCase):
                                                 maxDepth=maxDepth)
         randomCircuits.add_circuits(nCircuits)
         cls.rqg = randomCircuits
-        cls._api = IBMQuantumExperience(cls.QE_TOKEN,
-                                        {"url": cls.QE_URL},
-                                        verify=True)
-        qiskit.backends.discover_api_backends(cls._api)
+        if hasattr(cls, 'QE_TOKEN'):
+            cls._api = IBMQuantumExperience(cls.QE_TOKEN,
+                                            {"url": cls.QE_URL},
+                                            verify=True)
+            qiskit.backends.discover_api_backends(cls._api)
         
 
     @classmethod
