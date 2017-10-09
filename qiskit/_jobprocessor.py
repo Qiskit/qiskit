@@ -69,10 +69,10 @@ def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     if 'error' in output:
         raise ResultError(output['error'])
 
+    if not silent:
+        print('Running on remote backend '+qobj['config']['backend']+' with job id: '+output['id'])
     job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout, silent=silent)
     job_result['job_id'] = output['id']
-    if not silent:
-        print('Running on remote backend ' + qobj['config']['backend'] + ' with job id: ' + job_result['job_id'])
     job_result['name'] = qobj['id']
     job_result['backend'] = qobj['config']['backend']
     this_result = Result(job_result, qobj)
