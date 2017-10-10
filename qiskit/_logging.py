@@ -20,11 +20,24 @@ import logging
 from logging.config import dictConfig
 
 
+class SimpleInfoFormatter(logging.Formatter):
+    """Custom Formatter that uses a simple format for INFO."""
+    _style_info = logging._STYLES['%'][0]('%(message)s')
+
+    def formatMessage(self, record):
+        if record.levelno == logging.INFO:
+            return self._style_info.format(record)
+        return logging.Formatter.formatMessage(self, record)
+
+
 QISKIT_LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'f': {'format': '%(asctime)s:%(name)s:%(levelname)s:%(message)s'}
+        'f': {
+            '()': SimpleInfoFormatter,
+            'format': '%(asctime)s:%(name)s:%(levelname)s: %(message)s'
+        },
     },
     'handlers': {
         'h': {
@@ -45,8 +58,11 @@ def set_qiskit_logger():
     """Update 'qiskit' logger configuration using a SDK default one.
 
     Update the configuration of the 'qiskit' logger using the default SDK
-    configuration provided by `QISKIT_LOGGING_CONFIG` (console logging with a
-    custom format, level INFO).
+    configuration provided by `QISKIT_LOGGING_CONFIG`:
+
+    * console logging using a custom format for levels != INFO.
+    * console logging with simple format for level INFO.
+    * set logger level to INFO.
 
     Warning:
         This function modifies the configuration of the standard logging system
