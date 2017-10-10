@@ -23,7 +23,7 @@ import unittest
 import numpy as np
 
 from qiskit import qasm, unroll, QuantumProgram
-from qiskit.simulators._unitarysimulator import UnitarySimulator
+from qiskit.backends._unitarysimulator import UnitarySimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase

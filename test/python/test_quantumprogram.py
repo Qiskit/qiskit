@@ -24,6 +24,7 @@ import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
+import qiskit.backends
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
@@ -558,7 +559,7 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists (even if ofline).
         """
         QP_program = QuantumProgram(specs=self.QPS_SPECS)
-        local_backends = QP_program.local_backends()
+        local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -624,8 +625,10 @@ class TestQuantumProgram(QiskitTestCase):
         local_qasm_simulator.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        test = len(qp.get_backend_configuration("local_qasm_simulator"))
-        self.assertEqual(test, 6)
+        config_keys = {'name', 'simulator', 'local', 'description',
+                       'coupling_map', 'basis_gates'}
+        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        self.assertTrue(config_keys < backend_config.keys())
 
     def test_get_backend_configuration_fail(self):
         """Test get_backend_configuration fail.
@@ -783,6 +786,42 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(len(to_check), 160)
         self.assertEqual(result.get_counts("circuitName"),
                          {'000': 518, '111': 506})
+
+    def test_change_circuit_qobj_after_compile(self):
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        config = {'seed': 10, 'shots': 1, 'xvals':[1, 2, 3, 4]}
+        qobj1 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88, config=config)
+        qobj1['circuits'][0]['config']['shots'] = 50
+        qobj1['circuits'][0]['config']['xvals'] = [1,1,1]
+        config['shots'] = 1000
+        config['xvals'][0] = 'only for qobj2'
+        qobj2 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88, config=config)
+        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
+        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
+        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1,1,1])
+        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1,2,3,4])
+        self.assertTrue(qobj1['config']['shots'] == 1024)
+        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
+        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
 
     ###############################################################
     # Test for running programs
@@ -945,7 +984,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         self.qp_program_finished = False
         self.qp_program_exception = None
-        results = QP_program.run_batch_async(qobj_list, 
+        results = QP_program.run_batch_async(qobj_list,
                                              callback=_jobs_done_callback)
         while not self.qp_program_finished:
             # Wait until the job_done_callback is invoked and completed.

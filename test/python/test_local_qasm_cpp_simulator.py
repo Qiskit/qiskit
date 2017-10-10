@@ -21,7 +21,7 @@ import os
 import logging
 
 import qiskit
-import qiskit.simulators._qasm_cpp_simulator as qasmcppsimulator
+import qiskit.backends._qasm_cpp_simulator as qasmcppsimulator
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
@@ -69,6 +69,7 @@ class TestLocalQasmCppSimulator(unittest.TestCase):
                          'max_credits': 3,
                          'shots': 100,
                          'backend': 'local_qasm_simulator',
+                         'seed': 1111
                      },
                      'circuits': [
                          {
@@ -76,14 +77,12 @@ class TestLocalQasmCppSimulator(unittest.TestCase):
                              'compiled_circuit': compiled_circuit1,
                              'basis_gates': 'u1,u2,u3,cx,id',
                              'layout': None,
-                             'seed': None
                          },
                          {
                              'name': 'test_circuit2',
                              'compiled_circuit': compiled_circuit2,
                              'basis_gates': 'u1,u2,u3,cx,id',
                              'layout': None,
-                             'seed': None
                          }
                      ]
                      }
@@ -95,14 +94,14 @@ class TestLocalQasmCppSimulator(unittest.TestCase):
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))
         result = simulator.run()
-        expected2 = {'000 000': 12,
-                     '001 001': 4,
-                     '010 010': 15,
-                     '011 011': 11,
-                     '100 100': 17,
-                     '101 101': 13,
-                     '110 110': 10,
-                     '111 111': 18}
+        expected2 = {'000 000': 14,
+                     '001 001': 12,
+                     '010 010': 10,
+                     '011 011': 12,
+                     '100 100': 18,
+                     '101 101': 9,
+                     '110 110': 5,
+                     '111 111': 20}
         self.assertEqual(result.get_counts('test_circuit2'), expected2)
 
 if __name__ == '__main__':

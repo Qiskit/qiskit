@@ -3,7 +3,6 @@ import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 from qiskit._qiskiterror import QISKitError
 
-
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, silent=True, get_layout=False, format='dag'):
     """Compile the circuit.
