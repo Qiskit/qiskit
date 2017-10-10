@@ -120,21 +120,21 @@ except:
 qobjs = []
 # Create online (so I/O bound) jobs if we have connetion or local (so CPU bound)
 # jobs otherwise
-if offline == False:
+if not offline:
     print("Creating %d online jobs..." % NUM_JOBS)
     for _ in range(0, NUM_JOBS):
         qobjs.append(qp.compile(["rippleadd"], backend=online_backend,
-                coupling_map=None, shots=1024))
+                                coupling_map=None, shots=1024))
 
 print("Creating %d local jobs..." % NUM_JOBS)
 # Create CPU intensive jobs
 for _ in range(0, NUM_JOBS):
     qobjs.append(qp.compile(["rippleadd"], backend=local_backend,
-              coupling_map=None, shots=1024))
+                            coupling_map=None, shots=1024))
 
 end = False
-# This function will be called once all jobs have finished.
 def print_results_callback(results, error=None):
+    """This function will be called once all jobs have finished."""
     if error != None:
         print("There was an error executing the circuits!!: Error = {}".format(error))
         return
@@ -155,20 +155,21 @@ print("Running jobs asynchronously....")
 qp.run_batch_async(qobjs, callback=print_results_callback)
 
 # This will concurrently run while the jobs are being processed.
-for i in range(0,100):
+for i in range(0, 100):
     print("Waitting for results...")
     time.sleep(0.5)
-    if end: break
+    if end:
+        break
 
 print("Running jobs synchronously...")
 results = qp.run_batch(qobjs)
 for result in results:
     print("result: {}".format(result))
     try:
-        print(result.get_counts("rippleadd"))    
+        print(result.get_counts("rippleadd"))
     except Exception as ex:
         print("ERROR: {}".format(ex))
-        
+
     print("============")
 
 print("Done")

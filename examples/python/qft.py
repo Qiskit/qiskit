@@ -46,36 +46,40 @@ coupling_map = {0: [1, 2],
 # Make a quantum program for the GHZ state.
 ###############################################################
 QPS_SPECS = {
-    "circuits": [{
-        "name": "qft3",
-        "quantum_registers": [{
-            "name": "q",
-            "size": 5
-        }],
-        "classical_registers": [
-            {"name": "c",
-             "size": 5}
-        ]},
+    "circuits": [
         {
-        "name": "qft4",
-        "quantum_registers": [{
-            "name": "q",
-            "size": 5
-        }],
-        "classical_registers": [
-            {"name": "c",
-             "size": 5}
-        ]},
+            "name": "qft3",
+            "quantum_registers": [{
+                "name": "q",
+                "size": 5
+            }],
+            "classical_registers": [{
+                "name": "c",
+                "size": 5
+            }]
+        },
         {
-        "name": "qft5",
-        "quantum_registers": [{
-            "name": "q",
-            "size": 5
-        }],
-        "classical_registers": [
-            {"name": "c",
-             "size": 5}
-        ]}
+            "name": "qft4",
+            "quantum_registers": [{
+                "name": "q",
+                "size": 5
+            }],
+            "classical_registers": [{
+                "name": "c",
+                "size": 5
+            }]
+        },
+        {
+            "name": "qft5",
+            "quantum_registers": [{
+                "name": "q",
+                "size": 5
+            }],
+            "classical_registers": [
+                {"name": "c",
+                 "size": 5}
+            ]
+        }
     ]
 }
 
