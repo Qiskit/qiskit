@@ -64,7 +64,7 @@ c = qp.get_classical_register("c")
 # Create a GHZ state
 qc.h(q[0])
 for i in range(4):
-    qc.cx(q[i], q[i + 1])
+    qc.cx(q[i], q[i+1])
 # Insert a barrier before measurement
 qc.barrier()
 # Measure all of the qubits in the standard basis
