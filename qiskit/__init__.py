@@ -16,4 +16,3 @@ from ._result import Result
 
 
 __version__ = '0.4.0'
-

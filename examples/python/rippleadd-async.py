@@ -38,7 +38,7 @@ local_backend = "local_qasm_simulator"
 # Whether we have connection with API servers or not. If not, we only launch
 # jobs to the local simulator
 offline = False
-NUM_JOBS = 2 # TODO Parameterize
+NUM_JOBS = 2  # TODO Parameterize
 n = 2
 QPS_SPECS = {
     "circuits": [
@@ -126,17 +126,10 @@ if offline is False:
         qobjs.append(qp.compile(["rippleadd"], backend=online_backend,
                                 coupling_map=None, shots=1024))
 
-print("Creating %d local jobs..." % NUM_JOBS)
-# Create CPU intensive jobs
-for _ in range(0, NUM_JOBS):
-    qobjs.append(qp.compile(["rippleadd"], backend=local_backend,
-                            coupling_map=None, shots=1024))
+        print("Creating %d local jobs..." % NUM_JOBS)
+        # Create CPU intensive jobs
+        for _ in range(0, NUM_JOBS):
 
-end = False
-def print_results_callback(results, error=None):
-    """TODO: Add correct docstring statement. 
-    This function will be called once all jobs have finished."""
-    if error != None:
         print("There was an error executing the circuits!!: Error = {}".format(error))
         return
 
@@ -150,6 +143,7 @@ def print_results_callback(results, error=None):
         print("============")
     global end
     end = True
+
 
 print("Running jobs asynchronously....")
 # This call is asynchronous, it won't block!
