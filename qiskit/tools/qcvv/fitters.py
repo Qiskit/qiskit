@@ -56,10 +56,10 @@ def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
     plt.yticks(fontsize=14)
     plt.xlabel('time [%s]' % (xunit), fontsize=16)
     plt.ylabel('P(1)', fontsize=16)
-    plt.title(exp_str + 'measurments of Q%s' % (str(qubit_label)), fontsize=18)
+    plt.title(exp_str + ' measurement of Q$_{%s}$' % (str(qubit_label)), fontsize=18)
     plt.legend(fontsize=12)
+    plt.grid(True)
     plt.show()
-
 
 def plot_rb_data(xdata, ydatas, yavg, fit, survival_prob):
     """Plot randomized benchmarking data.

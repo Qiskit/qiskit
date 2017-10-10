@@ -3,18 +3,14 @@ from threading import Lock
 import sys
 import time
 
-from IBMQuantumExperience import IBMQuantumExperience
-
+import qiskit.backends as backends
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-# Stable Modules
 from qiskit import QISKitError
-# Local Simulator Modules
-from qiskit import simulators
-# compiler module
 from qiskit import _openquantumcompiler as openquantumcompiler
+from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
 
-def run_local_simulator(qobj):
+def run_local_backend(qobj):
     """Run a program of compiled quantum circuits on the local machine.
 
     Args:
@@ -40,9 +36,9 @@ def run_local_simulator(qobj):
             compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                            format='json')
             circuit['compiled_circuit'] = compiled_circuit
-    local_simulator = simulators.LocalSimulator(qobj)
-    local_simulator.run()
-    return local_simulator.result()
+    backendclass = backends.get_backend_class(qobj['config']['backend'])
+    backend = backendclass(qobj)
+    return backend.run()
 
 def run_remote_backend(qobj, api, wait=5, timeout=60, silent=True):
     """
@@ -114,7 +110,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         if 'status' not in job_result:
             from pprint import pformat
             raise QISKitError("get_job didn't return status: %s" % (pformat(job_result)))
-        if job_result['status'] == 'ERROR_CREATING_JOB' or job_result['status'] == 'ERROR_RUNNING_JOB':
+        if (job_result['status'] == 'ERROR_CREATING_JOB' or
+                job_result['status'] == 'ERROR_RUNNING_JOB'):
             return {'status': 'ERROR', 'result': job_result['status']}
 
     # Get the results
@@ -123,10 +120,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60, silent=True):
         job_result_return.append({'data': job_result['qasms'][index]['data'],
                                   'status': job_result['qasms'][index]['status']})
     return {'status': job_result['status'], 'result': job_result_return}
-
-def local_backends():
-    """Get the local backends."""
-    return simulators._localsimulator.local_backends()
 
 def remote_backends(api):
     """Get the remote backends.
@@ -143,6 +136,7 @@ class JobProcessor():
     """
     process a bunch of jobs and collect the results
     """
+
     def __init__(self, q_jobs, callback, max_workers=1, token=None, url=None, api=None):
         """
         Args:
@@ -160,7 +154,7 @@ class JobProcessor():
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self._local_backends = local_backends()
+        self._local_backends = backends.local_backends()
         self.online = any(qj.backend not in self._local_backends for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
@@ -224,7 +218,7 @@ class JobProcessor():
         executor = self.executor_class(max_workers=self.max_workers)
         for q_job in self.q_jobs:
             if q_job.backend in self._local_backends:
-                future = executor.submit(run_local_simulator,
+                future = executor.submit(run_local_backend,
                                          q_job.qobj)
             elif self.online and q_job.backend in self._online_backends:
                 future = executor.submit(run_remote_backend,
