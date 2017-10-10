@@ -61,8 +61,7 @@ class CompositeGate(Gate):
                 lambda x: (x[0].name, x[1]), self.arg):
             raise QISKitError(
                 "qubit '%s[%d]' not argument of gate"
-                % (qubit[0].name, qubit[1])
-            )
+                % (qubit[0].name, qubit[1]))
 
     def _check_qreg(self, register):
         """Raise exception.
