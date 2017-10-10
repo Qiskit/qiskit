@@ -123,14 +123,14 @@ qobjs = []
 if offline is False:
     print("Creating %d online jobs..." % NUM_JOBS)
     for _ in range(0, NUM_JOBS):
+
         qobjs.append(qp.compile(["rippleadd"], backend=online_backend,
                                 coupling_map=None, shots=1024))
 
         print("Creating %d local jobs..." % NUM_JOBS)
         # Create CPU intensive jobs
         for _ in range(0, NUM_JOBS):
-
-        print("There was an error executing the circuits!!: Error = {}".format(error))
+            print("There was an error executing the circuits!!: Error = {}".format(error))
         return
 
     for result in results:
