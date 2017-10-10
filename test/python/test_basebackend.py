@@ -1,3 +1,5 @@
+# pylint: disable=invalid-name,missing-docstring
+
 import unittest
 
 from qiskit import QISKitError

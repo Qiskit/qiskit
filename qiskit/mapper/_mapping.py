@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -479,7 +480,7 @@ def swap_mapper(circuit_graph, coupling_graph,
 
 
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
-    """Test if arguments are a solution to a system of equations.
+    r"""Test if arguments are a solution to a system of equations.
 
     .. math::
        \cos(\phi+\lambda) \cos(\\theta) = \cos(xi) * \cos(\\theta1+\\theta2)
