@@ -13,5 +13,8 @@ from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
+from ._util import _check_ibmqe_version
 
 __version__ = '0.4.0'
+
+_check_ibmqe_version()
