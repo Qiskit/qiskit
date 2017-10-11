@@ -70,6 +70,6 @@ def _check_ibmqe_version():
         working_set.require(str(ibmqe_require))
     except pkg_resources.ResolutionError:
         logger.warning('The installed IBMQuantumExperience package does '
-                       'not match the required version some features might '
+                       'not match the required version - some features might '
                        'not work as intended. Please install %s.',
                        str(ibmqe_require))
