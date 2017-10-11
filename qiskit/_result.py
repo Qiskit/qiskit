@@ -1,5 +1,8 @@
 import copy
 import numpy
+import json
+import os
+import datetime
 from qiskit._qiskiterror import QISKitError
 from qiskit import RegisterSizeError
 
@@ -33,7 +36,7 @@ class Result(object):
             }
     """
 
-    def __init__(self, qobj_result, qobj):
+    def __init__(self, qobj_result=None, qobj=None):
         self.__qobj = qobj
         self.__result = qobj_result
 
@@ -86,6 +89,68 @@ class Result(object):
 
     def _is_error(self):
         return self.__result['status'] == 'ERROR'
+
+    def _convert_qobj_to_json(self, in_item):
+        """Combs recursively through a list/dictionary and finds any non-json compatible
+        elements and converts them. E.g. complex ndarray's are converted to lists of strings.
+        Assume that all such elements are stored in dictionaries!
+
+        Arg:
+            in_item: the input dict/list
+        """
+
+        key_list = []
+        for (item_index,item_iter) in enumerate(in_item):
+            if type(in_item) is list:
+                curkey = item_index
+            else:
+                curkey = item_iter
+
+            if (type(in_item[curkey]) is dict) or (type(in_item[curkey]) is list):
+                #go recursively through nested list/dictionaries
+                self._convert_qobj_to_json(in_item[curkey])
+            elif type(in_item[curkey]) is numpy.ndarray:
+                #ndarray's are not json compatible. Save the key.
+                key_list.append(curkey)
+
+        #convert ndarray's to lists
+        #split complex arrays into two lists because complex values are not json compatible
+        for curkey in key_list:
+            if in_item[curkey].dtype=='complex':
+                in_item[curkey+'_ndarray_imag'] = numpy.imag(in_item[curkey]).tolist()
+            in_item[curkey+'_ndarray_real'] = numpy.real(in_item[curkey]).tolist()
+            in_item.pop(curkey)
+
+    def _convert_json_to_qobj(self,in_item):
+        """Combs recursively through a list/dictionary that was loaded from json
+        and finds any lists that were converted from ndarray and converts them back
+
+        Arg:
+            in_item: the input dict/list
+        """
+
+        key_list = []
+        for (item_index,item_iter) in enumerate(in_item):
+            if type(in_item) is list:
+                curkey = item_index
+            else:
+                curkey = item_iter
+
+                if '_ndarray_real' in curkey:
+                    key_list.append(curkey)
+                    continue
+
+            if (type(in_item[curkey]) is dict) or (type(in_item[curkey]) is list):
+                self._convert_json_to_qobj(in_item[curkey])
+
+        for curkey in key_list:
+            curkey_root = curkey[0:-13]
+            in_item[curkey_root] = numpy.array(in_item[curkey])
+            in_item.pop(curkey)
+            if (curkey_root+'_ndarray_imag') in in_item:
+                in_item[curkey_root] = in_item[curkey_root] + 1j*numpy.array(in_item[curkey_root+'_ndarray_imag'])
+                in_item.pop(curkey_root+'_ndarray_imag')
+
 
     def get_status(self):
         """Return whole qobj result status."""
@@ -268,3 +333,87 @@ class Result(object):
                 qubitpol[circuit_ind,qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
 
         return qubitpol,xvals
+
+    def save_datestr(self, folder, fileroot):
+        """Constructs a filename using the current date-time
+
+        Args:
+            folder: path to the save folder
+            fileroot: root string for the file
+
+        Returns:
+            filename: full file path of the form 'folder/YYYY_MM_DD_HH_MM_fileroot.json'
+        """
+
+        #if the fileroot has .json appended strip it off
+        if (len(fileroot)>4 and fileroot[-5:].lower()=='.json'):
+            fileroot = fileroot[0:-5]
+
+        return os.path.join(folder,'{:%Y_%m_%d_%H_%M_}'.format(datetime.datetime.now())+fileroot+'.json')
+
+    def save(self, filename, metadata=None):
+        """Save a result (qobj + result) to a single dictionary file filename.json
+        If the file already exists then numbers will be appended to generate a unique filename
+
+        Args:
+            filename: save path
+            metadata (optional): Add another dictionary with custom data for the result (eg fit results)
+
+        Returns:
+            filename: full file path
+        """
+        master_dict = {}
+        master_dict['qobj'] = self.__qobj.copy()
+        master_dict['result'] = self.__result.copy()
+        if metadata is None:
+            master_dict['metadata'] = {}
+        else:
+            master_dict['metadata'] = metadata
+
+
+        #need to convert any ndarray variables to lists so that they can be
+        #exported to the json file
+        self._convert_qobj_to_json(master_dict['result'])
+
+        #if the filename has .json appended strip it off
+        if filename[-5:].lower()=='.json':
+            filename = filename[0:-5]
+
+        append_str = ''
+        append_num = 0
+
+        while (os.path.exists(filename+append_str+'.json')):
+            append_num += 1
+            append_str = '_%d'%append_num
+
+        fo = open(filename+append_str+'.json','w')
+        json.dump(master_dict,fo,indent=1)
+        fo.close()
+
+        return filename+append_str+'.json'
+
+    def load(self, filename):
+        """Load a results dictionary file (.json)
+
+        Args:
+            filename: filename of the dictionary
+
+        Returns:
+            metadata: if the metadata exists it will get returned
+        """
+
+        if not os.path.exists(filename):
+            raise QISKitError('File %s does not exist'%filename)
+
+        fo = open(filename,'r')
+        master_dict = json.load(fo)
+
+        try:
+            self.__qobj = master_dict['qobj']
+            self.__result = master_dict['result']
+            self._convert_json_to_qobj(self.__result)
+            metadata = master_dict['metadata']
+        except KeyError:
+            raise QISKitError('File %s does not have the proper dictionary structure')
+
+        return metadata
