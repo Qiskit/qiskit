@@ -15,14 +15,12 @@
 # limitations under the License.
 # =============================================================================
 """
-Quantum Optimization tools.
-
-
-These are simple tools that are used in our optimization examples
+These are tools that are used in the classical optimization and chemistry
+tutorials
 """
-import sys
 import numpy as np
 import copy
+import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -32,7 +30,7 @@ from tools.qi.pauli import Pauli, label_to_pauli
 
 def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
                       save_steps=1, last_avg=1):
-    """Minimize obj_fun(theta) with a simultaneous perturbation stochastic
+    """Minimizes obj_fun(theta) with a simultaneous perturbation stochastic
     approximation algorithm.
 
     Args:
@@ -58,6 +56,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
         theta_minus_save : array of stored variables of obj_fun along the
             optimization in the - direction
     """
+
     theta_plus_save = []
     theta_minus_save = []
     cost_plus_save = []
@@ -99,8 +98,8 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
     # final cost update
     cost_final = obj_fun(theta_best)
     print('Final objective function is: ' + str(cost_final))
-    return cost_final, theta_best, cost_plus_save, cost_minus_save,
-    theta_plus_save, theta_minus_save
+    return [cost_final, theta_best, cost_plus_save, cost_minus_save,
+            theta_plus_save, theta_minus_save]
 
 
 def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
@@ -147,14 +146,12 @@ def measure_pauli_z(data, pauli):
     Z is represented by Z^v where v has lenght number of qubits and is 1
     if Z is present and 0 otherwise.
 
-    data = is a dictionary of the form data = {'00000': 10}
-
-    M = <psi|Z^v|psi>
-      = \sum_lambda  lambda  |<lambda |psi>|^2
-      = sum_i lambda(i) P(i)
-      where i is the bitstring (key of data)
-      = sum_key lambda(key) #key/total_values
-    """
+    Args:
+        data : a dictionary of the form data = {'00000': 10}
+        pauli : a Pauli object
+    Returns:
+        Expected value of pauli given data
+ """
     observable = 0
     tot = sum(data.values())
     for key in data:
@@ -169,13 +166,19 @@ def measure_pauli_z(data, pauli):
 
 
 def Energy_Estimate(data, pauli_list):
-    """Compute expectation value of a list of Paulis with coefficients.
+    """Compute expectation value of a list of diagonal Paulis with
+    coefficients given measurement data. If somePaulis are non-diagonal
+    appropriate post-rotations had to be performed in the collection of data
 
-    pauli_list is a list of tuples [(number, Pauli(v,w))]
+    Args:
+        data : output of the execution of a quantum program
+        pauli_list : list of [coeff, Pauli]
+    Returns:
+        The expectation value
     """
     energy = 0
     if np.ndim(pauli_list) == 1:
-            energy = pauli_list[0] * measure_pauli_z(data, pauli_list[1])
+        energy = pauli_list[0] * measure_pauli_z(data, pauli_list[1])
     else:
         for p in pauli_list:
             energy += p[0] * measure_pauli_z(data, p[1])
@@ -183,13 +186,16 @@ def Energy_Estimate(data, pauli_list):
 
 
 def index_2_bit(state_index, num_bits):
-    """ Returns bit string corresponding to quantum state index
+    """Returns bit string corresponding to quantum state index
 
-    state_index : integer index of the state to convert
-    num_bits : the number of bits in the returned string
+    Args:
+        state_index : basis index of a quantum state
+        num_bits : the number of bits in the returned string
+    Returns:
+        A integer array with the binary representation of state_index
     """
     return np.array([int(c) for c
-                    in np.binary_repr(state_index, num_bits)[::-1]],
+                     in np.binary_repr(state_index, num_bits)[::-1]],
                     dtype=np.uint8)
 
 
@@ -275,7 +281,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         device : the backend used to run the simulation.
     Returns:
         Average value of the Hamiltonian or observable.
-        """
+    """
     energy = 0
 
     if shots == 1:
@@ -288,11 +294,11 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                                        silent=True)
             quantum_state = result.get_data(circuit[0])['quantum_state']
             # Diagonal Hamiltonian represented by 1D array
-            if (hamiltonian.shape[0] == 1
-                    or np.shape(np.shape(np.array(hamiltonian))) == (1,)):
+            if (hamiltonian.shape[0] == 1 or
+                    np.shape(np.shape(np.array(hamiltonian))) == (1,)):
                 energy = np.sum(hamiltonian * np.absolute(quantum_state) ** 2)
             # Hamiltonian represented by square matrix
-            elif (hamiltonian.shape[0] == hamiltonian.shape[1]): 
+            elif hamiltonian.shape[0] == hamiltonian.shape[1]:
                 energy = np.inner(np.conjugate(quantum_state),
                                   np.dot(hamiltonian, quantum_state))
         else:  # Hamiltonian represented by a Pauli list
@@ -327,7 +333,8 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             i = 1
             for p in hamiltonian:
                 quantum_state_i = result.get_data(circuits_labels[i])
-                ['quantum_state']  # final rotations of (i-1)-th Pauli
+                ['quantum_state']
+                # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(quantum_state_0),
                                           quantum_state_i)
                 i += 1
@@ -363,19 +370,20 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
 
 def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
                      measurement=True):
-    """Trial function for classical optimization problems.
+    """Creates a QuantumCircuit object ocnsisting in layers of
+    parametrized single-qubit Y rotations and CZ two-qubit gates
 
-    n = number of qubits
-    m = depth
-    theta = control vector of size n*m stacked as theta[n*i+j] where j counts
-           the qubits and i the depth
-    entangler_map = {0: [2, 1],
-                     1: [2],
-                     3: [2],
-                     4: [2]}
-    control is the key and values are the target
-    meas_string = the pauli to be measured
-    measurement = true/false if measurement is to be done
+    Args:
+        n (int) : number of qubits
+        m (int) : depth of the circuit
+        theta array[float] : angles that parametrize the Y rotations
+        entangler_map : CZ connectivity, e.g. {0: [1], 1: [2]}
+        meas_string (str) : measure a given Pauli operator at the end of the
+            circuit
+        measurement (bool) : whether to measure the qubit (register "q")
+            on classical bits (register "c")
+    Returns:
+        A QuantumCircuit object
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
@@ -403,50 +411,22 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
     return trial_circuit
 
 
-def trial_circuit_computational(n, state, meas_string=None, measurement=True):
-    """Trial function for classical optimization problems.
-
-    n = number of qubits
-    state = a bit string for the state prepared.
-    meas_string = the pauli to be measured
-    measurement = true/false if measurement is to be done
-    """
-    q = QuantumRegister("q", n)
-    c = ClassicalRegister("c", n)
-    trial_circuit = QuantumCircuit(q, c)
-    if meas_string is None:
-        meas_string = [None for x in range(n)]
-    if len(state) == n:
-        for j in range(n):
-            if state[n - j - 1] == "1":
-                trial_circuit.x(q[j])
-        trial_circuit.barrier(q)
-        for j in range(n):
-            if meas_string[j] == 'X':
-                trial_circuit.h(q[j])
-            elif meas_string[j] == 'Y':
-                trial_circuit.s(q[j]).inverse()
-                trial_circuit.h(q[j])
-        if measurement:
-            for j in range(n):
-                trial_circuit.measure(q[j], c[j])
-    return trial_circuit
-
-
 def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
                        measurement=True):
-    """Trial function for classical optimization problems.
+    """Creates a QuantumCircuit object ocnsisting in layers of
+    parametrized single-qubit Y and Z rotations and CZ two-qubit gates
 
-    n = number of qubits
-    m = depth
-    theta = control vector of size n*m*2 stacked as theta[n*i*2+2*j+p] where j
-    counts the qubits and i the depth and p if y and z.
-    entangler_map = {0: [2, 1],
-                     1: [2],
-                     3: [2],
-                     4: [2]}
-    control is the key and values are the target
-    pauli_string = length of number of qubits string
+    Args:
+        n (int) : number of qubits
+        m (int) : depth of the circuit
+        theta array[float] : angles that parametrize the Y and Z rotations
+        entangler_map : CZ connectivity, e.g. {0: [1], 1: [2]}
+        meas_string (str) : measure a given Pauli operator at the end of the
+            circuit
+        measurement (bool) : whether to measure the qubit (register "q")
+            on classical bits (register "c")
+    Returns:
+        A QuantumCircuit object
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
@@ -476,19 +456,29 @@ def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
 
 
 def make_Hamiltonian(pauli_list):
-        """Compute the Hamiltonian.
+    """Creates a matrix operator out of a list of Paulis.
 
-        pauli_list is a list of tuples [(coefficient, Pauli(v,w))]
-        WARNING. This is exponential in the number of qubits.
-        """
-        Hamiltonian = 0
-        for p in pauli_list:
-            Hamiltonian += p[0] * p[1].to_matrix()
-        return Hamiltonian
+    Args:
+        pauli_list : list of list [coeff,Pauli]
+    Returns:
+        A matrix representing pauli_list
+    """
+    Hamiltonian = 0
+    for p in pauli_list:
+        Hamiltonian += p[0] * p[1].to_matrix()
+    return Hamiltonian
 
 
 def Hamiltonian_from_file(file_name):
-    """Compute the pauli_list from a file."""
+    """Creates a matrix operator out of a file with a list 
+    of Paulis.
+
+    Args:
+        file_name : a text file containing a list of Paulis and 
+        coefficients.
+    Returns:
+        A matrix representing pauli_list
+    """
     with open(file_name, 'r+') as file:
         ham_array = file.readlines()
     ham_array = [x.strip() for x in ham_array]
