@@ -26,7 +26,7 @@ as its contents are a combination of:
 """
 
 
-def discover_sdk_backends(directory=os.path.dirname(__file__)):
+def discover_local_backends(directory=os.path.dirname(__file__)):
     """This function attempts to discover all backend modules.
 
     Discover the backends on modules on the directory of the current module
@@ -38,6 +38,7 @@ def discover_sdk_backends(directory=os.path.dirname(__file__)):
     """
     for _, name, _ in pkgutil.iter_modules([os.path.dirname(__file__)]):
         # Iterate through the modules on the directory of the current one.
+        #if name == '_qasmsimulator': import pdb;pdb.set_trace()
         if name not in __name__:  # skip the current module
             fullname = os.path.splitext(__name__)[0] + '.' + name
             modspec = importlib.util.find_spec(fullname)
@@ -46,16 +47,19 @@ def discover_sdk_backends(directory=os.path.dirname(__file__)):
 
             for _, cls in inspect.getmembers(mod, inspect.isclass):
                 # Iterate through the classes defined on the module.
+                print(cls.__module__, modspec.name)
+                if name == '_qasmsimulator': import pdb;pdb.set_trace()
                 if (issubclass(cls, BaseBackend) and
                         cls.__module__ == modspec.name):
                     try:
                         register_backend(cls)
+                        print('VALID: ', fullname)
                         importlib.import_module(fullname)
                     except QISKitError:
                         # Ignore backends that could not be initialized.
                         pass
 
-def discover_api_backends(api):
+def discover_remote_backends(api):
     """Discover backends available on the Quantum Experience
 
     Args:
@@ -160,6 +164,23 @@ def get_backend_class(backend_name):
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
+def get_backend_instance(backend_name):
+    """Return a backend instance for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        instance subclass of BaseBackend
+
+    Raises:
+        LookupError if backend is unavailable
+    """
+    try:
+        registered_backend = _REGISTERED_BACKENDS[backend_name]
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    return registered_backend.cls(configuration=registered_backend.configuration)
 
 def get_backend_configuration(backend_name):
     """Return the configuration for the named backend.
@@ -191,4 +212,4 @@ def remote_backends():
             if backend.configuration.get('local') == False]
 
 
-discover_sdk_backends()
+discover_local_backends()

@@ -119,8 +119,8 @@ from qiskit.backends._basebackend import BaseBackend
 
 class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
-        
-    def __init__(self, qobj):
+
+    def __init__(self, configuration=None):
         """
         Args:
             qobj (dict): qobj dictionary which has the structure::
@@ -152,17 +152,18 @@ class QasmSimulator(BaseBackend):
                     }
 
         """
-        self.qobj = qobj
-        self._configuration = {
-            'name': 'local_qasm_simulator',
-            'url': 'https://github.com/IBM/qiskit-sdk-py',
-            'simulator': True,
-            'local': True,
-            'description': 'A python simulator for qasm files',
-            'coupling_map': 'all-to-all',
-            'basis_gates': 'u1,u2,u3,cx,id'
-        }
-        
+        if configuration is None:
+            self._configuration = {
+                'name': 'local_qasm_simulator',
+                'url': 'https://github.com/IBM/qiskit-sdk-py',
+                'simulator': True,
+                'local': True,
+                'description': 'A python simulator for qasm files',
+                'coupling_map': 'all-to-all',
+                'basis_gates': 'u1,u2,u3,cx,id'
+            }
+        else:
+            self._configuration = configuration
 
     @staticmethod
     def _index1(b, i, k):
@@ -297,18 +298,19 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
-    def run(self, silent=True):
-        """Run circuits in qobj
-        
+    def run(self, q_job):
+        """Run circuits in q_job
+
         Args:
             silent (bool, optional): Silence print statements. Default is True.
         """
+        self.qobj = q_job.qobj
         result_list = []
         self._shots = self.qobj['config']['shots']
         for circuit in self.qobj['circuits']:
             result_list.append( self.run_circuit(circuit) )
         return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
+                      self.qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.

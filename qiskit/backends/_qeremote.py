@@ -7,26 +7,34 @@ from qiskit._result import Result
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
 class QeRemote(BaseBackend):
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            qobj (dict): quantum object
+            
         """
-        self._qobj = qobj
-        backend_name = qobj['config']['backend']
-        self._configuration = get_backend_configuration(
-            backend_name)
+        if configuration is None:
+            self._configuration = get_backend_configuration(backend_name)
+        else:
+            self._configuration = configuration
         self._configuration['local'] = False
 
-    def run(self, wait=5, timeout=60, silent=True):
+    def run(self, q_job):
         """Run jobs
 
         Args:
-            wait (int): Time interval to wait between requests for results
-            timeout (int): Total time waiting for the results
-            silent (bool): If true, prints out results
+            q_job (QuantumJob): job to run
+
+        Returns:
+            Result object.
+
+        Raises:
+            ResultError: if the api put 'error' in its output
         """
+        self._qobj = q_job.qobj
+        wait = q_job.wait
+        timeout = q_job.timeout
+        silent = q_job.silent
         api_jobs = []
         for circuit in self._qobj['circuits']:
             if (('compiled_circuit_qasm' not in circuit) or

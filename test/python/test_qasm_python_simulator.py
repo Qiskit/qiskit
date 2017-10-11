@@ -24,7 +24,7 @@ import unittest
 
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-from qiskit import qasm, unroll, QuantumProgram
+from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends._qasmsimulator import QasmSimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
@@ -53,9 +53,16 @@ class LocalQasmSimulatorTest(QiskitTestCase):
             qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
                       unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
+        circuit_config = {'coupling_map': None,
+                          'basis_gates': 'u1,u2,u3,cx,id',
+                          'layout': None,
+                          'seed': self.seed}
+        resources = {'max_credits': 3,
+                     'wait': 5,
+                     'timeout': 120}
         self.qobj = {'id': 'test_sim_single_shot',
                      'config': {
-                         'max_credits': 3,
+                         'max_credits': resources['max_credits'],
                          'shots': 1024,
                          'backend': 'local_qasm_simulator',
                      },
@@ -64,14 +71,18 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                              'name': 'test',
                              'compiled_circuit': circuit,
                              'compiled_circuit_qasm': None,
-                             'config': {'coupling_map': None,
-                                        'basis_gates': 'u1,u2,u3,cx,id',
-                                        'layout': None,
-                                        'seed': self.seed
-                             }
+                             'config': circuit_config
                          }
                      ]
         }
+        self.q_job = QuantumJob(circuit,
+                                backend='local_qasm_simulator',
+                                circuit_config=circuit_config,
+                                seed=self.seed,
+                                resources=resources,
+                                preformatted=False
+                                )
+                                
 
     def tearDown(self):
         pass

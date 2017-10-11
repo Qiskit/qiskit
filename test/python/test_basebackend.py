@@ -6,7 +6,7 @@ from qiskit.backends import (BaseBackend,
                              remote_backends,
                              register_backend)
 from qiskit.backends._backendutils import (_REGISTERED_BACKENDS,
-                                           discover_sdk_backends)
+                                           discover_local_backends)
 
 from .common import QiskitTestCase
 
@@ -18,7 +18,7 @@ class TestBaseBackend(QiskitTestCase):
         # Manually clear and populate the list of registered backends, as it is
         # defined at module scope and computed during the initial import.
         _REGISTERED_BACKENDS = {}
-        discover_sdk_backends()
+        discover_local_backends()
 
     def test_register_valid_class(self):
         """Test backend registration for a custom valid backend."""

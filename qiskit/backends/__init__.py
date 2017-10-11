@@ -4,5 +4,5 @@ from ._backendutils import (get_backend_class,
                             local_backends,
                             remote_backends,
                             register_backend,
-                            discover_sdk_backends,
-                            discover_api_backends)
+                            discover_local_backends,
+                            discover_remote_backends)

@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 
 class BaseBackend(ABC):
     @abstractmethod
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -16,13 +16,12 @@ class BaseBackend(ABC):
         not available.
 
         Args:
-            qobj (dict): qobj dictionary
+            configuration (dict): configuration dictionary
 
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        self._qobj = qobj
-        self._configuration = None  # IMPLEMENT for your backend
+        self._configuration = configuration
 
     @abstractmethod
     def run(self):
