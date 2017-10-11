@@ -75,7 +75,7 @@ def update_set(j, n):
 
 def flip_set(j, n):
     """Computes the flip set of the j-th orbital in n modes
-
+    
     Args:
         j (int) : the orbital index
         n (int) : the total number of modes
@@ -154,14 +154,14 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
     a = []
     if map_type == 'JORDAN_WIGNER':
         for i in range(n):
-            Xv = np.append(np.append(np.ones(i), 0), np.zeros(n - i - 1))
-            Xw = np.append(np.append(np.zeros(i), 1), np.zeros(n - i - 1))
-            Yv = np.append(np.append(np.ones(i), 1), np.zeros(n - i - 1))
-            Yw = np.append(np.append(np.zeros(i), 1), np.zeros(n - i - 1))
+            xv = np.append(np.append(np.ones(i), 0), np.zeros(n - i - 1))
+            xw = np.append(np.append(np.zeros(i), 1), np.zeros(n - i - 1))
+            yv = np.append(np.append(np.ones(i), 1), np.zeros(n - i - 1))
+            yw = np.append(np.append(np.zeros(i), 1), np.zeros(n - i - 1))
             # defines the two mapped Pauli components of a_i and a_i^\dag,
             # according to a_i -> (a[i][0]+i*a[i][1])/2,
             # a_i^\dag -> (a_[i][0]-i*a[i][1])/2
-            a.append((Pauli(Xv, Xw), Pauli(Yv, Yw)))
+            a.append((Pauli(xv, xw), Pauli(yv, yw)))
     if map_type == 'PARITY':
         for i in range(n):
             if i > 1:
