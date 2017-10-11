@@ -1,6 +1,6 @@
-IBMQuantumExperience>=1.8
-requests>=1.11,<.12
-networkx>=1.11,<2.0
+IBMQuantumExperience>=1.8.13
+requests>=2.18,<2.19
+networkx>=1.11,<1.12
 ply==3.10
 numpy>=1.13,<1.14
 scipy>=0.19,<0.20

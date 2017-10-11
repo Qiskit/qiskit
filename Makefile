@@ -17,10 +17,10 @@
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
 	if test $(findstring QISKitenv, $(shell conda info --envs)); then \
-		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+		bash -c "source activate QISKitenv;pip install -r requirements.txt"; \
 	else \
 		conda create -y -n QISKitenv python=3; \
-		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+		bash -c "source activate QISKitenv;pip install -r requirements.txt"; \
 	fi;
 
 run:
