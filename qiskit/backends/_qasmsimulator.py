@@ -1,5 +1,5 @@
-# pylint: disable=line-too-long
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -123,35 +123,8 @@ class QasmSimulator(BaseBackend):
     def __init__(self, configuration=None):
         """
         Args:
-            qobj (dict): qobj dictionary which has the structure::
-
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
-
-        """
+            configuration (dict): backend configuration
+        """ 
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',
@@ -299,11 +272,7 @@ class QasmSimulator(BaseBackend):
             self._quantum_state = temp
 
     def run(self, q_job):
-        """Run circuits in q_job
-
-        Args:
-            silent (bool, optional): Silence print statements. Default is True.
-        """
+        """Run circuits in q_job"""
         self.qobj = q_job.qobj
         result_list = []
         self._shots = self.qobj['config']['shots']

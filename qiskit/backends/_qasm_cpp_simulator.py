@@ -144,8 +144,8 @@ class QasmCppSimulator(BaseBackend):
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
                             format(cout.decode(), cerr.decode()))
-        
-    def run_circuit(self, circuit, silent=True):
+
+    def run_circuit(self, circuit):
         """Run a single circuit on the C++ simulator
 
         Args:

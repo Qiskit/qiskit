@@ -90,11 +90,16 @@ returned results object::
             'state': 'DONE'
             }
 """
+import logging
 import numpy as np
 import json
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
+
+
+logger = logging.getLogger(__name__)
+
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
@@ -136,19 +141,15 @@ class UnitarySimulator(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self, silent=True):
-        """Run circuits in qobj
-        
-        Args:
-            silent (bool, optional): Silence print statements. Default is True.
-        """
+    def run(self):
+        """Run circuits in qobj"""
         result_list = []
         for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit, silent=silent) )
+            result_list.append( self.run_circuit(circuit) )
         return Result({'result': result_list, 'status': 'COMPLETED'},
                       self.qobj)            
         
-    def run_circuit(self, circuit, silent=True):
+    def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
@@ -174,11 +175,11 @@ class UnitarySimulator(BaseBackend):
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
             elif operation['name'] == 'measure':
-                if silent is False:
-                    print('Warning have dropped measure from unitary simulator')
+                logger.info('Warning have dropped measure from unitary '
+                            'simulator')
             elif operation['name'] == 'reset':
-                if silent is False:
-                    print('Warning have dropped reset from unitary simulator')
+                logger.info('Warning have dropped reset from unitary '
+                            'simulator')
             elif operation['name'] == 'barrier':
                 pass
             else:

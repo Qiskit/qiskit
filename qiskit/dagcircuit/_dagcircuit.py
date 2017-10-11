@@ -41,6 +41,7 @@ class DAGCircuit:
     The nodes are connected by directed edges that correspond to qubits and
     bits.
     """
+    # pylint: disable=invalid-name
 
     def __init__(self):
         """Create an empty circuit."""

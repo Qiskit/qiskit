@@ -1,4 +1,6 @@
 from concurrent import futures
+import logging
+import pprint
 from threading import Lock
 import sys
 import time
@@ -86,10 +88,7 @@ class JobProcessor():
                 self.num_jobs -= 1
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
-            if not future.silent:
-                import pprint
-                pprint.pprint(result)
-                sys.stdout.flush()
+            logger.info(pprint.pformat(result))
             self.callback(self.jobs_results)
 
     def submit(self):

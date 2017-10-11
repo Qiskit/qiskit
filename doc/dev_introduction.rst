@@ -69,3 +69,54 @@ Several unroller backends and their outputs are summarized here:
 .. image:: ../images/unroller_backends.png
     :width: 600px
     :align: center
+
+
+Logging
+-------
+
+The SDK uses the `standard Python "logging" library
+<https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
+family of "`qiskit.*`" loggers, and abides by the standard convention for the log levels:
+
+.. tabularcolumns:: |l|L|
+
++--------------+----------------------------------------------+
+| Level        | When it's used                               |
++==============+==============================================+
+| ``DEBUG``    | Detailed information, typically of interest  |
+|              | only when diagnosing problems.               |
++--------------+----------------------------------------------+
+| ``INFO``     | Confirmation that things are working as      |
+|              | expected.                                    |
++--------------+----------------------------------------------+
+| ``WARNING``  | An indication that something unexpected      |
+|              | happened, or indicative of some problem in   |
+|              | the near future (e.g. 'disk space low').     |
+|              | The software is still working as expected.   |
++--------------+----------------------------------------------+
+| ``ERROR``    | Due to a more serious problem, the software  |
+|              | has not been able to perform some function.  |
++--------------+----------------------------------------------+
+| ``CRITICAL`` | A serious error, indicating that the program |
+|              | itself may be unable to continue running.    |
++--------------+----------------------------------------------+
+
+
+For convenience, :py:class:`QuantumProgram <qiskit.QuantumProgram>` provides two convenience
+methods (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` and
+:py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`) that modify the handlers
+and the level of the `qiskit` logger. Using these methods might interfere with the global
+logging setup of your environment - please take it into consideration if developing an
+application on top of the SDK.
+
+The convention for emitting log messages is declare a global variable in the module named
+**logger**, which contains the logger with that module's **__name__**, and use it for emitting
+the messages. For example, if the module is `qiskit/some/module.py`:
+
+.. code-block:: python
+
+   import logging
+
+   logger = logging.getLogger(__name__)  # logger for "qiskit.some.module"
+   ...
+   logger.info("This is an info message)

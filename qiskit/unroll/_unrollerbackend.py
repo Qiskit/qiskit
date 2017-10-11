@@ -26,6 +26,7 @@ class UnrollerBackend(object):
 
     This backend also serves as a base class for other unroller backends.
     """
+    # pylint: disable=unused-argument
 
     def __init__(self, basis=None):
         """Setup this backend.
