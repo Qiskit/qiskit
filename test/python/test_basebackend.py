@@ -81,10 +81,10 @@ class TestBaseBackend(QiskitTestCase):
 
 # Dummy backend classes for testing registration.
 class NoConfigurationBackend(BaseBackend):
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         pass
 
-    def run(self):
+    def run(self, q_job):
         pass
 
     @property
@@ -93,8 +93,8 @@ class NoConfigurationBackend(BaseBackend):
 
 
 class ValidBackend(NoConfigurationBackend):
-    def __init__(self, qobj):
-        self._configuration = {'name': 'valid_backend'}
+    def __init__(self, configuration={'name':'valid_backend'}):
+        self._configuration = configuration
 
     @property
     def configuration(self):
@@ -102,7 +102,7 @@ class ValidBackend(NoConfigurationBackend):
 
 
 class UninstantiableBackend(ValidBackend):
-    def __init__(self, qobj):
+    def __init__(self):
         raise Exception
 
 

@@ -3,10 +3,12 @@ import importlib
 import inspect
 import os
 import pkgutil
+import logging
 
 from .. import QISKitError
 from ._basebackend import BaseBackend
 
+logger = logging.getLogger(__name__)
 
 RegisteredBackend = namedtuple('RegisteredBackend',
                                ['name', 'cls', 'configuration'])
@@ -36,28 +38,25 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
         directory (str, optional): Directory to search for backends. Defaults
             to the directory of this module.
     """
-    for _, name, _ in pkgutil.iter_modules([os.path.dirname(__file__)]):
+    for _, name, _ in pkgutil.iter_modules([directory]):
         # Iterate through the modules on the directory of the current one.
-        #if name == '_qasmsimulator': import pdb;pdb.set_trace()
         if name not in __name__:  # skip the current module
             fullname = os.path.splitext(__name__)[0] + '.' + name
             modspec = importlib.util.find_spec(fullname)
             mod = importlib.util.module_from_spec(modspec)
             modspec.loader.exec_module(mod)
-
             for _, cls in inspect.getmembers(mod, inspect.isclass):
                 # Iterate through the classes defined on the module.
-                print(cls.__module__, modspec.name)
-                if name == '_qasmsimulator': import pdb;pdb.set_trace()
                 if (issubclass(cls, BaseBackend) and
                         cls.__module__ == modspec.name):
                     try:
                         register_backend(cls)
-                        print('VALID: ', fullname)
                         importlib.import_module(fullname)
                     except QISKitError:
                         # Ignore backends that could not be initialized.
-                        pass
+                        logger.info(
+                            'backend {} could not be initialized'.format(
+                                fullname))
 
 def discover_remote_backends(api):
     """Discover backends available on the Quantum Experience
@@ -66,7 +65,7 @@ def discover_remote_backends(api):
         api (IBMQuantumExperience): Quantum Experience API
     """
     from ._qeremote import QeRemote
-    QeRemote._api = api
+    QeRemote.set_api(api)
     configuration_list = api.available_backends()
     for configuration in configuration_list:
         backend_name = configuration['name']
@@ -104,31 +103,8 @@ def register_backend(cls):
     if not issubclass(cls, BaseBackend):
         raise QISKitError('Could not register backend: %s is not a subclass '
                           'of BaseBackend' % cls)
-
-    # Attempt to instantiate the class. This might raise Exceptions that
-    # depend on the backend __init__ method.
-    circuit = {'header': {'clbit_labels': [['cr', 1]],
-                          'number_of_clbits': 1,
-                          'number_of_qubits': 1,
-                          'qubit_labels': [['qr', 0]]},
-               'operations':
-                   [{'name': 'h',
-                     'params': [],
-                     'qubits': [0]},
-                    {'clbits': [0],
-                     'name': 'measure',
-                     'qubits': [0]}]}
-    qobj = {'id': 'backend_discovery',
-            'config': {
-                'max_credits': 3,
-                'shots': 1,
-                'backend': None,
-                },
-            'circuits': [{'compiled_circuit': circuit}]
-            }
-
     try:
-        backend_instance = cls(qobj)
+        backend_instance = cls()
     except Exception as e:
         raise QISKitError('Could not register backend: %s could not be '
                           'instantiated: %s' % (cls, e))

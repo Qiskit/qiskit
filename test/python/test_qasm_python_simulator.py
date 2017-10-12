@@ -76,12 +76,12 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]
         }
-        self.q_job = QuantumJob(circuit,
+        self.q_job = QuantumJob(self.qobj,
                                 backend='local_qasm_simulator',
                                 circuit_config=circuit_config,
                                 seed=self.seed,
                                 resources=resources,
-                                preformatted=False
+                                preformatted=True
                                 )
                                 
 
@@ -92,12 +92,12 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj['config']['shots'] = shots
-        result = QasmSimulator(self.qobj).run()
+        result = QasmSimulator().run(self.q_job)
         self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = QasmSimulator(self.qobj).run()
+        result = QasmSimulator().run(self.q_job)
         expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
                     '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
         self.assertEqual(result.get_counts('test'), expected)
@@ -165,8 +165,8 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                     }
                 ]
         }
-
-        result = QasmSimulator(qobj).run()
+        q_job = QuantumJob(qobj, preformatted=True)
+        result = QasmSimulator().run(q_job)
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
         self.log.info(circuit_if_true.qasm())

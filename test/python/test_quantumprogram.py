@@ -1214,7 +1214,6 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr, cr)
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
-        qiskit.backends.discover_remote_backends(QP_program.get_api())
         backend = 'ibmqx_qasm_simulator'
         result = QP_program.execute(['qc'], backend=backend,
                                     shots=shots, max_credits=3,
@@ -1264,7 +1263,6 @@ class TestQuantumProgram(QiskitTestCase):
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         QP_program.set_api(QE_TOKEN, QE_URL)
-        qiskit.backends.discover_remote_backends(QP_program.get_api())        
         backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
@@ -1491,7 +1489,6 @@ class TestQuantumProgram(QiskitTestCase):
         }
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
-        qiskit.backends.discover_remote_backends(qp.get_api())
         if backend not in qp.online_simulators():
             unittest.skip('backend "{}" not available'.format(backend))
         qc = qp.get_circuit("swapping")

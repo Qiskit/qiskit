@@ -1,10 +1,12 @@
 import time
+import logging
 from qiskit.backends._basebackend import BaseBackend
 from qiskit.backends._backendutils import get_backend_configuration
 from qiskit import _openquantumcompiler as openquantumcompiler
 from qiskit._result import Result
-
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+
+logger = logging.getLogger(__name__)
 
 class QeRemote(BaseBackend):
     def __init__(self, configuration=None):
@@ -34,7 +36,6 @@ class QeRemote(BaseBackend):
         self._qobj = q_job.qobj
         wait = q_job.wait
         timeout = q_job.timeout
-        silent = q_job.silent
         api_jobs = []
         for circuit in self._qobj['circuits']:
             if (('compiled_circuit_qasm' not in circuit) or
@@ -56,11 +57,16 @@ class QeRemote(BaseBackend):
             raise ResultError(output['error'])
 
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
-                                   timeout=timeout, silent=silent)
+                                   timeout=timeout)
         job_result['name'] = self._qobj['id']
         job_result['backend'] = self._qobj['config']['backend']
         this_result = Result(job_result, self._qobj)
         return this_result
+
+    @classmethod
+    def set_api(cls, api):
+        """Associate API with class"""
+        cls._api = api
 
 def _wait_for_job(jobid, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.

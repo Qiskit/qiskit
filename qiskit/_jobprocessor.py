@@ -13,6 +13,8 @@ from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
 from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
 
+logger = logging.getLogger(__name__)
+
 def run_backend(q_job):
     """Run a program of compiled quantum circuits on the local machine.
 
@@ -24,11 +26,12 @@ def run_backend(q_job):
     """
     backend_name = q_job.backend
     qobj = q_job.qobj
-    for circuit in qobj['circuits']:
-        if circuit['compiled_circuit'] is None:
-            compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
-                                                           format='json')
-            circuit['compiled_circuit'] = compiled_circuit
+    if backend_name in local_backends(): # remove condition when api gets qobj
+        for circuit in qobj['circuits']:
+            if circuit['compiled_circuit'] is None:
+                compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
+                                                               format='json')
+                circuit['compiled_circuit'] = compiled_circuit
     backend = qiskit.backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 

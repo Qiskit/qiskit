@@ -23,9 +23,10 @@ import unittest
 
 import numpy as np
 
-from qiskit import qasm, unroll, QuantumProgram
+from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
+                    QuantumRegister, ClassicalRegister, JobProcessor)
 from qiskit.backends._unitarysimulator import UnitarySimulator
-
+import qiskit._jobprocessor as jobprocessor
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -80,10 +81,44 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr, delimiter=',')
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
-        result = UnitarySimulator(qobj).run()
+        q_job = QuantumJob(qobj,
+                           backend='local_unitary_simulator',
+                           preformatted=True)
+        
+        result = UnitarySimulator().run(q_job)
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],
                                     expected,
                                     rtol=1e-3))
+
+    def test_two_unitary_simulator(self):
+        """test running two circuits
+        
+        This test is similar to one in test_quantumprogram but doesn't use
+        multiprocessing.
+        """
+        qr = QuantumRegister('q', 2)
+        cr = ClassicalRegister('c', 1)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)        
+        qc1.h(qr)
+        qc2.cx(qr[0], qr[1])
+        circuits = [qc1.qasm(), qc2.qasm()]
+        backend = 'local_unitary_simulator'  # the backend to run on
+        quantum_job = QuantumJob(circuits, do_compile=True,
+                               backend='local_unitary_simulator')
+        result = jobprocessor.run_backend(quantum_job)
+        unitary1 = result[0]['data']['unitary']
+        unitary2 = result[1]['data']['unitary']
+        unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
+                                 [0.5, 0.5, -0.5, -0.5],
+                                 [0.5, -0.5, -0.5, 0.5]])
+        unitaryreal2 = np.array([[1,  0,  0, 0], [0, 0,  0,  1],
+                                 [0.,  0, 1, 0], [0,  1,  0,  0]])
+        norm1 = np.trace(np.dot(np.transpose(np.conj(unitaryreal1)), unitary1))
+        norm2 = np.trace(np.dot(np.transpose(np.conj(unitaryreal2)), unitary2))
+        self.assertAlmostEqual(norm1, 4)
+        self.assertAlmostEqual(norm2, 4)
+        
 
     def profile_unitary_simulator(self):
         """Profile randomly generated circuits.

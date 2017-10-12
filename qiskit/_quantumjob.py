@@ -8,14 +8,15 @@ class QuantumJob():
 
     # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
-                 circuit_config=None, timeout=60, seed=None,
-                 resources={'max_credits': 3, 'wait':5,
-                            'timeout':120}, shots=1024, names=None,
+                 circuit_config=None, seed=None,
+                 resources={'max_credits':3, 'wait':5, 'timeout':120},
+                 shots=1024, names=None,
                  do_compile=False, preformatted=False):
         """
         Args:
-            circuits (QuantumCircuit | list(QuantumCircuit): QuantumCircuit or
-                list of QuantumCircuit.
+            circuits (QuantumCircuit | list(QuantumCircuit) | qobj): 
+                QuantumCircuit or list of QuantumCircuit. If preformatted=True,
+                this is a raw qobj.
             backend (str): The backend to run the circuit on.
             timeout (float): Timeout for job in seconds.
             seed (int): The intial seed the simulatros use.
@@ -69,7 +70,8 @@ class QuantumJob():
         else:
             self.names = [names]
 
-        self.timeout = timeout
+        self.timeout = resources['timeout']
+        self.wait = resources['wait']
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
@@ -77,7 +79,6 @@ class QuantumJob():
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-        import pdb;pdb.set_trace()
         self.backend = self.qobj['config']['backend']
         self.resources = resources
         self.seed = seed
