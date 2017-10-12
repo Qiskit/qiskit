@@ -78,26 +78,28 @@ class QasmLexer(object):
 
     # ---- Beginning of the PLY lexer ----
     literals = r'=()[]{};<>,.+-/*^"'
-    tokens = (
+    reserved = {
+        'barrier': 'BARRIER',
+        'creg': 'CREG',
+        'gate': 'GATE',
+        'if': 'IF',
+        'measure': 'MEASURE',
+        'opaque': 'OPAQUE',
+        'qreg': 'QREG',
+        'pi': 'PI',
+        'reset': 'RESET',
+    }
+    tokens = [
         'NNINTEGER',
-        'BARRIER',
-        'OPAQUE',
-        'RESET',
-        'IF',
         'REAL',
-        'QREG',
-        'CREG',
-        'GATE',
-        'PI',
         'CX',
         'U',
-        'MEASURE',
         'MAGIC',
         'ASSIGN',
         'MATCHES',
         'ID',
         'STRING',
-    )
+    ] + list(reserved.values())
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
@@ -110,44 +112,12 @@ class QasmLexer(object):
         t.value = int(t.value)
         return t
 
-    def t_QREG(self, t):
-        'qreg'
-        return t
-
-    def t_CREG(self, t):
-        'creg'
-        return t
-
-    def t_GATE(self, t):
-        'gate'
-        return t
-
-    def t_MEASURE(self, t):
-        'measure'
-        return t
-
-    def t_IF(self, t):
-        'if'
-        return t
-
-    def t_RESET(self, t):
-        'reset'
-        return t
-
     def t_ASSIGN(self, t):
         '->'
         return t
 
     def t_MATCHES(self, t):
         '=='
-        return t
-
-    def t_BARRIER(self, t):
-        'barrier'
-        return t
-
-    def t_OPAQUE(self, t):
-        'opaque'
         return t
 
     def t_STRING(self, t):
@@ -209,11 +179,9 @@ class QasmLexer(object):
     def t_ID(self, t):
         r'[a-z][a-zA-Z0-9_]*'
 
-        if t.value == 'pi':
-            t.type = 'PI'
-            return t
-
-        t.value = node.Id(t.value, self.lineno, self.filename)
+        t.type = self.reserved.get(t.value, 'ID')
+        if t.type == 'ID':
+            t.value = node.Id(t.value, self.lineno, self.filename)
         return t
 
     def t_newline(self, t):
