@@ -1,10 +1,16 @@
+import logging
+
 import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 from qiskit._qiskiterror import QISKitError
 
+
+logger = logging.getLogger(__name__)
+
+
 def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-            initial_layout=None, silent=True, get_layout=False, format='dag'):
+            initial_layout=None, get_layout=False, format='dag'):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -12,8 +18,6 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Args:
         qasm_circuit (str): qasm text to compile
-        silent (bool): is an option to print out the compiling information
-            or not
         basis_gates (str): a comma seperated string and are the base gates,
                            which by default are: u1,u2,u3,cx,id
         coupling_map (dict): A directed graph of coupling::
@@ -54,17 +58,14 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     final_layout = None
     # if a coupling map is given compile to the map
     if coupling_map:
-        if not silent:
-            print("pre-mapping properties: %s"
-                  % compiled_dag_circuit.property_summary())
+        logger.info("pre-mapping properties: %s",
+                    compiled_dag_circuit.property_summary())
         # Insert swap gates
         coupling = mapper.Coupling(coupling_map)
-        if not silent:
-            print("initial layout: %s" % initial_layout)
+        logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = mapper.swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, verbose=False)
-        if not silent:
-            print("final layout: %s" % final_layout)
+            compiled_dag_circuit, coupling, initial_layout, trials=20)
+        logger.info("final layout: %s", final_layout)
         # Expand swaps
         compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
         # Change cx directions
@@ -73,9 +74,8 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         mapper.cx_cancellation(compiled_dag_circuit)
         # Simplify single qubit gates
         compiled_dag_circuit = mapper.optimize_1q_gates(compiled_dag_circuit)
-        if not silent:
-            print("post-mapping properties: %s"
-                  % compiled_dag_circuit.property_summary())
+        logger.info("post-mapping properties: %s",
+                    compiled_dag_circuit.property_summary())
     # choose output format
     if format == 'dag':
         compiled_circuit = compiled_dag_circuit

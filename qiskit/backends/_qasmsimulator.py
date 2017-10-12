@@ -297,11 +297,8 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
-    def run(self, silent=True):
+    def run(self):
         """Run circuits in qobj
-        
-        Args:
-            silent (bool, optional): Silence print statements. Default is True.
         """
         result_list = []
         self._shots = self.qobj['config']['shots']
