@@ -34,8 +34,6 @@ class Result(object):
     def __init__(self, qobj_result, qobj):
         self.__qobj = qobj
         self.__result = qobj_result
-        if not 'job_id' in self.__result:
-            self.__result['job_id'] = 'NO_JOB_ID'
 
     def __str__(self):
         """Get the status of the run.

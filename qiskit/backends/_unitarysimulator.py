@@ -90,6 +90,8 @@ returned results object::
             'state': 'DONE'
             }
 """
+import string
+import random
 import logging
 import numpy as np
 import json
@@ -143,12 +145,14 @@ class UnitarySimulator(BaseBackend):
 
     def run(self):
         """Run circuits in qobj"""
+        # Generating a string id for the job
+        job_id = "".join([random.choice(string.ascii_letters+string.digits) for n in range(30)])
         result_list = []
         for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
-        return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
-        
+            result_list.append(self.run_circuit(circuit))
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
+                      self.qobj)
+
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
         ccircuit = circuit['compiled_circuit']

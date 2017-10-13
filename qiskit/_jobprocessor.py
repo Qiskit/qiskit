@@ -25,6 +25,7 @@ def run_local_backend(qobj):
     Returns:
       Dictionary of form,
       job_result = {
+        "job_id": DATA,
         "status": DATA,
         "result" : [
           {
@@ -75,9 +76,8 @@ def run_remote_backend(qobj, api, wait=5, timeout=60):
     if 'error' in output:
         raise ResultError(output['error'])
 
-    logger.info('Running on remote backend ' + qobj['config']['backend'] + ' with job id: ' + output['id'])
+    logger.debug('Running on remote backend %s with job id: %s', qobj['config']['backend'], output['id'])
     job_result = _wait_for_job(output['id'], api, wait=wait, timeout=timeout)
-    job_result['job_id'] = output['id']
     job_result['name'] = qobj['id']
     job_result['backend'] = qobj['config']['backend']
     this_result = Result(job_result, qobj)
@@ -106,7 +106,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {'status': 'ERROR', 'result': 'Time Out'}
+            return {'job_id': jobid, 'status': 'ERROR', 'result': 'Time Out'}
         time.sleep(wait)
         timer += wait
         logger.info('status = %s (%d seconds)', job_result['status'], timer)
@@ -117,14 +117,14 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                               (pprint.pformat(job_result)))
         if (job_result['status'] == 'ERROR_CREATING_JOB' or
                 job_result['status'] == 'ERROR_RUNNING_JOB'):
-            return {'status': 'ERROR', 'result': job_result['status']}
+            return {'job_id': jobid, 'status': 'ERROR', 'result': job_result['status']}
 
     # Get the results
     job_result_return = []
     for index in range(len(job_result['qasms'])):
         job_result_return.append({'data': job_result['qasms'][index]['data'],
                                   'status': job_result['qasms'][index]['status']})
-    return {'status': job_result['status'], 'result': job_result_return}
+    return {'job_id': jobid, 'status': job_result['status'], 'result': job_result_return}
 
 def remote_backends(api):
     """Get the remote backends.
