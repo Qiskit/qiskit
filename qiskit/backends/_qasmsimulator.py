@@ -124,7 +124,7 @@ class QasmSimulator(BaseBackend):
         """
         Args:
             configuration (dict): backend configuration
-        """ 
+        """
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',
@@ -165,7 +165,7 @@ class QasmSimulator(BaseBackend):
         Takes a bitstring k and inserts bits b1 as the i1th bit
         and b2 as the i2th bit
         """
-        assert(i1 != i2)
+        assert i1 != i2
 
         if i1 > i2:
             # insert as (i1-1)th bit, will be shifted left 1 by next line
@@ -273,20 +273,19 @@ class QasmSimulator(BaseBackend):
 
     def run(self, q_job):
         """Run circuits in q_job"""
-        self.qobj = q_job.qobj
+        qobj = q_job.qobj
         result_list = []
-        self._shots = self.qobj['config']['shots']
-        for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
+        self._shots = qobj['config']['shots']
+        for circuit in qobj['circuits']:
+            result_list.append(self.run_circuit(circuit))
         return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)
+                      qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
 
         Args:
             circuit (dict): JSON circuit from qobj circuits list
-            shots (int): number of shots to run circuit
 
         Returns:
             A dictionary of results which looks something like::
@@ -319,7 +318,7 @@ class QasmSimulator(BaseBackend):
         outcomes = []
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
-                                          dtype=complex)
+                                           dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
@@ -328,7 +327,7 @@ class QasmSimulator(BaseBackend):
                     mask = int(operation['conditional']['mask'], 16)
                     if mask > 0:
                         value = self._classical_state & mask
-                        while ((mask & 0x1) == 0):
+                        while (mask & 0x1) == 0:
                             mask >>= 1
                             value >>= 1
                         if value != int(operation['conditional']['val'], 16):
@@ -364,13 +363,14 @@ class QasmSimulator(BaseBackend):
                     backend = globals()['__configuration']['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
-                                                    operation['name']))
+                                                        operation['name']))
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(
                 self._number_of_cbits))
         # Return the results
         counts = dict(Counter(outcomes))
-        data = {'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits)}
+        data = {'counts': self._format_result(
+            counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state,

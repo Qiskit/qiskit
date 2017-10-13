@@ -93,8 +93,11 @@ class NoConfigurationBackend(BaseBackend):
 
 
 class ValidBackend(NoConfigurationBackend):
-    def __init__(self, configuration={'name':'valid_backend'}):
-        self._configuration = configuration
+    def __init__(self, configuration=None):
+        if configuration == None:
+            self._configuration = {'name':'valid_backend'}
+        else:
+            self._configuration = configuration
 
     @property
     def configuration(self):

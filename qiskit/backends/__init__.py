@@ -6,4 +6,5 @@ from ._backendutils import (get_backend_class,
                             remote_backends,
                             register_backend,
                             discover_local_backends,
-                            discover_remote_backends)
+                            discover_remote_backends,
+                            update_backends)

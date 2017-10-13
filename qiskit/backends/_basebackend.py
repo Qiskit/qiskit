@@ -12,7 +12,7 @@ class BaseBackend(ABC):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
-        raise a FileNotFoundError exception if a component of the module is
+        raise an exception if a component of the module is
         not available.
 
         Args:
@@ -24,7 +24,7 @@ class BaseBackend(ABC):
         self._configuration = configuration
 
     @abstractmethod
-    def run(self):
+    def run(self, q_job):
         pass
 
     @property

@@ -1,10 +1,15 @@
+"""Quantum Job class"""
 import random
 import string
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
 
 class QuantumJob():
-    """Creates a quantum circuit job"""
+    """Creates a quantum circuit job
+
+    Attributes:
+       qobj (dict): describes circuits and configuration to run them
+    """
 
     # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
@@ -75,6 +80,7 @@ class QuantumJob():
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
+            # circuits is actually a qobj...validate (not ideal but conventient)
             self.qobj = circuits
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,

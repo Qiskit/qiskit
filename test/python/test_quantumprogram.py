@@ -1515,9 +1515,6 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result.get_counts("swapping"),
                          {'010000': 1024})
         # Second version: map to coupling graph
-        # result = qp.execute(["swapping"], backend=backend,
-        #                     coupling_map=None, shots=1024,
-        #                     seed=14)
         result = qp.execute(["swapping"], backend=backend,
                             coupling_map=coupling_map, shots=1024,
                             seed=14)

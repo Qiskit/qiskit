@@ -149,12 +149,12 @@ class UnitarySimulator(BaseBackend):
         Args:
         q_job (QuantumJob): job to run
         """
-        self.qobj = q_job.qobj
+        qobj = q_job.qobj
         result_list = []
-        for circuit in self.qobj['circuits']:
+        for circuit in qobj['circuits']:
             result_list.append( self.run_circuit(circuit) )
         return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
+                      qobj)            
         
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""

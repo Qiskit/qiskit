@@ -23,6 +23,9 @@ class QasmCppSimulator(BaseBackend):
         """
         Args:
             configuration (dict): set configuration
+
+        Raises:
+            FileNotFoundError: if executable, 'qasm_simulator', is not on path
         """
         if configuration is None:
             self._configuration = {'name': 'local_qasm_cpp_simulator',
@@ -57,18 +60,24 @@ class QasmCppSimulator(BaseBackend):
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
-            
+
     def run(self, q_job):
         """
         Run simulation on C++ simulator.
 
         Args:
             q_job (QuantumJob): describes job
+
+        Returns:
+            Result: result object
+
+        Raises:
+            SimulatorError: if executable writes to stderr.
         """
-        self._qobj = q_job.qobj
+        qobj = q_job.qobj
         # TODO: use qobj schema for validation
-        if 'config' in self._qobj:
-            self.config = self._qobj['config']
+        if 'config' in qobj:
+            self.config = qobj['config']
         else:
             self.config = {}
         # defaults
@@ -98,7 +107,7 @@ class QasmCppSimulator(BaseBackend):
         cmd = self._exe + ' - '
         with subprocess.Popen(cmd.split(),
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(self._qobj).encode()
+            cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout
@@ -107,7 +116,7 @@ class QasmCppSimulator(BaseBackend):
             for result in cresult['result']:
                 for k in ['state', 'saved_states', 'inner_products']:
                     parse_complex(result['data'], k)
-            return Result(cresult, self._qobj)
+            return Result(cresult, qobj)
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
@@ -119,7 +128,7 @@ class QasmCppSimulator(BaseBackend):
         Args:
             circuit (dict): JSON circuit from qobj circuits list
         """
-        
+
         self.cin_dict = {'qasm': circuit['compiled_circuit'],
                          'config': self.config}
         self.result = {}
@@ -164,7 +173,7 @@ class QasmCppSimulator(BaseBackend):
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
-                            format(cout.decode(), cerr.decode()))
+                                 format(cout.decode(), cerr.decode()))
         # Add simulator data
         self.result['data'] = cresult['data']
         # Add simulation time (in seconds)
