@@ -28,7 +28,7 @@ run:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial
+	pylint qiskit test
 
 # TODO: Uncomment when the lint one passes.
 # test: lint
