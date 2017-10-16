@@ -1,10 +1,10 @@
 import copy
-import numpy
-import json
 import os
-import datetime
+import json
+import numpy
 from qiskit._qiskiterror import QISKitError
 from qiskit import RegisterSizeError
+from qiskit.tools import file_io
 
 class Result(object):
     """ Result Class.
@@ -36,7 +36,7 @@ class Result(object):
             }
     """
 
-    def __init__(self, qobj_result=None, qobj=None):
+    def __init__(self, qobj_result, qobj):
         self.__qobj = qobj
         self.__result = qobj_result
 
@@ -89,68 +89,6 @@ class Result(object):
 
     def _is_error(self):
         return self.__result['status'] == 'ERROR'
-
-    def _convert_qobj_to_json(self, in_item):
-        """Combs recursively through a list/dictionary and finds any non-json compatible
-        elements and converts them. E.g. complex ndarray's are converted to lists of strings.
-        Assume that all such elements are stored in dictionaries!
-
-        Arg:
-            in_item: the input dict/list
-        """
-
-        key_list = []
-        for (item_index,item_iter) in enumerate(in_item):
-            if type(in_item) is list:
-                curkey = item_index
-            else:
-                curkey = item_iter
-
-            if (type(in_item[curkey]) is dict) or (type(in_item[curkey]) is list):
-                #go recursively through nested list/dictionaries
-                self._convert_qobj_to_json(in_item[curkey])
-            elif type(in_item[curkey]) is numpy.ndarray:
-                #ndarray's are not json compatible. Save the key.
-                key_list.append(curkey)
-
-        #convert ndarray's to lists
-        #split complex arrays into two lists because complex values are not json compatible
-        for curkey in key_list:
-            if in_item[curkey].dtype=='complex':
-                in_item[curkey+'_ndarray_imag'] = numpy.imag(in_item[curkey]).tolist()
-            in_item[curkey+'_ndarray_real'] = numpy.real(in_item[curkey]).tolist()
-            in_item.pop(curkey)
-
-    def _convert_json_to_qobj(self,in_item):
-        """Combs recursively through a list/dictionary that was loaded from json
-        and finds any lists that were converted from ndarray and converts them back
-
-        Arg:
-            in_item: the input dict/list
-        """
-
-        key_list = []
-        for (item_index,item_iter) in enumerate(in_item):
-            if type(in_item) is list:
-                curkey = item_index
-            else:
-                curkey = item_iter
-
-                if '_ndarray_real' in curkey:
-                    key_list.append(curkey)
-                    continue
-
-            if (type(in_item[curkey]) is dict) or (type(in_item[curkey]) is list):
-                self._convert_json_to_qobj(in_item[curkey])
-
-        for curkey in key_list:
-            curkey_root = curkey[0:-13]
-            in_item[curkey_root] = numpy.array(in_item[curkey])
-            in_item.pop(curkey)
-            if (curkey_root+'_ndarray_imag') in in_item:
-                in_item[curkey_root] = in_item[curkey_root] + 1j*numpy.array(in_item[curkey_root+'_ndarray_imag'])
-                in_item.pop(curkey_root+'_ndarray_imag')
-
 
     def get_status(self):
         """Return whole qobj result status."""
@@ -255,10 +193,9 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
 
         Returns:
-            A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
+            Dictionary: Counts {’00000’: XXXX, ’00001’: XXXXX}.
         """
         try:
             return self.get_data(name)['counts']
@@ -269,7 +206,7 @@ class Result(object):
         """Get the circuit names of the results.
 
         Returns:
-            A list of circuit names.
+            List: A list of circuit names.
         """
         return [c['name'] for c in self.__qobj['circuits']]
 
@@ -282,11 +219,11 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit
-            obsevable (dict): The observable to be averaged over. As an example
+            observable (dict): The observable to be averaged over. As an example
             ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
 
         Returns:
-            a double for the average of the observable
+            Double: Average of the observable
         """
         counts = self.get_counts(name)
         temp = 0
@@ -302,7 +239,7 @@ class Result(object):
         all qubits are measured.
 
         Args:
-            xvals_dict: dictionary of xvals for each circuit {'circuitname1': xval1,...}. If this
+            xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
             is none then the xvals list is just left as an array of zeros
 
         Returns:
@@ -312,8 +249,8 @@ class Result(object):
         ncircuits = len(self.__qobj['circuits'])
         #Is this the best way to get the number of qubits?
         nqubits = self.__qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
-        qubitpol = numpy.zeros([ncircuits,nqubits],dtype=float)
-        xvals = numpy.zeros([ncircuits],dtype=float)
+        qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
+        xvals = numpy.zeros([ncircuits], dtype=float)
 
         #build Z operators for each qubit
         z_dicts = []
@@ -322,7 +259,7 @@ class Result(object):
             for qubit_state in range(2**nqubits):
                 new_key = ("{0:0"+"{:d}".format(nqubits) + "b}").format(qubit_state)
                 z_dicts[-1][new_key] = -1
-                if new_key[nqubits-qubit_ind-1]=='1':
+                if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
         #go through each circuit and for eqch qubit and apply the operators using "average_data"
@@ -330,90 +267,49 @@ class Result(object):
             if not xvals_dict is None:
                 xvals[circuit_ind] = xvals_dict[self.__qobj['circuits'][circuit_ind]['name']]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind,qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                qubitpol[circuit_ind, qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
 
-        return qubitpol,xvals
-
-    def save_datestr(self, folder, fileroot):
-        """Constructs a filename using the current date-time
-
-        Args:
-            folder: path to the save folder
-            fileroot: root string for the file
-
-        Returns:
-            filename: full file path of the form 'folder/YYYY_MM_DD_HH_MM_fileroot.json'
-        """
-
-        #if the fileroot has .json appended strip it off
-        if (len(fileroot)>4 and fileroot[-5:].lower()=='.json'):
-            fileroot = fileroot[0:-5]
-
-        return os.path.join(folder,'{:%Y_%m_%d_%H_%M_}'.format(datetime.datetime.now())+fileroot+'.json')
+        return qubitpol, xvals
 
     def save(self, filename, metadata=None):
-        """Save a result (qobj + result) to a single dictionary file filename.json
-        If the file already exists then numbers will be appended to generate a unique filename
+        """Save a result (qobj + result) and optional metatdata
+        to a single dictionary file.
 
         Args:
-            filename: save path
-            metadata (optional): Add another dictionary with custom data for the result (eg fit results)
+            filename (str): save path (with or without the json extension). If the file already
+            exists then numbers will be appended to the root to generate a unique filename.
+            E.g. if filename=test.json and that file exists then the file will be changed
+            to test_1.json
+            metadata (dict): Add another dictionary with custom data for the result (eg fit results)
 
-        Returns:
-            filename: full file path
+        Return:
+            String: full file path
         """
         master_dict = {}
-        master_dict['qobj'] = self.__qobj.copy()
-        master_dict['result'] = self.__result.copy()
+        master_dict['qobj'] = copy.deepcopy(self.__qobj)
+        master_dict['result'] = copy.deepcopy(self.__result)
         if metadata is None:
             master_dict['metadata'] = {}
         else:
-            master_dict['metadata'] = metadata
+            master_dict['metadata'] = copy.deepcopy(metadata)
 
 
         #need to convert any ndarray variables to lists so that they can be
         #exported to the json file
-        self._convert_qobj_to_json(master_dict['result'])
+        file_io.convert_qobj_to_json(master_dict['result'])
 
         #if the filename has .json appended strip it off
-        if filename[-5:].lower()=='.json':
+        if filename[-5:].lower() == '.json':
             filename = filename[0:-5]
 
         append_str = ''
         append_num = 0
 
-        while (os.path.exists(filename+append_str+'.json')):
+        while os.path.exists(filename+append_str+'.json'):
             append_num += 1
             append_str = '_%d'%append_num
 
-        fo = open(filename+append_str+'.json','w')
-        json.dump(master_dict,fo,indent=1)
-        fo.close()
+        with open(filename+append_str+'.json', 'w') as save_file:
+            json.dump(master_dict, save_file, indent=1)
 
         return filename+append_str+'.json'
-
-    def load(self, filename):
-        """Load a results dictionary file (.json)
-
-        Args:
-            filename: filename of the dictionary
-
-        Returns:
-            metadata: if the metadata exists it will get returned
-        """
-
-        if not os.path.exists(filename):
-            raise QISKitError('File %s does not exist'%filename)
-
-        fo = open(filename,'r')
-        master_dict = json.load(fo)
-
-        try:
-            self.__qobj = master_dict['qobj']
-            self.__result = master_dict['result']
-            self._convert_json_to_qobj(self.__result)
-            metadata = master_dict['metadata']
-        except KeyError:
-            raise QISKitError('File %s does not have the proper dictionary structure')
-
-        return metadata
