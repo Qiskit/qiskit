@@ -52,8 +52,10 @@ def convert_qobj_to_json(in_item):
     for curkey in key_list:
         if in_item[curkey].dtype == 'complex':
             in_item[curkey+'_ndarray_imag'] = numpy.imag(in_item[curkey]).tolist()
-        in_item[curkey+'_ndarray_real'] = numpy.real(in_item[curkey]).tolist()
-        in_item.pop(curkey)
+            in_item[curkey+'_ndarray_real'] = numpy.real(in_item[curkey]).tolist()
+            in_item.pop(curkey)
+        else:
+            in_item[curkey] = in_item[curkey].tolist()
 
 def convert_json_to_qobj(in_item):
     """Combs recursively through a list/dictionary that was loaded from json
@@ -70,6 +72,7 @@ def convert_json_to_qobj(in_item):
         else:
             curkey = item_iter
 
+            #flat these lists so that we can recombine back into a complex number
             if '_ndarray_real' in curkey:
                 key_list.append(curkey)
                 continue
