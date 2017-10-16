@@ -291,8 +291,16 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             circuit = ['c']
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       silent=True)
-            quantum_state = result.get_data(circuit[0])['quantum_state']
+                                       silent=True,
+                                       config={"data": ["quantum_state"]})
+
+            quantum_state = result.get_data(circuit[0]).get('quantum_state')
+            if quantum_state is None:
+                quantum_state = result.get_data(
+                    circuit[0]).get('quantum_states')
+                if len(quantum_state) > 0:
+                    quantum_state = quantum_state[0]
+
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
@@ -363,8 +371,9 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                                    silent=True)
         for j in range(len(hamiltonian)):
             for k in range(len(hamiltonian[j])):
-                energy += hamiltonian[j][k][0] * measure_pauli_z
-                (result.get_counts(circuits_labels[j]), hamiltonian[j][k][1])
+                energy += hamiltonian[j][k][0] *\
+                    measure_pauli_z(result.get_counts(
+                        circuits_labels[j]), hamiltonian[j][k][1])
     return energy
 
 
@@ -470,11 +479,11 @@ def make_Hamiltonian(pauli_list):
 
 
 def Hamiltonian_from_file(file_name):
-    """Creates a matrix operator out of a file with a list 
+    """Creates a matrix operator out of a file with a list
     of Paulis.
 
     Args:
-        file_name : a text file containing a list of Paulis and 
+        file_name : a text file containing a list of Paulis and
         coefficients.
     Returns:
         A matrix representing pauli_list
