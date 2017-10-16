@@ -291,9 +291,8 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             circuit = ['c']
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       silent=True, config={"data": ["quantum_state"]})
-            #print('result(c)', result.get_data('c'))
-           # print('result', result._Result__result)
+                                       silent=True,
+                                       config={"data": ["quantum_state"]})
 
             quantum_state = result.get_data(circuit[0]).get('quantum_state')
             if quantum_state is None:
