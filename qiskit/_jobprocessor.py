@@ -87,7 +87,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
 
     Args:
-        jobid:  is a list of id strings.
+        jobid (string):  an id string
         api (IBMQuantumExperience): IBMQuantumExperience API connection
         wait (int):  is the time to wait between requests, in seconds
         timeout (int):  is how long we wait before failing, in seconds
@@ -196,7 +196,7 @@ class JobProcessor():
         try:
             result = future.result()
         except Exception as ex:
-            result = Result({'status': 'ERROR',
+            result = Result({'job_id': '0', 'status': 'ERROR',
                              'result': ex},
                             future.qobj)
         with self.lock:

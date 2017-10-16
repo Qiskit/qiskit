@@ -15,6 +15,8 @@ class Result(object):
         qobj =  { -- the quantum object that was complied --}
         result = {
             "job_id": --job-id (string),
+                      #This string links the result with the job that computes it,
+                      #it should be issued by the backend it is run on.
             "status": --status (string),
             "result":
                 [

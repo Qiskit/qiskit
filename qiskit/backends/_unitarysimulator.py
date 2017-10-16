@@ -90,8 +90,7 @@ returned results object::
             'state': 'DONE'
             }
 """
-import string
-import random
+import uuid
 import logging
 import numpy as np
 import json
@@ -146,7 +145,8 @@ class UnitarySimulator(BaseBackend):
     def run(self):
         """Run circuits in qobj"""
         # Generating a string id for the job
-        job_id = "".join([random.choice(string.ascii_letters+string.digits) for n in range(30)])
+        #job_id = "".join([random.choice(string.ascii_letters+string.digits) for n in range(30)])
+        job_id = str(uuid.uuid4())
         result_list = []
         for circuit in self.qobj['circuits']:
             result_list.append(self.run_circuit(circuit))

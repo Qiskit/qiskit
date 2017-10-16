@@ -8,8 +8,7 @@ Authors: Erick Winston <ewinston@us.ibm.com>
 import json
 import subprocess
 from subprocess import PIPE, CalledProcessError
-import string
-import random
+import uuid
 import numpy as np
 from qiskit.backends._basebackend import BaseBackend
 from qiskit._result import Result
@@ -131,7 +130,7 @@ class QasmCppSimulator(BaseBackend):
         #               self.qobj)
 
         # Generating a string id for the job
-        job_id = "".join([random.choice(string.ascii_letters+string.digits) for n in range(30)])
+        job_id = str(uuid.uuid4())
         cmd = self._exe + ' - '
         with subprocess.Popen(cmd.split(),
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:

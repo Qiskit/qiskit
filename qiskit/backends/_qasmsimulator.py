@@ -105,7 +105,7 @@ if shots > 1
                }
 
 """
-import string
+import uuid
 import numpy as np
 import random
 from collections import Counter
@@ -302,7 +302,7 @@ class QasmSimulator(BaseBackend):
         """Run circuits in qobj
         """
         # Generating a string id for the job
-        job_id = "".join([random.choice(string.ascii_letters+string.digits) for n in range(30)])
+        job_id = str(uuid.uuid4())
         result_list = []
         self._shots = self.qobj['config']['shots']
         for circuit in self.qobj['circuits']:
