@@ -1,6 +1,4 @@
 from setuptools import setup
-from qiskit import __version__
-
 
 packages = ["qiskit",
             "qiskit.backends",
@@ -27,7 +25,7 @@ requirements = ["IBMQuantumExperience>=1.8.13",
 
 setup(
     name="qiskit",
-    version=__version__,
+    version="0.4.0",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
