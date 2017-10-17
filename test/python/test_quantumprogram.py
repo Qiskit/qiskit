@@ -1597,6 +1597,31 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
         self.assertTrue(np.array_equal(xvals, [0,1]))
 
+    def test_reconfig(self):
+        """Test reconfiguring the qobj from 1024 shots to 2048 using
+        reconfig instead of recompile
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        qc2.measure(qr[2], cr[2])
+        circuits = ['qc2']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots)
+        out = QP_program.run(qobj)
+        results = out.get_counts('qc2')
+
+        #change the number of shots
+        qobj = QP_program.reconfig(qobj, shots=2048)
+        out2 = QP_program.run(qobj)
+        results2 = out2.get_counts('qc2')
+
+        self.assertEqual(results, {'000': 1024})
+        self.assertEqual(results2, {'000': 2048})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
