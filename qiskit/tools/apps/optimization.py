@@ -291,7 +291,6 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             circuit = ['c']
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       silent=True,
                                        config={"data": ["quantum_state"]})
 
             quantum_state = result.get_data(circuit[0]).get('quantum_state')
@@ -333,8 +332,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 circuits_labels.append('circuit_label' + str(i))
                 Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
-            result = Q_program.execute(circuits_labels, device, shots=shots,
-                                       silent=True)
+            result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
             quantum_state_0 = result.get_data(circuits_labels[0])
             ['quantum_state']
@@ -367,8 +365,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 circuits[i].measure(q[j], c[j])
             Q_program.add_circuit(circuits_labels[i], circuits[i])
             i += 1
-        result = Q_program.execute(circuits_labels, device, shots=shots,
-                                   silent=True)
+        result = Q_program.execute(circuits_labels, device, shots=shots)
         for j in range(len(hamiltonian)):
             for k in range(len(hamiltonian[j])):
                 energy += hamiltonian[j][k][0] *\
