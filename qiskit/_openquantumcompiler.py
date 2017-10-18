@@ -37,7 +37,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         initial_layout (dict): A mapping of qubit to qubit::
 
                               {
-                                ("q", strart(int)): ("q", final(int)),
+                                ("q", start(int)): ("q", final(int)),
                                 ...
                               }
                               eg.

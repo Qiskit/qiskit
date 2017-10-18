@@ -45,6 +45,12 @@ class Result(object):
         """
         return self.__result['status']
 
+    def __getitem__(self, i):
+        return self.__result['result'][i]
+
+    def __len__(self):
+        return len(self.__result['result'])
+
     def __iadd__(self, other):
         """Append a Result object to current Result object.
 
@@ -128,7 +134,7 @@ class Result(object):
             raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_data(self, name):
-        """Get the data of cicuit name.
+        """Get the data of circuit name.
 
         The data format will depend on the backend. For a real device it
         will be for the form::
@@ -167,10 +173,7 @@ class Result(object):
         """
         if self._is_error():
             exception = self.__result['result']
-            if isinstance(exception, RegisterSizeError):
-                raise exception # Re-throw RegisterSizeError
-            raise QISKitError(str(exception))
-
+            raise exception
         try:
             qobj = self.__qobj
             for index in range(len(qobj['circuits'])):

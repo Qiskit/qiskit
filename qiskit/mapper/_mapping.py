@@ -332,8 +332,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     # Schedule the input circuit
     layerlist = circuit_graph.layers()
     logger.debug("schedule:")
-    for i in range(len(layerlist)):
-        logger.debug("    %d: %s", i, layerlist[i]["partition"])
+    for i,v in enumerate(layerlist):
+        logger.debug("    %d: %s", (i, v["partition"]))
 
     if initial_layout is not None:
         # Check the input layout
@@ -371,13 +371,6 @@ def swap_mapper(circuit_graph, coupling_graph,
         logger.debug("swap_mapper: layer %d", i)
         logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s",
                      success_flag, str(best_d), trivial_flag)
-
-        # If this layer is only single-qubit gates,
-        # and we have yet to see multi-qubit gates,
-        # continue to the next iteration
-        if trivial_flag and first_layer:
-            logger.debug("swap_mapper: skip to next layer")
-            continue
 
         # If this fails, try one gate at a time in this layer
         if not success_flag:

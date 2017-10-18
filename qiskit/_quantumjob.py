@@ -1,19 +1,27 @@
+"""Quantum Job class"""
 import random
 import string
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
 
 class QuantumJob():
-    """Creates a quantum circuit job"""
+    """Creates a quantum circuit job
+
+    Attributes:
+       qobj (dict): describes circuits and configuration to run them
+    """
 
     # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
-                 circuit_config=None, timeout=60, seed=None,
-                 resources={'max_credits': 3}, shots=1024, names=None,
+                 circuit_config=None, seed=None,
+                 resources={'max_credits':3, 'wait':5, 'timeout':120},
+                 shots=1024, names=None,
                  do_compile=False, preformatted=False):
         """
         Args:
-            circuit (QuantumCircuit | qobj): QuantumCircuit or qjob
+            circuits (QuantumCircuit | list(QuantumCircuit) | qobj): 
+                QuantumCircuit or list of QuantumCircuit. If preformatted=True,
+                this is a raw qobj.
             backend (str): The backend to run the circuit on.
             timeout (float): Timeout for job in seconds.
             seed (int): The intial seed the simulatros use.
@@ -48,6 +56,7 @@ class QuantumJob():
             shots (int): the number of shots
             circuit_type (str): "compiled_dag" or "uncompiled_dag" or
                 "quantum_circuit"
+            names (str | list(str)): names/ids for circuits
             preformated (bool): the objects in circuits are already compiled
                 and formatted (qasm for online, json for local). If true the
                 parameters "names" and "circuit_config" must also be defined
@@ -66,17 +75,18 @@ class QuantumJob():
         else:
             self.names = [names]
 
-        self.timeout = timeout
+        self.timeout = resources['timeout']
+        self.wait = resources['wait']
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
+            # circuits is actually a qobj...validate (not ideal but conventient)
             self.qobj = circuits
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-
         self.backend = self.qobj['config']['backend']
-        self.resources = {'max_credits': self.qobj['config']['max_credits']}
+        self.resources = resources
         self.seed = seed
         self.result = None
 

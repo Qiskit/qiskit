@@ -21,17 +21,17 @@ Project Overview
 ----------------
 The QISKit project comprises:
 
-* `QISKit SDK <https://github.com/IBM/qiskit-sdk-py>`_: Python software 
+* `QISKit SDK <https://github.com/QISKit/qiskit-sdk-py>`_: Python software 
   development kit for writing quantum computing experiments, programs, and 
   applications.
 
-* `QISKit API <https://github.com/IBM/qiskit-api-py>`_: A thin Python
+* `QISKit API <https://github.com/QISKit/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
   connect and and execute quantum programs.
 
-* `QISKit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_: Contains
+* `QISKit OpenQASM <https://github.com/QISKit/qiskit-openqasm>`_: Contains
   specifications, examples, documentation, and tools for the OpenQASM
   intermediate representation.
 
-* `QISKit Tutorial <https://github.com/IBM/qiskit-tutorial>`_: A 
+* `QISKit Tutorial <https://github.com/QISKit/qiskit-tutorial>`_: A 
   collection of Jupyter notebooks using QISKit.
