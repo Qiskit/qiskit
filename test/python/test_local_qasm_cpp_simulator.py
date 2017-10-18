@@ -26,28 +26,14 @@ import qiskit.backends._qasm_cpp_simulator as qasmcppsimulator
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
+from qiskit import QuantumJob
 from qiskit import _openquantumcompiler as openquantumcompiler
+from .common import QiskitTestCase
 
-
-class TestLocalQasmCppSimulator(unittest.TestCase):
+class TestLocalQasmCppSimulator(QiskitTestCase):
     """
     Test job_pocessor module.
     """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
     def setUp(self):
         self.seed = 88
         self.qasmFileName = os.path.join(qiskit.__path__[0],
@@ -87,14 +73,17 @@ class TestLocalQasmCppSimulator(unittest.TestCase):
                          }
                      ]
                      }
+        self.q_job = QuantumJob(self.qobj,
+                                backend='local_qasm_cpp_simulator',
+                                preformatted=True)
 
     def test_run_qobj(self):
         try:
-            simulator = qasmcppsimulator.QasmCppSimulator(self.qobj)
+            simulator = qasmcppsimulator.QasmCppSimulator()
         except FileNotFoundError as fnferr:
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))
-        result = simulator.run()
+        result = simulator.run(self.q_job)
         expected2 = {'000 000': 14,
                      '001 001': 12,
                      '010 010': 10,

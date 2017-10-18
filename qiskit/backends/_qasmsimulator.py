@@ -119,50 +119,24 @@ from qiskit.backends._basebackend import BaseBackend
 
 class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
-        
-    def __init__(self, qobj):
+
+    def __init__(self, configuration=None):
         """
         Args:
-            qobj (dict): qobj dictionary which has the structure::
-
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
-
+            configuration (dict): backend configuration
         """
-        self.qobj = qobj
-        self._configuration = {
-            'name': 'local_qasm_simulator',
-            'url': 'https://github.com/IBM/qiskit-sdk-py',
-            'simulator': True,
-            'local': True,
-            'description': 'A python simulator for qasm files',
-            'coupling_map': 'all-to-all',
-            'basis_gates': 'u1,u2,u3,cx,id'
-        }
-        
+        if configuration is None:
+            self._configuration = {
+                'name': 'local_qasm_simulator',
+                'url': 'https://github.com/IBM/qiskit-sdk-py',
+                'simulator': True,
+                'local': True,
+                'description': 'A python simulator for qasm files',
+                'coupling_map': 'all-to-all',
+                'basis_gates': 'u1,u2,u3,cx,id'
+            }
+        else:
+            self._configuration = configuration
 
     @staticmethod
     def _index1(b, i, k):
@@ -191,7 +165,7 @@ class QasmSimulator(BaseBackend):
         Takes a bitstring k and inserts bits b1 as the i1th bit
         and b2 as the i2th bit
         """
-        assert(i1 != i2)
+        assert i1 != i2
 
         if i1 > i2:
             # insert as (i1-1)th bit, will be shifted left 1 by next line
@@ -297,22 +271,21 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
-    def run(self):
-        """Run circuits in qobj
-        """
+    def run(self, q_job):
+        """Run circuits in q_job"""
+        qobj = q_job.qobj
         result_list = []
-        self._shots = self.qobj['config']['shots']
-        for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
+        self._shots = qobj['config']['shots']
+        for circuit in qobj['circuits']:
+            result_list.append(self.run_circuit(circuit))
         return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
+                      qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
 
         Args:
             circuit (dict): JSON circuit from qobj circuits list
-            shots (int): number of shots to run circuit
 
         Returns:
             A dictionary of results which looks something like::
@@ -345,7 +318,7 @@ class QasmSimulator(BaseBackend):
         outcomes = []
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
-                                          dtype=complex)
+                                           dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
             # Do each operation in this shot
@@ -354,7 +327,7 @@ class QasmSimulator(BaseBackend):
                     mask = int(operation['conditional']['mask'], 16)
                     if mask > 0:
                         value = self._classical_state & mask
-                        while ((mask & 0x1) == 0):
+                        while (mask & 0x1) == 0:
                             mask >>= 1
                             value >>= 1
                         if value != int(operation['conditional']['val'], 16):
@@ -390,13 +363,14 @@ class QasmSimulator(BaseBackend):
                     backend = globals()['__configuration']['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
-                                                    operation['name']))
+                                                        operation['name']))
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(
                 self._number_of_cbits))
         # Return the results
         counts = dict(Counter(outcomes))
-        data = {'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits)}
+        data = {'counts': self._format_result(
+            counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state,

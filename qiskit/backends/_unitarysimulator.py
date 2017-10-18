@@ -108,16 +108,18 @@ logger = logging.getLogger(__name__)
 class UnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        self.qobj = qobj
-        self._configuration = {'name': 'local_unitary_simulator',
-                               'url': 'https://github.com/IBM/qiskit-sdk-py',
-                               'simulator': True,
-                               'local': True,
-                               'description': 'A python simulator for unitary matrix',
-                               'coupling_map': 'all-to-all',
-                               'basis_gates': 'u1,u2,u3,cx,id'}
+        if configuration is None:
+            self._configuration = {'name': 'local_unitary_simulator',
+                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
+                                   'simulator': True,
+                                   'local': True,
+                                   'description': 'A python simulator for unitary matrix',
+                                   'coupling_map': 'all-to-all',
+                                   'basis_gates': 'u1,u2,u3,cx,id'}
+        else:
+            self._configuration = configuration
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -141,13 +143,18 @@ class UnitarySimulator(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self):
-        """Run circuits in qobj"""
+    def run(self, q_job):
+        """Run q_job
+
+        Args:
+        q_job (QuantumJob): job to run
+        """
+        qobj = q_job.qobj
         result_list = []
-        for circuit in self.qobj['circuits']:
+        for circuit in qobj['circuits']:
             result_list.append( self.run_circuit(circuit) )
         return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
+                      qobj)            
         
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""

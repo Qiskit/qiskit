@@ -477,6 +477,7 @@ class QuantumProgram(object):
         except Exception as ex:
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
                                   .format(ex))
+        qiskit.backends.discover_remote_backends(self.__api)        
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
         self.__api_config["url"] = {"url": url}
@@ -969,7 +970,9 @@ class QuantumProgram(object):
             A Result (class).
         """
         self.callback = None
-        self._run_internal([qobj], wait, timeout)
+        self._run_internal([qobj],
+                           wait=wait,
+                           timeout=timeout)
         self.wait_for_results(timeout)
         return self.jobs_results[0]
 
@@ -1048,9 +1051,10 @@ class QuantumProgram(object):
             q_job = QuantumJob(qobj, preformatted=True)
             q_job_list.append(q_job)
 
-        job_processor = JobProcessor(q_job_list, max_workers=5, api=self.__api,
+        job_processor = JobProcessor(q_job_list, max_workers=5,
                                      callback=self._jobs_done_callback)
-        job_processor.submit(wait, timeout)
+        job_processor.submit()
+
 
     def _jobs_done_callback(self, jobs_results):
         """ This internal callback will be called once all Jobs submitted have

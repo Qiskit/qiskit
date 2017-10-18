@@ -1490,7 +1490,7 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         if backend not in qp.online_simulators():
-            return
+            unittest.skip('backend "{}" not available'.format(backend))
         qc = qp.get_circuit("swapping")
         q = qp.get_quantum_register("q")
         r = qp.get_quantum_register("r")

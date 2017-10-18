@@ -1,12 +1,15 @@
+"""backend functions for registration, information, etc."""
 from collections import namedtuple
 import importlib
 import inspect
 import os
 import pkgutil
+import logging
 
 from .. import QISKitError
 from ._basebackend import BaseBackend
 
+logger = logging.getLogger(__name__)
 
 RegisteredBackend = namedtuple('RegisteredBackend',
                                ['name', 'cls', 'configuration'])
@@ -26,7 +29,7 @@ as its contents are a combination of:
 """
 
 
-def discover_sdk_backends(directory=os.path.dirname(__file__)):
+def discover_local_backends(directory=os.path.dirname(__file__)):
     """This function attempts to discover all backend modules.
 
     Discover the backends on modules on the directory of the current module
@@ -35,28 +38,75 @@ def discover_sdk_backends(directory=os.path.dirname(__file__)):
     Args:
         directory (str, optional): Directory to search for backends. Defaults
             to the directory of this module.
+
+    Returns:
+        list: list of backend names discovered
     """
-    for _, name, _ in pkgutil.iter_modules([os.path.dirname(__file__)]):
+    backend_name_list = []
+    for _, name, _ in pkgutil.iter_modules([directory]):
         # Iterate through the modules on the directory of the current one.
         if name not in __name__:  # skip the current module
             fullname = os.path.splitext(__name__)[0] + '.' + name
             modspec = importlib.util.find_spec(fullname)
             mod = importlib.util.module_from_spec(modspec)
             modspec.loader.exec_module(mod)
-
             for _, cls in inspect.getmembers(mod, inspect.isclass):
                 # Iterate through the classes defined on the module.
                 if (issubclass(cls, BaseBackend) and
                         cls.__module__ == modspec.name):
                     try:
-                        register_backend(cls)
+                        backend_name = register_backend(cls)
+                        backend_name_list.append(backend_name)
                         importlib.import_module(fullname)
                     except QISKitError:
                         # Ignore backends that could not be initialized.
-                        pass
+                        logger.info(
+                            'backend {} could not be initialized'.format(
+                                fullname))
+    return backend_name_list
 
+def discover_remote_backends(api):
+    """Discover backends available on the Quantum Experience
 
-def register_backend(cls):
+    Args:
+        api (IBMQuantumExperience): Quantum Experience API
+
+    Returns:
+        list: list of discovered backend names
+    """
+    from ._qeremote import QeRemote
+    QeRemote.set_api(api)
+    configuration_list = api.available_backends()
+    backend_name_list = []
+    for configuration in configuration_list:
+        backend_name = configuration['name']
+        backend_name_list.append(backend_name)
+        configuration['local'] = False
+        registered_backend = RegisteredBackend(backend_name,
+                                               QeRemote,
+                                               configuration)
+        _REGISTERED_BACKENDS[backend_name] = registered_backend
+    return backend_name_list
+
+def update_backends(api=None):
+    """Update registered backends.
+
+    This function deletes refreshes list of available backends
+
+    Args:
+        api (IBMQuantumExperience): api to use to check for backends.
+
+    Returns:
+        list: list of discovered backend names
+    """
+    _REGISTERED_BACKENDS.clear()
+    backend_name_list = []
+    backend_name_list += discover_local_backends()
+    if api is not None:
+        backend_name_list += discover_remote_backends(api)
+    return backend_name_list
+
+def register_backend(cls, configuration=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -67,6 +117,8 @@ def register_backend(cls):
 
     Args:
         cls (BaseBackend): a subclass of BaseBackend that contains a backend
+        configuration (dict): backend configuration to use instead of class'
+            default.
 
     Returns:
         string: the identifier of the backend
@@ -84,34 +136,11 @@ def register_backend(cls):
     if not issubclass(cls, BaseBackend):
         raise QISKitError('Could not register backend: %s is not a subclass '
                           'of BaseBackend' % cls)
-
-    # Attempt to instantiate the class. This might raise Exceptions that
-    # depend on the backend __init__ method.
-    circuit = {'header': {'clbit_labels': [['cr', 1]],
-                          'number_of_clbits': 1,
-                          'number_of_qubits': 1,
-                          'qubit_labels': [['qr', 0]]},
-               'operations':
-                   [{'name': 'h',
-                     'params': [],
-                     'qubits': [0]},
-                    {'clbits': [0],
-                     'name': 'measure',
-                     'qubits': [0]}]}
-    qobj = {'id': 'backend_discovery',
-            'config': {
-                'max_credits': 3,
-                'shots': 1,
-                'backend': None,
-                },
-            'circuits': [{'compiled_circuit': circuit}]
-            }
-
     try:
-        backend_instance = cls(qobj)
-    except Exception as e:
+        backend_instance = cls(configuration=configuration)
+    except Exception as err:
         raise QISKitError('Could not register backend: %s could not be '
-                          'instantiated: %s' % (cls, e))
+                          'instantiated: %s' % (cls, err))
 
     # Verify that it has a minimal valid configuration.
     try:
@@ -126,6 +155,17 @@ def register_backend(cls):
 
     return backend_name
 
+def deregister_backend(backend_name):
+    """Remove backend from list of available backens
+
+    Args:
+        backend_name (str): name of backend to unregister
+
+    Raises:
+        KeyError if backend_name is not registered.
+    """
+    _REGISTERED_BACKENDS.pop(backend_name)
+
 
 def get_backend_class(backend_name):
     """Return the class object for the named backend.
@@ -134,16 +174,34 @@ def get_backend_class(backend_name):
         backend_name (str): the backend name
 
     Returns:
-        class object for backend_name
+        BaseBackend: class object for backend_name
 
     Raises:
-        LookupError if backend is unavailable
+        LookupError: if backend is unavailable
     """
     try:
         return _REGISTERED_BACKENDS[backend_name].cls
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
+def get_backend_instance(backend_name):
+    """Return a backend instance for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        BaseBackend: instance subclass of BaseBackend
+
+    Raises:
+        LookupError: if backend is unavailable
+    """
+    try:
+        registered_backend = _REGISTERED_BACKENDS[backend_name]
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    return registered_backend.cls(
+        configuration=registered_backend.configuration)
 
 def get_backend_configuration(backend_name):
     """Return the configuration for the named backend.
@@ -152,10 +210,10 @@ def get_backend_configuration(backend_name):
         backend_name (str): the backend name
 
     Returns:
-        configuration dict
+        dict: configuration dict
 
     Raises:
-        LookupError if backend is unavailable
+        LookupError: if backend is unavailable
     """
     try:
         return _REGISTERED_BACKENDS[backend_name].configuration
@@ -166,13 +224,13 @@ def get_backend_configuration(backend_name):
 def local_backends():
     """Get the local backends."""
     return [backend.name for backend in _REGISTERED_BACKENDS.values()
-            if backend.configuration.get('local') == True]
+            if backend.configuration.get('local') is True]
 
 
 def remote_backends():
     """Get the remote backends."""
     return [backend.name for backend in _REGISTERED_BACKENDS.values()
-            if backend.configuration.get('local') == False]
+            if backend.configuration.get('local') is False]
 
 
-discover_sdk_backends()
+discover_local_backends()

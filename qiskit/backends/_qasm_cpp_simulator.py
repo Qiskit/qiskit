@@ -19,46 +19,63 @@ class QasmCppSimulator(BaseBackend):
     Interface to a fast C++ QASM simulator.
     """
 
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         """
         Args:
-            qobj (dict): qobj dictionary which has the structure::
+            configuration (dict): set configuration
 
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --,
-                        "backend": -- backend name (str) --,
-                        "threads": -- number of threads (int) default=1,
-                        "exe": -- name of simulator executable
-                        "simulator": -- name of simulator engine. Choices are:
-                            "qubit", "qutrit", "qudit", "clifford", or
-                            "pauli_error". The default is "qubit", which is
-                            also used if the name is unrecognized.
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
-
+        Raises:
+            FileNotFoundError: if executable, 'qasm_simulator', is not on path
         """
+        if configuration is None:
+            self._configuration = {'name': 'local_qasm_cpp_simulator',
+                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
+                                   'exe': 'qasm_simulator',
+                                   'simulator': True,
+                                   'local': True,
+                                   'description': 'A c++ simulator for qasm files',
+                                   'coupling_map': 'all-to-all',
+                                   'basis_gates': 'u1,u2,u3,cx,id'
+                                  }
+        else:
+            self._configuration = configuration
+        self._is_simulator = self._configuration['simulator']
+        self._is_local = True
+        self._exe = self._configuration['exe']
+        # This assumes we are getting a quick return help message.
+        # so _localsimulator can quickly determine whether the compiled
+        # simulator is available.
+        try:
+            subprocess.check_output([self._exe], stderr=subprocess.STDOUT)
+        except CalledProcessError:
+            pass
+        except FileNotFoundError:
+            try:
+                subprocess.check_output(
+                    ['./' + self._exe], stderr=subprocess.STDOUT)
+            except CalledProcessError:
+                # simulator with no arguments returns 1
+                # so this is the "success" case
+                self._exe = './' + self._exe
+            except FileNotFoundError:
+                cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
+                raise FileNotFoundError(cmd)
+
+    def run(self, q_job):
+        """
+        Run simulation on C++ simulator.
+
+        Args:
+            q_job (QuantumJob): describes job
+
+        Returns:
+            Result: result object
+
+        Raises:
+            SimulatorError: if executable writes to stderr.
+        """
+        qobj = q_job.qobj
         # TODO: use qobj schema for validation
-        self.qobj = qobj
         if 'config' in qobj:
             self.config = qobj['config']
         else:
@@ -78,59 +95,19 @@ class QasmCppSimulator(BaseBackend):
         else:
             self._threads = 1
         # Location of simulator exe
-        if 'exe' in self.config:
-            self._exe = self.config['exe']
-        else:
-            self._exe = 'qasm_simulator'
+        # if 'exe' in self.config:
+        #     self._exe = self.config['exe']
+        # else:
+        #     self._exe = 'qasm_simulator'
         # C++ simulator backend
         if 'simulator' in self.config:
             self._cpp_backend = self.config['simulator']
         else:
             self._cpp_backend = 'qubit'
-        # This assumes we are getting a quick return help message.
-        # so _localsimulator can quickly determine whether the compiled
-        # simulator is available.
-        try:
-            subprocess.check_output([self._exe], stderr=subprocess.STDOUT)
-        except CalledProcessError:
-            pass
-        except FileNotFoundError:
-            try:
-                subprocess.check_output(
-                    ['./' + self._exe], stderr=subprocess.STDOUT)
-            except CalledProcessError:
-                # simulator with no arguments returns 1
-                # so this is the "success" case
-                self._exe = './' + self._exe
-            except FileNotFoundError:
-                cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
-                raise FileNotFoundError(cmd)
-        self._configuration = {
-            'name': 'local_qasm_cpp_simulator',
-            'url': 'https://github.com/IBM/qiskit-sdk-py',
-            'simulator': True,
-            'local': True,
-            'description': 'A c++ simulator for qasm files',
-            'coupling_map': 'all-to-all',
-            'basis_gates': 'u1,u2,u3,cx,id'
-        }
-        self._is_simulator = self._configuration['simulator']
-        self._is_local = True
-            
-
-    def run(self):
-        """
-        Run simulation on C++ simulator.
-        """
-        # result_list = []
-        # for circuit in self.qobj['circuits']:
-        #     result_list.append( self.run_circuit(circuit) )
-        # return Result({'result': result_list, 'status': 'COMPLETED'},
-        #               self.qobj)            
         cmd = self._exe + ' - '
         with subprocess.Popen(cmd.split(),
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(self.qobj).encode()
+            cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout
@@ -139,7 +116,7 @@ class QasmCppSimulator(BaseBackend):
             for result in cresult['result']:
                 for k in ['state', 'saved_states', 'inner_products']:
                     parse_complex(result['data'], k)
-            return Result(cresult, self.qobj)            
+            return Result(cresult, qobj)
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
@@ -151,7 +128,7 @@ class QasmCppSimulator(BaseBackend):
         Args:
             circuit (dict): JSON circuit from qobj circuits list
         """
-        
+
         self.cin_dict = {'qasm': circuit['compiled_circuit'],
                          'config': self.config}
         self.result = {}
@@ -189,7 +166,6 @@ class QasmCppSimulator(BaseBackend):
             cout, cerr = proc.communicate(cin)
         if len(cerr) == 0:
             # no error messages, load std::cout
-            import pdb;pdb.set_trace()
             cresult = json.loads(cout.decode())
             # convert possible complex valued result fields
             for k in ['state', 'saved_states', 'inner_products']:
@@ -197,7 +173,7 @@ class QasmCppSimulator(BaseBackend):
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
-                            format(cout.decode(), cerr.decode()))
+                                 format(cout.decode(), cerr.decode()))
         # Add simulator data
         self.result['data'] = cresult['data']
         # Add simulation time (in seconds)
