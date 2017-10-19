@@ -1,10 +1,7 @@
 import copy
-import os
-import json
 import numpy
 from qiskit._qiskiterror import QISKitError
 from qiskit import RegisterSizeError
-from qiskit.tools import file_io
 
 class Result(object):
     """ Result Class.
@@ -37,8 +34,8 @@ class Result(object):
     """
 
     def __init__(self, qobj_result, qobj):
-        self.__qobj = qobj
-        self.__result = qobj_result
+        self._qobj = qobj
+        self._result = qobj_result
 
     def __str__(self):
         """Get the status of the run.
@@ -46,7 +43,7 @@ class Result(object):
         Returns:
             the status of the results.
         """
-        return self.__result['status']
+        return self._result['status']
 
     def __getitem__(self, i):
         return self.__result['result'][i]
@@ -62,12 +59,12 @@ class Result(object):
         Returns:
             The current object with appended results.
         """
-        if self.__qobj['config'] == other.__qobj['config']:
-            if isinstance(self.__qobj['id'], str):
-                self.__qobj['id'] = [self.__qobj['id']]
-            self.__qobj['id'].append(other.__qobj['id'])
-            self.__qobj['circuits'] += other.__qobj['circuits']
-            self.__result['result'] += other.__result['result']
+        if self._qobj['config'] == other._qobj['config']:
+            if isinstance(self._qobj['id'], str):
+                self._qobj['id'] = [self._qobj['id']]
+            self._qobj['id'].append(other._qobj['id'])
+            self._qobj['circuits'] += other._qobj['circuits']
+            self._result['result'] += other._result['result']
             return self
         else:
             raise QISKitError('Result objects have different configs and cannot be combined.')
@@ -88,11 +85,11 @@ class Result(object):
         return ret
 
     def _is_error(self):
-        return self.__result['status'] == 'ERROR'
+        return self._result['status'] == 'ERROR'
 
     def get_status(self):
         """Return whole qobj result status."""
-        return self.__result['status']
+        return self._result['status']
 
     def circuit_statuses(self):
         """Return statuses of all circuits
@@ -101,7 +98,7 @@ class Result(object):
             List of status result strings.
         """
         return [circuit_result['status']
-                for circuit_result in self.__result['result']]
+                for circuit_result in self._result['result']]
 
     def get_circuit_status(self, icircuit):
         """Return the status of circuit at index icircuit.
@@ -109,7 +106,7 @@ class Result(object):
         Args:
             icircuit (int): index of circuit
         """
-        return self.__result['result'][icircuit]['status']
+        return self._result['result'][icircuit]['status']
 
     def get_job_id(self):
         """Return the job id assigned by the api if this is a remote job.
@@ -129,7 +126,7 @@ class Result(object):
             A text version of the qasm file that has been run.
         """
         try:
-            qobj = self.__qobj
+            qobj = self._qobj
             for index in range(len(qobj["circuits"])):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
@@ -175,13 +172,13 @@ class Result(object):
             RegisterSizeError.
         """
         if self._is_error():
-            exception = self.__result['result']
+            exception = self._result['result']
             raise exception
         try:
-            qobj = self.__qobj
+            qobj = self._qobj
             for index in range(len(qobj['circuits'])):
                 if qobj['circuits'][index]['name'] == name:
-                    return self.__result['result'][index]['data']
+                    return self._result['result'][index]['data']
         except (KeyError, TypeError):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
@@ -208,7 +205,7 @@ class Result(object):
         Returns:
             List: A list of circuit names.
         """
-        return [c['name'] for c in self.__qobj['circuits']]
+        return [c['name'] for c in self._qobj['circuits']]
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -246,9 +243,9 @@ class Result(object):
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self.__qobj['circuits'])
+        ncircuits = len(self._qobj['circuits'])
         #Is this the best way to get the number of qubits?
-        nqubits = self.__qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
+        nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
@@ -265,51 +262,8 @@ class Result(object):
         #go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
             if not xvals_dict is None:
-                xvals[circuit_ind] = xvals_dict[self.__qobj['circuits'][circuit_ind]['name']]
+                xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind, qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                qubitpol[circuit_ind, qubit_ind] = self.average_data(self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
 
         return qubitpol, xvals
-
-    def save(self, filename, metadata=None):
-        """Save a result (qobj + result) and optional metatdata
-        to a single dictionary file.
-
-        Args:
-            filename (str): save path (with or without the json extension). If the file already
-            exists then numbers will be appended to the root to generate a unique filename.
-            E.g. if filename=test.json and that file exists then the file will be changed
-            to test_1.json
-            metadata (dict): Add another dictionary with custom data for the result (eg fit results)
-
-        Return:
-            String: full file path
-        """
-        master_dict = {}
-        master_dict['qobj'] = copy.deepcopy(self.__qobj)
-        master_dict['result'] = copy.deepcopy(self.__result)
-        if metadata is None:
-            master_dict['metadata'] = {}
-        else:
-            master_dict['metadata'] = copy.deepcopy(metadata)
-
-
-        #need to convert any ndarray variables to lists so that they can be
-        #exported to the json file
-        file_io.convert_qobj_to_json(master_dict['result'])
-
-        #if the filename has .json appended strip it off
-        if filename[-5:].lower() == '.json':
-            filename = filename[0:-5]
-
-        append_str = ''
-        append_num = 0
-
-        while os.path.exists(filename+append_str+'.json'):
-            append_num += 1
-            append_str = '_%d'%append_num
-
-        with open(filename+append_str+'.json', 'w') as save_file:
-            json.dump(master_dict, save_file, indent=1)
-
-        return filename+append_str+'.json'

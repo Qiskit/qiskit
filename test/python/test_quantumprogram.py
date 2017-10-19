@@ -1561,8 +1561,8 @@ class TestQuantumProgram(QiskitTestCase):
         if os.path.exists(test_2_path):
             os.remove(test_2_path)
 
-        file1 = result1.save(test_1_path, metadata=metadata)
-        file2 = result2.save(test_2_path, metadata=metadata)
+        file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
+        file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
 
         result_loaded1, metadata_loaded1 = file_io.load_result_from_file(file1)
         result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file1)

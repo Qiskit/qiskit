@@ -19,6 +19,7 @@
 
 import os
 import datetime
+import copy
 import json
 from qiskit._qiskiterror import QISKitError
 import qiskit
@@ -92,8 +93,8 @@ def file_datestr(folder, fileroot):
     """Constructs a filename using the current date-time
 
     Args:
-        folder: path to the save folder
-        fileroot: root string for the file
+        folder (str): path to the save folder
+        fileroot (str): root string for the file
 
     Returns:
         String: full file path of the form 'folder/YYYY_MM_DD_HH_MM_fileroot.json'
@@ -111,7 +112,7 @@ def load_result_from_file(filename):
     version of the SDK.
 
     Args:
-        filename: filename of the dictionary
+        filename (str): filename of the dictionary
 
     Returns:
         Result: The new Results object
@@ -135,3 +136,47 @@ def load_result_from_file(filename):
     qresult = qiskit.Result(qresult_dict, qobj)
 
     return qresult, metadata
+
+def save_result_to_file(resultobj, filename, metadata=None):
+    """Save a result (qobj + result) and optional metatdata
+    to a single dictionary file.
+
+    Args:
+        resultobj (Result): Result to save
+        filename (str): save path (with or without the json extension). If the file already
+        exists then numbers will be appended to the root to generate a unique filename.
+        E.g. if filename=test.json and that file exists then the file will be changed
+        to test_1.json
+        metadata (dict): Add another dictionary with custom data for the result (eg fit results)
+
+    Return:
+        String: full file path
+    """
+    master_dict = {}
+    master_dict['qobj'] = copy.deepcopy(resultobj._qobj)
+    master_dict['result'] = copy.deepcopy(resultobj._result)
+    if metadata is None:
+        master_dict['metadata'] = {}
+    else:
+        master_dict['metadata'] = copy.deepcopy(metadata)
+
+
+    #need to convert any ndarray variables to lists so that they can be
+    #exported to the json file
+    convert_qobj_to_json(master_dict['result'])
+
+    #if the filename has .json appended strip it off
+    if filename[-5:].lower() == '.json':
+        filename = filename[0:-5]
+
+    append_str = ''
+    append_num = 0
+
+    while os.path.exists(filename+append_str+'.json'):
+        append_num += 1
+        append_str = '_%d'%append_num
+
+    with open(filename+append_str+'.json', 'w') as save_file:
+        json.dump(master_dict, save_file, indent=1)
+
+    return filename+append_str+'.json'
