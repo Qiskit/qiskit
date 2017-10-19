@@ -46,10 +46,10 @@ class Result(object):
         return self._result['status']
 
     def __getitem__(self, i):
-        return self.__result['result'][i]
+        return self._result['result'][i]
 
     def __len__(self):
-        return len(self.__result['result'])
+        return len(self._result['result'])
 
     def __iadd__(self, other):
         """Append a Result object to current Result object.
@@ -114,7 +114,7 @@ class Result(object):
         Returns:
             a string containing the job id.
         """
-        return self.__result['job_id']
+        return self._result['job_id']
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
