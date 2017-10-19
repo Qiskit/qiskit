@@ -14,6 +14,9 @@ class Result(object):
 
         qobj =  { -- the quantum object that was complied --}
         result = {
+            "job_id": --job-id (string),
+                      #This string links the result with the job that computes it,
+                      #it should be issued by the backend it is run on.
             "status": --status (string),
             "result":
                 [
@@ -82,7 +85,7 @@ class Result(object):
         return ret
 
     def _is_error(self):
-         return self.__result['status'] == 'ERROR'
+        return self.__result['status'] == 'ERROR'
 
     def get_status(self):
         """Return whole qobj result status."""
@@ -104,6 +107,14 @@ class Result(object):
             icircuit (int): index of circuit
         """
         return self.__result['result'][icircuit]['status']
+
+    def get_job_id(self):
+        """Return the job id assigned by the api if this is a remote job.
+
+        Returns:
+            a string containing the job id.
+        """
+        return self.__result['job_id']
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.

@@ -8,10 +8,11 @@ Authors: Erick Winston <ewinston@us.ibm.com>
 import json
 import subprocess
 from subprocess import PIPE, CalledProcessError
+import uuid
 import numpy as np
-from ._simulatorerror import SimulatorError
 from qiskit.backends._basebackend import BaseBackend
 from qiskit._result import Result
+from ._simulatorerror import SimulatorError
 
 
 class QasmCppSimulator(BaseBackend):
@@ -74,6 +75,9 @@ class QasmCppSimulator(BaseBackend):
         Raises:
             SimulatorError: if executable writes to stderr.
         """
+        # Generating a string id for the job
+        job_id = str(uuid.uuid4())
+
         qobj = q_job.qobj
         # TODO: use qobj schema for validation
         if 'config' in qobj:
@@ -104,6 +108,7 @@ class QasmCppSimulator(BaseBackend):
             self._cpp_backend = self.config['simulator']
         else:
             self._cpp_backend = 'qubit'
+
         cmd = self._exe + ' - '
         with subprocess.Popen(cmd.split(),
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
@@ -112,15 +117,17 @@ class QasmCppSimulator(BaseBackend):
         if len(cerr) == 0:
             # no error messages, load std::cout
             cresult = json.loads(cout.decode())
+            cresult['job_id'] = job_id
             # convert possible complex valued result fields
             for result in cresult['result']:
                 for k in ['state', 'saved_states', 'inner_products']:
                     parse_complex(result['data'], k)
+
             return Result(cresult, qobj)
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.
-                            format(cout.decode(), cerr.decode()))
+                                 format(cout.decode(), cerr.decode()))
 
     def run_circuit(self, circuit):
         """Run a single circuit on the C++ simulator
@@ -128,7 +135,6 @@ class QasmCppSimulator(BaseBackend):
         Args:
             circuit (dict): JSON circuit from qobj circuits list
         """
-
         self.cin_dict = {'qasm': circuit['compiled_circuit'],
                          'config': self.config}
         self.result = {}

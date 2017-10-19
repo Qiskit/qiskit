@@ -90,6 +90,7 @@ returned results object::
             'state': 'DONE'
             }
 """
+import uuid
 import logging
 import numpy as np
 import json
@@ -149,13 +150,15 @@ class UnitarySimulator(BaseBackend):
         Args:
         q_job (QuantumJob): job to run
         """
+        # Generating a string id for the job
+        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
             result_list.append( self.run_circuit(circuit) )
-        return Result({'result': result_list, 'status': 'COMPLETED'},
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)            
-        
+
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
         ccircuit = circuit['compiled_circuit']

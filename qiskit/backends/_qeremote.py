@@ -13,6 +13,7 @@ from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
 
+
 class QeRemote(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
@@ -66,6 +67,8 @@ class QeRemote(BaseBackend):
         if 'error' in output:
             raise ResultError(output['error'])
 
+        logger.debug('Running on remote backend %s with job id: %s',
+                     qobj['config']['backend'], output['id'])
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
                                    timeout=timeout)
         job_result['name'] = qobj['id']
@@ -77,6 +80,7 @@ class QeRemote(BaseBackend):
     def set_api(cls, api):
         """Associate API with class"""
         cls._api = api
+
 
 def _wait_for_job(jobid, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
@@ -101,7 +105,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {'status': 'ERROR', 'result': 'Time Out'}
+            return {'job_id': jobid, 'status': 'ERROR', 'result': 'Time Out'}
         time.sleep(wait)
         timer += wait
         logger.info('status = %s (%d seconds)', job_result['status'], timer)
@@ -112,11 +116,13 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                               (pprint.pformat(job_result)))
         if (job_result['status'] == 'ERROR_CREATING_JOB' or
                 job_result['status'] == 'ERROR_RUNNING_JOB'):
-            return {'status': 'ERROR', 'result': job_result['status']}
+            return {'job_id': jobid, 'status': 'ERROR',
+                    'result': job_result['status']}
 
     # Get the results
     job_result_return = []
     for index in range(len(job_result['qasms'])):
         job_result_return.append({'data': job_result['qasms'][index]['data'],
                                   'status': job_result['qasms'][index]['status']})
-    return {'status': job_result['status'], 'result': job_result_return}
+    return {'job_id': jobid, 'status': job_result['status'],
+            'result': job_result_return}

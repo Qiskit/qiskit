@@ -81,7 +81,7 @@ class JobProcessor():
         try:
             result = future.result()
         except Exception as ex:
-            result = Result({'status': 'ERROR',
+            result = Result({'job_id': '0', 'status': 'ERROR',
                              'result': ex},
                             future.qobj)
         with self.lock:
