@@ -34,8 +34,8 @@ class Result(object):
     """
 
     def __init__(self, qobj_result, qobj):
-        self.__qobj = qobj
-        self.__result = qobj_result
+        self._qobj = qobj
+        self._result = qobj_result
 
     def __str__(self):
         """Get the status of the run.
@@ -43,13 +43,13 @@ class Result(object):
         Returns:
             the status of the results.
         """
-        return self.__result['status']
+        return self._result['status']
 
     def __getitem__(self, i):
-        return self.__result['result'][i]
+        return self._result['result'][i]
 
     def __len__(self):
-        return len(self.__result['result'])
+        return len(self._result['result'])
 
     def __iadd__(self, other):
         """Append a Result object to current Result object.
@@ -59,12 +59,12 @@ class Result(object):
         Returns:
             The current object with appended results.
         """
-        if self.__qobj['config'] == other.__qobj['config']:
-            if isinstance(self.__qobj['id'], str):
-                self.__qobj['id'] = [self.__qobj['id']]
-            self.__qobj['id'].append(other.__qobj['id'])
-            self.__qobj['circuits'] += other.__qobj['circuits']
-            self.__result['result'] += other.__result['result']
+        if self._qobj['config'] == other._qobj['config']:
+            if isinstance(self._qobj['id'], str):
+                self._qobj['id'] = [self._qobj['id']]
+            self._qobj['id'].append(other._qobj['id'])
+            self._qobj['circuits'] += other._qobj['circuits']
+            self._result['result'] += other._result['result']
             return self
         else:
             raise QISKitError('Result objects have different configs and cannot be combined.')
@@ -85,11 +85,11 @@ class Result(object):
         return ret
 
     def _is_error(self):
-        return self.__result['status'] == 'ERROR'
+        return self._result['status'] == 'ERROR'
 
     def get_status(self):
         """Return whole qobj result status."""
-        return self.__result['status']
+        return self._result['status']
 
     def circuit_statuses(self):
         """Return statuses of all circuits
@@ -98,7 +98,7 @@ class Result(object):
             List of status result strings.
         """
         return [circuit_result['status']
-                for circuit_result in self.__result['result']]
+                for circuit_result in self._result['result']]
 
     def get_circuit_status(self, icircuit):
         """Return the status of circuit at index icircuit.
@@ -106,7 +106,7 @@ class Result(object):
         Args:
             icircuit (int): index of circuit
         """
-        return self.__result['result'][icircuit]['status']
+        return self._result['result'][icircuit]['status']
 
     def get_job_id(self):
         """Return the job id assigned by the api if this is a remote job.
@@ -114,7 +114,7 @@ class Result(object):
         Returns:
             a string containing the job id.
         """
-        return self.__result['job_id']
+        return self._result['job_id']
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
@@ -126,7 +126,7 @@ class Result(object):
             A text version of the qasm file that has been run.
         """
         try:
-            qobj = self.__qobj
+            qobj = self._qobj
             for index in range(len(qobj["circuits"])):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
@@ -172,13 +172,13 @@ class Result(object):
             RegisterSizeError.
         """
         if self._is_error():
-            exception = self.__result['result']
+            exception = self._result['result']
             raise exception
         try:
-            qobj = self.__qobj
+            qobj = self._qobj
             for index in range(len(qobj['circuits'])):
                 if qobj['circuits'][index]['name'] == name:
-                    return self.__result['result'][index]['data']
+                    return self._result['result'][index]['data']
         except (KeyError, TypeError):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
@@ -190,10 +190,9 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit.
-            backend (str): the name of the backend the data was run on.
 
         Returns:
-            A dictionary of counts {’00000’: XXXX, ’00001’: XXXXX}.
+            Dictionary: Counts {’00000’: XXXX, ’00001’: XXXXX}.
         """
         try:
             return self.get_data(name)['counts']
@@ -204,9 +203,9 @@ class Result(object):
         """Get the circuit names of the results.
 
         Returns:
-            A list of circuit names.
+            List: A list of circuit names.
         """
-        return [c['name'] for c in self.__qobj['circuits']]
+        return [c['name'] for c in self._qobj['circuits']]
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -217,11 +216,11 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit
-            obsevable (dict): The observable to be averaged over. As an example
+            observable (dict): The observable to be averaged over. As an example
             ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
 
         Returns:
-            a double for the average of the observable
+            Double: Average of the observable
         """
         counts = self.get_counts(name)
         temp = 0
@@ -237,18 +236,18 @@ class Result(object):
         all qubits are measured.
 
         Args:
-            xvals_dict: dictionary of xvals for each circuit {'circuitname1': xval1,...}. If this
+            xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
             is none then the xvals list is just left as an array of zeros
 
         Returns:
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self.__qobj['circuits'])
+        ncircuits = len(self._qobj['circuits'])
         #Is this the best way to get the number of qubits?
-        nqubits = self.__qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
-        qubitpol = numpy.zeros([ncircuits,nqubits],dtype=float)
-        xvals = numpy.zeros([ncircuits],dtype=float)
+        nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
+        qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
+        xvals = numpy.zeros([ncircuits], dtype=float)
 
         #build Z operators for each qubit
         z_dicts = []
@@ -257,14 +256,14 @@ class Result(object):
             for qubit_state in range(2**nqubits):
                 new_key = ("{0:0"+"{:d}".format(nqubits) + "b}").format(qubit_state)
                 z_dicts[-1][new_key] = -1
-                if new_key[nqubits-qubit_ind-1]=='1':
+                if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
         #go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
             if not xvals_dict is None:
-                xvals[circuit_ind] = xvals_dict[self.__qobj['circuits'][circuit_ind]['name']]
+                xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind,qubit_ind] = self.average_data(self.__qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                qubitpol[circuit_ind, qubit_ind] = self.average_data(self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
 
-        return qubitpol,xvals
+        return qubitpol, xvals

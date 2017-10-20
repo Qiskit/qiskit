@@ -26,6 +26,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
 import qiskit.backends
+from  qiskit.tools import file_io
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
@@ -1531,6 +1532,70 @@ class TestQuantumProgram(QiskitTestCase):
         )
         # SDK will throw ConnectionError on every call that implies a connection
         self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+
+    def test_results_save_load(self):
+        """Test saving and loading the results of a circuit.
+
+        Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
+        """
+        QP_program = QuantumProgram()
+        metadata = {'testval':5}
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc1.h(q)
+        qc2.cx(q[0], q[1])
+        circuits = ['qc1', 'qc2']
+
+        result1 = QP_program.execute(circuits, backend='local_unitary_simulator')
+        result2 = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        test_1_path = self._get_resource_path('test_save_load1.json')
+        test_2_path = self._get_resource_path('test_save_load2.json')
+
+        #delete these files if they exist
+        if os.path.exists(test_1_path):
+            os.remove(test_1_path)
+
+        if os.path.exists(test_2_path):
+            os.remove(test_2_path)
+
+        file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
+        file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
+
+        result_loaded1, metadata_loaded1 = file_io.load_result_from_file(file1)
+        result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file1)
+
+        self.assertAlmostEqual(metadata_loaded1['testval'], 5)
+        self.assertAlmostEqual(metadata_loaded2['testval'], 5)
+
+        #remove files to keep directory clean
+        os.remove(file1)
+        os.remove(file2)
+
+    def test_qubitpol(self):
+
+        """Test the results of the qubitpol function in Results. Do two 2Q circuits
+        in the first do nothing and in the second do X on the first qubit.
+        """
+        QP_program = QuantumProgram()
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc2.x(q[0])
+        qc1.measure(q, c)
+        qc2.measure(q, c)
+        circuits = ['qc1', 'qc2']
+        xvals_dict = {circuits[0]: 0, circuits[1]: 1}
+
+        result = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
+
+        self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
+        self.assertTrue(np.array_equal(xvals, [0,1]))
 
 
 if __name__ == '__main__':
