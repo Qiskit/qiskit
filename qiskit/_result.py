@@ -173,7 +173,11 @@ class Result(object):
         """
         if self._is_error():
             exception = self._result['result']
-            raise exception
+            if isinstance(exception, BaseException):
+                raise exception
+            else:
+                raise QISKitError(str(exception))
+
         try:
             qobj = self._qobj
             for index in range(len(qobj['circuits'])):
