@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -14,29 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+
 """Quick program to test the Pauli class."""
-import numpy as np
-from scipy import linalg as la
+
 import unittest
-import logging
-import os
-import sys
-sys.path.append("../..")
-from tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
-from tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from tools.qi.qi import state_fidelity, purity, concurrence
+
+import numpy as np
+from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
+from qiskit.tools.qi.qi import (partial_trace, vectorize, devectorize, outer,
+                                state_fidelity, purity, concurrence)
+
+from .common import QiskitTestCase
 
 
-class TestQI(unittest.TestCase):
+class TestQI(QiskitTestCase):
     """Tests for qi.py"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestQI:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
 
     def test_partial_trace(self):
         # reference
@@ -139,16 +132,8 @@ class TestQI(unittest.TestCase):
         self.assertTrue(test_pass)
 
 
-class TestPauli(unittest.TestCase):
+class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestPauli:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
 
     def test_pauli(self):
 
@@ -160,45 +145,45 @@ class TestPauli(unittest.TestCase):
         w[2] = 1
 
         p = Pauli(v, w)
-        logging.info(p)
-        logging.info("In label form:")
-        logging.info(p.to_label())
-        logging.info("In matrix form:")
-        logging.info(p.to_matrix())
+        self.log.info(p)
+        self.log.info("In label form:")
+        self.log.info(p.to_label())
+        self.log.info("In matrix form:")
+        self.log.info(p.to_matrix())
 
 
         q = random_pauli(2)
-        logging.info(q)
+        self.log.info(q)
 
         r = inverse_pauli(p)
-        logging.info("In label form:")
-        logging.info(r.to_label())
+        self.log.info("In label form:")
+        self.log.info(r.to_label())
 
-        logging.info("Group in tensor order:")
+        self.log.info("Group in tensor order:")
         grp = pauli_group(3, case=1)
         for j in grp:
-            logging.info(j.to_label())
+            self.log.info(j.to_label())
 
-        logging.info("Group in weight order:")
+        self.log.info("Group in weight order:")
         grp = pauli_group(3)
         for j in grp:
-            logging.info(j.to_label())
+            self.log.info(j.to_label())
 
-        logging.info("sign product:")
+        self.log.info("sign product:")
         p1 = Pauli(np.array([0]), np.array([1]))
         p2 = Pauli(np.array([1]), np.array([1]))
         p3, sgn = sgn_prod(p1, p2)
-        logging.info(p1.to_label())
-        logging.info(p2.to_label())
-        logging.info(p3.to_label())
-        logging.info(sgn)
+        self.log.info(p1.to_label())
+        self.log.info(p2.to_label())
+        self.log.info(p3.to_label())
+        self.log.info(sgn)
 
-        logging.info("sign product reverse:")
+        self.log.info("sign product reverse:")
         p3, sgn = sgn_prod(p2, p1)
-        logging.info(p2.to_label())
-        logging.info(p1.to_label())
-        logging.info(p3.to_label())
-        logging.info(sgn)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p3.to_label())
+        self.log.info(sgn)
 
 if __name__ == '__main__':
     unittest.main()

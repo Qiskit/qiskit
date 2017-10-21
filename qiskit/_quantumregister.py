@@ -19,7 +19,6 @@
 Quantum register reference object.
 """
 from ._register import Register
-from ._instructionset import InstructionSet
 
 
 class QuantumRegister(Register):

@@ -71,16 +71,16 @@ class Unroller(object):
                             for j in range(self.cregs[node.name])]
                 else:
                     raise UnrollerError("expected qreg or creg name:",
-                                            "line=%s" % node.line,
-                                            "file=%s" % node.file)
+                                        "line=%s" % node.line,
+                                        "file=%s" % node.file)
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
                 else:
                     raise UnrollerError("excepted local bit name:",
-                                            "line=%s" % node.line,
-                                            "file=%s" % node.file)
+                                        "line=%s" % node.line,
+                                        "file=%s" % node.file)
 
     def _process_custom_unitary(self, node):
         """Process a custom unitary node."""
@@ -171,15 +171,15 @@ class Unroller(object):
     def _process_if(self, node):
         """Process an if node."""
         creg = node.children[0].name
-        cval = node.children[1]
+        cval = node.children[1].value
         self.backend.set_condition(creg, cval)
         self._process_node(node.children[2])
         self.backend.drop_condition()
 
     def _process_children(self, node):
         """Call process_node for all children of node."""
-        for c in node.children:
-            self._process_node(c)
+        for kid in node.children:
+            self._process_node(kid)
 
     def _process_node(self, node):
         """Carry out the action associated with node n."""
@@ -195,16 +195,16 @@ class Unroller(object):
             self.backend.new_creg(node.name, int(node.index))
 
         elif node.type == "id":
-            raise UnrollerException("internal error: _process_node on id")
+            raise UnrollerError("internal error: _process_node on id")
 
         elif node.type == "int":
-            raise UnrollerException("internal error: _process_node on int")
+            raise UnrollerError("internal error: _process_node on int")
 
         elif node.type == "real":
-            raise UnrollerException("internal error: _process_node on real")
+            raise UnrollerError("internal error: _process_node on real")
 
         elif node.type == "indexed_id":
-            raise UnrollerException("internal error: _process_node on indexed_id")
+            raise UnrollerError("internal error: _process_node on indexed_id")
 
         elif node.type == "id_list":
             # We process id_list nodes when they are leaves of barriers.
@@ -234,16 +234,16 @@ class Unroller(object):
             return node.children
 
         elif node.type == "binop":
-            raise UnrollerException("internal error: _process_node on binop")
+            raise UnrollerError("internal error: _process_node on binop")
 
         elif node.type == "prefix":
-            raise UnrollerException("internal error: _process_node on prefix")
+            raise UnrollerError("internal error: _process_node on prefix")
 
         elif node.type == "measure":
             self._process_measure(node)
 
         elif node.type == "magic":
-            self.version = float(node.children[0])
+            self.version = node.children[0].value
             self.backend.version(node.children[0])
 
         elif node.type == "barrier":
@@ -262,7 +262,7 @@ class Unroller(object):
             self._process_gate(node, opaque=True)
 
         elif node.type == "external":
-            raise UnrollerException("internal error: _process_node on external")
+            raise UnrollerError("internal error: _process_node on external")
 
         else:
             raise UnrollerError("internal error: undefined node type",

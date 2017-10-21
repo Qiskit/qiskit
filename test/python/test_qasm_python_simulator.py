@@ -1,43 +1,44 @@
-#!/usr/bin/env python
-import unittest
-import time
-import numpy as np
-import os
-import sys
-import cProfile
-import pstats
-import io
-import logging
-import random
-import string
-import json
-import shutil
-from matplotlib.backends.backend_pdf import PdfPages
-try:
-    import qiskit
-except ImportError as ierr:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-    import qiskit
-from qiskit import QuantumProgram
-from qiskit.simulators._qasmsimulator import QasmSimulator
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
-if __name__ == '__main__':
-    from _random_qasm_generator import RandomQasmGenerator
-else:
-    from test.python._random_qasm_generator import RandomQasmGenerator
+# -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
-class LocalQasmSimulatorTest(unittest.TestCase):
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+import cProfile
+import io
+import pstats
+import shutil
+import time
+import unittest
+
+from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
+from qiskit import qasm, unroll, QuantumProgram, QuantumJob
+from qiskit.backends._qasmsimulator import QasmSimulator
+
+from ._random_qasm_generator import RandomQasmGenerator
+from .common import QiskitTestCase
+
+
+class LocalQasmSimulatorTest(QiskitTestCase):
     """Test local qasm simulator."""
 
     @classmethod
     def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
+        super(LocalQasmSimulatorTest, cls).setUpClass()
         cls.pdf = PdfPages(cls.moduleName + '.pdf')
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'LocalQasmSimulatorTest:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
 
     @classmethod
     def tearDownClass(cls):
@@ -45,9 +46,44 @@ class LocalQasmSimulatorTest(unittest.TestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
+        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
+        self.qp.load_qasm_file(self.qasmFileName, name='example')
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
+                      unroll.JsonBackend(basis_gates))
+        circuit = unroller.execute()
+        circuit_config = {'coupling_map': None,
+                          'basis_gates': 'u1,u2,u3,cx,id',
+                          'layout': None,
+                          'seed': self.seed}
+        resources = {'max_credits': 3,
+                     'wait': 5,
+                     'timeout': 120}
+        self.qobj = {'id': 'test_sim_single_shot',
+                     'config': {
+                         'max_credits': resources['max_credits'],
+                         'shots': 1024,
+                         'backend': 'local_qasm_simulator',
+                     },
+                     'circuits': [
+                         {
+                             'name': 'test',
+                             'compiled_circuit': circuit,
+                             'compiled_circuit_qasm': None,
+                             'config': circuit_config
+                         }
+                     ]
+        }
+        self.q_job = QuantumJob(self.qobj,
+                                backend='local_qasm_simulator',
+                                circuit_config=circuit_config,
+                                seed=self.seed,
+                                resources=resources,
+                                preformatted=True
+                                )
+                                
 
     def tearDown(self):
         pass
@@ -55,87 +91,98 @@ class LocalQasmSimulatorTest(unittest.TestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': circuit, 'config': config}
-        result = QasmSimulator(job).run()
-        self.assertEqual(result['status'], 'DONE')
+        self.qobj['config']['shots'] = shots
+        result = QasmSimulator().run(self.q_job)
+        self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        shots = 1024
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm("example")).parse(),
-                      unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': circuit, 'config': config}
-        result = QasmSimulator(job).run()
+        result = QasmSimulator().run(self.q_job)
         expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
                     '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
-        self.assertEqual(result['data']['counts'], expected)
+        self.assertEqual(result.get_counts('test'), expected)
 
     def test_if_statement(self):
-        logging.info('test_if_statement_x')
+        self.log.info('test_if_statement_x')
         shots = 100
         max_qubits = 3
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', max_qubits)
         cr = qp.create_classical_register('cr', max_qubits)
-        circuit = qp.create_circuit('test_if', [qr], [cr])
-        circuit.x(qr[0])
-        circuit.x(qr[1])
-        circuit.measure(qr[0], cr[0])
-        circuit.measure(qr[1], cr[1])
-        circuit.x(qr[2]).c_if(cr, 0x3)
-        circuit.measure(qr[0], cr[0])
-        circuit.measure(qr[1], cr[1])
-        circuit.measure(qr[2], cr[2])
-        circuit2 = qp.create_circuit('test_if_case_2', [qr], [cr])
-        circuit2.x(qr[0])
-        circuit2.measure(qr[0], cr[0])
-        circuit2.measure(qr[1], cr[1])
-        circuit2.x(qr[2]).c_if(cr, 0x3)
-        circuit2.measure(qr[0], cr[0])
-        circuit2.measure(qr[1], cr[1])
-        circuit2.measure(qr[2], cr[2])
+        circuit_if_true = qp.create_circuit('test_if_true', [qr], [cr])
+        circuit_if_true.x(qr[0])
+        circuit_if_true.x(qr[1])
+        circuit_if_true.measure(qr[0], cr[0])
+        circuit_if_true.measure(qr[1], cr[1])
+        circuit_if_true.x(qr[2]).c_if(cr, 0x3)
+        circuit_if_true.measure(qr[0], cr[0])
+        circuit_if_true.measure(qr[1], cr[1])
+        circuit_if_true.measure(qr[2], cr[2])
+        circuit_if_false = qp.create_circuit('test_if_false', [qr], [cr])
+        circuit_if_false.x(qr[0])
+        circuit_if_false.measure(qr[0], cr[0])
+        circuit_if_false.measure(qr[1], cr[1])
+        circuit_if_false.x(qr[2]).c_if(cr, 0x3)
+        circuit_if_false.measure(qr[0], cr[0])
+        circuit_if_false.measure(qr[1], cr[1])
+        circuit_if_false.measure(qr[2], cr[2])
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if')).parse(),
+            qasm.Qasm(data=qp.get_qasm('test_if_true')).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit = unroller.execute()
+        ucircuit_true = unroller.execute()
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if_case_2')).parse(),
+            qasm.Qasm(data=qp.get_qasm('test_if_false')).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit2 = unroller.execute()
+        ucircuit_false = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
-        job = {'compiled_circuit': ucircuit, 'config': config}
-        result_if_true = QasmSimulator(job).run()
-        job = {'compiled_circuit': ucircuit2, 'config': config}
-        result_if_false = QasmSimulator(job).run()
+        qobj = {'id': 'test_if_qobj',
+                'config': {
+                    'max_credits': 3,
+                    'shots': shots,
+                    'backend': 'local_qasm_simulator',
+                },
+                'circuits': [
+                    {
+                        'name': 'test_if_true',
+                        'compiled_circuit': ucircuit_true,
+                        'compiled_circuit_qasm': None,
+                        'config': {'coupling_map': None,
+                                   'basis_gates': 'u1,u2,u3,cx,id',
+                                   'layout': None,
+                                   'seed': None
+                                   }
+                    },
+                    {
+                        'name': 'test_if_false',
+                        'compiled_circuit': ucircuit_false,
+                        'compiled_circuit_qasm': None,
+                        'config': {'coupling_map': None,
+                                   'basis_gates': 'u1,u2,u3,cx,id',
+                                   'layout': None,
+                                   'seed': None
+                                   }
+                    }
+                ]
+        }
+        q_job = QuantumJob(qobj, preformatted=True)
+        result = QasmSimulator().run(q_job)
+        result_if_true = result.get_data('test_if_true')
+        self.log.info('result_if_true circuit:')
+        self.log.info(circuit_if_true.qasm())
+        self.log.info('result_if_true={0}'.format(result_if_true))
 
-        logging.info('result_if_true circuit:')
-        logging.info(circuit.qasm())
-        logging.info('result_if_true={0}'.format(result_if_true))
-
-        del circuit.data[1]
-        logging.info('result_if_false circuit:')
-        logging.info(circuit.qasm())
-        logging.info('result_if_false={0}'.format(result_if_false))
-        self.assertTrue(result_if_true['data']['counts']['111'] == 100)
-        self.assertTrue(result_if_false['data']['counts']['001'] == 100)
+        result_if_false = result.get_data('test_if_false')        
+        self.log.info('result_if_false circuit:')
+        self.log.info(circuit_if_false.qasm())
+        self.log.info('result_if_false={0}'.format(result_if_false))
+        self.assertTrue(result_if_true['counts']['111'] == 100)
+        self.assertTrue(result_if_false['counts']['001'] == 100)
 
     def test_teleport(self):
         """test teleportation as in tutorials"""
 
-        logging.info('test_teleport')
+        self.log.info('test_teleport')
         pi = np.pi
         shots = 1000
         qp = QuantumProgram()
@@ -169,15 +216,15 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         alice['11'] = data['0 1 1'] + data['1 1 1']
         bob['0'] = data['0 0 0'] + data['0 1 0'] +  data['0 0 1'] + data['0 1 1']
         bob['1'] = data['1 0 0'] + data['1 1 0'] +  data['1 0 1'] + data['1 1 1']
-        logging.info('test_telport: circuit:')
-        logging.info( circuit.qasm() )
-        logging.info('test_teleport: data {0}'.format(data))
-        logging.info('test_teleport: alice {0}'.format(alice))
-        logging.info('test_teleport: bob {0}'.format(bob))
+        self.log.info('test_telport: circuit:')
+        self.log.info( circuit.qasm() )
+        self.log.info('test_teleport: data {0}'.format(data))
+        self.log.info('test_teleport: alice {0}'.format(alice))
+        self.log.info('test_teleport: bob {0}'.format(bob))
         alice_ratio = 1/np.tan(pi/8)**2
         bob_ratio = bob['0']/float(bob['1'])
         error = abs(alice_ratio - bob_ratio) / alice_ratio
-        logging.info('test_teleport: relative error = {0:.4f}'.format(error))
+        self.log.info('test_teleport: relative error = {0:.4f}'.format(error))
         self.assertLess(error, 0.05)
 
     def profile_qasm_simulator(self):
@@ -212,10 +259,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
-        logging.info('------- start profiling QasmSimulator -----------')
+        self.log.info('------- start profiling QasmSimulator -----------')
         ps.print_stats()
-        logging.info(sout.getvalue())
-        logging.info('------- stop profiling QasmSimulator -----------')
+        self.log.info(sout.getvalue())
+        self.log.info('------- stop profiling QasmSimulator -----------')
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 
@@ -241,7 +288,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         if shutil.which('qasm_simulator'):
             backendList.append('local_qasm_cpp_simulator')
         else:
-            logging.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
+            self.log.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
         fig = plt.figure(0)
         plt.clf()
         ax = fig.add_axes((0.1, 0.25, 0.8, 0.6))
@@ -270,10 +317,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
                     timedOut = True
-                logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
+                self.log.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
                 if backend is not 'local_unitary_simulator':
                     for name in cnames:
-                        logging.info(fmtStr2.format(
+                        self.log.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
                             results.get_data(name)))
                 j += 1
@@ -317,7 +364,7 @@ class LocalQasmSimulatorTest(unittest.TestCase):
         if shutil.which('qasm_simulator'):
             backendList.append('local_qasm_cpp_simulator')
         else:
-            logging.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
+            self.log.info('profile_nqubit_speed::\"qasm_simulator\" executable not in path...skipping')
         fig = plt.figure(0)
         plt.clf()
         ax = fig.add_axes((0.1, 0.2, 0.8, 0.6))
@@ -345,10 +392,10 @@ class LocalQasmSimulatorTest(unittest.TestCase):
                 elapsedTime[j] = stop - start
                 if elapsedTime[j] > maxTime:
                     timedOut = True
-                logging.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
+                self.log.info(fmtStr1.format(nQubits, backend, elapsedTime[j]))
                 if backend is not 'local_unitary_simulator':
                     for name in cnames:
-                        logging.info(fmtStr2.format(
+                        self.log.info(fmtStr2.format(
                             backend, name, len(qp.get_circuit(name)),
                             results.get_data(name)))
                 j += 1

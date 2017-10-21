@@ -28,7 +28,7 @@ run:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial
+	pylint qiskit test
 
 # TODO: Uncomment when the lint one passes.
 # test: lint
@@ -39,7 +39,10 @@ profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
 doc:
-	export PYTHONPATH=$(PWD);sphinx-apidoc -f -o doc/_autodoc -d 5 -P -e qiskit;make -C doc html
+	export PYTHONPATH=$(PWD); \
+	better-apidoc -f -o doc/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
+	sphinx-autogen -t doc/_templates doc/_autodoc/*; \
+	make -C doc html
 
 clean:
 	make -C doc clean

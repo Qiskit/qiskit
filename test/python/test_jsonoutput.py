@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,29 +19,21 @@
 """Quick program to test json backend
 """
 import unittest
-import logging
-import os
-from qiskit import QuantumProgram
-import qiskit.qasm as qasm
-import qiskit.unroll as unroll
 
-class TestJsonOutput(unittest.TestCase):
+from qiskit import qasm, unroll, QuantumProgram
+
+from .common import QiskitTestCase, Path
+
+
+class TestJsonOutput(QiskitTestCase):
     """Test Json output.
 
     This is mostly covered in test_quantumprogram.py but will leave
     here for convenience.
     """
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.logFileName = cls.moduleName + '.log'
-        log_fmt = 'TestJsonOutput:%(levelname)s:%(asctime)s: %(message)s'
-        logging.basicConfig(filename=cls.logFileName, level=logging.INFO,
-                            format=log_fmt)
-
     def setUp(self):
-        self.QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                                           '../../examples/qasm/entangled_registers.qasm')
+        self.QASM_FILE_PATH = self._get_resource_path(
+            'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
         seed = 88
@@ -51,7 +44,7 @@ class TestJsonOutput(unittest.TestCase):
         unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                                    unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        logging.info('test_json_ouptut: {0}'.format(circuit))
+        self.log.info('test_json_ouptut: {0}'.format(circuit))
 
 
 if __name__ == '__main__':

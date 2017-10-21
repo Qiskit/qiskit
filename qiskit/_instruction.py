@@ -33,8 +33,8 @@ class Instruction(object):
         arg = list of pairs (Register, index)
         circuit = QuantumCircuit or CompositeGate containing this instruction
         """
-        for a in arg:
-            if not isinstance(a[0], Register):
+        for i in arg:
+            if not isinstance(i[0], Register):
                 raise QISKitError("argument not (Register, int) tuple")
         self.name = name
         self.param = param
@@ -62,13 +62,11 @@ class Instruction(object):
             self.check_circuit()
             if not gate.circuit.has_register(self.control[0]):
                 raise QISKitError("control register %s not found"
-                                      % self.control[0].name)
+                                  % self.control[0].name)
             gate.c_if(self.control[0], self.control[1])
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
         if self.control is None:
             return string
-        else:
-            return "if(%s==%d) " % (
-                self.control[0].name, self.control[1]) + string
+        return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
