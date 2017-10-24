@@ -19,6 +19,9 @@
 #
 import os
 import sys
+
+import sphinx_bootstrap_theme
+
 from qiskit import __version__
 sys.path.insert(0, os.path.abspath('.'))
 
@@ -39,8 +42,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
-              'sphinx.ext.githubpages',
-              'sphinxcontrib.fulltoc']
+              'sphinx.ext.githubpages']
 
 autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance',
                          'inherited-members']
@@ -117,20 +119,57 @@ todo_include_todos = False
 # html_theme = 'bizstyle'
 # html_theme = agogo
 
-html_theme = 'theme'  # use the theme in subdir 'theme'
-html_theme_path = ['./']  # make sphinx search for themes in current dir
-
+html_theme = 'bootstrap'  # use the theme in subdir 'theme'
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {}
+html_theme_options = {
+    # A list of tuples containing pages or urls to link to.
+    # Valid tuples should be in the following forms:
+    #    (name, page)                 # a link to a page
+    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
+    #    (name, "http://example.com", True) # arbitrary absolute url
+    # Note the "1" or "True" value above as the third argument to indicate
+    # an arbitrary url.
+    'navbar_links': [
+        ("Github", "https://github.com/QISKit/qiskit-sdk-py", True),
+        ("Tutorials", "https://nbviewer.jupyter.org/github/QISKit/qiskit-tutorial/blob/master/index.ipynb", True),
+        ("Documentation", "index"),
+        ("Roadmap", "https://github.com/QISKit/qiskit-sdk-py/wiki/Roadmap", True),
+        ("Modules", "_autodoc/qiskit"),
+        ("Index", "genindex"),
+    ],
+
+    # Render the next and previous page links in navbar. (Default: true)
+    'navbar_sidebarrel': False,
+
+    # Render the current pages TOC in the navbar. (Default: true)
+    'navbar_pagenav': False,
+
+    # Fix navigation bar to top of page?
+    # Values: "true" (default) or "false"
+    'navbar_fixed_top': False,
+
+    # Location of link to source.
+    # Options are "nav" (default), "footer" or anything else to exclude.
+    'source_link_position': "footer",
+
+    # Global TOC depth for "site" navbar tab. (Default: 1)
+    # Switching to -1 shows all levels.
+    'globaltoc_depth': 2,
+}
+
+html_sidebars = {
+    '**': ['globaltoc.html'],
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['theme/static/bootstrap-custom.css']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -207,3 +246,4 @@ def remove_module_docstring(app, what, name, obj, options, lines):
 
 def setup(app):
     app.connect('autodoc-process-docstring', remove_module_docstring)
+    app.add_stylesheet('bootstrap-custom.css')

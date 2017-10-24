@@ -1,0 +1,43 @@
+@import "bootstrap/bootstrap.less";
+
+@container-sm:  100%;
+@container-md:  100%;
+@container-lg:  100%;
+
+@body-bg:           #f4f4f4;
+@navbar-inverse-bg: #23292e;
+@sidenav-bg:        #ffffff;
+
+.navbar-default {
+  background: @sidenav-bg;
+  border: 0;
+  margin-bottom: 0;
+}
+
+.bs-sidenav {
+  background-color: @sidenav-bg;
+}
+
+div.container.inverted {
+  color: white;
+  background-color: @navbar-inverse-bg;
+  padding: 3em;
+}
+
+div.container.inverted h1 small {
+  display: block;
+  font-size: 40%;
+  margin-bottom: 2em;
+}
+
+div.container.inverted .link-prev a {
+  float: left;
+  font-size: 200%;
+  color: white;
+}
+
+div.container.inverted .link-next a {
+  float: right;
+  font-size: 200%;
+  color: white;
+}

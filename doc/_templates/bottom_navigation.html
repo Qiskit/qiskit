@@ -1,0 +1,18 @@
+<div class="container inverted">
+  <div class="row">
+    <div class="col-md-6 link-prev">
+      {%- if prev %}
+        <a href="{{ prev.link|e }}" title="{{ prev.title|striptags }}">
+          &larr; {{ prev.title|striptags }}
+        </a>
+      {%- endif %}
+    </div>
+    <div class="col-md-6 link-next">
+      {%- if next %}
+        <a href="{{ next.link|e }}" title="{{ prev.title|striptags }}">
+          {{ next.title|striptags }} &rarr;
+        </a>
+      {%- endif %}
+    </div>
+  </div>
+</div>
