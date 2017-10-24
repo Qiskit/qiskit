@@ -169,7 +169,7 @@ html_sidebars = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['theme/static/bootstrap-custom.css']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -246,3 +246,4 @@ def remove_module_docstring(app, what, name, obj, options, lines):
 
 def setup(app):
     app.connect('autodoc-process-docstring', remove_module_docstring)
+    app.add_stylesheet('bootstrap-custom.css')
