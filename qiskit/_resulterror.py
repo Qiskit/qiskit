@@ -22,6 +22,7 @@ in the result
 
 from qiskit import QISKitError
 
+
 class ResultError(QISKitError):
     """Exceptions raised due to errors in result output.
 
@@ -36,8 +37,8 @@ class ResultError(QISKitError):
                          'code': 'MAX_CREDITS_EXCEEDED'}
     """
     def __init__(self, error):
+        super(ResultError, self).__init__(error['message'])
         self.status = error['status']
-        self.message = error['message']
         self.code = error['code']
 
     def __str__(self):
