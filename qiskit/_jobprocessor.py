@@ -1,32 +1,50 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+"""Processor for running Quantum Jobs in the different backends."""
+
+
 from concurrent import futures
 import logging
 import pprint
 from threading import Lock
-import sys
-import time
 
 import qiskit.backends
 from qiskit.backends import (local_backends, remote_backends)
 from qiskit._result import Result
-from qiskit._resulterror import ResultError
+
 from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
-from IBMQuantumExperience.IBMQuantumExperience import (IBMQuantumExperience)
+
 
 logger = logging.getLogger(__name__)
 
+
 def run_backend(q_job):
-    """Run a program of compiled quantum circuits on the local machine.
+    """Run a program of compiled quantum circuits on a backend.
 
     Args:
         q_job (QuantumJob): job object
 
     Returns:
-        Result object.
+        Result: Result object.
     """
     backend_name = q_job.backend
     qobj = q_job.qobj
-    if backend_name in local_backends(): # remove condition when api gets qobj
+    if backend_name in local_backends():  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
@@ -35,11 +53,11 @@ def run_backend(q_job):
     backend = qiskit.backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 
+
 class JobProcessor():
     """
-    process a bunch of jobs and collect the results
+    Process a series of jobs and collect the results
     """
-
     def __init__(self, q_jobs, callback, max_workers=1):
         """
         Args:
@@ -49,10 +67,9 @@ class JobProcessor():
                 fn(results)
                 results: A list of Result objects.
             max_workers (int): The maximum number of workers to use.
-            token (str): Server API token
-            url (str): Server URL.
-            api (IBMQuantumExperience): API instance to use. If set,
-                /token/ and /url/ are ignored.
+
+        Raises:
+            QISKitError: if any of the job backends could not be found.
         """
         self.q_jobs = q_jobs
         self.max_workers = max_workers
@@ -80,7 +97,7 @@ class JobProcessor():
     def _job_done_callback(self, future):
         try:
             result = future.result()
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             result = Result({'job_id': '0', 'status': 'ERROR',
                              'result': ex},
                             future.qobj)
