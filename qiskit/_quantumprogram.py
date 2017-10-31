@@ -944,28 +944,20 @@ class QuantumProgram(object):
         Returns:
             qobj: updated qobj
         """
-
         if backend is not None:
             qobj['config']['backend'] = backend
-
         if shots is not None:
             qobj['config']['shots'] = shots
-
         if max_credits is not None:
             qobj['config']['max_credits'] = max_credits
 
-
         for circuits in qobj['circuits']:
-
             if seed is not None:
                 circuits['seed'] = seed
-
             if config is not None:
                 circuits['config'].update(config)
 
-
         return qobj
-
 
     def get_execution_list(self, qobj):
         """Print the compiled circuits that are ready to run.
