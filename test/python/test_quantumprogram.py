@@ -1597,6 +1597,48 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
         self.assertTrue(np.array_equal(xvals, [0,1]))
 
+    def test_reconfig(self):
+        """Test reconfiguring the qobj from 1024 shots to 2048 using
+        reconfig instead of recompile
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        qc2.measure(qr[2], cr[2])
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        test_config = {'0': 0, '1': 1}
+        qobj = QP_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
+        out = QP_program.run(qobj)
+        results = out.get_counts('qc2')
+
+        #change the number of shots and re-run to test if the reconfig does not break
+        #the ability to run the qobj
+        qobj = QP_program.reconfig(qobj, shots=2048)
+        out2 = QP_program.run(qobj)
+        results2 = out2.get_counts('qc2')
+
+        self.assertEqual(results, {'000': 1024})
+        self.assertEqual(results2, {'000': 2048})
+
+        #change backend
+        qobj = QP_program.reconfig(qobj, backend='local_unitary_simulator')
+        self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
+        #change maxcredits
+        qobj = QP_program.reconfig(qobj, max_credits=11)
+        self.assertEqual(qobj['config']['max_credits'], 11)
+        #change seed
+        qobj = QP_program.reconfig(qobj, seed=11)
+        self.assertEqual(qobj['circuits'][0]['seed'], 11)
+        #change the config
+        test_config_2 = {'0': 2}
+        qobj = QP_program.reconfig(qobj, config=test_config_2)
+        self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
+        self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

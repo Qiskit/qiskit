@@ -925,6 +925,40 @@ class QuantumProgram(object):
             qobj["circuits"].append(job)
         return qobj
 
+    def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
+        """Change configuration parameters for a compile qobj. Only parameters which
+        don't affect the circuit compilation can change, e.g., the coupling_map
+        cannot be changed here!
+
+        Notes:
+            If the inputs are left as None then the qobj is not updated
+
+        Args:
+            qobj (dict): already compile qobj
+            backend (str): see .compile
+            config (dict): see .compile
+            shots (int): see .compile
+            max_credits (int): see .compile
+            seed (int): see .compile
+
+        Returns:
+            qobj: updated qobj
+        """
+        if backend is not None:
+            qobj['config']['backend'] = backend
+        if shots is not None:
+            qobj['config']['shots'] = shots
+        if max_credits is not None:
+            qobj['config']['max_credits'] = max_credits
+
+        for circuits in qobj['circuits']:
+            if seed is not None:
+                circuits['seed'] = seed
+            if config is not None:
+                circuits['config'].update(config)
+
+        return qobj
+
     def get_execution_list(self, qobj):
         """Print the compiled circuits that are ready to run.
 
