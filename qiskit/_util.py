@@ -19,7 +19,7 @@
 import logging
 from unittest.mock import patch
 
-
+API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +34,7 @@ def _check_ibmqe_version():
         # Use a local import, as in very specific environments setuptools
         # might not be available or updated (conda with specific setup).
         import pkg_resources
+        from pkg_resources import parse_version
     except ImportError:
         return
 
@@ -63,13 +64,32 @@ def _check_ibmqe_version():
     else:
         # Retrieve the requirement line from pkg_resources
         ibmqe_require = next(r for r in qiskit_pkg.requires() if
-                             r.name == 'IBMQuantumExperience')
+                             r.name == API_NAME)
 
-    # Finally, check the requirement.
+    # Finally, compare the versions.
     try:
-        working_set.require(str(ibmqe_require))
-    except pkg_resources.ResolutionError:
-        logger.warning('The installed IBMQuantumExperience package does '
-                       'not match the required version - some features might '
-                       'not work as intended. Please install %s.',
-                       str(ibmqe_require))
+        # First try to use IBMQuantumExperience.__version__ directly.
+        from IBMQuantumExperience import __version__ as ibmqe_version
+
+        if (parse_version('{}=={}'.format(API_NAME, ibmqe_version)) >=
+                pkg_resources.parse_version(str(ibmqe_require))):
+            return
+    except ImportError:
+        # __version__ was not available, so try to compare using the
+        # working_set. This assumes IBMQuantumExperience is installed as a
+        # library (using pip, etc).
+        try:
+            working_set.require(str(ibmqe_require))
+            return
+        except pkg_resources.DistributionNotFound:
+            # IBMQuantumExperience was not found among the installed libraries.
+            # The warning is not printed, assuming the user is using a local
+            # version and takes responsability of handling the versions.
+            return
+        except pkg_resources.VersionConflict:
+            pass
+
+    logger.warning('The installed IBMQuantumExperience package does '
+                   'not match the required version - some features might '
+                   'not work as intended. Please install %s.',
+                   str(ibmqe_require))
