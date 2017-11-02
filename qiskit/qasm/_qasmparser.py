@@ -18,8 +18,10 @@
 """
 OPENQASM parser.
 """
+import os
 import math
 import tempfile
+import shutil
 
 import ply.yacc as yacc
 
@@ -37,15 +39,23 @@ class QasmParser(object):
             filename = ""
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
+        self.parse_dir = tempfile.mkdtemp(prefix='qiskit')
         # For yacc, also, write_tables = Bool and optimize = Bool
-        parse_dir = tempfile.gettempdir()
-        self.parser = yacc.yacc(module=self, debug=False, outputdir=parse_dir)
+        self.parser = yacc.yacc(module=self, debug=False,
+                                outputdir=self.parse_dir)
         self.qasm = None
         self.parse_deb = False
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
         self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt']
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if os.path.exists(self.parse_dir):
+            shutil.rmtree(self.parse_dir)
 
     def update_symtab(self, obj):
         """Update a node in the symbol table.
