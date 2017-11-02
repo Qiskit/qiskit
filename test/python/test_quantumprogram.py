@@ -727,7 +727,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'test'
+        backend = 'local_qasm_simulator'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobj_id='cooljob')

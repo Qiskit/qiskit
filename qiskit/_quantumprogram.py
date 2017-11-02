@@ -912,7 +912,7 @@ class QuantumProgram(object):
             config (dict): a dictionary of configurations parameters for the
                 compiler
             basis_gates (str): a comma seperated string and are the base gates,
-                               which by default are: u1,u2,u3,cx,id
+                               which by default are provided by the backend
             coupling_map (dict): A directed graph of coupling::
 
                 {
@@ -984,7 +984,6 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
-
         qobj = {}
         if not qobj_id:
             qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
@@ -993,7 +992,12 @@ class QuantumProgram(object):
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
         qobj["circuits"] = []
-
+        backend_conf = qiskit.backends.get_backend_configuration(backend)
+        if not basis_gates:
+            if 'basis_gates' in backend_conf:
+                basis_gates = backend_conf['basis_gates']
+        if not coupling_map:
+            coupling_map = backend_conf['coupling_map']
         if not name_of_circuits:
             raise ValueError('"name_of_circuits" must be specified')
         if isinstance(name_of_circuits, str):
@@ -1001,15 +1005,19 @@ class QuantumProgram(object):
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
-            if not basis_gates:
-                basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
-            dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
-                                                                    basis_gates=basis_gates,
-                                                                    coupling_map=coupling_map,
-                                                                    initial_layout=initial_layout,
-                                                                    get_layout=True)
+            num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+            if num_qubits == 1:
+                coupling_map = None
+            if coupling_map == 'all-to-all':
+                coupling_map = None
+            dag_circuit, final_layout = openquantumcompiler.compile(
+                circuit.qasm(),
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=initial_layout,
+                get_layout=True)
             # making the job to be added to qobj
             job = {}
             job["name"] = name
