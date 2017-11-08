@@ -48,31 +48,30 @@ class QeRemote(BaseBackend):
         wait = q_job.wait
         timeout = q_job.timeout
         api_jobs = []
-        for circuit in qobj['circuits']:
-            if (('compiled_circuit_qasm' not in circuit) or
-                    (circuit['compiled_circuit_qasm'] is None)):
+        for circuit in qobj.circuits:
+            if not circuit.compiled_circuit_qasm:
                 compiled_circuit = openquantumcompiler.compile(
-                    circuit['circuit'].qasm())
-                circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-            if isinstance(circuit['compiled_circuit_qasm'], bytes):
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
+                    circuit.circuit.qasm())
+                circuit.compiled_circuit_qasm = compiled_circuit.qasm(qeflag=True)
+            if isinstance(circuit.compiled_circuit_qasm, bytes):
+                api_jobs.append({'qasm': circuit.compiled_circuit_qasm.decode()})
             else:
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
+                api_jobs.append({'qasm': circuit.compiled_circuit_qasm})
 
-        seed0 = qobj['circuits'][0]['config']['seed']
-        output = self._api.run_job(api_jobs, qobj['config']['backend'],
-                                   shots=qobj['config']['shots'],
-                                   max_credits=qobj['config']['max_credits'],
+        seed0 = qobj.circuits[0].config.seed
+        output = self._api.run_job(api_jobs, qobj.config.backend,
+                                   shots=qobj.config.shots,
+                                   max_credits=qobj.config.max_credits,
                                    seed=seed0)
         if 'error' in output:
             raise ResultError(output['error'])
 
         logger.debug('Running on remote backend %s with job id: %s',
-                     qobj['config']['backend'], output['id'])
+                     qobj.config.backend, output['id'])
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
                                    timeout=timeout)
-        job_result['name'] = qobj['id']
-        job_result['backend'] = qobj['config']['backend']
+        job_result['name'] = qobj.id_
+        job_result['backend'] = qobj.config.backend
         this_result = Result(job_result, qobj)
         return this_result
 
@@ -87,7 +86,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     Args:
         jobid (list(str)):  is a list of id strings.
-        api (IBMQuantumExperience): IBMQuantumExperience API connection
+        api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            IBMQuantumExperience API connection
         wait (int):  is the time to wait between requests, in seconds
         timeout (int):  is how long we wait before failing, in seconds
 

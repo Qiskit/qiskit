@@ -102,13 +102,13 @@ class JobProcessor():
                              'result': ex},
                             future.qobj)
         with self.lock:
-            self.futures[future]['result'] = result
+            self.futures[future].result = result
             self.jobs_results.append(result)
             if self.num_jobs != 0:
                 self.num_jobs -= 1
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
-            logger.info(pprint.pformat(result))
+            logger.debug(pprint.pformat(result))
             self.callback(self.jobs_results)
 
     def submit(self):

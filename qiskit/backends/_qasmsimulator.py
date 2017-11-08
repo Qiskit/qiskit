@@ -109,7 +109,6 @@ import uuid
 import numpy as np
 import random
 from collections import Counter
-import json
 from ._simulatortools import single_gate_matrix
 from ._simulatorerror import SimulatorError
 from qiskit._result import Result
@@ -118,9 +117,9 @@ from qiskit.backends._basebackend import BaseBackend
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+
 class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
-
     def __init__(self, configuration=None):
         """
         Args:
@@ -138,6 +137,13 @@ class QasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
+
+        # Set default values for internal variables (initialized during exec).
+        self._number_of_qubits = 0
+        self._number_of_cbits = 0
+        self._shots = 0
+        self._quantum_state = None
+        self._classical_state = None
 
     @staticmethod
     def _index1(b, i, k):
@@ -227,7 +233,7 @@ class QasmSimulator(BaseBackend):
         else:
             outcome = '1'
             norm = np.sqrt(1-probability_zero)
-        return (outcome, norm)
+        return outcome, norm
 
     def _add_qasm_measure(self, qubit, cbit):
         """Apply the measurement qubit gate.
@@ -276,19 +282,18 @@ class QasmSimulator(BaseBackend):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
-        result_list = []
-        self._shots = qobj['config']['shots']
-        for circuit in qobj['circuits']:
-            result_list.append(self.run_circuit(circuit))
+        self._shots = q_job.qobj.config.shots
+
+        result_list = [self.run_circuit(circuit) for circuit in q_job.qobj.circuits]
+
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)
+                      q_job.qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
 
         Args:
-            circuit (dict): JSON circuit from qobj circuits list
+            circuit (QobjCircuit): circuit from qobj circuits list
 
         Returns:
             A dictionary of results which looks something like::
@@ -302,22 +307,22 @@ class QasmSimulator(BaseBackend):
                 "status": --status (string)--
                 }
         """
-        ccircuit = circuit['compiled_circuit']
+        ccircuit = circuit.compiled_circuit
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
         self._classical_state = 0
-        cl_reg_index = [] # starting bit index of classical register
-        cl_reg_nbits = [] # number of bits in classical register
+        cl_reg_index = []  # starting bit index of classical register
+        cl_reg_nbits = []  # number of bits in classical register
         cbit_index = 0
         for cl_reg in ccircuit['header']['clbit_labels']:
             cl_reg_nbits.append(cl_reg[1])
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
+        if not circuit.config.seed:
             random.seed(random.getrandbits(32))
         else:
-            random.seed(circuit['config']['seed'])
+            random.seed(circuit.config.seed)
         outcomes = []
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
