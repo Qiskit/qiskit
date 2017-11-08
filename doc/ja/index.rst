@@ -18,7 +18,7 @@ Quantum Information Software Kit (QISKit, 量子情報ソフトウェアキッ�
 .. toctree::
    :maxdepth: 2
 
-   インストール
+   インストール<install>
    入門 <quickstart>
    QISKit概要 <qiskit>
    開発マニュアル <dev_introduction>
