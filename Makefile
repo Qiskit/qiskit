@@ -40,9 +40,12 @@ profile:
 
 doc:
 	export PYTHONPATH=$(PWD); \
-	better-apidoc -f -o doc/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
-	sphinx-autogen -t doc/_templates doc/_autodoc/*; \
-	make -C doc html
+	for LANGUAGE in "." "ja"; do \
+		better-apidoc -f -o doc/$$LANGUAGE/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
+		sphinx-autogen -t doc/_templates doc/$$LANGUAGE/_autodoc/*; \
+		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
+	done
 
 clean:
 	make -C doc clean
+	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
