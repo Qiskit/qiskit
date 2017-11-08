@@ -1,7 +1,22 @@
+# -*- coding: utf-8 -*-
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ========================================================
+"""Representation of a Quantum circuit Result."""
+
 import copy
 import numpy
-from qiskit._qiskiterror import QISKitError
-from qiskit import RegisterSizeError
+from . import QISKitError
+
 
 class Result(object):
     """ Result Class.
@@ -59,11 +74,13 @@ class Result(object):
         Returns:
             The current object with appended results.
         """
-        if self._qobj['config'] == other._qobj['config']:
-            if isinstance(self._qobj['id'], str):
-                self._qobj['id'] = [self._qobj['id']]
-            self._qobj['id'].append(other._qobj['id'])
-            self._qobj['circuits'] += other._qobj['circuits']
+        # pylint: disable=protected-access
+        if self._qobj.config == other._qobj.config:
+            if isinstance(self._qobj.id_, str):
+                self._qobj.id_ = [self._qobj.id_]
+            self._qobj.id_.append(other._qobj.id_)
+
+            self._qobj.circuits.extend(other._qobj.circuits)
             self._result['result'] += other._result['result']
             return self
         else:
@@ -126,11 +143,9 @@ class Result(object):
             A text version of the qasm file that has been run.
         """
         try:
-            qobj = self._qobj
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
-        except KeyError:
+            return next(c.compiled_circuit_qasm for c in self._qobj.circuits
+                        if c.name == name)
+        except StopIteration:
             raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_data(self, name):
@@ -179,11 +194,10 @@ class Result(object):
                 raise QISKitError(str(exception))
 
         try:
-            qobj = self._qobj
-            for index in range(len(qobj['circuits'])):
-                if qobj['circuits'][index]['name'] == name:
-                    return self._result['result'][index]['data']
-        except (KeyError, TypeError):
+            index = next(i for i, circuit in enumerate(self._qobj.circuits)
+                         if circuit.name == name)
+            return self._result['result'][index]['data']
+        except (KeyError, TypeError, StopIteration):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
@@ -200,7 +214,7 @@ class Result(object):
         """
         try:
             return self.get_data(name)['counts']
-        except KeyError:
+        except (QISKitError, KeyError):
             raise QISKitError('No counts for circuit "{0}"'.format(name))
 
     def get_names(self):
@@ -209,7 +223,7 @@ class Result(object):
         Returns:
             List: A list of circuit names.
         """
-        return [c['name'] for c in self._qobj['circuits']]
+        return [c.name for c in self._qobj.circuits]
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -241,19 +255,20 @@ class Result(object):
 
         Args:
             xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
-            is none then the xvals list is just left as an array of zeros
+                is none then the xvals list is just left as an array of zeros
 
         Returns:
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self._qobj['circuits'])
-        #Is this the best way to get the number of qubits?
-        nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
+        ncircuits = len(self._qobj.circuits)
+
+        # TODO: Is this the best way to get the number of qubits?
+        nqubits = self._qobj.circuits[0].compiled_circuit['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
-        #build Z operators for each qubit
+        # build Z operators for each qubit
         z_dicts = []
         for qubit_ind in range(nqubits):
             z_dicts.append(dict())
@@ -263,11 +278,12 @@ class Result(object):
                 if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
-        #go through each circuit and for eqch qubit and apply the operators using "average_data"
+        # go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
-            if not xvals_dict is None:
-                xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
+            if xvals_dict:
+                xvals[circuit_ind] = xvals_dict[self._qobj.circuits[circuit_ind].name]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind, qubit_ind] = self.average_data(self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                qubitpol[circuit_ind, qubit_ind] = self.average_data(
+                    self._qobj.circuits[circuit_ind].name, z_dicts[qubit_ind])
 
         return qubitpol, xvals

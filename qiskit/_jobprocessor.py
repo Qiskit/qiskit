@@ -45,11 +45,11 @@ def run_backend(q_job):
     backend_name = q_job.backend
     qobj = q_job.qobj
     if backend_name in local_backends():  # remove condition when api gets qobj
-        for circuit in qobj['circuits']:
-            if circuit['compiled_circuit'] is None:
-                compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
+        for circuit in qobj.circuits:
+            if not circuit.compiled_circuit:
+                compiled_circuit = openquantumcompiler.compile(circuit.circuit,
                                                                format='json')
-                circuit['compiled_circuit'] = compiled_circuit
+                circuit.compiled_circuit = compiled_circuit
     backend = qiskit.backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 
