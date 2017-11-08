@@ -118,7 +118,7 @@ test/python/test_qasm_python_simulator.pdf
 
 doc/_build/*
 
-doc/_autodoc/*
+doc/**/_autodoc
 
 qiskit/bin/*
 
