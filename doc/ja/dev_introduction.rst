@@ -51,7 +51,7 @@
 
 
 
-.. image:: ../images/circuit_representations.png
+.. image:: ../../images/circuit_representations.png
     :width: 600px
     :align: center
 
@@ -59,6 +59,6 @@
 
 
 
-.. image:: ../images/unroller_backends.png
+.. image:: ../../images/unroller_backends.png
     :width: 600px
     :align: center
