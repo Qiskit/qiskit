@@ -26,6 +26,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
 import qiskit.backends
+from qiskit._qobj import QobjConfig, QobjCircuitConfig
 from  qiskit.tools import file_io
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
@@ -675,7 +676,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_compile_program(self):
         """Test compile_program.
 
-        If all correct should return COMPLETED.
+        If all correct should return a valid Qobj.
         """
         QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
@@ -690,12 +691,13 @@ class TestQuantumProgram(QiskitTestCase):
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
-        self.assertEqual(len(out), 3)
+        self.assertEqual(out.id_, 'cooljob')
+        self.assertEqual(len(out.circuits), 1)
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
 
-        If all correct should return lenght 6 dictionary.
+        If all correct should return a default circuit configuration.
         """
         QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
@@ -711,7 +713,10 @@ class TestQuantumProgram(QiskitTestCase):
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_configuration(qobj, 'circuitName')
         self.log.info(result)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(result.basis_gates, 'u1,u2,u3,cx,id')
+        self.assertEqual(result.seed, None)
+        self.assertEqual(result.layout, None)
+        self.assertEqual(result.coupling_map, None)
 
     def test_get_compiled_qasm(self):
         """Test get_compiled_qasm.
@@ -799,28 +804,38 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = ['qc2', 'qc3']
-        shots = 1024  # the number of shots in the experiment.
+
         backend = 'local_qasm_simulator'
-        config = {'seed': 10, 'shots': 1, 'xvals':[1, 2, 3, 4]}
-        qobj1 = QP_program.compile(circuits, backend=backend, shots=shots,
-                                  seed=88, config=config)
-        qobj1['circuits'][0]['config']['shots'] = 50
-        qobj1['circuits'][0]['config']['xvals'] = [1,1,1]
-        config['shots'] = 1000
-        config['xvals'][0] = 'only for qobj2'
-        qobj2 = QP_program.compile(circuits, backend=backend, shots=shots,
-                                  seed=88, config=config)
-        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
-        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
-        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1,1,1])
-        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1,2,3,4])
-        self.assertTrue(qobj1['config']['shots'] == 1024)
-        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
-            'only for qobj2', 2, 3, 4])
-        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
-            'only for qobj2', 2, 3, 4])
+        qobj_config = QobjConfig(max_credits=5, shots=1024, backend=backend)
+        config = QobjCircuitConfig(seed=10, shots=1, xvals=[1, 2, 3, 4])
+        qobj1 = QP_program.compile(circuits, backend=backend,
+                                   shots=qobj_config.shots, seed=88,
+                                   config=config)
+
+        # Update qobj1.circuits[0] values.
+        qobj1.circuits[0].config.shots = 50
+        qobj1.circuits[0].config.xvals = [1, 1, 1]
+
+        # Update config for qobj2.
+        config.shots = 1000
+        config.xvals[0] = 'only for qobj2'
+        qobj2 = QP_program.compile(circuits, backend=backend,
+                                   shots=config.shots, seed=88, config=config)
+
+        # Update qobj_config.
+        qobj_config.shots = 1234
+
+        self.assertEqual(qobj1.circuits[0].config.shots, 50)
+        self.assertEqual(qobj1.circuits[1].config.shots, 1)
+        self.assertEqual(qobj1.circuits[0].config.xvals, [1, 1, 1])
+        self.assertEqual(qobj1.circuits[1].config.xvals, [1, 2, 3, 4])
+        self.assertEqual(qobj1.config.shots, 1024)
+        self.assertEqual(qobj2.circuits[0].config.shots, 1000)
+        self.assertEqual(qobj2.circuits[1].config.shots, 1000)
+        self.assertEqual(qobj2.circuits[0].config.xvals,
+                         ['only for qobj2', 2, 3, 4])
+        self.assertEqual(qobj2.circuits[1].config.xvals,
+                         ['only for qobj2', 2, 3, 4])
 
     ###############################################################
     # Test for running programs
@@ -1539,7 +1554,7 @@ class TestQuantumProgram(QiskitTestCase):
         Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
         """
         QP_program = QuantumProgram()
-        metadata = {'testval':5}
+        metadata = {'testval': 5}
         q = QP_program.create_quantum_register("q", 2)
         c = QP_program.create_classical_register("c", 2)
         qc1 = QP_program.create_circuit("qc1", [q], [c])
@@ -1554,7 +1569,7 @@ class TestQuantumProgram(QiskitTestCase):
         test_1_path = self._get_resource_path('test_save_load1.json')
         test_2_path = self._get_resource_path('test_save_load2.json')
 
-        #delete these files if they exist
+        # Delete these files if they exist.
         if os.path.exists(test_1_path):
             os.remove(test_1_path)
 
@@ -1565,12 +1580,21 @@ class TestQuantumProgram(QiskitTestCase):
         file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
 
         result_loaded1, metadata_loaded1 = file_io.load_result_from_file(file1)
-        result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file1)
+        result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file2)
 
+        # Assertions on metadata.
         self.assertAlmostEqual(metadata_loaded1['testval'], 5)
         self.assertAlmostEqual(metadata_loaded2['testval'], 5)
+        self.assertEqual(metadata_loaded1, metadata)
+        self.assertEqual(metadata_loaded2, metadata)
 
-        #remove files to keep directory clean
+        # Assertions on the Qobjs.
+        self.assertEqual(result1._qobj.as_dict(),
+                         result_loaded1._qobj.as_dict())
+        self.assertEqual(result2._qobj.as_dict(),
+                         result_loaded2._qobj.as_dict())
+
+        # Delete files to keep directory clean.
         os.remove(file1)
         os.remove(file2)
 
@@ -1610,34 +1634,32 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr[2], cr[2])
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        test_config = {'0': 0, '1': 1}
-        qobj = QP_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
+        test_config = QobjCircuitConfig()
+        qobj = QP_program.compile(['qc2'], backend=backend, shots=shots,
+                                  config=test_config)
         out = QP_program.run(qobj)
         results = out.get_counts('qc2')
 
-        #change the number of shots and re-run to test if the reconfig does not break
-        #the ability to run the qobj
+        # Change the number of shots and re-run.
         qobj = QP_program.reconfig(qobj, shots=2048)
         out2 = QP_program.run(qobj)
         results2 = out2.get_counts('qc2')
 
+        self.assertEqual(qobj.config.shots, 2048)
         self.assertEqual(results, {'000': 1024})
         self.assertEqual(results2, {'000': 2048})
 
-        #change backend
+        # Change the backend.
         qobj = QP_program.reconfig(qobj, backend='local_unitary_simulator')
-        self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
-        #change maxcredits
+        self.assertEqual(qobj.config.backend, 'local_unitary_simulator')
+
+        # Change max_credits.
         qobj = QP_program.reconfig(qobj, max_credits=11)
-        self.assertEqual(qobj['config']['max_credits'], 11)
-        #change seed
+        self.assertEqual(qobj.config.max_credits, 11)
+
+        # Change seed.
         qobj = QP_program.reconfig(qobj, seed=11)
-        self.assertEqual(qobj['circuits'][0]['seed'], 11)
-        #change the config
-        test_config_2 = {'0': 2}
-        qobj = QP_program.reconfig(qobj, config=test_config_2)
-        self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
-        self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
+        self.assertEqual(qobj.circuits[0].config.seed, 11)
 
 
 if __name__ == '__main__':

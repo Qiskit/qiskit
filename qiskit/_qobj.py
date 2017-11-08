@@ -26,6 +26,17 @@ class Qobj(object):
         self.config = config
         self.circuits = circuits or []
 
+    def as_dict(self):
+        """
+        Returns:
+            dict: a dictionary representation of the Qobj.
+        """
+        return {
+            'id': self.id_,
+            'config': self.config.as_dict(),
+            'circuits': [circuit.as_dict() for circuit in self.circuits]
+        }
+
 
 class QobjConfig(object):
     def __init__(self, max_credits, shots, backend):
@@ -38,6 +49,17 @@ class QobjConfig(object):
         return all(getattr(self, attr) == getattr(other, attr)
                    for attr in attrs)
 
+    def as_dict(self):
+        """
+        Returns:
+            dict: a dictionary representation of the QobjConfig.
+        """
+        return {
+            'max_credits': self.max_credits,
+            'shots': self.shots,
+            'backend': self.backend
+        }
+
 
 class QobjCircuit(object):
     def __init__(self, name, config, compiled_circuit, circuit=None,
@@ -48,6 +70,19 @@ class QobjCircuit(object):
 
         self.circuit = circuit
         self.compiled_circuit_qasm = compiled_circuit_qasm
+
+    def as_dict(self):
+        """
+        Returns:
+            dict: a dictionary representation of the QobjCircuit.
+        """
+        return {
+            'name': self.name,
+            'compiled_circuit': self.compiled_circuit,
+            'circuit': self.circuit,
+            'compiled_circuit_qasm': self.compiled_circuit_qasm,
+            'config': self.config.as_dict()
+        }
 
 
 class QobjCircuitConfig(object):
@@ -60,3 +95,14 @@ class QobjCircuitConfig(object):
 
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    def as_dict(self):
+        """
+        Returns:
+            dict: a dictionary representation of the QobjCircuitConfig.
+        """
+        attributes = [i for i in dir(self) if not i.startswith('__') and
+                      not callable(getattr(self, i))]
+
+        return {attribute: getattr(self, attribute)
+                for attribute in attributes}

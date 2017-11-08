@@ -15,6 +15,7 @@
 Qasm Program Class
 """
 # pylint: disable=line-too-long
+from copy import deepcopy
 import json
 import logging
 import os
@@ -891,56 +892,59 @@ class QuantumProgram(object):
                 list_layout = [[k, v] for k, v in final_layout.items()]
 
             # TODO: Jay: make config options optional for different backends
-            qobj_circuit_config = config or QobjCircuitConfig()
+            qobj_circuit_config = deepcopy(config) or QobjCircuitConfig()
             qobj_circuit_config.basis_gates = basis_gates
             qobj_circuit_config.coupling_map = mapper.coupling_dict2list(coupling_map)
             qobj_circuit_config.layout = list_layout
             qobj_circuit_config.seed = seed
 
             # the compiled circuit to be run saved as a dag
-            qobj_circuit = QobjCircuit(name=name, config=qobj_circuit_config,
-                                       compiled_circuit=openquantumcompiler.dag2json(
-                                           dag_circuit,
-                                           basis_gates=basis_gates),
-                                       circuit=circuit,
-                                       compiled_circuit_qasm=dag_circuit.qasm(
-                                           qeflag=True))
+            qobj_circuit = QobjCircuit(
+                name=name,
+                config=qobj_circuit_config,
+                compiled_circuit=openquantumcompiler.dag2json(
+                    dag_circuit, basis_gates=basis_gates),
+                circuit=circuit.qasm(),
+                compiled_circuit_qasm=dag_circuit.qasm(qeflag=True))
 
             qobj.circuits.append(qobj_circuit)
 
         return qobj
 
-    def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
-        """Change configuration parameters for a compile qobj. Only parameters which
-        don't affect the circuit compilation can change, e.g., the coupling_map
-        cannot be changed here!
+    def reconfig(self, qobj, backend=None, shots=None, max_credits=None,
+                 seed=None):
+        """Change the configuration parameters for a compiled Qobj.
+
+        Change configuration parameters for a compiled qobj. Only parameters
+        which don't affect the circuit compilation can change, e.g., the
+        coupling_map cannot be changed by this function.
 
         Notes:
-            If the inputs are left as None then the qobj is not updated
+            Only the arguments that have values different than None are
+            updated in the Qobj.
 
         Args:
-            qobj (dict): already compile qobj
-            backend (str): see .compile
-            config (dict): see .compile
-            shots (int): see .compile
-            max_credits (int): see .compile
-            seed (int): see .compile
+            qobj (Qobj): compiled Qobj.
+            backend (str): see QuantumProgram.compile().
+            shots (int): see QuantumProgram.compile().
+            max_credits (int): see QuantumProgram.compile().
+            seed (int): see QuantumProgram.compile().
 
         Returns:
             qobj: updated qobj
         """
-        if backend is not None:
-            qobj['config']['backend'] = backend
-        if shots is not None:
-            qobj['config']['shots'] = shots
-        if max_credits is not None:
-            qobj['config']['max_credits'] = max_credits
+        # Update the Qobj config parameters.
+        if backend:
+            qobj.config.backend = backend
+        if shots:
+            qobj.config.shots = shots
+        if max_credits:
+            qobj.config.max_credits = max_credits
 
-        for circuits in qobj['circuits']:
-            if seed is not None:
-                circuits['seed'] = seed
-            if config is not None:
-                circuits['config'].update(config)
+        # Update the circuit parameters.
+        if seed:
+            for circuit in qobj.circuits:
+                circuit.config.seed = seed
 
         return qobj
 
