@@ -13,7 +13,7 @@ Quantum Information Software Kit (QISKit, 量子情報ソフトウェアキッ�
 
 
 目次
-=====
+======
 
 .. toctree::
    :maxdepth: 2
@@ -25,10 +25,10 @@ Quantum Information Software Kit (QISKit, 量子情報ソフトウェアキッ�
    SDKリファレンス <_autodoc/qiskit>
 
 Python モジュール
-===============
+========================
 
 主要モジュール
-------------
+---------------------
 
 .. autosummary::
    :nosignatures:
@@ -39,7 +39,7 @@ Python モジュール
 :ref:`modindex`
 
 開発者 (アルファベット順)
-======================
+==========================================
 
 Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston,
@@ -48,7 +48,7 @@ Chris Wood.
 将来のリリースでこのプロジェクトにコードの貢献をした方の名前を追加します。
 
 翻訳者（順不同）
-=============
+========================
 
 今道 貴司
 ルディー・レイモンド

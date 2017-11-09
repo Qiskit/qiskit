@@ -27,10 +27,10 @@
 TARGET_REPOSITORY_USER="QISKit"
 TARGET_REPOSITORY_NAME="qiskit.github.io"
 TARGET_DOC_DIR="documentation"
+TARGET_DOC_DIR_JA="documentation/ja"
 SOURCE_DOC_DIR="doc/_build/html"
 SOURCE_DOC_DIR_JA="doc/_build/ja/html"
 SOURCE_DIR=`pwd`
-SOURCE_DIR_JA=`pwd`/ja
 
 # Build the documentation.
 make doc

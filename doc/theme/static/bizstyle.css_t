@@ -14,18 +14,21 @@
 div.head {
  background-color:#000;
  text-align: left;
- text-decoration:none; 
-     cursor:pointer;  
+ text-decoration:none;
  padding: 8px 15px 8px 15px;
- 
 }
 
 div.head a {
-   color: #FFF!important;
-    text-decoration:none; 
-     cursor:pointer;  
-
+    color: #FFF!important;
+    text-decoration:none;
+    cursor:pointer;
 }
+
+div.head div.langbox {
+    color: #FFF!important;
+    float: right;
+}
+
 /* -- page layout ----------------------------------------------------------- */
 
 body {

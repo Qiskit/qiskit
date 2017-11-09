@@ -1,5 +1,5 @@
 QISKit入門
-==========
+========================
 
 :py:class:`QuantumProgram <qiskit.QuantumProgram>` オブジェクトがコードを書く際の起点になります。
 QuantumProgramは量子回路と量子レジスターと古典レジスターで構成されます。
@@ -35,26 +35,26 @@ QuantumProgramのメソッドは量子回路を実機やシミュレーターの
     {'00': 531, '11': 493}
 
 量子プロセッサー
---------
+------------------------
 
 ユーザーはQASMで記述した量子回路をIBM Q Experience (QX)のクラウドプラットホームを通じて、
 実機の量子コンピューター（量子プロセッサー）で実行することができます。
 現在以下のチップが利用可能です:
 
--   ibmqx2: `5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`_
+-   ibmqx2: `5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`__
 
--   ibmqx3: `16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`_
+-   ibmqx3: `16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`__
 
--   ibmqx4: `5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`_
+-   ibmqx4: `5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`__
 
--   ibmqx5: `16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`_
+-   ibmqx5: `16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`__
 
 最新の実機の詳細については`IBM Q Experience バックエンド情報 <https://github.com/QISKit/ibmqx-backend-information>`_ を参照してください。
 
 .. include:: example_real_backend.rst
 
 プロジェクト構成
---------------
+------------------------
 
 Pythonのプログラム例は *examples* ディレクトリに、
 テストスクリプトは *test* ディレクトリにあります。
