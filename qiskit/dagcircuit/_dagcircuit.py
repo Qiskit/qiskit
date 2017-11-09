@@ -27,9 +27,11 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
+import os
 import itertools
 import copy
 import networkx as nx
+from io import StringIO
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -79,11 +81,26 @@ class DAGCircuit:
         # Map of cregs to sizes
         self.cregs = {}
 
+        # List of qregs and cregs in order of appearance in code and image
+        self.ordered_regs = []
+
+        # Map from registers to the list they appear in the image
+        self.img_regs = {}
+
         # Map of user defined gates to ast nodes defining them
         self.gates = {}
 
         # Output precision for printing floats
         self.prec = 10
+
+        # Array to hold the \LaTeX commands to generate a circuit image.
+        self._latex = []
+
+        # Variable to hold image depth (width)
+        self.img_depth = 0
+
+        # Variable to hold image width (height)
+        self.img_width = 0
 
     def get_qubits(self):
         """Return a list of qubits as (qreg, index) pairs."""
@@ -1282,3 +1299,718 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    def _ordered_regs(self):
+        # ts = nx.topological_sort(self.multi_graph)
+        for n in self.multi_graph:
+            nd = self.multi_graph.node[n]
+            if nd["type"] == "in":
+                self.ordered_regs.append(nd["name"])
+
+    def _get_image_depth(self, aliases=None):
+        """Returns the required number of columns for self._latex for this circuit.
+
+        If aliases is not None, aliases contains a dict mapping
+        the current qubits in the circuit to new qubit names.
+        We will deduce the register names and sizes from aliases.
+        """
+
+        columns = 2
+        is_occupied = [False for i in range(self.img_width)]
+
+        # Rename qregs if necessary
+        if aliases:
+            qregdata = {}
+            for q in aliases.values():
+                if q[0] not in qregdata:
+                    qregdata[q[0]] = q[1] + 1
+                elif qregdata[q[0]] < q[1] + 1:
+                    qregdata[q[0]] = q[1] + 1
+        else:
+            qregdata = self.qregs
+
+        ts = nx.topological_sort(self.multi_graph)
+        for n in ts:
+            nd = self.multi_graph.node[n]
+            if nd["type"] == "op":
+                if len(nd["cargs"]) == 0:
+                    nm = nd["name"]
+                    if nm != "barrier":
+                        if aliases:
+                            qarglist = map(lambda x: aliases[x], nd["qargs"])
+                        else:
+                            qarglist = nd["qargs"]
+
+                        if len(qarglist) == 1:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+
+                            if nd["condition"] is not None:
+                                if_reg = nd["condition"][0]
+                                pos_2 = self.img_regs[(if_reg, 0)]
+
+                                for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(pos_1, pos_2 + 1):
+                                            is_occupied[j] = True
+                                        break
+                            else:
+                                if is_occupied[pos_1] == False:
+                                    is_occupied[pos_1] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False for i in range(self.img_width)]
+                                    is_occupied[pos_1] = True
+
+                        elif len(qarglist) == 2:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+                            pos_2 = self.img_regs[(qarglist[1][0], \
+                                                qarglist[1][1])]
+
+                            if nd["condition"] is not None:
+                                if_reg = nd["condition"][0]
+                                pos_3 = self.img_regs[(if_reg, 0)]
+
+                                if pos_1 > pos_2:
+                                    for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
+                                        if is_occupied[i] == False:
+                                            is_occupied[i] = True
+                                        else:
+                                            columns += 1
+                                            is_occupied = [False for j in range(self.img_width)]
+                                            for j in range(pos_2, pos_3 + 1):
+                                                is_occupied[j] = True
+                                            break
+                                else:
+                                    for i in range(pos_1, pos_3 + self.cregs[if_reg] + 1):
+                                        if is_occupied[i] == False:
+                                            is_occupied[i] = True
+                                        else:
+                                            columns += 1
+                                            is_occupied = [False for j in range(self.img_width)]
+                                            for j in range(pos_1, pos_3 + 1):
+                                                is_occupied[j] = True
+                                            break
+                            else:
+                                temp = [pos_1, pos_2]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[1]
+
+                                for i in range(top, bottom + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, bottom + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                        elif len(qarglist) == 3:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+                            pos_2 = self.img_regs[(qarglist[1][0], \
+                                                qarglist[1][1])]
+                            pos_3 = self.img_regs[(qarglist[2][0], \
+                                                qarglist[2][1])]
+
+                            if nd["condition"] is not None:
+                                if_reg = nd["condition"][0]
+                                pos_4 = self.img_regs[(if_reg, 0)]
+
+                                temp = [pos_1, pos_2, pos_3, pos_4]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[2]
+
+                                for i in range(top, pos_4 + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, pos_4 + 1):
+                                            is_occupied[j] = True
+                                        break
+                            else:
+                                temp = [pos_1, pos_2, pos_3]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[2]
+
+                                for i in range(top, bottom + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, bottom + 1):
+                                            is_occupied[j] = True
+                                        break
+                else:
+                    if nd["name"] == "measure":
+                        assert len(nd["cargs"]) == 1 and \
+                            len(nd["qargs"]) == 1 and \
+                            len(nd["params"]) == 0, "bad node data"
+
+                        if nd["condition"] is not None:
+                            assert False, "If controlled measures currently not suppported."
+
+                        qname = nd["qargs"][0][0]
+                        qindex = nd["qargs"][0][1]
+                        if aliases:
+                            newq = aliases[(qname, qindex)]
+                            qname = newq[0]
+                            qindex = newq[1]
+
+                        pos_1 = self.img_regs[(qname, qindex)]
+                        pos_2 = self.img_regs[(nd["cargs"][0][0], \
+                                            nd["cargs"][0][1])]
+
+                        temp = [pos_1, pos_2]
+                        temp.sort(key=int)
+                        [pos_1, pos_2] = temp
+
+                        for i in range(pos_1, pos_2 + 1):
+                            if is_occupied[i] == False:
+                                is_occupied[i] = True
+                            else:
+                                columns += 1
+                                is_occupied = [False for j in range(self.img_width)]
+                                for j in range(pos_1, pos_2 + 1):
+                                    is_occupied[j] = True
+                                break
+
+                    else:
+                        assert False, "bad node data"
+                # print(nd)
+                # print(columns)
+        return columns
+
+    def _initialize_latex_array(self, aliases=None):
+        self.img_width = len(self.wire_type)
+        self._ordered_regs()
+        self.img_regs = {k: v for v, k in enumerate(self.ordered_regs)}
+        self.img_depth = self._get_image_depth(aliases)
+
+        self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]] \
+            else "\\qw" for i in range(self.img_depth + 1)] for j in range(self.img_width)]
+        self._latex.append([" " for j in range(self.img_depth + 1)])
+        for i in range(self.img_width):
+            if self.wire_type[self.ordered_regs[i]]:
+                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + "_" + str(self.ordered_regs[i][1]) + "}"
+            else:
+                self._latex[i][0] = "\\lstick{\\ket{" + self.ordered_regs[i][0] + "_" + str(self.ordered_regs[i][1]) + "}}"
+
+    def _build_latex_array(self, aliases=None):
+        """Returns an array of strings containing \LaTeX for this circuit.
+
+        If aliases is not None, aliases contains a dict mapping
+        the current qubits in the circuit to new qubit names.
+        We will deduce the register names and sizes from aliases.
+        """
+        columns = 1
+        is_occupied = [False for i in range(self.img_width)]
+
+        # Rename qregs if necessary
+        if aliases:
+            qregdata = {}
+            for q in aliases.values():
+                if q[0] not in qregdata:
+                    qregdata[q[0]] = q[1] + 1
+                elif qregdata[q[0]] < q[1] + 1:
+                    qregdata[q[0]] = q[1] + 1
+        else:
+            qregdata = self.qregs
+
+        ts = nx.topological_sort(self.multi_graph)
+        for n in ts:
+            nd = self.multi_graph.node[n]
+            if nd["type"] == "op":
+                if nd["condition"] is not None:
+                    if_reg = nd["condition"][0]
+                    if_value = format(nd["condition"][1], 'b')\
+                        .zfill(self.cregs[if_reg])[::-1]
+
+                if len(nd["cargs"]) == 0:
+                    nm = nd["name"]
+                    if nm != "barrier":
+                        if aliases:
+                            qarglist = map(lambda x: aliases[x], nd["qargs"])
+                        else:
+                            qarglist = nd["qargs"]
+
+                        if len(qarglist) == 1:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+
+                            if nd["condition"] is not None:
+                                pos_2 = self.img_regs[(if_reg, 0)]
+
+                                for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(pos_1, pos_2 + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                if nm == "x":
+                                    self._latex[pos_1][columns] = "\\gate{X}"
+                                elif nm == "y":
+                                    self._latex[pos_1][columns] = "\\gate{Y}"
+                                elif nm == "z":
+                                    self._latex[pos_1][columns] = "\\gate{Z}"
+                                elif nm == "h":
+                                    self._latex[pos_1][columns] = "\\gate{H}"
+                                elif nm == "s":
+                                    self._latex[pos_1][columns] = "\\gate{S}"
+                                elif nm == "sdg":
+                                    self._latex[pos_1][columns] = "\\gate{S^\\dag}"
+                                elif nm == "t":
+                                    self._latex[pos_1][columns] = "\\gate{T}"
+                                elif nm == "tdg":
+                                    self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                                elif nm == "u1":
+                                    self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (nd["params"][0])
+                                elif nm == "u2":
+                                    self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
+                                        % (nd["params"][0], nd["params"][1])
+                                elif nm == "u3":
+                                    self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                        % (nd["params"][0], nd["params"][1], nd["params"][2])
+                                elif nm == "rx":
+                                    self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (nd["params"][0])
+                                elif nm == "ry":
+                                    self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (nd["params"][0])
+                                elif nm == "rz":
+                                    self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (nd["params"][0])
+
+                                gap = pos_2 - pos_1
+                                for i in range(self.cregs[if_reg]):
+                                    if if_value[i] == '1':
+                                        self._latex[pos_2 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                                    else:
+                                        self._latex[pos_2 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+
+                            else:
+                                if is_occupied[pos_1] == False:
+                                    is_occupied[pos_1] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False for i in range(self.img_width)]
+                                    is_occupied[pos_1] = True
+
+                                if nm == "x":
+                                    self._latex[pos_1][columns] = "\\gate{X}"
+                                elif nm == "y":
+                                    self._latex[pos_1][columns] = "\\gate{Y}"
+                                elif nm == "z":
+                                    self._latex[pos_1][columns] = "\\gate{Z}"
+                                elif nm == "h":
+                                    self._latex[pos_1][columns] = "\\gate{H}"
+                                elif nm == "s":
+                                    self._latex[pos_1][columns] = "\\gate{S}"
+                                elif nm == "sdg":
+                                    self._latex[pos_1][columns] = "\\gate{S^\\dag}"
+                                elif nm == "t":
+                                    self._latex[pos_1][columns] = "\\gate{T}"
+                                elif nm == "tdg":
+                                    self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                                elif nm == "u1":
+                                    self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (nd["params"][0])
+                                elif nm == "u2":
+                                    self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
+                                        % (nd["params"][0], nd["params"][1])
+                                elif nm == "u3":
+                                    self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                        % (nd["params"][0], nd["params"][1], nd["params"][2])
+                                elif nm == "rx":
+                                    self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (nd["params"][0])
+                                elif nm == "ry":
+                                    self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (nd["params"][0])
+                                elif nm == "rz":
+                                    self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (nd["params"][0])
+
+                        elif len(qarglist) == 2:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+                            pos_2 = self.img_regs[(qarglist[1][0], \
+                                                qarglist[1][1])]
+
+                            if nd["condition"] is not None:
+                                pos_3 = self.img_regs[(if_reg, 0)]
+
+                                if pos_1 > pos_2:
+                                    for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
+                                        if is_occupied[i] == False:
+                                            is_occupied[i] = True
+                                        else:
+                                            columns += 1
+                                            is_occupied = [False for j in range(self.img_width)]
+                                            for j in range(pos_2, pos_3 + 1):
+                                                is_occupied[j] = True
+                                            break
+
+                                    if nm == "cx":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\targ";
+                                    elif nm == "cz":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{Z}"
+                                    elif nm == "cy":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{Y}"
+                                    elif nm == "ch":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{H}"
+                                    elif nm == "swap":
+                                        self._latex[pos_1][columns] = "\\qswap";
+                                        self._latex[pos_2][columns] = "\\qwx"
+                                    elif nm == "crz":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (nd["params"][0])
+                                    elif nm == "cu1":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (nd["params"][0])
+                                    elif nm == "cu3":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                            % (nd["params"][0], nd["params"][1], nd["params"][2])
+
+                                    gap = pos_3 - pos_1
+                                    for i in range(self.cregs[if_reg]):
+                                        if if_value[i] == '1':
+                                            self._latex[pos_3 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                            gap = 1
+                                        else:
+                                            self._latex[pos_3 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                            gap = 1
+                                else:
+                                    for i in range(pos_1, pos_3 + self.cregs[if_reg] + 1):
+                                        if is_occupied[i] == False:
+                                            is_occupied[i] = True
+                                        else:
+                                            columns += 1
+                                            is_occupied = [False for j in range(self.img_width)]
+                                            for j in range(pos_1, pos_3 + 1):
+                                                is_occupied[j] = True
+                                            break
+
+                                    if nm == "cx":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\targ";
+                                    elif nm == "cz":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{Z}"
+                                    elif nm == "cy":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{Y}"
+                                    elif nm == "ch":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{H}"
+                                    elif nm == "swap":
+                                        self._latex[pos_1][columns] = "\\qswap";
+                                        self._latex[pos_2][columns] = "\\qwx"
+                                    elif nm == "crz":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (nd["params"][0])
+                                    elif nm == "cu1":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (nd["params"][0])
+                                    elif nm == "cu3":
+                                        self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                        self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                            % (nd["params"][0], nd["params"][1], nd["params"][2])
+
+                                    gap = pos_3 - pos_2
+                                    for i in range(self.cregs[if_reg] + 1):
+                                        if if_value[i] == '1':
+                                            self._latex[pos_3 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                            gap = 1
+                                        else:
+                                            self._latex[pos_3 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                            gap = 1
+
+                            else:
+                                temp = [pos_1, pos_2]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[1]
+
+                                for i in range(top, bottom + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, bottom + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                if nm == "cx":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\targ";
+                                elif nm == "cz":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Z}"
+                                elif nm == "cy":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Y}"
+                                elif nm == "ch":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{H}"
+                                elif nm == "swap":
+                                    self._latex[pos_1][columns] = "\\qswap";
+                                    self._latex[pos_2][columns] = "\\qwx"
+                                elif nm == "crz":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (nd["params"][0])
+                                elif nm == "cu1":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (nd["params"][0])
+                                elif nm == "cu3":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                        % (nd["params"][0], nd["params"][1], nd["params"][2])
+
+                        elif len(qarglist) == 3:
+                            pos_1 = self.img_regs[(qarglist[0][0], \
+                                                qarglist[0][1])]
+                            pos_2 = self.img_regs[(qarglist[1][0], \
+                                                qarglist[1][1])]
+                            pos_3 = self.img_regs[(qarglist[2][0], \
+                                                qarglist[2][1])]
+
+                            if nd["condition"] is not None:
+                                pos_4 = self.img_regs[(if_reg, 0)]
+
+                                temp = [pos_1, pos_2, pos_3, pos_4]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[2]
+
+                                for i in range(top, pos_4 + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, pos_4 + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                gap = pos_4 - bottom
+                                for i in range(self.cregs[if_reg]):
+                                    if if_value[i] == '1':
+                                        self._latex[pos_4 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                                    else:
+                                        self._latex[pos_4 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                            else:
+                                temp = [pos_1, pos_2, pos_3]
+                                temp.sort(key=int)
+                                top = temp[0]
+                                bottom = temp[2]
+
+                                for i in range(top, bottom + 1):
+                                    if is_occupied[i] == False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False for j in range(self.img_width)]
+                                        for j in range(top, bottom + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                if nm == "ccx":
+                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\ctrl{" + str(pos_3 - pos_2) + "}"
+                                    self._latex[pos_3][columns] = "\\targ";
+
+                else:
+                    if nd["name"] == "measure":
+                        assert len(nd["cargs"]) == 1 and \
+                            len(nd["qargs"]) == 1 and \
+                            len(nd["params"]) == 0, "bad node data"
+
+                        if nd["condition"] is not None:
+                            assert False, "If controlled measures currently not suppported."
+
+                        qname = nd["qargs"][0][0]
+                        qindex = nd["qargs"][0][1]
+                        if aliases:
+                            newq = aliases[(qname, qindex)]
+                            qname = newq[0]
+                            qindex = newq[1]
+
+                        pos_1 = self.img_regs[(qname, qindex)]
+                        pos_2 = self.img_regs[(nd["cargs"][0][0], \
+                                            nd["cargs"][0][1])]
+
+                        for i in range(pos_1, pos_2 + 1):
+                            if is_occupied[i] == False:
+                                is_occupied[i] = True
+                            else:
+                                columns += 1
+                                is_occupied = [False for j in range(self.img_width)]
+                                for j in range(pos_1, pos_2 + 1):
+                                    is_occupied[j] = True
+                                break
+
+                        self._latex[pos_1][columns] = "\\meter";
+                        self._latex[pos_2][columns] = "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+
+                    else:
+                        assert False, "bad node data"
+
+    def _output_latex(self, path):
+        directory = os.path.dirname(path)
+        if directory != '':
+            os.makedirs(directory, exist_ok=True)
+        # index = file_name.rfind("/")
+        # path = file_name[:index] + "/Latex Output/"
+        # file_name = file_name[index:]
+
+        # if requiring Python 2.7+ use this method as it does not suffer from
+        # possible race conditions inherent to the built-in methods
+        # import os
+        # import errno
+        # try:
+        #     os.makedirs(path)
+        # except OSError as exception:
+        #     if exception.errno != errno.EEXIST:
+        #         raise
+
+        # if requiring Python 3.5+ a better way is
+        # import pathlib
+        # pathlib.Path('/my/directory').mkdir(parents=True, exist_ok=True)
+
+        # since we require at least Python 3, we choose to use the following
+        # method, which should be good for Python 3.2+
+        # import os
+        ## os.makedirs(path, exist_ok=True)
+        # TODO consider which exceptions this can still throw here (permissions?)
+
+        # if file_name.rfind(".tex") == -1:
+        #     index = file_name.rfind(".qasm")
+        #     if index == -1:
+        #         file_name = file_name + ".tex"
+        #     else:
+        #         file_name = file_name[:index] + ".tex"
+
+        with open(path, 'w') as f:
+            f.write("\\documentclass[preview]{standalone}\n")
+            f.write("% If the image is too large to fit on this documentclass use\n")
+            f.write("% \\documentclass[final]{beamer}\n")
+            f.write("% \\usepackage[size=custom,width=80,height=35]{beamerposter}\n")
+            f.write("% instead and customize the height and width (in cm) to fit.\n")
+            f.write("\n")
+            f.write("% Large images may run out of memory quickly.\n")
+            f.write("% To fix this use the LuaLaTeX compiler, which dynamically\n")
+            f.write("% allocates memory.\n")
+            f.write("\n")
+            f.write("\\usepackage[braket, qm]{qcircuit}\n")
+            f.write("\\usepackage{amsmath}\n")
+            f.write("\\usepackage[landscape]{geometry}\n")
+            f.write("% Comment about the above line if using the beamer documentclass.\n")
+            f.write("\n")
+            f.write("% Defines a measurement target symbol\n")
+            f.write("\\newcommand{\\ctarg}{*+<.02em,.02em>{\\xy =\"i\",\"i\"-<.39em,0em>;\"i\"+<.39em,0em> **\\dir{-}, \"i\"-<0em,.39em>;\"i\"+<0em,.39em> **\\dir{-},\"i\"*\\xycircle<.4em>{} \\endxy}}\n")
+            f.write("\n")
+            f.write("\\begin{document}\n")
+            f.write("\n")
+            f.write("\\begin{equation*}\n")
+            f.write("\t \\Qcircuit @C=.5em @R=0em @!R {\n")
+
+            for i in range(self.img_width + 1):
+                f.write("\t \t")
+                for j in range(self.img_depth + 1):
+                    f.write(self._latex[i][j])
+                    if j != (self.img_depth):
+                        f.write(" & ")
+                    elif j == (self.img_depth):
+                        f.write("\\\\\n")
+                    else:
+                        f.write("\n")
+            # for i in range(self.img_depth):
+            #     f.write(" & ")
+            # f.write("\n")
+
+            f.write("\t }\n")
+            f.write("\\end{equation*}\n")
+            f.write("\n")
+            f.write("\\end{document}\n")
+            f.write("\n")
+
+    def visualizer(self, file_name, aliases=None):
+        self._initialize_latex_array(aliases)
+        self._build_latex_array(aliases)
+        self._output_latex(file_name)
+
+    def latex(self, aliases=None):
+        """Return LaTeX string representation of circuit.
+
+        This method uses the LaTeX Qconfig package to create a graphical
+        representation of the circuit.
+
+        Returns:
+            string: for writing to a LaTeX file.
+
+        """
+        self._initialize_latex_array(aliases)
+        self._build_latex_array(aliases)
+        header = r"""\documentclass[preview]{standalone}
+% If the image is too large to fit on this documentclass use
+% \documentclass[final]{beamer}
+% \usepackage[size=custom,width=80,height=35]{beamerposter}
+% instead and customize the height and width (in cm) to fit.
+
+% Large images may run out of memory quickly.
+% To fix this use the LuaLaTeX compiler, which dynamically
+% allocates memory.
+
+\usepackage[braket, qm]{qcircuit}
+\usepackage{amsmath}
+\usepackage[landscape]{geometry}
+% Comment about the above line if using the beamer documentclass.
+
+% Defines a measurement target symbol
+\newcommand{\ctarg}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
+
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=.5em @R=0em @!R {
+"""
+        output = StringIO()
+        output.write(header)
+        for i in range(self.img_width + 1):
+            output.write("\t \t")
+            for j in range(self.img_depth + 1):
+                output.write(self._latex[i][j])
+                if j != (self.img_depth):
+                    output.write(" & ")
+                elif j == (self.img_depth):
+                    output.write(r'\\'+'\n')
+                else:
+                    output.write('\n')
+        output.write('\end{equation*}\n\n')
+        output.write('\end{document}')
+        contents = output.getvalue()
+        output.close()
+        return contents
+    
+        
+        
