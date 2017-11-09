@@ -1,14 +1,14 @@
 ライブラリの構成
-=============
+=======================
 
 プログラミング インターフェース
---------------------------
+---------------------------------------------------------------
 
 *qiskit* ディレクトリがメインのPythonモジュールで
 :py:class:`QuantumProgram <qiskit.QuantumProgram>`、
 :py:class:`QuantumRegister <qiskit.QuantumRegister>`、
 :py:class:`ClassicalRegister <qiskit.ClassicalRegister>`、
-:py:class:`QuantumCircuit <qiskit.QuantumCircuit>`のインターフェースを含みます。
+:py:class:`QuantumCircuit <qiskit.QuantumCircuit>` のインターフェースを含みます。
 
 実行手順は次の通りです。ユーザーは *QuantumProgram* （量子プログラム）を作成しそれに
 複数の量子回路の生成、変更、コンパイル、と実行ができます。
@@ -23,7 +23,7 @@
 現在は典型的な量子ゲートを定義した :py:mod:`standard <qiskit.extensions.standard>` 拡張が存在します。
 
 内部モジュール
-------------
+---------------------
 
 以下のディレクトリは開発中の内部モジュールを含みます:
 
@@ -51,7 +51,7 @@
 
 
 
-.. image:: ../images/circuit_representations.png
+.. image:: ../../images/circuit_representations.png
     :width: 600px
     :align: center
 
@@ -59,6 +59,6 @@
 
 
 
-.. image:: ../images/unroller_backends.png
+.. image:: ../../images/unroller_backends.png
     :width: 600px
     :align: center
