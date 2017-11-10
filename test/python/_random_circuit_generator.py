@@ -88,7 +88,7 @@ class RandomCircuitGenerator():
             'y': {'nregs': 1, 'nparams': None},
             'z': {'nregs': 1, 'nparams': None}}
 
-    def add_circuits(self, nCircuits, doMeasure=True, basis=['u3', 'cx'],
+    def add_circuits(self, nCircuits, doMeasure=True, basis=None,
                      basis_weights=None):
         """Adds circuits to program.
 
@@ -99,10 +99,14 @@ class RandomCircuitGenerator():
         Args:
             nCircuits (int): Number of circuits to add.
             doMeasure (bool): Whether to add measurements.
-            basis (list of str): List of op names.
+            basis (list of str | None): List of op names or None. If None,
+                use random operations from self.opSignature.
             basis_weights (list of float or None): List of weights
                 corresponding to indices in `basis`.
         """
+        if basis is None:
+            basis = list(random.sample(self.opSignature.keys(),
+                                       random.randint(2, 7)))
         uop_basis = basis[:]
         if basis_weights:
             uop_basis_weights = basis_weights[:]
@@ -240,7 +244,7 @@ class RandomCircuitGenerator():
         """Get the compiled circuits generated.
 
         Args:
-            format (str, optional): "qasm" | "json" | "QuantumCircuit"
+            format (str, optional): "qasm" | "qobj" | "QuantumCircuit"
 
         Returns:
            List of Compiled QuantumCircuit objects.
@@ -250,14 +254,14 @@ class RandomCircuitGenerator():
             for circuit in self.circuit_list:
                 qasm_list.append(circuit.qasm())
             return qasm_list
-        elif format is 'json':
+        elif format is 'qobj':
             json_list = []
             for circuit in self.circuit_list:
                 node_circuit = qasm.Qasm(data=circuit.qasm()).parse()
                 unrolled_circuit = unroll.Unroller(
                     node_circuit,
                     unroll.JsonBackend(self.basis_gates))
-                json_list.append(unrolled_circuit.execute().decode())
+                json_list.append(unrolled_circuit.execute())
             return json_list
         elif format is 'QuantumCircuit':
             qc_list = []
@@ -277,7 +281,9 @@ class RandomCircuitGenerator():
         #             unroll.DAGBackend(self.basis_gates))
         #         qc_list.append(unrolled_circuit.execute())
         #     return qc_list
-
+        else:
+            raise NameError('Unrecognized circuit output format: "{}"'.format(
+                            format))
 
 def rand_register_sizes(nRegisters, pvals):
     """Return a randomly chosen list of nRegisters summing to nQubits

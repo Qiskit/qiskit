@@ -1340,7 +1340,6 @@ class DAGCircuit:
                             qarglist = map(lambda x: aliases[x], nd["qargs"])
                         else:
                             qarglist = nd["qargs"]
-
                         if len(qarglist) == 1:
                             pos_1 = self.img_regs[(qarglist[0][0], \
                                                 qarglist[0][1])]
@@ -1498,7 +1497,6 @@ class DAGCircuit:
         self._ordered_regs()
         self.img_regs = {k: v for v, k in enumerate(self.ordered_regs)}
         self.img_depth = self._get_image_depth(aliases)
-
         self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]] \
             else "\\qw" for i in range(self.img_depth + 1)] for j in range(self.img_width)]
         self._latex.append([" " for j in range(self.img_depth + 1)])
@@ -1533,11 +1531,11 @@ class DAGCircuit:
         for n in ts:
             nd = self.multi_graph.node[n]
             if nd["type"] == "op":
+                print(nd)
                 if nd["condition"] is not None:
                     if_reg = nd["condition"][0]
                     if_value = format(nd["condition"][1], 'b')\
                         .zfill(self.cregs[if_reg])[::-1]
-
                 if len(nd["cargs"]) == 0:
                     nm = nd["name"]
                     if nm != "barrier":
@@ -1545,11 +1543,10 @@ class DAGCircuit:
                             qarglist = map(lambda x: aliases[x], nd["qargs"])
                         else:
                             qarglist = nd["qargs"]
-
+                        
                         if len(qarglist) == 1:
                             pos_1 = self.img_regs[(qarglist[0][0], \
                                                 qarglist[0][1])]
-
                             if nd["condition"] is not None:
                                 pos_2 = self.img_regs[(if_reg, 0)]
 
@@ -1996,7 +1993,7 @@ class DAGCircuit:
 """
         output = StringIO()
         output.write(header)
-        for i in range(self.img_width + 1):
+        for i in range(self.img_width):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
                 output.write(self._latex[i][j])
@@ -2006,6 +2003,7 @@ class DAGCircuit:
                     output.write(r'\\'+'\n')
                 else:
                     output.write('\n')
+        output.write('\t }\n')
         output.write('\end{equation*}\n\n')
         output.write('\end{document}')
         contents = output.getvalue()
