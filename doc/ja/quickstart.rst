@@ -41,10 +41,10 @@ QuantumProgramのメソッドは量子回路を実機やシミュレーターの
 実機の量子コンピューター（量子プロセッサー）で実行することができます。
 現在以下のチップが利用可能です:
 
--   `ibmqx2: 5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`_
--   `ibmqx3: 16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`_
--   `ibmqx4: 5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`_
--   `ibmqx5: 16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`_
+-   `ibmqx2: 5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`__
+-   `ibmqx3: 16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`__
+-   `ibmqx4: 5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`__
+-   `ibmqx5: 16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`__
 
 最新の実機の詳細については
 `IBM Q Experience バックエンド情報 <https://github.com/QISKit/ibmqx-backend-information>`_ を参照してください。

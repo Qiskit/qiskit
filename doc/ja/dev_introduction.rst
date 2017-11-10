@@ -55,7 +55,7 @@
     :width: 600px
     :align: center
 
-いくつかのunrollerバックエンドとその出力は以下にまとめます:
+いくつかのunrollerバックエンドとその出力を以下にまとめます:
 
 
 
