@@ -45,7 +45,7 @@ Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston,
 Chris Wood.
 
-将来のリリースでこのプロジェクトにコードに貢献をした方の名前を追加します。
+将来のリリースでこのプロジェクトのコードに貢献をした方の名前を追加します。
 
 翻訳者 (順不同)
 ===============
