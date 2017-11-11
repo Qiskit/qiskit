@@ -145,7 +145,7 @@ Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston, Chris Wood, Russell Rundle, Mark Everitt, Vincent Dwyer.
+Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston, Chris Wood, Russell Rundle, Mark Everitt, Todd Tilma, Vincent Dwyer.
 
 In future releases, anyone who contributes with code to this project is welcome to include their name here.
 
