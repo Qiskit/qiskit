@@ -742,7 +742,6 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
         label = '_wigner_phase_point'
         label += str(point)
         circuit = q_program.create_circuit(label, [qreg], [creg])
-        c_index = 0
 
         for qubit in range(len(qubits)):
             circuit.u3(thetas[qubit][point], 0,
@@ -757,13 +756,12 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
     return labels
 
 
-def wigner_data(q_result, name, meas_qubits, labels, shots=None):
+def wigner_data(q_result, meas_qubits, labels, shots=None):
     """Get the value of the Wigner function from measurement results.
 
     Args:
         q_result (Result): Results from execution of a state tomography
                             circuits on a backend.
-        name (string): The name of the base state preparation circuit.
         meas_qubits (list[int]): a list of the qubit indexes measured.
         labels : a list of names of the circuits
         shots (int): number of shots

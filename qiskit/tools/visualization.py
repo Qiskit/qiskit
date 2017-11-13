@@ -643,14 +643,12 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
     plt.show()
 
 
-def plot_wigner_data(wigner_data, phis=None, thetas=None, method=None,
-                     text_out=None):
+def plot_wigner_data(wigner_data, phis=None, method=None):
     """Plots Wigner results in appropriate format.
 
     Args:
         wigner_data: Output returned from the wigner_data function
         phis: Values of phi
-        thetas: Values of theta
         method: how the data is to be plotted,
             methods are:
                 point: a single point in phase space
@@ -675,7 +673,7 @@ def plot_wigner_data(wigner_data, phis=None, thetas=None, method=None,
     elif method == 'plaquette':
         plot_wigner_plaquette(wigner_data)
     elif method == 'state':
-        wigner_function(wigner_data, text_out)
+        plot_wigner_function(wigner_data)
     elif method == 'point':
         plot_wigner_plaquette(wigner_data)
         print('point in phase space is '+str(wigner_data))
