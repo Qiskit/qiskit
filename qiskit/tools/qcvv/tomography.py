@@ -779,31 +779,30 @@ def wigner_data(Q_result, name, meas_qubits, labels, shots=None):
     """
     
     num = len(meas_qubits)
-    
-    dim = 2**num
+
+    dim = 2**num            
     P = [0.5+0.5*np.sqrt(3),0.5-0.5*np.sqrt(3)]
     parity = 1
     
     for i in range(num):
         parity = np.kron(parity,P)
-    
+        
     W = [0]*len(labels)
     wpt = 0
     counts = [marginal_counts(Q_result.get_counts(circ), meas_qubits)
               for circ in labels]
     for entry in counts:
         x =[0]*dim
-        
+    
         for i in range(dim):
             if bin(i)[2:].zfill(num) in entry:
                 x[i] = float(entry[bin(i)[2:].zfill(num)])
-            
-            if shots is None:
-                shots = np.sum(x)
-                
-                for i in range(dim):
-                W[wpt] = W[wpt]+(x[i]/shots)*parity[i]
-            
-            wpt += 1
-
+    
+        if shots is None:
+            shots = np.sum(x)
+    
+        for i in range(dim):
+            W[wpt] = W[wpt]+(x[i]/shots)*parity[i]
+        wpt += 1
+        
     return W

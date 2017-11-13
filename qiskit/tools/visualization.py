@@ -478,7 +478,7 @@ def plot_wigner_function(state, res=100):
         [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
         M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
             
-    """"
+    """
     state = np.array(state)
     if state.ndim == 1:
         state = np.outer(state,state) # turns state vector to a density matrix
@@ -621,7 +621,7 @@ def plot_wigner_plaquette(wigner_data, maxWigner='local'):
     else:
         Wmax = maxWigner #For a float input
     
-    cmap = matplotlib.cm.get_cmap('seismic_r')
+    cmap = plt.cm.get_cmap('seismic_r')
     
     xax = dim[1]-0.5
     yax = dim[0]-0.5
