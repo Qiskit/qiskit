@@ -187,7 +187,7 @@ class Result(object):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
-        """Get the histogram data of cicuit name.
+        """Get the histogram data of circuit name.
 
         The data from the a qasm circuit is dictionary of the format
         {’00000’: XXXX, ’00001’: XXXXX}.
