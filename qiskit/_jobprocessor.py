@@ -24,7 +24,7 @@ from threading import Lock
 
 import qiskit.backends
 from qiskit.backends import (local_backends, remote_backends)
-from qiskit._result import Result
+from qiskit._result import Result, ResultStatus
 
 from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
@@ -98,9 +98,7 @@ class JobProcessor():
         try:
             result = future.result()
         except Exception as ex:  # pylint: disable=broad-except
-            result = Result({'job_id': '0', 'status': 'ERROR',
-                             'result': ex},
-                            future.qobj)
+            result = Result('0', ResultStatus.ERROR.value, ex, future.qobj)
         with self.lock:
             self.futures[future].result = result
             self.jobs_results.append(result)

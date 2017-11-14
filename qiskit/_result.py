@@ -14,6 +14,8 @@
 """Representation of a Quantum circuit Result."""
 
 import copy
+from enum import Enum
+
 import numpy
 from . import QISKitError
 
@@ -22,30 +24,29 @@ class Result(object):
     """Representation of the results of the execution of a quantum program.
 
     Attributes:
+        _job_id (str): the identifier of the job that produced the result,
+            issued by the backend the job is run on.
+        _status (ResultStatus): the status of the execution.
         _qobj (Qobj): the quantum object that was executed.
-        _result (dict): dictionary with the results::
+        _result (list(dict)): list of results:
 
-            {
-            "job_id": --job-id (string),
-                      #This string links the result with the job that computes it,
-                      #it should be issued by the backend it is run on.
-            "status": --status (string),
-            "result":
-                [
-                    {
-                    "data":
-                        {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                        "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                        "time"  : xx.xxxxxxxx
-                        },
-                    "status": --status (string)--
+            [
+                {
+                "data":
+                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH
+                            BACKEND ####
+                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "time"  : xx.xxxxxxxx
                     },
-                    ...
-                ]
-            }
+                "status": --status (string)--
+                },
+                ...
+            ]
     """
 
-    def __init__(self, qobj_result, qobj):
+    def __init__(self, job_id, status, qobj_result, qobj):
+        self._job_id = job_id
+        self._status = status
         self._qobj = qobj
         self._result = qobj_result
 
@@ -53,15 +54,15 @@ class Result(object):
         """Get the status of the run.
 
         Returns:
-            the status of the results.
+            str: the status of the results.
         """
-        return self._result['status']
+        return self._status
 
     def __getitem__(self, i):
-        return self._result['result'][i]
+        return self._result[i]
 
     def __len__(self):
-        return len(self._result['result'])
+        return len(self._result)
 
     def __iadd__(self, other):
         """Append a Result object to current Result object.
@@ -69,7 +70,9 @@ class Result(object):
         Arg:
             other (Result): a Result object to append.
         Returns:
-            The current object with appended results.
+            Result: The current object with appended results.
+        Raises:
+            QISKitError: if the result objects can't be combined.
         """
         # pylint: disable=protected-access
         if self._qobj.config == other._qobj.config:
@@ -78,10 +81,11 @@ class Result(object):
             self._qobj.id_.append(other._qobj.id_)
 
             self._qobj.circuits.extend(other._qobj.circuits)
-            self._result['result'] += other._result['result']
+            self._result += other._result
             return self
         else:
-            raise QISKitError('Result objects have different configs and cannot be combined.')
+            raise QISKitError('Result objects have different configs and '
+                              'cannot be combined.')
 
     def __add__(self, other):
         """Combine Result objects.
@@ -92,43 +96,44 @@ class Result(object):
         Arg:
             other (Result): a Result object to combine.
         Returns:
-            A new Result object consisting of combined objects.
+            Result: A new Result object consisting of combined objects.
         """
         ret = copy.deepcopy(self)
         ret += other
         return ret
 
     def _is_error(self):
-        return self._result['status'] == 'ERROR'
+        return self._status == ResultStatus.ERROR.value
 
     def get_status(self):
         """Return whole qobj result status."""
-        return self._result['status']
+        return self._status
 
     def circuit_statuses(self):
         """Return statuses of all circuits
 
         Return:
-            List of status result strings.
+            list(str): List of status result strings.
         """
-        return [circuit_result['status']
-                for circuit_result in self._result['result']]
+        return [circuit_result['status'] for circuit_result in self._result]
 
-    def get_circuit_status(self, icircuit):
-        """Return the status of circuit at index icircuit.
+    def get_circuit_status(self, idx_circuit):
+        """Return the status of circuit at index idx_circuit.
 
         Args:
-            icircuit (int): index of circuit
+            idx_circuit (int): index of circuit
+        Return:
+            str: the status of circuit at index idx_circuit.
         """
-        return self._result['result'][icircuit]['status']
+        return self._result[idx_circuit]['status']
 
     def get_job_id(self):
         """Return the job id assigned by the api if this is a remote job.
 
         Returns:
-            a string containing the job id.
+            str: a string containing the job id.
         """
-        return self._result['job_id']
+        return self._job_id
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
@@ -137,7 +142,9 @@ class Result(object):
             name (str): the name of the quantum circuit.
 
         Returns:
-            A text version of the qasm file that has been run.
+            str: A text version of the qasm file that has been run.
+        Raises:
+            QISKitError: if the circuit cannot be found.
         """
         try:
             return next(c.compiled_circuit_qasm for c in self._qobj.circuits
@@ -180,11 +187,13 @@ class Result(object):
             dict: A dictionary of data for the different backends.
 
         Raises:
-            If there's an error the function will throw a QISKitError or a
-            RegisterSizeError.
+            QISKitError: if the circuit cannot be found, or there is an error
+                that is stored as a string in self._result.
+            Exception: if there is an error that is stored as an Exception in
+                self._result.
         """
         if self._is_error():
-            exception = self._result['result']
+            exception = self._result
             if isinstance(exception, BaseException):
                 raise exception
             else:
@@ -193,7 +202,7 @@ class Result(object):
         try:
             index = next(i for i, circuit in enumerate(self._qobj.circuits)
                          if circuit.name == name)
-            return self._result['result'][index]['data']
+            return self._result[index]['data']
         except (KeyError, TypeError, StopIteration):
             raise QISKitError('No data for circuit "{0}"'.format(name))
 
@@ -205,9 +214,10 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit.
-
         Returns:
             Dictionary: Counts {’00000’: XXXX, ’00001’: XXXXX}.
+        Raises:
+            QISKitError: if the circuit cannot be found
         """
         try:
             return self.get_data(name)['counts']
@@ -231,11 +241,12 @@ class Result(object):
 
         Args:
             name (str): the name of the quantum circuit
-            observable (dict): The observable to be averaged over. As an example
-            ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
+            observable (dict): The observable to be averaged over. As an
+                example ZZ on qubits equals
+                {"00": 1, "11": 1, "01": -1, "10": -1}
 
         Returns:
-            Double: Average of the observable
+            float: Average of the observable
         """
         counts = self.get_counts(name)
         temp = 0
@@ -246,22 +257,26 @@ class Result(object):
         return temp
 
     def get_qubitpol_vs_xval(self, xvals_dict=None):
-        """Compute the polarization of each qubit for all circuits and pull out each circuits
-        xval into an array. Assumes that each circuit has the same number of qubits and that
-        all qubits are measured.
+        """Compute the polarization of each qubit for all circuits and pull out
+        each circuits xval into an array. Assumes that each circuit has the
+        same number of qubits and that all qubits are measured.
 
         Args:
-            xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
-                is none then the xvals list is just left as an array of zeros
+            xvals_dict (dict): xvals for each circuit
+                {'circuitname1': xval1,...}. If this is None then the xvals
+                list is just left as an array of zeros
 
         Returns:
-            qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
-            xvals: mx1 array of the circuit xvals
+            tuple(numpy.array, numpy.array):
+                qubit_pol: mxn double array where m is the number of circuit,
+                    n the number of qubits
+                xvals: mx1 array of the circuit xvals
         """
         ncircuits = len(self._qobj.circuits)
 
         # TODO: Is this the best way to get the number of qubits?
-        nqubits = self._qobj.circuits[0].compiled_circuit['header']['number_of_qubits']
+        nqubits = self._qobj.circuits[0].\
+            compiled_circuit['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
@@ -270,17 +285,25 @@ class Result(object):
         for qubit_ind in range(nqubits):
             z_dicts.append(dict())
             for qubit_state in range(2**nqubits):
-                new_key = ("{0:0"+"{:d}".format(nqubits) + "b}").format(qubit_state)
+                new_key = ("{0:0" + "{:d}".format(nqubits) + "b}").format(
+                    qubit_state)
                 z_dicts[-1][new_key] = -1
                 if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
-        # go through each circuit and for eqch qubit and apply the operators using "average_data"
-        for circuit_ind in range(ncircuits):
+        # go through each circuit and for eqch qubit and apply the operators
+        # using "average_data"
+        for i in range(ncircuits):
             if xvals_dict:
-                xvals[circuit_ind] = xvals_dict[self._qobj.circuits[circuit_ind].name]
+                xvals[i] = xvals_dict[self._qobj.circuits[i].name]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind, qubit_ind] = self.average_data(
-                    self._qobj.circuits[circuit_ind].name, z_dicts[qubit_ind])
+                qubitpol[i, qubit_ind] = self.average_data(
+                    self._qobj.circuits[i].name, z_dicts[qubit_ind])
 
         return qubitpol, xvals
+
+
+class ResultStatus(Enum):
+    """Enumeration of the different status that a Result can have."""
+    COMPLETED = 'COMPLETED'
+    ERROR = 'ERROR'

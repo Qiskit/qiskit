@@ -123,7 +123,7 @@ class QasmCppSimulator(BaseBackend):
                 for k in ['state', 'saved_states', 'inner_products']:
                     parse_complex(result['data'], k)
 
-            return Result(cresult, qobj)
+            return Result(job_id, cresult['status'], cresult['result'], qobj)
         else:
             # custom "backend" or "result" exception handler here?
             raise SimulatorError('local_qasm_cpp_simulator returned: {0}\n{1}'.

@@ -57,8 +57,8 @@ Internal circuit_object::
                 "conditional":  // optional -- map
                     {
                         "type": , // string
-                        "mask": , // hex string 
-                        "val":  , // bhex string 
+                        "mask": , // hex string
+                        "val":  , // bhex string
                     }
             },
         ]
@@ -96,7 +96,7 @@ import uuid
 import numpy as np
 
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
-from qiskit._result import Result
+from qiskit._result import Result, ResultStatus
 from qiskit.backends._basebackend import BaseBackend
 
 
@@ -112,6 +112,7 @@ class UnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
+        super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
@@ -164,14 +165,13 @@ class UnitarySimulator(BaseBackend):
         job_id = str(uuid.uuid4())
         result_list = [self.run_circuit(circuit) for circuit in q_job.qobj.circuits]
 
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      q_job.qobj)
+        return Result(job_id, ResultStatus.COMPLETED.value, result_list, q_job.qobj)
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate.
 
         Args:
-            compiled_circuit (dict): a compiled circuit
+            circuit (QobjCircuit): a circuit
         """
         ccircuit = circuit.compiled_circuit
         self._number_of_qubits = ccircuit['header']['number_of_qubits']

@@ -146,7 +146,10 @@ def load_result_from_file(filename):
         raise QISKitError('File %s does not have the proper dictionary '
                           'structure')
 
-    qresult = Result(qresult_dict, qobj)
+    qresult = Result(qresult_dict['job_id'],
+                     qresult_dict['status'],
+                     qresult_dict['result'],
+                     qobj)
 
     return qresult, metadata
 
@@ -170,7 +173,11 @@ def save_result_to_file(result, filename, metadata=None):
     """
     master_dict = {
         'qobj': copy.deepcopy(result._qobj.as_dict()),
-        'result': copy.deepcopy(result._result),
+        'result': {
+            'job_id': result.get_job_id(),
+            'status': result.get_status(),
+            'result': copy.deepcopy(result._result)
+        },
         'metadata': copy.deepcopy(metadata) or {}
     }
 
@@ -185,14 +192,14 @@ def save_result_to_file(result, filename, metadata=None):
     append_str = ''
     append_num = 0
 
-    while os.path.exists(filename+append_str+'.json'):
+    while os.path.exists(filename + append_str + '.json'):
         append_num += 1
         append_str = '_%d' % append_num
 
-    with open(filename+append_str+'.json', 'w') as save_file:
+    with open(filename + append_str + '.json', 'w') as save_file:
         json.dump(master_dict, save_file, indent=1)
 
-    return filename+append_str+'.json'
+    return filename + append_str + '.json'
 
 
 def dict_to_qobj(qobj_dict):

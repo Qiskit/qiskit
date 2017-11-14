@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ========================================================
 """This module implements the abstract base class for backend modules.
 
 To create add-on backend modules subclass the Backend class in this module.
@@ -7,10 +20,10 @@ from abc import ABC, abstractmethod
 
 
 class BaseBackend(ABC):
+    """Base class for backends."""
     @abstractmethod
     def __init__(self, configuration=None):
-        """Base class for backends.
-
+        """
         This method should initialize the module and its configuration, and
         raise an exception if a component of the module is
         not available.
@@ -21,10 +34,15 @@ class BaseBackend(ABC):
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        self._configuration = configuration
+        self._configuration = configuration or {}
 
     @abstractmethod
     def run(self, q_job):
+        """Run q_job on the backend, returning a Result.
+
+        Args:
+            q_job (QuantumJob)
+        """
         pass
 
     @property
