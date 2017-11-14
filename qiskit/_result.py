@@ -19,16 +19,13 @@ from . import QISKitError
 
 
 class Result(object):
-    """ Result Class.
+    """Representation of the results of the execution of a quantum program.
 
-    Class internal properties.
+    Attributes:
+        _qobj (Qobj): the quantum object that was executed.
+        _result (dict): dictionary with the results::
 
-    Methods to process the quantum program after it has been run
-
-    Internal::
-
-        qobj =  { -- the quantum object that was complied --}
-        result = {
+            {
             "job_id": --job-id (string),
                       #This string links the result with the job that computes it,
                       #it should be issued by the backend it is run on.
@@ -180,7 +177,7 @@ class Result(object):
             name (str): the name of the quantum circuit.
 
         Returns:
-            A dictionary of data for the different backends.
+            dict: A dictionary of data for the different backends.
 
         Raises:
             If there's an error the function will throw a QISKitError or a

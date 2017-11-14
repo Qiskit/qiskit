@@ -12,9 +12,10 @@
 # limitations under the License.
 # ========================================================
 """Quantum Job class"""
-from qiskit._qobj import QobjCircuitConfig, QobjCircuit, Qobj, QobjConfig
 from . import backends
 from . import _openquantumcompiler as openquantumcompiler
+from . import Qobj
+from ._qobj import QobjCircuitConfig, QobjCircuit, QobjConfig
 from ._util import random_string
 
 

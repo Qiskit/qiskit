@@ -34,8 +34,9 @@ from . import QuantumCircuit
 from . import QISKitError
 from . import JobProcessor
 from . import QuantumJob
+from . import Qobj
 from ._logging import set_qiskit_logger, unset_qiskit_logger
-from ._qobj import QobjConfig, Qobj, QobjCircuit, QobjCircuitConfig
+from ._qobj import QobjCircuit, QobjCircuitConfig, QobjConfig
 from ._util import camel_case_to_snake_case, random_string
 
 # Beta Modules
@@ -823,34 +824,7 @@ class QuantumProgram(object):
             qobj_id (str): identifier of the qobj.
 
         Returns:
-            Qobj: the job id and populates the qobj::
-
-            qobj =
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
+            Qobj: the populated Qobj.
 
         Raises:
             ValueError: if no names of the circuits have been specified.
@@ -931,7 +905,7 @@ class QuantumProgram(object):
             seed (int): see QuantumProgram.compile().
 
         Returns:
-            qobj: updated qobj
+            qobj: updated qobj.
         """
         # Update the Qobj config parameters.
         if backend:
@@ -1029,12 +1003,12 @@ class QuantumProgram(object):
         The program to run is extracted from the qobj parameter.
 
         Args:
-            qobj (dict): the dictionary of the quantum object to run.
+            qobj (Qobj): the quantum object to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
-            Result: A Result (class).
+            Result: The results of the execution.
         """
         self.callback = None
         self._run_internal([qobj],
@@ -1050,13 +1024,13 @@ class QuantumProgram(object):
         The programs to run are extracted from qobj elements of the list.
 
         Args:
-            qobj_list (list(dict)): The list of quantum objects to run.
+            qobj_list (list(Qobj)): The list of quantum objects to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
-            list(Result): A list of Result (class). The list will contain one Result object
-            per qobj in the input list.
+            list(Result): The results of the execution. The list will contain
+                one Result object per qobj in the input list.
         """
         self._run_internal(qobj_list,
                            wait=wait,
@@ -1072,7 +1046,7 @@ class QuantumProgram(object):
         All input for run comes from qobj.
 
         Args:
-            qobj(dict): the dictionary of the quantum object to
+            qobj(Qobj): the dictionary of the quantum object to
                 run or list of qobj.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
@@ -1093,7 +1067,7 @@ class QuantumProgram(object):
         All input for run comes from qobj.
 
         Args:
-            qobj_list (list(dict)): The list of quantum objects to run.
+            qobj_list (list(Qobj)): The list of quantum objects to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             callback (fn(results)): A function with signature:
@@ -1158,8 +1132,8 @@ class QuantumProgram(object):
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
             backend (str): a string representing the backend to compile to
-            config (dict): a dictionary of configurations parameters for the
-                compiler
+            config (QobjCircuitConfig): a dictionary of configurations
+                parameters for the compiler
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             basis_gates (str): a comma seperated string and are the base gates,
@@ -1193,8 +1167,8 @@ class QuantumProgram(object):
             seed (int): the intial seed the simulatros use
 
         Returns:
-            Result: status done and populates the internal __quantum_program with the
-            data
+            Result: status done and populates the internal __quantum_program
+                with the data
         """
         # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
