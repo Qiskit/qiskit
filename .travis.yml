@@ -24,6 +24,10 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
+  - pip install flake8
+
+before_script:
+    - flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
 
 script: make test
 
