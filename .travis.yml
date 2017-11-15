@@ -24,12 +24,9 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
-  - pip install flake8
 
 before_script:
-    - flake8 . --count --exit-zero --select=E999 --show-source --statistics
-    # - pylint qiskit test --errors-only
-    - pylint qiskit --errors-only --extension-pkg-whitelist=numpy
+  - pylint qiskit --errors-only --extension-pkg-whitelist=numpy
 
 script: make test
 
