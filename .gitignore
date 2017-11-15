@@ -6,6 +6,7 @@ qiskit/qasm/parser.out
 
 # editor files
 .vscode/
+.idea/
 
 #standard python ignores follow
 
