@@ -42,7 +42,7 @@ class MapperTest(QiskitTestCase):
 
     def test_issue_111(self):
         # https://github.com/QISKit/qiskit-sdk-py/issues/111
-        self.qp.load_qasm_file(self._get_resource_path('qasm/issue_81.qasm'), name='test')
+        self.qp.load_qasm_file(self._get_resource_path('qasm/issue_111.qasm'), name='test')
         coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator", coupling_map=coupling_map)
         result1.get_counts("test")
