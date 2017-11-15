@@ -332,8 +332,8 @@ def swap_mapper(circuit_graph, coupling_graph,
     # Schedule the input circuit
     layerlist = circuit_graph.layers()
     logger.debug("schedule:")
-    for i,v in enumerate(layerlist):
-        logger.debug("    %d: %s", (i, v["partition"]))
+    for i, v in enumerate(layerlist):
+        logger.debug("    %d: %s", i, v["partition"])
 
     if initial_layout is not None:
         # Check the input layout
