@@ -25,9 +25,10 @@ install:
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
 
-script:
-  - pylint qiskit --errors-only --extension-pkg-whitelist=numpy --generated-members=scipy.linalg.expm
-  - make test
+before_script:
+  - pylint qiskit --errors-only
+
+script: make test
 
 deploy:
   provider: script
