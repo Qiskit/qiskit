@@ -567,7 +567,7 @@ class DAGCircuit:
         self.gates = union_gates
         topological_sort = nx.topological_sort(input_circuit.multi_graph)
         for node in topological_sort:
-            nd = input_circuit.multi_graph.node[n]
+            nd = input_circuit.multi_graph.node[node]
             if nd["type"] == "in":
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
