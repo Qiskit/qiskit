@@ -838,7 +838,8 @@ class QCircuitImage:
         
 
     def _initialize_latex_array(self, aliases=None):
-        self.img_depth = self._get_image_depth(aliases)
+        #self.img_depth = self._get_image_depth(aliases)
+        self.img_depth = len(self.circuit['operations'])
         self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]] \
             else "\\qw" for i in range(self.img_depth + 1)] for j in range(self.img_width)]
         self._latex.append([" " for j in range(self.img_depth + 1)])
@@ -854,8 +855,7 @@ class QCircuitImage:
             circuit (dict): compiled circuit dictionary from qobj
         """
         columns = 2
-        is_occupied = [False for i in range(
-            self.header['number_of_qubits'])]
+        is_occupied = [False for i in range(self.img_width)]
         for op in self.circuit['operations']:
             if 'clbits' not in op:
                 if op['name'] != 'barrier':
@@ -894,11 +894,8 @@ class QCircuitImage:
 
                         if 'conditional' in op:
                             mask = int(op['conditional']['mask'], 16)
-                            cnt = 0
-                            while (mask & 0x1) == 0:
-                                mask >>= 1
-                                cnt += 1
-                            if_reg = list(self.cregs.items())[cnt][0]
+                            cl_reg = self.clbit_list[self._ffs(mask)]
+                            if_reg = cl_reg[0]
                             pos_3 = self.img_regs[(if_reg, 0)]
                             if pos_1 > pos_2:
                                 for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
@@ -953,7 +950,6 @@ class QCircuitImage:
                     temp = [pos_1, pos_2]
                     temp.sort(key=int)
                     [pos_1, pos_2] = temp
-
                     for i in range(pos_1, pos_2 + 1):
                         if is_occupied[i] == False:
                             is_occupied[i] = True
@@ -968,7 +964,7 @@ class QCircuitImage:
                     assert False, "bad node data"
             # print(nd)
             # print(columns)
-        return columns
+        return columns+1
 
     def total_2_register_index(self, index, registers):
         """Get register name for qubit index.
@@ -1017,12 +1013,9 @@ class QCircuitImage:
             print(iop, op)
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
-                cnt = 0
-                while (mask & 0x1) == 0:
-                    mask >>= 1
-                    value >>= 1
-                    cnt += 1
-                if_reg = list(self.cregs.items())[cnt][0]
+                cl_reg = self.clbit_list[self._ffs(mask)]
+                if_reg = cl_reg[0]
+                pos_2 = self.img_regs[cl_reg]
                 if_value = format(int(op['conditional']['val'], 16),
                                   'b').zfill(self.cregs[if_reg])[::-1]
             if 'clbits' not in op:
@@ -1356,8 +1349,13 @@ class QCircuitImage:
                                 is_occupied[j] = True
                             break
 
-                    self._latex[pos_1][columns] = "\\meter";
-                    self._latex[pos_2][columns] = "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                    try:
+                        self._latex[pos_1][columns] = "\\meter";
+                        self._latex[pos_2][columns] = "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                    except Exception as err:
+                        print(err)
+                        print(len(self._latex), len(self._latex[0]))
+                        import pdb;pdb.set_trace()
 
                 else:
                     assert False, "bad node data"

@@ -1855,7 +1855,7 @@ class DAGCircuit:
                         pos_1 = self.img_regs[(qname, qindex)]
                         pos_2 = self.img_regs[(nd["cargs"][0][0], \
                                             nd["cargs"][0][1])]
-
+                        import pdb;pdb.set_trace()
                         for i in range(pos_1, pos_2 + 1):
                             if is_occupied[i] == False:
                                 is_occupied[i] = True

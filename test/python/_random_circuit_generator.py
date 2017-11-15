@@ -169,7 +169,7 @@ class RandomCircuitGenerator():
                     op_args = []
                     if nparams:
                         op_args = [random.random() for p in range(nparams)]
-                    if opName is 'measure':
+                    if opName == 'measure':
                         # if measure occurs here, assume it's to do a conditional
                         # randomly select a register to measure
                         ireg = random.randint(0, nRegisters-1)
@@ -200,7 +200,7 @@ class RandomCircuitGenerator():
                             uop_args.extend([qreg[qind] for qind in qindList])
                             uop(*uop_args).c_if(creg, ifval)
                         depthCnt -= 1
-                    elif opName is 'barrier':
+                    elif opName == 'barrier':
                         ireg = random.randint(0, nRegisters-1)
                         qr_name = 'qr' + str(ireg)
                         qreg = circuit.regs[qr_name]
@@ -210,11 +210,7 @@ class RandomCircuitGenerator():
                         # select random register
                         ireg = random.randint(0, nRegisters-1)
                         qr_name = 'qr' + str(ireg)
-                        try:
-                            qreg = circuit.regs[qr_name]
-                        except Exception as e:
-                            print(e)
-                            import pdb;pdb.set_trace()
+                        qreg = circuit.regs[qr_name]
                         if qreg.size >= nregs:
                             qindList = random.sample(range(qreg.size), nregs)
                             op_args.extend([qreg[qind] for qind in qindList])
@@ -232,12 +228,7 @@ class RandomCircuitGenerator():
                     qrind = int(qind - cumtot)
                     qreg = circuit.regs['qr'+str(rind)]
                     creg = circuit.regs['cr'+str(rind)]
-                    try:
-                        circuit.measure(qreg[qrind], creg[qrind])
-                    except Exception as e:
-                        print(e)
-                        print(qrind)
-                        import pdb;pdb.set_trace()
+                    circuit.measure(qreg[qrind], creg[qrind])
             self.circuit_list.append(circuit)
 
     def get_circuits(self, format='dag'):

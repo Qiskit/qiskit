@@ -181,8 +181,11 @@ class QuantumCircuit(object):
             for i in range(qubit.size):
                 instructions.add(self.measure((qubit, i), (cbit, i)))
             return instructions
-        self._check_qubit(qubit)
-        self._check_creg(cbit[0])
+        try:
+            self._check_qubit(qubit)
+            self._check_creg(cbit[0])
+        except Exception as err:
+            import pdb;pdb.set_trace()
         cbit[0].check_range(cbit[1])
         return self._attach(Measure(qubit, cbit, self))
 
