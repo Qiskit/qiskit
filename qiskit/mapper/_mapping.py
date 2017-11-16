@@ -24,6 +24,7 @@ import copy
 import logging
 import math
 import sympy
+from sympy import N
 import numpy as np
 import networkx as nx
 import pprint
@@ -115,7 +116,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             xi[i] = {}
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
-                scale = 1.0 + np.random.normal(0.0, 1.0 / n)
+                scale = N(1) + np.random.normal(N(0), N(1) / n)
                 xi[i][j] = scale * coupling.distance(i, j)**2
                 xi[j][i] = xi[i][j]
 
@@ -494,9 +495,9 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if abs(sympy.cos(xi)) < eps / 10:
-        solutions.append((theta2 - theta1, xi, 0.0))
-    elif abs(sympy.sin(theta1 + theta2)) < eps / 10:
+    if abs(sympy.cos(xi)) < eps / N(10):
+        solutions.append((theta2 - theta1, xi, N(0)))
+    elif abs(sympy.sin(theta1 + theta2)) < eps / N(10):
         phi_minus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -629,7 +630,7 @@ def optimize_1q_gates(circuit):
     for run in runs:
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
-        right_parameters = (0.0, 0.0, 0.0)  # (theta, phi, lambda)
+        right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for node in run:
             nd = unrolled.multi_graph.node[node]
             assert nd["condition"] is None, "internal error"
@@ -638,20 +639,20 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (0.0, 0.0, float(nd["params"][0]))
+                left_parameters = (N(0), N(0), N(nd["params"][0]))
             elif left_name == "u2":
-                left_parameters = (math.pi / 2, float(nd["params"][0]),
-                                   float(nd["params"][1]))
+                left_parameters = (math.pi / 2, N(nd["params"][0]),
+                                   N(nd["params"][1]))
             elif left_name == "u3":
-                left_parameters = tuple(map(float, nd["params"]))
+                left_parameters = tuple(map(N, nd["params"]))
             else:
                 left_name = "u1"  # replace id with u1
-                left_parameters = (0.0, 0.0, 0.0)
+                left_parameters = (N(0), N(0), N(0))
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                right_parameters = (0.0, 0.0, right_parameters[2] +
+                right_parameters = (N(0), N(0), right_parameters[2] +
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
@@ -699,10 +700,10 @@ def optimize_1q_gates(circuit):
             # the other steps preserve the global phase, so we continue.
             epsilon = 1e-9  # for comparison with zero
             # Y rotation is 0 mod 2*pi, so the gate is a u1
-            if abs(right_parameters[0] % 2.0 * math.pi) < epsilon \
+            if abs(right_parameters[0] % N(2) * sympy.pi) < epsilon \
                and right_name != "u1":
                 right_name = "u1"
-                right_parameters = (0.0, 0.0, right_parameters[1] +
+                right_parameters = (N(0), N(0), right_parameters[1] +
                                     right_parameters[2] +
                                     right_parameters[0])
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
