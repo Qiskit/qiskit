@@ -25,6 +25,7 @@ class MapperTest(QiskitTestCase):
     """Test the mapper."""
 
     def setUp(self):
+        self.seed = 42
         self.qp = QuantumProgram()
 
     def tearDown(self):
@@ -44,8 +45,8 @@ class MapperTest(QiskitTestCase):
         # https://github.com/QISKit/qiskit-sdk-py/issues/111
         self.qp.load_qasm_file(self._get_resource_path('qasm/issue_111.qasm'), name='test')
         coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
-        result1 = self.qp.execute(["test"], backend="local_qasm_simulator", coupling_map=coupling_map)
-        result1.get_counts("test")
+        result1 = self.qp.execute(["test"], backend="local_qasm_simulator", coupling_map=coupling_map, seed=self.seed)
+        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
 
 if __name__ == '__main__':
     unittest.main()
