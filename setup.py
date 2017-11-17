@@ -21,7 +21,8 @@ requirements = ["IBMQuantumExperience>=1.8.13",
                 "numpy>=1.13,<1.14",
                 "scipy>=0.19,<0.20",
                 "matplotlib>=2.0,<2.1",
-                "sphinx>=1.6,<1.7"]
+                "sphinx>=1.6,<1.7",
+                "sympy>=1.0"]
 
 setup(
     name="qiskit",
