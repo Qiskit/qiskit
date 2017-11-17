@@ -29,7 +29,7 @@ class CXBase(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CX instruction."""
-        super(Instruction, self).__init__("CX", [], [ctl, tgt], circ)
+        super(CXBase, self).__init__("CX", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
