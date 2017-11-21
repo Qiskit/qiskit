@@ -62,6 +62,14 @@ class Pauli:
             stemp += str(j) + '\t'
         return stemp
 
+    def __eq__(self, other):
+        """Return True if all Pauli terms are equal."""
+        bres = False
+        if self.numberofqubits == other.numberofqubits:
+            if np.all(self.v == other.v) and np.all(self.w == other.w):
+                    bres = True
+        return bres
+  
     def __mul__(self, other):
         """Multiply two Paulis."""
         if self.numberofqubits != other.numberofqubits:
