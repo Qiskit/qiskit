@@ -641,7 +641,7 @@ def optimize_1q_gates(circuit):
             if left_name == "u1":
                 left_parameters = (N(0), N(0), N(nd["params"][0]))
             elif left_name == "u2":
-                left_parameters = (math.pi / 2, N(nd["params"][0]),
+                left_parameters = (sympy.pi / 2, N(nd["params"][0]),
                                    N(nd["params"][1]))
             elif left_name == "u3":
                 left_parameters = tuple(map(N, nd["params"]))

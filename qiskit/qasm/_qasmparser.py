@@ -48,7 +48,7 @@ class QasmParser(object):
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
-        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt']
+        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt','acos','atan','asin']
 
     def __enter__(self):
         return self
