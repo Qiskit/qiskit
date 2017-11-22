@@ -91,6 +91,12 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     return compiled_circuit
 
 
+def transpile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+            initial_layout=None, get_layout=False, format='dag'):
+    
+    
+
+
 def _unroller_code(qasm_circuit, basis_gates=None):
     """ Unroll the code.
 

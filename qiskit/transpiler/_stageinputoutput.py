@@ -2,7 +2,9 @@ import logging
 
 """ This class represents a container where all input and output data from the
 stages will be added. Every stage is responsible of getting their required data
-and adding their output at the end of the stage."""
+and adding their output at the end of the stage.
+Every element in the container must have a key which must be unique.
+"""
 class StageInputOutput(object):
 
     def __init__(self):
@@ -29,6 +31,13 @@ class StageInputOutput(object):
         except Exception as ex:
             raise StageError('Could not retrieve key: {}'.format(key)) from ex
 
+    def remove(self, key):
+        """ Removes a key-value pair from the dictionary """
+        try:
+            self._data.pop(key)
+        except KeyError:
+            pass
+
     @property
     def result(self):
         """ Commodity to get the final result of the pipeline execution.
@@ -42,9 +51,14 @@ class StageInputOutput(object):
         self._data['result'] = value
 
 
-    def exists(self, key):
-        if not key in self._data:
-            return False
+    def exists(self, keys):
+        if not isinstance(keys, list):
+            keys = [keys]
+
+        for key in keys:
+            if not key in self._data:
+                return False
+
         return True
 
 
