@@ -63,9 +63,9 @@ class Pauli:
     def __mul__(self, other):
         """Multiply two Paulis."""
         if self.numberofqubits != other.numberofqubits:
-            print('Paulis cannot be multiplied - different number of qubits')
-        vnew = (self.v + other.v) % 2
-        wnew = (self.w + other.w) % 2
+            print('These Paulis cannot be multiplied - different number of qubits')
+        vnew = [x % 2 for x in (self.v[i] + other.v[i] for i in range(self.numberofqubits))]
+        wnew = [x % 2 for x in (self.w[i] + other.w[i] for i in range(self.numberofqubits))]
         paulinew = Pauli(vnew, wnew)
         return paulinew
 
