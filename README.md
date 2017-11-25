@@ -22,7 +22,7 @@ Links to Sections:
 ### Dependencies
 
 At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit. In addition, [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) is recommended for interacting with the tutorials.
-For this reason we recomend installing the [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
+For this reason we recommend installing the [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with QISKit. If you're new to quantum, start with our [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
 
@@ -51,9 +51,9 @@ Or, if you have Git installed, run the following commands:
     cd qiskit-sdk-py
 ```
 
-#### Setup you enviroment
+#### Setup your enviroment
 
-We recomend using python virtual environments to improve your experience. Refer to our [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
+We recommend using python virtual environments to improve your experience. Refer to our [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
 
 ## Creating your first Quantum Program
 
