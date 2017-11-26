@@ -90,11 +90,17 @@ returned results object::
             'state': 'DONE'
             }
 """
+import uuid
+import logging
 import numpy as np
 import json
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
+
+
+logger = logging.getLogger(__name__)
+
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
@@ -103,16 +109,18 @@ from qiskit.backends._basebackend import BaseBackend
 class UnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
-    def __init__(self, qobj):
+    def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        self.qobj = qobj
-        self._configuration = {'name': 'local_unitary_simulator',
-                               'url': 'https://github.com/IBM/qiskit-sdk-py',
-                               'simulator': True,
-                               'local': True,
-                               'description': 'A python simulator for unitary matrix',
-                               'coupling_map': 'all-to-all',
-                               'basis_gates': 'u1,u2,u3,cx,id'}
+        if configuration is None:
+            self._configuration = {'name': 'local_unitary_simulator',
+                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
+                                   'simulator': True,
+                                   'local': True,
+                                   'description': 'A python simulator for unitary matrix',
+                                   'coupling_map': 'all-to-all',
+                                   'basis_gates': 'u1,u2,u3,cx,id'}
+        else:
+            self._configuration = configuration
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -136,19 +144,22 @@ class UnitarySimulator(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self, silent=True):
-        """Run circuits in qobj
-        
+    def run(self, q_job):
+        """Run q_job
+
         Args:
-            silent (bool, optional): Silence print statements. Default is True.
+        q_job (QuantumJob): job to run
         """
+        # Generating a string id for the job
+        job_id = str(uuid.uuid4())
+        qobj = q_job.qobj
         result_list = []
-        for circuit in self.qobj['circuits']:
-            result_list.append( self.run_circuit(circuit, silent=silent) )
-        return Result({'result': result_list, 'status': 'COMPLETED'},
-                      self.qobj)            
-        
-    def run_circuit(self, circuit, silent=True):
+        for circuit in qobj['circuits']:
+            result_list.append( self.run_circuit(circuit) )
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
+                      qobj)            
+
+    def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
@@ -174,11 +185,11 @@ class UnitarySimulator(BaseBackend):
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
             elif operation['name'] == 'measure':
-                if silent is False:
-                    print('Warning have dropped measure from unitary simulator')
+                logger.info('Warning have dropped measure from unitary '
+                            'simulator')
             elif operation['name'] == 'reset':
-                if silent is False:
-                    print('Warning have dropped reset from unitary simulator')
+                logger.info('Warning have dropped reset from unitary '
+                            'simulator')
             elif operation['name'] == 'barrier':
                 pass
             else:

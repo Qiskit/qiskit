@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -66,6 +67,12 @@ class TestJobProcessor(QiskitTestCase):
                                                 maxDepth=maxDepth)
         randomCircuits.add_circuits(nCircuits)
         cls.rqg = randomCircuits
+        if hasattr(cls, 'QE_TOKEN'):
+            cls._api = IBMQuantumExperience(cls.QE_TOKEN,
+                                            {"url": cls.QE_URL},
+                                            verify=True)
+            qiskit.backends.discover_remote_backends(cls._api)
+
 
     @classmethod
     def tearDownClass(cls):
@@ -148,44 +155,38 @@ class TestJobProcessor(QiskitTestCase):
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                backend='local_qasm_simulator')
-        jobprocessor.run_local_backend(quantum_job.qobj)
+        jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_unitary(self):
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                backend='local_unitary_simulator')
-        jobprocessor.run_local_backend(quantum_job.qobj)
+        jobprocessor.run_backend(quantum_job)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_remote_simulator(self):
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend='ibmqx_qasm_simulator')
-        api = IBMQuantumExperience(self.QE_TOKEN,
-                                   {"url": self.QE_URL},
-                                   verify=True)
-        jobprocessor.run_remote_backend(quantum_job.qobj, api)
+        jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_compile(self):
         quantum_job = QuantumJob(self.qasm_text, do_compile=True,
                                backend='local_qasm_simulator')
-        jobprocessor.run_local_backend(quantum_job.qobj)
+        jobprocessor.run_backend(quantum_job)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_remote_simulator_compile(self):
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend='ibmqx_qasm_simulator')
-        api = IBMQuantumExperience(self.QE_TOKEN,
-                                   {"url": self.QE_URL},
-                                   verify=True)
-        jobprocessor.run_remote_backend(quantum_job.qobj, api)
+        jobprocessor.run_backend(quantum_job)
 
     def test_compile_job(self):
         """Test compilation as part of job"""
         quantum_job = QuantumJob(self.qasm_text, do_compile=True,
                                  backend='local_qasm_simulator')
         jp = jobprocessor.JobProcessor([quantum_job], callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     def test_run_job_processor_local(self):
         njobs = 5
@@ -197,7 +198,7 @@ class TestJobProcessor(QiskitTestCase):
                                      do_compile=False)
             job_list.append(quantum_job)
         jp = jobprocessor.JobProcessor(job_list, callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_run_job_processor_online(self):
@@ -208,10 +209,8 @@ class TestJobProcessor(QiskitTestCase):
             quantum_job = QuantumJob(compiled_circuit,
                                      backend='ibmqx_qasm_simulator')
             job_list.append(quantum_job)
-        jp = jobprocessor.JobProcessor(job_list, token=self.QE_TOKEN,
-                               url=self.QE_URL,
-                               callback=None)
-        jp.submit(silent=True)
+        jp = jobprocessor.JobProcessor(job_list, callback=None)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_quantum_program_online(self):
@@ -250,7 +249,7 @@ class TestJobProcessor(QiskitTestCase):
         self.job_processor_exception = None
         jp = jobprocessor.JobProcessor(job_list, max_workers=None,
                                        callback=job_done_callback)
-        jp.submit(silent=True)
+        jp.submit()
 
         while not self.job_processor_finished:
             # Wait until the job_done_callback is invoked and completed.
@@ -271,7 +270,7 @@ class TestJobProcessor(QiskitTestCase):
                                      backend=backend)
             job_list.append(quantum_job)
         jp = jobprocessor.JobProcessor(job_list, max_workers=1, callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_mix_local_remote_jobs(self):
@@ -296,9 +295,8 @@ class TestJobProcessor(QiskitTestCase):
             job_list.append(quantum_job)
             i += 1
         jp = jobprocessor.JobProcessor(job_list, max_workers=None,
-                               token=self.QE_TOKEN, url=self.QE_URL,
                                callback=None)
-        jp.submit(silent=True)
+        jp.submit()
 
     def test_error_in_job(self):
         def job_done_callback(results):
@@ -323,11 +321,11 @@ class TestJobProcessor(QiskitTestCase):
         self.job_processor_exception = None
         jp = jobprocessor.JobProcessor(job_list, max_workers=None,
                                        callback=job_done_callback)
-        tmp = jobprocessor.run_local_backend
-        jobprocessor.run_local_backend = mock_run_local_backend
+        tmp = jobprocessor.run_backend
+        jobprocessor.run_backend = mock_run_local_backend
 
-        jp.submit(silent=True)
-        jobprocessor.run_local_backend = tmp
+        jp.submit()
+        jobprocessor.run_backend = tmp
 
         while not self.job_processor_finished:
             # Wait until the job_done_callback is invoked and completed.
@@ -342,7 +340,7 @@ class TestJobProcessor(QiskitTestCase):
         job = QuantumJob(compiled_circuit,
                          backend='non_existing_backend')
         self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job],
-                          callback=None, token=self.QE_TOKEN, url=self.QE_URL)
+                          callback=None)
 
 
 if __name__ == '__main__':

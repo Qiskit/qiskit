@@ -56,7 +56,7 @@ To use QISKit as standalone library, install all the dependencies:
 .. code:: sh
 
     # Depending on the system and setup, appending "sudo -H" before this command could be needed.
-    pip install -r requires.txt
+    pip install -r requirements.txt
 
 To get the tutorials working set up an Anaconda environment for working
 with QISKit, and install the required dependencies:
@@ -74,7 +74,7 @@ with QISKit, and install the required dependencies:
 
     conda create -y -n QISKitenv python=3 pip scipy
     activate QISKitenv
-    pip install -r requires.txt
+    pip install -r requirements.txt
     
 -  If running on Windows, make sure to execute an Anaconda Prompt and run
    the following command:

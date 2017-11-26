@@ -56,7 +56,7 @@ Needed libraries should be installed in this way:
 .. code:: sh
 
     # Depending on the system and setup to append "sudo -H" before could be needed.
-    pip3 install -r requires-dev.txt
+    pip3 install -r requirements-dev.txt
 
 Test
 ~~~~
