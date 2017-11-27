@@ -478,7 +478,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     return max(map(abs, [delta1, delta2, delta3, delta4]))
 
 
-def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
+def yzy_to_zyz(xi, theta1, theta2):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
     Solve the equation
@@ -488,15 +488,15 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
 
     for theta, phi, and lambda. This is equivalent to solving the system
-    given in the comment for test_solution. Use eps for comparisons with zero.
+    given in the comment for test_solution.
 
     Return a solution theta, phi, and lambda.
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if abs(sympy.cos(xi)) < eps / N(10):
+    if sympy.cos(xi).is_zero :
         solutions.append((theta2 - theta1, xi, N(0)))
-    elif abs(sympy.sin(theta1 + theta2)) < eps / N(10):
+    elif sympy.sin(theta1 + theta2) ==0 :
         phi_minus_lambda = [
             sympy.pi / N(2),
             N(3) * sympy.pi / N(2),
@@ -516,7 +516,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif abs(sympy.cos(theta1 + theta2)) < eps / 10:
+    elif sympy.cos(theta1 + theta2).is_zero:
         phi_plus_lambda = [
             sympy.pi / N(2),
             N(3) * sympy.pi / N(2),
@@ -562,7 +562,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0] < eps:
+        if delta_sol[0].is_zero:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
@@ -697,9 +697,8 @@ def optimize_1q_gates(circuit):
             # Here down, when we simplify, we add f(theta) to lambda to correct
             # the global phase when f(theta) is 2*pi. This isn't necessary but
             # the other steps preserve the global phase, so we continue.
-            epsilon = 1e-9  # for comparison with zero
             # Y rotation is 0 mod 2*pi, so the gate is a u1
-            if abs(right_parameters[0] % N(2) * sympy.pi) < epsilon \
+            if (right_parameters[0] % N(2) * sympy.pi).is_zero \
                and right_name != "u1":
                 right_name = "u1"
                 right_parameters = (N(0), N(0), right_parameters[1] +
@@ -708,23 +707,20 @@ def optimize_1q_gates(circuit):
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
             if right_name == "u3":
                 # theta = pi/2 + 2*k*pi
-                if abs((right_parameters[0] - sympy.pi / N(2)) % 2 * sympy.pi) \
-                   < epsilon:
+                if ((right_parameters[0] - sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
                     right_name = "u2"
                     right_parameters = (sympy.pi / N(2), right_parameters[1],
                                         right_parameters[2] +
                                         (right_parameters[0] - sympy.pi / N(2)))
                 # theta = -pi/2 + 2*k*pi
-                if abs((right_parameters[0] + sympy.pi / N(2)) % 2 * sympy.pi) \
-                   < epsilon:
+                if ((right_parameters[0] + sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
                     right_name = "u2"
                     right_parameters = (sympy.pi / N(2), right_parameters[1] +
                                         sympy.pi, right_parameters[2] -
                                         sympy.pi + (right_parameters[0] +
                                                    sympy.pi / N(2)))
             # u1 and lambda is 0 mod 4*pi so gate is nop
-            if right_name == "u1" and \
-               abs(right_parameters[2] % 4 * sympy.pi) < epsilon:
+            if right_name == "u1" and (right_parameters[2] % 4 * sympy.pi).is_zero:
                 right_name = "nop"
         # Replace the data of the first node in the run
         new_params = []
