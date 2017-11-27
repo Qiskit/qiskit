@@ -728,17 +728,18 @@ def optimize_1q_gates(circuit):
                abs(right_parameters[2] % 4.0 * math.pi) < epsilon:
                 right_name = "nop"
         # Replace the data of the first node in the run
-        new_params = []
+        new_params = [] #TODO remove
         if right_name == "u1":
-            new_params.append(right_parameters[2])
+            new_params.append(right_parameters[2]) #TODO new_param = [right_parameters[2]]
         if right_name == "u2":
             new_params = [right_parameters[1], right_parameters[2]]
         if right_name == "u3":
             new_params = list(right_parameters)
+        new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the symbols in the DAG?
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
         nx.set_node_attributes(unrolled.multi_graph, 'params',
-                               {run[0]: tuple(map(str, new_params))})
+                               {run[0]: tuple(map(str, new_params))}) #TODO Maybe makes sense to save the symbols in the DAG?
         # Delete the other nodes in the run
         for node in run[1:]:
             unrolled._remove_op_node(node)
