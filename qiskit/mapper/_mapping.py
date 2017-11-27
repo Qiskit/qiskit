@@ -22,7 +22,6 @@ Layout module to assist with mapping circuit qubits onto physical qubits.
 import sys
 import copy
 import logging
-import math
 import sympy
 from sympy import N
 import numpy as np
@@ -656,12 +655,12 @@ def optimize_1q_gates(circuit):
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-                right_parameters = (math.pi / 2, right_parameters[1] +
+                right_parameters = (sympy.pi / 2, right_parameters[1] +
                                     left_parameters[2], right_parameters[2])
             elif name_tuple == ("u2", "u1"):
                 # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
                 right_name = "u2"
-                right_parameters = (math.pi / 2, left_parameters[1],
+                right_parameters = (sympy.pi / 2, left_parameters[1],
                                     right_parameters[2] + left_parameters[2])
             elif name_tuple == ("u1", "u3"):
                 # u1(lambda1) * u3(theta2, phi2, lambda2) =
@@ -680,10 +679,10 @@ def optimize_1q_gates(circuit):
                 # u2(phi1, lambda1) * u2(phi2, lambda2) =
                 #    u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
                 right_name = "u3"
-                right_parameters = (math.pi - left_parameters[2] -
+                right_parameters = (sympy.pi - left_parameters[2] -
                                     right_parameters[1], left_parameters[1] +
-                                    math.pi / 2, right_parameters[2] +
-                                    math.pi / 2)
+                                    sympy.pi / 2, right_parameters[2] +
+                                    sympy.pi / 2)
             else:
                 # For composing u3's or u2's with u3's, use
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
@@ -709,23 +708,23 @@ def optimize_1q_gates(circuit):
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
             if right_name == "u3":
                 # theta = pi/2 + 2*k*pi
-                if abs((right_parameters[0] - math.pi / 2) % 2.0 * math.pi) \
+                if abs((right_parameters[0] - sympy.pi / 2) % 2.0 * sympy.pi) \
                    < epsilon:
                     right_name = "u2"
-                    right_parameters = (math.pi / 2, right_parameters[1],
+                    right_parameters = (sympy.pi / 2, right_parameters[1],
                                         right_parameters[2] +
-                                        (right_parameters[0] - math.pi / 2))
+                                        (right_parameters[0] - sympy.pi / 2))
                 # theta = -pi/2 + 2*k*pi
-                if abs((right_parameters[0] + math.pi / 2) % 2.0 * math.pi) \
+                if abs((right_parameters[0] + sympy.pi / 2) % 2.0 * sympy.pi) \
                    < epsilon:
                     right_name = "u2"
-                    right_parameters = (math.pi / 2, right_parameters[1] +
-                                        math.pi, right_parameters[2] -
-                                        math.pi + (right_parameters[0] +
-                                                   math.pi / 2))
+                    right_parameters = (sympy.pi / 2, right_parameters[1] +
+                                        sympy.pi, right_parameters[2] -
+                                        sympy.pi + (right_parameters[0] +
+                                                   sympy.pi / 2))
             # u1 and lambda is 0 mod 4*pi so gate is nop
             if right_name == "u1" and \
-               abs(right_parameters[2] % 4.0 * math.pi) < epsilon:
+               abs(right_parameters[2] % 4.0 * sympy.pi) < epsilon:
                 right_name = "nop"
         # Replace the data of the first node in the run
         new_params = [] #TODO remove
@@ -735,7 +734,7 @@ def optimize_1q_gates(circuit):
             new_params = [right_parameters[1], right_parameters[2]]
         if right_name == "u3":
             new_params = list(right_parameters)
-        new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the symbols in the DAG?
+        new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
         nx.set_node_attributes(unrolled.multi_graph, 'params',
