@@ -103,7 +103,7 @@ class QuantumJob(object):
                     formatted_circuits.append(circuit.qasm(qeflag=True))
 
         # Create the Qobj without the circuits.
-        qobj = Qobj(id_=random_string(10),
+        qobj = Qobj(id=random_string(10),
                     config=QobjConfig(backend=backend,
                                       max_credits=resources[
                                           'max_credits'],

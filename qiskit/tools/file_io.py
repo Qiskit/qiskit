@@ -218,7 +218,7 @@ def dict_to_qobj(qobj_dict):
     )
 
     # Create the Qobj, with empty circuits.
-    qobj = Qobj(id_=qobj_dict.get('id', random_string(30)),
+    qobj = Qobj(id=qobj_dict.get('id', random_string(30)),
                 config=qobj_config,
                 circuits=[])
 

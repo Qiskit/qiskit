@@ -22,8 +22,9 @@ class Qobj(object):
         config (QobjConfig): config settings for the Qobj.
         circuits (list(QobjCircuit)): list of circuits.
     """
-    def __init__(self, id_, config, circuits=None):
-        self.id_ = id_
+    def __init__(self, id, config, circuits=None):
+        # pylint: disable=redefined-builtin,invalid-name
+        self.id = id
         self.config = config
         self.circuits = circuits or []
 
@@ -33,7 +34,7 @@ class Qobj(object):
             dict: a dictionary representation of the Qobj.
         """
         return {
-            'id': self.id_,
+            'id': self.id,
             'config': self.config.as_dict(),
             'circuits': [circuit.as_dict() for circuit in self.circuits]
         }

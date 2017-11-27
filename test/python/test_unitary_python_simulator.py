@@ -59,7 +59,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qobj_config = QobjConfig(max_credits=None,
                                  shots=1,
                                  backend='local_unitary_simulator')
-        qobj = Qobj(id_='unitary',
+        qobj = Qobj(id='unitary',
                     config=qobj_config,
                     circuits=[
                         QobjCircuit(name='test', config=QobjCircuitConfig(),

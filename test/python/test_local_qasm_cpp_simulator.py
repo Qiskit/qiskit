@@ -56,7 +56,7 @@ class TestLocalQasmCppSimulator(QiskitTestCase):
                                  shots=100,
                                  backend='local_qasm_cpp_simulator')
         circuit_config = QobjCircuitConfig(seed=1111)
-        self.qobj = Qobj(id_='test_qobj',
+        self.qobj = Qobj(id='test_qobj',
                          config=qobj_config,
                          circuits=[
                              QobjCircuit(name='test_circuit1',

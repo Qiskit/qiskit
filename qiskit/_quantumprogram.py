@@ -845,7 +845,7 @@ class QuantumProgram(object):
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
 
         # Pre-process the parameters, setting the default values.
-        qobj = Qobj(id_=qobj_id or random_string(30),
+        qobj = Qobj(id=qobj_id or random_string(30),
                     config=QobjConfig(backend=backend,
                                       max_credits=max_credits,
                                       shots=shots),
@@ -942,7 +942,7 @@ class QuantumProgram(object):
             print("no executions to run")
         execution_list = []
 
-        print("id: %s" % qobj.id_)
+        print("id: %s" % qobj.id)
         print("backend: %s" % qobj.config.backend)
         print("qobj config:")
         for key in object_properties(qobj.config):

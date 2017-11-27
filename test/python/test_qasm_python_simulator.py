@@ -63,7 +63,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         qobj_config = QobjConfig(max_credits=resources['max_credits'],
                                  shots=1024,
                                  backend='local_qasm_simulator')
-        self.qobj = Qobj(id_='test_sim_single_shot',
+        self.qobj = Qobj(id='test_sim_single_shot',
                          config=qobj_config,
                          circuits=[
                              QobjCircuit(name='test', config=circuit_config,
@@ -127,7 +127,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         qobj_config = QobjConfig(max_credits=3, shots=shots,
                                  backend='local_qasm_simulator')
         qobj_circuit_config = QobjCircuitConfig()
-        qobj = Qobj(id_='test_if_qobj',
+        qobj = Qobj(id='test_if_qobj',
                     config=qobj_config,
                     circuits=[
                         QobjCircuit(name='test_if_true',

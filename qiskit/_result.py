@@ -76,9 +76,9 @@ class Result(object):
         """
         # pylint: disable=protected-access
         if self._qobj.config == other._qobj.config:
-            if isinstance(self._qobj.id_, str):
-                self._qobj.id_ = [self._qobj.id_]
-            self._qobj.id_.append(other._qobj.id_)
+            if isinstance(self._qobj.id, str):
+                self._qobj.id = [self._qobj.id]
+            self._qobj.id.append(other._qobj.id)
 
             self._qobj.circuits.extend(other._qobj.circuits)
             self._result += other._result

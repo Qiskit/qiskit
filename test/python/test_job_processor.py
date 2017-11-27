@@ -98,7 +98,7 @@ class TestJobProcessor(QiskitTestCase):
                                  backend='local_qasm_simulator')
         qobj_circuit_config = QobjCircuitConfig()
         self.qobj = Qobj(
-            id_='test_qobj',
+            id='test_qobj',
             config=qobj_config,
             circuits=[
                 QobjCircuit(name='test_circuit1', config=qobj_circuit_config,
@@ -125,7 +125,7 @@ class TestJobProcessor(QiskitTestCase):
                                  backend='local_qasm_simulator')
         qobj_circuit_config = QobjCircuitConfig()
         qobj = Qobj(
-            id_='qobj_init',
+            id='qobj_init',
             config=qobj_config,
             circuits=[QobjCircuit(name='example', config=qobj_circuit_config,
                                   compiled_circuit=formatted_circuit),

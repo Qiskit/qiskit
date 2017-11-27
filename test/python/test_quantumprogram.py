@@ -691,7 +691,7 @@ class TestQuantumProgram(QiskitTestCase):
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
-        self.assertEqual(out.id_, 'cooljob')
+        self.assertEqual(out.id, 'cooljob')
         self.assertEqual(len(out.circuits), 1)
 
     def test_get_compiled_configuration(self):
