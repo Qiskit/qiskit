@@ -475,10 +475,9 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
         sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
         sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-    return max(map(abs, [delta1, delta2, delta3, delta4]))
+    return max(map(lambda x: abs(x.evalf()), [delta1, delta2, delta3, delta4]))
 
-
-def yzy_to_zyz(xi, theta1, theta2):
+def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
     Solve the equation
@@ -488,7 +487,7 @@ def yzy_to_zyz(xi, theta1, theta2):
     Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
 
     for theta, phi, and lambda. This is equivalent to solving the system
-    given in the comment for test_solution.
+    given in the comment for test_solution. Use eps for comparisons with zero.
 
     Return a solution theta, phi, and lambda.
     """
@@ -562,7 +561,7 @@ def yzy_to_zyz(xi, theta1, theta2):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0].is_zero:
+        if delta_sol[0].evalf() < eps:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
