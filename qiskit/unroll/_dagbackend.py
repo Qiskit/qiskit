@@ -192,7 +192,7 @@ class DAGBackend(UnrollerBackend):
             self.listen = False
             self.circuit.add_basis_element(name, len(qubits), 0, len(args))
             self.circuit.apply_operation_back(
-                name, qubits, [], list(map(lambda x: x.real(nested_scope),
+                name, qubits, [], list(map(lambda x: x.sym(nested_scope),
                                            args)), condition)
 
     def end_gate(self, name, args, qubits, nested_scope=None):
