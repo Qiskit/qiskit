@@ -730,9 +730,6 @@ def optimize_1q_gates(circuit):
         if right_name == "u3":
             new_params = list(right_parameters)
 
-        for p in new_params:
-            if not isinstance(p, tuple(sympy.core.all_classes)): raise ValueError('The gate parameters should be instances of sympy, not %s' % p.__class__.__name__)
-
         new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
 
         nx.set_node_attributes(unrolled.multi_graph, 'name',
