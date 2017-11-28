@@ -23,6 +23,7 @@ import sys
 import copy
 import logging
 import math
+import sympy
 import numpy as np
 import networkx as nx
 import pprint
@@ -466,14 +467,14 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
 
     Returns the maximum absolute difference between right and left hand sides.
     """
-    delta1 = math.cos(phi + lamb) * math.cos(theta) - \
-        math.cos(xi) * math.cos(theta1 + theta2)
-    delta2 = math.sin(phi + lamb) * math.cos(theta) - \
-        math.sin(xi) * math.cos(theta1 - theta2)
-    delta3 = math.cos(phi - lamb) * math.sin(theta) - \
-        math.cos(xi) * math.sin(theta1 + theta2)
-    delta4 = math.sin(phi - lamb) * math.sin(theta) - \
-        math.sin(xi) * math.sin(-theta1 + theta2)
+    delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
+        sympy.cos(xi) * sympy.cos(theta1 + theta2)
+    delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
+        sympy.sin(xi) * sympy.cos(theta1 - theta2)
+    delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
+        sympy.cos(xi) * sympy.sin(theta1 + theta2)
+    delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
+        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
     return max(map(abs, [delta1, delta2, delta3, delta4]))
 
 
@@ -493,42 +494,42 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if abs(math.cos(xi)) < eps / 10:
+    if abs(sympy.cos(xi)) < eps / 10:
         solutions.append((theta2 - theta1, xi, 0.0))
-    elif abs(math.sin(theta1 + theta2)) < eps / 10:
+    elif abs(sympy.sin(theta1 + theta2)) < eps / 10:
         phi_minus_lambda = [
-            math.pi / 2,
-            3 * math.pi / 2,
-            math.pi / 2,
-            3 * math.pi / 2]
-        stheta_1 = math.asin(math.sin(xi) * math.sin(-theta1 + theta2))
-        stheta_2 = math.asin(-math.sin(xi) * math.sin(-theta1 + theta2))
-        stheta_3 = math.pi - stheta_1
-        stheta_4 = math.pi - stheta_2
+            sympy.pi / 2,
+            3 * sympy.pi / 2,
+            sympy.pi / 2,
+            3 * sympy.pi / 2]
+        stheta_1 = sympy.asin(sympy.sin(xi) * sympy.sin(-theta1 + theta2))
+        stheta_2 = sympy.asin(-sympy.sin(xi) * sympy.sin(-theta1 + theta2))
+        stheta_3 = sympy.pi - stheta_1
+        stheta_4 = sympy.pi - stheta_2
         stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
         phi_plus_lambda = list(map(lambda x:
-                                   math.acos(math.cos(theta1 + theta2) *
-                                             math.cos(xi) / math.cos(x)),
+                                   sympy.acos(sympy.cos(theta1 + theta2) *
+                                              sympy.cos(xi) / sympy.cos(x)),
                                    stheta))
         sphi = [(term[0] + term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif abs(math.cos(theta1 + theta2)) < eps / 10:
+    elif abs(sympy.cos(theta1 + theta2)) < eps / 10:
         phi_plus_lambda = [
-            math.pi / 2,
-            3 * math.pi / 2,
-            math.pi / 2,
-            3 * math.pi / 2]
-        stheta_1 = math.acos(math.sin(xi) * math.cos(theta1 - theta2))
-        stheta_2 = math.acos(-math.sin(xi) * math.cos(theta1 - theta2))
+            sympy.pi / 2,
+            3 * sympy.pi / 2,
+            sympy.pi / 2,
+            3 * sympy.pi / 2]
+        stheta_1 = sympy.acos(sympy.sin(xi) * sympy.cos(theta1 - theta2))
+        stheta_2 = sympy.acos(-sympy.sin(xi) * sympy.cos(theta1 - theta2))
         stheta_3 = -stheta_1
         stheta_4 = -stheta_2
         stheta = [stheta_1, stheta_2, stheta_3, stheta_4]
         phi_minus_lambda = list(map(lambda x:
-                                    math.acos(math.sin(theta1 + theta2) *
-                                              math.cos(xi) / math.sin(x)),
+                                    sympy.acos(sympy.sin(theta1 + theta2) *
+                                               sympy.cos(xi) / sympy.sin(x)),
                                     stheta))
         sphi = [(term[0] + term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
@@ -536,26 +537,26 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
     else:
-        phi_plus_lambda = math.atan(math.sin(xi) * math.cos(theta1 - theta2) /
-                                    (math.cos(xi) * math.cos(theta1 + theta2)))
-        phi_minus_lambda = math.atan(math.sin(xi) * math.sin(-theta1 +
+        phi_plus_lambda = sympy.atan(sympy.sin(xi) * sympy.cos(theta1 - theta2) /
+                                    (sympy.cos(xi) * sympy.cos(theta1 + theta2)))
+        phi_minus_lambda = sympy.atan(sympy.sin(xi) * sympy.sin(-theta1 +
                                                              theta2) /
-                                     (math.cos(xi) * math.sin(theta1 +
+                                     (sympy.cos(xi) * sympy.sin(theta1 +
                                                               theta2)))
         sphi = (phi_plus_lambda + phi_minus_lambda) / 2
         slam = (phi_plus_lambda - phi_minus_lambda) / 2
-        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
-                                    math.cos(sphi + slam)), sphi, slam))
-        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
-                                    math.cos(sphi + slam + math.pi)),
-                          sphi + math.pi / 2,
-                          slam + math.pi / 2))
-        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
-                                    math.cos(sphi + slam)),
-                          sphi + math.pi / 2, slam - math.pi / 2))
-        solutions.append((math.acos(math.cos(xi) * math.cos(theta1 + theta2) /
-                                    math.cos(sphi + slam + math.pi)),
-                          sphi + math.pi, slam))
+        solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
+                                     sympy.cos(sphi + slam)), sphi, slam))
+        solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
+                                     sympy.cos(sphi + slam + sympy.pi)),
+                          sphi + sympy.pi / 2,
+                          slam + sympy.pi / 2))
+        solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
+                                     sympy.cos(sphi + slam)),
+                          sphi + sympy.pi / 2, slam - sympy.pi / 2))
+        solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
+                                     sympy.cos(sphi + slam + sympy.pi)),
+                          sphi + sympy.pi, slam))
     # Select the first solution with the required accuracy
     deltas = list(map(lambda x: test_trig_solution(x[0], x[1], x[2],
                                                    xi, theta1, theta2),
