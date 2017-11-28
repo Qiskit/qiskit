@@ -38,6 +38,8 @@ class Pauli:
     Multiplication is P1*P2 = (-i)^dot(v1+v2,w1+w2) Z^(v1+v2) X^(w1+w2)
     where the sums are taken modulo 2.
 
+    Pauli vectors v and w are supposed to be defined as numpy arrays.
+
     Ref.
     Jeroen Dehaene and Bart De Moor
     Clifford group, stabilizer states, and linear and quadratic operations over GF(2)
@@ -64,8 +66,8 @@ class Pauli:
         """Multiply two Paulis."""
         if self.numberofqubits != other.numberofqubits:
             print('These Paulis cannot be multiplied - different number of qubits')
-        vnew = [x % 2 for x in (self.v[i] + other.v[i] for i in range(self.numberofqubits))]
-        wnew = [x % 2 for x in (self.w[i] + other.w[i] for i in range(self.numberofqubits))]
+        vnew = (self.v + other.v) % 2
+        wnew = (self.w + other.w) % 2
         paulinew = Pauli(vnew, wnew)
         return paulinew
 
