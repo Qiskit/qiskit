@@ -18,7 +18,7 @@
 """
 Node for an OPENQASM real number.
 """
-from sympy import latex
+from sympy import latex, pi
 from ._node import Node
 
 
@@ -47,6 +47,10 @@ class Real(Node):
         """Return the corresponding math mode latex string."""
         return latex(self.value)
 
+    def sym(self, nested_scope=None):
+        """Return the correspond symbolic number."""
+        return self.value
+
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        return float(self.value)
+        return float(self.value.evalf())

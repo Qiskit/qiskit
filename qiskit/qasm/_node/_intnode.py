@@ -19,7 +19,7 @@
 Node for an OPENQASM integer.
 """
 from ._node import Node
-
+from sympy import N
 
 class Int(Node):
     """Node for an OPENQASM integer.
@@ -44,6 +44,10 @@ class Int(Node):
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
         return "%d" % self.value
+
+    def sym(self, nested_scope=None):
+        """Return the correspond symbolic number."""
+        return N(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
