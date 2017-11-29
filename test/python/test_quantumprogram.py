@@ -1639,6 +1639,32 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
         self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
 
+    def test_timeout(self):
+        """Test run.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc2.measure(qr, cr)
+        circuits = ['qc2']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                seed=88)
+        try:
+            out = QP_program.run(qobj, timeout=0.01)
+            self.assertTrue(False, "Should timeout! but it didn't!")
+        except QISKitError as ex:
+            self.assertEqual(ex.message,
+                'Error waiting for Job results: Timeout after 0.01 seconds.')
+
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
