@@ -21,10 +21,18 @@ class StageBase(ABC):
         pass
 
     @abstractmethod
+    def check_precondition(input):
+        """ If the preconditions are not met, the method will return False so
+        the pipeline manager will jump the next stage, otherwise the Stage will
+        be executed """
+        pass
+
+    @abstractmethod
     def handle_request(input):
         """ Here we will implement the logic of the stage. It receives an
         InputOutput object, which is a container where we will extract our
-        input and will add the output for the next stages. If we are the last
-        stage (self.next_stage = None) then we won't add anything to the
-        InputOutput object, and will return the raw value"""
+        input and will add the output for the next stages. At some point in the
+        pipeline, we'll want to return a final output value. This ouput is
+        going to be saved using the input.result property. It doesn't need to
+        be in the last stage, this will be the most common use-case though. """
         pass

@@ -14,12 +14,9 @@ class UnrollStage(StageBase):
         return 'UnrollStage'
 
     def handle_request(self, input):
-        if not self._check_preconditions(input):
-            return input
+        backend_target = input.get('unroll_backend_target')
+        qasm_circuit = input.get('qasm_circuit')
 
-        backend_target = input.get('backend_target')
-        input.remove('unroll_target_backend')
-        
         try:
             basis_gates = input.get('basis_gates')
         except StageError:
@@ -28,26 +25,32 @@ class UnrollStage(StageBase):
 
         if backend_target == 'dag':
             backend = unroll.DAGBackend
+            circuit_key = 'dag_circuit'
         elif backend_target == 'json':
             backend = unroll.JsonBackend
-        elif backend_target == 'circuit'
+            circuit_key = 'json_circuit'
+        elif backend_target == 'circuit':
+            circuit_key = 'circuit_circuit'
             backend = unroll.CircuitBackend
-        elif backend_target == 'printer'
+        elif backend_target == 'printer':
+            circuit_key = 'printer_circuit'
             backend = unroll.PrinterBackend
 
         ast = qasm.Qasm(data=qasm_circuit).parse()
         unrolled = unroll.Unroller(ast, backend(basis_gates.split(',')))
-        dag_circuit_unrolled = unrolled.execute()
+        circuit_unrolled = unrolled.execute()
 
-        input.insert('dag_circuit', dag_circuit_unrolled)
+        input.insert(circuit_key, circuit_unrolled)
+        # We want insert basis_gates for future unrolling
+        input.insert('basis_gates', basis_gates)
 
         return input
 
-    def _check_preconditions(self, input):
+    def check_precondition(self, input):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists('unroll_target_backend', 'qasm_circuit'):
+        if not input.exists('unroll_backend_target', 'qasm_circuit'):
             return False
 
         return True

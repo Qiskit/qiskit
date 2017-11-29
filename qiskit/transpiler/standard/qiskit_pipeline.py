@@ -5,7 +5,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
 from qiskit.transpiler import Pipeline, StageBase, StageError
 
 from . import UnrollStage, CouplingStage, SwapMapperStage, DirectionMapperStage,
-              CxCancellationStage, Optimize1qGatesState, TransformStage
+              CxCancellationStage, Optimize1qGatesState, TransformStage,
+              ReturnJsonStage
 
 class QiskitPipeline():
     def __init__(self):
@@ -22,6 +23,7 @@ class QiskitPipeline():
         self.pipeline.register_stage(UnrollStage)
         self.pipeline.register_stage(TransformStage)
         self.pipeline.register_stage(UnrollStage)
+        self.pipeline.register_stage(ReturnJsonStage)
 
     def execute(self, qasm_circuit, basis_gates, coupling_map, layout,
                 get_layout, format):

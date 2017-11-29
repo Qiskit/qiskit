@@ -13,22 +13,16 @@ class CouplingStage(StageBase):
         return 'CouplingStage'
 
     def handle_request(self, input):
-        if not self._check_preconditions(input):
-            return input
+        coupling_map = input.get('coupling_map')
+        input.insert('coupling', mapper.Coupling(coupling_map))
 
-        coupling = input.get('coupling')
-        dag_circuit = input.get('dag_circuit')
-
-        dag_output =  mapper.direction_mapper(dag_circuit, coupling)
-
-        input.insert('dag_circuit', dag_output)
         return input
 
-    def _check_preconditions(self, input):
+    def check_precondition(self, input):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists(['coupling','dag_circuit'])
+        if not input.exists('coupling_map'):
             return False
 
         return True

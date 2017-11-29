@@ -13,9 +13,6 @@ class SwapMapperStage(StageBase):
         return 'SwapMapperStage'
 
     def handle_request(self, input):
-        if not self._check_preconditions(input):
-            return input
-
         dag_circuit = input.get('dag_circuit')
         coupling = input.get('coupling')
         final_layout = input.get('layout')
@@ -24,10 +21,12 @@ class SwapMapperStage(StageBase):
 
         input.insert('dag_circuit', compiled_dag_circuit)
         input.insert('layout', final_layout)
+        input.insert('qasm_circuit', compiled_dag_circuit.qasm())
+        input.insert('coupling', coupling)
 
         return input
 
-    def _check_preconditions(self, input):
+    def check_precondition(self, input):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 

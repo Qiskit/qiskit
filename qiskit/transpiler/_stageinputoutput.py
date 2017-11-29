@@ -19,6 +19,9 @@ class StageInputOutput(object):
         """
         self._data[key] = value
 
+    # TODO: Should we remove keys once we use them? So we have to force the
+    # stages to insert the key/value again just in case was modified.. hmmmm
+    # This way, we don't need to remove ans simplifies the model.
     def get(self, key):
         """ Gets the data by the given name. If the data doesn't exist, will
         throw a StageError exception.
@@ -27,16 +30,16 @@ class StageInputOutput(object):
         Rises:
             StageError: If there's no such name in the dictionary"""
         try:
-            return self._data[key]
+            return self._data.pop(key)
         except Exception as ex:
             raise StageError('Could not retrieve key: {}'.format(key)) from ex
 
-    def remove(self, key):
-        """ Removes a key-value pair from the dictionary """
-        try:
-            self._data.pop(key)
-        except KeyError:
-            pass
+    #def remove(self, key):
+    #    """ Removes a key-value pair from the dictionary """
+    #    try:
+        #     self._data.pop(key)
+        # except KeyError:
+        #     pass
 
     @property
     def result(self):

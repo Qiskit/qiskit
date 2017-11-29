@@ -13,19 +13,21 @@ class CouplingStage(StageBase):
         return 'CouplingStage'
 
     def handle_request(self, input):
-        if not self._check_preconditions(input):
-            return input
+        coupling = input.get('coupling')
+        dag_circuit = input.get('dag_circuit')
 
-        coupling_map = input.get('coupling_map')
-        input.insert('coupling', mapper.Coupling(coupling_map))
+        dag_output =  mapper.direction_mapper(dag_circuit, coupling)
 
+        input.insert('dag_circuit', dag_output)
+        input.insert('qasm_circuit', dag_circuit.qasm())
+        input.insert('unroller_backend_target', 'dag')
         return input
 
-    def _check_preconditions(self, input):
+    def check_precondition(self, input):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists('coupling_map'):
+        if not input.exists(['coupling','dag_circuit'])
             return False
 
         return True

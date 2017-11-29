@@ -18,7 +18,8 @@ class Pipeline(object):
         # TODO: Check that the pipeline has at least one
         for stage in self.pipeline:
             try:
-                self.input_output = stage.handle_request(self.input_output)
+                if stage.check_precondition(self.input_output) is True:
+                    self.input_output = stage.handle_request(self.input_output)
             except StageError as ex:
                 raise QISKitError(str(ex)) from ex
 

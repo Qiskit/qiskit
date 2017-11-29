@@ -3,31 +3,29 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
 from qiskit.transpiler import StageBase, StageInputOutput, StageError
-import qiskit.mapper as mapper
 
-class CxCancellationStage(StageBase):
+class ReturnJsonStage(StageBase):
     def __init__(self):
         pass
 
     def get_name(self, name):
-        return 'CxCancellationStage'
+        return 'TransformStage'
 
     def handle_request(self, input):
-        if not self._check_preconditions(input):
-            return input
-
-        dag_circuit = input.get('dag_circuit')
-
-        input.insert('dag_circuit',
-            mapper.cx_cancellation(dag_circuit))
-
+        json_circuit = input.get('json_circuit')
+        input.remove('json_circuit')
+        input.result = json_circuit
         return input
 
-    def _check_preconditions(self, input):
+    def check_precondition(self, input):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists('dag_circuit'):
+        if not input.exists(['dag_circuit', 'json_circuit'])
+            return False
+
+        self.format = input.get('format')
+        if self.format != 'json':
             return False
 
         return True
