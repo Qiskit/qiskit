@@ -113,7 +113,7 @@ def pauli_term_append(pauli_term, pauli_list, threshold):
         if not not pauli_list:   # if the list is not empty
             for i in range(len(pauli_list)):
                 # check if the new pauli belongs to the list
-                if pauli_list[i][1].to_label() == pauli_term[1].to_label():
+                if pauli_list[i][1] == pauli_term[1]:
                     # if found renormalize the coefficient of existent pauli
                     pauli_list[i][0] += pauli_term[0]
                     # remove the element if coeff. value is now less than
