@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -16,7 +17,7 @@
 # =============================================================================
 
 """Quick program to test the Pauli class."""
-
+from copy import deepcopy
 import unittest
 
 import numpy as np
@@ -137,7 +138,6 @@ class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
     def test_pauli(self):
-
         v = np.zeros(3)
         w = np.zeros(3)
         v[0] = 1
@@ -185,34 +185,38 @@ class TestPauli(QiskitTestCase):
         self.log.info(p3.to_label())
         self.log.info(sgn)
 
-        self.log.info("test equality operator: equal Paulis")
+    def test_equality_equal(self):
+        """Test equality operator: equal Paulis"""
         p1 = random_pauli(5)
-        p2 = p1
+        p2 = deepcopy(p1)
         self.assertTrue(p1 == p2)
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
         self.log.info(p1 == p2)
 
-        self.log.info("test equality operator: different Paulis")
+    def test_equality_different(self):
+        """Test equality operator: different Paulis"""
         p1 = random_pauli(5)
-        p2 = p1
+        p2 = deepcopy(p1)
         p2.v[0] = (p1.v[0] + 1) % 2
         self.assertFalse(p1 == p2)
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
         self.log.info(p1 == p2)
 
-        self.log.info("test inequality operator: equal Paulis")
+    def test_inequality_equal(self):
+        """Test inequality operator: equal Paulis"""
         p1 = random_pauli(5)
-        p2 = p1
+        p2 = deepcopy(p1)
         self.assertFalse(p1 != p2)
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
         self.log.info(p1 != p2)
 
-        self.log.info("test inequality operator: different Paulis")
+    def test_inequality_different(self):
+        """Test inequality operator: different Paulis"""
         p1 = random_pauli(5)
-        p2 = p1
+        p2 = deepcopy(p1)
         p2.v[0] = (p1.v[0] + 1) % 2
         self.assertTrue(p1 != p2)
         self.log.info(p2.to_label())
