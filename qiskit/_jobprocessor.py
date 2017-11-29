@@ -24,7 +24,7 @@ from threading import Lock
 
 import qiskit.backends
 from qiskit.backends import (local_backends, remote_backends)
-from qiskit._result import Result
+from qiskit._result import Result, ResultStatus
 
 from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
@@ -45,11 +45,11 @@ def run_backend(q_job):
     backend_name = q_job.backend
     qobj = q_job.qobj
     if backend_name in local_backends():  # remove condition when api gets qobj
-        for circuit in qobj['circuits']:
-            if circuit['compiled_circuit'] is None:
-                compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
+        for circuit in qobj.circuits:
+            if not circuit.compiled_circuit:
+                compiled_circuit = openquantumcompiler.compile(circuit.circuit,
                                                                format='json')
-                circuit['compiled_circuit'] = compiled_circuit
+                circuit.compiled_circuit = compiled_circuit
     backend = qiskit.backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 
@@ -98,17 +98,15 @@ class JobProcessor():
         try:
             result = future.result()
         except Exception as ex:  # pylint: disable=broad-except
-            result = Result({'job_id': '0', 'status': 'ERROR',
-                             'result': ex},
-                            future.qobj)
+            result = Result('0', ResultStatus.ERROR.value, ex, future.qobj)
         with self.lock:
-            self.futures[future]['result'] = result
+            self.futures[future].result = result
             self.jobs_results.append(result)
             if self.num_jobs != 0:
                 self.num_jobs -= 1
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
-            logger.info(pprint.pformat(result))
+            logger.debug(pprint.pformat(result))
             self.callback(self.jobs_results)
 
     def submit(self):

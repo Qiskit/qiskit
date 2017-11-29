@@ -35,7 +35,7 @@ and
 
     results['data']['classical_state']
 
-where 'quantum_state' is a 2\ :sup:`n` complex numpy array representing the
+where 'quantum_state' is a 2 :sup:`n` complex numpy array representing the
 quantum state vector and 'classical_state' is an integer representing
 the state of the classical registors.
 
@@ -84,7 +84,8 @@ if shots = 1
                {
                'data':
                    {
-                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
+                   'quantum_state':
+                        array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
                    'classical_state': 0
                    'counts': {'0000': 1}
                    }
@@ -105,27 +106,31 @@ if shots > 1
                }
 
 """
-import uuid
-import numpy as np
 import random
+import uuid
 from collections import Counter
-import json
-from ._simulatortools import single_gate_matrix
-from ._simulatorerror import SimulatorError
-from qiskit._result import Result
+
+import numpy as np
+
+from qiskit._result import Result, ResultStatus
 from qiskit.backends._basebackend import BaseBackend
+from ._simulatorerror import SimulatorError
+from ._simulatortools import single_gate_matrix
+
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+
 class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
-
     def __init__(self, configuration=None):
         """
         Args:
             configuration (dict): backend configuration
         """
+        super().__init__(configuration)
+
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',
@@ -138,6 +143,13 @@ class QasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
+
+        # Set default values for internal variables (initialized during exec).
+        self._number_of_qubits = 0
+        self._number_of_cbits = 0
+        self._shots = 0
+        self._quantum_state = None
+        self._classical_state = None
 
     @staticmethod
     def _index1(b, i, k):
@@ -227,7 +239,7 @@ class QasmSimulator(BaseBackend):
         else:
             outcome = '1'
             norm = np.sqrt(1-probability_zero)
-        return (outcome, norm)
+        return outcome, norm
 
     def _add_qasm_measure(self, qubit, cbit):
         """Apply the measurement qubit gate.
@@ -244,7 +256,8 @@ class QasmSimulator(BaseBackend):
                 self._quantum_state[ii] = 0
         # update classical state
         bit = 1 << cbit
-        self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
+        self._classical_state = (self._classical_state & (~bit)) |\
+                                (int(outcome) << cbit)
 
     def _add_qasm_reset(self, qubit):
         """Apply the reset to the qubit.
@@ -276,50 +289,54 @@ class QasmSimulator(BaseBackend):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
-        result_list = []
-        self._shots = qobj['config']['shots']
-        for circuit in qobj['circuits']:
-            result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)
+        self._shots = q_job.qobj.config.shots
+
+        result_list = [self.run_circuit(circuit) for circuit
+                       in q_job.qobj.circuits]
+
+        return Result(job_id, ResultStatus.COMPLETED.value,
+                      result_list, q_job.qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
 
         Args:
-            circuit (dict): JSON circuit from qobj circuits list
+            circuit (QobjCircuit): circuit from qobj circuits list
 
         Returns:
-            A dictionary of results which looks something like::
+            dict: A dictionary of results which looks something like::
 
                 {
                 "data":
-                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
+                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR
+                            EACH BACKEND ####
                     "counts": {’00000’: XXXX, ’00001’: XXXXX},
                     "time"  : xx.xxxxxxxx
                     },
                 "status": --status (string)--
                 }
+
+        Raises:
+            SimulatorError: if a circuit operation is not supported.
         """
-        ccircuit = circuit['compiled_circuit']
+        ccircuit = circuit.compiled_circuit
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
         self._classical_state = 0
-        cl_reg_index = [] # starting bit index of classical register
-        cl_reg_nbits = [] # number of bits in classical register
+        cl_reg_index = []  # starting bit index of classical register
+        cl_reg_nbits = []  # number of bits in classical register
         cbit_index = 0
         for cl_reg in ccircuit['header']['clbit_labels']:
             cl_reg_nbits.append(cl_reg[1])
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
+        if not circuit.config.seed:
             random.seed(random.getrandbits(32))
         else:
-            random.seed(circuit['config']['seed'])
+            random.seed(circuit.config.seed)
         outcomes = []
-        for shot in range(self._shots):
+        for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
             self._quantum_state[0] = 1
@@ -386,9 +403,11 @@ class QasmSimulator(BaseBackend):
         at register divisions.
 
         Args:
-            counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
+            counts (dict): dictionary of counts e.g. {'1111': 1000, '0000':5}
+            cl_reg_index (list): starting bit index of classical register
+            cl_reg_nbits (list): number of bits in classical register
         Returns:
-            spaces inserted into dictionary keys at register boundries.
+            list: spaces inserted into dictionary keys at register boundaries.
         """
         fcounts = {}
         for key, value in counts.items():

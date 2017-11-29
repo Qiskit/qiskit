@@ -10,6 +10,7 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 import qiskit.extensions.standard
 from ._jobprocessor import JobProcessor
+from ._qobj import Qobj
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result

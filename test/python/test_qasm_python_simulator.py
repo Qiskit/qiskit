@@ -26,6 +26,7 @@ import unittest
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
+from qiskit._qobj import Qobj, QobjConfig, QobjCircuit, QobjCircuitConfig
 from qiskit.backends._qasmsimulator import QasmSimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
@@ -52,38 +53,24 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
-                      unroll.JsonBackend(basis_gates))
+            unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        circuit_config = {'coupling_map': None,
-                          'basis_gates': 'u1,u2,u3,cx,id',
-                          'layout': None,
-                          'seed': self.seed}
+        circuit_config = QobjCircuitConfig(seed=self.seed)
         resources = {'max_credits': 3,
                      'wait': 5,
                      'timeout': 120}
-        self.qobj = {'id': 'test_sim_single_shot',
-                     'config': {
-                         'max_credits': resources['max_credits'],
-                         'shots': 1024,
-                         'backend': 'local_qasm_simulator',
-                     },
-                     'circuits': [
-                         {
-                             'name': 'test',
-                             'compiled_circuit': circuit,
-                             'compiled_circuit_qasm': None,
-                             'config': circuit_config
-                         }
-                     ]
-        }
-        self.q_job = QuantumJob(self.qobj,
-                                backend='local_qasm_simulator',
-                                circuit_config=circuit_config,
-                                seed=self.seed,
-                                resources=resources,
-                                preformatted=True
-                                )
-                                
+
+        qobj_config = QobjConfig(max_credits=resources['max_credits'],
+                                 shots=1024,
+                                 backend='local_qasm_simulator')
+        self.qobj = Qobj(id='test_sim_single_shot',
+                         config=qobj_config,
+                         circuits=[
+                             QobjCircuit(name='test', config=circuit_config,
+                                         compiled_circuit=circuit,
+                                         circuit=circuit)
+                        ])
+        self.q_job = QuantumJob(self.qobj)
 
     def tearDown(self):
         pass
@@ -91,7 +78,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qobj['config']['shots'] = shots
+        self.qobj.config.shots = shots
         result = QasmSimulator().run(self.q_job)
         self.assertEqual(result.get_status(), 'COMPLETED')
 
@@ -136,36 +123,22 @@ class LocalQasmSimulatorTest(QiskitTestCase):
             unroll.JsonBackend(basis_gates))
         ucircuit_false = unroller.execute()
         config = {'shots': shots, 'seed': self.seed}
-        qobj = {'id': 'test_if_qobj',
-                'config': {
-                    'max_credits': 3,
-                    'shots': shots,
-                    'backend': 'local_qasm_simulator',
-                },
-                'circuits': [
-                    {
-                        'name': 'test_if_true',
-                        'compiled_circuit': ucircuit_true,
-                        'compiled_circuit_qasm': None,
-                        'config': {'coupling_map': None,
-                                   'basis_gates': 'u1,u2,u3,cx,id',
-                                   'layout': None,
-                                   'seed': None
-                                   }
-                    },
-                    {
-                        'name': 'test_if_false',
-                        'compiled_circuit': ucircuit_false,
-                        'compiled_circuit_qasm': None,
-                        'config': {'coupling_map': None,
-                                   'basis_gates': 'u1,u2,u3,cx,id',
-                                   'layout': None,
-                                   'seed': None
-                                   }
-                    }
-                ]
-        }
-        q_job = QuantumJob(qobj, preformatted=True)
+
+        qobj_config = QobjConfig(max_credits=3, shots=shots,
+                                 backend='local_qasm_simulator')
+        qobj_circuit_config = QobjCircuitConfig()
+        qobj = Qobj(id='test_if_qobj',
+                    config=qobj_config,
+                    circuits=[
+                        QobjCircuit(name='test_if_true',
+                                    config=qobj_circuit_config,
+                                    compiled_circuit=ucircuit_true),
+                        QobjCircuit(name='test_if_false',
+                                    config=qobj_circuit_config,
+                                    compiled_circuit=ucircuit_false),
+                    ])
+
+        q_job = QuantumJob(qobj)
         result = QasmSimulator().run(q_job)
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
@@ -414,6 +387,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                                     nCircuits=nCircuits, shots=shots))
             ax.legend()
         self.pdf.savefig(fig)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -57,8 +57,8 @@ Internal circuit_object::
                 "conditional":  // optional -- map
                     {
                         "type": , // string
-                        "mask": , // hex string 
-                        "val":  , // bhex string 
+                        "mask": , // hex string
+                        "val":  , // bhex string
                     }
             },
         ]
@@ -90,12 +90,13 @@ returned results object::
             'state': 'DONE'
             }
 """
-import uuid
 import logging
+import uuid
+
 import numpy as np
-import json
+
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
-from qiskit._result import Result
+from qiskit._result import Result, ResultStatus
 from qiskit.backends._basebackend import BaseBackend
 
 
@@ -111,6 +112,7 @@ class UnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
+        super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
@@ -122,12 +124,18 @@ class UnitarySimulator(BaseBackend):
         else:
             self._configuration = configuration
 
+        # Set default values for internal variables (initialized during run_circuit).
+        self._number_of_qubits = 0
+        self._unitary_state = None
+
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
 
-        gate is the single-qubit gate.
-        qubit is the qubit to apply it on counts from 0 and order
-            is q_{n-1} ... otimes q_1 otimes q_0.
+        Args:
+            gate: is the single-qubit gate.
+            qubit: is the qubit to apply it on counts from 0 and order
+                is q_{n-1} ... otimes q_1 otimes q_0.
+
         number_of_qubits is the number of qubits in the system.
         """
         unitaty_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
@@ -136,37 +144,39 @@ class UnitarySimulator(BaseBackend):
     def _add_unitary_two(self, gate, q0, q1):
         """Apply the two-qubit gate.
 
-        gate is the two-qubit gate
-        q0 is the first qubit (control) counts from 0
-        q1 is the second qubit (target)
-        returns a complex numpy array
+        Args:
+            gate: is the two-qubit gate
+            q0: is the first qubit (control) counts from 0
+            q1: is the second qubit (target)
+
+        Returns:
+            A complex numpy array
         """
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self, q_job):
-        """Run q_job
+        """Run a QuantumJob
 
         Args:
-        q_job (QuantumJob): job to run
+            q_job (QuantumJob): job to run
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
-        result_list = []
-        for circuit in qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)            
+        result_list = [self.run_circuit(circuit) for circuit in q_job.qobj.circuits]
+
+        return Result(job_id, ResultStatus.COMPLETED.value, result_list, q_job.qobj)
 
     def run_circuit(self, circuit):
-        """Apply the single-qubit gate."""
-        ccircuit = circuit['compiled_circuit']
+        """Apply the single-qubit gate.
+
+        Args:
+            circuit (QobjCircuit): a circuit
+        """
+        ccircuit = circuit.compiled_circuit
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        result = {}
-        result['data'] = {}
-        self._unitary_state = np.identity(2**(self._number_of_qubits),
-                                          dtype=complex)
+        result = {'data': {}}
+        self._unitary_state = np.identity(2**self._number_of_qubits, dtype=complex)
         for operation in ccircuit['operations']:
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 if 'params' in operation:

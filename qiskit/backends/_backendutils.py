@@ -69,7 +69,8 @@ def discover_remote_backends(api):
     """Discover backends available on the Quantum Experience
 
     Args:
-        api (IBMQuantumExperience): Quantum Experience API
+        api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            Quantum Experience API
 
     Returns:
         list: list of discovered backend names

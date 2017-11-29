@@ -17,10 +17,29 @@
 """Common utilities for QISKit."""
 
 import logging
+import random
+import re
+import string
 from unittest.mock import patch
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
+
+
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
+
+
+def camel_case_to_snake_case(name):
+    """Return a snake_case string from a CamelCase string."""
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
+
+
+def random_string(length=32):
+    """Return a random alphanumeric string of the specified length."""
+    return ''.join([random.choice(string.ascii_letters + string.digits)
+                    for n in range(30)])
 
 
 def _check_ibmqe_version():

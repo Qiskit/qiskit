@@ -15,14 +15,11 @@
 Qasm Program Class
 """
 # pylint: disable=line-too-long
-import random
+from copy import deepcopy
 import json
 import logging
 import os
-import string
-import re
 from threading import Event
-import copy
 
 # use the external IBMQuantumExperience Library
 from IBMQuantumExperience import IBMQuantumExperience
@@ -37,7 +34,10 @@ from . import QuantumCircuit
 from . import QISKitError
 from . import JobProcessor
 from . import QuantumJob
+from . import Qobj
 from ._logging import set_qiskit_logger, unset_qiskit_logger
+from ._qobj import QobjCircuit, QobjCircuitConfig, QobjConfig
+from ._util import camel_case_to_snake_case, random_string
 
 # Beta Modules
 from . import unroll
@@ -46,16 +46,8 @@ from . import mapper
 
 from . import _openquantumcompiler as openquantumcompiler
 
-FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
-ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 logger = logging.getLogger(__name__)
-
-
-def convert(name):
-    """Return a snake case string from a camelcase string."""
-    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
-    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 
 class QuantumProgram(object):
@@ -355,17 +347,14 @@ class QuantumProgram(object):
         Args:
             qasm_string (str): a string for the file name.
             name (str or None): the name of the quantum circuit after loading qasm
-                text into it. If no name is give the name is of the text file.
+                text into it. If no name is given a random name is assigned.
             basis_gates (str): basis gates for the quantum circuit.
         Returns:
             str: Adds a quantum circuit with the gates given in the qasm string to
             the quantum program.
         """
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
-        if not name:
-            # Get a random name if none is given
-            name = "".join([random.choice(string.ascii_letters+string.digits)
-                            for n in range(10)])
+        name = name or random_string(10)
         logger.info("circuit name: " + name)
         logger.info("******************************")
         logger.info(node_circuit.qasm())
@@ -696,7 +685,7 @@ class QuantumProgram(object):
             for configuration in backends:
                 if configuration['name'] == backend:
                     for key in configuration:
-                        new_key = convert(key)
+                        new_key = camel_case_to_snake_case(key)
                         # TODO: removed these from the API code
                         if new_key not in ['id', 'serial_number', 'topology_id',
                                            'status', 'coupling_map']:
@@ -739,7 +728,7 @@ class QuantumProgram(object):
                                       .format(ex))
             calibrations_edit = {}
             for key, vals in calibrations.items():
-                new_key = convert(key)
+                new_key = camel_case_to_snake_case(key)
                 calibrations_edit[new_key] = vals
             return calibrations_edit
         elif backend in self.__LOCAL_BACKENDS:
@@ -772,7 +761,7 @@ class QuantumProgram(object):
                                       .format(ex))
             parameters_edit = {}
             for key, vals in parameters.items():
-                new_key = convert(key)
+                new_key = camel_case_to_snake_case(key)
                 parameters_edit[new_key] = vals
             return parameters_edit
         elif backend in self.__LOCAL_BACKENDS:
@@ -785,8 +774,8 @@ class QuantumProgram(object):
     # methods to compile quantum programs into qobj
     ###############################################################
 
-    def compile(self, name_of_circuits, backend="local_qasm_simulator",
-                config=None, basis_gates=None, coupling_map=None,
+    def compile(self, name_of_circuits, backend='local_qasm_simulator',
+                config=None, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=3, seed=None,
                 qobj_id=None):
         """Compile the circuits into the exectution list.
@@ -797,7 +786,7 @@ class QuantumProgram(object):
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
             backend (str): a string representing the backend to compile to
-            config (dict): a dictionary of configurations parameters for the
+            config (QobjCircuitConfig): a dictionary of configurations parameters for the
                 compiler
             basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
@@ -835,34 +824,7 @@ class QuantumProgram(object):
             qobj_id (str): identifier of the qobj.
 
         Returns:
-            dict: the job id and populates the qobj::
-
-            qobj =
-                {
-                    id: --job id (string),
-                    config: -- dictionary of config settings (dict)--,
-                        {
-                        "max_credits" (online only): -- credits (int) --,
-                        "shots": -- number of shots (int) --.
-                        "backend": -- backend name (str) --
-                        }
-                    circuits:
-                        [
-                            {
-                            "name": --circuit name (string)--,
-                            "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
-                            "config": --dictionary of additional config settings (dict)--,
-                                {
-                                "coupling_map": --adjacency list (dict)--,
-                                "basis_gates": --comma separated gate names (string)--,
-                                "layout": --layout computed by mapper (dict)--,
-                                "seed": (simulator only)--initial seed for the simulator (int)--,
-                                }
-                            },
-                            ...
-                        ]
-                    }
+            Qobj: the populated Qobj.
 
         Raises:
             ValueError: if no names of the circuits have been specified.
@@ -873,24 +835,23 @@ class QuantumProgram(object):
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
 
-        qobj = {}
-        if not qobj_id:
-            qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
-                               for n in range(30)])
-        qobj['id'] = qobj_id
-        qobj["config"] = {"max_credits": max_credits, 'backend': backend,
-                          "shots": shots}
-        qobj["circuits"] = []
-
+        # Initial validation of the parameters.
         if not name_of_circuits:
-            raise ValueError('"name_of_circuits" must be specified')
+            raise ValueError('"name_of_circuits" cannot be an empty list')
         if isinstance(name_of_circuits, str):
             name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
-            if not basis_gates:
-                basis_gates = "u1,u2,u3,cx,id"  # QE target basis
+
+        # Pre-process the parameters, setting the default values.
+        qobj = Qobj(id=qobj_id or random_string(30),
+                    config=QobjConfig(backend=backend,
+                                      max_credits=max_credits,
+                                      shots=shots),
+                    circuits=[])
+
+        for name in name_of_circuits:
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
@@ -898,70 +859,74 @@ class QuantumProgram(object):
                                                                     coupling_map=coupling_map,
                                                                     initial_layout=initial_layout,
                                                                     get_layout=True)
-            # making the job to be added to qobj
-            job = {}
-            job["name"] = name
-            # config parameters used by the runner
-            if config is None:
-                config = {}  # default to empty config dict
-            job["config"] = copy.deepcopy(config)
-            job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
-            # TODO: Jay: make config options optional for different backends
+
             # Map the layout to a format that can be json encoded
             list_layout = None
             if final_layout:
                 list_layout = [[k, v] for k, v in final_layout.items()]
-            job["config"]["layout"] = list_layout
-            job["config"]["basis_gates"] = basis_gates
-            if seed is None:
-                job["config"]["seed"] = None
-            else:
-                job["config"]["seed"] = seed
+
+            # TODO: Jay: make config options optional for different backends
+            qobj_circuit_config = deepcopy(config) or QobjCircuitConfig()
+            qobj_circuit_config.basis_gates = basis_gates
+            qobj_circuit_config.coupling_map = mapper.coupling_dict2list(coupling_map)
+            qobj_circuit_config.layout = list_layout
+            qobj_circuit_config.seed = seed
+
             # the compiled circuit to be run saved as a dag
-            job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
-                                                                   basis_gates=basis_gates)
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
-            # add job to the qobj
-            qobj["circuits"].append(job)
+            qobj_circuit = QobjCircuit(
+                name=name,
+                config=qobj_circuit_config,
+                compiled_circuit=openquantumcompiler.dag2json(
+                    dag_circuit, basis_gates=basis_gates),
+                circuit=circuit.qasm(),
+                compiled_circuit_qasm=dag_circuit.qasm(qeflag=True))
+
+            qobj.circuits.append(qobj_circuit)
+
         return qobj
 
-    def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
-        """Change configuration parameters for a compile qobj. Only parameters which
-        don't affect the circuit compilation can change, e.g., the coupling_map
-        cannot be changed here!
+    def reconfig(self, qobj, backend=None, shots=None, max_credits=None,
+                 seed=None):
+        """Change the configuration parameters for a compiled Qobj.
+
+        Change configuration parameters for a compiled qobj. Only parameters
+        which don't affect the circuit compilation can change, e.g., the
+        coupling_map cannot be changed by this function.
 
         Notes:
-            If the inputs are left as None then the qobj is not updated
+            Only the arguments that have values different than None are
+            updated in the Qobj.
 
         Args:
-            qobj (dict): already compile qobj
-            backend (str): see .compile
-            config (dict): see .compile
-            shots (int): see .compile
-            max_credits (int): see .compile
-            seed (int): see .compile
+            qobj (Qobj): compiled Qobj.
+            backend (str): see QuantumProgram.compile().
+            shots (int): see QuantumProgram.compile().
+            max_credits (int): see QuantumProgram.compile().
+            seed (int): see QuantumProgram.compile().
 
         Returns:
-            qobj: updated qobj
+            qobj: updated qobj.
         """
-        if backend is not None:
-            qobj['config']['backend'] = backend
-        if shots is not None:
-            qobj['config']['shots'] = shots
-        if max_credits is not None:
-            qobj['config']['max_credits'] = max_credits
+        # Update the Qobj config parameters.
+        if backend:
+            qobj.config.backend = backend
+        if shots:
+            qobj.config.shots = shots
+        if max_credits:
+            qobj.config.max_credits = max_credits
 
-        for circuits in qobj['circuits']:
-            if seed is not None:
-                circuits['seed'] = seed
-            if config is not None:
-                circuits['config'].update(config)
+        # Update the circuit parameters.
+        if seed:
+            for circuit in qobj.circuits:
+                circuit.config.seed = seed
 
         return qobj
 
     def get_execution_list(self, qobj):
         """Print the compiled circuits that are ready to run.
 
+        Args:
+            qobj (Qobj): Qobject
         Note:
             This method is intended to be used during interactive sessions, and
             prints directly to stdout instead of using the logger.
@@ -969,22 +934,26 @@ class QuantumProgram(object):
         Returns:
             list(str): names of the circuits in `qobj`
         """
+        def object_properties(obj):
+            return [i for i in dir(obj) if not i.startswith('_') and
+                    not callable(getattr(obj, i))]
+
         if not qobj:
             print("no executions to run")
         execution_list = []
 
-        print("id: %s" % qobj['id'])
-        print("backend: %s" % qobj['config']['backend'])
+        print("id: %s" % qobj.id)
+        print("backend: %s" % qobj.config.backend)
         print("qobj config:")
-        for key in qobj['config']:
+        for key in object_properties(qobj.config):
             if key != 'backend':
-                print(' ' + key + ': ' + str(qobj['config'][key]))
-        for circuit in qobj['circuits']:
-            execution_list.append(circuit["name"])
-            print('  circuit name: ' + circuit["name"])
+                print(' ' + key + ': ' + str(getattr(qobj.config, key)))
+        for circuit in qobj.circuits:
+            execution_list.append(circuit.name)
+            print('  circuit name: ' + circuit.name)
             print('  circuit config:')
-            for key in circuit['config']:
-                print('   ' + key + ': ' + str(circuit['config'][key]))
+            for key in object_properties(circuit.config):
+                print('   ' + key + ': ' + str(getattr(circuit.config, key)))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):
@@ -992,26 +961,24 @@ class QuantumProgram(object):
 
         Args:
             name (str):  the circuit name
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
 
         Returns:
-            dict: the config of the circuit.
+            QobjCircuitConfig: the config of the circuit.
 
         Raises:
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["config"]
-        except KeyError:
+            return next(c.config for c in qobj.circuits if c.name == name)
+        except StopIteration:
             raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
     def get_compiled_qasm(self, qobj, name):
         """Return the compiled cricuit in qasm format.
 
         Args:
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
             name (str): name of the quantum circuit
 
         Returns:
@@ -1021,10 +988,8 @@ class QuantumProgram(object):
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
-        except KeyError:
+            return next(c.compiled_circuit_qasm for c in qobj.circuits if c.name == name)
+        except StopIteration:
             raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
     ###############################################################
@@ -1038,12 +1003,12 @@ class QuantumProgram(object):
         The program to run is extracted from the qobj parameter.
 
         Args:
-            qobj (dict): the dictionary of the quantum object to run.
+            qobj (Qobj): the quantum object to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
-            Result: A Result (class).
+            Result: The results of the execution.
         """
         self.callback = None
         self._run_internal([qobj],
@@ -1059,13 +1024,13 @@ class QuantumProgram(object):
         The programs to run are extracted from qobj elements of the list.
 
         Args:
-            qobj_list (list(dict)): The list of quantum objects to run.
+            qobj_list (list(Qobj)): The list of quantum objects to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
-            list(Result): A list of Result (class). The list will contain one Result object
-            per qobj in the input list.
+            list(Result): The results of the execution. The list will contain
+                one Result object per qobj in the input list.
         """
         self._run_internal(qobj_list,
                            wait=wait,
@@ -1081,7 +1046,7 @@ class QuantumProgram(object):
         All input for run comes from qobj.
 
         Args:
-            qobj(dict): the dictionary of the quantum object to
+            qobj(Qobj): the dictionary of the quantum object to
                 run or list of qobj.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
@@ -1102,7 +1067,7 @@ class QuantumProgram(object):
         All input for run comes from qobj.
 
         Args:
-            qobj_list (list(dict)): The list of quantum objects to run.
+            qobj_list (list(Qobj)): The list of quantum objects to run.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             callback (fn(results)): A function with signature:
@@ -1122,10 +1087,7 @@ class QuantumProgram(object):
         self.callback = callback
         self.are_multiple_results = are_multiple_results
 
-        q_job_list = []
-        for qobj in qobj_list:
-            q_job = QuantumJob(qobj, preformatted=True)
-            q_job_list.append(q_job)
+        q_job_list = [QuantumJob(qobj) for qobj in qobj_list]
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
                                      callback=self._jobs_done_callback)
@@ -1158,7 +1120,7 @@ class QuantumProgram(object):
                               'seconds.'.format(timeout))
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
-                config=None, wait=5, timeout=60, basis_gates=None,
+                config=None, wait=5, timeout=60, basis_gates='u1,u2,u3,cx,id',
                 coupling_map=None, initial_layout=None, shots=1024,
                 max_credits=3, seed=None):
 
@@ -1170,8 +1132,8 @@ class QuantumProgram(object):
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
             backend (str): a string representing the backend to compile to
-            config (dict): a dictionary of configurations parameters for the
-                compiler
+            config (QobjCircuitConfig): a dictionary of configurations
+                parameters for the compiler
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             basis_gates (str): a comma seperated string and are the base gates,
@@ -1205,8 +1167,8 @@ class QuantumProgram(object):
             seed (int): the intial seed the simulatros use
 
         Returns:
-            Result: status done and populates the internal __quantum_program with the
-            data
+            Result: status done and populates the internal __quantum_program
+                with the data
         """
         # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go

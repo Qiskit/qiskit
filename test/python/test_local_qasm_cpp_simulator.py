@@ -28,6 +28,7 @@ from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
 from qiskit import _openquantumcompiler as openquantumcompiler
+from qiskit._qobj import QobjConfig, Qobj, QobjCircuit, QobjCircuitConfig
 from .common import QiskitTestCase
 
 class TestLocalQasmCppSimulator(QiskitTestCase):
@@ -51,31 +52,21 @@ class TestLocalQasmCppSimulator(QiskitTestCase):
                                                         format='json')
         compiled_circuit2 = openquantumcompiler.compile(self.qasm_text,
                                                         format='json')
-        self.qobj = {'id': 'test_qobj',
-                     'config': {
-                         'max_credits': 3,
-                         'shots': 100,
-                         'backend': 'local_qasm_simulator',
-                         'seed': 1111
-                     },
-                     'circuits': [
-                         {
-                             'name': 'test_circuit1',
-                             'compiled_circuit': compiled_circuit1,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         },
-                         {
-                             'name': 'test_circuit2',
-                             'compiled_circuit': compiled_circuit2,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         }
-                     ]
-                     }
-        self.q_job = QuantumJob(self.qobj,
-                                backend='local_qasm_cpp_simulator',
-                                preformatted=True)
+        qobj_config = QobjConfig(max_credits=3,
+                                 shots=100,
+                                 backend='local_qasm_cpp_simulator')
+        circuit_config = QobjCircuitConfig(seed=1111)
+        self.qobj = Qobj(id='test_qobj',
+                         config=qobj_config,
+                         circuits=[
+                             QobjCircuit(name='test_circuit1',
+                                         config=circuit_config,
+                                         compiled_circuit=compiled_circuit1),
+                             QobjCircuit(name='test_circuit2',
+                                         config=circuit_config,
+                                         compiled_circuit=compiled_circuit2)
+                        ])
+        self.q_job = QuantumJob(self.qobj)
 
     def test_run_qobj(self):
         try:
@@ -93,6 +84,7 @@ class TestLocalQasmCppSimulator(QiskitTestCase):
                      '110 110': 5,
                      '111 111': 20}
         self.assertEqual(result.get_counts('test_circuit2'), expected2)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
