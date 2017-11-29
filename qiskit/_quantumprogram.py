@@ -1124,7 +1124,9 @@ class QuantumProgram(object):
 
         q_job_list = []
         for qobj in qobj_list:
-            q_job = QuantumJob(qobj, preformatted=True)
+            q_job = QuantumJob(qobj, preformatted=True, resources={
+                'max_credits':qobj['config']['max_credits'], 'wait':wait,
+                'timeout':timeout})
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
