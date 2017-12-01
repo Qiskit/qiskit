@@ -343,7 +343,7 @@ class DAGCircuit:
         name is a string
         qargs is a list of tuples like ("q",0)
         cargs is a list of tuples like ("c",0)
-        params is a list of strings that represent floats
+        params is a list of symbols that represent numbers
         condition is either None or a tuple (string,int) giving (creg,value)
         """
         all_cbits = self._bits_in_condition(condition)

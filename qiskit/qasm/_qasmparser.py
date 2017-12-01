@@ -19,7 +19,7 @@
 OPENQASM parser.
 """
 import os
-import math
+import sympy
 import tempfile
 import shutil
 
@@ -48,7 +48,7 @@ class QasmParser(object):
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
-        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt']
+        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt','acos','atan','asin']
 
     def __enter__(self):
         return self
@@ -308,7 +308,7 @@ class QasmParser(object):
         """
            magic : MAGIC REAL
         """
-        program[0] = node.Magic([node.Real(program[2])])
+        program[0] = node.Magic([node.Real(sympy.N(program[2]))])
 
     def p_magic_0(self, program):
         """
@@ -932,13 +932,13 @@ class QasmParser(object):
         """
            unary : REAL
         """
-        program[0] = node.Real(program[1])
+        program[0] = node.Real(sympy.N(program[1]))
 
     def p_unary_2(self, program):
         """
            unary : PI
         """
-        program[0] = node.Real(math.pi)
+        program[0] = node.Real(sympy.pi)
 
     def p_unary_3(self, program):
         """
