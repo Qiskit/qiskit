@@ -1,4 +1,3 @@
-from .qiskit_pipeline import QiskitPipeline
 from .coupling_statge import CouplingStage
 from .cxcancellation_stage import CxCancellationStage
 from .swapmapper_stage import SwapMapperStage
@@ -7,3 +6,4 @@ from .directionmapper_stage import DirectionMapperStage
 from .optimize1qgates_stage import Optimize1qGatesState
 from .transform_stage import TransformStage
 from .returnjson_stage import ReturnJsonStage
+from .qiskit_pipeline import QiskitPipeline

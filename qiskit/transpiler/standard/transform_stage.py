@@ -35,7 +35,7 @@ class TransformStage(StageBase):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists(['dag_circuit','format'])
+        if not input.exists(['dag_circuit','format']):
             return False
 
         return True

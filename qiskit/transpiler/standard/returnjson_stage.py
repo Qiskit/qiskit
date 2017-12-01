@@ -21,7 +21,7 @@ class ReturnJsonStage(StageBase):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists(['dag_circuit', 'json_circuit'])
+        if not input.exists(['dag_circuit', 'json_circuit']):
             return False
 
         self.format = input.get('format')

@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from qiskit.transpiler import StageBase
-from qiskit import QuantumProgram, unroll, qasm
+from qiskit import unroll, qasm
 
 class CountGates(StageBase):
     def __init__(self):
