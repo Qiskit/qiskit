@@ -4,6 +4,7 @@ import qiskit.qasm as qasm
 import qiskit.unroll as unroll
 import qiskit.mapper as mapper
 from qiskit._qiskiterror import QISKitError
+from qiskit.transpiler.standard import QiskitPipeline
 
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,15 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if get_layout:
         return compiled_circuit, final_layout
     return compiled_circuit
+
+
+def transpile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+            initial_layout=None, get_layout=False, format='dag'):
+
+    pipeline = QiskitPipeline()
+    return pipeline.execute(qasm_circuit, basis_gates, coupling_map,
+                            initial_layout, get_layout, format)
+    
 
 
 def _unroller_code(qasm_circuit, basis_gates=None):
