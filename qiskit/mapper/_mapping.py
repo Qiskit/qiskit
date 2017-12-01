@@ -22,8 +22,8 @@ Layout module to assist with mapping circuit qubits onto physical qubits.
 import sys
 import copy
 import logging
-import math
 import sympy
+from sympy import N
 import numpy as np
 import networkx as nx
 import pprint
@@ -115,7 +115,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             xi[i] = {}
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
-                scale = 1.0 + np.random.normal(0.0, 1.0 / n)
+                scale = N(1) + np.random.normal(N(0), N(1) / n)
                 xi[i][j] = scale * coupling.distance(i, j)**2
                 xi[j][i] = xi[i][j]
 
@@ -475,8 +475,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
         sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
         sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-    return max(map(abs, [delta1, delta2, delta3, delta4]))
-
+    return max(map(lambda x: abs(x.evalf()), [delta1, delta2, delta3, delta4]))
 
 def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
@@ -494,14 +493,14 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if abs(sympy.cos(xi)) < eps / 10:
-        solutions.append((theta2 - theta1, xi, 0.0))
-    elif abs(sympy.sin(theta1 + theta2)) < eps / 10:
+    if sympy.cos(xi).is_zero :
+        solutions.append((theta2 - theta1, xi, N(0)))
+    elif sympy.sin(theta1 + theta2) ==0 :
         phi_minus_lambda = [
-            sympy.pi / 2,
-            3 * sympy.pi / 2,
-            sympy.pi / 2,
-            3 * sympy.pi / 2]
+            sympy.pi / N(2),
+            N(3) * sympy.pi / N(2),
+            sympy.pi / N(2),
+            N(3) * sympy.pi / N(2)]
         stheta_1 = sympy.asin(sympy.sin(xi) * sympy.sin(-theta1 + theta2))
         stheta_2 = sympy.asin(-sympy.sin(xi) * sympy.sin(-theta1 + theta2))
         stheta_3 = sympy.pi - stheta_1
@@ -516,12 +515,12 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif abs(sympy.cos(theta1 + theta2)) < eps / 10:
+    elif sympy.cos(theta1 + theta2).is_zero:
         phi_plus_lambda = [
-            sympy.pi / 2,
-            3 * sympy.pi / 2,
-            sympy.pi / 2,
-            3 * sympy.pi / 2]
+            sympy.pi / N(2),
+            N(3) * sympy.pi / N(2),
+            sympy.pi / N(2),
+            N(3) * sympy.pi / N(2)]
         stheta_1 = sympy.acos(sympy.sin(xi) * sympy.cos(theta1 - theta2))
         stheta_2 = sympy.acos(-sympy.sin(xi) * sympy.cos(theta1 - theta2))
         stheta_3 = -stheta_1
@@ -543,17 +542,17 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                              theta2) /
                                      (sympy.cos(xi) * sympy.sin(theta1 +
                                                               theta2)))
-        sphi = (phi_plus_lambda + phi_minus_lambda) / 2
-        slam = (phi_plus_lambda - phi_minus_lambda) / 2
+        sphi = (phi_plus_lambda + phi_minus_lambda) / N(2)
+        slam = (phi_plus_lambda - phi_minus_lambda) / N(2)
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam)), sphi, slam))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam + sympy.pi)),
-                          sphi + sympy.pi / 2,
-                          slam + sympy.pi / 2))
+                          sphi + sympy.pi / N(2),
+                          slam + sympy.pi / N(2)))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam)),
-                          sphi + sympy.pi / 2, slam - sympy.pi / 2))
+                          sphi + sympy.pi / N(2), slam - sympy.pi / N(2)))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam + sympy.pi)),
                           sphi + sympy.pi, slam))
@@ -562,7 +561,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0] < eps:
+        if delta_sol[0].evalf() < eps:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
@@ -584,9 +583,9 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     Return theta, phi, lambda.
     """
     # Careful with the factor of two in yzy_to_zyz
-    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2.0,
-                                       theta1 / 2.0, theta2 / 2.0)
-    return (2.0 * thetap, phi1 + 2.0 * phip, lambda2 + 2.0 * lambdap)
+    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / N(2),
+                                       theta1 / N(2), theta2 / N(2))
+    return (N(2) * thetap, phi1 + N(2) * phip, lambda2 + N(2) * lambdap)
 
 
 def cx_cancellation(circuit):
@@ -629,7 +628,7 @@ def optimize_1q_gates(circuit):
     for run in runs:
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
-        right_parameters = (0.0, 0.0, 0.0)  # (theta, phi, lambda)
+        right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for node in run:
             nd = unrolled.multi_graph.node[node]
             assert nd["condition"] is None, "internal error"
@@ -638,29 +637,29 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (0.0, 0.0, float(nd["params"][0]))
+                left_parameters = (N(0), N(0), N(nd["params"][0]))
             elif left_name == "u2":
-                left_parameters = (math.pi / 2, float(nd["params"][0]),
-                                   float(nd["params"][1]))
+                left_parameters = (sympy.pi / N(2), N(nd["params"][0]),
+                                   N(nd["params"][1]))
             elif left_name == "u3":
-                left_parameters = tuple(map(float, nd["params"]))
+                left_parameters = tuple(map(N, nd["params"]))
             else:
                 left_name = "u1"  # replace id with u1
-                left_parameters = (0.0, 0.0, 0.0)
+                left_parameters = (N(0), N(0), N(0))
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                right_parameters = (0.0, 0.0, right_parameters[2] +
+                right_parameters = (N(0), N(0), right_parameters[2] +
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-                right_parameters = (math.pi / 2, right_parameters[1] +
+                right_parameters = (sympy.pi / N(2), right_parameters[1] +
                                     left_parameters[2], right_parameters[2])
             elif name_tuple == ("u2", "u1"):
                 # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
                 right_name = "u2"
-                right_parameters = (math.pi / 2, left_parameters[1],
+                right_parameters = (sympy.pi / N(2), left_parameters[1],
                                     right_parameters[2] + left_parameters[2])
             elif name_tuple == ("u1", "u3"):
                 # u1(lambda1) * u3(theta2, phi2, lambda2) =
@@ -679,10 +678,10 @@ def optimize_1q_gates(circuit):
                 # u2(phi1, lambda1) * u2(phi2, lambda2) =
                 #    u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
                 right_name = "u3"
-                right_parameters = (math.pi - left_parameters[2] -
+                right_parameters = (sympy.pi - left_parameters[2] -
                                     right_parameters[1], left_parameters[1] +
-                                    math.pi / 2, right_parameters[2] +
-                                    math.pi / 2)
+                                    sympy.pi / N(2), right_parameters[2] +
+                                    sympy.pi / N(2))
             else:
                 # For composing u3's or u2's with u3's, use
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
@@ -697,47 +696,46 @@ def optimize_1q_gates(circuit):
             # Here down, when we simplify, we add f(theta) to lambda to correct
             # the global phase when f(theta) is 2*pi. This isn't necessary but
             # the other steps preserve the global phase, so we continue.
-            epsilon = 1e-9  # for comparison with zero
             # Y rotation is 0 mod 2*pi, so the gate is a u1
-            if abs(right_parameters[0] % 2.0 * math.pi) < epsilon \
+            if (right_parameters[0] % N(2) * sympy.pi).is_zero \
                and right_name != "u1":
                 right_name = "u1"
-                right_parameters = (0.0, 0.0, right_parameters[1] +
+                right_parameters = (N(0), N(0), right_parameters[1] +
                                     right_parameters[2] +
                                     right_parameters[0])
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
             if right_name == "u3":
                 # theta = pi/2 + 2*k*pi
-                if abs((right_parameters[0] - math.pi / 2) % 2.0 * math.pi) \
-                   < epsilon:
+                if ((right_parameters[0] - sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
                     right_name = "u2"
-                    right_parameters = (math.pi / 2, right_parameters[1],
+                    right_parameters = (sympy.pi / N(2), right_parameters[1],
                                         right_parameters[2] +
-                                        (right_parameters[0] - math.pi / 2))
+                                        (right_parameters[0] - sympy.pi / N(2)))
                 # theta = -pi/2 + 2*k*pi
-                if abs((right_parameters[0] + math.pi / 2) % 2.0 * math.pi) \
-                   < epsilon:
+                if ((right_parameters[0] + sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
                     right_name = "u2"
-                    right_parameters = (math.pi / 2, right_parameters[1] +
-                                        math.pi, right_parameters[2] -
-                                        math.pi + (right_parameters[0] +
-                                                   math.pi / 2))
+                    right_parameters = (sympy.pi / N(2), right_parameters[1] +
+                                        sympy.pi, right_parameters[2] -
+                                        sympy.pi + (right_parameters[0] +
+                                                   sympy.pi / N(2)))
             # u1 and lambda is 0 mod 4*pi so gate is nop
-            if right_name == "u1" and \
-               abs(right_parameters[2] % 4.0 * math.pi) < epsilon:
+            if right_name == "u1" and (right_parameters[2] % 4 * sympy.pi).is_zero:
                 right_name = "nop"
         # Replace the data of the first node in the run
         new_params = []
         if right_name == "u1":
-            new_params.append(right_parameters[2])
+            new_params = [right_parameters[2]]
         if right_name == "u2":
             new_params = [right_parameters[1], right_parameters[2]]
         if right_name == "u3":
             new_params = list(right_parameters)
+
+        new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
+
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
         nx.set_node_attributes(unrolled.multi_graph, 'params',
-                               {run[0]: tuple(map(str, new_params))})
+                               {run[0]: tuple(map(str, new_params))}) #TODO Maybe makes sense to save the symbols in the DAG?
         # Delete the other nodes in the run
         for node in run[1:]:
             unrolled._remove_op_node(node)
