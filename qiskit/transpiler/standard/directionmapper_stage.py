@@ -5,12 +5,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
 from qiskit.transpiler import StageBase, StageInputOutput, StageError
 import qiskit.mapper as mapper
 
-class CouplingStage(StageBase):
+class DirectionMapperStage(StageBase):
     def __init__(self):
         pass
 
     def get_name(self, name):
-        return 'CouplingStage'
+        return 'DirectionMapper'
 
     def handle_request(self, input):
         coupling = input.get('coupling')
@@ -27,7 +27,7 @@ class CouplingStage(StageBase):
         if not isinstance(input, StageInputOutput):
             raise StageError('Input instance not supported!')
 
-        if not input.exists(['coupling','dag_circuit'])
+        if not input.exists(['coupling','dag_circuit']):
             return False
 
         return True

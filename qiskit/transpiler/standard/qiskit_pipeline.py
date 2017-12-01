@@ -1,12 +1,18 @@
 import sys
-import os
+from pathlib import Path
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
-from qiskit.transpiler import Pipeline, StageBase, StageError
+sys.path.append(Path(__file__).parents[3])
+from qiskit.transpiler import Pipeline, StageError
 
-from . import UnrollStage, CouplingStage, SwapMapperStage, DirectionMapperStage,
-              CxCancellationStage, Optimize1qGatesState, TransformStage,
-              ReturnJsonStage
+from . import UnrollStage, CouplingStage, SwapMapperStage, DirectionMapperStage, CxCancellationStage, Optimize1qGatesState, TransformStage, ReturnJsonStage
+
+class QISKitError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
 
 class QiskitPipeline():
     def __init__(self):
@@ -32,8 +38,8 @@ class QiskitPipeline():
                                             'basis_gates': basis_gates,
                                             'coupling_map': coupling_map,
                                             'layout': layout,
-                                            'get_layout', get_layout,
-                                            'format', format})
+                                            'get_layout': get_layout,
+                                            'format': format})
         except StageError as ex:
             raise QISKitError(str(ex)) from ex
 

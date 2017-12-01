@@ -21,7 +21,7 @@ class Pipeline(object):
                 if stage.check_precondition(self.input_output) is True:
                     self.input_output = stage.handle_request(self.input_output)
             except StageError as ex:
-                raise QISKitError(str(ex)) from ex
+                raise Exception(str(ex)) from ex
 
         # TODO: Warn if the result is None?. The reasoning behind this, is that
         # a user could forgot to set the final result in the Stages... but,
