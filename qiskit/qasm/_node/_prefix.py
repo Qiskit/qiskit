@@ -45,5 +45,13 @@ class Prefix(Node):
         """Return the correspond floating point number."""
         operation = self.children[0].operation()
         expr = self.children[1].real(nested_scope)
+        return operation(expr)
 
+    def sym(self, nested_scope=None):
+        """Return the correspond symbolic number."""
+        operation = self.children[0].operation()
+        expr = self.children[1].sym(nested_scope)
+        print(self.children[0])
+        print(self.children[1])
+        print(operation(expr))
         return operation(expr)
