@@ -28,6 +28,7 @@ class MapperTest(QiskitTestCase):
     def setUp(self):
         self.seed = 42
         self.qp = QuantumProgram()
+        self.qp.enable_logs()
 
     def tearDown(self):
         pass
@@ -53,7 +54,22 @@ class MapperTest(QiskitTestCase):
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
         coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator", coupling_map=coupling_map, seed=self.seed)
-        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
+        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
+
+    def test_optimize_1q_gates_issue159(self):
+        """
+        Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/159
+        """
+        self.qp.load_qasm_file(self._get_resource_path('qasm/issue159.qasm'), name='test')
+        coupling_map = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
+        backend = "local_qasm_simulator"
+        self.log.info(self.qp.get_qasm("test"))
+        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
+        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
+        self.log.info(out_qasm)
+        self.log.info(len(out_qasm))
+        self.assertEqual(len(out_qasm), 220)
 
 
 if __name__ == '__main__':

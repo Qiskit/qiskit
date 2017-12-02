@@ -557,7 +557,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
-        self.assertEqual(len(check_result), 1872)
+        self.log.info(check_result)
+        self.assertEqual(len(check_result), 1662)
 
     def test_load_wrong(self):
         """Test load Json.
