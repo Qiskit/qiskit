@@ -45,8 +45,6 @@ class Real(Node):
             return "pi"
         else:
             return ccode(self.value, precision=prec)
-        # fspec = "%%0.%df" % prec
-        # return fspec % self.value
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
