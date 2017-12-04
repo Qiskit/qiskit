@@ -16,7 +16,7 @@
 # limitations under the License.
 # =============================================================================
 
-"""Quantum Program QISKit Test."""
+"""Test of Quantum Program with Toffoli gates"""
 
 import unittest
 
@@ -26,6 +26,9 @@ from .common import QiskitTestCase
 
 class TestToffoliGate(QiskitTestCase):
     def test_ccx(self):
+        '''
+        Based on https://github.com/QISKit/qiskit-sdk-py/pull/172 , checks a CCNOT gate.
+        '''
         Q_program = QuantumProgram()
         q = Q_program.create_quantum_register('q', 3)
         c = Q_program.create_classical_register('c', 3)
