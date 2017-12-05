@@ -137,15 +137,17 @@ For more information on how to use QISKit, tutorial examples, and other helpful 
   a GUI for interacting with real and simulated quantum computers
 * **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, an API to use the IBM Quantum Experience in Python
 
-
 QISKit was originally developed by researchers and developers on the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
 
 Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
+## Multilanguage guide
+
+* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/tree/master/doc/ko/README-ko.md)**, Basic guide line written in Korean. 
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
+Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood, Yunho Maeng
 
 In future releases, anyone who contributes with code to this project is welcome to include their name here.
 
@@ -153,3 +155,5 @@ In future releases, anyone who contributes with code to this project is welcome 
 ## License
 
 This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
+
+
