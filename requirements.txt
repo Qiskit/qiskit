@@ -7,4 +7,3 @@ scipy>=0.19,<0.20
 matplotlib>=2.0,<2.1
 sphinx>=1.6,<1.7
 sympy>=1.0
-projectq>=0.3.5
