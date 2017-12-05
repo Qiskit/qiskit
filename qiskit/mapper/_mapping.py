@@ -730,7 +730,7 @@ def optimize_1q_gates(circuit):
         if right_name == "u3":
             new_params = list(right_parameters)
 
-        new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
+        #new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
 
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
