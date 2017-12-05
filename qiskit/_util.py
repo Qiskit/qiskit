@@ -34,7 +34,6 @@ def _check_ibmqe_version():
         # Use a local import, as in very specific environments setuptools
         # might not be available or updated (conda with specific setup).
         import pkg_resources
-        from pkg_resources import parse_version
     except ImportError:
         return
 
@@ -71,8 +70,7 @@ def _check_ibmqe_version():
         # First try to use IBMQuantumExperience.__version__ directly.
         from IBMQuantumExperience import __version__ as ibmqe_version
 
-        if (parse_version('{}=={}'.format(API_NAME, ibmqe_version)) >=
-                pkg_resources.parse_version(str(ibmqe_require))):
+        if ibmqe_version in ibmqe_require:
             return
     except ImportError:
         # __version__ was not available, so try to compare using the
