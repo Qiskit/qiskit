@@ -10,7 +10,7 @@ from qiskit.backends._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
 try:
     from projectq.backends._sim._cppsim import Simulator as CppSim
-except:
+except ImportError:
     CppSim = None
 else:
     from projectq import MainEngine
