@@ -32,7 +32,6 @@ else:
                               QubitOperator,
                               TimeEvolution,
                               All)
-from forkable import ForkablePdb
 logger = logging.getLogger(__name__)
 
 
@@ -113,8 +112,10 @@ class ProjectQSimulator(BaseBackend):
             cl_reg_index.append(clbit_index)
             clbit_index += cl_reg[1]
         # let circuit seed override qobj default
-        if 'config' in circuit and 'seed' in circuit['config']:
-            self._sim._simulator = CppSim(circuit['config']['seed'])
+        if 'config' in circuit:
+            if 'seed' in circuit['config']:
+                if circuit['config']['seed'] is not None:
+                    self._sim._simulator = CppSim(circuit['config']['seed'])
         outcomes = []
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
@@ -181,11 +182,13 @@ class ProjectQSimulator(BaseBackend):
                     self._classical_state = (
                         self._classical_state & (~bit)) | (int(qubit)
                                                            << clbit)
-                    unmeasured_qubits.remove(operation['qubits'][0])
+                    # check whether we already measured this qubit
+                    if operation['qubits'][0] in unmeasured_qubits:
+                        unmeasured_qubits.remove(operation['qubits'][0])
                 # Check if reset
                 elif operation['name'] == 'reset':
                     qubit = operation['qubits'][0]
-                    raise SimulatorError('Reset operation not yet implemented'+
+                    raise SimulatorError('Reset operation not yet implemented '+
                                          'for ProjectQ C++ backend')
                 elif operation['name'] == 'barrier':
                     pass

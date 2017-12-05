@@ -88,7 +88,7 @@ class RandomCircuitGenerator():
             'y': {'nregs': 1, 'nparams': None},
             'z': {'nregs': 1, 'nparams': None}}
 
-    def add_circuits(self, nCircuits, doMeasure=True, basis=['u3', 'cx'],
+    def add_circuits(self, nCircuits, doMeasure=True, basis=None,
                      basis_weights=None):
         """Adds circuits to program.
 
@@ -99,10 +99,17 @@ class RandomCircuitGenerator():
         Args:
             nCircuits (int): Number of circuits to add.
             doMeasure (bool): Whether to add measurements.
-            basis (list of str): List of op names.
+            basis (list(str) | None): List of op names. If None, basis
+                is randomly chosen with unique ops in (2,7)
             basis_weights (list of float or None): List of weights
                 corresponding to indices in `basis`.
         """
+        if basis is None:
+            basis = list(random.sample(self.opSignature.keys(),
+                                       random.randint(2,7)))
+            basis_weights = [1./len(basis)] * len(basis)
+        if basis_weights is not None:
+            assert(len(basis) == len(basis_weights))
         uop_basis = basis[:]
         if basis_weights:
             uop_basis_weights = basis_weights[:]
@@ -131,6 +138,10 @@ class RandomCircuitGenerator():
             range(self.minDepth, self.maxDepth+1), k=nCircuits)
         for iCircuit in range(nCircuits):
             nQubits = self.nQubit_list[iCircuit]
+            if self.min_regs_exceeds_nqubits(uop_basis, nQubits):
+                # no gate operation from this circuit can fit in the available
+                # number of qubits.
+                continue
             depthCnt = self.depth_list[iCircuit]
             regpop = numpy.arange(1, nQubits+1)
             registerWeights = regpop[::-1].astype(float)
@@ -165,7 +176,7 @@ class RandomCircuitGenerator():
                     op_args = []
                     if nparams:
                         op_args = [random.random() for p in range(nparams)]
-                    if opName is 'measure':
+                    if opName == 'measure':
                         # if measure occurs here, assume it's to do a conditional
                         # randomly select a register to measure
                         ireg = random.randint(0, nRegisters-1)
@@ -196,7 +207,7 @@ class RandomCircuitGenerator():
                             uop_args.extend([qreg[qind] for qind in qindList])
                             uop(*uop_args).c_if(creg, ifval)
                         depthCnt -= 1
-                    elif opName is 'barrier':
+                    elif opName == 'barrier':
                         ireg = random.randint(0, nRegisters-1)
                         qr_name = 'qr' + str(ireg)
                         qreg = circuit.regs[qr_name]
@@ -206,16 +217,14 @@ class RandomCircuitGenerator():
                         # select random register
                         ireg = random.randint(0, nRegisters-1)
                         qr_name = 'qr' + str(ireg)
-                        try:
-                            qreg = circuit.regs[qr_name]
-                        except Exception as e:
-                            print(e)
-                            import pdb;pdb.set_trace()
+                        qreg = circuit.regs[qr_name]
                         if qreg.size >= nregs:
                             qindList = random.sample(range(qreg.size), nregs)
                             op_args.extend([qreg[qind] for qind in qindList])
                             op(*op_args)
                             depthCnt -= 1
+                        else:
+                            break
             nmeasure = random.randint(1, nQubits)
             mList = random.sample(range(nmeasure), nmeasure)
             if doMeasure:
@@ -228,19 +237,25 @@ class RandomCircuitGenerator():
                     qrind = int(qind - cumtot)
                     qreg = circuit.regs['qr'+str(rind)]
                     creg = circuit.regs['cr'+str(rind)]
-                    try:
-                        circuit.measure(qreg[qrind], creg[qrind])
-                    except Exception as e:
-                        print(e)
-                        print(qrind)
-                        import pdb;pdb.set_trace()
+                    circuit.measure(qreg[qrind], creg[qrind])
             self.circuit_list.append(circuit)
+
+    def min_regs_exceeds_nqubits(self, basis, nQubits):
+        """Check whether the minimum number of qubits used by the operations
+        in basis is between 1 and the number of qubits.
+
+        Args:
+            basis (list): list of basis names
+            nQubits (int): number of qubits in circuit
+        """
+        return not any((nQubits >= self.opSignature[opName]['nregs'] > 0
+                        for opName in basis))
 
     def get_circuits(self, format='dag'):
         """Get the compiled circuits generated.
 
         Args:
-            format (str, optional): "qasm" | "json" | "QuantumCircuit"
+            format (str, optional): "qasm" | "qobj" | "QuantumCircuit"
 
         Returns:
            List of Compiled QuantumCircuit objects.
@@ -250,14 +265,14 @@ class RandomCircuitGenerator():
             for circuit in self.circuit_list:
                 qasm_list.append(circuit.qasm())
             return qasm_list
-        elif format is 'json':
+        elif format is 'qobj':
             json_list = []
             for circuit in self.circuit_list:
                 node_circuit = qasm.Qasm(data=circuit.qasm()).parse()
                 unrolled_circuit = unroll.Unroller(
                     node_circuit,
                     unroll.JsonBackend(self.basis_gates))
-                json_list.append(unrolled_circuit.execute().decode())
+                json_list.append(unrolled_circuit.execute())
             return json_list
         elif format is 'QuantumCircuit':
             qc_list = []
@@ -277,7 +292,9 @@ class RandomCircuitGenerator():
         #             unroll.DAGBackend(self.basis_gates))
         #         qc_list.append(unrolled_circuit.execute())
         #     return qc_list
-
+        else:
+            raise NameError('Unrecognized circuit output format: "{}"'.format(
+                            format))
 
 def rand_register_sizes(nRegisters, pvals):
     """Return a randomly chosen list of nRegisters summing to nQubits
