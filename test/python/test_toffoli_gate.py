@@ -24,32 +24,36 @@ from qiskit import QuantumProgram
 
 from .common import QiskitTestCase
 
+
 class TestToffoliGate(QiskitTestCase):
     def test_ccx(self):
-        '''
-        Based on https://github.com/QISKit/qiskit-sdk-py/pull/172 , checks a CCNOT gate.
-        '''
+        """Checks a CCNOT gate.
+
+        Based on https://github.com/QISKit/qiskit-sdk-py/pull/172.
+        """
         Q_program = QuantumProgram()
         q = Q_program.create_quantum_register('q', 3)
         c = Q_program.create_classical_register('c', 3)
         pqm = Q_program.create_circuit('pqm', [q], [c])
 
-        #toffoli gate
+        # Toffoli gate.
         pqm.ccx(q[0], q[1], q[2])
 
-        #measurement
+        # Measurement.
         for k in range(3):
             pqm.measure(q[k], c[k])
 
-        #prepare run
+        # Prepare run.
         circuits = ['pqm']
         backend = 'local_qasm_simulator'
-        shots = 1024 # the number of shots in the experiment
+        shots = 1024  # the number of shots in the experiment
 
-        #run
-        result = Q_program.execute(circuits, backend=backend, shots=shots, max_credits=3, wait=10, timeout=240)
+        # Run.
+        result = Q_program.execute(circuits, backend=backend, shots=shots,
+                                   max_credits=3, wait=10, timeout=240)
 
-        self.assertEquals({'000': 1024},result.get_counts('pqm'))
+        self.assertEqual({'000': 1024}, result.get_counts('pqm'))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
