@@ -628,7 +628,7 @@ def optimize_1q_gates(circuit):
     for run in runs:
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
-        right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
+        right_parameters = (0, 0, 0)  # (theta, phi, lambda)
         for node in run:
             nd = unrolled.multi_graph.node[node]
             assert nd["condition"] is None, "internal error"
@@ -637,29 +637,29 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (N(0), N(0), N(nd["params"][0]))
+                left_parameters = (0, 0, sympy.sympify(nd["params"][0]))
             elif left_name == "u2":
-                left_parameters = (sympy.pi / N(2), N(nd["params"][0]),
-                                   N(nd["params"][1]))
+                left_parameters = (sympy.pi / 2, sympy.sympify(nd["params"][0]),
+                                   sympy.sympify(nd["params"][1]))
             elif left_name == "u3":
-                left_parameters = tuple(map(N, nd["params"]))
+                left_parameters = tuple(sympy.sympify(nd["params"]))
             else:
                 left_name = "u1"  # replace id with u1
-                left_parameters = (N(0), N(0), N(0))
+                left_parameters = (0, 0, 0)
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                right_parameters = (N(0), N(0), right_parameters[2] +
+                right_parameters = (0, 0, right_parameters[2] +
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-                right_parameters = (sympy.pi / N(2), right_parameters[1] +
+                right_parameters = (sympy.pi / 2, right_parameters[1] +
                                     left_parameters[2], right_parameters[2])
             elif name_tuple == ("u2", "u1"):
                 # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
                 right_name = "u2"
-                right_parameters = (sympy.pi / N(2), left_parameters[1],
+                right_parameters = (sympy.pi / 2, left_parameters[1],
                                     right_parameters[2] + left_parameters[2])
             elif name_tuple == ("u1", "u3"):
                 # u1(lambda1) * u3(theta2, phi2, lambda2) =
@@ -680,8 +680,8 @@ def optimize_1q_gates(circuit):
                 right_name = "u3"
                 right_parameters = (sympy.pi - left_parameters[2] -
                                     right_parameters[1], left_parameters[1] +
-                                    sympy.pi / N(2), right_parameters[2] +
-                                    sympy.pi / N(2))
+                                    sympy.pi / 2, right_parameters[2] +
+                                    sympy.pi / 2)
             else:
                 # For composing u3's or u2's with u3's, use
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
@@ -693,34 +693,39 @@ def optimize_1q_gates(circuit):
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
+                # Evaluate the symbolic expressions for efficiency
+                right_parameters = tuple(map(N, list(right_parameters)))
             # Here down, when we simplify, we add f(theta) to lambda to correct
             # the global phase when f(theta) is 2*pi. This isn't necessary but
             # the other steps preserve the global phase, so we continue.
+            # The final step will remove Z rotations by 2*pi.
             # Y rotation is 0 mod 2*pi, so the gate is a u1
-            if (right_parameters[0] % N(2) * sympy.pi).is_zero \
+            if (right_parameters[0] % (2 * sympy.pi)).is_zero \
                and right_name != "u1":
                 right_name = "u1"
-                right_parameters = (N(0), N(0), right_parameters[1] +
+                right_parameters = (0, 0, right_parameters[1] +
                                     right_parameters[2] +
                                     right_parameters[0])
             # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
             if right_name == "u3":
                 # theta = pi/2 + 2*k*pi
-                if ((right_parameters[0] - sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
+                if ((right_parameters[0] - sympy.pi / 2) % (2 * sympy.pi)).is_zero:
                     right_name = "u2"
-                    right_parameters = (sympy.pi / N(2), right_parameters[1],
+                    right_parameters = (sympy.pi / 2, right_parameters[1],
                                         right_parameters[2] +
-                                        (right_parameters[0] - sympy.pi / N(2)))
+                                        (right_parameters[0] - sympy.pi / 2))
                 # theta = -pi/2 + 2*k*pi
-                if ((right_parameters[0] + sympy.pi / N(2)) % 2 * sympy.pi).is_zero:
+                if ((right_parameters[0] + sympy.pi / 2) % (2 * sympy.pi)).is_zero:
                     right_name = "u2"
-                    right_parameters = (sympy.pi / N(2), right_parameters[1] +
+                    right_parameters = (sympy.pi / 2, right_parameters[1] +
                                         sympy.pi, right_parameters[2] -
                                         sympy.pi + (right_parameters[0] +
-                                                   sympy.pi / N(2)))
-            # u1 and lambda is 0 mod 4*pi so gate is nop
-            if right_name == "u1" and (right_parameters[2] % 4 * sympy.pi).is_zero:
+                                                    sympy.pi / 2))
+            # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
+            if right_name == "u1" and (right_parameters[2] % (2 * sympy.pi)).is_zero:
                 right_name = "nop"
+            # Simplify the symbolic parameters
+            right_parameters = tuple(map(sympy.simplify, list(right_parameters)))
         # Replace the data of the first node in the run
         new_params = []
         if right_name == "u1":
