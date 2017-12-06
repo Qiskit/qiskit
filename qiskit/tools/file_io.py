@@ -24,6 +24,7 @@ import json
 from qiskit._qiskiterror import QISKitError
 import qiskit
 import numpy
+from sympy import Basic
 
 def convert_qobj_to_json(in_item):
     """Combs recursively through a list/dictionary and finds any non-json compatible
@@ -137,6 +138,15 @@ def load_result_from_file(filename):
 
     return qresult, metadata
 
+class ResultEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Basic): #The element to serialize is a Symbolic type
+            if obj.is_Integer: return int(0)
+            if obj.is_Float: return float(0)
+            return str(obj)
+        else:
+            return json.JSONEncoder.default(self, obj)
+
 def save_result_to_file(resultobj, filename, metadata=None):
     """Save a result (qobj + result) and optional metatdata
     to a single dictionary file.
@@ -177,6 +187,6 @@ def save_result_to_file(resultobj, filename, metadata=None):
         append_str = '_%d'%append_num
 
     with open(filename+append_str+'.json', 'w') as save_file:
-        json.dump(master_dict, save_file, indent=1)
+        json.dump(master_dict, save_file, indent=1, cls=ResultEncoder)
 
     return filename+append_str+'.json'
