@@ -77,7 +77,7 @@ class MapperTest(QiskitTestCase):
         out_qasm = self.qp.get_compiled_qasm(qobj, "test")
         self.log.info(out_qasm)
         self.log.info(len(out_qasm))
-        self.assertEqual(len(out_qasm), 220)
+        self.assertEqual(len(out_qasm), 224)
 
 
 if __name__ == '__main__':
