@@ -64,7 +64,20 @@ class TestHamiltonian(QiskitTestCase):
     def test_hamiltonian(self):
         # printing an example from a H2 file
         hfile = self._get_resource_path("H2Equilibrium.txt")
-        self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
+        hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
+        self.log.info(hamiltonian)
+        # [[-0.245224693812219 0 0 ]
+        # [0 -1.06365601684976 0.180931339344726 0]
+        # [0 0.180931339344726 -1.06365601684976 0]
+        # [0.180931339344726 0 0 -1.83696751499087]]
+        self.assertSequenceEqual([str(i) for i in hamiltonian[0]],
+                                 ["-0.245224693812219", "0", "0", "0.180931339344726"])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[1]],
+                                 ["0", "-1.06365601684976", "0.180931339344726", "0"])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[2]],
+                                 ["0", "0.180931339344726", "-1.06365601684976", "0"])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[3]],
+                                 ["0.180931339344726", "0", "0", "-1.83696751499087"])
 
         # printing an example from a graph input
         n = 3
