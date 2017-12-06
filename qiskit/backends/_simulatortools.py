@@ -136,6 +136,7 @@ def single_gate_matrix(gate, params=None):
     """
 
     # Converting sym to floats improves the performance of the simulator 10x.
+    # This a is a probable a FIXME since it might show bugs in the simulator.
     (theta, phi, lam) = map(float, single_gate_params(gate, params))
 
     return np.array([[np.cos(theta/2),

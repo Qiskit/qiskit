@@ -23,21 +23,24 @@ from qiskit import QuantumCircuit
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import CompositeGate
+from sympy import N, Basic
 from qiskit.extensions.standard import header
-
 
 class RYGate(Gate):
     """rotation around the y-axis."""
 
     def __init__(self, theta, qubit, circ=None):
         """Create new ry single qubit gate."""
+        if not isinstance(theta,Basic):
+            # if theta not symbolic, make it symbolic
+            theta = N(theta)
         super(RYGate, self).__init__("ry", [theta], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("ry(%.15f) %s[%d];" % (theta, qubit[0].name,
+        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].name,
                                                    qubit[1]))
 
     def inverse(self):
