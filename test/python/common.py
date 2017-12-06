@@ -30,6 +30,13 @@ if os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
     if os.getenv('TRAVIS_REPO_SLUG') != os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
         TRAVIS_FORK_PULL_REQUEST = True
 
+LOG_LEVEL = logging.CRITICAL
+if os.getenv('LOG_LEVEL'):
+    toset = os.getenv('LOG_LEVEL')
+    goodlevels = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']
+    if not toset in goodlevels:
+        raise Exception("The env variable LOG_LEVEL is %s instead of something in %s" % (toset,goodlevels   ))
+    LOG_LEVEL = getattr(logging,toset)
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
@@ -45,18 +52,18 @@ class QiskitTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
     @classmethod
     def setUpClass(cls):
-        # Setup logging to a file 'test_xxx.log'
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
+        cls.log.setLevel(LOG_LEVEL)
         log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
                    ' %(message)s'.format(cls.__name__))
         formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+
+        # logger for the stdout
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+
+        cls.log.addHandler(stream_handler)
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
