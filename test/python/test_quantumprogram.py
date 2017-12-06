@@ -26,6 +26,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
 import qiskit.backends
+from  qiskit.tools import file_io
 
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
@@ -731,7 +732,7 @@ class TestQuantumProgram(QiskitTestCase):
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_qasm(qobj, 'circuitName',)
         self.log.info(result)
-        self.assertEqual(len(result), 184)
+        self.assertEqual(len(result), 167)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
@@ -1490,7 +1491,7 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         if backend not in qp.online_simulators():
-            return
+            unittest.skip('backend "{}" not available'.format(backend))
         qc = qp.get_circuit("swapping")
         q = qp.get_quantum_register("q")
         r = qp.get_quantum_register("r")
@@ -1531,6 +1532,138 @@ class TestQuantumProgram(QiskitTestCase):
         )
         # SDK will throw ConnectionError on every call that implies a connection
         self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+
+    def test_results_save_load(self):
+        """Test saving and loading the results of a circuit.
+
+        Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
+        """
+        QP_program = QuantumProgram()
+        metadata = {'testval':5}
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc1.h(q)
+        qc2.cx(q[0], q[1])
+        circuits = ['qc1', 'qc2']
+
+        result1 = QP_program.execute(circuits, backend='local_unitary_simulator')
+        result2 = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        test_1_path = self._get_resource_path('test_save_load1.json')
+        test_2_path = self._get_resource_path('test_save_load2.json')
+
+        #delete these files if they exist
+        if os.path.exists(test_1_path):
+            os.remove(test_1_path)
+
+        if os.path.exists(test_2_path):
+            os.remove(test_2_path)
+
+        file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
+        file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
+
+        result_loaded1, metadata_loaded1 = file_io.load_result_from_file(file1)
+        result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file1)
+
+        self.assertAlmostEqual(metadata_loaded1['testval'], 5)
+        self.assertAlmostEqual(metadata_loaded2['testval'], 5)
+
+        #remove files to keep directory clean
+        os.remove(file1)
+        os.remove(file2)
+
+    def test_qubitpol(self):
+
+        """Test the results of the qubitpol function in Results. Do two 2Q circuits
+        in the first do nothing and in the second do X on the first qubit.
+        """
+        QP_program = QuantumProgram()
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc2.x(q[0])
+        qc1.measure(q, c)
+        qc2.measure(q, c)
+        circuits = ['qc1', 'qc2']
+        xvals_dict = {circuits[0]: 0, circuits[1]: 1}
+
+        result = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
+
+        self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
+        self.assertTrue(np.array_equal(xvals, [0,1]))
+
+    def test_reconfig(self):
+        """Test reconfiguring the qobj from 1024 shots to 2048 using
+        reconfig instead of recompile
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        qc2.measure(qr[2], cr[2])
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        test_config = {'0': 0, '1': 1}
+        qobj = QP_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
+        out = QP_program.run(qobj)
+        results = out.get_counts('qc2')
+
+        #change the number of shots and re-run to test if the reconfig does not break
+        #the ability to run the qobj
+        qobj = QP_program.reconfig(qobj, shots=2048)
+        out2 = QP_program.run(qobj)
+        results2 = out2.get_counts('qc2')
+
+        self.assertEqual(results, {'000': 1024})
+        self.assertEqual(results2, {'000': 2048})
+
+        #change backend
+        qobj = QP_program.reconfig(qobj, backend='local_unitary_simulator')
+        self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
+        #change maxcredits
+        qobj = QP_program.reconfig(qobj, max_credits=11)
+        self.assertEqual(qobj['config']['max_credits'], 11)
+        #change seed
+        qobj = QP_program.reconfig(qobj, seed=11)
+        self.assertEqual(qobj['circuits'][0]['seed'], 11)
+        #change the config
+        test_config_2 = {'0': 2}
+        qobj = QP_program.reconfig(qobj, config=test_config_2)
+        self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
+        self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
+
+    def test_timeout(self):
+        """Test run.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc2.measure(qr, cr)
+        circuits = ['qc2']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                seed=88)
+        try:
+            out = QP_program.run(qobj, timeout=0.01)
+            self.assertTrue(False, "Should timeout! but it didn't!")
+        except QISKitError as ex:
+            self.assertEqual(ex.message,
+                'Error waiting for Job results: Timeout after 0.01 seconds.')
+
 
 
 if __name__ == '__main__':

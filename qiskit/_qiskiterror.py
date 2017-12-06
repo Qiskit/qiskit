@@ -25,6 +25,7 @@ class QISKitError(Exception):
 
     def __init__(self, *message):
         """Set the error message."""
+        super(QISKitError, self).__init__(' '.join(message))
         self.message = ' '.join(message)
 
     def __str__(self):

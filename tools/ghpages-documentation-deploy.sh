@@ -27,7 +27,9 @@
 TARGET_REPOSITORY_USER="QISKit"
 TARGET_REPOSITORY_NAME="qiskit.github.io"
 TARGET_DOC_DIR="documentation"
+TARGET_DOC_DIR_JA="documentation/ja"
 SOURCE_DOC_DIR="doc/_build/html"
+SOURCE_DOC_DIR_JA="doc/_build/ja/html"
 SOURCE_DIR=`pwd`
 
 # Build the documentation.
@@ -39,10 +41,12 @@ git clone https://github.com/$TARGET_REPOSITORY_USER/$TARGET_REPOSITORY_NAME.git
 cd $TARGET_REPOSITORY_NAME
 
 echo "Replacing $TARGET_DOC_DIR with the new contents ..."
-git rm -r $TARGET_DOC_DIR
+git rm -rf $TARGET_DOC_DIR
+git rm -rf $TARGET_DOC_DIR_JA
 cp -r $SOURCE_DIR/$SOURCE_DOC_DIR $TARGET_DOC_DIR
+cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_JA $TARGET_DOC_DIR_JA
 git add $TARGET_DOC_DIR
 
 echo "Commiting and pushing changes ..."
-git commit -m "Automated documentation update from SDK" -m "Commit: $TRAVIS_COMMIT" -m "Travis build: https://travis-ci.org/TRAVIS_REPO_SLUG/builds/$TRAVIS_BUILD_ID"
-git push --force --quiet https://$GH_TOKEN@github.com/$TARGET_REPOSITORY_USER/$TARGET_REPOSITORY_NAME.git > /dev/null 2>&1
+git commit -m "Automated documentation update from SDK" -m "Commit: $TRAVIS_COMMIT" -m "Travis build: https://travis-ci.org/$TRAVIS_REPO_SLUG/builds/$TRAVIS_BUILD_ID"
+git push --quiet https://$GH_TOKEN@github.com/$TARGET_REPOSITORY_USER/$TARGET_REPOSITORY_NAME.git > /dev/null 2>&1

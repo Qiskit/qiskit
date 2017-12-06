@@ -22,8 +22,11 @@ python:
   - "3.6"
 
 install:
-  - pip install -r requires.txt
-  - pip install -r requires-dev.txt
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+
+before_script:
+  - pylint qiskit --errors-only
 
 script: make test
 

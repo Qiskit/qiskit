@@ -216,8 +216,8 @@ def group_paulis(pauli_list):
             pauli_list_temp = []
             # pauli_list_temp.extend(p_1) # this is going to signal the total
             # post-rotations of the set (set master)
-            pauli_list_temp.append(p_1)
-            pauli_list_temp.append(copy.deepcopy(p_1))
+            pauli_list_temp.append(list(p_1))
+            pauli_list_temp.append(copy.deepcopy(list(p_1)))
             pauli_list_temp[0][0] = 0
             for p_2 in pauli_list:
                 if p_2 not in pauli_list_sorted and p_1[1] != p_2[1]:
@@ -291,8 +291,15 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             circuit = ['c']
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       silent=True)
-            quantum_state = result.get_data(circuit[0])['quantum_state']
+                                       config={"data": ["quantum_state"]})
+
+            quantum_state = result.get_data(circuit[0]).get('quantum_state')
+            if quantum_state is None:
+                quantum_state = result.get_data(
+                    circuit[0]).get('quantum_states')
+                if len(quantum_state) > 0:
+                    quantum_state = quantum_state[0]
+
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
@@ -310,11 +317,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             Q_program.add_circuit(circuits_labels[0], circuits[0])
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
-            q = QuantumRegister("q", int(np.log2(len(hamiltonian))))
+            n_qubits = input_circuit.regs['q'].size
+            q = QuantumRegister("q", n_qubits)
             i = 1
             for p in hamiltonian:
                 circuits.append(copy.deepcopy(input_circuit))
-                for j in range(int(np.log2(len(hamiltonian)))):
+                for j in range(n_qubits):
                     if p[1].v[j] == 1 and p[1].w[j] == 0:
                         circuits[i].x(q[j])
                     elif p[1].v[j] == 0 and p[1].w[j] == 1:
@@ -325,15 +333,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 circuits_labels.append('circuit_label' + str(i))
                 Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
-            result = Q_program.execute(circuits_labels, device, shots=shots,
-                                       silent=True)
+            result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
-            quantum_state_0 = result.get_data(circuits_labels[0])
-            ['quantum_state']
+            quantum_state_0 = result.get_data(circuits_labels[0])['quantum_state']
             i = 1
             for p in hamiltonian:
-                quantum_state_i = result.get_data(circuits_labels[i])
-                ['quantum_state']
+                quantum_state_i = result.get_data(circuits_labels[i])['quantum_state']
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(quantum_state_0),
                                           quantum_state_i)
@@ -359,12 +364,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 circuits[i].measure(q[j], c[j])
             Q_program.add_circuit(circuits_labels[i], circuits[i])
             i += 1
-        result = Q_program.execute(circuits_labels, device, shots=shots,
-                                   silent=True)
+        result = Q_program.execute(circuits_labels, device, shots=shots)
         for j in range(len(hamiltonian)):
             for k in range(len(hamiltonian[j])):
-                energy += hamiltonian[j][k][0] * measure_pauli_z
-                (result.get_counts(circuits_labels[j]), hamiltonian[j][k][1])
+                energy += hamiltonian[j][k][0] *\
+                    measure_pauli_z(result.get_counts(
+                        circuits_labels[j]), hamiltonian[j][k][1])
     return energy
 
 
@@ -470,11 +475,11 @@ def make_Hamiltonian(pauli_list):
 
 
 def Hamiltonian_from_file(file_name):
-    """Creates a matrix operator out of a file with a list 
+    """Creates a matrix operator out of a file with a list
     of Paulis.
 
     Args:
-        file_name : a text file containing a list of Paulis and 
+        file_name : a text file containing a list of Paulis and
         coefficients.
     Returns:
         A matrix representing pauli_list

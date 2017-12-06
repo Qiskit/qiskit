@@ -18,7 +18,7 @@
 """
 Node for an OPENQASM external function.
 """
-import math
+import sympy
 from ._node import Node
 from ._nodeexception import NodeException
 
@@ -49,12 +49,15 @@ class External(Node):
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': math.sin,
-            'cos': math.cos,
-            'tan': math.tan,
-            'exp': math.exp,
-            'ln': math.log,
-            'sqrt': math.sqrt
+            'sin': sympy.sin,
+            'cos': sympy.cos,
+            'tan': sympy.tan,
+            'asin': sympy.asin,
+            'acos': sympy.acos,
+            'atan': sympy.atan,
+            'exp': sympy.exp,
+            'ln': sympy.log,
+            'sqrt': sympy.sqrt
         }
         if op in dispatch:
             arg = expr.real(nested_scope)
