@@ -38,6 +38,9 @@ style:
 test:
 	python3 -m unittest discover -s test -v
 
+test_verbose: export LOG_LEVEL=DEBUG
+test_verbose: test
+
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
