@@ -17,7 +17,7 @@
 # =============================================================================
 
 """Quick program to test the Pauli class."""
-
+from copy import deepcopy
 import unittest
 import logging
 import os
@@ -51,14 +51,14 @@ class TestQI(unittest.TestCase):
         rhos = [rho0, rho1, rho2, rho10, rho20, rho21]
 
         # test partial trace
-        tau0 = partial_trace(rho210, sys=[1, 2])
-        tau1 = partial_trace(rho210, sys=[0, 2])
-        tau2 = partial_trace(rho210, sys=[0, 1])
+        tau0 = partial_trace(rho210, [1, 2])
+        tau1 = partial_trace(rho210, [0, 2])
+        tau2 = partial_trace(rho210, [0, 1])
 
         # test different dimensions
-        tau10 = partial_trace(rho210, dims=[4, 2], sys=[1])
-        tau20 = partial_trace(rho210, dims=[2, 2, 2], sys=[1])
-        tau21 = partial_trace(rho210, dims=[2, 4], sys=[0])
+        tau10 = partial_trace(rho210, [1], dims=[4, 2])
+        tau20 = partial_trace(rho210, [1], dims=[2, 2, 2])
+        tau21 = partial_trace(rho210, [0], dims=[2, 4])
         taus = [tau0, tau1, tau2, tau10, tau20, tau21]
 
         all_pass = True
@@ -165,14 +165,14 @@ class TestQI(QiskitTestCase):
         rhos = [rho0, rho1, rho2, rho10, rho20, rho21]
 
         # test partial trace
-        tau0 = partial_trace(rho210, sys=[1, 2])
-        tau1 = partial_trace(rho210, sys=[0, 2])
-        tau2 = partial_trace(rho210, sys=[0, 1])
+        tau0 = partial_trace(rho210, [1, 2])
+        tau1 = partial_trace(rho210, [0, 2])
+        tau2 = partial_trace(rho210, [0, 1])
 
         # test different dimensions
-        tau10 = partial_trace(rho210, dims=[4, 2], sys=[1])
-        tau20 = partial_trace(rho210, dims=[2, 2, 2], sys=[1])
-        tau21 = partial_trace(rho210, dims=[2, 4], sys=[0])
+        tau10 = partial_trace(rho210, [1], dimensions=[4, 2])
+        tau20 = partial_trace(rho210, [1], dimensions=[2, 2, 2])
+        tau21 = partial_trace(rho210, [0], dimensions=[2, 4])
         taus = [tau0, tau1, tau2, tau10, tau20, tau21]
 
         all_pass = True
@@ -260,7 +260,6 @@ class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
     def test_pauli(self):
-
         v = np.zeros(3)
         w = np.zeros(3)
         v[0] = 1
@@ -308,6 +307,47 @@ class TestPauli(QiskitTestCase):
         self.log.info(p3.to_label())
         self.log.info(sgn)
 
+<<<<<<< HEAD
+=======
+    def test_equality_equal(self):
+        """Test equality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertTrue(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_equality_different(self):
+        """Test equality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertFalse(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_inequality_equal(self):
+        """Test inequality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertFalse(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
+    def test_inequality_different(self):
+        """Test inequality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertTrue(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
+>>>>>>> QISKit/master
 
 if __name__ == '__main__':
     unittest.main()
