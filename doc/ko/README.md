@@ -136,7 +136,7 @@ QISKit은 본래 [IBM Research](http://www.research.ibm.com/)연구팀과 [IBM-Q
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood, Yunho Maeng
+Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Yunho Maeng, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
 
 앞으로의 릴리즈시, 이 프로젝트의 코드에 기여한 누구라도 이곳에 이름을 적어도 좋습니다. 
 
