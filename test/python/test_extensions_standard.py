@@ -20,14 +20,30 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit._qiskiterror import QISKitError
+
+from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.ch import CHGate
 from qiskit.extensions.standard.crz import CrzGate
 from qiskit.extensions.standard.cswap import FredkinGate
 from qiskit.extensions.standard.cu1 import Cu1Gate
 from qiskit.extensions.standard.cu3 import Cu3Gate
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cxbase import CXBase
+from qiskit.extensions.standard.cy import CyGate
+from qiskit.extensions.standard.cz import CzGate
 from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.iden import IdGate
+from qiskit.extensions.standard.rx import RXGate
+from qiskit.extensions.standard.ry import RYGate
+from qiskit.extensions.standard.rz import RZGate
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.swap import SwapGate
+from qiskit.extensions.standard.t import TGate
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u2 import U2Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.ubase import UBase
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.y import YGate
 from qiskit.extensions.standard.z import ZGate
@@ -153,6 +169,41 @@ class TestStandard(QiskitTestCase):
         self.assertEqual(c[0].inverse(), c[0])
         self.assertIn('cu3(-1.000000000000000,-3.000000000000000,-2.000000000000000) q[1],q[2];' + '\n' + qasm_txt, c.qasm())
         self.assertEqual(201, len(c.qasm()))
+
+
+    def test_cx(self):
+        qasm_txt = 'cx q[1],q[2];'
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cx, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.cx, self.q[0], self.q[0])
+        # TODO self.assertRaises(QISKitError, c.cx, 0, self.q[0])
+        c.cx(self.q[1], self.q[2])
+        self.assertEqual(type(c[0]), CnotGate)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(72, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
+
+
+    def test_cxbase(self):
+        qasm_txt = 'CX q[1],q[2];'
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cx_base, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.cx_base, self.q[0], self.q[0])
+        # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
+        c.cx_base(self.q[1], self.q[2])
+        self.assertEqual(type(c[0]), CXBase)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(72, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
+
 
     def test_h(self):
         c = self.circuit
