@@ -236,7 +236,6 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
         self.assertEqual(86, len(c.qasm()))
 
-
     def test_h(self):
         c = self.circuit
         qasm_txt = 'h q[1];'
@@ -251,6 +250,38 @@ class TestStandard(QiskitTestCase):
         self.assertEqual(c[0].inverse(), c[0])
         self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
         self.assertEqual(74, len(c.qasm()))
+
+    def test_iden(self):
+        c = self.circuit
+        qasm_txt = 'id q[1];'
+        self.assertRaises(QISKitError, c.iden, self.c[0])
+        # TODO self.assertRaises(QISKitError, c.iden, 0)
+        c.iden(self.q[1])
+        self.assertEqual(type(c[0]), IdGate)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(67, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(76, len(c.qasm()))
+
+
+    def test_rx(self):
+        c = self.circuit
+        qasm_txt = 'rx(1.000000000000000) q[1];'
+        self.assertRaises(QISKitError, c.rx, 1, self.c[0])
+        # TODO self.assertRaises(QISKitError, c.rx, 1, 1)
+        c.rx(1, self.q[1])
+        self.assertEqual(type(c[0]), RXGate)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn('rx(-1.000000000000000) q[1];'+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(115, len(c.qasm()))
+
 
     def test_x(self):
         c = self.circuit
