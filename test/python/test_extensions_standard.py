@@ -204,6 +204,22 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
         self.assertEqual(86, len(c.qasm()))
 
+    def test_cy(self):
+        qasm_txt = 'cy q[1],q[2];'
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cy, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.cy, self.q[0], self.q[0])
+        # TODO self.assertRaises(QISKitError, c.cy, 0, self.q[0])
+        c.cy(self.q[1], self.q[2])
+        self.assertEqual(type(c[0]), CyGate)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(72, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
+
 
     def test_h(self):
         c = self.circuit
