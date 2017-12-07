@@ -32,11 +32,15 @@ class QeRemote(BaseBackend):
         self._configuration = configuration
         self._configuration['local'] = False
 
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         """Run jobs
 
         Args:
             q_job (QuantumJob): job to run
+            launch_callback (fn(string)): Function called at job launch. It
+                                          will be passed the ID string of job,
+                                          which will match the job_id in the
+                                          result.
 
         Returns:
             Result object.
@@ -67,6 +71,8 @@ class QeRemote(BaseBackend):
         if 'error' in output:
             raise ResultError(output['error'])
 
+        if launch_callback is not None:
+            launch_callback(output['id'])
         logger.debug('Running on remote backend %s with job id: %s',
                      qobj['config']['backend'], output['id'])
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
@@ -104,7 +110,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                           (pprint.pformat(job_result)))
 
     while job_result['status'] == 'RUNNING':
-        if timer >= timeout:
+        if timeout is not None and timer >= timeout:
             return {'job_id': jobid, 'status': 'ERROR', 'result': 'Time Out'}
         time.sleep(wait)
         timer += wait

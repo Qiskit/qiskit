@@ -33,11 +33,14 @@ from qiskit import _openquantumcompiler as openquantumcompiler
 logger = logging.getLogger(__name__)
 
 
-def run_backend(q_job):
+def run_backend(q_job, launch_callback=None):
     """Run a program of compiled quantum circuits on a backend.
 
     Args:
         q_job (QuantumJob): job object
+        launch_callback (fn(string)): Function called at job launch. It will
+                                      be passed the ID string of job, which
+                                      will match the job_id in the result.
 
     Returns:
         Result: Result object.
@@ -51,14 +54,14 @@ def run_backend(q_job):
                                                                format='json')
                 circuit['compiled_circuit'] = compiled_circuit
     backend = qiskit.backends.get_backend_instance(backend_name)
-    return backend.run(q_job)
+    return backend.run(q_job, launch_callback)
 
 
 class JobProcessor():
     """
     Process a series of jobs and collect the results
     """
-    def __init__(self, q_jobs, callback, max_workers=1):
+    def __init__(self, q_jobs, callback, max_workers=1, launch_callback=None):
         """
         Args:
             q_jobs (list(QuantumJob)): List of QuantumJob objects.
@@ -67,6 +70,9 @@ class JobProcessor():
                 fn(results)
                 results: A list of Result objects.
             max_workers (int): The maximum number of workers to use.
+            launch_callback (fn(string)): Function to be called at job launch.
+                It will be passed the ID string of job, which will match the
+                job_id in the result.
 
         Raises:
             QISKitError: if any of the job backends could not be found.
@@ -80,6 +86,7 @@ class JobProcessor():
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
         self.callback = (lambda rs: ()) if callback is None else callback
+        self.launch_callback = (lambda rs: ()) if callback is None else launch_callback
         self.num_jobs = len(self.q_jobs)
         self.jobs_results = []
         if self.online:
@@ -115,7 +122,7 @@ class JobProcessor():
         """Process/submit jobs"""
         executor = self.executor_class(max_workers=self.max_workers)
         for q_job in self.q_jobs:
-            future = executor.submit(run_backend, q_job)
+            future = executor.submit(run_backend, q_job, self.launch_callback)
             future.qobj = q_job.qobj
             self.futures[future] = q_job.qobj
             future.add_done_callback(self._job_done_callback)

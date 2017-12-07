@@ -144,14 +144,20 @@ class UnitarySimulator(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         """Run q_job
 
         Args:
-        q_job (QuantumJob): job to run
+            q_job (QuantumJob): job to run
+            launch_callback (fn(string)): Function called at job launch. It
+                                          will be passed the ID string of job,
+                                          which will match the job_id in the
+                                          result.
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
+        if launch_callback is not None:
+            launch_callback(job_id)
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:

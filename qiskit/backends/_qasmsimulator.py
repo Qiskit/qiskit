@@ -272,10 +272,12 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
+        if launch_callback is not None:
+            launch_callback(job_id)
         qobj = q_job.qobj
         result_list = []
         self._shots = qobj['config']['shots']
