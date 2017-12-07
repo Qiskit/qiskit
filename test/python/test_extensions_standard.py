@@ -23,6 +23,7 @@ from qiskit._qiskiterror import QISKitError
 from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.ch import CHGate
 from qiskit.extensions.standard.crz import CrzGate
+from qiskit.extensions.standard.cswap import FredkinGate
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.x import XGate
@@ -43,63 +44,90 @@ class TestStandard(QiskitTestCase):
 
     def test_barrier(self):
         c = self.circuit
+        qasm_txt = 'barrier q[1];'
         self.assertRaises(QISKitError, c.barrier, self.c[0])
+        #TODO self.assertRaises(QISKitError, c.barrier, 0)
         c.barrier(self.q[1])
         self.assertEqual(type(c[0]), Barrier)
-        self.assertIn('barrier q[1];', c.qasm())
-        self.assertNotIn('barrier q[0];', c.qasm())
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(72, len(c.qasm()))
         c[0].reapply(c)
-        self.assertIn('barrier q[1];\nbarrier q[1];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
-        self.assertIn('barrier q[1];\nbarrier q[1];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
 
 
     def test_ccx(self):
         c = self.circuit
+        qasm_txt = 'ccx q[0],q[1],q[2];'
         self.assertRaises(QISKitError, c.ccx, self.c[0],self.c[1],self.c[2])
         self.assertRaises(QISKitError, c.ccx, self.q[0], self.q[0], self.q[2])
+        #TODO self.assertRaises(QISKitError, c.ccx, 0, self.q[0], self.q[2])
         c.ccx(self.q[0],self.q[1],self.q[2])
         self.assertEqual(type(c[0]), ToffoliGate)
-        self.assertIn('ccx q[0],q[1],q[2];', c.qasm())
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(78, len(c.qasm()))
         c[0].reapply(c)
-        self.assertIn('ccx q[0],q[1],q[2];\nccx q[0],q[1],q[2];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
-        self.assertIn('ccx q[0],q[1],q[2];\nccx q[0],q[1],q[2];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
 
 
     def test_ch(self):
         c = self.circuit
+        qasm_txt = 'ch q[0],q[1];'
         self.assertRaises(QISKitError, c.ch, self.c[0],self.c[1])
         self.assertRaises(QISKitError, c.ch, self.q[0], self.q[0])
+        #TODO self.assertRaises(QISKitError, c.ch, 0, self.q[0])
         c.ch(self.q[0],self.q[1])
         self.assertEqual(type(c[0]), CHGate)
-        self.assertIn('ch q[0],q[1];', c.qasm())
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(72, len(c.qasm()))
         c[0].reapply(c)
-        self.assertIn('ch q[0],q[1];\nch q[0],q[1];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
-        self.assertIn('ch q[0],q[1];\nch q[0],q[1];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
 
     def test_crz(self):
         c = self.circuit
+        qasm_txt = 'crz(1.000000000000000) q[0],q[1];'
         self.assertRaises(QISKitError, c.crz, 0, self.c[0],self.c[1])
         self.assertRaises(QISKitError, c.crz, 0, self.q[0], self.q[0])
         #TODO self.assertRaises(QISKitError, c.crz, 0, 0, self.q[0])
         c.crz(1,self.q[0],self.q[1])
         self.assertEqual(type(c[0]), CrzGate)
-        print(c.qasm())
-        self.assertIn('crz(1.000000000000000) q[0],q[1];', c.qasm())
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(92, len(c.qasm()))
         c[0].reapply(c)
-        self.assertIn('crz(1.000000000000000) q[0],q[1];\ncrz(1.000000000000000) q[0],q[1];', c.qasm())
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
-        self.assertIn('crz(-1.000000000000000) q[0],q[1];\ncrz(1.000000000000000) q[0],q[1];', c.qasm())
+        self.assertIn('crz(-1.000000000000000) q[0],q[1];'+'\n'+qasm_txt, c.qasm())
+
+    def test_cswap(self):
+        qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1],self.c[2])
+        self.assertRaises(QISKitError, c.cswap, self.q[1], self.q[0], self.q[0])
+        # TODO self.assertRaises(QISKitError, c.cswap, self.q[1], 0, self.q[0])
+        c.cswap(self.q[0],self.q[1],self.q[2])
+        self.assertEqual(type(c[0]), FredkinGate)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(106, len(c.qasm()))
+        c[0].reapply(c)
+        self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertIn(qasm_txt+'\n'+qasm_txt,c.qasm())
+
 
     def test_h(self):
         c = self.circuit
+        qasm_txt = 'h q[1];'
         self.assertRaises(QISKitError, c.h, self.c[0])
+        #TODO self.assertRaises(QISKitError, c.h, 0)
         c.h(self.q[1])
         self.assertEqual(type(c[0]), HGate)
-        self.assertIn('h q[1];', c.qasm())
-        self.assertNotIn('h q[0];', c.qasm())
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(66, len(c.qasm()))
         c[0].reapply(c)
         self.assertIn('h q[1];\nh q[1];', c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
@@ -108,10 +136,11 @@ class TestStandard(QiskitTestCase):
     def test_x(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.x, self.c[0])
+        # TODO self.assertRaises(QISKitError, c.x, 0)
         c.x(self.q[1])
         self.assertEqual(type(c[0]), XGate)
         self.assertIn('x q[1];', c.qasm())
-        self.assertNotIn('x q[0];', c.qasm())
+        self.assertEqual(66, len(c.qasm()))
         c[0].reapply(c)
         self.assertIn('x q[1];\nx q[1];', c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
@@ -120,10 +149,11 @@ class TestStandard(QiskitTestCase):
     def test_y(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.y, self.c[0])
+        # TODO self.assertRaises(QISKitError, c.y, 0)
         c.y(self.q[1])
         self.assertEqual(type(c[0]), YGate)
         self.assertIn('y q[1];', c.qasm())
-        self.assertNotIn('y q[0];', c.qasm())
+        self.assertEqual(66, len(c.qasm()))
         c[0].reapply(c)
         self.assertIn('y q[1];\ny q[1];', c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
@@ -132,10 +162,12 @@ class TestStandard(QiskitTestCase):
 
     def test_z(self):
         c = self.circuit
+        self.assertRaises(QISKitError, c.z, self.c[0])
+        # TODO self.assertRaises(QISKitError, c.z, 0)
         c.z(self.q[1])
         self.assertEqual(type(c[0]), ZGate)
         self.assertIn('z q[1];', c.qasm())
-        self.assertNotIn('z q[0];', c.qasm())
+        self.assertEqual(66, len(c.qasm()))
         c[0].reapply(c)
         self.assertIn('z q[1];\nz q[1];', c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
