@@ -1,4 +1,4 @@
-IBMQuantumExperience>=1.8.17
+IBMQuantumExperience>=1.8.19
 requests>=1.11,<.12
 networkx>=1.11,<2.0
 ply==3.10
