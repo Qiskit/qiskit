@@ -426,23 +426,60 @@ class QuantumProgram(object):
     # methods for working with backends
     ###############################################################
 
-    def set_api(self, token, url, verify=True):
+    def set_api(self, token, url, hub=None, group=None, project=None,
+                verify=True):
         """ Setup the API.
 
         Does not catch exceptions from IBMQuantumExperience.
 
         Args:
-            Token (str): The token used to register on the online backend such
+            token (str): The token used to register on the online backend such
                 as the quantum experience.
-            URL (str): The url used for online backend such as the quantum
+            url (str): The url used for online backend such as the quantum
                 experience.
+            hub (str): The hub used for online backend.
+            group (str): The group used for online backend.
+            project (str): The project used for online backend.
+            verify (bool): If False, ignores SSL certificates errors.
         Returns:
             Nothing but fills the __ONLINE_BACKENDS, __api, and __api_config
+        Raises:
+              ConnectionError: if the API instantiation failed.
         """
-        self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+        try:
+
+            config_dict = {
+                'url': url,
+                'hub': hub,
+                'group': group,
+                'project': project
+            }
+            self.__api = IBMQuantumExperience(token, config_dict, verify)
+        except Exception as ex:
+            raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
+                                  .format(ex))
+
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
         self.__api_config["url"] = {"url": url}
+        self.__api_config["config"] = config_dict.copy()
+
+    def set_api_hubs_config(self, hub, group, project):
+        """Update the API hubs configuration, replacing the previous one.
+
+         hub (str): The hub used for online backend.
+         group (str): The group used for online backend.
+         project (str): The project used for online backend.
+        """
+        config_dict = {
+            'hub': hub,
+            'group': group,
+            'project': project
+        }
+
+        for k, v in config_dict.items():
+            self.__api.config[k] = v
+            self.__api_config['config'][k] = v
 
     def get_api_config(self):
         """Return the program specs."""

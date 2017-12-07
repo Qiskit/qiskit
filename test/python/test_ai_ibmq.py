@@ -17,13 +17,11 @@
 # =============================================================================
 """Test API hub, groups and projects related functionality."""
 import os
-from unittest import skipIf
+from unittest import TestCase, skipIf
 from unittest.mock import patch
 
-from qiskit import QuantumProgram
+from qiskit import QuantumProgram, QISKitError
 from IBMQuantumExperience.IBMQuantumExperience import _Request
-
-from .common import QiskitTestCase
 
 
 # We need the environment variable for Travis.
@@ -48,7 +46,7 @@ except ImportError:
         HAS_GROUP_VARS = True
 
 
-class TestApiHub(QiskitTestCase):
+class TestApiHub(TestCase):
     """Tests for API hubs, groups, and projects."""
 
     def setUp(self):
@@ -77,8 +75,11 @@ class TestApiHub(QiskitTestCase):
         post_original = quantum_program._QuantumProgram__api.req.post
         with patch.object(_Request, 'post',
                           wraps=post_original) as mocked_post:
-            _ = quantum_program.execute(
-                ['qc'], backend=self.backend, shots=1, max_credits=3)
+            with self.assertRaises(QISKitError) as context:
+                _ = quantum_program.execute(
+                    ['qc'], backend=self.backend, shots=1, max_credits=3)
+
+            self.assertIn('Generic error', str(context.exception))
 
             # Get the first parameter of the `run_job` POST call.
             url = mocked_post.call_args_list[-1][0][0]
@@ -128,14 +129,12 @@ class TestApiHub(QiskitTestCase):
         post_original = quantum_program._QuantumProgram__api.req.post
         with patch.object(_Request, 'post',
                           wraps=post_original) as mocked_post:
-            _ = quantum_program.execute(
-                ['qc'], backend=self.backend, shots=1, max_credits=3)
+            with self.assertRaises(KeyError) as context:
+                _ = quantum_program.execute(
+                    ['qc'], backend=self.backend, shots=1, max_credits=3)
 
-            # Get the first parameter of the `run_job` POST call.
-            url = mocked_post.call_args_list[-1][0][0]
-            self.assertEqual('/Network/%s/Groups/%s/Projects/%s/jobs' %
-                             (QE_HUB, QE_GROUP, QE_PROJECT),
-                             url)
+            # Raises a KeyError trying to find the backend.
+            self.assertIn(self.backend, str(context.exception))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_no_parameters(self):
@@ -149,9 +148,9 @@ class TestApiHub(QiskitTestCase):
         # Invoke with no hub, group or project parameters.
         quantum_program.set_api(QE_TOKEN, QE_URL)
 
-        self.log.info(quantum_program.online_backends())
-        self.log.info(quantum_program.get_backend_parameters(self.backend))
-        self.log.info(quantum_program.get_backend_calibration(self.backend))
+        print(quantum_program.online_backends())
+        print(quantum_program.get_backend_parameters(self.backend))
+        print(quantum_program.get_backend_calibration(self.backend))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_parameters(self):
@@ -165,6 +164,6 @@ class TestApiHub(QiskitTestCase):
         # Invoke with hub, group and project parameters.
         quantum_program.set_api(QE_TOKEN, QE_URL, QE_HUB, QE_GROUP, QE_PROJECT)
 
-        self.log.info(quantum_program.online_backends())
-        self.log.info(quantum_program.get_backend_parameters(self.backend))
-        self.log.info(quantum_program.get_backend_calibration(self.backend))
+        print(quantum_program.online_backends())
+        print(quantum_program.get_backend_parameters(self.backend))
+        print(quantum_program.get_backend_calibration(self.backend))
