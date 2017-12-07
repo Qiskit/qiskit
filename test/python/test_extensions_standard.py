@@ -56,6 +56,7 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
 
 
     def test_ccx(self):
@@ -72,6 +73,7 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(98, len(c.qasm()))
 
 
     def test_ch(self):
@@ -88,6 +90,8 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(86, len(c.qasm()))
+
 
     def test_crz(self):
         qasm_txt = 'crz(1.000000000000000) q[0],q[1];'
@@ -103,6 +107,7 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn('crz(-1.000000000000000) q[0],q[1];'+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(127, len(c.qasm()))
 
     def test_cswap(self):
         qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
@@ -118,6 +123,7 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])
         self.assertIn(qasm_txt+'\n'+qasm_txt,c.qasm())
+        self.assertEqual(154, len(c.qasm()))
 
     def test_cu1(self):
         qasm_txt = 'cu1(1.000000000000000) q[1],q[2];'
@@ -133,7 +139,7 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])
         self.assertIn('cu1(-1.000000000000000) q[1],q[2];'+'\n'+qasm_txt,c.qasm())
-
+        self.assertEqual(127, len(c.qasm()))
 
     def test_h(self):
         c = self.circuit
@@ -148,6 +154,8 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(74, len(c.qasm()))
+
 
     def test_x(self):
         c = self.circuit
@@ -162,6 +170,8 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(74, len(c.qasm()))
+
 
     def test_y(self):
         c = self.circuit
@@ -176,6 +186,8 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(74, len(c.qasm()))
+
 
 
     def test_z(self):
@@ -191,6 +203,8 @@ class TestStandard(QiskitTestCase):
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])  
         self.assertIn(qasm_txt+'\n'+qasm_txt, c.qasm())
+        self.assertEqual(74, len(c.qasm()))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
