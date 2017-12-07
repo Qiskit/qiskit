@@ -168,6 +168,22 @@ class QuantumProgram(object):
             self.__quantum_registers[name] = QuantumRegister(name, size)
         return self.__quantum_registers[name]
 
+    def destroy_quantum_register(self, name, verbose=False):
+        """Destroy an existing Quantum Register.
+
+        Args:
+            name (str): the name of the quantum register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            if verbose:
+                print(">> quantum_register destroyed: %s", name)
+            del self.__quantum_registers[name]
+
     def create_quantum_registers(self, register_array):
         """Create a new set of Quantum Registers based on a array of them.
 
@@ -191,6 +207,24 @@ class QuantumProgram(object):
                 register["name"], register["size"])
             new_registers.append(register)
         return new_registers
+
+    def destroy_quantum_registers(self, register_array):
+        """Destroy a set of Quantum Registers based on a array of them.
+
+        Args:
+            register_array (list[dict]): An array of quantum registers in
+                dictionay format::
+
+                    "quantum_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in register_array:
+            self.destroy_quantum_register(register["name"])
 
     def create_classical_register(self, name, size, verbose=False):
         """Create a new Classical Register.
@@ -237,6 +271,40 @@ class QuantumProgram(object):
                 register["name"], register["size"]))
         return new_registers
 
+    def destroy_classical_register(self, name, verbose=False):
+        """Destroy an existing Classical Register.
+
+        Args:
+            name (str): the name of the classical register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__classical_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            if verbose:
+                print(">> classical register destroyed: %s", name)
+            del self.__classical_registers[name]
+
+    def destroy_classical_registers(self, registers_array):
+        """Destroy a set of Classical Registers based on a array of them.
+
+        Args:
+            registers_array (list[dict]): An array of classical registers in
+                dictionay fromat::
+
+                    "classical_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in registers_array:
+            self.destroy_classical_register(register["name"])
+
     def create_circuit(self, name, qregisters=None, cregisters=None):
         """Create a empty Quantum Circuit in the Quantum Program.
 
@@ -263,6 +331,20 @@ class QuantumProgram(object):
             quantum_circuit.add(register)
         self.add_circuit(name, quantum_circuit)
         return self.__quantum_program[name]
+
+    def destroy_circuit(self, name):
+        """Destroy a Quantum Circuit in the Quantum Program. This will not
+        destroy any registers associated with the circuit.
+
+        Args:
+            name (str): the name of the circuit
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_program:
+            raise QISKitError("Can't destroy this circuit: Not present")
+        del self.__quantum_program[name]
 
     def add_circuit(self, name, quantum_circuit):
         """Add a new circuit based on an Object representation.
