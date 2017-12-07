@@ -34,9 +34,9 @@ install:
     # Install each dependency in requires.txt individually *from conda*. It
     # cannot be pointed to "requirements.txt" directly as IBMQuantumExperience
     # is not on the conda repositories.
-    - for /F "tokens=*" %%A in (requirements.txt) do conda install -y -q %%A
+    - for /F "tokens=*" %%A in (requires.txt) do conda install -y -q %%A
     # Install the rest of dependencies via pip.
-    - pip.exe install -r requirements.txt
+    - pip.exe install -r requires.txt
     - pip.exe install pytest
 
 # Use py.test for output of xunit test results.
@@ -44,6 +44,6 @@ test_script:
     - py.test -s -v --junit-xml=test_results.xml
 
 # Upload the test results to appveyor so they are shown on the "Tests" tab.
-after_test:
+on_finish:
     - ps: $wc = New-Object 'System.Net.WebClient'
     - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test_results.xml))
