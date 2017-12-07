@@ -5,7 +5,7 @@
 
 **QISKit**은 [OpenQASM](https://github.com/QISKit/qiskit-openqasm)과 [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/)에서 사용할 수 있는 SDK(software development kit)입니다. 
 
-양자컴퓨팅 프로그램을 만들고, 컴파일하고, 실행하기 위해 **QISKit**을 사용하세요. 실행에 있어 QISKit은 온라인상 접근 가능한 실제 양자 프로세서, 온라인 시뮬레이터, 로컬 시뮬레이터의 백엔드 환경을 지원합니다. 온라인 백엔드 환경에서, QIAKit은 IBM Q experience와 연결하기 위해 [python API client](https://github.com/QISKit/qiskit-api-py)를 사용합니다.
+양자컴퓨팅 프로그램을 만들고, 컴파일하고, 실행하기 위해 **QISKit**을 사용하세요. 실행에 있어 QISKit은 온라인상 접근 가능한 실제 양자 프로세서, 온라인 시뮬레이터, 로컬 시뮬레이터의 백엔드 환경을 지원합니다. 온라인 백엔드 환경에서, QISKit은 IBM Q experience와 연결하기 위해 [python API client](https://github.com/QISKit/qiskit-api-py)를 사용합니다.
 
 우리는 **GitHub issue**를 요청과 버그 추적에 사용합니다. 질문과 토론을 위해[IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)를 살펴보세요.  만일 여러분이 QISKit개발에 기여하기 원한다면 우리의 **[contribution guidelines](CONTRIBUTING.rst)** 을 살펴보세요.
 

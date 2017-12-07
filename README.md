@@ -143,11 +143,11 @@ Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/
 
 ## Multilanguage guide
 
-* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/tree/master/doc/ko/README-ko.md)**, Basic guide line written in Korean. 
+* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/tree/master/doc/ko/README.md)**, Basic guide line written in Korean. 
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood, Yunho Maeng
+Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Yunho Maeng, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
 
 In future releases, anyone who contributes with code to this project is welcome to include their name here.
 
