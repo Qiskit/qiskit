@@ -84,8 +84,8 @@ with QISKit, and install the required dependencies:
     .\make env
 
 
-4. Configure your API token
----------------------------
+4. Configure your API token and QE credentials
+----------------------------------------------
 
 -  Create an `IBM Q
    experience <https://quantumexperience.ng.bluemix.net>`__ account if
@@ -103,6 +103,26 @@ with QISKit, and install the required dependencies:
 -  Open your Qconfig.py, remove the ``#`` from the beginning of the API
    token line, and copy/paste your API token into the space between the
    quotation marks on that line. Save and close the file.
+
+-  If you have access to the IBM Q features, you also need to setup the
+   values for your hub, group, and project. You can do so by filling the
+   ``config`` variable with the values you can find on your IBM Q account
+   page.
+
+For example, a valid and fully configured ``Qconfig.py`` file would look like:
+
+.. code:: python
+
+    APItoken = '123456789abc...'
+
+    config = {
+        'url': 'https://quantumexperience.ng.bluemix.net/api',
+        # The following should only be needed for IBM Q users.
+        'hub': 'MY_HUB',
+        'group': 'MY_GROUP',
+        'project': 'MY_PROJECT'
+    }
+
 
 Install Jupyter-based tutorials
 ===============================
