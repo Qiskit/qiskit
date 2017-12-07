@@ -20,7 +20,7 @@ import os
 from unittest import skipIf
 from unittest.mock import patch
 
-from qiskit import QuantumProgram
+from qiskit import QuantumProgram, QISKitError
 from IBMQuantumExperience.IBMQuantumExperience import _Request
 
 from .common import QiskitTestCase
@@ -37,7 +37,7 @@ try:
     QE_GROUP = Qconfig.config['group']
     QE_PROJECT = Qconfig.config['project']
     HAS_GROUP_VARS = True
-except ImportError:
+except (ImportError, KeyError):
     if all(var in os.environ for var in
            ['QE_TOKEN', 'QE_URL', 'QE_HUB', 'QE_GROUP', 'QE_PROJECT']):
         QE_TOKEN = os.environ['QE_TOKEN']
@@ -104,6 +104,25 @@ class TestApiHub(QiskitTestCase):
             self.assertEqual('/Network/%s/Groups/%s/Projects/%s/jobs' %
                              (QE_HUB, QE_GROUP, QE_PROJECT),
                              url)
+
+    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
+    def test_execute_invalid_api_parameters(self):
+        """Test calling the API with invalid hub parameters."""
+        quantum_program = self._get_quantum_program()
+
+        # Invoke with hub, group and project parameters.
+        FAKE_QE_HUB = 'HUB'
+        FAKE_QE_GROUP = 'GROUP'
+        FAKE_QE_PROJECT = 'PROJECT'
+        quantum_program.set_api(QE_TOKEN, QE_URL,
+                                FAKE_QE_HUB, FAKE_QE_GROUP, FAKE_QE_PROJECT)
+
+        # Store the original post() method.
+        with self.assertRaises(QISKitError) as context:
+            _ = quantum_program.execute(
+                ['qc'], backend=self.backend, shots=1, max_credits=3)
+        self.assertIn('Backend ibmqx4 not found!', str(context.exception))
+
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_execute_api_modified_parameters(self):
