@@ -86,7 +86,7 @@ class JobProcessor():
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
         self.callback = (lambda rs: ()) if callback is None else callback
-        self.launch_callback = None
+        self.launch_callback = launch_callback
         self.num_jobs = len(self.q_jobs)
         self.jobs_results = []
         if self.online:
