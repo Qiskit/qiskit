@@ -28,6 +28,10 @@ def choices(population, weights=None, k=1):
     Replacement for `random.choices()`, which is only available in Python 3.6+.
     TODO: drop once Python 3.6 is required by the sdk.
     """
+    if weights and sum(weights) != 1:
+        # Normalize the weights if needed, as numpy.random.choice requires so.
+        weights = [float(i)/sum(weights) for i in weights]
+
     return numpy.random.choice(population, size=k, p=weights)
 
 
