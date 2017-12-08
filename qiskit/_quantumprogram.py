@@ -1182,7 +1182,8 @@ class QuantumProgram(object):
         self.wait_for_results(timeout)
         return self.jobs_results
 
-    def run_async(self, qobj, wait=5, timeout=60, callback=None):
+    def run_async(self, qobj, wait=5, timeout=60, callback=None,
+                  launch_callback=None):
         """Run a program (a pre-compiled quantum program) asynchronously. This
         is a non-blocking function, so it will return inmediately.
 
@@ -1196,13 +1197,18 @@ class QuantumProgram(object):
             callback (fn(result)): A function with signature:
                     fn(result):
                     The result param will be a Result object.
+            launch_callback (fn(string)): Function called at job launch. It will
+                                          be passed the ID string of job, which
+                                          will match the job_id in the result.
         """
         self._run_internal([qobj],
                            wait=wait,
                            timeout=timeout,
-                           callback=callback)
+                           callback=callback,
+                           launch_callback=launch_callback)
 
-    def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None):
+    def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None,
+                        launch_callback=None):
         """Run various programs (a list of pre-compiled quantum program)
         asynchronously. This is a non-blocking function, so it will return
         inmediately.
@@ -1217,15 +1223,19 @@ class QuantumProgram(object):
                     fn(results):
                     The results param will be a list of Result objects, one
                     Result per qobj in the input list.
+            launch_callback (fn(string)): Function called at job launch. It will
+                                          be passed the ID string of job, which
+                                          will match the job_id in the result.
         """
         self._run_internal(qobj_list,
                            wait=wait,
                            timeout=timeout,
                            callback=callback,
+                           launch_callback=launch_callback,
                            are_multiple_results=True)
 
     def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None,
-                      are_multiple_results=False):
+                      launch_callback=None, are_multiple_results=False):
 
         self.callback = callback
         self.are_multiple_results = are_multiple_results
@@ -1238,7 +1248,8 @@ class QuantumProgram(object):
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
-                                     callback=self._jobs_done_callback)
+                                     callback=self._jobs_done_callback,
+                                     launch_callback=launch_callback)
         job_processor.submit()
 
     def _jobs_done_callback(self, jobs_results):

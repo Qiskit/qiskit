@@ -62,12 +62,16 @@ class QasmCppSimulator(BaseBackend):
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
 
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         """
         Run simulation on C++ simulator.
 
         Args:
             q_job (QuantumJob): describes job
+            launch_callback (fn(string)): Function called at job launch. It
+                                          will be passed the ID string of job,
+                                          which will match the job_id in the
+                                          result.
 
         Returns:
             Result: result object
@@ -77,7 +81,8 @@ class QasmCppSimulator(BaseBackend):
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
-
+        if launch_callback is not None:
+            launch_callback(job_id)
         qobj = q_job.qobj
         # TODO: use qobj schema for validation
         if 'config' in qobj:

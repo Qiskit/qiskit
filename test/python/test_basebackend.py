@@ -84,7 +84,7 @@ class NoConfigurationBackend(BaseBackend):
     def __init__(self, configuration=None):
         pass
 
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         pass
 
     @property

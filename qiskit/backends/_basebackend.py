@@ -24,7 +24,7 @@ class BaseBackend(ABC):
         self._configuration = configuration
 
     @abstractmethod
-    def run(self, q_job):
+    def run(self, q_job, launch_callback=None):
         pass
 
     @property
