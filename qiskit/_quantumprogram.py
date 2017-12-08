@@ -223,7 +223,6 @@ class QuantumProgram(object):
             logger.info(">> quantum_register destroyed: %s", name)
             del self.__quantum_registers[name]
 
-
     def create_quantum_registers(self, register_array):
         """Create a new set of Quantum Registers based on a array of them.
 
