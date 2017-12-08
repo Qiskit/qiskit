@@ -266,6 +266,32 @@ class TestQuantumProgram(unittest.TestCase):
         for i in qrs:
             self.assertIsInstance(i, QuantumRegister)
 
+    def test_destroy_classical_register(self):
+        """Test destroy_classical_register."""
+        QP_program = QuantumProgram()
+        _ = QP_program.create_classical_register('c1', 3)
+        self.assertIn('c1', QP_program.get_classical_register_names())
+        QP_program.destroy_classical_register('c1')
+        self.assertNotIn('c1', QP_program.get_classical_register_names())
+
+        # Destroying an invalid register should fail.
+        with self.assertRaises(QISKitError) as context:
+            QP_program.destroy_classical_register('c1')
+        self.assertIn('Not present', str(context.exception))
+
+    def test_destroy_quantum_register(self):
+        """Test destroy_quantum_register."""
+        QP_program = QuantumProgram()
+        _ = QP_program.create_quantum_register('q1', 3)
+        self.assertIn('q1', QP_program.get_quantum_register_names())
+        QP_program.destroy_quantum_register('q1')
+        self.assertNotIn('q1', QP_program.get_quantum_register_names())
+
+        # Destroying an invalid register should fail.
+        with self.assertRaises(QISKitError) as context:
+            QP_program.destroy_quantum_register('q1')
+        self.assertIn('Not present', str(context.exception))
+
     def test_create_circuit(self):
         """Test create_circuit.
 
@@ -303,6 +329,21 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertIsInstance(qc1, QuantumCircuit)
         self.assertIsInstance(qc2, QuantumCircuit)
         self.assertIsInstance(qc3, QuantumCircuit)
+
+    def test_destroy_circuit(self):
+        """Test destroy_circuit."""
+        QP_program = QuantumProgram()
+        qr = QP_program.create_quantum_register('qr', 3)
+        cr = QP_program.create_classical_register('cr', 3)
+        _ = QP_program.create_circuit('qc', [qr], [cr])
+        self.assertIn('qc', QP_program.get_circuit_names())
+        QP_program.destroy_circuit('qc')
+        self.assertNotIn('qc', QP_program.get_circuit_names())
+
+        # Destroying an invalid register should fail.
+        with self.assertRaises(QISKitError) as context:
+            QP_program.destroy_circuit('qc')
+        self.assertIn('Not present', str(context.exception))
 
     def test_load_qasm_file(self):
         """Test load_qasm_file and get_circuit.
