@@ -143,7 +143,7 @@ Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/
 
 ## Multilanguage guide
 
-* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/tree/master/doc/ko/README.md)**, Basic guide line written in Korean. 
+* **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
 
 ## Authors (alphabetical)
 
