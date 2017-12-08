@@ -43,20 +43,20 @@ class TestQuantumOptimization(QiskitTestCase):
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt),444)
+        self.assertEquals(len(qasm_txt),456)
 
         self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt), 312)
+        self.assertEquals(len(qasm_txt), 324)
 
         self.log.info("With Y measurement:\n")
         meas_sting = ['Y' for x in range(n)]
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt), 552)
+        self.assertEquals(len(qasm_txt), 564)
 
 
 class TestHamiltonian(QiskitTestCase):
