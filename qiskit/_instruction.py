@@ -20,7 +20,7 @@ Quantum computer instruction.
 """
 from ._register import Register
 from ._qiskiterror import QISKitError
-from sympy import N, Basic
+from sympy import Number, Basic
 
 class Instruction(object):
     """Generic quantum computer instruction."""
@@ -40,8 +40,9 @@ class Instruction(object):
         self.param = []
         for p in param:
             if not isinstance(p,Basic):
-                # if parameger not symbolic, make it symbolic
-                self.param.append(N(p))
+                # TODO if parameger not symbolic, make it symbolic
+                self.param.append(Number(p))
+            else: self.param.append(p)
         self.arg = arg
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
