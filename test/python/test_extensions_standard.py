@@ -85,7 +85,6 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'ch q[0],q[1];'
         self.assertResult(CHGate, qasm_txt, qasm_txt)
 
-
     def test_crz(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.crz, 0, self.c[0], self.c[1])
@@ -118,7 +117,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
         c.cu3(1, 2, 3, self.q[1], self.q[2])
         self.assertResult(Cu3Gate, 'cu3(1,2,3) q[1],q[2];', 'cu3(-1,-3,-2) q[1],q[2];')
-
 
     def test_cx(self):
         c = self.circuit
@@ -223,14 +221,12 @@ class TestStandard(QiskitTestCase):
         c.t(self.q[1])
         self.assertResult(TGate, 't q[1];', 'tdg q[1];')
 
-
     def test_tdg(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.tdg, self.c[0])
         # TODO self.assertRaises(QISKitError, c.tdg, 1)
         c.tdg(self.q[1])
         self.assertResult(TGate, 'tdg q[1];', 't q[1];')
-
 
     def test_u1(self):
         qasm_txt = 'u1(1) q[1];'
@@ -265,7 +261,6 @@ class TestStandard(QiskitTestCase):
         c.u_base([1, 2, 3], self.q[1])  # <- is that use intented?! CHECKME
         self.assertResult(UBase, 'U(1,2,3) q[1];', 'U(-1,-3,-2) q[1];')
 
-
     def test_x(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.x, self.c[0])
@@ -287,24 +282,24 @@ class TestStandard(QiskitTestCase):
         c.z(self.q[1])
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
 
-    def assertResult(self,t,qasm_txt,qasm_txt_):
+    def assertResult(self, t, qasm_txt, qasm_txt_):
         '''
         t: type
         qasm_txt: qasm representation
         qasm_txt_: qasm representation of inverse
         '''
         c = self.circuit
-        c_header= 58
+        c_header = 58
         c_txt = len(qasm_txt)
         c_txt_ = len(qasm_txt_)
         self.assertEqual(type(c[0]), t)
         self.assertIn(qasm_txt, c.qasm())
-        self.assertEqual(c_header+c_txt+1, len(c.qasm()))
+        self.assertEqual(c_header + c_txt + 1, len(c.qasm()))
         c[0].reapply(c)
         self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
         self.assertEqual(c[0].inverse(), c[0])
         self.assertIn(qasm_txt_ + '\n' + qasm_txt, c.qasm())
-        self.assertEqual(c_header+c_txt+c_txt_+2, len(c.qasm()))
+        self.assertEqual(c_header + c_txt + c_txt_ + 2, len(c.qasm()))
 
 
 if __name__ == '__main__':
