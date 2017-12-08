@@ -23,7 +23,7 @@ import sys
 import copy
 import logging
 import sympy
-from sympy import N
+from sympy import Number as N
 import numpy as np
 import networkx as nx
 import pprint
@@ -694,7 +694,7 @@ def optimize_1q_gates(circuit):
                                               right_parameters[1],
                                               right_parameters[2])
                 # Evaluate the symbolic expressions for efficiency
-                right_parameters = tuple(map(N, list(right_parameters)))
+                right_parameters = tuple([ p.evalf() for p in right_parameters ])
             # Here down, when we simplify, we add f(theta) to lambda to correct
             # the global phase when f(theta) is 2*pi. This isn't necessary but
             # the other steps preserve the global phase, so we continue.
