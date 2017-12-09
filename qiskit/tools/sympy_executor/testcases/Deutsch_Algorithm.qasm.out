@@ -1,0 +1,55 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/Deutsch_Algorithm.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/Deutsch_Algorithm.qasm
+
+*********state after step:1*********
+layer summary:
+ X(q[4])*H(q[3])
+state summary:
+ 
+            |q[4],q[3]>
+|0        | |00>
+|0        | |01>
+|sqrt(2)/2| |10>
+|sqrt(2)/2| |11>
+
+*********state after step:2*********
+layer summary:
+ H(q[4])
+state summary:
+ 
+       |q[4],q[3]>
+|1/2 | |00>
+|1/2 | |01>
+|-1/2| |10>
+|-1/2| |11>
+
+*********state after step:3*********
+layer summary:
+ CNOT(q[3],q[4])
+state summary:
+ 
+       |q[4],q[3]>
+|1/2 | |00>
+|-1/2| |01>
+|-1/2| |10>
+|1/2 | |11>
+
+*********state after step:4*********
+layer summary:
+ H(q[3])
+state summary:
+ 
+             |q[4],q[3]>
+|0         | |00>
+|sqrt(2)/2 | |01>
+|0         | |10>
+|-sqrt(2)/2| |11>
+
+*********final measured state:
+     |q[3]>
+|0| |0>
+|1| |1>

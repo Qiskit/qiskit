@@ -1,0 +1,4 @@
+1 goto qiskit root folder that has setup.py
+    python3 setup.py install
+2 pip3 install "sympy==1.0"
+3 pip3 install "pydot==1.2.3"

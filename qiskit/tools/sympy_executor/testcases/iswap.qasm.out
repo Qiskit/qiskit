@@ -1,0 +1,90 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/iswap.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/iswap.qasm
+
+*********state after step:1*********
+layer summary:
+ S(q[1])*X(q[0])
+state summary:
+ 
+    |q[1],q[0]>
+|0| |00>
+|1| |01>
+|0| |10>
+|0| |11>
+
+*********state after step:2*********
+layer summary:
+ S(q[0])
+state summary:
+ 
+    |q[1],q[0]>
+|0| |00>
+|I| |01>
+|0| |10>
+|0| |11>
+
+*********state after step:3*********
+layer summary:
+ H(q[0])
+state summary:
+ 
+               |q[1],q[0]>
+|sqrt(2)*I/2 | |00>
+|-sqrt(2)*I/2| |01>
+|0           | |10>
+|0           | |11>
+
+*********state after step:4*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+               |q[1],q[0]>
+|sqrt(2)*I/2 | |00>
+|0           | |01>
+|0           | |10>
+|-sqrt(2)*I/2| |11>
+
+*********state after step:5*********
+layer summary:
+ H(q[1])*H(q[0])
+state summary:
+ 
+              |q[1],q[0]>
+|0          | |00>
+|sqrt(2)*I/2| |01>
+|sqrt(2)*I/2| |10>
+|0          | |11>
+
+*********state after step:6*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+              |q[1],q[0]>
+|0          | |00>
+|0          | |01>
+|sqrt(2)*I/2| |10>
+|sqrt(2)*I/2| |11>
+
+*********state after step:7*********
+layer summary:
+ H(q[0])
+state summary:
+ 
+    |q[1],q[0]>
+|0| |00>
+|0| |01>
+|I| |10>
+|0| |11>
+
+*********final measured state:
+     |q[1],q[0]>
+|0| |00>
+|0| |01>
+|1| |10>
+|0| |11>

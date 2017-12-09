@@ -1,0 +1,4 @@
+cd ~/fabfiles/mcmcquantum
+fab gitupdate
+fab eval_setup  # will generate script, each host is responsible for i%25==hostid
+fab eval        # will run script

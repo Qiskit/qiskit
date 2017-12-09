@@ -1,0 +1,59 @@
+we do not use any third-party lib.
+
+we focus on symbolic execution, therefore we do not expand 1/sqrt(2) into real float values.
+for this purpose, we write our own algebra library that tolerate the symbolic form of 1/sqrt(2) and the irrational number i
+
+for matrix m, use the format "m[0,1]"" to get the element. m[0][1] is not supported because it requires two calls of __getitem__ and I do not know how to implement it:)
+
+we need sympy, argparse, pydot， matplotlib， numpy
+
+we provide the height()/width()/length() functions, rather than the attributes which are hard to maintain.
+
+design style: qubit-centric, not gate-centric, e.g., qubit.apply(gate)
+
+todo:
+[done] 1 special support of i, 1/sqrt(2), and include the support into vector/matrix.
+[done] 2 provide tensorproduct for both vector and matrix
+[done]  test tensorproduct in http://docs.sympy.org/dev/modules/physics/quantum/tensorproduct.html
+[done] switch to sympy
+[done] test on a toy circuit.
+[done] connect with ibm sdk apis.
+[done] change the label of the node.
+[done] pretty-print or maybe a web UI (do not do web UI, too costly)?
+[done] draw the circuit style
+[done] figure out the layer/schedule.
+
+[done]translate the circuit into sympy ops
+[done] print represent(q/matrix) in a pretty way
+[done] put the scattered domain definition into one file: extensible_gate_domain, who knows what gates will be added in future...
+[done] refactor the code of math executor, looks messy
+[done] map qid back to qubit name
+[done] separate the layers or circuit from visualizer.py
+[done] alarm if the gate is not supported now. we do not need to support all kinds of gates since most of them cannot pass the parsing :)
+[done] extension: ccx,  toffoli in general.
+[done] U1, U2, U3, CU1, CU2, CU3
+[done] the above extensions are problematic!!!
+[done] test the above gates, try reordering the control/subject, I suspect your defined gate uses the hardcoded index...
+[done] checking equivalence.
+[done] add more test cases
+[done] qubit put in order in the label
+[done] dagger in toffoli_without_swap.qasm seems to be wrong
+[done] regression testing for various cases
+[done] measure state only
+[done] update check_equivalence...
+[done] write test oracles for test cases
+[done] conjugate for ^2
+[done] test it with shaohan's 4-bit grover
+
+fuzzing:
+    fuzzing added. qfuzzer.py
+    you can control how to fuzz a file, and how many mutants to fuzz
+optimization using mcmc
+    cost estimation added.
+           You can control the assessment of the disorder penality.
+           you can control the ratio of weight of correctness over performance
+
+
+
+better visualize,
+setup on t76c server using flask

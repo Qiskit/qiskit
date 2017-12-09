@@ -1,0 +1,156 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/grover00.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/grover00.qasm
+
+*********state after step:1*********
+layer summary:
+ H(q[1])*H(q[2])
+state summary:
+ 
+      |q[2],q[1]>
+|1/2| |00>
+|1/2| |01>
+|1/2| |10>
+|1/2| |11>
+
+*********state after step:2*********
+layer summary:
+ S(q[1])*S(q[2])
+state summary:
+ 
+       |q[2],q[1]>
+|1/2 | |00>
+|I/2 | |01>
+|I/2 | |10>
+|-1/2| |11>
+
+*********state after step:3*********
+layer summary:
+ H(q[2])
+state summary:
+ 
+                           |q[2],q[1]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |00>
+|-sqrt(2)/4 + sqrt(2)*I/4| |01>
+|sqrt(2)/4 - sqrt(2)*I/4 | |10>
+|sqrt(2)/4 + sqrt(2)*I/4 | |11>
+
+*********state after step:4*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                           |q[2],q[1]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |00>
+|sqrt(2)/4 + sqrt(2)*I/4 | |01>
+|sqrt(2)/4 - sqrt(2)*I/4 | |10>
+|-sqrt(2)/4 + sqrt(2)*I/4| |11>
+
+*********state after step:5*********
+layer summary:
+ S(q[1])*H(q[2])
+state summary:
+ 
+       |q[2],q[1]>
+|1/2 | |00>
+|-1/2| |01>
+|I/2 | |10>
+|I/2 | |11>
+
+*********state after step:6*********
+layer summary:
+ H(q[1])*S(q[2])
+state summary:
+ 
+             |q[2],q[1]>
+|0         | |00>
+|sqrt(2)/2 | |01>
+|-sqrt(2)/2| |10>
+|0         | |11>
+
+*********state after step:7*********
+layer summary:
+ X(q[1])*H(q[2])
+state summary:
+ 
+       |q[2],q[1]>
+|1/2 | |00>
+|-1/2| |01>
+|1/2 | |10>
+|1/2 | |11>
+
+*********state after step:8*********
+layer summary:
+ X(q[2])
+state summary:
+ 
+       |q[2],q[1]>
+|1/2 | |00>
+|1/2 | |01>
+|1/2 | |10>
+|-1/2| |11>
+
+*********state after step:9*********
+layer summary:
+ H(q[2])
+state summary:
+ 
+            |q[2],q[1]>
+|sqrt(2)/2| |00>
+|0        | |01>
+|0        | |10>
+|sqrt(2)/2| |11>
+
+*********state after step:10*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+            |q[2],q[1]>
+|sqrt(2)/2| |00>
+|sqrt(2)/2| |01>
+|0        | |10>
+|0        | |11>
+
+*********state after step:11*********
+layer summary:
+ X(q[1])*H(q[2])
+state summary:
+ 
+      |q[2],q[1]>
+|1/2| |00>
+|1/2| |01>
+|1/2| |10>
+|1/2| |11>
+
+*********state after step:12*********
+layer summary:
+ H(q[1])*X(q[2])
+state summary:
+ 
+            |q[2],q[1]>
+|sqrt(2)/2| |00>
+|0        | |01>
+|sqrt(2)/2| |10>
+|0        | |11>
+
+*********state after step:13*********
+layer summary:
+ H(q[2])
+state summary:
+ 
+    |q[2],q[1]>
+|1| |00>
+|0| |01>
+|0| |10>
+|0| |11>
+
+*********final measured state:
+     |q[2],q[1]>
+|1| |00>
+|0| |01>
+|0| |10>
+|0| |11>

@@ -1,0 +1,8 @@
+python qoptimizer.py --iterations 100000 --correctness_perf_ratio 100
+
+mcmc_mutants is for temporarily holding the mutants
+mcmc_mutants_good holds the mutants that are (1) correct and (2) have better performance
+mcmc_cost_logs:
+    grover11.qasm.0.cost_log shows the trend of cost in the run 0 (repeat id=0)
+    grover11.qasm.0.cost_log.pdf visualizes the trend
+

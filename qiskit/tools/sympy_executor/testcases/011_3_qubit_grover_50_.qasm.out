@@ -1,0 +1,1172 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/011_3_qubit_grover_50_.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/011_3_qubit_grover_50_.qasm
+
+*********state after step:1*********
+layer summary:
+ H(q[2])*H(q[0])*H(q[1])
+state summary:
+ 
+            |q[2],q[1],q[0]>
+|sqrt(2)/4| |000>
+|sqrt(2)/4| |001>
+|sqrt(2)/4| |010>
+|sqrt(2)/4| |011>
+|sqrt(2)/4| |100>
+|sqrt(2)/4| |101>
+|sqrt(2)/4| |110>
+|sqrt(2)/4| |111>
+
+*********state after step:2*********
+layer summary:
+ S(q[2])*S(q[0])*S(q[1])
+state summary:
+ 
+               |q[2],q[1],q[0]>
+|sqrt(2)/4   | |000>
+|sqrt(2)*I/4 | |001>
+|sqrt(2)*I/4 | |010>
+|-sqrt(2)/4  | |011>
+|sqrt(2)*I/4 | |100>
+|-sqrt(2)/4  | |101>
+|-sqrt(2)/4  | |110>
+|-sqrt(2)*I/4| |111>
+
+*********state after step:3*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+               |q[2],q[1],q[0]>
+|sqrt(2)/4   | |000>
+|sqrt(2)*I/4 | |001>
+|-sqrt(2)/4  | |010>
+|-sqrt(2)*I/4| |011>
+|sqrt(2)*I/4 | |100>
+|-sqrt(2)/4  | |101>
+|sqrt(2)*I/4 | |110>
+|-sqrt(2)/4  | |111>
+
+*********state after step:4*********
+layer summary:
+ TDG(q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|sqrt(2)*I/4             | |001>
+|-sqrt(2)/4              | |010>
+|-sqrt(2)*I/4            | |011>
+|sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|-sqrt(2)*exp(-I*pi/4)/4 | |101>
+|sqrt(2)*I*exp(-I*pi/4)/4| |110>
+|-sqrt(2)*exp(-I*pi/4)/4 | |111>
+
+*********state after step:5*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|-sqrt(2)*exp(-I*pi/4)/4 | |001>
+|-sqrt(2)/4              | |010>
+|-sqrt(2)*exp(-I*pi/4)/4 | |011>
+|sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|sqrt(2)*I/4             | |101>
+|sqrt(2)*I*exp(-I*pi/4)/4| |110>
+|-sqrt(2)*I/4            | |111>
+
+*********state after step:6*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|-sqrt(2)*exp(-I*pi/4)/4 | |001>
+|-sqrt(2)/4              | |010>
+|-sqrt(2)*exp(-I*pi/4)/4 | |011>
+|sqrt(2)*I/4             | |100>
+|sqrt(2)*I*exp(I*pi/4)/4 | |101>
+|sqrt(2)*I/4             | |110>
+|-sqrt(2)*I*exp(I*pi/4)/4| |111>
+
+*********state after step:7*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|-sqrt(2)*exp(-I*pi/4)/4 | |001>
+|sqrt(2)*I/4             | |010>
+|-sqrt(2)*I*exp(I*pi/4)/4| |011>
+|sqrt(2)*I/4             | |100>
+|sqrt(2)*I*exp(I*pi/4)/4 | |101>
+|-sqrt(2)/4              | |110>
+|-sqrt(2)*exp(-I*pi/4)/4 | |111>
+
+*********state after step:8*********
+layer summary:
+ TDG(q[2])*T(q[1])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|-sqrt(2)*exp(-I*pi/4)/4 | |001>
+|sqrt(2)*I*exp(I*pi/4)/4 | |010>
+|sqrt(2)/4               | |011>
+|sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|sqrt(2)*I/4             | |101>
+|-sqrt(2)/4              | |110>
+|-sqrt(2)*exp(-I*pi/4)/4 | |111>
+
+*********state after step:9*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4               | |000>
+|sqrt(2)*I/4             | |001>
+|sqrt(2)*I*exp(I*pi/4)/4 | |010>
+|-sqrt(2)*exp(-I*pi/4)/4 | |011>
+|sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|-sqrt(2)*exp(-I*pi/4)/4 | |101>
+|-sqrt(2)/4              | |110>
+|sqrt(2)/4               | |111>
+
+*********state after step:10*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                          |q[2],q[1],q[0]>
+|sqrt(2)/4              | |000>
+|sqrt(2)*I/4            | |001>
+|sqrt(2)*I*exp(I*pi/4)/4| |010>
+|-sqrt(2)*exp(-I*pi/4)/4| |011>
+|sqrt(2)*I/4            | |100>
+|-sqrt(2)/4             | |101>
+|-sqrt(2)*exp(I*pi/4)/4 | |110>
+|sqrt(2)*exp(I*pi/4)/4  | |111>
+
+*********state after step:11*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                          |q[2],q[1],q[0]>
+|sqrt(2)/4              | |000>
+|sqrt(2)*I/4            | |001>
+|-sqrt(2)*exp(I*pi/4)/4 | |010>
+|sqrt(2)*exp(I*pi/4)/4  | |011>
+|sqrt(2)*I/4            | |100>
+|-sqrt(2)/4             | |101>
+|sqrt(2)*I*exp(I*pi/4)/4| |110>
+|-sqrt(2)*exp(-I*pi/4)/4| |111>
+
+*********state after step:12*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                                            |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8| |000>
+|-sqrt(2)/8 - sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8| |001>
+|sqrt(2)/8 - sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8| |010>
+|-sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I/8| |011>
+|sqrt(2)/8 - sqrt(2)*I/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8| |100>
+|sqrt(2)/8 + sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8 | |101>
+|sqrt(2)/8 - sqrt(2)*I/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8| |110>
+|sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I/8 | |111>
+
+*********state after step:13*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                                            |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8| |000>
+|-sqrt(2)/8 - sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8| |001>
+|sqrt(2)/8 - sqrt(2)*I/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8| |010>
+|sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I/8 | |011>
+|sqrt(2)/8 - sqrt(2)*I/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8| |100>
+|sqrt(2)/8 + sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8 | |101>
+|sqrt(2)/8 - sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/8| |110>
+|-sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I/8| |111>
+
+*********state after step:14*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                          |q[2],q[1],q[0]>
+|sqrt(2)/4              | |000>
+|sqrt(2)*I/4            | |001>
+|-sqrt(2)*exp(I*pi/4)/4 | |010>
+|sqrt(2)*exp(I*pi/4)/4  | |011>
+|sqrt(2)*I*exp(I*pi/4)/4| |100>
+|-sqrt(2)*exp(-I*pi/4)/4| |101>
+|sqrt(2)*I/4            | |110>
+|-sqrt(2)/4             | |111>
+
+*********state after step:15*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                          |q[2],q[1],q[0]>
+|sqrt(2)/4              | |000>
+|sqrt(2)*I/4            | |001>
+|sqrt(2)*I/4            | |010>
+|-sqrt(2)/4             | |011>
+|sqrt(2)*I*exp(I*pi/4)/4| |100>
+|-sqrt(2)*exp(-I*pi/4)/4| |101>
+|-sqrt(2)*exp(I*pi/4)/4 | |110>
+|sqrt(2)*exp(I*pi/4)/4  | |111>
+
+*********state after step:16*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                                   |q[2],q[1],q[0]>
+|1/4 + I/4                       | |000>
+|-exp(-I*pi/4)/4 + exp(I*pi/4)/4 | |001>
+|1/4 - I/4                       | |010>
+|-exp(I*pi/4)/4 - exp(-I*pi/4)/4 | |011>
+|-exp(I*pi/4)/4 + I*exp(I*pi/4)/4| |100>
+|-1/4 + I/4                      | |101>
+|I*exp(I*pi/4)/4 + exp(I*pi/4)/4 | |110>
+|1/4 + I/4                       | |111>
+
+*********state after step:17*********
+layer summary:
+ TDG(q[2])*T(q[0])*S(q[1])
+state summary:
+ 
+             |q[2],q[1],q[0]>
+|1/4 + I/4 | |000>
+|-1/4 + I/4| |001>
+|1/4 + I/4 | |010>
+|1/4 - I/4 | |011>
+|-1/4 + I/4| |100>
+|-1/4 + I/4| |101>
+|-1/4 + I/4| |110>
+|-1/4 + I/4| |111>
+
+*********state after step:18*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |000>
+|-sqrt(2)/4 + sqrt(2)*I/4| |001>
+|0                       | |010>
+|0                       | |011>
+|-sqrt(2)/4 + sqrt(2)*I/4| |100>
+|0                       | |101>
+|0                       | |110>
+|-sqrt(2)/4 + sqrt(2)*I/4| |111>
+
+*********state after step:19*********
+layer summary:
+ S(q[2])*S(q[0])*X(q[1])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|0                       | |000>
+|0                       | |001>
+|sqrt(2)/4 + sqrt(2)*I/4 | |010>
+|-sqrt(2)/4 - sqrt(2)*I/4| |011>
+|0                       | |100>
+|sqrt(2)/4 - sqrt(2)*I/4 | |101>
+|-sqrt(2)/4 - sqrt(2)*I/4| |110>
+|0                       | |111>
+
+*********state after step:20*********
+layer summary:
+ H(q[2])*H(q[0])
+state summary:
+ 
+                              |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8    | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |001>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |010>
+|sqrt(2)/8 + sqrt(2)*I/8    | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |100>
+|sqrt(2)/8 - sqrt(2)*I/8    | |101>
+|sqrt(2)/8 + sqrt(2)*I/8    | |110>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8| |111>
+
+*********state after step:21*********
+layer summary:
+ X(q[2])*X(q[0])
+state summary:
+ 
+                              |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8    | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |001>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8| |010>
+|sqrt(2)/8 + sqrt(2)*I/8    | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |100>
+|sqrt(2)/8 - sqrt(2)*I/8    | |101>
+|sqrt(2)/8 + sqrt(2)*I/8    | |110>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |111>
+
+*********state after step:22*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                              |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8    | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |001>
+|sqrt(2)/8 + sqrt(2)*I/8    | |010>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |100>
+|sqrt(2)/8 - sqrt(2)*I/8    | |101>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8| |110>
+|sqrt(2)/8 + sqrt(2)*I/8    | |111>
+
+*********state after step:23*********
+layer summary:
+ TDG(q[2])
+state summary:
+ 
+                                                        |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                              | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                             | |001>
+|sqrt(2)/8 + sqrt(2)*I/8                              | |010>
+|-sqrt(2)/8 - sqrt(2)*I/8                             | |011>
+|-sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8   | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8   | |101>
+|3*sqrt(2)*exp(-I*pi/4)/8 + 3*sqrt(2)*I*exp(-I*pi/4)/8| |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8    | |111>
+
+*********state after step:24*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                        |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                              | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8   | |001>
+|sqrt(2)/8 + sqrt(2)*I/8                              | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8    | |011>
+|-sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8   | |100>
+|-sqrt(2)/8 + sqrt(2)*I/8                             | |101>
+|3*sqrt(2)*exp(-I*pi/4)/8 + 3*sqrt(2)*I*exp(-I*pi/4)/8| |110>
+|-sqrt(2)/8 - sqrt(2)*I/8                             | |111>
+
+*********state after step:25*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |001>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8 | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8                          | |100>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/8  | |101>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8                       | |110>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8  | |111>
+
+*********state after step:26*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |001>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8                       | |010>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8  | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8                          | |100>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/8  | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8 | |111>
+
+*********state after step:27*********
+layer summary:
+ TDG(q[2])*T(q[1])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8 | |001>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |010>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |011>
+|-sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8 | |100>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                            | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |111>
+
+*********state after step:28*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |001>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |011>
+|-sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8 | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8 | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                            | |110>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |111>
+
+*********state after step:29*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |001>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |100>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |101>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8    | |110>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |111>
+
+*********state after step:30*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |001>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8    | |010>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |100>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |101>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |111>
+
+*********state after step:31*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                                                                                                     |q[2],q[1],q[0]>
+|sqrt(2)*I*exp(I*pi/4)/4 + sqrt(2)*exp(I*pi/4)/4                                                                                   | |000>
+|sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16                           | |001>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I*exp(I*pi/4)/4                                                                                  | |010>
+|-sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*I*exp(-I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16                          | |011>
+|sqrt(2)/8 - sqrt(2)*I/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8                                                         | |100>
+|-sqrt(2)/8 - sqrt(2)*I*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I/8| |101>
+|sqrt(2)/8 - sqrt(2)*I/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8                                                         | |110>
+|-sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*I/8| |111>
+
+*********state after step:32*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                                                                                                     |q[2],q[1],q[0]>
+|sqrt(2)*I*exp(I*pi/4)/4 + sqrt(2)*exp(I*pi/4)/4                                                                                   | |000>
+|sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16                           | |001>
+|sqrt(2)/8 - sqrt(2)*I/8 + sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8                                                         | |010>
+|-sqrt(2)/8 - sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*I/8| |011>
+|sqrt(2)/8 - sqrt(2)*I/8 - sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8                                                         | |100>
+|-sqrt(2)/8 - sqrt(2)*I*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I/8| |101>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I*exp(I*pi/4)/4                                                                                  | |110>
+|-sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*I*exp(-I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16                          | |111>
+
+*********state after step:33*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |001>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8    | |010>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |011>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |100>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |101>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |110>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |111>
+
+*********state after step:34*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                      |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |001>
+|-sqrt(2)/8 + sqrt(2)*I/8                           | |010>
+|sqrt(2)/8 - sqrt(2)*I/8                            | |011>
+|3*sqrt(2)*I*exp(I*pi/4)/8 + 3*sqrt(2)*exp(I*pi/4)/8| |100>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/8  | |101>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8    | |110>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |111>
+
+*********state after step:35*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                                                                       |q[2],q[1],q[0]>
+|0                                                                   | |000>
+|exp(-I*pi/4)/8 - I*exp(I*pi/4)/8 + exp(I*pi/4)/8 + I*exp(-I*pi/4)/8 | |001>
+|1/4 - I/4                                                           | |010>
+|-exp(I*pi/4)/8 + exp(-I*pi/4)/8 + I*exp(I*pi/4)/8 + I*exp(-I*pi/4)/8| |011>
+|I*exp(I*pi/4)/2 + exp(I*pi/4)/2                                     | |100>
+|0                                                                   | |101>
+|I*exp(I*pi/4)/4 + exp(I*pi/4)/4                                     | |110>
+|-1/4 + I/4                                                          | |111>
+
+*********state after step:36*********
+layer summary:
+ TDG(q[2])*T(q[0])*X(q[1])
+state summary:
+ 
+             |q[2],q[1],q[0]>
+|1/4 - I/4 | |000>
+|0         | |001>
+|0         | |010>
+|1/4 + I/4 | |011>
+|1/4 + I/4 | |100>
+|-1/4 + I/4| |101>
+|1/2 + I/2 | |110>
+|0         | |111>
+
+*********state after step:37*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                              |q[2],q[1],q[0]>
+|sqrt(2)/8 - sqrt(2)*I/8    | |000>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |001>
+|sqrt(2)/8 - sqrt(2)*I/8    | |010>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |011>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8| |100>
+|sqrt(2)/8 + sqrt(2)*I/8    | |101>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |110>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |111>
+
+*********state after step:38*********
+layer summary:
+ X(q[2])*X(q[0])*S(q[1])
+state summary:
+ 
+                              |q[2],q[1],q[0]>
+|sqrt(2)/8 + sqrt(2)*I/8    | |000>
+|3*sqrt(2)/8 + 3*sqrt(2)*I/8| |001>
+|sqrt(2)/8 - sqrt(2)*I/8    | |010>
+|sqrt(2)/8 - sqrt(2)*I/8    | |011>
+|-sqrt(2)/8 + sqrt(2)*I/8   | |100>
+|sqrt(2)/8 - sqrt(2)*I/8    | |101>
+|-sqrt(2)/8 - sqrt(2)*I/8   | |110>
+|sqrt(2)/8 + sqrt(2)*I/8    | |111>
+
+*********state after step:39*********
+layer summary:
+ H(q[2])*H(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |000>
+|-sqrt(2)/4              | |001>
+|sqrt(2)/8 - sqrt(2)*I/8 | |010>
+|-sqrt(2)/8 - sqrt(2)*I/8| |011>
+|sqrt(2)/4 + sqrt(2)*I/4 | |100>
+|-sqrt(2)*I/4            | |101>
+|sqrt(2)/8 - sqrt(2)*I/8 | |110>
+|sqrt(2)/8 + sqrt(2)*I/8 | |111>
+
+*********state after step:40*********
+layer summary:
+ S(q[2])*S(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |000>
+|-sqrt(2)*I/4            | |001>
+|sqrt(2)/8 - sqrt(2)*I/8 | |010>
+|sqrt(2)/8 - sqrt(2)*I/8 | |011>
+|-sqrt(2)/4 + sqrt(2)*I/4| |100>
+|sqrt(2)*I/4             | |101>
+|sqrt(2)/8 + sqrt(2)*I/8 | |110>
+|-sqrt(2)/8 - sqrt(2)*I/8| |111>
+
+*********state after step:41*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4 | |000>
+|-sqrt(2)*I/4            | |001>
+|sqrt(2)/8 + sqrt(2)*I/8 | |010>
+|-sqrt(2)/8 - sqrt(2)*I/8| |011>
+|-sqrt(2)/4 + sqrt(2)*I/4| |100>
+|sqrt(2)*I/4             | |101>
+|sqrt(2)/8 - sqrt(2)*I/8 | |110>
+|sqrt(2)/8 - sqrt(2)*I/8 | |111>
+
+*********state after step:42*********
+layer summary:
+ TDG(q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |010>
+|-sqrt(2)/8 - sqrt(2)*I/8                          | |011>
+|-sqrt(2)*exp(-I*pi/4)/4 + sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |101>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |110>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |111>
+
+*********state after step:43*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |001>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |010>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |011>
+|-sqrt(2)*exp(-I*pi/4)/4 + sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|-sqrt(2)*I/4                                      | |101>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |110>
+|-sqrt(2)/8 - sqrt(2)*I/8                          | |111>
+
+*********state after step:44*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |001>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |010>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |011>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |100>
+|-sqrt(2)*I*exp(I*pi/4)/4                          | |101>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |110>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8  | |111>
+
+*********state after step:45*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |001>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |010>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8  | |011>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |100>
+|-sqrt(2)*I*exp(I*pi/4)/4                          | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |110>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |111>
+
+*********state after step:46*********
+layer summary:
+ TDG(q[2])*T(q[1])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |001>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |010>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |011>
+|-sqrt(2)*exp(-I*pi/4)/4 + sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|-sqrt(2)*I/4                                      | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |110>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |111>
+
+*********state after step:47*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |010>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |011>
+|-sqrt(2)*exp(-I*pi/4)/4 + sqrt(2)*I*exp(-I*pi/4)/4| |100>
+|sqrt(2)*I*exp(-I*pi/4)/4                          | |101>
+|sqrt(2)/8 + sqrt(2)*I/8                           | |110>
+|sqrt(2)/8 - sqrt(2)*I/8                           | |111>
+
+*********state after step:48*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |010>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |011>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |100>
+|sqrt(2)*I/4                                       | |101>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |110>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |111>
+
+*********state after step:49*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |010>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |011>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |100>
+|sqrt(2)*I/4                                       | |101>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |110>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |111>
+
+*********state after step:50*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                                                                                         |q[2],q[1],q[0]>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/4                                                                                   | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16              | |001>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/4                                                                                  | |010>
+|-sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16              | |011>
+|sqrt(2)/4 + sqrt(2)*I*exp(I*pi/4)/8                                                                                   | |100>
+|-sqrt(2)*I/4 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16| |101>
+|sqrt(2)/4 - sqrt(2)*I*exp(I*pi/4)/8                                                                                   | |110>
+|-sqrt(2)*I/4 - sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16| |111>
+
+*********state after step:51*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                                                                                         |q[2],q[1],q[0]>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/4                                                                                   | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16              | |001>
+|sqrt(2)/4 - sqrt(2)*I*exp(I*pi/4)/8                                                                                   | |010>
+|-sqrt(2)*I/4 - sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*I*exp(-I*pi/4)/16 + sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16| |011>
+|sqrt(2)/4 + sqrt(2)*I*exp(I*pi/4)/8                                                                                   | |100>
+|-sqrt(2)*I/4 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16| |101>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I/4                                                                                  | |110>
+|-sqrt(2)*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/16              | |111>
+
+*********state after step:52*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |010>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |011>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |101>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |110>
+|sqrt(2)*I/4                                       | |111>
+
+*********state after step:53*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                     |q[2],q[1],q[0]>
+|sqrt(2)/4 + sqrt(2)*I/4                           | |000>
+|-sqrt(2)*I/4                                      | |001>
+|-sqrt(2)/4 + sqrt(2)*I/4                          | |010>
+|sqrt(2)*I/4                                       | |011>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(-I*pi/4)/8| |101>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8   | |110>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8  | |111>
+
+*********state after step:54*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                                                                       |q[2],q[1],q[0]>
+|I/2                                                                 | |000>
+|-I*exp(-I*pi/4)/8 + exp(-I*pi/4)/8 - I*exp(I*pi/4)/8 + exp(I*pi/4)/8| |001>
+|1/2                                                                 | |010>
+|-exp(I*pi/4)/8 - I*exp(-I*pi/4)/8 + exp(-I*pi/4)/8 + I*exp(I*pi/4)/8| |011>
+|exp(I*pi/4)/4                                                       | |100>
+|0                                                                   | |101>
+|-I*exp(I*pi/4)/4                                                    | |110>
+|-I/2                                                                | |111>
+
+*********state after step:55*********
+layer summary:
+ TDG(q[2])*T(q[0])*S(q[1])
+state summary:
+ 
+      |q[2],q[1],q[0]>
+|I/2| |000>
+|1/4| |001>
+|I/2| |010>
+|1/4| |011>
+|1/4| |100>
+|0  | |101>
+|1/4| |110>
+|1/2| |111>
+
+*********state after step:56*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+              |q[2],q[1],q[0]>
+|sqrt(2)*I/2| |000>
+|sqrt(2)/4  | |001>
+|0          | |010>
+|-sqrt(2)/4 | |011>
+|sqrt(2)/4  | |100>
+|sqrt(2)/4  | |101>
+|0          | |110>
+|0          | |111>
+
+*********state after step:57*********
+layer summary:
+ S(q[2])*S(q[0])*X(q[1])
+state summary:
+ 
+               |q[2],q[1],q[0]>
+|0           | |000>
+|-sqrt(2)*I/4| |001>
+|sqrt(2)*I/2 | |010>
+|sqrt(2)*I/4 | |011>
+|0           | |100>
+|0           | |101>
+|sqrt(2)*I/4 | |110>
+|-sqrt(2)/4  | |111>
+
+*********state after step:58*********
+layer summary:
+ H(q[2])*H(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|-sqrt(2)*I/8            | |000>
+|sqrt(2)*I/8             | |001>
+|-sqrt(2)/8 + sqrt(2)*I/2| |010>
+|sqrt(2)/8 + sqrt(2)*I/4 | |011>
+|-sqrt(2)*I/8            | |100>
+|sqrt(2)*I/8             | |101>
+|sqrt(2)/8 + sqrt(2)*I/4 | |110>
+|-sqrt(2)/8              | |111>
+
+*********state after step:59*********
+layer summary:
+ X(q[2])*X(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)*I/8             | |000>
+|-sqrt(2)*I/8            | |001>
+|-sqrt(2)/8              | |010>
+|sqrt(2)/8 + sqrt(2)*I/4 | |011>
+|sqrt(2)*I/8             | |100>
+|-sqrt(2)*I/8            | |101>
+|sqrt(2)/8 + sqrt(2)*I/4 | |110>
+|-sqrt(2)/8 + sqrt(2)*I/2| |111>
+
+*********state after step:60*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)*I/8             | |000>
+|-sqrt(2)*I/8            | |001>
+|sqrt(2)/8 + sqrt(2)*I/4 | |010>
+|-sqrt(2)/8 + sqrt(2)*I/2| |011>
+|sqrt(2)*I/8             | |100>
+|-sqrt(2)*I/8            | |101>
+|-sqrt(2)/8              | |110>
+|sqrt(2)/8 + sqrt(2)*I/4 | |111>
+
+*********state after step:61*********
+layer summary:
+ TDG(q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |010>
+|-sqrt(2)/8 + sqrt(2)*I/2                         | |011>
+|sqrt(2)*I*exp(-I*pi/4)/8                         | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |101>
+|-sqrt(2)*exp(-I*pi/4)/8                          | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |111>
+
+*********state after step:62*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |001>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |011>
+|sqrt(2)*I*exp(-I*pi/4)/8                         | |100>
+|-sqrt(2)*I/8                                     | |101>
+|-sqrt(2)*exp(-I*pi/4)/8                          | |110>
+|-sqrt(2)/8 + sqrt(2)*I/2                         | |111>
+
+*********state after step:63*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |001>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |011>
+|sqrt(2)*I/8                                      | |100>
+|-sqrt(2)*I*exp(I*pi/4)/8                         | |101>
+|-sqrt(2)/8                                       | |110>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/2 | |111>
+
+*********state after step:64*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |001>
+|-sqrt(2)/8                                       | |010>
+|-sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/2 | |011>
+|sqrt(2)*I/8                                      | |100>
+|-sqrt(2)*I*exp(I*pi/4)/8                         | |101>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |111>
+
+*********state after step:65*********
+layer summary:
+ TDG(q[2])*T(q[1])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |001>
+|-sqrt(2)*exp(I*pi/4)/8                           | |010>
+|-sqrt(2)/2 - sqrt(2)*I/8                         | |011>
+|sqrt(2)*I*exp(-I*pi/4)/8                         | |100>
+|-sqrt(2)*I/8                                     | |101>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |111>
+
+*********state after step:66*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|-sqrt(2)*exp(I*pi/4)/8                           | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |011>
+|sqrt(2)*I*exp(-I*pi/4)/8                         | |100>
+|-sqrt(2)*I*exp(-I*pi/4)/8                        | |101>
+|sqrt(2)/8 + sqrt(2)*I/4                          | |110>
+|-sqrt(2)/2 - sqrt(2)*I/8                         | |111>
+
+*********state after step:67*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|-sqrt(2)*exp(I*pi/4)/8                           | |010>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |011>
+|sqrt(2)*I/8                                      | |100>
+|-sqrt(2)*I/8                                     | |101>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/4  | |110>
+|-sqrt(2)*exp(I*pi/4)/2 - sqrt(2)*I*exp(I*pi/4)/8 | |111>
+
+*********state after step:68*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/4  | |010>
+|-sqrt(2)*exp(I*pi/4)/2 - sqrt(2)*I*exp(I*pi/4)/8 | |011>
+|sqrt(2)*I/8                                      | |100>
+|-sqrt(2)*I/8                                     | |101>
+|-sqrt(2)*exp(I*pi/4)/8                           | |110>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |111>
+
+*********state after step:69*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                                                                                       |q[2],q[1],q[0]>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8                                                                               | |000>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I/8 + sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/8| |001>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8                                                                              | |010>
+|-sqrt(2)*I/8 - sqrt(2)*I*exp(-I*pi/4)/8 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/4| |011>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8                                                                     | |100>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I*exp(-I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16              | |101>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8                                                                    | |110>
+|sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/4               | |111>
+
+*********state after step:70*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                                                                                       |q[2],q[1],q[0]>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8                                                                               | |000>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I/8 + sqrt(2)*exp(-I*pi/4)/16 - sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/8| |001>
+|-sqrt(2)*exp(I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/8                                                                    | |010>
+|sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*I*exp(-I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/4               | |011>
+|sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*exp(I*pi/4)/8                                                                     | |100>
+|-sqrt(2)*exp(I*pi/4)/4 - sqrt(2)*I*exp(-I*pi/4)/8 - sqrt(2)*I*exp(I*pi/4)/16 - sqrt(2)*exp(-I*pi/4)/16              | |101>
+|-sqrt(2)*I*exp(I*pi/4)/8 + sqrt(2)*I/8                                                                              | |110>
+|-sqrt(2)*I/8 - sqrt(2)*I*exp(-I*pi/4)/8 - sqrt(2)*exp(-I*pi/4)/16 + sqrt(2)*I*exp(I*pi/4)/16 + sqrt(2)*exp(I*pi/4)/4| |111>
+
+*********state after step:71*********
+layer summary:
+ H(q[2])*H(q[1])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/4  | |010>
+|-sqrt(2)*exp(I*pi/4)/2 - sqrt(2)*I*exp(I*pi/4)/8 | |011>
+|-sqrt(2)*exp(I*pi/4)/8                           | |100>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |101>
+|sqrt(2)*I/8                                      | |110>
+|-sqrt(2)*I/8                                     | |111>
+
+*********state after step:72*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                                                    |q[2],q[1],q[0]>
+|sqrt(2)*I/8                                      | |000>
+|-sqrt(2)*I/8                                     | |001>
+|sqrt(2)*I/8                                      | |010>
+|-sqrt(2)*I/8                                     | |011>
+|-sqrt(2)*exp(I*pi/4)/8                           | |100>
+|sqrt(2)*exp(-I*pi/4)/8 + sqrt(2)*I*exp(-I*pi/4)/4| |101>
+|sqrt(2)*exp(I*pi/4)/8 + sqrt(2)*I*exp(I*pi/4)/4  | |110>
+|-sqrt(2)*exp(I*pi/4)/2 - sqrt(2)*I*exp(I*pi/4)/8 | |111>
+
+*********state after step:73*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                                                                       |q[2],q[1],q[0]>
+|I/4                                                                 | |000>
+|-exp(I*pi/4)/2 + exp(-I*pi/4)/8 - I*exp(I*pi/4)/8 + I*exp(-I*pi/4)/4| |001>
+|0                                                                   | |010>
+|exp(-I*pi/4)/8 + I*exp(I*pi/4)/8 + I*exp(-I*pi/4)/4 + exp(I*pi/4)/2 | |011>
+|I*exp(I*pi/4)/4                                                     | |100>
+|-I/4                                                                | |101>
+|-exp(I*pi/4)/4 - I*exp(I*pi/4)/4                                    | |110>
+|0                                                                   | |111>
+
+*********state after step:74*********
+layer summary:
+ TDG(q[2])*T(q[0])*X(q[1])
+state summary:
+ 
+             |q[2],q[1],q[0]>
+|0         | |000>
+|3*I/4     | |001>
+|I/4       | |010>
+|1/4 - I/4 | |011>
+|-1/4 - I/4| |100>
+|0         | |101>
+|I/4       | |110>
+|-I/4      | |111>
+
+*********state after step:75*********
+layer summary:
+ CNOT(q[0],q[2])*H(q[1])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)*I/8             | |000>
+|-sqrt(2)*I/8            | |001>
+|-sqrt(2)*I/8            | |010>
+|sqrt(2)*I/8             | |011>
+|-sqrt(2)/8              | |100>
+|sqrt(2)/8 + sqrt(2)*I/4 | |101>
+|-sqrt(2)/8 - sqrt(2)*I/4| |110>
+|-sqrt(2)/8 + sqrt(2)*I/2| |111>
+
+*********state after step:76*********
+layer summary:
+ X(q[2])*X(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)/8 + sqrt(2)*I/4 | |000>
+|-sqrt(2)/8              | |001>
+|-sqrt(2)/8 + sqrt(2)*I/2| |010>
+|-sqrt(2)/8 - sqrt(2)*I/4| |011>
+|-sqrt(2)*I/8            | |100>
+|sqrt(2)*I/8             | |101>
+|sqrt(2)*I/8             | |110>
+|-sqrt(2)*I/8            | |111>
+
+*********state after step:77*********
+layer summary:
+ H(q[2])*H(q[0])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|sqrt(2)*I/8             | |000>
+|sqrt(2)/8               | |001>
+|-sqrt(2)/8 + sqrt(2)*I/8| |010>
+|sqrt(2)*I/2             | |011>
+|sqrt(2)*I/8             | |100>
+|sqrt(2)/8 + sqrt(2)*I/4 | |101>
+|-sqrt(2)/8 + sqrt(2)*I/8| |110>
+|sqrt(2)*I/4             | |111>
+
+*********final measured state:
+              |q[2],q[1],q[0]>
+|sqrt(2)/8 | |000>
+|sqrt(2)/8 | |001>
+|1/4       | |010>
+|sqrt(2)/2 | |011>
+|sqrt(2)/8 | |100>
+|sqrt(10)/8| |101>
+|1/4       | |110>
+|sqrt(2)/4 | |111>

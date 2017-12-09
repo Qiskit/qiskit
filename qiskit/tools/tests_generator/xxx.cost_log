@@ -1,0 +1,15 @@
+#  iteration_id      cost_correctness     cost_perf       cost_total=ratio*cost_correctness + cost_perf
+0    0    0    0
+1    0    0    0
+2    0    0    0
+3    0    -1    -1
+4    0    -1    -1
+5    0    -1    -1
+6    1    -1    1
+7    1    -1    1
+8    1    -1    1
+9    1    -1    1
+10    1    -1    1
+50000 1   -1   2
+50000 1   -1   2
+
