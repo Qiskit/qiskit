@@ -79,6 +79,51 @@ class MapperTest(QiskitTestCase):
         self.log.info(len(out_qasm))
         self.assertEqual(len(out_qasm), 220)
 
+    def test_symbolic_unary(self):
+        """
+        Test symbolic math with a unary.
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/172
+        """
+        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_unary.qasm'), name='test')
+        coupling_map = {0: [0]}
+        backend = "local_qasm_simulator"
+        self.log.info(self.qp.get_qasm("test"))
+        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
+        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
+        self.log.info(out_qasm)
+        self.log.info(len(out_qasm))
+        self.assertEqual(len(out_qasm), 220)
+
+    def test_symbolic_binary(self):
+        """
+        Test symbolic math with a binary.
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/172
+        """
+        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_binary.qasm'), name='test')
+        coupling_map = {0: [0]}
+        backend = "local_qasm_simulator"
+        self.log.info(self.qp.get_qasm("test"))
+        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
+        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
+        self.log.info(out_qasm)
+        self.log.info(len(out_qasm))
+        self.assertEqual(len(out_qasm), 220)
+
+    def test_symbolic_extern(self):
+        """
+        Test symbolic math with an extern.
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/172
+        """
+        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_extern.qasm'), name='test')
+        coupling_map = {0: [0]}
+        backend = "local_qasm_simulator"
+        self.log.info(self.qp.get_qasm("test"))
+        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
+        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
+        self.log.info(out_qasm)
+        self.log.info(len(out_qasm))
+        self.assertEqual(len(out_qasm), 220)
+
 
 if __name__ == '__main__':
     unittest.main()
