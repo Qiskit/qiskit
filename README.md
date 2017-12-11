@@ -61,10 +61,10 @@ Now that the SDK is installed, it's time to begin working with QISKit.
 
 We are ready to try out some QASM examples, which runs via the local simulator.
 
-This is a simple superposition example.
+This is a simple bell state example.
 
 ```python
-from qiskit import QuantumProgram, QISKitError, RegisterSizeError
+from qiskit import QuantumProgram, QISKitError
 
 # Creating Programs create your first QuantumProgram object instance.
 Q_program = QuantumProgram()
@@ -76,26 +76,26 @@ try:
   cr = Q_program.create_classical_register("cr", 2)
   # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
   # and your Classical Register "cr"
-  qc = Q_program.create_circuit("superposition", [qr], [cr])
+  qc = Q_program.create_circuit("bell_state", [qr], [cr])
 
   # add the H gate in the Qubit 0, we put this Qubit in superposition
   qc.h(qr[0])
+  # entangle Qubits 0 and 1
+  qc.cx(qr[0], qr[1])
 
   # add measure to see the state
   qc.measure(qr, cr)
 
   # Compiled  and execute in the local_qasm_simulator
 
-  result = Q_program.execute(["superposition"], backend='local_qasm_simulator', shots=1024)
+  result = Q_program.execute(["bell_state"], backend='local_qasm_simulator', shots=1024)
 
   # Show the results
   print(result)
-  print(result.get_data("superposition"))
+  print(result.get_data("bell_state"))
 
 except QISKitError as ex:
   print('There was an error in the circuit!. Error = {}'.format(ex))
-except RegisterSizeError as ex:
-  print('Error in the number of registers!. Error = {}'.format(ex))
 ```
 
 In this case, the output will be (approximately due to random fluctuations):
