@@ -51,3 +51,11 @@ class BinaryOp(Node):
         rhs = self.children[2].real(nested_scope)
 
         return operation(lhs, rhs)
+
+    def sym(self, nested_scope=None):
+        """Return the correspond floating point number."""
+        operation = self.children[0].operation()
+        lhs = self.children[1].real(nested_scope)
+        rhs = self.children[2].real(nested_scope)
+
+        return operation(lhs, rhs)
