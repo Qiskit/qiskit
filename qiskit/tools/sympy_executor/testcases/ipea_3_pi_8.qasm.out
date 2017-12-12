@@ -1,0 +1,377 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/ipea_3_pi_8.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/ipea_3_pi_8.qasm
+
+*********state after step:1*********
+layer summary:
+ U(q[1])*H(q[0])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |00>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |01>
+|0                                                      | |10>
+|0                                                      | |11>
+
+*********state after step:2*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |00>
+|0                                                      | |01>
+|0                                                      | |10>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |11>
+
+*********state after step:3*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0                                                      | |01>
+|0                                                      | |10>
+|0.191341716182545*sqrt(2) + 0.461939766255643*sqrt(2)*I| |11>
+
+*********state after step:4*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0.191341716182545*sqrt(2) + 0.461939766255643*sqrt(2)*I| |01>
+|0                                                      | |10>
+|0                                                      | |11>
+
+*********state after step:5*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                            |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I  | |00>
+|-0.0975451610080641*sqrt(2) + 0.490392640201615*sqrt(2)*I| |01>
+|0                                                        | |10>
+|0                                                        | |11>
+
+*********state after step:6*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                            |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I  | |00>
+|0                                                        | |01>
+|0                                                        | |10>
+|-0.0975451610080641*sqrt(2) + 0.490392640201615*sqrt(2)*I| |11>
+
+*********state after step:7*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|-0.353553390593274*sqrt(2) + 0.353553390593274*sqrt(2)*I| |11>
+
+*********state after step:8*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|-0.353553390593274*sqrt(2) + 0.353553390593274*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:9*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                            |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I  | |00>
+|-0.490392640201615*sqrt(2) + 0.0975451610080642*sqrt(2)*I| |01>
+|0                                                        | |10>
+|0                                                        | |11>
+
+*********state after step:10*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                            |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I  | |00>
+|0                                                        | |01>
+|0                                                        | |10>
+|-0.490392640201615*sqrt(2) + 0.0975451610080642*sqrt(2)*I| |11>
+
+*********state after step:11*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|-0.461939766255643*sqrt(2) - 0.191341716182545*sqrt(2)*I| |11>
+
+*********state after step:12*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|-0.461939766255643*sqrt(2) - 0.191341716182545*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:13*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|-0.277785116509801*sqrt(2) - 0.415734806151272*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:14*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|-0.277785116509801*sqrt(2) - 0.415734806151272*sqrt(2)*I| |11>
+
+*********state after step:15*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                |q[1],q[0]>
+|0.5*sqrt(2)                                  | |00>
+|0                                            | |01>
+|0                                            | |10>
+|-1.38777878078145e-16*sqrt(2) - 0.5*sqrt(2)*I| |11>
+
+*********state after step:16*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                |q[1],q[0]>
+|0.5*sqrt(2)                                  | |00>
+|-1.38777878078145e-16*sqrt(2) - 0.5*sqrt(2)*I| |01>
+|0                                            | |10>
+|0                                            | |11>
+
+*********state after step:17*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |00>
+|0.277785116509801*sqrt(2) - 0.415734806151273*sqrt(2)*I| |01>
+|0                                                      | |10>
+|0                                                      | |11>
+
+*********state after step:18*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I| |00>
+|0                                                      | |01>
+|0                                                      | |10>
+|0.277785116509801*sqrt(2) - 0.415734806151273*sqrt(2)*I| |11>
+
+*********state after step:19*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0                                                      | |01>
+|0                                                      | |10>
+|0.461939766255643*sqrt(2) - 0.191341716182545*sqrt(2)*I| |11>
+
+*********state after step:20*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0.461939766255643*sqrt(2) - 0.191341716182545*sqrt(2)*I| |01>
+|0                                                      | |10>
+|0                                                      | |11>
+
+*********state after step:21*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0.490392640201615*sqrt(2) + 0.0975451610080639*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:22*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|0.490392640201615*sqrt(2) + 0.0975451610080639*sqrt(2)*I| |11>
+
+*********state after step:23*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0                                                      | |01>
+|0                                                      | |10>
+|0.353553390593274*sqrt(2) + 0.353553390593273*sqrt(2)*I| |11>
+
+*********state after step:24*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                          |q[1],q[0]>
+|0.5*sqrt(2)                                            | |00>
+|0.353553390593274*sqrt(2) + 0.353553390593273*sqrt(2)*I| |01>
+|0                                                      | |10>
+|0                                                      | |11>
+
+*********state after step:25*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0.0975451610080643*sqrt(2) + 0.490392640201615*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:26*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|0.0975451610080643*sqrt(2) + 0.490392640201615*sqrt(2)*I| |11>
+
+*********state after step:27*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|-0.191341716182545*sqrt(2) + 0.461939766255643*sqrt(2)*I| |11>
+
+*********state after step:28*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.5*sqrt(2)                                             | |00>
+|-0.191341716182545*sqrt(2) + 0.461939766255643*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:29*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|-0.415734806151272*sqrt(2) + 0.277785116509801*sqrt(2)*I| |01>
+|0                                                       | |10>
+|0                                                       | |11>
+
+*********state after step:30*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                           |q[1],q[0]>
+|0.415734806151273*sqrt(2) + 0.277785116509801*sqrt(2)*I | |00>
+|0                                                       | |01>
+|0                                                       | |10>
+|-0.415734806151272*sqrt(2) + 0.277785116509801*sqrt(2)*I| |11>
+
+*********state after step:31*********
+layer summary:
+ U(q[1])
+state summary:
+ 
+                                                |q[1],q[0]>
+|0.5*sqrt(2)                                  | |00>
+|0                                            | |01>
+|0                                            | |10>
+|-0.5*sqrt(2) + 2.22044604925031e-16*sqrt(2)*I| |11>
+
+*********state after step:32*********
+layer summary:
+ CNOT(q[0],q[1])
+state summary:
+ 
+                                                |q[1],q[0]>
+|0.5*sqrt(2)                                  | |00>
+|-0.5*sqrt(2) + 2.22044604925031e-16*sqrt(2)*I| |01>
+|0                                            | |10>
+|0                                            | |11>
+
+*********state after step:33*********
+layer summary:
+ U(q[1])*H(q[0])
+state summary:
+ 
+                                                |q[1],q[0]>
+|2.09705534488602e-16 + 4.06667946495919e-16*I| |00>
+|0.831469612302545 + 0.555570233019602*I      | |01>
+|0                                            | |10>
+|0                                            | |11>
+Traceback (most recent call last):
+  File "sympy_executor.py", line 90, in <module>
+    math_execute(args, circuit)
+  File "/Users/liup/quantum/qiskit_dec_2017/qiskit/tools/sympy_executor/math_executor.py", line 187, in math_execute
+    _sym_op = get_sym_op(_gate.upper(), tuple(_qids))
+  File "/Users/liup/quantum/qiskit_dec_2017/qiskit/tools/sympy_executor/extensible_gate_domain.py", line 140, in get_sym_op
+    raise Exception('Not supported')
+Exception: Not supported
