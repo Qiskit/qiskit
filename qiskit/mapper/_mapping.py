@@ -694,10 +694,18 @@ def optimize_1q_gates(circuit):
                                               right_parameters[2])
                 # Evaluate the symbolic expressions for efficiency
                 right_parameters = tuple(map(sympy.N, list(right_parameters)))
-            # Here down, when we simplify, we add f(theta) to lambda to correct
-            # the global phase when f(theta) is 2*pi. This isn't necessary but
-            # the other steps preserve the global phase, so we continue.
-            # The final step will remove Z rotations by 2*pi.
+
+            # 1. Here down, when we simplify, we add f(theta) to lambda to
+            # correct the global phase when f(theta) is 2*pi. This isn't
+            # necessary but the other steps preserve the global phase, so
+            # we continue in that manner.
+            # 2. The final step will remove Z rotations by 2*pi.
+            # 3. Note that is_zero is true only if the expression is exactly
+            # zero. If the input expressions have already been evaluated
+            # then these final simplifications will not occur.
+            # TODO After we refactor, we should have separate passes for
+            # exact and approximate rewriting.
+
             # Y rotation is 0 mod 2*pi, so the gate is a u1
             if (right_parameters[0] % (2 * sympy.pi)).is_zero \
                and right_name != "u1":
@@ -734,14 +742,15 @@ def optimize_1q_gates(circuit):
         if right_name == "u3":
             new_params = list(right_parameters)
 
-        new_params[:] = map(float, new_params)
-        # TODO Maybe makes sense to save the (simplified) symbols in the DAG?
-
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
         nx.set_node_attributes(unrolled.multi_graph, 'params',
-                               {run[0]: tuple(map(str, new_params))})
-        # TODO Maybe makes sense to save the symbols in the DAG?
+                               {run[0]: tuple(map(lambda x:
+                                                  str(x).replace("**", "^"),
+                                                  new_params))})
 
         # Delete the other nodes in the run
         for node in run[1:]:

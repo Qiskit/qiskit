@@ -22,6 +22,8 @@ import unittest
 from qiskit import QuantumProgram
 from .common import QiskitTestCase
 
+import numpy as np
+
 
 class MapperTest(QiskitTestCase):
     """Test the mapper."""
@@ -65,64 +67,128 @@ class MapperTest(QiskitTestCase):
             self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
 
     def test_optimize_1q_gates_issue159(self):
-        """
-        Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
+        """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
+
         See: https://github.com/QISKit/qiskit-sdk-py/issues/159
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/issue159.qasm'), name='test')
-        coupling_map = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
-        backend = "local_qasm_simulator"
-        self.log.info(self.qp.get_qasm("test"))
-        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
-        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
-        self.log.info(out_qasm)
-        self.log.info(len(out_qasm))
-        self.assertEqual(len(out_qasm), 220)
+        self.qp = QuantumProgram()
+        qr = self.qp.create_quantum_register('qr', 2)
+        cr = self.qp.create_classical_register('cr', 2)
+        qc = self.qp.create_circuit('Bell', [qr], [cr])
+        qc.h(qr[0])
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[1], qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        backend = 'ibmqx4'
+        cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
+        qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
+        self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"),
+                         """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+creg cr[2];
+u2(0,pi) q[0];
+cx q[1],q[0];
+cx q[1],q[0];
+cx q[1],q[0];
+u2(0,pi) q[0];
+measure q[0] -> cr[1];
+u2(0,pi) q[1];
+measure q[1] -> cr[0];\n""")
 
     def test_symbolic_unary(self):
-        """
-        Test symbolic math with a unary.
+        """Test symbolic math in DAGBackend and optimizer with a prefix.
+
         See: https://github.com/QISKit/qiskit-sdk-py/issues/172
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_unary.qasm'), name='test')
-        coupling_map = {0: [0]}
-        backend = "local_qasm_simulator"
-        self.log.info(self.qp.get_qasm("test"))
-        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
-        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
-        self.log.info(out_qasm)
-        self.log.info(len(out_qasm))
-        self.assertEqual(len(out_qasm), 220)
+        from qiskit import qasm, unroll, mapper
+        ast = qasm.Qasm(data="""OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(-pi) qr[0];
+u1(-pi/2) qr[0];
+measure qr[0] -> cr[0];""").parse()
+        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
+        unr.execute()
+        circ = mapper.optimize_1q_gates(unr.backend.circuit)
+        self.assertEqual(circ.qasm(qeflag=True), """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(-1.5*pi) qr[0];
+measure qr[0] -> cr[0];\n""")
 
     def test_symbolic_binary(self):
-        """
-        Test symbolic math with a binary.
+        """Test symbolic math in DAGBackend and optimizer with a binary operation.
+
         See: https://github.com/QISKit/qiskit-sdk-py/issues/172
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_binary.qasm'), name='test')
-        coupling_map = {0: [0]}
-        backend = "local_qasm_simulator"
-        self.log.info(self.qp.get_qasm("test"))
-        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
-        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
-        self.log.info(out_qasm)
-        self.log.info(len(out_qasm))
-        self.assertEqual(len(out_qasm), 220)
+        from qiskit import qasm, unroll, mapper
+        ast = qasm.Qasm(data="""OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1((0.2*pi)+(0.3*pi)) qr[0];
+u1(0.2-0.3) qr[0];
+u1(0.1*pi/2) qr[0];
+measure qr[0] -> cr[0];""").parse()
+        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
+        unr.execute()
+        circ = mapper.optimize_1q_gates(unr.backend.circuit)
+        self.assertEqual(circ.qasm(qeflag=True), """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(-0.1 + 0.55*pi) qr[0];
+measure qr[0] -> cr[0];\n""")
 
     def test_symbolic_extern(self):
-        """
-        Test symbolic math with an extern.
+        """Test symbolic math in DAGBackend and optimizer with an external function.
+
         See: https://github.com/QISKit/qiskit-sdk-py/issues/172
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/issue172_extern.qasm'), name='test')
-        coupling_map = {0: [0]}
-        backend = "local_qasm_simulator"
-        self.log.info(self.qp.get_qasm("test"))
-        qobj = self.qp.compile(["test"], backend=backend, coupling_map=coupling_map, seed=self.seed)
-        out_qasm = self.qp.get_compiled_qasm(qobj, "test")
-        self.log.info(out_qasm)
-        self.log.info(len(out_qasm))
-        self.assertEqual(len(out_qasm), 220)
+        from qiskit import qasm, unroll, mapper
+        ast = qasm.Qasm(data="""OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(sin(0.2+0.3+(-pi))) qr[0];
+measure qr[0] -> cr[0];""").parse()
+        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
+        unr.execute()
+        circ = mapper.optimize_1q_gates(unr.backend.circuit)
+        self.assertEqual(circ.qasm(qeflag=True), """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(-0.479425538604203) qr[0];
+measure qr[0] -> cr[0];\n""")
+
+    def test_symbolic_power(self):
+        """Test symbolic math in DAGBackend and optimizer with a power (^).
+
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/172
+        """
+        from qiskit import qasm, unroll, mapper
+        ast = qasm.Qasm(data="""OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(pi) qr[0];
+u1((0.3+(-pi))^2) qr[0];
+measure qr[0] -> cr[0];""").parse()
+        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
+        unr.execute()
+        circ = mapper.optimize_1q_gates(unr.backend.circuit)
+        self.assertEqual(circ.qasm(qeflag=True), """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+u1(pi + (-pi + 0.3)^2.0) qr[0];
+measure qr[0] -> cr[0];\n""")
 
 
 if __name__ == '__main__':
