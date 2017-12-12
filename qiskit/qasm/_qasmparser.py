@@ -43,6 +43,7 @@ class QasmParser(object):
         self.precedence = (
         ('left', '+', '-'),
         ('left', '*', '/'),
+        ('left', 'negative', 'positive'),
         ('right', '^'))
         # For yacc, also, write_tables = Bool and optimize = Bool
         self.parser = yacc.yacc(module=self, debug=False,
@@ -969,22 +970,12 @@ class QasmParser(object):
     # ----------------------------------------
     # Prefix
     # ----------------------------------------
-    def p_prefix_expression_0(self, program):
-        """
-           prefix_expression : unary
-        """
-        program[0] = program[1]
-
-    def p_prefix_expression_1(self, program):
-        """
-           prefix_expression : '+' prefix_expression
-                             | '-' prefix_expression
-        """
-        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
 
     def p_expression_0(self, program):
         """
-            expression : prefix_expression
+            expression : '-' expression %prec negative
+                        | '+' expression %prec positive
+                        | unary
         """
         program[0] = program[1]
 
@@ -998,6 +989,7 @@ class QasmParser(object):
         """
         program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
                                     program[1], program[3]])
+        print(1)
 
 
     # ----------------------------------------
