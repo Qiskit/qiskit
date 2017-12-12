@@ -971,15 +971,14 @@ class QasmParser(object):
     # Prefix
     # ----------------------------------------
 
-    def p_expression_0(self, program):
+    def p_expression_1(self, program):
         """
             expression : '-' expression %prec negative
                         | '+' expression %prec positive
-                        | unary
         """
-        program[0] = program[1]
+        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
 
-    def p_expression_1(self, program):
+    def p_expression_0(self, program):
         """
         expression : expression '*' expression
                     | expression '/' expression
@@ -991,6 +990,11 @@ class QasmParser(object):
                                     program[1], program[3]])
         print(1)
 
+    def p_expression_2(self, program):
+        """
+            expression : unary
+        """
+        program[0] = program[1]
 
     # ----------------------------------------
     # exp_list : exp
