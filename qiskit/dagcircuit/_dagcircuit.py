@@ -357,7 +357,7 @@ class DAGCircuit:
         # params is a list of sympy symbols and the str() method
         # will return Python expressions. To get the correct
         # OpenQASM expression, we need to replace "**" with "^".
-        node_params = list(map(lambda x: x.replace("**", "^"), 
+        node_params = list(map(lambda x: x.replace("**", "^"),
                            map(str, params)))
         self._add_op_node(name, qargs, cargs, node_params,
                           condition)
@@ -394,7 +394,7 @@ class DAGCircuit:
         # params is a list of sympy symbols and the str() method
         # will return Python expressions. To get the correct
         # OpenQASM expression, we need to replace "**" with "^".
-        node_params = list(map(lambda x: x.replace("**", "^"), 
+        node_params = list(map(lambda x: x.replace("**", "^"),
                            map(str, params)))
         self._add_op_node(name, qargs, cargs,  node_params,
                           condition)
