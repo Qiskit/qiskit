@@ -30,7 +30,6 @@ class MapperTest(QiskitTestCase):
     def setUp(self):
         self.seed = 42
         self.qp = QuantumProgram()
-        self.qp.enable_logs()
 
     def test_mapper_overoptimization(self):
         """
@@ -83,8 +82,12 @@ class MapperTest(QiskitTestCase):
         backend = 'ibmqx4'
         cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
         qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
-        self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"),
-                         EXPECTED_QASM_1Q_GATES)
+
+        # TODO: Python 3.5 produces an equivalent but different QASM, with the
+        # last lines swapped. This assertion compares the output with the two
+        # expected programs, but proper revision should be done.
+        self.assertIn(self.qp.get_compiled_qasm(qobj, "Bell"),
+                      (EXPECTED_QASM_1Q_GATES, EXPECTED_QASM_1Q_GATES_3_5))
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
@@ -176,6 +179,21 @@ u2(0,pi) q[0];
 measure q[0] -> cr[1];
 u2(0,pi) q[1];
 measure q[1] -> cr[0];\n"""
+
+# This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
+# swapped.
+EXPECTED_QASM_1Q_GATES_3_5 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+creg cr[2];
+u2(0,pi) q[0];
+cx q[1],q[0];
+cx q[1],q[0];
+cx q[1],q[0];
+u2(0,pi) q[1];
+measure q[1] -> cr[0];
+u2(0,pi) q[0];
+measure q[0] -> cr[1];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
 include "qelib1.inc";
