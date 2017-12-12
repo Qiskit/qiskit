@@ -1,0 +1,302 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/toffoli_without_swap.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/toffoli_without_swap.qasm
+
+*********state after step:1*********
+layer summary:
+ X(q[0])*X(q[1])*1(q[2])
+state summary:
+ 
+    |q[2],q[1],q[0]>
+|0| |000>
+|0| |001>
+|0| |010>
+|1| |011>
+|0| |100>
+|0| |101>
+|0| |110>
+|0| |111>
+
+*********state after step:2*********
+layer summary:
+ H(q[2])
+state summary:
+ 
+            |q[2],q[1],q[0]>
+|0        | |000>
+|0        | |001>
+|0        | |010>
+|sqrt(2)/2| |011>
+|0        | |100>
+|0        | |101>
+|0        | |110>
+|sqrt(2)/2| |111>
+
+*********state after step:3*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+            |q[2],q[1],q[0]>
+|0        | |000>
+|0        | |001>
+|0        | |010>
+|sqrt(2)/2| |011>
+|0        | |100>
+|0        | |101>
+|0        | |110>
+|sqrt(2)/2| |111>
+
+*********state after step:4*********
+layer summary:
+ TDG(q[2])
+state summary:
+ 
+                         |q[2],q[1],q[0]>
+|0                     | |000>
+|0                     | |001>
+|0                     | |010>
+|sqrt(2)/2             | |011>
+|0                     | |100>
+|0                     | |101>
+|0                     | |110>
+|sqrt(2)*exp(-I*pi/4)/2| |111>
+
+*********state after step:5*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                         |q[2],q[1],q[0]>
+|0                     | |000>
+|0                     | |001>
+|0                     | |010>
+|sqrt(2)*exp(-I*pi/4)/2| |011>
+|0                     | |100>
+|0                     | |101>
+|0                     | |110>
+|sqrt(2)/2             | |111>
+
+*********state after step:6*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                         |q[2],q[1],q[0]>
+|0                     | |000>
+|0                     | |001>
+|0                     | |010>
+|sqrt(2)*exp(-I*pi/4)/2| |011>
+|0                     | |100>
+|0                     | |101>
+|0                     | |110>
+|sqrt(2)*exp(I*pi/4)/2 | |111>
+
+*********state after step:7*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                         |q[2],q[1],q[0]>
+|0                     | |000>
+|0                     | |001>
+|0                     | |010>
+|sqrt(2)*exp(I*pi/4)/2 | |011>
+|0                     | |100>
+|0                     | |101>
+|0                     | |110>
+|sqrt(2)*exp(-I*pi/4)/2| |111>
+
+*********state after step:8*********
+layer summary:
+ T(q[1])*TDG(q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|0                       | |000>
+|0                       | |001>
+|0                       | |010>
+|sqrt(2)*I/2             | |011>
+|0                       | |100>
+|0                       | |101>
+|0                       | |110>
+|-sqrt(2)*I*exp(I*pi/4)/2| |111>
+
+*********state after step:9*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|0                       | |000>
+|0                       | |001>
+|0                       | |010>
+|-sqrt(2)*I*exp(I*pi/4)/2| |011>
+|0                       | |100>
+|0                       | |101>
+|0                       | |110>
+|sqrt(2)*I/2             | |111>
+
+*********state after step:10*********
+layer summary:
+ T(q[2])
+state summary:
+ 
+                           |q[2],q[1],q[0]>
+|0                       | |000>
+|0                       | |001>
+|0                       | |010>
+|-sqrt(2)*I*exp(I*pi/4)/2| |011>
+|0                       | |100>
+|0                       | |101>
+|0                       | |110>
+|sqrt(2)*I*exp(I*pi/4)/2 | |111>
+
+*********state after step:11*********
+layer summary:
+ H(q[2])
+state summary:
+ 
+                 |q[2],q[1],q[0]>
+|0             | |000>
+|0             | |001>
+|0             | |010>
+|0             | |011>
+|0             | |100>
+|0             | |101>
+|0             | |110>
+|-I*exp(I*pi/4)| |111>
+
+*********state after step:12*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                 |q[2],q[1],q[0]>
+|0             | |000>
+|0             | |001>
+|0             | |010>
+|-I*exp(I*pi/4)| |011>
+|0             | |100>
+|0             | |101>
+|0             | |110>
+|0             | |111>
+
+*********state after step:13*********
+layer summary:
+ H(q[1])*H(q[2])
+state summary:
+ 
+                   |q[2],q[1],q[0]>
+|0               | |000>
+|-I*exp(I*pi/4)/2| |001>
+|0               | |010>
+|I*exp(I*pi/4)/2 | |011>
+|0               | |100>
+|-I*exp(I*pi/4)/2| |101>
+|0               | |110>
+|I*exp(I*pi/4)/2 | |111>
+
+*********state after step:14*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                   |q[2],q[1],q[0]>
+|0               | |000>
+|-I*exp(I*pi/4)/2| |001>
+|0               | |010>
+|I*exp(I*pi/4)/2 | |011>
+|0               | |100>
+|-I*exp(I*pi/4)/2| |101>
+|0               | |110>
+|I*exp(I*pi/4)/2 | |111>
+
+*********state after step:15*********
+layer summary:
+ H(q[1])*H(q[2])
+state summary:
+ 
+                 |q[2],q[1],q[0]>
+|0             | |000>
+|0             | |001>
+|0             | |010>
+|-I*exp(I*pi/4)| |011>
+|0             | |100>
+|0             | |101>
+|0             | |110>
+|0             | |111>
+
+*********state after step:16*********
+layer summary:
+ CNOT(q[1],q[2])
+state summary:
+ 
+                 |q[2],q[1],q[0]>
+|0             | |000>
+|0             | |001>
+|0             | |010>
+|0             | |011>
+|0             | |100>
+|0             | |101>
+|0             | |110>
+|-I*exp(I*pi/4)| |111>
+
+*********state after step:17*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+                 |q[2],q[1],q[0]>
+|0             | |000>
+|0             | |001>
+|0             | |010>
+|-I*exp(I*pi/4)| |011>
+|0             | |100>
+|0             | |101>
+|0             | |110>
+|0             | |111>
+
+*********state after step:18*********
+layer summary:
+ T(q[0])*TDG(q[2])
+state summary:
+ 
+    |q[2],q[1],q[0]>
+|0| |000>
+|0| |001>
+|0| |010>
+|1| |011>
+|0| |100>
+|0| |101>
+|0| |110>
+|0| |111>
+
+*********state after step:19*********
+layer summary:
+ CNOT(q[0],q[2])
+state summary:
+ 
+    |q[2],q[1],q[0]>
+|0| |000>
+|0| |001>
+|0| |010>
+|0| |011>
+|0| |100>
+|0| |101>
+|0| |110>
+|1| |111>
+
+*********final measured state:
+     |q[2],q[1],q[0]>
+|0| |000>
+|0| |001>
+|0| |010>
+|0| |011>
+|0| |100>
+|0| |101>
+|0| |110>
+|1| |111>
