@@ -317,11 +317,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             Q_program.add_circuit(circuits_labels[0], circuits[0])
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
-            q = QuantumRegister("q", int(np.log2(len(hamiltonian))))
+            n_qubits = input_circuit.regs['q'].size
+            q = QuantumRegister("q", n_qubits)
             i = 1
             for p in hamiltonian:
                 circuits.append(copy.deepcopy(input_circuit))
-                for j in range(int(np.log2(len(hamiltonian)))):
+                for j in range(n_qubits):
                     if p[1].v[j] == 1 and p[1].w[j] == 0:
                         circuits[i].x(q[j])
                     elif p[1].v[j] == 0 and p[1].w[j] == 1:
@@ -334,12 +335,10 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
-            quantum_state_0 = result.get_data(circuits_labels[0])
-            ['quantum_state']
+            quantum_state_0 = result.get_data(circuits_labels[0])['quantum_state']
             i = 1
             for p in hamiltonian:
-                quantum_state_i = result.get_data(circuits_labels[i])
-                ['quantum_state']
+                quantum_state_i = result.get_data(circuits_labels[i])['quantum_state']
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(quantum_state_0),
                                           quantum_state_i)

@@ -208,6 +208,21 @@ class QuantumProgram(object):
             logger.info(">> new quantum_register created: %s %s", name, size)
         return self.__quantum_registers[name]
 
+    def destroy_quantum_register(self, name):
+        """Destroy an existing Quantum Register.
+
+        Args:
+            name (str): the name of the quantum register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            logger.info(">> quantum_register destroyed: %s", name)
+            del self.__quantum_registers[name]
+
     def create_quantum_registers(self, register_array):
         """Create a new set of Quantum Registers based on a array of them.
 
@@ -231,6 +246,24 @@ class QuantumProgram(object):
                 register["name"], register["size"])
             new_registers.append(register)
         return new_registers
+
+    def destroy_quantum_registers(self, register_array):
+        """Destroy a set of Quantum Registers based on a array of them.
+
+        Args:
+            register_array (list[dict]): An array of quantum registers in
+                dictionay format::
+
+                    "quantum_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in register_array:
+            self.destroy_quantum_register(register["name"])
 
     def create_classical_register(self, name, size):
         """Create a new Classical Register.
@@ -277,6 +310,39 @@ class QuantumProgram(object):
                 register["name"], register["size"]))
         return new_registers
 
+    def destroy_classical_register(self, name):
+        """Destroy an existing Classical Register.
+
+        Args:
+            name (str): the name of the classical register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__classical_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            logger.info(">> classical register destroyed: %s", name)
+            del self.__classical_registers[name]
+
+    def destroy_classical_registers(self, registers_array):
+        """Destroy a set of Classical Registers based on a array of them.
+
+        Args:
+            registers_array (list[dict]): An array of classical registers in
+                dictionay fromat::
+
+                    "classical_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in registers_array:
+            self.destroy_classical_register(register["name"])
+
     def create_circuit(self, name, qregisters=None, cregisters=None):
         """Create a empty Quantum Circuit in the Quantum Program.
 
@@ -303,6 +369,20 @@ class QuantumProgram(object):
             quantum_circuit.add(register)
         self.add_circuit(name, quantum_circuit)
         return self.__quantum_program[name]
+
+    def destroy_circuit(self, name):
+        """Destroy a Quantum Circuit in the Quantum Program. This will not
+        destroy any registers associated with the circuit.
+
+        Args:
+            name (str): the name of the circuit
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_program:
+            raise QISKitError("Can't destroy this circuit: Not present")
+        del self.__quantum_program[name]
 
     def add_circuit(self, name, quantum_circuit):
         """Add a new circuit based on an Object representation.
@@ -470,7 +550,8 @@ class QuantumProgram(object):
     # methods for working with backends
     ###############################################################
 
-    def set_api(self, token, url, verify=True):
+    def set_api(self, token, url, hub=None, group=None, project=None,
+                verify=True):
         """ Setup the API.
 
         Fills the __ONLINE_BACKENDS, __api, and __api_config variables.
@@ -481,19 +562,46 @@ class QuantumProgram(object):
                 as the quantum experience.
             url (str): The url used for online backend such as the quantum
                 experience.
+            hub (str): The hub used for online backend.
+            group (str): The group used for online backend.
+            project (str): The project used for online backend.
             verify (bool): If False, ignores SSL certificates errors.
         Raises:
             ConnectionError: if the API instantiation failed.
+            QISKitError: if no hub, group or project were specified.
         """
         try:
-            self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+            config_dict = {
+                'url': url,
+                'hub': hub,
+                'group': group,
+                'project': project
+            }
+            self.__api = IBMQuantumExperience(token, config_dict, verify)
         except Exception as ex:
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
                                   .format(ex))
         qiskit.backends.discover_remote_backends(self.__api)
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
-        self.__api_config["url"] = {"url": url}
+        self.__api_config["config"] = config_dict.copy()
+
+    def set_api_hubs_config(self, hub, group, project):
+        """Update the API hubs configuration, replacing the previous one.
+
+            hub (str): The hub used for online backend.
+            group (str): The group used for online backend.
+            project (str): The project used for online backend.
+        """
+        config_dict = {
+            'hub': hub,
+            'group': group,
+            'project': project
+        }
+
+        for k, v in config_dict.items():
+            self.__api.config[k] = v
+            self.__api_config['config'][k] = v
 
     def get_api_config(self):
         """Return the program specs."""
@@ -1124,7 +1232,9 @@ class QuantumProgram(object):
 
         q_job_list = []
         for qobj in qobj_list:
-            q_job = QuantumJob(qobj, preformatted=True)
+            q_job = QuantumJob(qobj, preformatted=True, resources={
+                'max_credits':qobj['config']['max_credits'], 'wait':wait,
+                'timeout':timeout})
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,

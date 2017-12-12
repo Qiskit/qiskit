@@ -48,11 +48,12 @@ class TestParser(QiskitTestCase):
         """should return a correct response for a valid circuit."""
 
         res = parse(self.QASM_FILE_PATH)
+        print(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1660)
+        self.assertEqual(len(res), 1450)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1644:1659], "measure r -> d;")
+        self.assertEqual(res[1434:1449], "measure r -> d;")
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
