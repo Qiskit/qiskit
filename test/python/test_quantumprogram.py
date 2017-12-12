@@ -1308,7 +1308,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
-        if status['available'] is False:
+        if not status.get('available', False):
             pass
         else:
             result = QP_program.execute(['circuitName'], backend=backend,

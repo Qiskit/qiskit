@@ -30,13 +30,6 @@ if os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
     if os.getenv('TRAVIS_REPO_SLUG') != os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
         TRAVIS_FORK_PULL_REQUEST = True
 
-LOG_LEVEL = logging.CRITICAL
-if os.getenv('LOG_LEVEL'):
-    toset = os.getenv('LOG_LEVEL')
-    goodlevels = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']
-    if not toset in goodlevels:
-        raise Exception("The env variable LOG_LEVEL is %s instead of something in %s" % (toset,goodlevels   ))
-    LOG_LEVEL = getattr(logging,toset)
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
@@ -54,16 +47,26 @@ class QiskitTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
-        cls.log.setLevel(LOG_LEVEL)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
 
-        # logger for the stdout
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
+        # Set logging to file and stdout if the LOG_LEVEL environment variable
+        # is set.
+        if os.getenv('LOG_LEVEL'):
+            # Set up formatter.
+            log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
+                       ' %(message)s'.format(cls.__name__))
+            formatter = logging.Formatter(log_fmt)
 
-        cls.log.addHandler(stream_handler)
+            # Set up the file handler.
+            log_file_name = '%s.log' % cls.moduleName
+            file_handler = logging.FileHandler(log_file_name)
+            file_handler.setFormatter(formatter)
+            cls.log.addHandler(file_handler)
+
+            # Set the logging level from the environment variable, defaulting
+            # to INFO if it is not a valid level.
+            level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'),
+                                             logging.INFO)
+            cls.log.setLevel(level)
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
