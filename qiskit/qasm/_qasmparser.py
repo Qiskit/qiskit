@@ -988,7 +988,6 @@ class QasmParser(object):
         """
         program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
                                     program[1], program[3]])
-        print(1)
 
     def p_expression_2(self, program):
         """
