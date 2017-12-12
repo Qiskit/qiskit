@@ -557,7 +557,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
-        self.assertEqual(len(check_result), 1872)
+        self.log.info(check_result)
+        self.assertEqual(len(check_result), 1662)
 
     def test_load_wrong(self):
         """Test load Json.
@@ -1637,6 +1638,34 @@ class TestQuantumProgram(QiskitTestCase):
 
         self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
         self.assertTrue(np.array_equal(xvals, [0,1]))
+
+    def test_ccx(self):
+        """Checks a CCNOT gate.
+
+        Based on https://github.com/QISKit/qiskit-sdk-py/pull/172.
+        """
+        Q_program = QuantumProgram()
+        q = Q_program.create_quantum_register('q', 3)
+        c = Q_program.create_classical_register('c', 3)
+        pqm = Q_program.create_circuit('pqm', [q], [c])
+
+        # Toffoli gate.
+        pqm.ccx(q[0], q[1], q[2])
+
+        # Measurement.
+        for k in range(3):
+            pqm.measure(q[k], c[k])
+
+        # Prepare run.
+        circuits = ['pqm']
+        backend = 'local_qasm_simulator'
+        shots = 1024  # the number of shots in the experiment
+
+        # Run.
+        result = Q_program.execute(circuits, backend=backend, shots=shots,
+                                   max_credits=3, wait=10, timeout=240)
+
+        self.assertEqual({'000': 1024}, result.get_counts('pqm'))
 
     def test_reconfig(self):
         """Test reconfiguring the qobj from 1024 shots to 2048 using
