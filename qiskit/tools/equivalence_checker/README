@@ -11,7 +11,7 @@ they differ only in the global phase, i.e., the equation V1*E^(I*x)=V2 has a sol
 
 
 [How to use it?]
-python3 sympy_executor.py --file1 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small.qasm --file2 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small_equivalent.qasm
+python3 qchecker.py --file1 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small.qasm --file2 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small_equivalent.qasm
 
 
 [Dependency]
