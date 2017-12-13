@@ -64,7 +64,7 @@ We are ready to try out some QASM examples, which runs via the local simulator.
 This is a simple superposition example.
 
 ```python
-from qiskit import QuantumProgram
+from qiskit import QuantumProgram, QISKitError, RegisterSizeError
 
 # Creating Programs create your first QuantumProgram object instance.
 Q_program = QuantumProgram()
@@ -105,14 +105,53 @@ COMPLETED
 {'00': 509, '11': 515}
 ```
 
-You can also use QISKit to execute your code on a [real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
+### Executing your code on a real Quantum chip
 
- First, get your API token:
+You can also use QISKit to execute your code on a
+[real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
+In order to do so, you need to configure the SDK for using the credentials for
+your Quantum Experience Account:
 
--  Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net) account if you haven't already done so
--  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
 
-This API token allows you to execute your programs with the IBM Q experience backends. [Example](doc/example_real_backend.rst).
+#### Configure your API token and QE credentials
+
+
+1. Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net)>
+   account if you haven't already done so
+2. Get an API token from the IBM Q experience website under "`My Account`" >
+   "`Personal Access Token`". This API token allows you to execute your
+   programs with the IBM Q experience backends.
+   [Example](doc/example_real_backend.rst).
+3. You will insert your API token in a file called `Qconfig.py`. First
+   copy the default version of this file from the tutorial folder to the
+   main SDK folder (on Windows, replace `cp` with `copy`):
+
+   ```bash
+    $ cp Qconfig.py.default Qconfig.py
+   ```
+
+4. Open your Qconfig.py, remove the `#` from the beginning of the API
+   token line, and copy/paste your API token into the space between the
+   quotation marks on that line. Save and close the file.
+
+5. If you have access to the IBM Q features, you also need to setup the
+   values for your hub, group, and project. You can do so by filling the
+   `config` variable with the values you can find on your IBM Q account
+   page.
+
+For example, a valid and fully configured `Qconfig.py` file would look like:
+
+```python
+APItoken = '123456789abc...'
+
+config = {
+    'url': 'https://quantumexperience.ng.bluemix.net/api',
+    # The following should only be needed for IBM Q users.
+    'hub': 'MY_HUB',
+    'group': 'MY_GROUP',
+    'project': 'MY_PROJECT'
+}
+```
 
 More details on this and more information see [our QISKit documentation](doc/qiskit.rst).
 
@@ -137,15 +176,17 @@ For more information on how to use QISKit, tutorial examples, and other helpful 
   a GUI for interacting with real and simulated quantum computers
 * **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, an API to use the IBM Quantum Experience in Python
 
-
 QISKit was originally developed by researchers and developers on the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
 
 Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
+## Multilanguage guide
+
+* **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
+Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Yunho Maeng, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
 
 In future releases, anyone who contributes with code to this project is welcome to include their name here.
 
@@ -153,3 +194,5 @@ In future releases, anyone who contributes with code to this project is welcome 
 ## License
 
 This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
+
+

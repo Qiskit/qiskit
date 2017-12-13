@@ -120,3 +120,23 @@ the messages. For example, if the module is `qiskit/some/module.py`:
    logger = logging.getLogger(__name__)  # logger for "qiskit.some.module"
    ...
    logger.info("This is an info message)
+
+
+Testing
+-------
+
+The SDK uses the `standard Pyton "unittest" framework
+<https://docs.python.org/3/library/unittest.html>`_ for the testing of the
+different components and functionality.
+
+For executing the tests, a ``make test`` target is available. The execution
+of the tests (both via the make target and during manual invocation) takes into
+account the ``LOG_LEVEL`` environment variable. If present, a ``.log`` file
+will be created on the test directory with the output of the log calls, which
+will also be printed to stdout. You can adjust the verbosity via the content
+of that variable, for example:
+
+.. code-block::
+
+    $ LOG_LEVEL=DEBUG make test
+    $ LOG_LEVEL=INFO python -m unittest test/python/test_apps.py
