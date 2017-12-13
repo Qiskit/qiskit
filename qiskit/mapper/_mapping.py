@@ -23,7 +23,6 @@ import sys
 import copy
 import logging
 import sympy
-from sympy import Number as N
 import numpy as np
 import networkx as nx
 import pprint
@@ -115,7 +114,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
             xi[i] = {}
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
-                scale = N(1) + np.random.normal(N(0), N(1) / n)
+                scale = 1 + np.random.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i, j)**2
                 xi[j][i] = xi[i][j]
 
@@ -494,13 +493,13 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
     if sympy.cos(xi).is_zero :
-        solutions.append((theta2 - theta1, xi, N(0)))
+        solutions.append((theta2 - theta1, xi, 0))
     elif sympy.sin(theta1 + theta2) ==0 :
         phi_minus_lambda = [
-            sympy.pi / N(2),
-            N(3) * sympy.pi / N(2),
-            sympy.pi / N(2),
-            N(3) * sympy.pi / N(2)]
+            sympy.pi / 2,
+            3 * sympy.pi / 2,
+            sympy.pi / 2,
+            3 * sympy.pi / 2]
         stheta_1 = sympy.asin(sympy.sin(xi) * sympy.sin(-theta1 + theta2))
         stheta_2 = sympy.asin(-sympy.sin(xi) * sympy.sin(-theta1 + theta2))
         stheta_3 = sympy.pi - stheta_1
@@ -517,10 +516,10 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         solutions = list(zip(stheta, sphi, slam))
     elif sympy.cos(theta1 + theta2).is_zero:
         phi_plus_lambda = [
-            sympy.pi / N(2),
-            N(3) * sympy.pi / N(2),
-            sympy.pi / N(2),
-            N(3) * sympy.pi / N(2)]
+            sympy.pi / 2,
+            3 * sympy.pi / 2,
+            sympy.pi / 2,
+            3 * sympy.pi / 2]
         stheta_1 = sympy.acos(sympy.sin(xi) * sympy.cos(theta1 - theta2))
         stheta_2 = sympy.acos(-sympy.sin(xi) * sympy.cos(theta1 - theta2))
         stheta_3 = -stheta_1
@@ -542,17 +541,17 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                              theta2) /
                                      (sympy.cos(xi) * sympy.sin(theta1 +
                                                               theta2)))
-        sphi = (phi_plus_lambda + phi_minus_lambda) / N(2)
-        slam = (phi_plus_lambda - phi_minus_lambda) / N(2)
+        sphi = (phi_plus_lambda + phi_minus_lambda) / 2
+        slam = (phi_plus_lambda - phi_minus_lambda) / 2
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam)), sphi, slam))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam + sympy.pi)),
-                          sphi + sympy.pi / N(2),
-                          slam + sympy.pi / N(2)))
+                          sphi + sympy.pi / 2,
+                          slam + sympy.pi / 2))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam)),
-                          sphi + sympy.pi / N(2), slam - sympy.pi / N(2)))
+                          sphi + sympy.pi / 2, slam - sympy.pi / 2))
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam + sympy.pi)),
                           sphi + sympy.pi, slam))
@@ -583,9 +582,9 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     Return theta, phi, lambda.
     """
     # Careful with the factor of two in yzy_to_zyz
-    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / N(2),
-                                       theta1 / N(2), theta2 / N(2))
-    return (N(2) * thetap, phi1 + N(2) * phip, lambda2 + N(2) * lambdap)
+    thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2,
+                                       theta1 / 2, theta2 / 2)
+    return (2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
 
 
 def cx_cancellation(circuit):
@@ -693,12 +692,21 @@ def optimize_1q_gates(circuit):
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
+
                 # Evaluate the symbolic expressions for efficiency
                 right_parameters = tuple([ p.evalf() for p in right_parameters ])
-            # Here down, when we simplify, we add f(theta) to lambda to correct
-            # the global phase when f(theta) is 2*pi. This isn't necessary but
-            # the other steps preserve the global phase, so we continue.
-            # The final step will remove Z rotations by 2*pi.
+
+            # 1. Here down, when we simplify, we add f(theta) to lambda to
+            # correct the global phase when f(theta) is 2*pi. This isn't
+            # necessary but the other steps preserve the global phase, so
+            # we continue in that manner.
+            # 2. The final step will remove Z rotations by 2*pi.
+            # 3. Note that is_zero is true only if the expression is exactly
+            # zero. If the input expressions have already been evaluated
+            # then these final simplifications will not occur.
+            # TODO After we refactor, we should have separate passes for
+            # exact and approximate rewriting.
+
             # Y rotation is 0 mod 2*pi, so the gate is a u1
             if (right_parameters[0] % (2 * sympy.pi)).is_zero \
                and right_name != "u1":
@@ -735,12 +743,16 @@ def optimize_1q_gates(circuit):
         if right_name == "u3":
             new_params = list(right_parameters)
 
-        #new_params[:] = map(float, new_params) #TODO Maybe makes sense to save the (simplified) symbols in the DAG?
-
         nx.set_node_attributes(unrolled.multi_graph, 'name',
                                {run[0]: right_name})
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
         nx.set_node_attributes(unrolled.multi_graph, 'params',
-                               {run[0]: tuple(map(str, new_params))}) #TODO Maybe makes sense to save the symbols in the DAG?
+                               {run[0]: tuple(map(lambda x:
+                                                  str(x).replace("**", "^"),
+                                                  new_params))})
+
         # Delete the other nodes in the run
         for node in run[1:]:
             unrolled._remove_op_node(node)
