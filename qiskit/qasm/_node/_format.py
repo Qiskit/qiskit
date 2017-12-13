@@ -19,19 +19,26 @@
 Node for an OPENQASM file identifier/version statement.
 """
 from ._node import Node
+import re
 
 
-class Magic(Node):
-    """Node for an OPENQASM file identifier/version statement ("magic number").
+class Format(Node):
+    """Node for an OPENQASM file identifier/version statement.
 
     children[0] is a Real node.
     """
 
-    def __init__(self, children):
+    def __init__(self, value):
         """Create the version node."""
-        Node.__init__(self, 'magic', children, None)
+        Node.__init__(self, "format", None, None)
+        t = re.match('(\w+)\s+(\d+)\.(\d+)', value)
+        self.language = t[1]
+        self.majorversion = t[2]
+        self.minorversion = t[3]
+
+    def version(self):
+        return "%s.%s" % (self.majorversion, self.minorversion)
 
     def qasm(self, prec=15):
-        """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
-        return "OPENQASM %.1f;" % self.children[0].value
+        """Return the corresponding format string."""
+        return "%s %s;" % (self.language,self.version())
