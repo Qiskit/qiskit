@@ -30,9 +30,9 @@ class Format(Node):
         """Create the version node."""
         Node.__init__(self, "format", None, None)
         t = re.match('(\w+)\s+(\d+)\.(\d+)', value)
-        self.language = t[1]
-        self.majorversion = t[2]
-        self.minorversion = t[3]
+        self.language = t.group(1)
+        self.majorversion = t.group(2)
+        self.minorversion = t.group(3)
 
     def version(self):
         return "%s.%s" % (self.majorversion, self.minorversion)
