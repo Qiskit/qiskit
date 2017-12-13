@@ -84,6 +84,9 @@ with QISKit, and install the required dependencies:
     .\make env
 
 
+
+.. _qconfig-setup:
+
 4. Configure your API token and QE credentials
 ----------------------------------------------
 
