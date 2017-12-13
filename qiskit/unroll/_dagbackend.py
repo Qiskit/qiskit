@@ -92,7 +92,7 @@ class DAGBackend(UnrollerBackend):
                 self.basis.append("U")
                 self.circuit.add_basis_element("U", 1, 0, 3)
             self.circuit.apply_operation_back(
-                "U", [qubit], [], list(map(lambda x: x.real(nested_scope),
+                "U", [qubit], [], list(map(lambda x: x.sym(nested_scope),
                                            arg)), condition)
 
     def cx(self, qubit0, qubit1):
