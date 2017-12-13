@@ -40,6 +40,11 @@ class QasmParser(object):
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='qiskit')
+        self.precedence = (
+        ('left', '+', '-'),
+        ('left', '*', '/'),
+        ('left', 'negative', 'positive'),
+        ('right', '^'))
         # For yacc, also, write_tables = Bool and optimize = Bool
         self.parser = yacc.yacc(module=self, debug=False,
                                 outputdir=self.parse_dir)
@@ -965,59 +970,30 @@ class QasmParser(object):
     # ----------------------------------------
     # Prefix
     # ----------------------------------------
-    def p_prefix_expression_0(self, program):
-        """
-           prefix_expression : unary
-        """
-        program[0] = program[1]
-
-    def p_prefix_expression_1(self, program):
-        """
-           prefix_expression : '+' prefix_expression
-                             | '-' prefix_expression
-        """
-        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
-
-    def p_additive_expression_0(self, program):
-        """
-            additive_expression : prefix_expression
-        """
-        program[0] = program[1]
-
-    def p_additive_expression_1(self, program):
-        """
-            additive_expression : additive_expression '+' prefix_expression
-                                | additive_expression '-' prefix_expression
-        """
-        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
-                                    program[1], program[3]])
-
-    def p_multiplicative_expression_0(self, program):
-        """
-            multiplicative_expression : additive_expression
-        """
-        program[0] = program[1]
-
-    def p_multiplicative_expression_1(self, program):
-        """
-        multiplicative_expression : multiplicative_expression '*' additive_expression
-                                  | multiplicative_expression '/' additive_expression
-        """
-        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
-                                    program[1], program[3]])
-
-    def p_expression_0(self, program):
-        """
-            expression : multiplicative_expression
-        """
-        program[0] = program[1]
 
     def p_expression_1(self, program):
         """
-            expression : expression '^' multiplicative_expression
+            expression : '-' expression %prec negative
+                        | '+' expression %prec positive
+        """
+        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
+
+    def p_expression_0(self, program):
+        """
+        expression : expression '*' expression
+                    | expression '/' expression
+                    | expression '+' expression
+                    | expression '-' expression
+                    | expression '^' expression
         """
         program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
                                     program[1], program[3]])
+
+    def p_expression_2(self, program):
+        """
+            expression : unary
+        """
+        program[0] = program[1]
 
     # ----------------------------------------
     # exp_list : exp
