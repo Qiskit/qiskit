@@ -24,8 +24,6 @@ import re
 
 class Format(Node):
     """Node for an OPENQASM file identifier/version statement.
-
-    children[0] is a Real node.
     """
 
     def __init__(self, value):
@@ -41,4 +39,4 @@ class Format(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding format string."""
-        return "%s %s;" % (self.language,self.version())
+        return "%s %s;" % (self.language, self.version())
