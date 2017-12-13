@@ -124,3 +124,7 @@ doc/**/_autodoc
 qiskit/bin/*
 
 test/python/test_save.json
+
+external/cpp-simulator/local_qiskit_simulator
+
+external/cpp-simulator/src/main.o
