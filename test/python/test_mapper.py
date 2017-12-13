@@ -30,7 +30,6 @@ class MapperTest(QiskitTestCase):
     def setUp(self):
         self.seed = 42
         self.qp = QuantumProgram()
-        self.qp.enable_logs()
 
     def test_mapper_overoptimization(self):
         """

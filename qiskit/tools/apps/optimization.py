@@ -22,7 +22,7 @@ import numpy as np
 import copy
 import sys
 import os
-from sympy import N
+from sympy import Number
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
@@ -491,6 +491,6 @@ def Hamiltonian_from_file(file_name):
     pauli_list = []
     for i in range(len(ham_array) // 2):
         pauli = label_to_pauli(ham_array[2 * i])
-        Numb = N(ham_array[2 * i + 1])
+        Numb = Number(ham_array[2 * i + 1])
         pauli_list.append([Numb, pauli])
     return pauli_list

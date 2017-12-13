@@ -31,6 +31,7 @@ Functions
 """
 import numpy as np
 
+
 def index1(b, i, k):
     """Magic index1 function.
 
