@@ -560,7 +560,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0].evalf() < eps:
+        if delta_sol[0].is_zero:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
@@ -627,7 +627,7 @@ def optimize_1q_gates(circuit):
     for run in runs:
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
-        right_parameters = (0, 0, 0)  # (theta, phi, lambda)
+        right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for node in run:
             nd = unrolled.multi_graph.node[node]
             assert nd["condition"] is None, "internal error"
@@ -636,7 +636,7 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (0, 0, sympy.sympify(nd["params"][0]))
+                left_parameters = (N(0), N(0), sympy.sympify(nd["params"][0]))
             elif left_name == "u2":
                 left_parameters = (sympy.pi / 2, sympy.sympify(nd["params"][0]),
                                    sympy.sympify(nd["params"][1]))
@@ -644,12 +644,12 @@ def optimize_1q_gates(circuit):
                 left_parameters = tuple(sympy.sympify(nd["params"]))
             else:
                 left_name = "u1"  # replace id with u1
-                left_parameters = (0, 0, 0)
+                left_parameters = (N(0), N(0), N(0))
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                right_parameters = (0, 0, right_parameters[2] +
+                right_parameters = (N(0), N(0), right_parameters[2] +
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
