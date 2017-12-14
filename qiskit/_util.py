@@ -18,10 +18,10 @@
 
 import logging
 from unittest.mock import patch
+from sympy import pi
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
-
 
 def _check_ibmqe_version():
     """Check if the available IBMQuantumExperience version is the required one.
