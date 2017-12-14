@@ -937,7 +937,7 @@ class QasmParser(object):
         """
            unary : REAL
         """
-        program[0] = node.Real(sympy.N(program[1]))
+        program[0] = node.Real(sympy.Number(program[1]))
 
     def p_unary_2(self, program):
         """
