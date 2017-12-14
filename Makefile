@@ -35,9 +35,6 @@ lint:
 test:
 	python3 -m unittest discover -v
 
-test_verbose: export LOG_LEVEL=DEBUG
-test_verbose: test
-
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
