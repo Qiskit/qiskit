@@ -43,20 +43,20 @@ class TestQuantumOptimization(QiskitTestCase):
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt),456)
+        self.assertEqual(len(qasm_txt),456)
 
         self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt), 324)
+        self.assertEqual(len(qasm_txt), 324)
 
         self.log.info("With Y measurement:\n")
         meas_sting = ['Y' for x in range(n)]
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEquals(len(qasm_txt), 564)
+        self.assertEqual(len(qasm_txt), 564)
 
 
 class TestHamiltonian(QiskitTestCase):
@@ -66,18 +66,18 @@ class TestHamiltonian(QiskitTestCase):
         hfile = self._get_resource_path("H2Equilibrium.txt")
         hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
         self.log.info(hamiltonian)
-        # [[-0.245224693812219 0 0 ]
-        # [0 -1.06365601684976 0.180931339344726 0]
-        # [0 0.180931339344726 -1.06365601684976 0]
-        # [0.180931339344726 0 0 -1.83696751499087]]
+        # [[-0.24522469381221926 0 0 0.18093133934472627 ]
+        # [0 -1.0636560168497590 0.18093133934472627 0]
+        # [0 0.18093133934472627 -1.0636560168497592 0]
+        # [0.18093133934472627 0 0 -1.8369675149908681]]
         self.assertSequenceEqual([str(i) for i in hamiltonian[0]],
-                                 ["-0.245224693812219", "0", "0", "0.180931339344726"])
+                                 ["-0.24522469381221926", "0", "0", "0.18093133934472627"])
         self.assertSequenceEqual([str(i) for i in hamiltonian[1]],
-                                 ["0", "-1.06365601684976", "0.180931339344726", "0"])
+                                 ["0", "-1.0636560168497590", "0.18093133934472627", "0"])
         self.assertSequenceEqual([str(i) for i in hamiltonian[2]],
-                                 ["0", "0.180931339344726", "-1.06365601684976", "0"])
+                                 ["0", "0.18093133934472627", "-1.0636560168497592", "0"])
         self.assertSequenceEqual([str(i) for i in hamiltonian[3]],
-                                 ["0.180931339344726", "0", "0", "-1.83696751499087"])
+                                 ["0.18093133934472627", "0", "0", "-1.8369675149908681"])
 
         # printing an example from a graph input
         n = 3
