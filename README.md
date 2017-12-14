@@ -130,7 +130,7 @@ your Quantum Experience Account:
     $ cp Qconfig.py.default Qconfig.py
    ```
 
-4. Open your Qconfig.py, remove the `#` from the beginning of the API
+4. Open your `Qconfig.py`, remove the `#` from the beginning of the API
    token line, and copy/paste your API token into the space between the
    quotation marks on that line. Save and close the file.
 
@@ -153,7 +153,23 @@ config = {
 }
 ```
 
-More details on this and more information see [our QISKit documentation](doc/qiskit.rst).
+Once the `Qconfig.py` file is set up, it can be used for running Quantum
+Programs by passing its variables to `QuantumProgram.set_api()`. For example:
+
+```python
+from qiskit import QuantumProgram
+import Qconfig
+
+# Creating Programs create your first QuantumProgram object instance.
+Q_program = QuantumProgram()
+Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
+                  hub=Qconfig.config["hub"],
+                  group=Qconfig.config["group"],
+                  project=Qconfig.config["project"])
+```
+
+For more details on this and more information see
+[our QISKit documentation](doc/qiskit.rst).
 
 
 ### Next Steps
