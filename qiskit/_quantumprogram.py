@@ -1067,32 +1067,34 @@ class QuantumProgram(object):
 
         return qobj
 
-    def get_execution_list(self, qobj):
+    def get_execution_list(self, qobj, print_func=print):
         """Print the compiled circuits that are ready to run.
 
         Note:
             This method is intended to be used during interactive sessions, and
-            prints directly to stdout instead of using the logger.
+            prints directly to stdout instead of using the logger by default. If
+            you set print_func with a log function (eg. log.info) it will be used
+            instead of the stdout.
 
         Returns:
             list(str): names of the circuits in `qobj`
         """
         if not qobj:
-            print("no executions to run")
+            print_func("no executions to run")
         execution_list = []
 
-        print("id: %s" % qobj['id'])
-        print("backend: %s" % qobj['config']['backend'])
-        print("qobj config:")
+        print_func("id: %s" % qobj['id'])
+        print_func("backend: %s" % qobj['config']['backend'])
+        print_func("qobj config:")
         for key in qobj['config']:
             if key != 'backend':
-                print(' ' + key + ': ' + str(qobj['config'][key]))
+                print_func(' ' + key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
-            print('  circuit name: ' + circuit["name"])
-            print('  circuit config:')
+            print_func('  circuit name: ' + circuit["name"])
+            print_func('  circuit config:')
             for key in circuit['config']:
-                print('   ' + key + ': ' + str(circuit['config'][key]))
+                print_func('   ' + key + ': ' + str(circuit['config'][key]))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):
