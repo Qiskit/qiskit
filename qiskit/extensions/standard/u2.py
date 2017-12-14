@@ -18,12 +18,12 @@
 """
 One-pulse single-qubit gate.
 """
-import math
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import CompositeGate
+from qiskit.qasm import pi
 from qiskit.extensions.standard import header
 
 
@@ -49,8 +49,8 @@ class U2Gate(Gate):
         u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
         """
         phi = self.param[0]
-        self.param[0] = -self.param[1] - math.pi
-        self.param[1] = -phi + math.pi
+        self.param[0] = -self.param[1] - pi
+        self.param[1] = -phi + pi
         return self
 
     def reapply(self, circ):
