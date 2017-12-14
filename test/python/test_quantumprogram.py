@@ -793,7 +793,7 @@ class TestQuantumProgram(QiskitTestCase):
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map, qobj_id='cooljob')
-        result = QP_program.get_execution_list(qobj)
+        result = QP_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
 
