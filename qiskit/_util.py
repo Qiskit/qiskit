@@ -18,7 +18,6 @@
 
 import logging
 from unittest.mock import patch
-from sympy import pi
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)

@@ -23,6 +23,7 @@ import sys
 import copy
 import logging
 import sympy
+from sympy import Number as N
 import numpy as np
 import networkx as nx
 import pprint

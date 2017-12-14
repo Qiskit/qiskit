@@ -19,6 +19,7 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.qasm import pi
 from qiskit._qiskiterror import QISKitError
 
 from qiskit.extensions.standard.barrier import Barrier
@@ -237,6 +238,11 @@ class TestStandard(QiskitTestCase):
         c.u1(1, self.q[1])
         self.assertResult(U1Gate, 'u1(1) q[1];', 'u1(-1) q[1];')
 
+    def test_u1_pi(self):
+        c = self.circuit
+        c.u1(pi/2, self.q[1])
+        self.assertResult(U1Gate, 'u1(pi/2) q[1];', 'u1(-pi/2) q[1];')
+
     def test_u2(self):
         qasm_txt = 'u2(1,2) q[1];'
         c = self.circuit
@@ -245,6 +251,11 @@ class TestStandard(QiskitTestCase):
         c.u2(1, 2, self.q[1])
         self.assertResult(U2Gate, 'u2(1,2) q[1];', 'u2(-5.14159265358979,2.14159265358979) q[1];')
 
+    def test_u2_pi(self):
+        c = self.circuit
+        c.u2(pi/2, 0.3*pi, self.q[1])
+        #TODO self.assertResult(U2Gate, 'u2(pi,pi/2,0.3*pi) q[1];', 'u3(-pi,-0.3*pi,-pi/2) q[1];')
+
     def test_u3(self):
         c = self.circuit
         # CHECKME? self.assertRaises(QISKitError, c.u3, 0, 0, self.c[0], self.q[1])
@@ -252,6 +263,11 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
         c.u3(1, 2, 3, self.q[1])
         self.assertResult(U3Gate, 'u3(1,2,3) q[1];', 'u3(-1,-3,-2) q[1];')
+
+    def test_u3_pi(self):
+        c = self.circuit
+        c.u3(pi, pi/2, 0.3*pi, self.q[1])
+        self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', 'u3(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_ubase(self):
         c = self.circuit

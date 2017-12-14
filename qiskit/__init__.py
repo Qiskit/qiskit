@@ -14,7 +14,6 @@ from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 from ._util import _check_ibmqe_version
-from ._util import pi
 
 __version__ = '0.4.0'
 
