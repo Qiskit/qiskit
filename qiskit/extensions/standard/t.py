@@ -33,7 +33,7 @@ class TGate(CompositeGate):
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
         super(TGate, self).__init__("t", [], [qubit], circ)
-        self.u1(pi / 4.0, qubit)
+        self.u1(pi / 4, qubit)
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
