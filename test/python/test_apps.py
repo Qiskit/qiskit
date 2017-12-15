@@ -43,7 +43,7 @@ class TestQuantumOptimization(QiskitTestCase):
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
-        self.assertEqual(len(qasm_txt),456)
+        self.assertEqual(len(qasm_txt), 456)
 
         self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
@@ -60,7 +60,6 @@ class TestQuantumOptimization(QiskitTestCase):
 
 
 class TestHamiltonian(QiskitTestCase):
-
     def test_hamiltonian(self):
         # printing an example from a H2 file
         hfile = self._get_resource_path("H2Equilibrium.txt")
@@ -118,6 +117,7 @@ class TestHamiltonian(QiskitTestCase):
         self.log.info(Energy_Estimate(data, pauli_list))
         data = {'111': 10}
         self.log.info(Energy_Estimate(data, pauli_list))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -181,7 +181,7 @@ class DAGBackend(UnrollerBackend):
         to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
-           and self.gates[name]["opaque"]:
+                and self.gates[name]["opaque"]:
             raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             if self.creg is not None:

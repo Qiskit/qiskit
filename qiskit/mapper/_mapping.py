@@ -31,7 +31,6 @@ from ._mappererror import MapperError
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -116,13 +115,13 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
                 scale = 1 + np.random.normal(0, 1 / n)
-                xi[i][j] = scale * coupling.distance(i, j)**2
+                xi[i][j] = scale * coupling.distance(i, j) ** 2
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
         d = 1
         circ = ""  # circuit for this swap slice
-        while d < 2*n+1:
+        while d < 2 * n + 1:
             # Set of available qubits
             qubit_set = set(qubit_subset)
             # While there are still qubits available
@@ -286,7 +285,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
             add_swap=True,
             decls_only=True,
             aliases=layout)
-        for j in range(i+1):
+        for j in range(i + 1):
             openqasm_output += layer_list[j]["graph"].qasm(
                 no_decls=True,
                 aliases=layout)
@@ -470,17 +469,18 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
     delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
-        sympy.cos(xi) * sympy.cos(theta1 + theta2)
+             sympy.cos(xi) * sympy.cos(theta1 + theta2)
     delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
-        sympy.sin(xi) * sympy.cos(theta1 - theta2)
+             sympy.sin(xi) * sympy.cos(theta1 - theta2)
     delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
-        sympy.cos(xi) * sympy.sin(theta1 + theta2)
+             sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
-        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
+             sympy.sin(xi) * sympy.sin(-theta1 + theta2)
 
     [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()), [delta1, delta2, delta3, delta4])
 
     return sympy.Max(delta1, delta2, delta3, delta4)
+
 
 def yzy_to_zyz(xi, theta1, theta2):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
@@ -498,9 +498,9 @@ def yzy_to_zyz(xi, theta1, theta2):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if sympy.cos(xi).is_zero :
+    if sympy.cos(xi).is_zero:
         solutions.append((theta2 - theta1, xi, 0))
-    elif sympy.sin(theta1 + theta2) ==0 :
+    elif sympy.sin(theta1 + theta2) == 0:
         phi_minus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -542,11 +542,11 @@ def yzy_to_zyz(xi, theta1, theta2):
         solutions = list(zip(stheta, sphi, slam))
     else:
         phi_plus_lambda = sympy.atan(sympy.sin(xi) * sympy.cos(theta1 - theta2) /
-                                    (sympy.cos(xi) * sympy.cos(theta1 + theta2)))
+                                     (sympy.cos(xi) * sympy.cos(theta1 + theta2)))
         phi_minus_lambda = sympy.atan(sympy.sin(xi) * sympy.sin(-theta1 +
-                                                             theta2) /
-                                     (sympy.cos(xi) * sympy.sin(theta1 +
-                                                              theta2)))
+                                                                theta2) /
+                                      (sympy.cos(xi) * sympy.sin(theta1 +
+                                                                 theta2)))
         sphi = (phi_plus_lambda + phi_minus_lambda) / 2
         slam = (phi_plus_lambda - phi_minus_lambda) / 2
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
@@ -590,7 +590,7 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     # Careful with the factor of two in yzy_to_zyz
     thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2,
                                        theta1 / 2, theta2 / 2)
-    (theta, phi, lamb)=(2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
+    (theta, phi, lamb) = (2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
     return (theta.simplify(), phi.simplify(), lamb.simplify())
 
 
@@ -713,7 +713,7 @@ def optimize_1q_gates(circuit):
 
             # Y rotation is 0 mod 2*pi, so the gate is a u1
             if (right_parameters[0] % (2 * sympy.pi)).is_zero \
-               and right_name != "u1":
+                    and right_name != "u1":
                 right_name = "u1"
                 right_parameters = (0, 0, right_parameters[1] +
                                     right_parameters[2] +

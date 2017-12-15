@@ -293,7 +293,7 @@ class TestStandard(QiskitTestCase):
 
     def test_ubase_pi(self):
         c = self.circuit
-        c.u_base([pi, pi/2, 0.3*pi], self.q[1])
+        c.u_base([pi, pi / 2, 0.3 * pi], self.q[1])
         self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', 'U(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_x(self):
