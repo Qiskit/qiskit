@@ -128,7 +128,7 @@ class CircuitBackend(UnrollerBackend):
             if "U" not in self.basis:
                 self.basis.append("U")
             this_gate = self.circuit.u_base(list(map(lambda x:
-                                                     x.real(nested_scope),
+                                                     x.sym(nested_scope),
                                                      arg)),
                                             self._map_qubit(qubit))
             if self.creg is not None:
