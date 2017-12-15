@@ -333,7 +333,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 494)
+        self.assertEqual(len(to_check), 430)
 
     def test_fail_load_qasm_file(self):
         """Test fail_load_qasm_file.
@@ -371,7 +371,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 494)
+        self.assertEqual(len(to_check), 430)
 
     def test_get_register_and_circuit(self):
         """Test get_quantum_registers, get_classical_registers, and get_circuit.
@@ -793,7 +793,7 @@ class TestQuantumProgram(QiskitTestCase):
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map, qobj_id='cooljob')
-        result = QP_program.get_execution_list(qobj)
+        result = QP_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
 
