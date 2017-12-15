@@ -465,7 +465,9 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
 
        \sin(\phi-\lambda) \sin(\\theta) = \sin(xi) * \sin(-\\theta1+\\theta2)
 
-    Returns the maximum absolute difference between right and left hand sides.
+    Returns the maximum absolute difference between right and left hand sides
+    as a Max symbol. See:
+    http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
     delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
         sympy.cos(xi) * sympy.cos(theta1 + theta2)
@@ -475,9 +477,12 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
         sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
         sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-    return max(map(lambda x: abs(x.evalf()), [delta1, delta2, delta3, delta4]))
 
-def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
+    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()), [delta1, delta2, delta3, delta4])
+
+    return sympy.Max(delta1, delta2, delta3, delta4)
+
+def yzy_to_zyz(xi, theta1, theta2):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
     Solve the equation
@@ -487,7 +492,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
 
     for theta, phi, and lambda. This is equivalent to solving the system
-    given in the comment for test_solution. Use eps for comparisons with zero.
+    given in the comment for test_solution.
 
     Return a solution theta, phi, and lambda.
     """
@@ -561,7 +566,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0].is_zero:
+        if delta_sol[0].evalf().is_zero:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
@@ -585,7 +590,8 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     # Careful with the factor of two in yzy_to_zyz
     thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2,
                                        theta1 / 2, theta2 / 2)
-    return (2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
+    (theta, phi, lamb)=(2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
+    return (theta.simplify(), phi.simplify(), lamb.simplify())
 
 
 def cx_cancellation(circuit):
@@ -693,9 +699,6 @@ def optimize_1q_gates(circuit):
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
-
-                # Evaluate the symbolic expressions for efficiency
-                right_parameters = tuple([ p.evalf() for p in right_parameters ])
 
             # 1. Here down, when we simplify, we add f(theta) to lambda to
             # correct the global phase when f(theta) is 2*pi. This isn't
