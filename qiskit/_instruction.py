@@ -40,7 +40,7 @@ class Instruction(object):
         self.param = []
         for p in param:
             if not isinstance(p,Basic):
-                # if parameger not symbolic, make it symbolic
+                # if item in param not symbolic, make it symbolic
                 self.param.append(Number(p))
             else: self.param.append(p)
         self.arg = arg
