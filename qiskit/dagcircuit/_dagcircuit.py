@@ -343,7 +343,7 @@ class DAGCircuit:
         name is a string
         qargs is a list of tuples like ("q",0)
         cargs is a list of tuples like ("c",0)
-        params is a list of strings that represent floats
+        params is a list of symbols that represent numbers
         condition is either None or a tuple (string,int) giving (creg,value)
         """
         all_cbits = self._bits_in_condition(condition)
@@ -354,7 +354,12 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map, False)
         self._check_bits(all_cbits, self.output_map, True)
 
-        self._add_op_node(name, qargs, cargs, list(map(str, params)),
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
+        node_params = list(map(lambda x: x.replace("**", "^"),
+                           map(str, params)))
+        self._add_op_node(name, qargs, cargs, node_params,
                           condition)
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -386,7 +391,12 @@ class DAGCircuit:
         self._check_bits(qargs, self.input_map, False)
         self._check_bits(all_cbits, self.input_map, True)
 
-        self._add_op_node(name, qargs, cargs, list(map(str, params)),
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
+        node_params = list(map(lambda x: x.replace("**", "^"),
+                           map(str, params)))
+        self._add_op_node(name, qargs, cargs,  node_params,
                           condition)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes

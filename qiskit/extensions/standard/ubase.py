@@ -55,7 +55,7 @@ class UBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ubase(self.arg[0]))
+        self._modifiers(circ.u_base(self.param,self.arg[0]))
 
 
 def u_base(self, tpl, q):

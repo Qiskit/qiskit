@@ -1,5 +1,8 @@
 from setuptools import setup
 
+with open('requirements.txt', 'r') as f:
+    requirements = [line.strip() for line in f]
+
 packages = ["qiskit",
             "qiskit.backends",
             "qiskit.dagcircuit",
@@ -13,15 +16,6 @@ packages = ["qiskit",
             "qiskit.tools.apps",
             "qiskit.tools.qcvv",
             "qiskit.tools.qi"]
-
-requirements = ["IBMQuantumExperience>=1.8.13",
-                "requests>=2.18,<2.19",
-                "networkx>=1.11,<1.12",
-                "ply==3.10",
-                "numpy>=1.13,<1.14",
-                "scipy>=0.19,<0.20",
-                "matplotlib>=2.0,<2.1",
-                "sphinx>=1.6,<1.7"]
 
 setup(
     name="qiskit",
