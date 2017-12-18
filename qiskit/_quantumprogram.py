@@ -895,7 +895,7 @@ class QuantumProgram(object):
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
-                initial_layout=None, shots=1024, max_credits=3, seed=None,
+                initial_layout=None, shots=1024, max_credits=10, seed=None,
                 qobj_id=None):
         """Compile the circuits into the exectution list.
 
