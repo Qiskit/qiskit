@@ -818,7 +818,7 @@ class QuantumProgram(object):
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, silent=True, basis_gates=None, coupling_map=None,
-                initial_layout=None, shots=1024, max_credits=3, seed=None,
+                initial_layout=None, shots=1024, max_credits=10, seed=None,
                 qobjid=None):
         """Compile the circuits into the exectution list.
 
@@ -1206,7 +1206,7 @@ class QuantumProgram(object):
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, silent=True, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None):
+                max_credits=10, seed=None):
 
         """Execute, compile, and run an array of quantum circuits).
 
