@@ -92,7 +92,8 @@ class QuantumJob():
         else:
             if backend in backends.local_backends():
                 for circuit in self.circuits:
-                    formatted_circuits.append(openquantumcompiler.dag2json(circuit))
+                    formatted_circuits.append(
+                        openquantumcompiler.dag2json(circuit))
             else:
                 for circuit in self.circuits:
                     formatted_circuits.append(circuit.qasm(qeflag=True))
@@ -124,8 +125,8 @@ class QuantumJob():
                     'max_credits': resources['max_credits'],
                     'shots': shots,
                     'backend': backend
-                },
-                'circuits': circuit_records}
+        },
+            'circuits': circuit_records}
 
     def _generate_job_id(self, length=10):
         return ''.join([random.choice(
