@@ -23,7 +23,7 @@ class TestLatexDrawer(QiskitTestCase):
         self.qobj = qp.compile(['latex_test'])
 
     def test_get_image_depth(self):
-        qcimg = QCircuitImage(self.qc)
+        qcimg = QCircuitImage(self.qobj)
         self.assertEqual(qcimg._get_image_depth(), 7)
 
     def test_latex_drawer(self):
