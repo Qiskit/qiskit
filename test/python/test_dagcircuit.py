@@ -29,7 +29,7 @@ class TestDagCircuit(QiskitTestCase):
     def setUp(self):
         self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
 
-    def test_latex_output(self):
+    def test_create(self):
         qubit0 = ('qr', 0)
         qubit1 = ('qr', 1)
         clbit0 = ('cr', 0)
@@ -50,9 +50,7 @@ class TestDagCircuit(QiskitTestCase):
         dag.apply_operation_back('x', [qubit1], [], [], ('cr', 1))
         dag.apply_operation_back('measure', [qubit0], [clbit0], [], condition)
         dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition)
-        filename = self._get_resource_path('test_dagcircuit.tex')
-        with open(filename,'w') as f:
-            f.write(dag.latex())
+
 
 if __name__ == '__main__':
     unittest.main()
