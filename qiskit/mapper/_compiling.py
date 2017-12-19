@@ -22,6 +22,7 @@ Methods to assist with compiling tasks.
 import math
 import scipy
 import numpy as np
+from scipy.linalg import expm
 
 from ._mappererror import MapperError
 
@@ -238,7 +239,7 @@ def two_qubit_kak(unitary_matrix):
        np.linalg.norm(np.kron(V1, V2) - K2) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
                           "error in SU(2) x SU(2) part")
-    test = scipy.linalg.expm(1j*(alpha * xx + beta * yy + gamma * zz))
+    test = expm(1j*(alpha * xx + beta * yy + gamma * zz))
     if np.linalg.norm(A - test) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
                           "error in A part")

@@ -17,7 +17,7 @@
 # =============================================================================
 
 """Quick program to test the Pauli class."""
-
+from copy import deepcopy
 import unittest
 
 import numpy as np
@@ -55,7 +55,7 @@ class TestQI(QiskitTestCase):
 
         all_pass = True
         for i, j in zip(rhos, taus):
-            all_pass &= (np.linalg.norm(i-j) == 0)
+            all_pass &= (np.linalg.norm(i - j) == 0)
         self.assertTrue(all_pass)
 
     def test_vectorize(self):
@@ -97,7 +97,8 @@ class TestQI(QiskitTestCase):
         psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
         psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
+        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
+               [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
         test_pass = round(state_fidelity(psi1, psi1), 7) == 1.0 and \
             round(state_fidelity(psi1, psi2), 8) == 0.0 and \
             round(state_fidelity(psi1, rho1), 8) == 1.0 and \
@@ -121,7 +122,8 @@ class TestQI(QiskitTestCase):
     def test_concurrence(self):
         psi1 = [1, 0, 0, 0]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0], [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
+        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0],
+                [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
         test_pass = concurrence(psi1) == 0.0 and \
@@ -136,7 +138,6 @@ class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
     def test_pauli(self):
-
         v = np.zeros(3)
         w = np.zeros(3)
         v[0] = 1
@@ -150,7 +151,6 @@ class TestPauli(QiskitTestCase):
         self.log.info(p.to_label())
         self.log.info("In matrix form:")
         self.log.info(p.to_matrix())
-
 
         q = random_pauli(2)
         self.log.info(q)
@@ -184,6 +184,45 @@ class TestPauli(QiskitTestCase):
         self.log.info(p1.to_label())
         self.log.info(p3.to_label())
         self.log.info(sgn)
+
+    def test_equality_equal(self):
+        """Test equality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertTrue(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_equality_different(self):
+        """Test equality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertFalse(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_inequality_equal(self):
+        """Test inequality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertFalse(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
+    def test_inequality_different(self):
+        """Test inequality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertTrue(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
 
 if __name__ == '__main__':
     unittest.main()
