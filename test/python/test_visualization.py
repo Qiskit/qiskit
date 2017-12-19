@@ -1,11 +1,12 @@
 import os
 from qiskit import QuantumProgram
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
-from qiskit.tools import visualization
+from qiskit.tools.visualization import QCircuitImage, latex_drawer
 from ._random_circuit_generator import RandomCircuitGenerator
 
+
 class TestLatexDrawer(QiskitTestCase):
-    """QISKit latex drawer tests"""
+    """QISKit latex drawer tests."""
 
     def setUp(self):
         qp = QuantumProgram()
@@ -18,18 +19,17 @@ class TestLatexDrawer(QiskitTestCase):
         qc.x(qr[1]).c_if(cr, 1)
         qc.measure(qr, cr)
         self.qp = qp
+        self.qc = qc
         self.qobj = qp.compile(['latex_test'])
-        
+
     def test_get_image_depth(self):
-        circuit = self.qobj['circuits'][0]['compiled_circuit']
-        qcimg = visualization.QCircuitImage(circuit)
+        qcimg = QCircuitImage(self.qc)
         self.assertEqual(qcimg._get_image_depth(), 7)
 
     def test_latex_drawer(self):
         filename = self._get_resource_path('test_latex_drawer.tex')
-        circuit = self.qobj['circuits'][0]['compiled_circuit']
         try:
-            visualization.latex_drawer(circuit, filename)
+            latex_drawer(self.qc, filename)
         except:
             if os.path.exists(filename):
                 os.remove(filename)
@@ -47,11 +47,12 @@ class TestLatexDrawer(QiskitTestCase):
                                                 minDepth=minDepth,
                                                 maxDepth=maxDepth)
         randomCircuits.add_circuits(nCircuits)
-        qobj_circuits = randomCircuits.get_circuits(format='qobj')
-        for i, circuit in enumerate(qobj_circuits):
+        qc_circuits = randomCircuits.get_circuits(format='QuantumCircuit')
+        for i, circuit in enumerate(qc_circuits):
             filename = self._get_resource_path('latex_test' + str(i).zfill(3) +
                                                '.tex')
-            visualization.latex_drawer(circuit, filename)
-            
+            latex_drawer(circuit, filename)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
