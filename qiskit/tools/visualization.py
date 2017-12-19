@@ -772,9 +772,6 @@ class QCircuitImage:
                 self.wire_type[(key, value)] = False
         self._initialize_latex_array(aliases=aliases)
         self._build_latex_array(aliases=aliases)
-        output = self.latex()
-        with open('latex/test.tex', 'w') as f:
-            f.write(output)
 
     def latex(self, aliases=None):
         """Return LaTeX string representation of circuit.
@@ -1001,7 +998,7 @@ class QCircuitImage:
             qregdata = self.qregs
 
         for iop, op in enumerate(self.circuit['operations']):
-            print(iop, op)
+            # print(iop, op)
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
                 cl_reg = self.clbit_list[self._ffs(mask)]
