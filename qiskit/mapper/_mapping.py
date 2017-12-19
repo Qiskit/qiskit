@@ -681,6 +681,9 @@ def optimize_1q_gates(circuit):
                                     right_parameters[1], left_parameters[1] +
                                     sympy.pi / 2, right_parameters[2] +
                                     sympy.pi / 2)
+            elif name_tuple[1] == "nop":
+                right_name = left_name
+                right_parameters = left_parameters
             else:
                 # For composing u3's or u2's with u3's, use
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
