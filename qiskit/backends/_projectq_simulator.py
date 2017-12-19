@@ -242,6 +242,8 @@ def _format_result(counts, cl_reg_index, cl_reg_nbits):
 
     Args:
         counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
+        cl_reg_index: starting bit index of classical register
+        cl_reg_nbits: total amount of bits in classical register
     Returns:
         spaces inserted into dictionary keys at register boundries.
     """
