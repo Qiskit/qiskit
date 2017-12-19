@@ -1,6 +1,7 @@
 from setuptools import setup
+from os.path import dirname
 
-with open('requirements.txt', 'r') as f:
+with open(dirname(__file__)+'/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f]
 
 packages = ["qiskit",
