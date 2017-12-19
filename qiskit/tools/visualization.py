@@ -30,6 +30,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit import qasm, unroll
 
 ###############################################################
 # Plotting histogram
@@ -688,19 +689,27 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def latex_drawer(circuit, filename):
-    """Convert DAG circuit to LaTeX string.
+def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
+    """Convert QuantumCircuit to LaTeX string.
 
     Args:
-        dag_circuit (dict): 
-        filename (str): filename to write latex. 
+        circuit (QuantumCircuit): input circuit
+        filename (str): optional filename to write latex
+        basis (str): optional comma-separated list of gate names
 
     Returns:
         Latex string appropriate for writing to file.
     """
-    qcimg = QCircuitImage(circuit)
-    with open(filename, 'w') as latex_file:
-        latex_file.write(qcimg.latex())
+    ast = qasm.Qasm(data=circuit.qasm()).parse()
+    u = unroll.Unroller(ast, unroll.JsonBackend(basis.split(",")))
+    u.execute()
+    json_circuit = u.backend.circuit
+    qcimg = QCircuitImage(json_circuit)
+    latex = qcimg.latex()
+    if filename is not None:
+        with open(filename, 'w') as latex_file:
+            latex_file.write(latex)
+    return latex
 
 
 class QCircuitImage:
@@ -785,31 +794,34 @@ class QCircuitImage:
         """
         self._initialize_latex_array(aliases)
         self._build_latex_array(aliases)
-        header = r"""\documentclass[preview]{standalone}
+        header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
-% \documentclass[final]{beamer}
-% \usepackage[size=custom,width=80,height=35]{beamerposter}
-% instead and customize the height and width (in cm) to fit.
-
+\documentclass[final]{beamer}
+"""
+        beamer_line = "\\usepackage[size=custom,width=%d,height=%d]{beamerposter}\n"
+        header_2 = r"""% instead and customize the height and width (in cm) to fit.
 % Large images may run out of memory quickly.
 % To fix this use the LuaLaTeX compiler, which dynamically
 % allocates memory.
-
 \usepackage[braket, qm]{qcircuit}
 \usepackage{amsmath}
-\usepackage[landscape]{geometry}
-% Comment about the above line if using the beamer documentclass.
-
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
 % Defines a measurement target symbol
 \newcommand{\ctarg}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
-
 \begin{document}
-
 \begin{equation*}
     \Qcircuit @C=.5em @R=0em @!R {
 """
         output = StringIO()
-        output.write(header)
+        output.write(header_1)
+        output.write('%% img_depth = %d, img_width = %d\n'
+                     % (self.img_depth, self.img_width))
+        # TODO: the scaling in the next line is arbitrary
+        # TODO: and should be computed based on the column width
+        output.write(beamer_line %
+                     (3*self.img_depth, 1.7*self.img_width))
+        output.write(header_2)
         for i in range(self.img_width):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
