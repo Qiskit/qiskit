@@ -71,8 +71,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
             randomCircuits.add_circuits(1, basis=basis)
         cls.rqg = randomCircuits
         cls.seed = 88
-        cls.qasmFileName = os.path.join(qiskit.__path__[0],
-                                        '../test/python/qasm/example.qasm')
+        cls.qasmFileName = cls._get_resource_path('qasm/example.qasm')
         with open(cls.qasmFileName, 'r') as qasm_file:
             cls.qasm_text = qasm_file.read()
             qr1 = QuantumRegister('q1', 2)
