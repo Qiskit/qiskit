@@ -1047,19 +1047,19 @@ class QCircuitImage:
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                             elif nm == "u2":
                                 self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
-                                    % (op["params"][0], op["params"][1])
+                                    % (op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
                                 self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
-                                    % (op["params"][0], op["params"][1], op["params"][2])
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
-                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["texparams"][0])
                             elif nm == "ry":
-                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["texparams"][0])
                             elif nm == "rz":
-                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
 
                             gap = pos_2 - pos_1
                             for i in range(self.cregs[if_reg]):
@@ -1095,19 +1095,19 @@ class QCircuitImage:
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                             elif nm == "u2":
                                 self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
-                                    % (op["params"][0], op["params"][1])
+                                    % (op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
                                 self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
-                                    % (op["params"][0], op["params"][1], op["params"][2])
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
-                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["texparams"][0])
                             elif nm == "ry":
-                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["texparams"][0])
                             elif nm == "rz":
-                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["params"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
 
                     elif len(qarglist) == 2:
                         pos_1 = self.img_regs[(qarglist[0][0],
@@ -1146,14 +1146,14 @@ class QCircuitImage:
                                     self._latex[pos_2][columns] = "\\qwx"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["params"][0])
+                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
                                 elif nm == "cu1":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["params"][0])
+                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
-                                        % (op["params"][0], op["params"][1], op["params"][2])
+                                        % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
 
                                 gap = pos_3 - pos_1
                                 for i in range(self.cregs[if_reg]):
@@ -1191,14 +1191,14 @@ class QCircuitImage:
                                     self._latex[pos_2][columns] = "\\qwx"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["params"][0])
+                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
                                 elif nm == "cu1":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["params"][0])
+                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
                                     self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
-                                        % (op["params"][0], op["params"][1], op["params"][2])
+                                        % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
 
                                 gap = pos_3 - pos_2
                                 for i in range(self.cregs[if_reg]):
@@ -1242,14 +1242,14 @@ class QCircuitImage:
                                 self._latex[pos_2][columns] = "\\qwx"
                             elif nm == "crz":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["params"][0])
+                                self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
                             elif nm == "cu1":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["params"][0])
+                                self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                             elif nm == "cu3":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
-                                    % (op["params"][0], op["params"][1], op["params"][2])
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
 
                     elif len(qarglist) == 3:
                         pos_1 = self.img_regs[(qarglist[0][0],
@@ -1310,7 +1310,7 @@ class QCircuitImage:
                 if op["name"] == "measure":
                     assert len(op['clbits']) == 1 and \
                         len(op['qubits']) == 1 and \
-                        'params' not in op , "bad operation record"
+                        'params' not in op, "bad operation record"
 
                     if 'conditional' in op:
                         assert False, "If controlled measures currently not supported."
