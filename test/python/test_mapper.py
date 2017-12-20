@@ -171,13 +171,13 @@ EXPECTED_QASM_1Q_GATES = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];\n"""
 
 # This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
@@ -186,13 +186,13 @@ EXPECTED_QASM_1Q_GATES_3_5 = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;

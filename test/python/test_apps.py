@@ -70,13 +70,13 @@ class TestHamiltonian(QiskitTestCase):
         # [0 0.18093133934472627 -1.0636560168497592 0]
         # [0.18093133934472627 0 0 -1.8369675149908681]]
         self.assertSequenceEqual([str(i) for i in hamiltonian[0]],
-                                 ["-0.24522469381221926", "0", "0", "0.18093133934472627"])
+                                 ['(-0.245224693812+0j)', '0j', '0j', '(0.180931339345+0j)'])
         self.assertSequenceEqual([str(i) for i in hamiltonian[1]],
-                                 ["0", "-1.0636560168497590", "0.18093133934472627", "0"])
+                                 ['0j', '(-1.06365601685+0j)', '(0.180931339345+0j)', '0j'])
         self.assertSequenceEqual([str(i) for i in hamiltonian[2]],
-                                 ["0", "0.18093133934472627", "-1.0636560168497592", "0"])
+                                 ['0j', '(0.180931339345+0j)', '(-1.06365601685+0j)', '0j'])
         self.assertSequenceEqual([str(i) for i in hamiltonian[3]],
-                                 ["0.18093133934472627", "0", "0", "-1.8369675149908681"])
+                                 ['(0.180931339345+0j)', '0j', '0j', '(-1.83696751499+0j)'])
 
         # printing an example from a graph input
         n = 3
