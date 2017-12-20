@@ -79,7 +79,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[1], qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'ibmqx4'
+        backend = 'local_qasm_simulator'
         cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
         qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
 
