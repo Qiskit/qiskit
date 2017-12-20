@@ -391,7 +391,13 @@ json_t JSON::load(std::string name) {
     // auto js = json::parse(read_stream(std::cin));
     std::cin >> js;
   else { // Load from file
-    std::ifstream ifile(name);
+    std::ifstream ifile;
+    ifile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    try {
+      ifile.open(name);
+    } catch (std::system_error &e) {
+      throw std::runtime_error(std::string("no such file or directory"));
+    }
     ifile >> js;
   }
   return js;
