@@ -551,7 +551,7 @@ class QuantumProgram(object):
     ###############################################################
 
     def set_api(self, token, url, hub=None, group=None, project=None,
-                verify=True):
+                proxies=None, verify=True):
         """ Setup the API.
 
         Fills the __ONLINE_BACKENDS, __api, and __api_config variables.
@@ -565,6 +565,8 @@ class QuantumProgram(object):
             hub (str): The hub used for online backend.
             group (str): The group used for online backend.
             project (str): The project used for online backend.
+            proxies (dict): Proxy configuration for the API, as a dict with
+                'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
         Raises:
             ConnectionError: if the API instantiation failed.
@@ -577,6 +579,8 @@ class QuantumProgram(object):
                 'group': group,
                 'project': project
             }
+            if proxies:
+                config_dict['proxies'] = proxies
             self.__api = IBMQuantumExperience(token, config_dict, verify)
         except Exception as ex:
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
