@@ -94,7 +94,7 @@ json_t Simulator::execute() {
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
   json_t ret;
   ret["id"] = id;
-  if (simulator == 'clifford')
+  if (simulator == "clifford")
     ret["backend"] = std::string("local_clifford_simulator");
   else
     ret["backend"] = std::string("local_qiskit_simulator");
