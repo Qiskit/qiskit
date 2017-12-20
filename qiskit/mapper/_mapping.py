@@ -626,7 +626,7 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
+    urlr = unroll.Unroller(Qasm(data=circuit.qasm()).parse(),
                            unroll.DAGBackend(qx_basis))
     unrolled = urlr.execute()
 
