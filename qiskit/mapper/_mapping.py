@@ -482,7 +482,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     return sympy.Max(delta1, delta2, delta3, delta4)
 
 
-def yzy_to_zyz(xi, theta1, theta2):
+def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
     Solve the equation
@@ -492,7 +492,7 @@ def yzy_to_zyz(xi, theta1, theta2):
     Ry(2*theta1).Rz(2*xi).Ry(2*theta2) = Rz(2*phi).Ry(2*theta).Rz(2*lambda)
 
     for theta, phi, and lambda. This is equivalent to solving the system
-    given in the comment for test_solution.
+    given in the comment for test_solution. Use eps for comparisons with zero.
 
     Return a solution theta, phi, and lambda.
     """
@@ -566,7 +566,8 @@ def yzy_to_zyz(xi, theta1, theta2):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        if delta_sol[0].evalf().is_zero:
+        # TODO investigate if this can be .is_zero
+        if delta_sol[0].evalf() < eps:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
     logger.debug("theta1=%s", theta1)
@@ -702,7 +703,8 @@ def optimize_1q_gates(circuit):
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
-
+                # TODO Evaluate the symbolic expressions for efficiency?
+                # right_parameters = tuple(map(sympy.N, list(right_parameters)))
             # 1. Here down, when we simplify, we add f(theta) to lambda to
             # correct the global phase when f(theta) is 2*pi. This isn't
             # necessary but the other steps preserve the global phase, so

@@ -145,9 +145,9 @@ class JsonBackend(UnrollerBackend):
             self.circuit['operations'].append({
                 'name': "U",
                 # TODO: keep these real for now, until a later time
-                'params': [arg[0].real(nested_scope),
-                           arg[1].real(nested_scope),
-                           arg[2].real(nested_scope)],
+                'params': [float(arg[0].real(nested_scope)),
+                           float(arg[1].real(nested_scope)),
+                           float(arg[2].real(nested_scope))],
                 'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
                               arg[1].latex(prec=8, nested_scope=nested_scope),
                               arg[2].latex(prec=8, nested_scope=nested_scope)],
@@ -277,7 +277,8 @@ class JsonBackend(UnrollerBackend):
             self.circuit['operations'].append({
                 'name': name,
                 # TODO: keep these real for now, until a later time
-                'params': list(map(lambda x: x.real(nested_scope), args)),
+                'params': list(map(lambda x: float(x.real(nested_scope)),
+                                   args)),
                 'texparams': list(map(lambda x:
                                       x.latex(prec=8,
                                               nested_scope=nested_scope),
