@@ -27,11 +27,9 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-import os
 import itertools
 import copy
 import networkx as nx
-from io import StringIO
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -81,26 +79,11 @@ class DAGCircuit:
         # Map of cregs to sizes
         self.cregs = {}
 
-        # List of qregs and cregs in order of appearance in code and image
-        self.ordered_regs = []
-
-        # Map from registers to the list they appear in the image
-        self.img_regs = {}
-
         # Map of user defined gates to ast nodes defining them
         self.gates = {}
 
         # Output precision for printing floats
         self.prec = 10
-
-        # Array to hold the \LaTeX commands to generate a circuit image.
-        self._latex = []
-
-        # Variable to hold image depth (width)
-        self.img_depth = 0
-
-        # Variable to hold image width (height)
-        self.img_width = 0
 
     def get_qubits(self):
         """Return a list of qubits as (qreg, index) pairs."""
