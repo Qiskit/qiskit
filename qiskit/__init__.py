@@ -8,6 +8,8 @@ from ._gate import Gate
 from ._compositegate import CompositeGate
 from ._instruction import Instruction
 from ._instructionset import InstructionSet
+from ._reset import Reset
+from ._measure import Measure
 import qiskit.extensions.standard
 from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
