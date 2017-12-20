@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class QeRemote(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
-    Attribibutes:
+    Attributes:
         _api (IBMQuantumExperience): api for communicating with the Quantum
             Experience.
     """
@@ -105,7 +105,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {'job_id': jobid, 'status': 'ERROR', 'result': 'Time Out'}
+            return {'job_id': jobid, 'status': 'ERROR',
+                    'result': 'QISkit Time Out'}
         time.sleep(wait)
         timer += wait
         logger.info('status = %s (%d seconds)', job_result['status'], timer)

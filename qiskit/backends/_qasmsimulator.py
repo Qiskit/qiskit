@@ -324,7 +324,6 @@ class QasmSimulator(BaseBackend):
                                            dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
-            # Do each operation in this shot
             for operation in ccircuit['operations']:
                 if 'conditional' in operation:
                     mask = int(operation['conditional']['mask'], 16)
@@ -363,7 +362,7 @@ class QasmSimulator(BaseBackend):
                 elif operation['name'] == 'barrier':
                     pass
                 else:
-                    backend = globals()['__configuration']['name']
+                    backend = self._configuration['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
                                                         operation['name']))
