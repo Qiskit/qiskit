@@ -145,8 +145,8 @@ def load_result_from_file(filename):
 class ResultEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Basic):  # The element to serialize is a Symbolic type
-            if obj.is_Integer: return int(0)
-            if obj.is_Float: return float(0)
+            if obj.is_Integer: return int(obj)
+            if obj.is_Float: return float(obj)
             return str(obj)
         else:
             return json.JSONEncoder.default(self, obj)
