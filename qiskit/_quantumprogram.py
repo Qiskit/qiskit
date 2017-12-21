@@ -1013,6 +1013,7 @@ class QuantumProgram(object):
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+            # TODO: A better solution is to have options to enable/disable optimizations
             if num_qubits == 1:
                 coupling_map = None
             if coupling_map == 'all-to-all':
@@ -1045,7 +1046,10 @@ class QuantumProgram(object):
             # the compiled circuit to be run saved as a dag
             job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
                                                                    basis_gates=basis_gates)
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
+            # set eval_symbols=True to evaluate each symbolic expression
+            # TODO after transition to qobj, we can drop this
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
             # add job to the qobj
             qobj["circuits"].append(job)
         return qobj

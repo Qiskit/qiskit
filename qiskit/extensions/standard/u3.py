@@ -39,7 +39,7 @@ class U3Gate(Gate):
         theta = self.param[0]
         phi = self.param[1]
         lam = self.param[2]
-        return self._qasmif("u3(%.15f,%.15f,%.15f) %s[%d];" % (theta, phi, lam,
+        return self._qasmif("u3(%s,%s,%s) %s[%d];" % (theta, phi, lam,
                                                                qubit[0].name,
                                                                qubit[1]))
 

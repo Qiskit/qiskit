@@ -22,7 +22,6 @@ from unittest.mock import patch
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
 
-
 def _check_ibmqe_version():
     """Check if the available IBMQuantumExperience version is the required one.
 

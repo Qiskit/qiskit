@@ -132,9 +132,9 @@ class PrinterBackend(UnrollerBackend):
                 self.basis.append("U")
             if self.creg is not None:
                 print("if(%s==%d) " % (self.creg, self.cval), end="")
-            print("U(%s,%s,%s) %s[%d];" % (arg[0].real(nested_scope),
-                                           arg[1].real(nested_scope),
-                                           arg[2].real(nested_scope),
+            print("U(%s,%s,%s) %s[%d];" % (arg[0].sym(nested_scope),
+                                           arg[1].sym(nested_scope),
+                                           arg[2].sym(nested_scope),
                                            qubit[0],
                                            qubit[1]))
 
@@ -222,7 +222,7 @@ class PrinterBackend(UnrollerBackend):
         if self.listen and self.comments:
             print("// start %s, %s, %s" % (name,
                                            list(map(lambda x:
-                                                    str(x.real(nested_scope)),
+                                                    str(x.sym(nested_scope)),
                                                     args)),
                                            qubits))
         if self.listen and name not in self.basis \
@@ -237,7 +237,7 @@ class PrinterBackend(UnrollerBackend):
             print(name, end="")
             if len(args) > 0:
                 print("(%s)" % ",".join(map(lambda x:
-                                            str(x.real(nested_scope)),
+                                            str(x.sym(nested_scope)),
                                             args)), end="")
             print(" %s;" % ",".join(squbits))
 
@@ -256,7 +256,7 @@ class PrinterBackend(UnrollerBackend):
         if self.listen and self.comments:
             print("// end %s, %s, %s" % (name,
                                          list(map(lambda x:
-                                                  str(x.real(nested_scope)),
+                                                  str(x.sym(nested_scope)),
                                                   args)),
                                          qubits))
 

@@ -30,6 +30,7 @@ directly from the graph.
 import itertools
 import copy
 import networkx as nx
+import sympy
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -696,11 +697,14 @@ class DAGCircuit:
         return out
 
     def qasm(self, decls_only=False, add_swap=False,
-             no_decls=False, qeflag=False, aliases=None):
+             no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
         """Return a string containing QASM for this circuit.
 
         if qeflag is True, add a line to include "qelib1.inc"
         and only generate gate code for gates not in qelib1.
+
+        if eval_symbols is True, evaluate all symbolic
+        expressions to their floating point representation.
 
         if no_decls is True, only print the instructions.
 
@@ -775,7 +779,11 @@ class DAGCircuit:
                         qarg = ",".join(map(lambda x: "%s[%d]" % (x[0], x[1]),
                                             qarglist))
                         if len(nd["params"]) > 0:
-                            param = ",".join(nd["params"])
+                            if eval_symbols:
+                                param = ",".join(map(lambda x: str(sympy.N(x)),
+                                                     nd["params"]))
+                            else:
+                                param = ",".join(nd["params"])
                             out += "%s(%s) %s;\n" % (nm, param, qarg)
                         else:
                             out += "%s %s;\n" % (nm, qarg)

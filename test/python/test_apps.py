@@ -41,28 +41,42 @@ class TestQuantumOptimization(QiskitTestCase):
         theta = np.zeros(m * n)
 
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
-
-        self.log.info(trial_circuit.qasm())
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 456)
 
         self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
-
-        self.log.info(trial_circuit.qasm())
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 324)
 
         self.log.info("With Y measurement:\n")
         meas_sting = ['Y' for x in range(n)]
-
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
-
-        self.log.info(trial_circuit.qasm())
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 564)
 
 
 class TestHamiltonian(QiskitTestCase):
-
     def test_hamiltonian(self):
         # printing an example from a H2 file
         hfile = self._get_resource_path("H2Equilibrium.txt")
-        self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
+        hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
+        self.log.info(hamiltonian)
+        # [[-0.24522469381221926 0 0 0.18093133934472627 ]
+        # [0 -1.0636560168497590 0.18093133934472627 0]
+        # [0 0.18093133934472627 -1.0636560168497592 0]
+        # [0.18093133934472627 0 0 -1.8369675149908681]]
+        self.assertSequenceEqual([str(i) for i in hamiltonian[0]],
+                                 ['(-0.245224693812+0j)', '0j', '0j', '(0.180931339345+0j)'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[1]],
+                                 ['0j', '(-1.06365601685+0j)', '(0.180931339345+0j)', '0j'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[2]],
+                                 ['0j', '(0.180931339345+0j)', '(-1.06365601685+0j)', '0j'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[3]],
+                                 ['(0.180931339345+0j)', '0j', '0j', '(-1.83696751499+0j)'])
 
         # printing an example from a graph input
         n = 3
@@ -103,6 +117,7 @@ class TestHamiltonian(QiskitTestCase):
         self.log.info(Energy_Estimate(data, pauli_list))
         data = {'111': 10}
         self.log.info(Energy_Estimate(data, pauli_list))
+
 
 if __name__ == '__main__':
     unittest.main()

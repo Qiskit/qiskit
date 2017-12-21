@@ -37,7 +37,7 @@ class RZGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         phi = self.param[0]
-        return self._qasmif("rz(%.15f) %s[%d];" % (phi, qubit[0].name,
+        return self._qasmif("rz(%s) %s[%d];" % (phi, qubit[0].name,
                                                    qubit[1]))
 
     def inverse(self):
