@@ -24,6 +24,7 @@ from scipy import linalg as la
 from collections import Counter, OrderedDict
 from io import StringIO
 import itertools
+import re
 import operator
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -825,7 +826,12 @@ class QCircuitImage:
         for i in range(self.img_width):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
-                output.write(self._latex[i][j])
+                cell_str = self._latex[i][j]
+                # floats can cause "Dimension too large" latex error in xymatrix
+                # this truncates floats to avoid issue.
+                cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float,
+                                  cell_str)
+                output.write(cell_str)
                 if j != (self.img_depth):
                     output.write(" & ")
                 elif j == (self.img_depth):
@@ -1392,3 +1398,15 @@ def _get_register_specs(bit_labels):
     it = itertools.groupby(bit_labels, operator.itemgetter(0))
     for register_name, sub_it in it:
         yield register_name, max(ind[1] for ind in sub_it) + 1
+
+def _truncate_float(matchobj, format_str='0.2g'):
+    """Truncate long floats
+
+    Args:
+        matchobj (re.Match object): contains original float
+        format_str (str): format specifier
+    Returns:
+        returns truncated float
+    """
+    if matchobj.group(0):
+        return format(float(matchobj.group(0)), format_str)
