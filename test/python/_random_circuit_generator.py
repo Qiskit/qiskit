@@ -28,6 +28,10 @@ def choices(population, weights=None, k=1):
     Replacement for `random.choices()`, which is only available in Python 3.6+.
     TODO: drop once Python 3.6 is required by the sdk.
     """
+    if weights and sum(weights) != 1:
+        # Normalize the weights if needed, as numpy.random.choice requires so.
+        weights = [float(i)/sum(weights) for i in weights]
+
     return numpy.random.choice(population, size=k, p=weights)
 
 
@@ -99,14 +103,17 @@ class RandomCircuitGenerator():
         Args:
             nCircuits (int): Number of circuits to add.
             doMeasure (bool): Whether to add measurements.
-            basis (list of str | None): List of op names or None. If None,
-                use random operations from self.opSignature.
+            basis (list(str) | None): List of op names. If None, basis
+                is randomly chosen with unique ops in (2,7)
             basis_weights (list of float or None): List of weights
                 corresponding to indices in `basis`.
         """
         if basis is None:
             basis = list(random.sample(self.opSignature.keys(),
-                                       random.randint(2, 7)))
+                                       random.randint(2,7)))
+            basis_weights = [1./len(basis)] * len(basis)
+        if basis_weights is not None:
+            assert(len(basis) == len(basis_weights))
         uop_basis = basis[:]
         if basis_weights:
             uop_basis_weights = basis_weights[:]
@@ -135,6 +142,10 @@ class RandomCircuitGenerator():
             range(self.minDepth, self.maxDepth+1), k=nCircuits)
         for iCircuit in range(nCircuits):
             nQubits = self.nQubit_list[iCircuit]
+            if self.min_regs_exceeds_nqubits(uop_basis, nQubits):
+                # no gate operation from this circuit can fit in the available
+                # number of qubits.
+                continue
             depthCnt = self.depth_list[iCircuit]
             regpop = numpy.arange(1, nQubits+1)
             registerWeights = regpop[::-1].astype(float)
@@ -216,6 +227,8 @@ class RandomCircuitGenerator():
                             op_args.extend([qreg[qind] for qind in qindList])
                             op(*op_args)
                             depthCnt -= 1
+                        else:
+                            break
             nmeasure = random.randint(1, nQubits)
             mList = random.sample(range(nmeasure), nmeasure)
             if doMeasure:
@@ -230,6 +243,17 @@ class RandomCircuitGenerator():
                     creg = circuit.regs['cr'+str(rind)]
                     circuit.measure(qreg[qrind], creg[qrind])
             self.circuit_list.append(circuit)
+
+    def min_regs_exceeds_nqubits(self, basis, nQubits):
+        """Check whether the minimum number of qubits used by the operations
+        in basis is between 1 and the number of qubits.
+
+        Args:
+            basis (list): list of basis names
+            nQubits (int): number of qubits in circuit
+        """
+        return not any((nQubits >= self.opSignature[opName]['nregs'] > 0
+                        for opName in basis))
 
     def get_circuits(self, format='dag'):
         """Get the compiled circuits generated.

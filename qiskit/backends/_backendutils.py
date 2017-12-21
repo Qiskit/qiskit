@@ -5,9 +5,11 @@ import inspect
 import os
 import pkgutil
 import logging
+import re
 
 from .. import QISKitError
 from ._basebackend import BaseBackend
+from qiskit import mapper
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,8 @@ as its contents are a combination of:
 * backends registered manually by the user by :func:`register_backend`.
 """
 
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 def discover_local_backends(directory=os.path.dirname(__file__)):
     """This function attempts to discover all backend modules.
@@ -70,7 +74,6 @@ def discover_remote_backends(api):
 
     Args:
         api (IBMQuantumExperience): Quantum Experience API
-
     Returns:
         list: list of discovered backend names
     """
@@ -79,14 +82,36 @@ def discover_remote_backends(api):
     configuration_list = api.available_backends()
     backend_name_list = []
     for configuration in configuration_list:
+        configuration_edit = {}
         backend_name = configuration['name']
         backend_name_list.append(backend_name)
-        configuration['local'] = False
+        configuration_edit['local'] = False
+        for key in configuration.keys():
+            new_key = _snake_case_to_camel_case(key)
+            if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
+                configuration_edit[new_key] = configuration[key]
+            if new_key == 'coupling_map':
+                if isinstance(configuration[key], list):
+                    cmap = mapper.coupling_list2dict(configuration[key])
+                    configuration_edit[new_key] = cmap
+        # online_qasm_simulator uses different name for basis_gates
+        if 'gateSet' in configuration:
+            configuration_edit['basis_gates'] = configuration['gateSet']
+            del configuration_edit['gate_set']
+        # ibmqx_qasm_simulator doesn't report coupling_map
+        if ('coupling_map' not in configuration_edit.keys() and
+                configuration['simulator']):
+            configuration_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
-                                               configuration)
+                                               configuration_edit)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
+
+def _snake_case_to_camel_case(name):
+    """Return a snake case string from a camelcase string."""
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 def update_backends(api=None):
     """Update registered backends.
