@@ -32,7 +32,7 @@ def makeArgs():
     parser.add_argument('--file1', type=str, default=currentFolder+"/testcases/q3sat_small.qasm", #
                        help='file1 for comparison') # they are separated with
 
-    parser.add_argument('--file2', type=str, default=currentFolder+"/testcases/q3sat_small_cannot_compare.qasm", #
+    parser.add_argument('--file2', type=str, default=currentFolder+"/testcases/q3sat_small_equivalent.qasm", #
                        help='file2 for comparison') # they are separated with
     parser.add_argument('--return_measured_state', type=int, default=1,
                    help='1 return measured state, 0 return complete state')
