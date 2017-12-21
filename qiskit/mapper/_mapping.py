@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # because the initial state is zero. We don't do this.
 
 
-def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
+def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, seed=None):
     """Find a swap circuit that implements a permutation for this layer.
 
     The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -69,6 +69,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     swap circuit has been applied. The trivial_flag is set if the layer
     has no multi-qubit gates.
     """
+    if seed is not None:
+        np.random.seed(seed)
     logger.debug("layer_permutation: ----- enter -----")
     logger.debug("layer_permutation: layer_partition = %s",
                  pprint.pformat(layer_partition))
@@ -307,7 +309,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
 
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
-                basis="cx,u1,u2,u3,id", trials=20):
+                basis="cx,u1,u2,u3,id", trials=20, seed=None):
     """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
     Args:
@@ -367,7 +369,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
-                                qubit_subset, coupling_graph, trials)
+                                qubit_subset, coupling_graph, trials, seed)
         logger.debug("swap_mapper: layer %d", i)
         logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s",
                      success_flag, str(best_d), trivial_flag)
@@ -384,7 +386,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                 success_flag, best_circ, best_d, best_layout, trivial_flag \
                     = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
-                                        trials)
+                                        trials, seed)
                 logger.debug("swap_mapper: layer %d, sublayer %d", i, j)
                 logger.debug("swap_mapper: success_flag=%s,best_d=%s,"
                              "trivial_flag=%s",
