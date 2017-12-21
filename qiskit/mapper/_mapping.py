@@ -500,9 +500,10 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if sympy.cos(xi).is_zero:
+    # TODO investigate when these can be .is_zero
+    if sympy.Abs(sympy.cos(xi)).evalf() < eps:
         solutions.append((theta2 - theta1, xi, 0))
-    elif sympy.sin(theta1 + theta2) == 0:
+    elif sympy.Abs(sympy.sin(theta1 + theta2)).evalf() < eps:
         phi_minus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -522,7 +523,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif sympy.cos(theta1 + theta2).is_zero:
+    elif sympy.Abs(sympy.cos(theta1 + theta2)).evalf() < eps:
         phi_plus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -568,7 +569,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
-        # TODO investigate if this can be .is_zero
+        # TODO investigate when this can be .is_zero
         if delta_sol[0].evalf() < eps:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
@@ -700,17 +701,15 @@ def optimize_1q_gates(circuit):
                 # together with the qiskit.mapper.compose_u3 method.
                 right_name = "u3"
                 # Evaluate the symbolic expressions for efficiency
-                left_parameters = tuple(map(sympy.N, list(left_parameters)))
-                right_parameters = tuple(map(sympy.N, list(right_parameters)))
+                left_parameters = tuple(map(lambda x: x.evalf(), list(left_parameters)))
+                right_parameters = tuple(map(lambda x: x.evalf(), list(right_parameters)))
                 right_parameters = compose_u3(left_parameters[0],
                                               left_parameters[1],
                                               left_parameters[2],
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
-                # Evaluate the symbolic expressions for efficiency
-                right_parameters = tuple(map(sympy.N, list(right_parameters)))
-                # Why? This program:
+                # Why evalf()? This program:
                 #   OPENQASM 2.0;
                 #   include "qelib1.inc";
                 #   qreg q[2];
@@ -720,9 +719,9 @@ def optimize_1q_gates(circuit):
                 #   u3(0.294319836336836*pi,0.450325871124225*pi,1.46804720442555*pi) q[0];
                 #   measure q -> c;
                 # took >630 seconds (did not complete) to optimize without
-                # calling sympy.N at all, 19 seconds to optimize calling
-                # sympy.N after compose_u3, and 1 second to optimize
-                # calling sympy.N before and after.
+                # calling evalf() at all, 19 seconds to optimize calling
+                # evalf() AFTER compose_u3, and 1 second to optimize
+                # calling evalf() BEFORE compose_u3.
             # 1. Here down, when we simplify, we add f(theta) to lambda to
             # correct the global phase when f(theta) is 2*pi. This isn't
             # necessary but the other steps preserve the global phase, so
