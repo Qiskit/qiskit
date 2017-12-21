@@ -996,6 +996,11 @@ class QuantumProgram(object):
         if not basis_gates:
             if 'basis_gates' in backend_conf:
                 basis_gates = backend_conf['basis_gates']
+        elif len(basis_gates.split(',')) < 2:
+            # catches deprecated basis specification like 'SU2+CNOT'
+            logger.warn('encountered deprecated basis specification: '
+                        '"{}" substituting u1,u2,u3,cx,id'.format(basis_gates))
+            basis_gates = 'u1,u2,u3,cx,id'
         if not coupling_map:
             coupling_map = backend_conf['coupling_map']
         if not name_of_circuits:
