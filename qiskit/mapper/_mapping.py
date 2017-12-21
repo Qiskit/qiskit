@@ -23,13 +23,13 @@ import sys
 import copy
 import logging
 import sympy
+from sympy import Number as N
 import numpy as np
 import networkx as nx
 import pprint
 from ._mappererror import MapperError
 from qiskit.qasm import Qasm
 import qiskit.unroll as unroll
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # because the initial state is zero. We don't do this.
 
 
-def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
+def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, seed=None):
     """Find a swap circuit that implements a permutation for this layer.
 
     The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -69,6 +69,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
     swap circuit has been applied. The trivial_flag is set if the layer
     has no multi-qubit gates.
     """
+    if seed is not None:
+        np.random.seed(seed)
     logger.debug("layer_permutation: ----- enter -----")
     logger.debug("layer_permutation: layer_partition = %s",
                  pprint.pformat(layer_partition))
@@ -115,13 +117,13 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials):
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
                 scale = 1 + np.random.normal(0, 1 / n)
-                xi[i][j] = scale * coupling.distance(i, j)**2
+                xi[i][j] = scale * coupling.distance(i, j) ** 2
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
         d = 1
         circ = ""  # circuit for this swap slice
-        while d < 2*n+1:
+        while d < 2 * n + 1:
             # Set of available qubits
             qubit_set = set(qubit_subset)
             # While there are still qubits available
@@ -285,7 +287,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
             add_swap=True,
             decls_only=True,
             aliases=layout)
-        for j in range(i+1):
+        for j in range(i + 1):
             openqasm_output += layer_list[j]["graph"].qasm(
                 no_decls=True,
                 aliases=layout)
@@ -307,7 +309,7 @@ def update_qasm(i, first_layer, best_layout, best_d,
 
 def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout=None,
-                basis="cx,u1,u2,u3,id", trials=20):
+                basis="cx,u1,u2,u3,id", trials=20, seed=None):
     """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
     Args:
@@ -367,7 +369,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
-                                qubit_subset, coupling_graph, trials)
+                                qubit_subset, coupling_graph, trials, seed)
         logger.debug("swap_mapper: layer %d", i)
         logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s",
                      success_flag, str(best_d), trivial_flag)
@@ -384,7 +386,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                 success_flag, best_circ, best_d, best_layout, trivial_flag \
                     = layer_permutation(serial_layer["partition"],
                                         layout, qubit_subset, coupling_graph,
-                                        trials)
+                                        trials, seed)
                 logger.debug("swap_mapper: layer %d, sublayer %d", i, j)
                 logger.debug("swap_mapper: success_flag=%s,best_d=%s,"
                              "trivial_flag=%s",
@@ -464,17 +466,23 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
 
        \sin(\phi-\lambda) \sin(\\theta) = \sin(xi) * \sin(-\\theta1+\\theta2)
 
-    Returns the maximum absolute difference between right and left hand sides.
+    Returns the maximum absolute difference between right and left hand sides
+    as a Max symbol. See:
+    http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
     delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
-        sympy.cos(xi) * sympy.cos(theta1 + theta2)
+             sympy.cos(xi) * sympy.cos(theta1 + theta2)
     delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
-        sympy.sin(xi) * sympy.cos(theta1 - theta2)
+             sympy.sin(xi) * sympy.cos(theta1 - theta2)
     delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
-        sympy.cos(xi) * sympy.sin(theta1 + theta2)
+             sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
-        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-    return max(map(lambda x: abs(x.evalf()), [delta1, delta2, delta3, delta4]))
+             sympy.sin(xi) * sympy.sin(-theta1 + theta2)
+
+    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()), [delta1, delta2, delta3, delta4])
+
+    return sympy.Max(delta1, delta2, delta3, delta4)
+
 
 def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
@@ -492,9 +500,10 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """
     solutions = []  # list of potential solutions
     # Four cases to avoid singularities
-    if sympy.cos(xi).is_zero :
+    # TODO investigate when these can be .is_zero
+    if sympy.Abs(sympy.cos(xi)).evalf() < eps:
         solutions.append((theta2 - theta1, xi, 0))
-    elif sympy.sin(theta1 + theta2) ==0 :
+    elif sympy.Abs(sympy.sin(theta1 + theta2)).evalf() < eps:
         phi_minus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -514,7 +523,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         slam = [(term[0] - term[1]) / 2 for term in
                 zip(phi_plus_lambda, phi_minus_lambda)]
         solutions = list(zip(stheta, sphi, slam))
-    elif sympy.cos(theta1 + theta2).is_zero:
+    elif sympy.Abs(sympy.cos(theta1 + theta2)).evalf() < eps:
         phi_plus_lambda = [
             sympy.pi / 2,
             3 * sympy.pi / 2,
@@ -536,11 +545,11 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         solutions = list(zip(stheta, sphi, slam))
     else:
         phi_plus_lambda = sympy.atan(sympy.sin(xi) * sympy.cos(theta1 - theta2) /
-                                    (sympy.cos(xi) * sympy.cos(theta1 + theta2)))
+                                     (sympy.cos(xi) * sympy.cos(theta1 + theta2)))
         phi_minus_lambda = sympy.atan(sympy.sin(xi) * sympy.sin(-theta1 +
-                                                             theta2) /
-                                     (sympy.cos(xi) * sympy.sin(theta1 +
-                                                              theta2)))
+                                                                theta2) /
+                                      (sympy.cos(xi) * sympy.sin(theta1 +
+                                                                 theta2)))
         sphi = (phi_plus_lambda + phi_minus_lambda) / 2
         slam = (phi_plus_lambda - phi_minus_lambda) / 2
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
@@ -560,6 +569,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
                                                    xi, theta1, theta2),
                       solutions))
     for delta_sol in zip(deltas, solutions):
+        # TODO investigate when this can be .is_zero
         if delta_sol[0].evalf() < eps:
             return delta_sol[1]
     logger.debug("xi=%s", xi)
@@ -584,7 +594,8 @@ def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     # Careful with the factor of two in yzy_to_zyz
     thetap, phip, lambdap = yzy_to_zyz((lambda1 + phi2) / 2,
                                        theta1 / 2, theta2 / 2)
-    return (2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
+    (theta, phi, lamb) = (2 * thetap, phi1 + 2 * phip, lambda2 + 2 * lambdap)
+    return (theta.simplify(), phi.simplify(), lamb.simplify())
 
 
 def cx_cancellation(circuit):
@@ -619,7 +630,7 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    urlr = unroll.Unroller(Qasm(data=circuit.qasm(qeflag=True)).parse(),
+    urlr = unroll.Unroller(Qasm(data=circuit.qasm()).parse(),
                            unroll.DAGBackend(qx_basis))
     unrolled = urlr.execute()
 
@@ -627,7 +638,7 @@ def optimize_1q_gates(circuit):
     for run in runs:
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
-        right_parameters = (0, 0, 0)  # (theta, phi, lambda)
+        right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for node in run:
             nd = unrolled.multi_graph.node[node]
             assert nd["condition"] is None, "internal error"
@@ -636,7 +647,7 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (0, 0, sympy.sympify(nd["params"][0]))
+                left_parameters = (N(0), N(0), sympy.sympify(nd["params"][0]))
             elif left_name == "u2":
                 left_parameters = (sympy.pi / 2, sympy.sympify(nd["params"][0]),
                                    sympy.sympify(nd["params"][1]))
@@ -644,12 +655,12 @@ def optimize_1q_gates(circuit):
                 left_parameters = tuple(sympy.sympify(nd["params"]))
             else:
                 left_name = "u1"  # replace id with u1
-                left_parameters = (0, 0, 0)
+                left_parameters = (N(0), N(0), N(0))
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                right_parameters = (0, 0, right_parameters[2] +
+                right_parameters = (N(0), N(0), right_parameters[2] +
                                     left_parameters[2])
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
@@ -689,15 +700,28 @@ def optimize_1q_gates(circuit):
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
                 # together with the qiskit.mapper.compose_u3 method.
                 right_name = "u3"
+                # Evaluate the symbolic expressions for efficiency
+                left_parameters = tuple(map(lambda x: x.evalf(), list(left_parameters)))
+                right_parameters = tuple(map(lambda x: x.evalf(), list(right_parameters)))
                 right_parameters = compose_u3(left_parameters[0],
                                               left_parameters[1],
                                               left_parameters[2],
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
-                # Evaluate the symbolic expressions for efficiency
-                right_parameters = tuple(map(sympy.N, list(right_parameters)))
-
+                # Why evalf()? This program:
+                #   OPENQASM 2.0;
+                #   include "qelib1.inc";
+                #   qreg q[2];
+                #   creg c[2];
+                #   u3(0.518016983430947*pi,1.37051598592907*pi,1.36816383603222*pi) q[0];
+                #   u3(1.69867232277986*pi,0.371448347747471*pi,0.461117217930936*pi) q[0];
+                #   u3(0.294319836336836*pi,0.450325871124225*pi,1.46804720442555*pi) q[0];
+                #   measure q -> c;
+                # took >630 seconds (did not complete) to optimize without
+                # calling evalf() at all, 19 seconds to optimize calling
+                # evalf() AFTER compose_u3, and 1 second to optimize
+                # calling evalf() BEFORE compose_u3.
             # 1. Here down, when we simplify, we add f(theta) to lambda to
             # correct the global phase when f(theta) is 2*pi. This isn't
             # necessary but the other steps preserve the global phase, so
@@ -711,7 +735,7 @@ def optimize_1q_gates(circuit):
 
             # Y rotation is 0 mod 2*pi, so the gate is a u1
             if (right_parameters[0] % (2 * sympy.pi)).is_zero \
-               and right_name != "u1":
+                    and right_name != "u1":
                 right_name = "u1"
                 right_parameters = (0, 0, right_parameters[1] +
                                     right_parameters[2] +

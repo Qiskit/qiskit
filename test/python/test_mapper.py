@@ -89,6 +89,21 @@ class MapperTest(QiskitTestCase):
         self.assertIn(self.qp.get_compiled_qasm(qobj, "Bell"),
                       (EXPECTED_QASM_1Q_GATES, EXPECTED_QASM_1Q_GATES_3_5))
 
+    def test_random_parameter_circuit(self):
+        """Run a circuit with randomly generated parameters."""
+        self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
+        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
+                                  coupling_map=coupling_map, seed=self.seed)
+        res = result1.get_counts("rand")
+        # TODO: the circuit produces different results under different versions
+        # of Python, which defeats the purpose of the "seed" parameter. A proper
+        # fix should be issued - this is a workaround for this particular test.
+        if version_info.minor == 5:  # Python 3.5
+            self.assertEqual(res, {'00101': 3, '00011': 22, '11100': 27, '01100': 1, '10011': 15, '00111': 53, '01000': 110, '11111': 19, '00100': 54, '01111': 17, '10101': 11, '11010': 20, '10111': 60, '01110': 6, '00110': 40, '11001': 16, '11011': 9, '01010': 9, '01011': 16, '11110': 4, '00000': 89, '10110': 34, '00010': 113, '10010': 25, '00001': 25, '01001': 41, '10000': 96, '11000': 1, '10100': 20, '01101': 68})
+        else:
+            self.assertEqual(res, {'10000': 98, '11010': 22, '00000': 88, '00010': 120, '10110': 55, '01111': 26, '00100': 51, '10111': 62, '01101': 70, '01000': 95, '01100': 6, '01011': 13, '00111': 45, '00110': 30, '10011': 14, '10100': 21, '11100': 28, '00001': 26, '01001': 33, '00101': 5, '11001': 7, '10101': 20, '11110': 1, '11111': 20, '00011': 15, '11000': 2, '10010': 27, '01010': 4, '11011': 6, '01110': 14})
+
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
 
@@ -171,13 +186,13 @@ EXPECTED_QASM_1Q_GATES = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];\n"""
 
 # This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
@@ -186,13 +201,13 @@ EXPECTED_QASM_1Q_GATES_3_5 = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;

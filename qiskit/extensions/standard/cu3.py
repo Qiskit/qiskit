@@ -40,7 +40,7 @@ class Cu3Gate(Gate):
         theta = self.param[0]
         phi = self.param[1]
         lam = self.param[2]
-        return self._qasmif("cu3(%.15f,%.15f,%.15f) %s[%d],%s[%d];" % (theta, phi, lam,
+        return self._qasmif("cu3(%s,%s,%s) %s[%d],%s[%d];" % (theta, phi, lam,
                                                                        ctl[0].name, ctl[1],
                                                                        tgt[0].name, tgt[1]))
 

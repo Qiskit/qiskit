@@ -41,8 +41,8 @@ class External(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        return "\\" + self.children[0].latex(prec, None) + "({" + \
-               self.children[1].latex(prec, nested_scope) + "})"
+        # TODO prec ignored
+        return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
