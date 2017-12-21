@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class QeRemote(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
-    Attribibutes:
+    Attributes:
         _api (IBMQuantumExperience): api for communicating with the Quantum
             Experience.
     """
