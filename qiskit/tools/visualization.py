@@ -31,7 +31,8 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
-from qiskit import qasm, unroll
+from qiskit import qasm, unroll, QISKitError
+
 
 ###############################################################
 # Plotting histogram
@@ -702,12 +703,15 @@ def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
         Latex string appropriate for writing to file.
     """
     ast = qasm.Qasm(data=circuit.qasm()).parse()
-    u = unroll.Unroller(ast, unroll.JsonBackend(basis.split(",")))
+    if basis:
+        # Split basis only if it is not the empty string.
+        basis = basis.split(',')
+    u = unroll.Unroller(ast, unroll.JsonBackend(basis))
     u.execute()
     json_circuit = u.backend.circuit
     qcimg = QCircuitImage(json_circuit)
     latex = qcimg.latex()
-    if filename is not None:
+    if filename:
         with open(filename, 'w') as latex_file:
             latex_file.write(latex)
     return latex
@@ -767,7 +771,8 @@ class QCircuitImage:
         for cr in self.cregs:
             for i in range(self.cregs[cr]):
                 self.clbit_list.append((cr, i))
-        self.ordered_regs = [(item[0], item[1]) for item in self.header['qubit_labels']]
+        self.ordered_regs = [(item[0], item[1]) for
+                             item in self.header['qubit_labels']]
         for clabel in self.header['clbit_labels']:
             for cind in range(clabel[1]):
                 self.ordered_regs.append((clabel[0], cind))
@@ -832,9 +837,9 @@ class QCircuitImage:
                 cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float,
                                   cell_str)
                 output.write(cell_str)
-                if j != (self.img_depth):
+                if j != self.img_depth:
                     output.write(" & ")
-                elif j == (self.img_depth):
+                elif j == self.img_depth:
                     output.write(r'\\'+'\n')
                 else:
                     output.write('\n')
@@ -846,24 +851,23 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self, aliases=None):
-        # self.img_depth = self._get_image_depth(aliases)
         self.img_depth = len(self.circuit['operations'])
         self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]]
-                       else "\\qw" for i in range(self.img_depth + 1)] for j in range(self.img_width)]
-        self._latex.append([" " for j in range(self.img_depth + 1)])
+                       else "\\qw" for i in range(self.img_depth + 1)]
+                       for j in range(self.img_width)]
+        self._latex.append([" "] * (self.img_depth + 1))
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
-                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + "_" + str(self.ordered_regs[i][1]) + "}"
+                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + \
+                                    "_" + str(self.ordered_regs[i][1]) + "}"
             else:
-                self._latex[i][0] = "\\lstick{\\ket{" + self.ordered_regs[i][0] + "_" + str(self.ordered_regs[i][1]) + "}}"
+                self._latex[i][0] = "\\lstick{\\ket{" + \
+                                    self.ordered_regs[i][0] + "_" + \
+                                    str(self.ordered_regs[i][1]) + "}}"
 
     def _get_image_depth(self, aliases=None):
-        """
-        Args:
-            circuit (dict): compiled circuit dictionary from qobj
-        """
         columns = 2
-        is_occupied = [False for i in range(self.img_width)]
+        is_occupied = [False] * self.img_width
         for op in self.circuit['operations']:
             if 'clbits' not in op:
                 if op['name'] != 'barrier':
@@ -883,7 +887,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(pos_1, pos_2 + 1):
                                         is_occupied[j] = True
                                     break
@@ -892,7 +896,7 @@ class QCircuitImage:
                                 is_occupied[pos_1] = True
                             else:
                                 columns += 1
-                                is_occupied = [False for i in range(self.img_width)]
+                                is_occupied = [False] * self.img_width
                                 is_occupied[pos_1] = True
                     elif len(qarglist) == 2:
                         pos_1 = self.img_regs[(qarglist[0][0],
@@ -911,7 +915,7 @@ class QCircuitImage:
                                         is_occupied[i] = True
                                     else:
                                         columns += 1
-                                        is_occupied = [False for j in range(self.img_width)]
+                                        is_occupied = [False] * self.img_width
                                         for j in range(pos_2, pos_3 + 1):
                                             is_occupied[j] = True
                                         break
@@ -921,7 +925,7 @@ class QCircuitImage:
                                         is_occupied[i] = True
                                     else:
                                         columns += 1
-                                        is_occupied = [False for j in range(self.img_width)]
+                                        is_occupied = [False] * self.img_width
                                         for j in range(pos_1, pos_3 + 1):
                                             is_occupied[j] = True
                                         break
@@ -936,7 +940,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(top, bottom + 1):
                                         is_occupied[j] = True
                                     break
@@ -944,7 +948,8 @@ class QCircuitImage:
                 if op['name'] == "measure":
                     assert len(op['clbits']) == 1 and len(op['qubits']) == 1
                     if 'conditional' in op:
-                        assert False, "If controlled measures currently not supported."
+                        assert False,\
+                            "If controlled measures currently not supported."
                     qname, qindex = self.total_2_register_index(
                         op['qubits'][0], self.qregs)
                     cname, cindex = self.total_2_register_index(
@@ -963,7 +968,7 @@ class QCircuitImage:
                             is_occupied[i] = True
                         else:
                             columns += 1
-                            is_occupied = [False for j in range(self.img_width)]
+                            is_occupied = [False] * self.img_width
                             for j in range(pos_1, pos_2 + 1):
                                 is_occupied[j] = True
                             break
@@ -1002,7 +1007,7 @@ class QCircuitImage:
         We will deduce the register names and sizes from aliases.
         """
         columns = 1
-        is_occupied = [False for i in range(self.img_width)]
+        is_occupied = [False] * self.img_width
 
         # Rename qregs if necessary
         if aliases:
@@ -1043,7 +1048,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(pos_1, pos_2 + 1):
                                         is_occupied[j] = True
                                     break
@@ -1065,35 +1070,42 @@ class QCircuitImage:
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "u2":
-                                self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
-                                    % (op["texparams"][0], op["texparams"][1])
+                                self._latex[pos_1][columns] =\
+                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                        op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
                                 self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
-                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "ry":
-                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "rz":
-                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
+                                    op["texparams"][0])
 
                             gap = pos_2 - pos_1
                             for i in range(self.cregs[if_reg]):
                                 if if_value[i] == '1':
-                                    self._latex[pos_2 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_2 + i][columns] = \
+                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
                                 else:
-                                    self._latex[pos_2 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_2 + i][columns] = \
+                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
 
                         else:
-                            if is_occupied[pos_1] == False:
+                            if not is_occupied[pos_1]:
                                 is_occupied[pos_1] = True
                             else:
                                 columns += 1
-                                is_occupied = [False for i in range(self.img_width)]
+                                is_occupied = [False] * self.img_width
                                 is_occupied[pos_1] = True
 
                             if nm == "x":
@@ -1113,19 +1125,24 @@ class QCircuitImage:
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "u2":
-                                self._latex[pos_1][columns] = "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" \
-                                    % (op["texparams"][0], op["texparams"][1])
+                                self._latex[pos_1][columns] = \
+                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                        op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
                                 self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
-                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "ry":
-                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "rz":
-                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
+                                    op["texparams"][0])
 
                     elif len(qarglist) == 2:
                         pos_1 = self.img_regs[(qarglist[0][0],
@@ -1142,44 +1159,57 @@ class QCircuitImage:
                                         is_occupied[i] = True
                                     else:
                                         columns += 1
-                                        is_occupied = [False for j in range(self.img_width)]
+                                        is_occupied = [False] * self.img_width
                                         for j in range(pos_2, pos_3 + 1):
                                             is_occupied[j] = True
                                         break
 
                                 if nm == "cx":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = "\\targ"
                                 elif nm == "cz":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = "\\gate{Z}"
                                 elif nm == "cy":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = "\\gate{Y}"
                                 elif nm == "ch":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
                                     self._latex[pos_2][columns] = "\\qwx"
                                 elif nm == "crz":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{R_z(%s)}" % (op["texparams"][0])
                                 elif nm == "cu1":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
-                                        % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(%s,%s,%s)}" % (op["texparams"][0],
+                                                                 op["texparams"][1],
+                                                                 op["texparams"][2])
 
                                 gap = pos_3 - pos_1
                                 for i in range(self.cregs[if_reg]):
                                     if if_value[i] == '1':
-                                        self._latex[pos_3 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\control \\cw \\cwx[-" + str(gap) + "]"
                                         gap = 1
                                     else:
-                                        self._latex[pos_3 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                         gap = 1
                             else:
                                 for i in range(pos_1, pos_3 + self.cregs[if_reg]):
@@ -1187,44 +1217,56 @@ class QCircuitImage:
                                         is_occupied[i] = True
                                     else:
                                         columns += 1
-                                        is_occupied = [False for j in range(self.img_width)]
+                                        is_occupied = [False] * self.img_width
                                         for j in range(pos_1, pos_3 + 1):
                                             is_occupied[j] = True
                                         break
 
                                 if nm == "cx":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\targ"
                                 elif nm == "cz":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\gate{Z}"
                                 elif nm == "cy":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\gate{Y}"
                                 elif nm == "ch":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
                                     self._latex[pos_2][columns] = "\\qwx"
                                 elif nm == "crz":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{R_z(%s)}" % (op["texparams"][0])
                                 elif nm == "cu1":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
-                                    self._latex[pos_1][columns] = "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
-                                        % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                                        % (op["texparams"][0], op["texparams"][1],
+                                           op["texparams"][2])
 
                                 gap = pos_3 - pos_2
                                 for i in range(self.cregs[if_reg]):
                                     if if_value[i] == '1':
-                                        self._latex[pos_3 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\control \\cw \\cwx[-" + str(gap) + "]"
                                         gap = 1
                                     else:
-                                        self._latex[pos_3 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                         gap = 1
 
                         else:
@@ -1238,7 +1280,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(top, bottom + 1):
                                         is_occupied[j] = True
                                     break
@@ -1260,10 +1302,12 @@ class QCircuitImage:
                                 self._latex[pos_2][columns] = "\\qwx"
                             elif nm == "crz":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                self._latex[pos_2][columns] = \
+                                    "\\gate{R_z(%s)}" % (op["texparams"][0])
                             elif nm == "cu1":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                self._latex[pos_2][columns] = \
+                                    "\\gate{U(0,0,%s)}" % (op["texparams"][0])
                             elif nm == "cu3":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
@@ -1290,7 +1334,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(top, pos_4 + 1):
                                         is_occupied[j] = True
                                     break
@@ -1298,10 +1342,12 @@ class QCircuitImage:
                             gap = pos_4 - bottom
                             for i in range(self.cregs[if_reg]):
                                 if if_value[i] == '1':
-                                    self._latex[pos_4 + i][columns] = "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
                                 else:
-                                    self._latex[pos_4 + i][columns] = "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
                         else:
                             temp = [pos_1, pos_2, pos_3]
@@ -1314,7 +1360,7 @@ class QCircuitImage:
                                     is_occupied[i] = True
                                 else:
                                     columns += 1
-                                    is_occupied = [False for j in range(self.img_width)]
+                                    is_occupied = [False] * self.img_width
                                     for j in range(top, bottom + 1):
                                         is_occupied[j] = True
                                     break
@@ -1350,19 +1396,18 @@ class QCircuitImage:
                             is_occupied[i] = True
                         else:
                             columns += 1
-                            is_occupied = [False for j in range(self.img_width)]
+                            is_occupied = [False] * self.img_width
                             for j in range(pos_1, pos_2 + 1):
                                 is_occupied[j] = True
                             break
 
                     try:
                         self._latex[pos_1][columns] = "\\meter"
-                        self._latex[pos_2][columns] = "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
-                    except Exception as err:
-                        print(err)
-                        print(len(self._latex), len(self._latex[0]))
-                        import pdb;pdb.set_trace()
-
+                        self._latex[pos_2][columns] = \
+                            "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                    except Exception as e:
+                        raise QISKitError('Error during Latex building: %s' %
+                                          str(e))
                 else:
                     assert False, "bad node data"
 
@@ -1398,6 +1443,7 @@ def _get_register_specs(bit_labels):
     it = itertools.groupby(bit_labels, operator.itemgetter(0))
     for register_name, sub_it in it:
         yield register_name, max(ind[1] for ind in sub_it) + 1
+
 
 def _truncate_float(matchobj, format_str='0.2g'):
     """Truncate long floats

@@ -1,9 +1,28 @@
-import unittest
+# -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+"""Tests for visualization tools."""
+
 import os
+import unittest
+
 from qiskit import QuantumProgram
-from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
-from qiskit.tools.visualization import QCircuitImage, latex_drawer
-from ._random_circuit_generator import RandomCircuitGenerator
+from qiskit.tools.visualization import latex_drawer
+from .common import QiskitTestCase
 
 
 class TestLatexDrawer(QiskitTestCase):
@@ -22,11 +41,6 @@ class TestLatexDrawer(QiskitTestCase):
         self.qp = qp
         self.qc = qc
         self.qobj = qp.compile(['latex_test'])
-
-    # def test_get_image_depth(self):
-    #     compiled_circuit = self.qobj['circuits'][0]['compiled_circuit']
-    #     qcimg = QCircuitImage(compiled_circuit)
-    #     self.assertEqual(qcimg._get_image_depth(), 6)
 
     def test_latex_drawer(self):
         filename = self._get_resource_path('test_latex_drawer.tex')
@@ -90,24 +104,6 @@ class TestLatexDrawer(QiskitTestCase):
                 os.remove(filename)
             raise
 
-    # def test_latex_drawer_random(self):
-    #     nCircuits = 20
-    #     minDepth = 1
-    #     maxDepth = 20
-    #     minQubits = 1
-    #     maxQubits = 5
-    #     randomCircuits = RandomCircuitGenerator(seed=None,
-    #                                             minQubits=minQubits,
-    #                                             maxQubits=maxQubits,
-    #                                             minDepth=minDepth,
-    #                                             maxDepth=maxDepth)
-    #     randomCircuits.add_circuits(nCircuits)
-    #     qc_circuits = randomCircuits.get_circuits(format='QuantumCircuit')
-    #     for i, circuit in enumerate(qc_circuits):
-    #         filename = self._get_resource_path('latex_test' + str(i).zfill(3) +
-    #                                            '.tex')
-    #         print(circuit.qasm())
-    #         latex_drawer(circuit, filename)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

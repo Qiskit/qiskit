@@ -19,10 +19,10 @@
 
 import unittest
 
-from qiskit.qasm import Qasm, QasmError
 from qiskit.dagcircuit import DAGCircuit
 
 from .common import QiskitTestCase
+
 
 class TestDagCircuit(QiskitTestCase):
     """QasmParser"""
