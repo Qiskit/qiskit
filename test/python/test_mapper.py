@@ -89,6 +89,15 @@ class MapperTest(QiskitTestCase):
         self.assertIn(self.qp.get_compiled_qasm(qobj, "Bell"),
                       (EXPECTED_QASM_1Q_GATES, EXPECTED_QASM_1Q_GATES_3_5))
 
+    def test_random_parameter_circuit(self):
+        """Run a circuit with randomly generated parameters."""
+        self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
+        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
+                                  coupling_map=coupling_map, seed=self.seed)
+        print(result1.get_counts("rand"))
+        self.assertEqual(result1.get_counts("rand"), {'10000': 98, '11010': 22, '00000': 88, '00010': 120, '10110': 55, '01111': 26, '00100': 51, '10111': 62, '01101': 70, '01000': 95, '01100': 6, '01011': 13, '00111': 45, '00110': 30, '10011': 14, '10100': 21, '11100': 28, '00001': 26, '01001': 33, '00101': 5, '11001': 7, '10101': 20, '11110': 1, '11111': 20, '00011': 15, '11000': 2, '10010': 27, '01010': 4, '11011': 6, '01110': 14})
+
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
 
