@@ -1008,6 +1008,7 @@ class QuantumProgram(object):
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
             num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+            # TODO: A better solution is to have options to enable/disable optimizations
             if num_qubits == 1:
                 coupling_map = None
             if coupling_map == 'all-to-all':

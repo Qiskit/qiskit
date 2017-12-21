@@ -699,14 +699,30 @@ def optimize_1q_gates(circuit):
                 # u2(phi, lambda) = u3(pi/2, phi, lambda)
                 # together with the qiskit.mapper.compose_u3 method.
                 right_name = "u3"
+                # Evaluate the symbolic expressions for efficiency
+                left_parameters = tuple(map(sympy.N, list(left_parameters)))
+                right_parameters = tuple(map(sympy.N, list(right_parameters)))
                 right_parameters = compose_u3(left_parameters[0],
                                               left_parameters[1],
                                               left_parameters[2],
                                               right_parameters[0],
                                               right_parameters[1],
                                               right_parameters[2])
-                # TODO Evaluate the symbolic expressions for efficiency?
-                # right_parameters = tuple(map(sympy.N, list(right_parameters)))
+                # Evaluate the symbolic expressions for efficiency
+                right_parameters = tuple(map(sympy.N, list(right_parameters)))
+                # Why? This program:
+                #   OPENQASM 2.0;
+                #   include "qelib1.inc";
+                #   qreg q[2];
+                #   creg c[2];
+                #   u3(0.518016983430947*pi,1.37051598592907*pi,1.36816383603222*pi) q[0];
+                #   u3(1.69867232277986*pi,0.371448347747471*pi,0.461117217930936*pi) q[0];
+                #   u3(0.294319836336836*pi,0.450325871124225*pi,1.46804720442555*pi) q[0];
+                #   measure q -> c;
+                # took >630 seconds (did not complete) to optimize without
+                # calling sympy.N at all, 19 seconds to optimize calling
+                # sympy.N after compose_u3, and 1 second to optimize
+                # calling sympy.N before and after.
             # 1. Here down, when we simplify, we add f(theta) to lambda to
             # correct the global phase when f(theta) is 2*pi. This isn't
             # necessary but the other steps preserve the global phase, so
