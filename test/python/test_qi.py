@@ -16,15 +16,17 @@
 # limitations under the License.
 # =============================================================================
 
-"""Quick program to test the Pauli class."""
+"""Quick program to test the qi tools modules."""
+
 from copy import deepcopy
 import unittest
-
+import sys
+sys.path.append("../..")
 import numpy as np
-from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
-from qiskit.tools.qi.qi import (partial_trace, vectorize, devectorize, outer,
-                                state_fidelity, purity, concurrence)
-
+from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, \
+    pauli_group, sgn_prod
+from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
+from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
 from .common import QiskitTestCase
 
 
@@ -43,14 +45,14 @@ class TestQI(QiskitTestCase):
         rhos = [rho0, rho1, rho2, rho10, rho20, rho21]
 
         # test partial trace
-        tau0 = partial_trace(rho210, sys=[1, 2])
-        tau1 = partial_trace(rho210, sys=[0, 2])
-        tau2 = partial_trace(rho210, sys=[0, 1])
+        tau0 = partial_trace(rho210, [1, 2])
+        tau1 = partial_trace(rho210, [0, 2])
+        tau2 = partial_trace(rho210, [0, 1])
 
         # test different dimensions
-        tau10 = partial_trace(rho210, dims=[4, 2], sys=[1])
-        tau20 = partial_trace(rho210, dims=[2, 2, 2], sys=[1])
-        tau21 = partial_trace(rho210, dims=[2, 4], sys=[0])
+        tau10 = partial_trace(rho210, [1], dimensions=[4, 2])
+        tau20 = partial_trace(rho210, [1], dimensions=[2, 2, 2])
+        tau21 = partial_trace(rho210, [0], dimensions=[2, 4])
         taus = [tau0, tau1, tau2, tau10, tau20, tau21]
 
         all_pass = True
