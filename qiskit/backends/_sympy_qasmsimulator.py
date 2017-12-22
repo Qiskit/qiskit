@@ -264,7 +264,11 @@ class SympyQasmSimulator(BaseBackend):
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)
 
-
+    def compute_distribution(self):
+        matrix_form = represent(self._quantum_state)
+        N = matrix_form.shape[0]
+        list_form = [SympyQasmSimulator._conjugate_square(matrix_form[i,0]) for i in range(N)]
+        return list_form
 
 
 
@@ -304,9 +308,7 @@ class SympyQasmSimulator(BaseBackend):
         else:
             random.seed(circuit['config']['seed'])
 
-        actual_shots = self._shots
-        self._shots = 1 # overwrite users' configuration! see the explanation in the header of this file
-
+        outcomes = []
         for shot in range(self._shots):
             self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
             self._classical_state = 0
@@ -358,28 +360,23 @@ class SympyQasmSimulator(BaseBackend):
                     raise SimulatorError(err_msg.format(backend,
                                                         operation['name']))
 
+                    # Turn classical_state (int) into bit string
+            outcomes.append(bin(self._classical_state)[2:].zfill(
+                self._number_of_cbits))
 
 
+        # Return the results
+        counts = dict(Counter(outcomes))
+        data = {'counts': self._format_result(
+            counts, cl_reg_index, cl_reg_nbits)}
 
         if self._shots == 1:
-            outcomes = []         # TODO: fake the multiple shots by directly sampling from the probability distribution
             matrix_form = represent(self._quantum_state)
             N = matrix_form.shape[0]
             list_form = [matrix_form[i,0] for i in range(N)]
 
-            pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i,0]) for i in range(N)]
-            for shot in range(actual_shots):
-                _classical_state_observed = np.random.choice(np.arange(0, N), p=pdist)
-                outcomes.append(bin(_classical_state_observed)[2:].zfill(
-                    self._number_of_cbits))
-
-
-            # Return the results
-            counts = dict(Counter(outcomes))
-            data = {'counts': self._format_result(
-                counts, cl_reg_index, cl_reg_nbits)}
-
             data['quantum_state'] = np.asarray(list_form)# consistent with other backend. each element is symbolic!
+
             data['classical_state'] = self._classical_state, # integer, which can be converted to bin_string: "bin(x)"
         return {'data': data, 'status': 'DONE'}
 
