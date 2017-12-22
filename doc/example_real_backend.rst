@@ -101,3 +101,33 @@ the IBM Q features:
 
 Please check the Installation :ref:`qconfig-setup` section for more details on
 how to setup your IBM Q credentials.
+
+
+Using the HPC online backend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``ibmqx_hpc_qasm_simulator`` online backend has the following configurable
+parameters:
+
+- ``multi_shot_optimization``: boolean (True or False)
+- ``omp_num_threads``: integer between 1 and 16.
+
+The parameters can be specified to ``QuantumProgram.compile()`` via the
+``hpc`` parameter. For example:
+
+.. code-block:: python
+    :linenos:
+
+    QP_program.compile(circuits,
+                       backend=backend,
+                       shots=shots,
+                       seed=88,
+                       hpc={
+                           'multi_shot_optimization': True,
+                           'omp_num_threads': 16
+                       })
+
+
+Please note that these parameters must only be used for the
+``ibmqx_hpc_qasm_simulator``, and will be reset to None along with emitting
+a warning by the SDK if used with another backend.
