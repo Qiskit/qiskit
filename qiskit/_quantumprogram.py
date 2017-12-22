@@ -1366,7 +1366,7 @@ class QuantumProgram(object):
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
-            hpc (json): This will setup some parameter for
+            hpc (dict): This will setup some parameter for
                         ibmqx_hpc_qasm_simulator, using a JSON-like format like:
                         {
                             'multi_shot_optimization': Boolean,
