@@ -344,12 +344,13 @@ class SympyQasmSimulator(BaseBackend):
                     _sym_op = SympyQasmSimulator.get_sym_op(operation['name'].upper(), tuple([qubit0, qubit1]), operation['params'])
                     self._quantum_state = qapply(_sym_op * self._quantum_state)
                 # Check if measure
-                elif operation['name'] == 'measure':#
+                elif operation['name'] == 'measure':# if we measure the state, the state will collapse
+                    continue
                     qubit = operation['qubits'][0]
                     cbit = operation['clbits'][0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif operation['name'] == 'reset': #
+                elif operation['name'] == 'reset': # supported modification of state
                     qubit = operation['qubits'][0]
                     self._add_qasm_reset(qubit)
                 elif operation['name'] == 'barrier':
@@ -369,14 +370,13 @@ class SympyQasmSimulator(BaseBackend):
         counts = dict(Counter(outcomes))
         data = {'counts': self._format_result(
             counts, cl_reg_index, cl_reg_nbits)}
-
+        print(represent(self._quantum_state))
         if self._shots == 1:
             matrix_form = represent(self._quantum_state)
             N = matrix_form.shape[0]
             list_form = [matrix_form[i,0] for i in range(N)]
 
             data['quantum_state'] = np.asarray(list_form)# consistent with other backend. each element is symbolic!
-
             data['classical_state'] = self._classical_state, # integer, which can be converted to bin_string: "bin(x)"
         return {'data': data, 'status': 'DONE'}
 

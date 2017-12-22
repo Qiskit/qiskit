@@ -15,7 +15,7 @@ circuits = ['ghz'] #, 'superposition'
 
 # execute the quantum circuit
 backend = 'local_sympy_qasm_simulator' # the device to run on
-result = Q_program.execute(circuits, backend=backend, shots=100)
+result = Q_program.execute(circuits, backend=backend, shots=10)
 
 print(result.get_counts('ghz'))
 
