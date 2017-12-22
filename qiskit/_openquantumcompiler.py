@@ -152,6 +152,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
         circuit_string = dag_circuit.qasm()
+    basis_gates = 'u1,u2,u3,cx,id' if basis_gates is None else basis_gates
     unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(),
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
