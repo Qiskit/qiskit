@@ -1,0 +1,25 @@
+{'basis_gates_option': 2, 'qasm_file': './testcases/rb.qasm', 'return_measured_state': 1, 'report_after_every_step': 1}
+
+
+
+
+ > ANALYZING ./testcases/rb.qasm
+
+*********state after step:1*********
+layer summary:
+ H(q[0])
+state summary:
+ 
+            |q[1],q[0]>
+|sqrt(2)/2| |00>
+|sqrt(2)/2| |01>
+|0        | |10>
+|0        | |11>
+Traceback (most recent call last):
+  File "sympy_executor.py", line 90, in <module>
+    math_execute(args, circuit)
+  File "/Users/liup/quantum/qiskit_dec_2017/qiskit/tools/sympy_executor/math_executor.py", line 187, in math_execute
+    _sym_op = get_sym_op(_gate.upper(), tuple(_qids))
+  File "/Users/liup/quantum/qiskit_dec_2017/qiskit/tools/sympy_executor/extensible_gate_domain.py", line 140, in get_sym_op
+    raise Exception('Not supported')
+Exception: Not supported
