@@ -551,7 +551,7 @@ class QuantumProgram(object):
     ###############################################################
 
     def set_api(self, token, url, hub=None, group=None, project=None,
-                verify=True):
+                proxies=None, verify=True):
         """ Setup the API.
 
         Fills the __ONLINE_BACKENDS, __api, and __api_config variables.
@@ -565,6 +565,8 @@ class QuantumProgram(object):
             hub (str): The hub used for online backend.
             group (str): The group used for online backend.
             project (str): The project used for online backend.
+            proxies (dict): Proxy configuration for the API, as a dict with
+                'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
         Raises:
             ConnectionError: if the API instantiation failed.
@@ -577,6 +579,8 @@ class QuantumProgram(object):
                 'group': group,
                 'project': project
             }
+            if proxies:
+                config_dict['proxies'] = proxies
             self.__api = IBMQuantumExperience(token, config_dict, verify)
         except Exception as ex:
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
@@ -895,7 +899,7 @@ class QuantumProgram(object):
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
-                initial_layout=None, shots=1024, max_credits=3, seed=None,
+                initial_layout=None, shots=1024, max_credits=10, seed=None,
                 qobj_id=None):
         """Compile the circuits into the exectution list.
 
@@ -908,7 +912,7 @@ class QuantumProgram(object):
             config (dict): a dictionary of configurations parameters for the
                 compiler
             basis_gates (str): a comma seperated string and are the base gates,
-                               which by default are: u1,u2,u3,cx,id
+                               which by default are provided by the backend
             coupling_map (dict): A directed graph of coupling::
 
                 {
@@ -980,7 +984,6 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
-
         qobj = {}
         if not qobj_id:
             qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
@@ -989,7 +992,17 @@ class QuantumProgram(object):
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
         qobj["circuits"] = []
-
+        backend_conf = qiskit.backends.get_backend_configuration(backend)
+        if not basis_gates:
+            if 'basis_gates' in backend_conf:
+                basis_gates = backend_conf['basis_gates']
+        elif len(basis_gates.split(',')) < 2:
+            # catches deprecated basis specification like 'SU2+CNOT'
+            logger.warn('encountered deprecated basis specification: '
+                        '"{}" substituting u1,u2,u3,cx,id'.format(basis_gates))
+            basis_gates = 'u1,u2,u3,cx,id'
+        if not coupling_map:
+            coupling_map = backend_conf['coupling_map']
         if not name_of_circuits:
             raise ValueError('"name_of_circuits" must be specified')
         if isinstance(name_of_circuits, str):
@@ -997,15 +1010,20 @@ class QuantumProgram(object):
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
-            if not basis_gates:
-                basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
-            dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
-                                                                    basis_gates=basis_gates,
-                                                                    coupling_map=coupling_map,
-                                                                    initial_layout=initial_layout,
-                                                                    get_layout=True)
+            num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+            # TODO: A better solution is to have options to enable/disable optimizations
+            if num_qubits == 1:
+                coupling_map = None
+            if coupling_map == 'all-to-all':
+                coupling_map = None
+            dag_circuit, final_layout = openquantumcompiler.compile(
+                circuit.qasm(),
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=initial_layout,
+                get_layout=True)
             # making the job to be added to qobj
             job = {}
             job["name"] = name
@@ -1028,7 +1046,10 @@ class QuantumProgram(object):
             # the compiled circuit to be run saved as a dag
             job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
                                                                    basis_gates=basis_gates)
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
+            # set eval_symbols=True to evaluate each symbolic expression
+            # TODO after transition to qobj, we can drop this
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
             # add job to the qobj
             qobj["circuits"].append(job)
         return qobj
@@ -1067,32 +1088,34 @@ class QuantumProgram(object):
 
         return qobj
 
-    def get_execution_list(self, qobj):
+    def get_execution_list(self, qobj, print_func=print):
         """Print the compiled circuits that are ready to run.
 
         Note:
             This method is intended to be used during interactive sessions, and
-            prints directly to stdout instead of using the logger.
+            prints directly to stdout instead of using the logger by default. If
+            you set print_func with a log function (eg. log.info) it will be used
+            instead of the stdout.
 
         Returns:
             list(str): names of the circuits in `qobj`
         """
         if not qobj:
-            print("no executions to run")
+            print_func("no executions to run")
         execution_list = []
 
-        print("id: %s" % qobj['id'])
-        print("backend: %s" % qobj['config']['backend'])
-        print("qobj config:")
+        print_func("id: %s" % qobj['id'])
+        print_func("backend: %s" % qobj['config']['backend'])
+        print_func("qobj config:")
         for key in qobj['config']:
             if key != 'backend':
-                print(' ' + key + ': ' + str(qobj['config'][key]))
+                print_func(' ' + key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
-            print('  circuit name: ' + circuit["name"])
-            print('  circuit config:')
+            print_func('  circuit name: ' + circuit["name"])
+            print_func('  circuit config:')
             for key in circuit['config']:
-                print('   ' + key + ': ' + str(circuit['config'][key]))
+                print_func('   ' + key + ': ' + str(circuit['config'][key]))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):

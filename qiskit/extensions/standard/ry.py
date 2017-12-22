@@ -25,7 +25,6 @@ from qiskit import InstructionSet
 from qiskit import CompositeGate
 from qiskit.extensions.standard import header
 
-
 class RYGate(Gate):
     """rotation around the y-axis."""
 
@@ -37,7 +36,7 @@ class RYGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("ry(%.15f) %s[%d];" % (theta, qubit[0].name,
+        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].name,
                                                    qubit[1]))
 
     def inverse(self):

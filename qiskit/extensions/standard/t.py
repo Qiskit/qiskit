@@ -18,11 +18,11 @@
 """
 T=sqrt(S) phase gate or its inverse.
 """
-import math
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import InstructionSet
+from qiskit.qasm import pi
 from qiskit.extensions.standard import header
 from qiskit.extensions.standard import u1
 
@@ -33,7 +33,7 @@ class TGate(CompositeGate):
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
         super(TGate, self).__init__("t", [], [qubit], circ)
-        self.u1(math.pi / 4.0, qubit)
+        self.u1(pi / 4, qubit)
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""

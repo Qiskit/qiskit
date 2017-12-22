@@ -37,7 +37,7 @@ class CrzGate(Gate):
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("crz(%.15f) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
+        return self._qasmif("crz(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
                                                            tgt[0].name, tgt[1]))
 
     def inverse(self):
