@@ -127,6 +127,15 @@ The parameters can be specified to ``QuantumProgram.compile()`` and
                            'omp_num_threads': 16
                        })
 
+If the ``ibmqx_hpc_qasm_simulator`` backend is used and the ``hpc`` parameter
+is not specified, the following values will be used by default:
+
+.. code-block:: python
+    hpc={
+        'multi_shot_optimization': True,
+        'omp_num_threads': 16
+    }
+
 
 Please note that these parameters must only be used for the
 ``ibmqx_hpc_qasm_simulator``, and will be reset to None along with emitting
