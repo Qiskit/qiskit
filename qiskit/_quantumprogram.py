@@ -900,7 +900,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None):
+                qobj_id=None, hpc=None):
         """Compile the circuits into the exectution list.
 
         This builds the internal "to execute" list which is list of quantum
@@ -945,6 +945,15 @@ class QuantumProgram(object):
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
             qobj_id (str): identifier of the qobj.
+            hpc (json): This will setup some parameter for
+                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
+                        {
+                            'multi_shot_optimization': Boolean,
+                            'omp_num_threads': Numeric
+                        }
+                        This paramter MUST be used only with
+                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        the user via logging, and set the value to None.
 
         Returns:
             dict: the job id and populates the qobj::
@@ -991,7 +1000,28 @@ class QuantumProgram(object):
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
-        qobj["circuits"] = []
+
+        # TODO This backend needs HPC parameters to be passed in order to work
+        if backend == 'ibmqx_hpc_qasm_simulator':
+            if hpc is None:
+                logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
+                    'parameter. Setting defaults to hpc.multi_shot_optimization '
+                    '= true and hpc.omp_num_threads = 16')
+                hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
+
+            if not all (key in hpc for key in
+                ('multi_shot_optimization','omp_num_threads')):
+                raise QISKitError('Unknown HPC parameter format!')
+
+            qobj['config']['hpc'] = hpc
+        elif hpc is not None:
+            logger.info('HPC paramter is only available for '
+                'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
+                'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                'ignore it.')
+            hpc = None
+
+        qobj['circuits'] = []
         backend_conf = qiskit.backends.get_backend_configuration(backend)
         if not basis_gates:
             if 'basis_gates' in backend_conf:
@@ -1293,7 +1323,7 @@ class QuantumProgram(object):
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None):
+                max_credits=3, seed=None, hpc=None):
 
         """Execute, compile, and run an array of quantum circuits).
 
@@ -1336,6 +1366,15 @@ class QuantumProgram(object):
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
+            hpc (json): This will setup some parameter for
+                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
+                        {
+                            'multi_shot_optimization': Boolean,
+                            'omp_num_threads': Numeric
+                        }
+                        This paramter MUST be used only with
+                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        the user via logging, and set the value to None.
 
         Returns:
             Result: status done and populates the internal __quantum_program with the
@@ -1347,6 +1386,7 @@ class QuantumProgram(object):
         qobj = self.compile(name_of_circuits, backend=backend, config=config,
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
-                            shots=shots, max_credits=max_credits, seed=seed)
+                            shots=shots, max_credits=max_credits, seed=seed,
+                            hpc=hpc)
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result

@@ -5,6 +5,7 @@ This module is used for connecting to the Quantum Experience.
 import time
 import logging
 import pprint
+import json
 from qiskit.backends._basebackend import BaseBackend
 from qiskit import _openquantumcompiler as openquantumcompiler
 from qiskit import QISKitError
@@ -60,10 +61,16 @@ class QeRemote(BaseBackend):
                 api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
 
         seed0 = qobj['circuits'][0]['config']['seed']
+        hpc = None
+        if (qobj['config']['backend'] == 'ibmqx_hpc_qasm_simulator' and
+           'hpc' in qobj['config']):
+            hpc = qobj['config']['hpc']
+
         output = self._api.run_job(api_jobs, qobj['config']['backend'],
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
-                                   seed=seed0)
+                                   seed=seed0,
+                                   hpc=hpc)
         if 'error' in output:
             raise ResultError(output['error'])
 
