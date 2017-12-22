@@ -1325,5 +1325,6 @@ class QuantumProgram(object):
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed)
+        # qobj['config']['backend'] specifies the backend
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result

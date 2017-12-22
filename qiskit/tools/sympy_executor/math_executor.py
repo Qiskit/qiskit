@@ -268,6 +268,8 @@ if __name__ == "__main__":
     y = E**(I*pi/4)
     print(y)
     x =  1/4*I*sqrt(2)*y
+    print(x * conjugate(x))
+
     print(im(x)**2 + re(x)**2)
 
 

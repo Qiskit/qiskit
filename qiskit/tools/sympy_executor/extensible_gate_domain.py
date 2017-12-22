@@ -68,9 +68,9 @@ def compute_ugate_matrix(parafloatlist):
     phi, phi_is_regular = regulate(phi)
     lamb, lamb_is_regular = regulate(lamb)
 
+    uMat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
+                   [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
 
-    uMat = Matrix([[(E**(-I*(phi+lamb)/2)) * cos(theta/2), (-E**(-I*(phi-lamb)/2)) * sin(theta/2)],
-                   [(E**(I*(phi-lamb)/2)) * sin(theta/2), (E**(I*(phi+lamb)/2)) * cos(theta/2)]])
 
     if theta_is_regular and phi_is_regular and lamb_is_regular: # regular: we do not need concrete float value
         uMatNumeric = uMat

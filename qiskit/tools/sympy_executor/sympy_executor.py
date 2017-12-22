@@ -7,7 +7,6 @@ import os
 
 
 from qiskit import qasm, unroll
-from DAGBACKEND_FIX import DAGBACKEND_FIX
 
 
 
@@ -18,7 +17,7 @@ def makeArgs():
     parser.add_argument('--basis_gates_option', type=int, default=2,
                            help='1: ibm q, 2: ibm q advanced')
 
-    parser.add_argument('--qasm_file', type=str, default=currentFolder + "/testcases/test1.qasm", #
+    parser.add_argument('--qasm_file', type=str, default=currentFolder + "/testcases/naive.qasm", #
                        help='paths of the qasm files') # they are separated with
 
 
@@ -62,7 +61,7 @@ def buildAST(qasm_file):
 
 
 def buildCircuit(ast, basis_gates=None):
-    unrolled_circuit = unroll.Unroller(ast=ast, backend=DAGBACKEND_FIX(basis_gates)) #CircuitBackend
+    unrolled_circuit = unroll.Unroller(ast=ast, backend=unroll.DAGBackend(basis_gates)) #CircuitBackend
     unrolled_circuit.execute()
     circuit_unrolled = unrolled_circuit.backend.circuit  # circuit DAG
     return circuit_unrolled
