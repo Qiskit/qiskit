@@ -1734,6 +1734,7 @@ class TestQuantumProgram(QiskitTestCase):
             self.assertEqual(ex.message,
                 'Error waiting for Job results: Timeout after 0.01 seconds.')
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_hpc_parameter_is_correct(self):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmqx_hpc_qasm_simulator.
@@ -1757,6 +1758,7 @@ class TestQuantumProgram(QiskitTestCase):
                                   'omp_num_threads': 16})
         self.assertTrue(qobj)
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_hpc_parameter_is_incorrect(self):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmqx_hpc_qasm_simulator.
