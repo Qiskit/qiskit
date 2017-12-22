@@ -38,7 +38,7 @@ References:
 
 Workflow:
     The basic functions for performing state and tomography experiments are:
-    - `tomography_set`, `state_tomography_set`, and `process_tomography_set` 
+    - `tomography_set`, `state_tomography_set`, and `process_tomography_set`
        all generates data structures for tomography experiments.
     - `create_tomography_circuits` generates the quantum circuits specified
        in a `tomography_set` and adds them to a `QuantumProgram` for perform
@@ -52,8 +52,7 @@ Workflow:
 """
 
 import numpy as np
-import itertools as it
-import random
+from itertools import product
 from functools import reduce
 from re import match
 
@@ -163,7 +162,7 @@ def tomography_basis(basis, prep_fun=None, meas_fun=None):
         gates to a circuit.
 
     Returns:
-        A tomography basis which is 
+        A tomography basis.
     """
     ret = TomographyBasis(basis)
     ret.prep_fun = prep_fun
@@ -310,6 +309,7 @@ def tomography_set(qubits,
         {
             'qubits': qubits (list[ints]),
             'meas_basis': meas_basis (tomography_basis),
+            'circuit_labels': (list[string]),
             'circuits': (list[dict])  # prep and meas configurations
             # optionally for process tomography experiments:
             'prep_basis': prep_basis (tomography_basis)
@@ -328,23 +328,46 @@ def tomography_set(qubits,
     elif prep_basis == 'SIC':
         prep_basis = SIC_BASIS
 
-    ret = {'qubits': qubits, 'meas_basis': meas_basis}
+    circuits = []
+    circuit_labels = []
 
     # add meas basis configs
-    mlst = meas_basis.keys()
-    meas = [dict(zip(qubits, b)) for b in it.product(mlst, repeat=nq)]
-    ret['circuits'] = [{'meas': m} for m in meas]
-
-    if prep_basis is not None:
-        ret['prep_basis'] = prep_basis
+    if prep_basis is None:
+        # State Tomography
+        for m in product(meas_basis.keys(), repeat=nq):
+            meas = dict(zip(qubits, m))
+            circuits.append({'meas': meas})
+            # Make label
+            label = '_meas_'
+            for qubit, op in meas.items():
+                label += '%s(%d)' % (op[0], qubit)
+            circuit_labels.append(label)
+        return {'qubits': qubits,
+                'circuits': circuits,
+                'circuit_labels': circuit_labels,
+                'meas_basis': meas_basis}
+    else:
+        # Process Tomography
         ns = len(list(prep_basis.values())[0])
-        plst = [(b, s) for b in prep_basis.keys() for s in range(ns)]
-        ret['circuits'] = [{
-            'prep': dict(zip(qubits, b)),
-            'meas': dic['meas']
-        } for b in it.product(plst, repeat=nq) for dic in ret['circuits']]
-
-    return ret
+        plst_single = [(b, s) for b in prep_basis.keys() for s in range(ns)]
+        for p in product(plst_single, repeat=nq):
+            for m in product(meas_basis.keys(), repeat=nq):
+                prep = dict(zip(qubits, p))
+                meas = dict(zip(qubits, m))
+                circuits.append({'prep': prep, 'meas': meas})
+                # Make label
+                label = '_prep_'
+                for qubit, op in prep.items():
+                    label += '%s%d(%d)' % (op[0], op[1], qubit)
+                label += '_meas_'
+                for qubit, op in meas.items():
+                    label += '%s(%d)' % (op[0], qubit)
+                circuit_labels.append(label)
+        return {'qubits': qubits,
+                'circuits': circuits,
+                'circuit_labels': circuit_labels,
+                'prep_basis': prep_basis,
+                'meas_basis': meas_basis}
 
 
 def state_tomography_set(qubits, meas_basis='Pauli'):
@@ -392,36 +415,9 @@ def state_tomography_set(qubits, meas_basis='Pauli'):
         {
             'qubits': qubits (list[ints]),
             'meas_basis': meas_basis (tomography_basis),
+            'circuit_labels': (list[string]),
             'circuits': (list[dict])  # prep and meas configurations
         }
-        ```
-
-    Example:
-        State tomography of a single qubit in the Pauli basis:
-        ```
-        state_tset = state_tomography_set([0, 1], meas_basis='Pauli')
-        state_tset = {
-            'qubits': [0, 1],
-            'circuits': [
-                {'meas': {0: 'X', 1: 'X'}},
-                {'meas': {0: 'X', 1: 'Y'}},
-                {'meas': {0: 'X', 1: 'Z'}},
-                {'meas': {0: 'Y', 1: 'X'}},
-                {'meas': {0: 'Y', 1: 'Y'}},
-                {'meas': {0: 'Y', 1: 'Z'}},
-                {'meas': {0: 'Z', 1: 'X'}},
-                {'meas': {0: 'Z', 1: 'Y'}},
-                {'meas': {0: 'Z', 1: 'Z'}}
-                ],
-            'meas_basis': {
-                'X': [array([[ 0.5, 0.5], [ 0.5, 0.5]]),
-                    array([[ 0.5, -0.5], [-0.5, 0.5]])],
-                'Y': [array([[ 0.5+0.j , -0.0-0.5j], [ 0.0+0.5j,  0.5+0.j ]]),
-                    array([[ 0.5+0.j ,  0.0+0.5j], [-0.0-0.5j,  0.5+0.j ]])],
-                'Z': [array([[1, 0], [0, 0]]),
-                    array([[0, 0], [0, 1]])]
-                }
-            }
         ```
     """
     return tomography_set(qubits, meas_basis=meas_basis)
@@ -463,52 +459,10 @@ def process_tomography_set(qubits, meas_basis='Pauli', prep_basis='SIC'):
         {
             'qubits': qubits (list[ints]),
             'meas_basis': meas_basis (tomography_basis),
-            'prep_basis': prep_basis (tomography_basis)
+            'prep_basis': prep_basis (tomography_basis),
+            'circuit_labels': (list[string]),
             'circuits': (list[dict])  # prep and meas configurations
         }
-        ```
-
-    Example:
-        Process tomography in preparation in the SIC-POVM basis and
-        measurement in the Pauli basis:
-        ```
-        proc_tset = tomography_set([0], meas_basis='Pauli', prep_basis='SIC')
-        proc_tset = {
-            'qubits': [0]
-            'circuits': [
-                {'meas': {0: 'X'}, 'prep': {0: ('S', 0)}},
-                {'meas': {0: 'Y'}, 'prep': {0: ('S', 0)}},
-                {'meas': {0: 'Z'}, 'prep': {0: ('S', 0)}},
-                {'meas': {0: 'X'}, 'prep': {0: ('S', 1)}},
-                {'meas': {0: 'Y'}, 'prep': {0: ('S', 1)}},
-                {'meas': {0: 'Z'}, 'prep': {0: ('S', 1)}},
-                {'meas': {0: 'X'}, 'prep': {0: ('S', 2)}},
-                {'meas': {0: 'Y'}, 'prep': {0: ('S', 2)}},
-                {'meas': {0: 'Z'}, 'prep': {0: ('S', 2)}},
-                {'meas': {0: 'X'}, 'prep': {0: ('S', 3)}},
-                {'meas': {0: 'Y'}, 'prep': {0: ('S', 3)}},
-                {'meas': {0: 'Z'}, 'prep': {0: ('S', 3)}
-                ],
-            'meas_basis': {
-                'X': [array([[ 0.5,  0.5], [ 0.5,  0.5]]),
-                    array([[ 0.5, -0.5], [-0.5,  0.5]])],
-                'Y': [array([[ 0.5+0.j , -0.0-0.5j], [ 0.0+0.5j,  0.5+0.j ]]),
-                    array([[ 0.5+0.j ,  0.0+0.5j], [-0.0-0.5j,  0.5+0.j ]])],
-                'Z': [array([[1, 0], [0, 0]]),
-                    array([[0, 0], [0, 1]])]
-                }
-            'prep_basis': {
-                'S': [
-                    array([[1, 0],[0, 0]]),
-                    array([[ 0.33333333,  0.47140452],
-                            [ 0.47140452, 0.66666667]]),
-                    array([[ 0.33333333+0.j, -0.23570226+0.40824829j],
-                            [-0.23570226-0.40824829j,  0.66666667+0.j]]),
-                    array([[ 0.33333333+0.j, -0.23570226-0.40824829j],
-                            [-0.23570226+0.40824829j,  0.66666667+0.j]])
-                    ]
-                }
-            }
         ```
     """
     return tomography_set(qubits, meas_basis=meas_basis, prep_basis=prep_basis)
@@ -532,20 +486,7 @@ def tomography_circuit_names(tomo_set, name=''):
         A list of circuit names.
     """
 
-    labels = []
-    for circ in tomo_set['circuits']:
-        label = ''
-        # add prep
-        if 'prep' in circ:
-            label += '_prep_'
-            for qubit, op in circ['prep'].items():
-                label += '%s%d(%d)' % (op[0], op[1], qubit)
-        # add meas
-        label += '_meas_'
-        for qubit, op in circ['meas'].items():
-            label += '%s(%d)' % (op[0], qubit)
-        labels.append(name + label)
-    return labels
+    return [name + l for l in tomo_set['circuit_labels']]
 
 
 ###############################################################################
@@ -651,36 +592,34 @@ def tomography_data(results, name, tomoset):
 
     Returns:
         A list of dicts for the outcome of each process tomography
-        measurement circuit. The keys of the dictionary are
-        {
-            'counts': dict('str': int),
-                      <the marginal counts for measured qubits>,
-            'shots': int,
-                     <total number of shots for measurement circuit>
-            'meas_basis': dict('str': np.array),
-                          <the projector for the measurement outcomes>
-            'prep_basis': np.array,
-                          <the projector for the prepared input state>
-        }
+        measurement circuit.
     """
 
     labels = tomography_circuit_names(tomoset, name)
-    counts = [
-        marginal_counts(results.get_counts(circ), tomoset['qubits'])
-        for circ in labels
-    ]
-    shots = [sum(c.values()) for c in counts]
+    circuits = tomoset['circuits']
+    data = []
+    for j in range(len(labels)):
+        counts = marginal_counts(results.get_counts(labels[j]),
+                                 tomoset['qubits'])
+        shots = sum(counts.values())
+        meas = circuits[j]['meas']
+        prep = circuits[j].get('prep', None)
+        meas_qubits = sorted(meas.keys())
+        if prep is not None:
+            prep_qubits = sorted(prep.keys())
+        circuit = {}
+        for c in counts.keys():
+            circuit[c] = {}
+            circuit[c]['meas'] = [(meas[meas_qubits[k]], int(c[-1 - k]))
+                                  for k in range(len(meas_qubits))]
+            if prep is not None:
+                circuit[c]['prep'] = [prep[prep_qubits[-1 - k]]
+                                      for k in range(len(prep_qubits))]
+        data.append({'counts': counts, 'shots': shots, 'circuit': circuit})
 
-    ret = {'meas_basis': tomoset['meas_basis']}
-    if 'prep_basis' in tomoset:
+    ret = {'data': data, 'meas_basis': tomoset['meas_basis']}
+    if prep is not None:
         ret['prep_basis'] = tomoset['prep_basis']
-
-    ret['data'] = [{
-        'counts': c,
-        'shots': s,
-        'circuit': conf
-    } for c, s, conf in zip(counts, shots, tomoset['circuits'])]
-
     return ret
 
 
@@ -745,7 +684,7 @@ def count_keys(n):
 ###############################################################################
 
 
-def fit_tomography_data(data, method=None, options=None):
+def fit_tomography_data(tomo_data, method=None, options=None):
     """
     Reconstruct a density matrix or process-matrix from tomography data.
 
@@ -755,7 +694,7 @@ def fit_tomography_data(data, method=None, options=None):
     convention.
 
     Args:
-        data (dict): process tomography measurement data.
+        tomo_data (dict): process tomography measurement data.
         method (str, optional): the fitting method to use.
             Available methods:
                 - 'wizard' (default)
@@ -788,7 +727,7 @@ def fit_tomography_data(data, method=None, options=None):
         trace = __get_option('trace', options)
         beta = __get_option('beta', options)
         # fit state
-        rho = __leastsq_fit(data, trace=trace, beta=beta)
+        rho = __leastsq_fit(tomo_data, trace=trace, beta=beta)
         if method == 'wizard':
             # Use wizard method to constrain positivity
             epsilon = __get_option('epsilon', options)
@@ -813,7 +752,7 @@ def __get_option(opt, options):
 ###############################################################################
 
 
-def __leastsq_fit(tomodata, weights=None, trace=None, beta=None):
+def __leastsq_fit(tomo_data, weights=None, trace=None, beta=None):
     """
     Reconstruct a state from unconstrained least-squares fitting.
 
@@ -832,57 +771,49 @@ def __leastsq_fit(tomodata, weights=None, trace=None, beta=None):
     if trace is None:
         trace = 1.  # default to unit trace
 
-    data = tomodata['data']
+    data = tomo_data['data']
     ks = data[0]['counts'].keys()
-    K = len(ks)
+
     # Get counts and shots
-    ns = np.array([dat['counts'][k] for dat in data for k in ks])
-    shots = np.array([dat['shots'] for dat in data for k in ks])
-    # convert to freqs using beta to hedge against zero counts
-    if beta is None:
-        beta = 0.50922
-    freqs = (ns + beta) / (shots + K * beta)
+    counts = []
+    shots = []
+    ops = []
+    for dat in data:
+        for k in ks:
+            counts.append(dat['counts'][k])
+            shots.append(dat['shots'])
+            projectors = dat['circuit'][k]
+            op = __projector(projectors['meas'], tomo_data['meas_basis'])
+            if 'prep' in projectors:
+                op_prep = __projector(projectors['prep'],
+                                      tomo_data['prep_basis'])
+                op = np.kron(op_prep.T, op)
+            ops.append(op)
 
-    # Use standard least squares fitting weights
+    # Convert counts to frequencies
+    counts = np.array(counts)
+    shots = np.array(shots)
+    freqs = counts / shots
+
+    # Use hedged frequencies to calculate least squares fitting weights
     if weights is None:
-        weights = np.sqrt(shots / (freqs * (1 - freqs)))
-
-    # Convert tomography data bases to projectors
-    meas_basis = tomodata['meas_basis']
-    ops_m = []
-    for dic in data:
-        ops_m += __meas_projector(dic['circuit']['meas'], meas_basis)
-
-    if 'prep' in data[0]['circuit']:
-        prep_basis = tomodata['prep_basis']
-        ops_p = []
-        for dic in data:
-            p = __prep_projector(dic['circuit']['prep'], prep_basis)
-            ops_p += [p for k in ks]  # pad for each meas outcome
-        ops = [np.kron(p.T, m) for p, m in zip(ops_p, ops_m)]
-    else:
-        ops = ops_m
+        if beta is None:
+            beta = 0.50922
+        K = len(ks)
+        freqs_hedged = (counts + beta) / (shots + K * beta)
+        weights = np.sqrt(shots / (freqs_hedged * (1 - freqs_hedged)))
 
     return __tomo_linear_inv(freqs, ops, weights, trace=trace)
 
 
-def __meas_projector(dic, basis):
-    """Returns a list of measurement outcome projectors.
+def __projector(op_list, basis):
+    """Returns a projectors.
     """
-    meas_opts = [basis[dic[i]] for i in sorted(dic.keys(), reverse=True)]
-    ops = []
-    for b in it.product(*meas_opts):
-        ops.append(reduce(lambda acc, j: np.kron(acc, j), b, [1]))
-    return ops
-
-
-def __prep_projector(dic, basis):
-    """Returns a state preparation projector.
-    """
-    ops = [dic[i] for i in sorted(dic.keys(), reverse=True)]
-    ret = [1]
-    for b, i in ops:
-        ret = np.kron(ret, basis[b][i])
+    ret = 1
+    # list is from qubit 0 to 1
+    for op in op_list:
+        label, eigenstate = op
+        ret = np.kron(basis[label][eigenstate], ret)
     return ret
 
 

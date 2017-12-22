@@ -51,7 +51,7 @@ class TestTomography(QiskitTestCase):
         # Get test circuits
         qp, qr, cr = _test_circuits_1qubit()
         # Test simulation and fitting
-        shots = 2500
+        shots = 2000
         threshold = 1e-2
         rho = _tomography_test_data(
             qp, 'Zp', qr, cr, tomo_set, shots)
@@ -81,13 +81,17 @@ class TestTomography(QiskitTestCase):
         tomo_set = tomo.state_tomography_set([0, 1])
         # Get test circuits
         qp, qr, cr = _test_circuits_2qubit()
-        shots = 2500
+        shots = 2000
         threshold = 1e-2
         # Test simulation and fitting
         rho = _tomography_test_data(
             qp, 'Bell', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(
             rho, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], threshold))
+        rho = _tomography_test_data(
+            qp, 'X1Id0', qr, cr, tomo_set, shots)
+        self.assertTrue(_tomography_test_fit(
+            rho, [0, 0, 1, 0], threshold))
 
     def test_process_tomography_1qubit(self):
         # Tomography set
@@ -95,7 +99,7 @@ class TestTomography(QiskitTestCase):
         # Get test circuits
         qp, qr, cr = _test_circuits_1qubit()
         # Test simulation and fitting
-        shots = 2500
+        shots = 2000
         threshold = 1e-2
         choi = _tomography_test_data(
             qp, 'Zp', qr, cr, tomo_set, shots)
@@ -105,6 +109,20 @@ class TestTomography(QiskitTestCase):
             qp, 'Xp', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(
             choi, [0.5, 0.5, 0.5, -0.5], threshold))
+
+    def test_process_tomography_2qubit(self):
+        # Tomography set
+        tomo_set = tomo.process_tomography_set([0, 1])
+        # Get test circuits
+        qp, qr, cr = _test_circuits_2qubit()
+        # Test simulation and fitting
+        shots = 1000
+        threshold = 1e-2
+        ref_X1Id0 = np.array([0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0])
+        choi = _tomography_test_data(
+            qp, 'X1Id0', qr, cr, tomo_set, shots)
+        self.assertTrue(_tomography_test_fit(
+            choi, ref_X1Id0, threshold))
 
 
 def _tomography_test_data(qp, name, qr, cr, tomoset, shots):
@@ -156,6 +174,8 @@ def _test_circuits_2qubit():
     circ = qp.create_circuit('Bell', [qr], [cr])
     circ.h(qr[0])
     circ.cx(qr[0], qr[1])
+    circ = qp.create_circuit('X1Id0', [qr], [cr])
+    circ.x(qr[1])
     return qp, qr, cr
 
 
