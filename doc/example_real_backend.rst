@@ -113,7 +113,7 @@ parameters:
 - ``omp_num_threads``: integer between 1 and 16.
 
 The parameters can be specified to ``QuantumProgram.compile()`` and
-``QuantumProgram.execute`` via the ``hpc`` parameter. For example:
+``QuantumProgram.execute()`` via the ``hpc`` parameter. For example:
 
 .. code-block:: python
     :linenos:
@@ -126,6 +126,15 @@ The parameters can be specified to ``QuantumProgram.compile()`` and
                            'multi_shot_optimization': True,
                            'omp_num_threads': 16
                        })
+
+If the ``ibmqx_hpc_qasm_simulator`` backend is used and the ``hpc`` parameter
+is not specified, the following values will be used by default:
+
+.. code-block:: python
+    hpc={
+        'multi_shot_optimization': True,
+        'omp_num_threads': 16
+    }
 
 
 Please note that these parameters must only be used for the
