@@ -112,8 +112,8 @@ parameters:
 - ``multi_shot_optimization``: boolean (True or False)
 - ``omp_num_threads``: integer between 1 and 16.
 
-The parameters can be specified to ``QuantumProgram.compile()`` via the
-``hpc`` parameter. For example:
+The parameters can be specified to ``QuantumProgram.compile()`` and
+``QuantumProgram.execute`` via the ``hpc`` parameter. For example:
 
 .. code-block:: python
     :linenos:
