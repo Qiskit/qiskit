@@ -542,8 +542,13 @@ class QuantumProgram(object):
                 config_dict['proxies'] = proxies
             self.__api = IBMQuantumExperience(token, config_dict, verify)
         except Exception as ex:
+            root_exception = ex
+            if 'License required' in str(ex):
+                # For the 401 License required exception from the API, be
+                # less verbose with the exceptions.
+                root_exception = None
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
-                                  .format(ex))
+                                  .format(ex)) from root_exception
 
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
