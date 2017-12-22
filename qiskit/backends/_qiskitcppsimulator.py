@@ -24,7 +24,7 @@ import os
 
 # Add path to external simulator
 simpath = os.path.dirname(__file__)
-simpath = os.path.join(simpath + '/../../external/cpp-simulator')
+simpath = os.path.join(simpath + '/../../src/cpp-simulator')
 sys.path.append(simpath)
 
 # Import C++ simualtor interface

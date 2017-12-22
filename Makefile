@@ -47,8 +47,8 @@ doc:
 	done
 
 sim: 
-	make -C external/cpp-simulator/src clean
-	make -C external/cpp-simulator/src
+	make -C src/cpp-simulator/src clean
+	make -C src/cpp-simulator/src
 
 clean:
 	make -C doc clean
