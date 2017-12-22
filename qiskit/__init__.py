@@ -12,4 +12,4 @@ from ._quantumprogram import Result
 #from .simulators import UnitarySimulator
 
 
-__version__ = '0.3.14'
+__version__ = '0.3.15'
