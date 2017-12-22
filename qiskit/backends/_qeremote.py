@@ -5,7 +5,6 @@ This module is used for connecting to the Quantum Experience.
 import time
 import logging
 import pprint
-import json
 from qiskit.backends._basebackend import BaseBackend
 from qiskit import _openquantumcompiler as openquantumcompiler
 from qiskit import QISKitError
