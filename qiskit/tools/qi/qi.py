@@ -54,7 +54,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
 
     Args:
         state (NxN matrix_like): a matrix
-        trace_systems (list(int): a list of subsystems (starting from 0) to
+        trace_systems (list(int)): a list of subsystems (starting from 0) to
                                   trace over.
         dimensions (list(int)): a list of the dimensions of the subsystems.
                                 If this is not set it will assume all
