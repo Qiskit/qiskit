@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class QeRemote(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
-    Attribibutes:
+    Attributes:
         _api (IBMQuantumExperience): api for communicating with the Quantum
             Experience.
     """
@@ -60,10 +60,25 @@ class QeRemote(BaseBackend):
                 api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
 
         seed0 = qobj['circuits'][0]['config']['seed']
+        hpc = None
+        if (qobj['config']['backend'] == 'ibmqx_hpc_qasm_simulator' and
+           'hpc' in qobj['config']):
+            try:
+                # Use CamelCase when passing the hpc parameters to the API.
+                hpc = {
+                    'multiShotOptimization':
+                        qobj['config']['hpc']['multi_shot_optimization'],
+                    'ompNumThreads':
+                        qobj['config']['hpc']['omp_num_threads']
+                }
+            except:
+                hpc = None
+
         output = self._api.run_job(api_jobs, qobj['config']['backend'],
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
-                                   seed=seed0)
+                                   seed=seed0,
+                                   hpc=hpc)
         if 'error' in output:
             raise ResultError(output['error'])
 
@@ -105,7 +120,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {'job_id': jobid, 'status': 'ERROR', 'result': 'Time Out'}
+            return {'job_id': jobid, 'status': 'ERROR',
+                    'result': 'QISkit Time Out'}
         time.sleep(wait)
         timer += wait
         logger.info('status = %s (%d seconds)', job_result['status'], timer)

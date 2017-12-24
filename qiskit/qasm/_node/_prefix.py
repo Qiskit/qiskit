@@ -19,6 +19,7 @@
 Node for an OPENQASM prefix expression.
 """
 from ._node import Node
+import sympy
 
 
 class Prefix(Node):
@@ -38,8 +39,8 @@ class Prefix(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        return self.children[0].value + "(" + \
-            self.children[1].latex(prec, nested_scope) + ")"
+        # TODO prec ignored
+        return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""

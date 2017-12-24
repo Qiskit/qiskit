@@ -333,7 +333,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 554)
+        self.assertEqual(len(to_check), 430)
 
     def test_fail_load_qasm_file(self):
         """Test fail_load_qasm_file.
@@ -371,7 +371,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 554)
+        self.assertEqual(len(to_check), 430)
 
     def test_get_register_and_circuit(self):
         """Test get_quantum_registers, get_classical_registers, and get_circuit.
@@ -727,7 +727,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'test'
+        backend = 'local_qasm_simulator'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map, qobj_id='cooljob')
@@ -774,7 +774,7 @@ class TestQuantumProgram(QiskitTestCase):
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_qasm(qobj, 'circuitName',)
         self.log.info(result)
-        self.assertEqual(len(result), 167)
+        self.assertEqual(len(result), 181)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
@@ -793,7 +793,7 @@ class TestQuantumProgram(QiskitTestCase):
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
                                   coupling_map=coupling_map, qobj_id='cooljob')
-        result = QP_program.get_execution_list(qobj)
+        result = QP_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
 
@@ -1734,6 +1734,50 @@ class TestQuantumProgram(QiskitTestCase):
             self.assertEqual(ex.message,
                 'Error waiting for Job results: Timeout after 0.01 seconds.')
 
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
+    def test_hpc_parameter_is_correct(self):
+        """Test for checking HPC parameter in compile() method.
+        It must be only used when the backend is ibmqx_hpc_qasm_simulator.
+        It will warn the user if the parameter is passed correctly but the
+        backend is not ibmqx_hpc_qasm_simulator.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc2.measure(qr, cr)
+        circuits = ['qc2']
+        shots = 1  # the number of shots in the experiment.
+        backend = 'ibmqx_hpc_qasm_simulator'
+        QP_program.set_api(QE_TOKEN, QE_URL)
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                    seed=88, hpc={'multi_shot_optimization': True,
+                                  'omp_num_threads': 16})
+        self.assertTrue(qobj)
+
+    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
+    def test_hpc_parameter_is_incorrect(self):
+        """Test for checking HPC parameter in compile() method.
+        It must be only used when the backend is ibmqx_hpc_qasm_simulator.
+        If the parameter format is incorrect, it will raise a QISKitError.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc2.measure(qr, cr)
+        circuits = ['qc2']
+        shots = 1  # the number of shots in the experiment.
+        backend = 'ibmqx_hpc_qasm_simulator'
+        QP_program.set_api(QE_TOKEN, QE_URL)
+        self.assertRaises(QISKitError, QP_program.compile, circuits,
+            backend=backend, shots=shots, seed=88, hpc={'invalid_key': None})
 
 
 if __name__ == '__main__':

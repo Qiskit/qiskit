@@ -64,7 +64,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         coupling = mapper.Coupling(coupling_map)
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = mapper.swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20)
+            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
@@ -152,6 +152,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
         circuit_string = dag_circuit.qasm(qeflag=True)
     except TypeError:
         circuit_string = dag_circuit.qasm()
+    basis_gates = 'u1,u2,u3,cx,id' if basis_gates is None else basis_gates
     unroller = unroll.Unroller(qasm.Qasm(data=circuit_string).parse(),
                                unroll.JsonBackend(basis_gates.split(",")))
     json_circuit = unroller.execute()
