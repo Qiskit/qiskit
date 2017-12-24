@@ -1,10 +1,12 @@
 [What is it]
-An equivalence checker is under qiskit/tools/equivalence_checker:
+An equivalence checker is under qiskit/tools/equivalence_checker_with_sympy_backend:
  qchecker.py
 Given two qasm programs, the tool checks whether their final amplitude vectors V1 and V2 are equivalent:
 they differ only in the global phase, i.e., the equation V1*E^(I*x)=V2 has a solution.
 
-
+Note:
+The checker depends on the sympy backends in qiskit, which processes the the gates one by one. Given there are usually many gates, the processing is slow.
+For better performance, please use qiskit/tools/fast_equivalence_checker, which processes the program at the layer granularity.
 
 
 [How to use it?]
@@ -21,7 +23,6 @@ python3 qchecker.py --file1 ./testcases/q3sat_small.qasm --file2 ./testcases/q3s
 [Analysis of the results and the Limit]
 We run the tool over the qasm programs in testcases/ folder and tested three different branches in equivalence_checker.check_equivalence: (1) two input programs are equivalent, (2) are not equivalent, (3) cannot be checked because they do not agree on the qubits.
 
-Note:
-the sympy backend is a bit slow since it processes the quantum program gate by gate and a quantum program usually has many gates. If you aim for faster checking, please use qiskit/tools/fast_equivalence_checker, which processes the program at the layer granularity.
+
 
 
