@@ -37,7 +37,7 @@ class U1Gate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("u1(%.15f) %s[%d];" % (theta, qubit[0].name,
+        return self._qasmif("u1(%s) %s[%d];" % (theta, qubit[0].name,
                                                    qubit[1]))
 
     def inverse(self):

@@ -128,7 +128,7 @@ class CircuitBackend(UnrollerBackend):
             if "U" not in self.basis:
                 self.basis.append("U")
             this_gate = self.circuit.u_base(list(map(lambda x:
-                                                     x.real(nested_scope),
+                                                     x.sym(nested_scope),
                                                      arg)),
                                             self._map_qubit(qubit))
             if self.creg is not None:
@@ -270,7 +270,7 @@ class CircuitBackend(UnrollerBackend):
                                        "incompatible with the standard " +
                                        "extensions")
             this_gate = gate_data[1]([list(map(lambda x:
-                                               x.real(nested_scope), args)),
+                                               x.sym(nested_scope), args)),
                                       list(map(self._map_qubit, qubits))])
             if self.creg is not None:
                 this_gate.c_if(self._map_creg(self.creg), self.cval)

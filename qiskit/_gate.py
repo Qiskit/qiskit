@@ -30,7 +30,7 @@ class Gate(Instruction):
         """Create a new composite gate.
 
         name = instruction name string
-        param = list of real parameters
+        param = list of real parameters (will converted to symbolic)
         arg = list of pairs (Register, index)
         circuit = QuantumCircuit or CompositeGate containing this gate
         """

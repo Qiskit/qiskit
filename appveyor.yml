@@ -15,6 +15,10 @@
 
 version: 1.0.{build}
 
+branches:
+    only:
+        - invalidbranch
+
 environment:
     matrix:
         - PYTHON_VERSION: 3.5

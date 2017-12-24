@@ -122,9 +122,9 @@ def single_gate_params(gate, params=None):
     elif gate == 'u2':
         return (np.pi/2, params[0], params[1])
     elif gate == 'u1':
-        return (0., 0., params[0])
+        return (0, 0, params[0])
     elif gate == 'id':
-        return (0., 0., 0.)
+        return (0, 0, 0)
 
 
 def single_gate_matrix(gate, params=None):
@@ -135,8 +135,12 @@ def single_gate_matrix(gate, params=None):
     Returns:
         A numpy array representing the matrix
     """
-    (theta, phi, lam) = single_gate_params(gate, params)
-    return np.array([[np.cos(theta/2.0),
-                      -np.exp(1j*lam)*np.sin(theta/2.0)],
-                     [np.exp(1j*phi)*np.sin(theta/2.0),
-                      np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
+
+    # Converting sym to floats improves the performance of the simulator 10x.
+    # This a is a probable a FIXME since it might show bugs in the simulator.
+    (theta, phi, lam) = map(float, single_gate_params(gate, params))
+
+    return np.array([[np.cos(theta/2),
+                      -np.exp(1j*lam)*np.sin(theta/2)],
+                     [np.exp(1j*phi)*np.sin(theta/2),
+                      np.exp(1j*phi+1j*lam)*np.cos(theta/2)]])
