@@ -207,7 +207,7 @@ def math_execute(args, circuit, states_per_step=None):
                 states_per_step[str(layerID)] = astate
 
             if 'optimization_level' not in vars(args) and args.report_after_every_step:
-                print("state summary:\n" + " " + matrix_with_header(represent(q) +  " " + getHeaderKet(qid2qubit)))
+                print("state summary:\n" + " " + matrix_with_header(represent(q), getHeaderKet(qid2qubit)))
 
 
     # return utility:

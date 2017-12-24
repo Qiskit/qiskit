@@ -48,7 +48,7 @@ def gate_qubit_tuples_of_circuit_as_one(circuit):
 
 
 def gate_qubit_tuples_of_circuit_as_layers(circuit):
-    layers = circuit.serial_layers() #another option is: serial_layers
+    layers = circuit.layers() #another option is: serial_layers
     layer_id = -1
     schedule_list_of_layers = []
     global_qubit_inits = {}
