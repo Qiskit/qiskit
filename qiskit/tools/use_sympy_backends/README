@@ -1,0 +1,60 @@
+[What is this?]
+The tool offers a local simulator, which applies sympy to perform the symbolic evaluation of the circuit.
+
+[Advantage]
+1 the tool obviates the manual calculation with a pen and paper, enabling quick adjustment of your prototype code.
+2 the tool leverages sympy's symbolic computational power to keep the most precise form of the amplitude vector, e.g., e^{I*pi/4}. Besides, the tool leverages sympy's simplification engine to simplify the expressions as much as possible.
+3 the tool supports u gates, including u1, u2, u3, cu1, cu2, cu3.
+
+
+[How to use it?]
+use_sympy_qasmsimulator.py (for producing amplitude vector)
+use_sympy_unitarysimulator.py (for producing unitary matrix)
+(In Pycharm, right click the file, and then click run)
+
+
+[How to test it on all the files under testcases/?]
+test_sympy_qasmsimulator.py (the result is included in test_sympy_qasmsimulator.output)
+test_sympy_unitarysimulator.py (hit a bug: timeout will not release lock and will block the executon)
+
+
+[Dependency]
+1 goto qiskit root folder that has setup.py
+    python3 setup.py install
+2 pip3 install "sympy==1.0"
+
+
+[Analysis of the results and the Limit]
+We run the tool over the qasm programs in testcases/ folder, where the output files have the ".out" suffix.
+1 It can simplify the expressions, including the complex ones such as sqrt(2)*I*exp(-I*pi/4)/4.
+2 It may miss some simplification opportunities. For instance, the amplitude "0.245196320100808*sqrt(2)*exp(-I*pi/4) - 0.048772580504032*sqrt(2)*I*exp(-I*pi/4)" can be further simplified.
+3 It may produce the results hard to interpret.
+4 Memory error may occur if there are many qubits in the system. This is due to the limit of classical computers and show the advantage of the quantum hardware.
+
+
+[Special Notes]
+In qiskit/backends/_sympy_qasksimulator.py, we support two types of implementations, as controlled by the flag self._ignore_measure in __init__(). The default implementation is _ignore_measure=True.
+
+Type 1: _ignore_measure=True
+We ignore the measure operations and assume they always appear at the end.
+By ignoring the measure operations, we keep the amplitude vector lossless, i.e., the state does not collapse due to the measure operations. The lossless information and the symbolic form makes the amplitude vector applicable to the tasks that require the perfect precision, such as the equivalence checking and the stochastic optimization.
+
+Besides, we only need to take a single shot to obtain the precise amplitude vector, from which we can compute the distribution and sample from the distribution. Compared to the multiple shots, the single shot saves lots of time, especially for the slow sympy-based computation.
+
+
+Type 2: _ignore_measure=False
+The implementation follows the workflow in _qasmsimulator.py.
+It takes mulitple shots and collects statistics.
+Therefore, it is slow.
+Besides, the quantum_state returned by it cannot be used for equivalence checking or similar tasks because it has collapsed due to the measure operations.
+
+
+
+
+
+
+
+
+
+
+
