@@ -1,0 +1,14 @@
+
+//1 remove 2 insert 3 swap 4 replace gate 5 replace data 6 replace to a different instr 
+//mutate option: 5
+include "qelib1.inc";
+qreg q[5];
+creg c[5];
+z q[2];
+z q[2];
+sdg q[1];
+h q[1];
+cz q[2],q[1];
+s q[2];
+measure q[1] -> c[1];
+measure q[2] -> c[2];

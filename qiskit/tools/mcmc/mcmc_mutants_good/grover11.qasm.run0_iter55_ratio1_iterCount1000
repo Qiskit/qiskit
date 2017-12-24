@@ -1,0 +1,26 @@
+
+//1 remove 2 insert 3 swap 4 replace gate 5 replace data 6 replace to a different instr 
+//mutate option: 1
+include "qelib1.inc";
+qreg q[5];
+creg c[5];
+t q[2];
+tdg q[2];
+y q[1];
+y q[2];
+t q[1];
+z q[2];
+tdg q[1];
+z q[1];
+cx q[1],q[2];
+t q[1];
+x q[2];
+cz q[2],q[1];
+tdg q[2];
+cy q[2],q[1];
+y q[1];
+measure q[1] -> c[1];
+measure q[2] -> c[2];
+// new_cost_correctness: 0
+// new_cost_perf: -1
+// new_cost: -1
