@@ -14,7 +14,7 @@ class QuantumJob():
     # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
                  circuit_config=None, seed=None,
-                 resources={'max_credits':3, 'wait':5, 'timeout':120},
+                 resources={'max_credits':10, 'wait':5, 'timeout':120},
                  shots=1024, names=None,
                  do_compile=False, preformatted=False):
         """

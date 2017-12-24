@@ -48,7 +48,7 @@ class TestParser(QiskitTestCase):
         """should return a correct response for a valid circuit."""
 
         res = parse(self.QASM_FILE_PATH)
-        print(res)
+        self.log.info(res)
         # TODO: For now only some basic checks.
         self.assertEqual(len(res), 1450)
         self.assertEqual(res[:12], "OPENQASM 2.0")

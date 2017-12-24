@@ -26,6 +26,7 @@ import os
 import ply.lex as lex
 from ._qasmerror import QasmError
 from . import _node as node
+from sympy import Number
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
@@ -103,7 +104,7 @@ class QasmLexer(object):
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
-        t.value = float(t.value)
+        t.value = Number(t.value)
         # tad nasty, see mkfloat.py to see how this is derived from python spec
         return t
 
