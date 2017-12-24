@@ -1,17 +1,15 @@
 [What is the goal of an equivalence checker?]
+An equivalence checker is under qiskit/tools/fast_equivalence_checker:
+ qchecker.py
 Given two qasm programs, the tool checks whether their final amplitude vectors V1 and V2 are equivalent:
 they differ only in the global phase, i.e., the equation V1*E^(I*x)=V2 has a solution.
 
-
-[Advantage]
-1 the tool is non-intrusive, i.e., it does not require any modification of the qiskit core packages.
-2 the tool enables the quick prototyping of optimizations.
-3 the tool leverages sympy's symbolic computational power to give the rigorous answer.
-4 the tool supports u gates, including u1, u2, u3, cu1, cu2, cu3.
+Note: The checker is at least 10X faster than equivalence_checker_with_sympy_backend.
+It is optimized by processing the quantum circuit layer by layer, rather than gate by gate.
 
 
 [How to use it?]
-python3 qchecker.py --file1 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small.qasm --file2 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small_equivalent.qasm
+python3 qchecker.py --file1 ./testcases/q3sat_small.qasm --file2 ./testcases/q3sat_small_equivalent.qasm
 
 
 [Dependency]
