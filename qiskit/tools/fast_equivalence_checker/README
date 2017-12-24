@@ -1,21 +1,24 @@
-[What is it]
-An equivalence checker is under qiskit/tools/equivalence_checker:
- qchecker.py
+[What is the goal of an equivalence checker?]
 Given two qasm programs, the tool checks whether their final amplitude vectors V1 and V2 are equivalent:
 they differ only in the global phase, i.e., the equation V1*E^(I*x)=V2 has a solution.
 
 
+[Advantage]
+1 the tool is non-intrusive, i.e., it does not require any modification of the qiskit core packages.
+2 the tool enables the quick prototyping of optimizations.
+3 the tool leverages sympy's symbolic computational power to give the rigorous answer.
+4 the tool supports u gates, including u1, u2, u3, cu1, cu2, cu3.
 
 
 [How to use it?]
-python3 qchecker.py --file1 ./testcases/q3sat_small.qasm --file2 ./testcases/q3sat_small_equivalent.qasm
+python3 qchecker.py --file1 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small.qasm --file2 /Users/liup/quantum/qiskit-pull-requests/qiskit/tools/equivalence_checker/testcases/q3sat_small_equivalent.qasm
 
 
 [Dependency]
 1 goto qiskit root folder that has setup.py
     python3 setup.py install
 2 pip3 install "sympy==1.0"
-3 sympy based backend (will be included into qiskit soon): qiskit/backends/_sympy_qasmsimulator.py
+3 pip3 install "pydot==1.2.3"
 
 
 [Analysis of the results and the Limit]
@@ -23,7 +26,7 @@ We run the tool over the qasm programs in testcases/ folder and tested three dif
 
 Besides, the equivalence checker inherits the limitations from the sympy executor:
 (1) it may lead to out-of-memory errors if too many qubits are involved,
-(2) the sympy backend is a bit slow since it processes the quantum program gate by gate and a quantum program usually has many gates.
+(2) it does not support the qasm that uses the "if" construct.
 
 Please feel free to let us know when you encounter problems while using the tool.
 
