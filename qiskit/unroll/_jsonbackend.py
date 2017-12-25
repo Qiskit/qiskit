@@ -144,9 +144,10 @@ class JsonBackend(UnrollerBackend):
             qubit_indices = [self._qubit_order_internal.get(qubit)]
             self.circuit['operations'].append({
                 'name': "U",
-                'params': [arg[0].real(nested_scope),
-                           arg[1].real(nested_scope),
-                           arg[2].real(nested_scope)],
+                # TODO: keep these real for now, until a later time
+                'params': [float(arg[0].real(nested_scope)),
+                           float(arg[1].real(nested_scope)),
+                           float(arg[2].real(nested_scope))],
                 'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
                               arg[1].latex(prec=8, nested_scope=nested_scope),
                               arg[2].latex(prec=8, nested_scope=nested_scope)],
@@ -275,7 +276,9 @@ class JsonBackend(UnrollerBackend):
                              for qubit in qubits]
             self.circuit['operations'].append({
                 'name': name,
-                'params': list(map(lambda x: x.real(nested_scope), args)),
+                # TODO: keep these real for now, until a later time
+                'params': list(map(lambda x: float(x.real(nested_scope)),
+                                   args)),
                 'texparams': list(map(lambda x:
                                       x.latex(prec=8,
                                               nested_scope=nested_scope),

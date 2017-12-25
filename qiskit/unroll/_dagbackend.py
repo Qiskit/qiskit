@@ -92,7 +92,7 @@ class DAGBackend(UnrollerBackend):
                 self.basis.append("U")
                 self.circuit.add_basis_element("U", 1, 0, 3)
             self.circuit.apply_operation_back(
-                "U", [qubit], [], list(map(lambda x: x.real(nested_scope),
+                "U", [qubit], [], list(map(lambda x: x.sym(nested_scope),
                                            arg)), condition)
 
     def cx(self, qubit0, qubit1):
@@ -181,7 +181,7 @@ class DAGBackend(UnrollerBackend):
         to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
-           and self.gates[name]["opaque"]:
+                and self.gates[name]["opaque"]:
             raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             if self.creg is not None:
@@ -192,7 +192,7 @@ class DAGBackend(UnrollerBackend):
             self.listen = False
             self.circuit.add_basis_element(name, len(qubits), 0, len(args))
             self.circuit.apply_operation_back(
-                name, qubits, [], list(map(lambda x: x.real(nested_scope),
+                name, qubits, [], list(map(lambda x: x.sym(nested_scope),
                                            args)), condition)
 
     def end_gate(self, name, args, qubits, nested_scope=None):

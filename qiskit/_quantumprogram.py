@@ -208,6 +208,21 @@ class QuantumProgram(object):
             logger.info(">> new quantum_register created: %s %s", name, size)
         return self.__quantum_registers[name]
 
+    def destroy_quantum_register(self, name):
+        """Destroy an existing Quantum Register.
+
+        Args:
+            name (str): the name of the quantum register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            logger.info(">> quantum_register destroyed: %s", name)
+            del self.__quantum_registers[name]
+
     def create_quantum_registers(self, register_array):
         """Create a new set of Quantum Registers based on a array of them.
 
@@ -231,6 +246,24 @@ class QuantumProgram(object):
                 register["name"], register["size"])
             new_registers.append(register)
         return new_registers
+
+    def destroy_quantum_registers(self, register_array):
+        """Destroy a set of Quantum Registers based on a array of them.
+
+        Args:
+            register_array (list[dict]): An array of quantum registers in
+                dictionay format::
+
+                    "quantum_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in register_array:
+            self.destroy_quantum_register(register["name"])
 
     def create_classical_register(self, name, size):
         """Create a new Classical Register.
@@ -277,6 +310,39 @@ class QuantumProgram(object):
                 register["name"], register["size"]))
         return new_registers
 
+    def destroy_classical_register(self, name):
+        """Destroy an existing Classical Register.
+
+        Args:
+            name (str): the name of the classical register
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__classical_registers:
+            raise QISKitError("Can't destroy this register: Not present")
+        else:
+            logger.info(">> classical register destroyed: %s", name)
+            del self.__classical_registers[name]
+
+    def destroy_classical_registers(self, registers_array):
+        """Destroy a set of Classical Registers based on a array of them.
+
+        Args:
+            registers_array (list[dict]): An array of classical registers in
+                dictionay fromat::
+
+                    "classical_registers": [
+                        {
+                        "name": "qr",
+                        },
+                        ...
+                    ]
+                "size" may be a key for compatibility, but is ignored.
+        """
+        for register in registers_array:
+            self.destroy_classical_register(register["name"])
+
     def create_circuit(self, name, qregisters=None, cregisters=None):
         """Create a empty Quantum Circuit in the Quantum Program.
 
@@ -303,6 +369,20 @@ class QuantumProgram(object):
             quantum_circuit.add(register)
         self.add_circuit(name, quantum_circuit)
         return self.__quantum_program[name]
+
+    def destroy_circuit(self, name):
+        """Destroy a Quantum Circuit in the Quantum Program. This will not
+        destroy any registers associated with the circuit.
+
+        Args:
+            name (str): the name of the circuit
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
+        """
+        if name not in self.__quantum_program:
+            raise QISKitError("Can't destroy this circuit: Not present")
+        del self.__quantum_program[name]
 
     def add_circuit(self, name, quantum_circuit):
         """Add a new circuit based on an Object representation.
@@ -470,7 +550,8 @@ class QuantumProgram(object):
     # methods for working with backends
     ###############################################################
 
-    def set_api(self, token, url, verify=True):
+    def set_api(self, token, url, hub=None, group=None, project=None,
+                proxies=None, verify=True):
         """ Setup the API.
 
         Fills the __ONLINE_BACKENDS, __api, and __api_config variables.
@@ -481,19 +562,55 @@ class QuantumProgram(object):
                 as the quantum experience.
             url (str): The url used for online backend such as the quantum
                 experience.
+            hub (str): The hub used for online backend.
+            group (str): The group used for online backend.
+            project (str): The project used for online backend.
+            proxies (dict): Proxy configuration for the API, as a dict with
+                'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
         Raises:
             ConnectionError: if the API instantiation failed.
+            QISKitError: if no hub, group or project were specified.
         """
         try:
-            self.__api = IBMQuantumExperience(token, {"url": url}, verify)
+            config_dict = {
+                'url': url,
+                'hub': hub,
+                'group': group,
+                'project': project
+            }
+            if proxies:
+                config_dict['proxies'] = proxies
+            self.__api = IBMQuantumExperience(token, config_dict, verify)
         except Exception as ex:
+            root_exception = ex
+            if 'License required' in str(ex):
+                # For the 401 License required exception from the API, be
+                # less verbose with the exceptions.
+                root_exception = None
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
-                                  .format(ex))
+                                  .format(ex)) from root_exception
         qiskit.backends.discover_remote_backends(self.__api)
         self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
-        self.__api_config["url"] = {"url": url}
+        self.__api_config["config"] = config_dict.copy()
+
+    def set_api_hubs_config(self, hub, group, project):
+        """Update the API hubs configuration, replacing the previous one.
+
+            hub (str): The hub used for online backend.
+            group (str): The group used for online backend.
+            project (str): The project used for online backend.
+        """
+        config_dict = {
+            'hub': hub,
+            'group': group,
+            'project': project
+        }
+
+        for k, v in config_dict.items():
+            self.__api.config[k] = v
+            self.__api_config['config'][k] = v
 
     def get_api_config(self):
         """Return the program specs."""
@@ -787,8 +904,8 @@ class QuantumProgram(object):
 
     def compile(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
-                initial_layout=None, shots=1024, max_credits=3, seed=None,
-                qobj_id=None):
+                initial_layout=None, shots=1024, max_credits=10, seed=None,
+                qobj_id=None, hpc=None):
         """Compile the circuits into the exectution list.
 
         This builds the internal "to execute" list which is list of quantum
@@ -800,7 +917,7 @@ class QuantumProgram(object):
             config (dict): a dictionary of configurations parameters for the
                 compiler
             basis_gates (str): a comma seperated string and are the base gates,
-                               which by default are: u1,u2,u3,cx,id
+                               which by default are provided by the backend
             coupling_map (dict): A directed graph of coupling::
 
                 {
@@ -833,6 +950,15 @@ class QuantumProgram(object):
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
             qobj_id (str): identifier of the qobj.
+            hpc (dict): This will setup some parameter for
+                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
+                        {
+                            'multi_shot_optimization': Boolean,
+                            'omp_num_threads': Numeric
+                        }
+                        This paramter MUST be used only with
+                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        the user via logging, and set the value to None.
 
         Returns:
             dict: the job id and populates the qobj::
@@ -872,7 +998,6 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
-
         qobj = {}
         if not qobj_id:
             qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
@@ -880,8 +1005,39 @@ class QuantumProgram(object):
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
-        qobj["circuits"] = []
 
+        # TODO This backend needs HPC parameters to be passed in order to work
+        if backend == 'ibmqx_hpc_qasm_simulator':
+            if hpc is None:
+                logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
+                    'parameter. Setting defaults to hpc.multi_shot_optimization '
+                    '= true and hpc.omp_num_threads = 16')
+                hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
+
+            if not all (key in hpc for key in
+                ('multi_shot_optimization','omp_num_threads')):
+                raise QISKitError('Unknown HPC parameter format!')
+
+            qobj['config']['hpc'] = hpc
+        elif hpc is not None:
+            logger.info('HPC paramter is only available for '
+                'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
+                'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                'ignore it.')
+            hpc = None
+
+        qobj['circuits'] = []
+        backend_conf = qiskit.backends.get_backend_configuration(backend)
+        if not basis_gates:
+            if 'basis_gates' in backend_conf:
+                basis_gates = backend_conf['basis_gates']
+        elif len(basis_gates.split(',')) < 2:
+            # catches deprecated basis specification like 'SU2+CNOT'
+            logger.warn('encountered deprecated basis specification: '
+                        '"{}" substituting u1,u2,u3,cx,id'.format(basis_gates))
+            basis_gates = 'u1,u2,u3,cx,id'
+        if not coupling_map:
+            coupling_map = backend_conf['coupling_map']
         if not name_of_circuits:
             raise ValueError('"name_of_circuits" must be specified')
         if isinstance(name_of_circuits, str):
@@ -889,15 +1045,20 @@ class QuantumProgram(object):
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
-            if not basis_gates:
-                basis_gates = "u1,u2,u3,cx,id"  # QE target basis
             # TODO: The circuit object going into this is to have .qasm() method (be careful)
             circuit = self.__quantum_program[name]
-            dag_circuit, final_layout = openquantumcompiler.compile(circuit.qasm(),
-                                                                    basis_gates=basis_gates,
-                                                                    coupling_map=coupling_map,
-                                                                    initial_layout=initial_layout,
-                                                                    get_layout=True)
+            num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+            # TODO: A better solution is to have options to enable/disable optimizations
+            if num_qubits == 1:
+                coupling_map = None
+            if coupling_map == 'all-to-all':
+                coupling_map = None
+            dag_circuit, final_layout = openquantumcompiler.compile(
+                circuit.qasm(),
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=initial_layout,
+                get_layout=True)
             # making the job to be added to qobj
             job = {}
             job["name"] = name
@@ -920,7 +1081,10 @@ class QuantumProgram(object):
             # the compiled circuit to be run saved as a dag
             job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
                                                                    basis_gates=basis_gates)
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True)
+            # set eval_symbols=True to evaluate each symbolic expression
+            # TODO after transition to qobj, we can drop this
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
             # add job to the qobj
             qobj["circuits"].append(job)
         return qobj
@@ -959,32 +1123,34 @@ class QuantumProgram(object):
 
         return qobj
 
-    def get_execution_list(self, qobj):
+    def get_execution_list(self, qobj, print_func=print):
         """Print the compiled circuits that are ready to run.
 
         Note:
             This method is intended to be used during interactive sessions, and
-            prints directly to stdout instead of using the logger.
+            prints directly to stdout instead of using the logger by default. If
+            you set print_func with a log function (eg. log.info) it will be used
+            instead of the stdout.
 
         Returns:
             list(str): names of the circuits in `qobj`
         """
         if not qobj:
-            print("no executions to run")
+            print_func("no executions to run")
         execution_list = []
 
-        print("id: %s" % qobj['id'])
-        print("backend: %s" % qobj['config']['backend'])
-        print("qobj config:")
+        print_func("id: %s" % qobj['id'])
+        print_func("backend: %s" % qobj['config']['backend'])
+        print_func("qobj config:")
         for key in qobj['config']:
             if key != 'backend':
-                print(' ' + key + ': ' + str(qobj['config'][key]))
+                print_func(' ' + key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
-            print('  circuit name: ' + circuit["name"])
-            print('  circuit config:')
+            print_func('  circuit name: ' + circuit["name"])
+            print_func('  circuit config:')
             for key in circuit['config']:
-                print('   ' + key + ': ' + str(circuit['config'][key]))
+                print_func('   ' + key + ': ' + str(circuit['config'][key]))
         return execution_list
 
     def get_compiled_configuration(self, qobj, name):
@@ -1124,7 +1290,9 @@ class QuantumProgram(object):
 
         q_job_list = []
         for qobj in qobj_list:
-            q_job = QuantumJob(qobj, preformatted=True)
+            q_job = QuantumJob(qobj, preformatted=True, resources={
+                'max_credits':qobj['config']['max_credits'], 'wait':wait,
+                'timeout':timeout})
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
@@ -1160,7 +1328,7 @@ class QuantumProgram(object):
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None):
+                max_credits=3, seed=None, hpc=None):
 
         """Execute, compile, and run an array of quantum circuits).
 
@@ -1203,6 +1371,15 @@ class QuantumProgram(object):
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
             seed (int): the intial seed the simulatros use
+            hpc (dict): This will setup some parameter for
+                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
+                        {
+                            'multi_shot_optimization': Boolean,
+                            'omp_num_threads': Numeric
+                        }
+                        This paramter MUST be used only with
+                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        the user via logging, and set the value to None.
 
         Returns:
             Result: status done and populates the internal __quantum_program with the
@@ -1214,6 +1391,7 @@ class QuantumProgram(object):
         qobj = self.compile(name_of_circuits, backend=backend, config=config,
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
-                            shots=shots, max_credits=max_credits, seed=seed)
+                            shots=shots, max_credits=max_credits, seed=seed,
+                            hpc=hpc)
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result

@@ -30,6 +30,7 @@ directly from the graph.
 import itertools
 import copy
 import networkx as nx
+import sympy
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -343,7 +344,7 @@ class DAGCircuit:
         name is a string
         qargs is a list of tuples like ("q",0)
         cargs is a list of tuples like ("c",0)
-        params is a list of strings that represent floats
+        params is a list of symbols that represent numbers
         condition is either None or a tuple (string,int) giving (creg,value)
         """
         all_cbits = self._bits_in_condition(condition)
@@ -354,7 +355,12 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map, False)
         self._check_bits(all_cbits, self.output_map, True)
 
-        self._add_op_node(name, qargs, cargs, list(map(str, params)),
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
+        node_params = list(map(lambda x: x.replace("**", "^"),
+                           map(str, params)))
+        self._add_op_node(name, qargs, cargs, node_params,
                           condition)
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -386,7 +392,12 @@ class DAGCircuit:
         self._check_bits(qargs, self.input_map, False)
         self._check_bits(all_cbits, self.input_map, True)
 
-        self._add_op_node(name, qargs, cargs, list(map(str, params)),
+        # params is a list of sympy symbols and the str() method
+        # will return Python expressions. To get the correct
+        # OpenQASM expression, we need to replace "**" with "^".
+        node_params = list(map(lambda x: x.replace("**", "^"),
+                           map(str, params)))
+        self._add_op_node(name, qargs, cargs,  node_params,
                           condition)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
@@ -686,11 +697,14 @@ class DAGCircuit:
         return out
 
     def qasm(self, decls_only=False, add_swap=False,
-             no_decls=False, qeflag=False, aliases=None):
+             no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
         """Return a string containing QASM for this circuit.
 
         if qeflag is True, add a line to include "qelib1.inc"
         and only generate gate code for gates not in qelib1.
+
+        if eval_symbols is True, evaluate all symbolic
+        expressions to their floating point representation.
 
         if no_decls is True, only print the instructions.
 
@@ -765,7 +779,11 @@ class DAGCircuit:
                         qarg = ",".join(map(lambda x: "%s[%d]" % (x[0], x[1]),
                                             qarglist))
                         if len(nd["params"]) > 0:
-                            param = ",".join(nd["params"])
+                            if eval_symbols:
+                                param = ",".join(map(lambda x: str(sympy.N(x)),
+                                                     nd["params"]))
+                            else:
+                                param = ",".join(nd["params"])
                             out += "%s(%s) %s;\n" % (nm, param, qarg)
                         else:
                             out += "%s %s;\n" % (nm, qarg)

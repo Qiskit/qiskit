@@ -44,7 +44,7 @@ class CXBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cxbase(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cx_base(self.arg[0], self.arg[1]))
 
 
 def cx_base(self, ctl, tgt):
