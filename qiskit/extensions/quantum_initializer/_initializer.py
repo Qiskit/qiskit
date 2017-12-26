@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """
 Initialize qubit registers to desired arbitrary state.
 """
@@ -36,7 +35,7 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
 class InitializeGate(CompositeGate):
-    """ Complex amplitude initialization.
+    """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
@@ -173,6 +172,9 @@ class InitializeGate(CompositeGate):
         qubit from the zero vector.
         """
         [a_complex, b_complex] = pair_of_complex
+        # Force a and b to be complex, as otherwise numpy.angle might fail.
+        a_complex = complex(a_complex)
+        b_complex = complex(b_complex)
         mag_a = numpy.absolute(a_complex)
         final_r = float(numpy.sqrt(mag_a ** 2 + numpy.absolute(b_complex) ** 2))
         if final_r < _EPS:
