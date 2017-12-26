@@ -138,6 +138,8 @@ class QasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
+            
+        self._local_random = random.Random()
 
     @staticmethod
     def _index1(b, i, k):
@@ -217,7 +219,7 @@ class QasmSimulator(BaseBackend):
         qubit is the qubit that is measured/reset
         """
         probability_zero = 0
-        random_number = random.random()
+        random_number = self._local_random.random()
         for ii in range(1 << self._number_of_qubits):
             if ii & (1 << qubit) == 0:
                 probability_zero += np.abs(self._quantum_state[ii])**2
@@ -315,9 +317,9 @@ class QasmSimulator(BaseBackend):
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
         if circuit['config']['seed'] is None:
-            random.seed(random.getrandbits(32))
+            self._local_random.seed(random.getrandbits(32))
         else:
-            random.seed(circuit['config']['seed'])
+            self._local_random.seed(circuit['config']['seed'])
         outcomes = []
         for shot in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
