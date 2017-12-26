@@ -58,6 +58,9 @@ from re import match
 
 from qiskit.tools.qi.qi import vectorize, devectorize, outer
 
+import logging
+logger = logging.getLogger(__name__)
+
 ###############################################################################
 # Tomography Bases
 ###############################################################################
@@ -181,7 +184,9 @@ def __pauli_prep_gates(circuit, qreg, op):
     Add state preparation gates to a circuit.
     """
     bas, proj = op
-    assert (bas in ['X', 'Y', 'Z'])
+    if not bas in ['X', 'Y', 'Z']:
+        raise QISKitError("There's no X, Y or Z basis for this Pauli preparation")
+
     if bas == "X":
         if proj == 1:
             circuit.u2(np.pi, np.pi, qreg)  # H.X
@@ -200,7 +205,9 @@ def __pauli_meas_gates(circuit, qreg, op):
     """
     Add state measurement gates to a circuit.
     """
-    assert (op in ['X', 'Y', 'Z'])
+    if not op in ['X', 'Y', 'Z']:
+        raise QISKitError("There's no X, Y or Z basis for this Pauli measurement")
+
     if op == "X":
         circuit.u2(0., np.pi, qreg)  # H
     elif op == "Y":
@@ -232,16 +239,17 @@ def __sic_prep_gates(circuit, qreg, op):
     Add state preparation gates to a circuit.
     """
     bas, proj = op
-    assert (bas == 'S')
-    if bas == "S":
-        theta = -2 * np.arctan(np.sqrt(2))
-        if proj == 1:
-            circuit.u3(theta, np.pi, 0.0, qreg)
-        elif proj == 2:
-            circuit.u3(theta, np.pi / 3, 0.0, qreg)
-        elif proj == 3:
-            circuit.u3(theta, -np.pi / 3, 0.0, qreg)
 
+    if bas != 'S':
+        raise QISKitError('Not in SIC basis!')
+
+    theta = -2 * np.arctan(np.sqrt(2))
+    if proj == 1:
+        circuit.u3(theta, np.pi, 0.0, qreg)
+    elif proj == 2:
+        circuit.u3(theta, np.pi / 3, 0.0, qreg)
+    elif proj == 3:
+        circuit.u3(theta, -np.pi / 3, 0.0, qreg)
 
 __SIC_BASIS_OPS = {
     'S': [
@@ -317,8 +325,10 @@ def tomography_set(qubits,
         ```
     """
 
-    assert (isinstance(qubits, list))
-    nq = len(qubits)
+    if not isinstance(qubits, list):
+        raise QISKitError('Qubits argument must be a list')
+
+    num_of_qubits = len(qubits)
 
     if meas_basis == 'Pauli':
         meas_basis = PAULI_BASIS
@@ -334,8 +344,8 @@ def tomography_set(qubits,
     # add meas basis configs
     if prep_basis is None:
         # State Tomography
-        for m in product(meas_basis.keys(), repeat=nq):
-            meas = dict(zip(qubits, m))
+        for meas_product in product(meas_basis.keys(), repeat=num_of_qubits):
+            meas = dict(zip(qubits, meas_product))
             circuits.append({'meas': meas})
             # Make label
             label = '_meas_'
@@ -348,12 +358,14 @@ def tomography_set(qubits,
                 'meas_basis': meas_basis}
     else:
         # Process Tomography
-        ns = len(list(prep_basis.values())[0])
-        plst_single = [(b, s) for b in prep_basis.keys() for s in range(ns)]
-        for p in product(plst_single, repeat=nq):
-            for m in product(meas_basis.keys(), repeat=nq):
-                prep = dict(zip(qubits, p))
-                meas = dict(zip(qubits, m))
+        num_of_s = len(list(prep_basis.values())[0])
+        plst_single = [(b, s)
+                       for b in prep_basis.keys()
+                       for s in range(num_of_s)]
+        for plst_product in product(plst_single, repeat=num_of_qubits):
+            for meas_product in product(meas_basis.keys(), repeat=num_of_qubits):
+                prep = dict(zip(qubits, plst_product))
+                meas = dict(zip(qubits, meas_product))
                 circuits.append({'prep': prep, 'meas': meas})
                 # Make label
                 label = '_prep_'
@@ -494,7 +506,7 @@ def tomography_circuit_names(tomo_set, name=''):
 ###############################################################################
 
 
-def create_tomography_circuits(qp, name, qreg, creg, tomoset, silent=True):
+def create_tomography_circuits(qp, name, qreg, creg, tomoset):
     """
     Add tomography measurement circuits to a QuantumProgram.
 
@@ -518,7 +530,6 @@ def create_tomography_circuits(qp, name, qreg, creg, tomoset, silent=True):
         creg (ClassicalRegister): the classical register containing bits to
                                   store measurement outcomes.
         tomoset (tomography_set): the dict of tomography configurations.
-        silent (bool, optional): hide verbose output.
 
     Returns:
         A list of names of the added quantum state tomography circuits.
@@ -552,24 +563,23 @@ def create_tomography_circuits(qp, name, qreg, creg, tomoset, silent=True):
         # Add prep circuits
         if 'prep' in conf:
             prep = qp.create_circuit('tmp_prep', [qreg], [creg])
-            for q, op in conf['prep'].items():
-                tomoset['prep_basis'].prep_gate(prep, qreg[q], op)
-                prep.barrier(qreg[q])
+            for qubit, op in conf['prep'].items():
+                tomoset['prep_basis'].prep_gate(prep, qreg[qubit], op)
+                prep.barrier(qreg[qubit])
             tmp = prep + tmp
             del qp._QuantumProgram__quantum_program['tmp_prep']
         # Add measurement circuits
         meas = qp.create_circuit('tmp_meas', [qreg], [creg])
-        for q, op in conf['meas'].items():
-            meas.barrier(qreg[q])
-            tomoset['meas_basis'].meas_gate(meas, qreg[q], op)
-            meas.measure(qreg[q], creg[q])
+        for qubit, op in conf['meas'].items():
+            meas.barrier(qreg[qubit])
+            tomoset['meas_basis'].meas_gate(meas, qreg[qubit], op)
+            meas.measure(qreg[qubit], creg[qubit])
         tmp = tmp + meas
         del qp._QuantumProgram__quantum_program['tmp_meas']
         # Add tomography circuit
         qp.add_circuit(label, tmp)
 
-    if not silent:
-        print('>> created tomography circuits for "%s"' % name)
+    logger.info('>> created tomography circuits for "%s"' % name)
     return labels
 
 
@@ -640,7 +650,7 @@ def marginal_counts(counts, meas_qubits):
     """
 
     # Extract total number of qubits from count keys
-    nq = len(list(counts.keys())[0])
+    num_of_qubits = len(list(counts.keys())[0])
 
     # keys for measured qubits only
     qs = sorted(meas_qubits, reverse=True)
@@ -650,7 +660,7 @@ def marginal_counts(counts, meas_qubits):
     # get regex match strings for suming outcomes of other qubits
     rgx = [
         reduce(lambda x, y: (key[qs.index(y)] if y in qs else '\\d') + x,
-               range(nq), '') for key in meas_keys
+               range(num_of_qubits), '') for key in meas_keys
     ]
 
     # build the return list
@@ -772,17 +782,17 @@ def __leastsq_fit(tomo_data, weights=None, trace=None, beta=None):
         trace = 1.  # default to unit trace
 
     data = tomo_data['data']
-    ks = data[0]['counts'].keys()
+    keys = data[0]['counts'].keys()
 
     # Get counts and shots
     counts = []
     shots = []
     ops = []
     for dat in data:
-        for k in ks:
-            counts.append(dat['counts'][k])
+        for key in keys:
+            counts.append(dat['counts'][key])
             shots.append(dat['shots'])
-            projectors = dat['circuit'][k]
+            projectors = dat['circuit'][key]
             op = __projector(projectors['meas'], tomo_data['meas_basis'])
             if 'prep' in projectors:
                 op_prep = __projector(projectors['prep'],
@@ -918,11 +928,11 @@ def build_state_tomography_circuits(Q_program,
     """
 
     tomoset = tomography_set(qubits, meas_basis)
-    print('WARNING: `build_state_tomography_circuits` is depreciated. ' +
+    logger.warn('WARNING: `build_state_tomography_circuits` is depreciated. ' +
           'Use `tomography_set` and `create_tomography_circuits` instead')
 
     return create_tomography_circuits(
-        Q_program, name, qreg, creg, tomoset, silent=silent)
+        Q_program, name, qreg, creg, tomoset)
 
 
 def build_process_tomography_circuits(Q_program,
@@ -931,24 +941,23 @@ def build_process_tomography_circuits(Q_program,
                                       qreg,
                                       creg,
                                       prep_basis='sic',
-                                      meas_basis='pauli',
-                                      silent=False):
+                                      meas_basis='pauli'):
     """Depreciated function: Use `create_tomography_circuits` function instead.
     """
 
-    print('WARNING: `build_process_tomography_circuits` is depreciated. ' +
+    logger.warn('WARNING: `build_process_tomography_circuits` is depreciated. ' +
           'Use `tomography_set` and `create_tomography_circuits` instead')
 
     tomoset = tomography_set(qubits, meas_basis, prep_basis)
     return create_tomography_circuits(
-        Q_program, name, qreg, creg, tomoset, silent=silent)
+        Q_program, name, qreg, creg, tomoset)
 
 
 def state_tomography_circuit_names(name, qubits, meas_basis='pauli'):
     """Depreciated function: Use `tomography_circuit_names` function instead.
     """
 
-    print('WARNING: `state_tomography_circuit_names` is depreciated. ' +
+    logger.warn('WARNING: `state_tomography_circuit_names` is depreciated. ' +
           'Use `tomography_set` and `tomography_circuit_names` instead')
     tomoset = tomography_set(qubits, meas_basis=meas_basis)
     return tomography_circuit_names(tomoset, name)
@@ -961,7 +970,7 @@ def process_tomography_circuit_names(name,
     """Depreciated function: Use `tomography_circuit_names` function instead.
     """
 
-    print('WARNING: `process_tomography_circuit_names` is depreciated.' +
+    logger.warn('WARNING: `process_tomography_circuit_names` is depreciated.' +
           'Use `tomography_set` and `tomography_circuit_names` instead')
     tomoset = tomography_set(
         qubits, meas_basis=meas_basis, prep_basis=prep_basis)
@@ -971,7 +980,7 @@ def process_tomography_circuit_names(name,
 def state_tomography_data(Q_result, name, meas_qubits, meas_basis='pauli'):
     """Depreciated function: Use `tomography_data` function instead."""
 
-    print('WARNING: `state_tomography_data` is depreciated. ' +
+    logger.warn('WARNING: `state_tomography_data` is depreciated. ' +
           'Use `tomography_set` and `tomography_data` instead')
     tomoset = tomography_set(meas_qubits, meas_basis=meas_basis)
     return tomography_data(Q_result, name, tomoset)
@@ -984,7 +993,7 @@ def process_tomography_data(Q_result,
                             meas_basis='pauli'):
     """Depreciated function: Use `tomography_data` function instead."""
 
-    print('WARNING: `process_tomography_data` is depreciated. ' +
+    logger.warn('WARNING: `process_tomography_data` is depreciated. ' +
           'Use `tomography_set` and `tomography_data` instead')
     tomoset = tomography_set(
         meas_qubits, meas_basis=meas_basis, prep_basis=prep_basis)
@@ -996,7 +1005,7 @@ def process_tomography_data(Q_result,
 ###############################################################
 
 def build_wigner_circuits(q_program, name, phis, thetas, qubits,
-                          qreg, creg, silent=False):
+                          qreg, creg):
     """Create the circuits to rotate to points in phase space
     Args:
         q_program (QuantumProgram): A quantum program to store the circuits.
@@ -1008,7 +1017,6 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
                                 measured.
         creg (ClassicalRegister): the classical register containing bits to
                                     store measurement outcomes.
-        silent (bool, optional): hide verbose output.
 
     Returns: A list of names of the added wigner function circuits.
     """
@@ -1029,8 +1037,7 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
         q_program.add_circuit(name + label, orig + circuit)
         labels.append(name + label)
 
-    if not silent:
-        print('>> created Wigner function circuits for "%s"' % name)
+    logger.info('>> created Wigner function circuits for "%s"' % name)
     return labels
 
 
