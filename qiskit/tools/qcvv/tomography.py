@@ -809,7 +809,7 @@ def __leastsq_fit(tomo_data, weights=None, trace=None, beta=None):
     if weights is None:
         if beta is None:
             beta = 0.50922
-        K = len(ks)
+        K = len(keys)
         freqs_hedged = (counts + beta) / (shots + K * beta)
         weights = np.sqrt(shots / (freqs_hedged * (1 - freqs_hedged)))
 
