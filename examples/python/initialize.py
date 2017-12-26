@@ -19,10 +19,9 @@
 Demo the use of the InitializeGate class to prepare arbitrary pure states.
 """
 
-import sys, os, math
-from qiskit import QuantumProgram
-from qiskit.extensions.quantum_initializer import InitializeGate
-import Qconfig
+import math
+import os
+import sys
 
 # We don't know from where the user is running the example,
 # so we need a relative position from this file path.
@@ -30,13 +29,17 @@ import Qconfig
 # http://stackoverflow.com/a/7506006
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from qiskit import QuantumProgram
+import Qconfig
+
+
 ###############################################################
 # Make a quantum program for state initialization.
 ###############################################################
 Q_SPECS = {
     "name": "Program-tutorial",
     "circuits": [{
-        "name": "initializerCirc",
+        "name": "initializer_circ",
         "quantum_registers": [{
             "name": "qr",
             "size": 4
@@ -47,25 +50,25 @@ Q_SPECS = {
         }]}],
 }
 Q_program = QuantumProgram(specs=Q_SPECS)
-circuit = Q_program.get_circuit("initializerCirc")
+circuit = Q_program.get_circuit("initializer_circ")
 qr = Q_program.get_quantum_register("qr")
 cr = Q_program.get_classical_register('cr')
 
 desired_vector = [
-    1 / math.sqrt(4) * complex(0, 1), 
-    1 / math.sqrt(8) * complex(1, 0), 
-    0, 
-    0, 
-    0, 
-    0, 
-    0, 
+    1 / math.sqrt(4) * complex(0, 1),
+    1 / math.sqrt(8) * complex(1, 0),
     0,
-    1 / math.sqrt(8) * complex(1, 0), 
-    1 / math.sqrt(8) * complex(0, 1), 
-    0, 
-    0, 
-    0, 
-    0, 
+    0,
+    0,
+    0,
+    0,
+    0,
+    1 / math.sqrt(8) * complex(1, 0),
+    1 / math.sqrt(8) * complex(0, 1),
+    0,
+    0,
+    0,
+    0,
     1 / math.sqrt(4) * complex(1, 0),
     1 / math.sqrt(8) * complex(1, 0)]
 
@@ -76,7 +79,7 @@ circuit.measure(qr[1], cr[1])
 circuit.measure(qr[2], cr[2])
 circuit.measure(qr[3], cr[3])
 
-QASM_source = Q_program.get_qasm("initializerCirc")
+QASM_source = Q_program.get_qasm("initializer_circ")
 
 print(QASM_source)
 
@@ -89,8 +92,8 @@ coupling_map = {0: [1, 2],
                 2: [],
                 3: [2, 4],
                 4: [2]}
-circuits = ['initializerCirc']
-myshots = 1024
+circuits = ['initializer_circ']
+shots = 1024
 
 ###############################################################
 # Set up the API and execute the program.
@@ -99,23 +102,18 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # Desired vector
 print("Desired probabilities...")
-print(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector)).__str__())
+print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
-result = Q_program.execute(circuits, backend='local_qasm_simulator', wait=2, timeout=240, shots=myshots)
+result = Q_program.execute(circuits,
+                           backend='local_qasm_simulator',
+                           wait=2, timeout=240, shots=shots)
 
 print("Probabilities from simulator...[%s]" % result)
 n_qubits_qureg = qr.size
-print([format(result.get_counts("initializerCirc").get(format(i, '0' + n_qubits_qureg.__str__() + 'b'), 0) / myshots, '.3f') 
-    for i in range(2 ** n_qubits_qureg)].__str__())
+counts = result.get_counts("initializer_circ")
 
-# Initialize on real backend (TODO: uncomment after reset is supported)
-"""
-result = Q_program.execute(circuits, backend=device, coupling_map=coupling_map, wait=2, timeout=240, shots=myshots)
-print("Probabilities from device...[%s]" % result)
-n_qubits_qureg = qr.size
-n_qubits_device = Q_program.get_backend_configuration('ibmqx2').get('n_qubits', 0)
-print([format(result.get_counts("initializerCirc").get(
-    '0'+format(i, '0'*(n_qubits_device - n_qubits_qureg) + n_qubits_qureg.__str__() + 'b'), 0) / myshots,'.3f') 
-    for i in range(2 ** n_qubits_qureg)].__str__())
-    """
+qubit_strings = [format(i, '0%sb' % n_qubits_qureg) for
+                 i in range(2 ** n_qubits_qureg)]
+print([format(counts.get(s, 0) / shots, '.3f') for
+       s in qubit_strings])

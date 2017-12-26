@@ -76,7 +76,6 @@ class InitializeGate(CompositeGate):
         # Check if probabilities (amplitudes squared) sum to 1
         if not math.isclose(sum(numpy.absolute(param) ** 2), 1.0,
                             abs_tol=1e-4):
-            print (sum(numpy.absolute(param) ** 2))
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
         super(InitializeGate, self).__init__(name, param, arg, circ)
@@ -124,8 +123,8 @@ class InitializeGate(CompositeGate):
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a
             # shorter amplitude vector to peel away)
-            self._attach(self._multiplex(RZGate, i, phis))            
-            self._attach(self._multiplex(RYGate, i, thetas))            
+            self._attach(self._multiplex(RZGate, i, phis))
+            self._attach(self._multiplex(RYGate, i, thetas))
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
@@ -147,7 +146,7 @@ class InitializeGate(CompositeGate):
 
         param_len = len(local_param)
 
-        for i in range(param_len // 2):            
+        for i in range(param_len // 2):
             # Ry and Rz rotations to move bloch vector from 0 to "imaginary"
             # qubit
             # (imagine a qubit state signified by the amplitudes at index 2*i
@@ -160,7 +159,7 @@ class InitializeGate(CompositeGate):
 
             remaining_vector.append(remains)
 
-            # rotations for all imaginary qubits of the full vector 
+            # rotations for all imaginary qubits of the full vector
             # to move from where it is to zero, hence the negative sign
             thetas.append(-add_theta)
             phis.append(-add_phi)
@@ -171,7 +170,8 @@ class InitializeGate(CompositeGate):
     def _bloch_angles(pair_of_complex):
         """
         Static internal method to work out rotation to create the passed in
-        qubit from the zero vector."""
+        qubit from the zero vector.
+        """
         [a_complex, b_complex] = pair_of_complex
         mag_a = numpy.absolute(a_complex)
         final_r = float(numpy.sqrt(mag_a ** 2 + numpy.absolute(b_complex) ** 2))
@@ -303,24 +303,26 @@ def remove_zero_rotations(self):
     Remove Zero Rotations by looking (recursively) at rotation gates at the
     leaf ends.
     """
-    removed_at_least_one_zero_rotation = False
+    # Removed at least one zero rotation.
+    zero_rotation_removed = False
     new_data = []
     for gate in self.data:
         if isinstance(gate, CompositeGate):
-            removed_at_least_one_zero_rotation |= gate.remove_zero_rotations()
+            zero_rotation_removed |= gate.remove_zero_rotations()
             if gate.data:
                 new_data.append(gate)
         else:
-            if (not isinstance(gate, Gate)) \
-                    or (not (gate.name == "rz" or gate.name == "ry" or gate.name == "rx")
-                        or (InitializeGate.chop_num(gate.param[0]) != 0)):
+            if ((not isinstance(gate, Gate)) or
+                    (not (gate.name == "rz" or gate.name == "ry" or
+                          gate.name == "rx") or
+                     (InitializeGate.chop_num(gate.param[0]) != 0))):
                 new_data.append(gate)
             else:
-                removed_at_least_one_zero_rotation = True
+                zero_rotation_removed = True
 
     self.data = new_data
 
-    return removed_at_least_one_zero_rotation
+    return zero_rotation_removed
 
 
 QuantumCircuit.remove_zero_rotations = remove_zero_rotations
@@ -357,19 +359,20 @@ def remove_double_cnots_once(self):
                                                     CompositeGate):
             return self.data[0].remove_double_cnots_once()
 
-    removed_at_least_one_double_cnot = False
+    # Removed at least one double cnot.
+    double_cnot_removed = False
 
     # last gate might be composite
     if isinstance(self.data[num_high_level_gates - 1], CompositeGate):
-        removed_at_least_one_double_cnot = \
-            removed_at_least_one_double_cnot or\
+        double_cnot_removed = \
+            double_cnot_removed or\
             self.data[num_high_level_gates - 1].remove_double_cnots_once()
 
     # don't start with last gate, using reversed so that can del on the go
     for i in reversed(range(num_high_level_gates - 1)):
         if isinstance(self.data[i], CompositeGate):
-            removed_at_least_one_double_cnot =\
-                removed_at_least_one_double_cnot \
+            double_cnot_removed =\
+                double_cnot_removed \
                 or self.data[i].remove_double_cnots_once()
             left_gate_host = self.data[i].last_atomic_gate_host()
             left_gate_index = -1
@@ -395,9 +398,9 @@ def remove_double_cnots_once(self):
                          right_gate_host[right_gate_index].arg):
                 del right_gate_host[right_gate_index]
                 del left_gate_host[left_gate_index]
-                removed_at_least_one_double_cnot = True
+                double_cnot_removed = True
 
-    return removed_at_least_one_double_cnot
+    return double_cnot_removed
 
 
 QuantumCircuit.remove_double_cnots_once = remove_double_cnots_once
@@ -406,14 +409,12 @@ CompositeGate.remove_double_cnots_once = remove_double_cnots_once
 
 def first_atomic_gate_host(self):
     """Return the host list of the leaf gate on the left edge."""
-
     if self.data:
         if isinstance(self.data[0], CompositeGate):
             return self.data[0].first_atomic_gate_host()
-        else:
-            return self.data
-    else:
-        return None
+        return self.data
+
+    return None
 
 
 QuantumCircuit.first_atomic_gate_host = first_atomic_gate_host
@@ -425,10 +426,9 @@ def last_atomic_gate_host(self):
     if self.data:
         if isinstance(self.data[-1], CompositeGate):
             return self.data[-1].last_atomic_gate_host()
-        else:
-            return self.data
-    else:
-        return None
+        return self.data
+
+    return None
 
 
 QuantumCircuit.last_atomic_gate_host = last_atomic_gate_host
@@ -437,11 +437,12 @@ CompositeGate.last_atomic_gate_host = last_atomic_gate_host
 
 def initialize(self, name, params, qubits):
     """Apply initialize to circuit."""
-    self._check_dups(qubits)    
+    self._check_dups(qubits)
     for i in qubits:
         self._check_qubit(i)
         self._attach(Reset(i, self))
         # TODO: avoid explicit reset if compiler determines a |0> state
+
     return self._attach(InitializeGate(name, params, qubits, self))
 
 

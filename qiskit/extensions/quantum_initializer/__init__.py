@@ -1,1 +1,1 @@
-from .initializer import InitializeGate
+from ._initializer import InitializeGate
