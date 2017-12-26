@@ -21,7 +21,7 @@ from concurrent import futures
 import logging
 import pprint
 from threading import Lock
-
+from collections import OrderedDict
 import qiskit.backends
 from qiskit.backends import (local_backends, remote_backends)
 from qiskit._result import Result
@@ -75,7 +75,7 @@ class JobProcessor():
         self.max_workers = max_workers
         # check whether any jobs are remote
         self.online = any(qj.backend not in local_backends() for qj in q_jobs)
-        self.futures = {}
+        self.futures = OrderedDict()
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
         # to pass any callback.
@@ -119,3 +119,4 @@ class JobProcessor():
             future.qobj = q_job.qobj
             self.futures[future] = q_job.qobj
             future.add_done_callback(self._job_done_callback)
+        return self.futures

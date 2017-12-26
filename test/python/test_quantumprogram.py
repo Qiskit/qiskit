@@ -934,8 +934,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         self.qp_program_finished = False
         self.qp_program_exception = None
-        out = QP_program.run_async(qobj, callback=_job_done_callback)
-
+        future_dict = QP_program.run_async(qobj, callback=_job_done_callback)
         while not self.qp_program_finished:
             # Wait until the job_done_callback is invoked and completed.
             pass
@@ -1236,7 +1235,6 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend = QP_program.online_simulators()[0]
-        # print(backend)
         result = QP_program.execute(['qc'], backend=backend,
                                     shots=shots, max_credits=3,
                                     seed=73846087)
