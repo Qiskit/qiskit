@@ -11,6 +11,7 @@ from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
 import qiskit.extensions.standard
+import qiskit.extensions.quantum_initializer
 from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram

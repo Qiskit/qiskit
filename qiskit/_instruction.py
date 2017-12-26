@@ -40,8 +40,9 @@ class Instruction(object):
         self.name = name
         self.param = []
         for p in param:
-            if not isinstance(p, Basic):
-                # if item in param not symbolic, make it symbolic
+            if not isinstance(p, (Basic, complex)):
+                # If the item in param is not symbolic and not complex (used
+                # by InitializeGate), make it symbolic.
                 self.param.append(Number(p))
             else:
                 self.param.append(p)
