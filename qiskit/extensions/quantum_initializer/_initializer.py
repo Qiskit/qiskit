@@ -74,7 +74,7 @@ class InitializeGate(CompositeGate):
 
         # Check if probabilities (amplitudes squared) sum to 1
         if not math.isclose(sum(numpy.absolute(param) ** 2), 1.0,
-                            abs_tol=1e-4):
+                            abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
         super(InitializeGate, self).__init__(name, param, arg, circ)
