@@ -27,7 +27,6 @@ from qiskit import QuantumProgram
 from qiskit.tools.qi.qi import state_fidelity
 from .common import QiskitTestCase
 
-
 class TestInitialize(QiskitTestCase):
     """QISKIT InitializeGate tests."""
 
@@ -191,6 +190,35 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
+    def test_sympy(self):
+        desired_vector = [
+            0,
+            math.cos(math.pi / 3) * complex(0,1) / math.sqrt(4),
+            math.sin(math.pi / 3) / math.sqrt(4),
+            0,
+            0,
+            0,
+            0,
+            0,
+            1 / math.sqrt(8) * complex(1, 0),
+            1 / math.sqrt(8) * complex(0, 1),
+            0,
+            0,
+            0,
+            0,
+            1 / math.sqrt(4),
+            1 / math.sqrt(4) * complex(0, 1)]
+        qp = QuantumProgram()
+        qr = qp.create_quantum_register("qr", 4)
+        cr = qp.create_classical_register("cr", 4)
+        qc = qp.create_circuit("qc", [qr], [cr])
+        qc.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2], qr[3]])
+        result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
+        quantum_state = result.get_data("qc")['quantum_state']
+        fidelity = state_fidelity(quantum_state, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
 if __name__ == '__main__':
     unittest.main()
