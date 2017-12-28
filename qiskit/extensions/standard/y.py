@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,12 +19,12 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
+from qiskit import Gate
 from qiskit import InstructionSet
-from qiskit.extensions.standard import header
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class YGate(Gate):
@@ -54,9 +55,9 @@ def y(self, quantum_register):
         for register in range(quantum_register.size):
             intructions.add(self.y((quantum_register, register)))
         return intructions
-    else:
-        self._check_qubit(quantum_register)
-        return self._attach(YGate(quantum_register, self))
+
+    self._check_qubit(quantum_register)
+    return self._attach(YGate(quantum_register, self))
 
 
 QuantumCircuit.y = y

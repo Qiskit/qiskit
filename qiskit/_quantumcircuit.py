@@ -176,6 +176,9 @@ class QuantumCircuit(object):
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples).
 
+        Returns:
+            Gate: the attached measure gate.
+
         Raises:
             QISKitError: if qubit is not in this circuit or bad format;
                 if cbit is not in this circuit or not creg.

@@ -35,9 +35,9 @@ and
 
     results['data']['classical_state']
 
-where 'quantum_state' is a 2\ :sup:`n` complex numpy array representing the
+where 'quantum_state' is a 2 :sup:`n` complex numpy array representing the
 quantum state vector and 'classical_state' is an integer representing
-the state of the classical registors.
+the state of the classical registers.
 
 if shots > 1
 
@@ -105,15 +105,17 @@ if shots > 1
                }
 
 """
-import uuid
-import numpy as np
 import random
+import uuid
 from collections import Counter
-import json
-from ._simulatortools import single_gate_matrix
-from ._simulatorerror import SimulatorError
+
+import numpy as np
+
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
+from ._simulatorerror import SimulatorError
+from ._simulatortools import single_gate_matrix
+
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
@@ -126,6 +128,7 @@ class QasmSimulator(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
+        super(QasmSimulator, self).__init__(configuration)
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',
@@ -138,8 +141,15 @@ class QasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
-            
+
         self._local_random = random.Random()
+
+        # Define attributes in __init__.
+        self._classical_state = 0
+        self._quantum_state = 0
+        self._number_of_cbits = 0
+        self._number_of_qubits = 0
+        self._shots = 0
 
     @staticmethod
     def _index1(b, i, k):
@@ -293,7 +303,7 @@ class QasmSimulator(BaseBackend):
             circuit (dict): JSON circuit from qobj circuits list
 
         Returns:
-            A dictionary of results which looks something like::
+            dict: A dictionary of results which looks something like::
 
                 {
                 "data":
@@ -303,14 +313,16 @@ class QasmSimulator(BaseBackend):
                     },
                 "status": --status (string)--
                 }
+        Raises:
+            SimulatorError: if an error occurred.
         """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
         self._classical_state = 0
-        cl_reg_index = [] # starting bit index of classical register
-        cl_reg_nbits = [] # number of bits in classical register
+        cl_reg_index = []  # starting bit index of classical register
+        cl_reg_nbits = []  # number of bits in classical register
         cbit_index = 0
         for cl_reg in ccircuit['header']['clbit_labels']:
             cl_reg_nbits.append(cl_reg[1])
@@ -321,7 +333,7 @@ class QasmSimulator(BaseBackend):
         else:
             self._local_random.seed(circuit['config']['seed'])
         outcomes = []
-        for shot in range(self._shots):
+        for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
             self._quantum_state[0] = 1
@@ -377,7 +389,7 @@ class QasmSimulator(BaseBackend):
             counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
             data['quantum_state'] = self._quantum_state
-            data['classical_state'] = self._classical_state,
+            data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
@@ -387,9 +399,11 @@ class QasmSimulator(BaseBackend):
         at register divisions.
 
         Args:
-            counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
+            counts (dict): dictionary of counts e.g. {'1111': 1000, '0000':5}
+            cl_reg_index (list): starting bit index of classical register
+            cl_reg_nbits (list): total amount of bits in classical register
         Returns:
-            spaces inserted into dictionary keys at register boundries.
+            dict: spaces inserted into dictionary keys at register boundaries.
         """
         fcounts = {}
         for key, value in counts.items():

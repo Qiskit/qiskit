@@ -18,12 +18,12 @@
 """
 controlled-u1 gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit._quantumregister import QuantumRegister
+from qiskit import Gate
+from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Cu1Gate(Gate):
@@ -39,7 +39,7 @@ class Cu1Gate(Gate):
         tgt = self.arg[1]
         theta = self.param[0]
         return self._qasmif("cu1(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
-                                                           tgt[0].name, tgt[1]))
+                                                        tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -60,11 +60,11 @@ def cu1(self, theta, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.cu1(theta, (ctl, i), (tgt, i)))
         return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(Cu1Gate(theta, ctl, tgt, self))
+
+    self._check_qubit(ctl)
+    self._check_qubit(tgt)
+    self._check_dups([ctl, tgt])
+    return self._attach(Cu1Gate(theta, ctl, tgt, self))
 
 
 QuantumCircuit.cu1 = cu1

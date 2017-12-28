@@ -46,4 +46,5 @@ class Gate(Instruction):
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
+        # pylint: disable=unused-argument
         raise QISKitError("control not implemented")

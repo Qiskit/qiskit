@@ -46,7 +46,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_latex_drawer.tex')
         try:
             latex_drawer(self.qc, filename)
-        except:
+        except Exception:
             if os.path.exists(filename):
                 os.remove(filename)
             raise
@@ -92,14 +92,14 @@ class TestLatexDrawer(QiskitTestCase):
         qc.h(q[0])
         qc.measure(q[0], c0[0])
         qc.measure(q[1], c1[0])
-        
+
         # Apply a correction
         qc.z(q[2]).c_if(c0, 1)
         qc.x(q[2]).c_if(c1, 1)
         qc.measure(q[2], c2[0])
         try:
             latex_drawer(qc, filename)
-        except:
+        except Exception:
             if os.path.exists(filename):
                 os.remove(filename)
             raise

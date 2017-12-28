@@ -18,12 +18,12 @@
 """
 controlled-u3 gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit._quantumregister import QuantumRegister
+from qiskit import Gate
+from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Cu3Gate(Gate):
@@ -41,8 +41,8 @@ class Cu3Gate(Gate):
         phi = self.param[1]
         lam = self.param[2]
         return self._qasmif("cu3(%s,%s,%s) %s[%d],%s[%d];" % (theta, phi, lam,
-                                                                       ctl[0].name, ctl[1],
-                                                                       tgt[0].name, tgt[1]))
+                                                              ctl[0].name, ctl[1],
+                                                              tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -54,7 +54,8 @@ class Cu3Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu3(self.param[0], self.param[1], self.param[2], self.arg[0], self.arg[1]))
+        self._modifiers(circ.cu3(self.param[0], self.param[1],
+                                 self.param[2], self.arg[0], self.arg[1]))
 
 
 def cu3(self, theta, phi, lam, ctl, tgt):
@@ -66,11 +67,11 @@ def cu3(self, theta, phi, lam, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.cu3(theta, phi, lam, (ctl, i), (tgt, i)))
         return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(Cu3Gate(theta, phi, lam, ctl, tgt, self))
+
+    self._check_qubit(ctl)
+    self._check_qubit(tgt)
+    self._check_dups([ctl, tgt])
+    return self._attach(Cu3Gate(theta, phi, lam, ctl, tgt, self))
 
 
 QuantumCircuit.cu3 = cu3

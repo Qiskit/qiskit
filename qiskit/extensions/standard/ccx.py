@@ -18,10 +18,10 @@
 """
 Toffoli gate. Controlled-Controlled-X.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+from qiskit import Gate
+from qiskit import QuantumCircuit
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class ToffoliGate(Gate):

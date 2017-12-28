@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,13 +19,12 @@
 """
 S=diag(1,i) Clifford phase gate or its inverse.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import InstructionSet
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard import header
-from qiskit.extensions.standard import u1
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class SGate(CompositeGate):
@@ -45,8 +45,8 @@ class SGate(CompositeGate):
         phi = self.data[0].param[0]
         if phi > 0:
             return self.data[0]._qasmif("s %s[%d];" % (qubit[0].name, qubit[1]))
-        else:
-            return self.data[0]._qasmif("sdg %s[%d];" % (qubit[0].name, qubit[1]))
+
+        return self.data[0]._qasmif("sdg %s[%d];" % (qubit[0].name, qubit[1]))
 
 
 def s(self, q):
@@ -56,9 +56,9 @@ def s(self, q):
         for j in range(q.size):
             gs.add(self.s((q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(SGate(q, self))
+
+    self._check_qubit(q)
+    return self._attach(SGate(q, self))
 
 
 def sdg(self, q):

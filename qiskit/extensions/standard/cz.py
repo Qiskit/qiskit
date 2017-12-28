@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -17,12 +18,13 @@
 """
 controlled-Phase gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit._quantumregister import QuantumRegister
+from qiskit import Gate
+from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
+
 
 class CzGate(Gate):
     """controlled-Z gate."""
@@ -56,11 +58,10 @@ def cz(self, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.cz((ctl, i), (tgt, i)))
         return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(CzGate(ctl, tgt, self))
+    self._check_qubit(ctl)
+    self._check_qubit(tgt)
+    self._check_dups([ctl, tgt])
+    return self._attach(CzGate(ctl, tgt, self))
 
 
 QuantumCircuit.cz = cz
