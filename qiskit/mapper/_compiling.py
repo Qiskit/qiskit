@@ -20,7 +20,7 @@
 Methods to assist with compiling tasks.
 """
 import math
-import scipy
+
 import numpy as np
 from scipy.linalg import expm
 

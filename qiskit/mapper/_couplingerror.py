@@ -20,11 +20,13 @@ Exception for errors raised by the Coupling object.
 """
 from qiskit import QISKitError
 
+
 class CouplingError(QISKitError):
     """Base class for errors raised by the coupling graph object."""
 
     def __init__(self, *msg):
         """Set the error message."""
+        super(CouplingError, self).__init__(*msg)
         self.msg = ' '.join(msg)
 
     def __str__(self):

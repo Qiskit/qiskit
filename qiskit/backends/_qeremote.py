@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
 """QeRemote module
 
 This module is used for connecting to the Quantum Experience.
@@ -29,6 +45,7 @@ class QeRemote(BaseBackend):
         Args:
             configuration (dict, optional): configuration of backend
         """
+        super(QeRemote, self).__init__(configuration)
         self._configuration = configuration
         self._configuration['local'] = False
 
@@ -39,7 +56,7 @@ class QeRemote(BaseBackend):
             q_job (QuantumJob): job to run
 
         Returns:
-            Result object.
+            Result: Result object.
 
         Raises:
             ResultError: if the api put 'error' in its output
@@ -62,7 +79,7 @@ class QeRemote(BaseBackend):
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
         if (qobj['config']['backend'] == 'ibmqx_hpc_qasm_simulator' and
-           'hpc' in qobj['config']):
+                'hpc' in qobj['config']):
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
                 hpc = {
@@ -71,7 +88,7 @@ class QeRemote(BaseBackend):
                     'ompNumThreads':
                         qobj['config']['hpc']['omp_num_threads']
                 }
-            except:
+            except (KeyError, TypeError):
                 hpc = None
 
         output = self._api.run_job(api_jobs, qobj['config']['backend'],
@@ -107,7 +124,7 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
         timeout (int):  is how long we wait before failing, in seconds
 
     Returns:
-        A list of results that correspond to the jobids.
+        list: A list of results that correspond to the jobids.
 
     Raises:
         QISKitError: job didn't return status or reported error in status

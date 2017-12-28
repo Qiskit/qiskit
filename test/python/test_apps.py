@@ -19,14 +19,13 @@
 
 import unittest
 
-from scipy import linalg as la
 import numpy as np
+from scipy import linalg as la
 
 from qiskit.tools.apps.optimization import (Energy_Estimate, make_Hamiltonian,
                                             Hamiltonian_from_file,
                                             trial_circuit_ry)
 from qiskit.tools.qi.pauli import Pauli
-
 from .common import QiskitTestCase
 
 
@@ -61,6 +60,7 @@ class TestQuantumOptimization(QiskitTestCase):
 
 class TestHamiltonian(QiskitTestCase):
     def test_hamiltonian(self):
+        # pylint: disable=unexpected-keyword-arg
         # printing an example from a H2 file
         hfile = self._get_resource_path("H2Equilibrium.txt")
         hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))

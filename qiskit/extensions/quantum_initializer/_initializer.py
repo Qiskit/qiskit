@@ -115,9 +115,9 @@ class InitializeGate(CompositeGate):
         for i in range(self.num_qubits):
             # work out which rotations must be done to disentangle the LSB
             # qubit (we peel away one qubit at a time)
-            remaining_param, \
-            thetas, \
-            phis = InitializeGate._rotations_to_disentangle(remaining_param)
+            (remaining_param,
+             thetas,
+             phis) = InitializeGate._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a
@@ -151,10 +151,10 @@ class InitializeGate(CompositeGate):
             # (imagine a qubit state signified by the amplitudes at index 2*i
             # and 2*(i+1), corresponding to the select qubits of the
             # multiplexor being in state |i>)
-            remains,\
-            add_theta,\
-            add_phi = InitializeGate._bloch_angles(
-                local_param[2*i : 2*(i + 1)])
+            (remains,
+             add_theta,
+             add_phi) = InitializeGate._bloch_angles(
+                 local_param[2*i: 2*(i + 1)])
 
             remaining_vector.append(remains)
 

@@ -1,8 +1,26 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """Quantum Job class"""
 import random
 import string
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
+
 
 class QuantumJob():
     """Creates a quantum circuit job
@@ -14,54 +32,27 @@ class QuantumJob():
     # TODO We need to create more tests for checking all possible inputs.
     def __init__(self, circuits, backend='local_qasm_simulator',
                  circuit_config=None, seed=None,
-                 resources={'max_credits':10, 'wait':5, 'timeout':120},
+                 resources=None,
                  shots=1024, names=None,
                  do_compile=False, preformatted=False):
         """
         Args:
-            circuits (QuantumCircuit | list(QuantumCircuit) | qobj): 
+            circuits (QuantumCircuit or list(QuantumCircuit)):
                 QuantumCircuit or list of QuantumCircuit. If preformatted=True,
                 this is a raw qobj.
             backend (str): The backend to run the circuit on.
-            timeout (float): Timeout for job in seconds.
+            circuit_config (dict): Circuit configuration.
             seed (int): The intial seed the simulatros use.
             resources (dict): Resource requirements of job.
-            coupling_map (dict): A directed graph of coupling::
-
-                {
-                 control(int):
-                     [
-                         target1(int),
-                         target2(int),
-                         , ...
-                    ],
-                     ...
-                }
-
-                eg. {0: [2], 1: [2], 3: [2]}
-
-            initial_layout (dict): A mapping of qubit to qubit::
-
-                                  {
-                                    ("q", strart(int)): ("q", final(int)),
-                                    ...
-                                  }
-                                  eg.
-                                  {
-                                    ("q", 0): ("q", 0),
-                                    ("q", 1): ("q", 1),
-                                    ("q", 2): ("q", 2),
-                                    ("q", 3): ("q", 3)
-                                  }
             shots (int): the number of shots
-            circuit_type (str): "compiled_dag" or "uncompiled_dag" or
-                "quantum_circuit"
-            names (str | list(str)): names/ids for circuits
-            preformated (bool): the objects in circuits are already compiled
+            names (str or list(str)): names/ids for circuits
+            do_compile (boolean): compile flag.
+            preformatted (bool): the objects in circuits are already compiled
                 and formatted (qasm for online, json for local). If true the
                 parameters "names" and "circuit_config" must also be defined
                 of the same length as "circuits".
         """
+        resources = resources or {'max_credits': 10, 'wait': 5, 'timeout': 120}
         if isinstance(circuits, list):
             self.circuits = circuits
         else:

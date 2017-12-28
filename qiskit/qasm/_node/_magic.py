@@ -33,4 +33,5 @@ class Magic(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
+        # pylint: disable=unused-argument
         return "OPENQASM %.1f;" % self.children[0].value

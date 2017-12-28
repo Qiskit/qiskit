@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,10 +19,11 @@
 """
 Element of SU(2).
 """
-from qiskit import Gate
-from qiskit.extensions._extensionerror import ExtensionError
-from qiskit import QuantumCircuit
 from qiskit import CompositeGate
+from qiskit import Gate
+from qiskit import QuantumCircuit
+from qiskit.extensions._extensionerror import ExtensionError
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class UBase(Gate):
@@ -39,8 +41,8 @@ class UBase(Gate):
         phi = self.param[1]
         lamb = self.param[2]
         qubit = self.arg[0]
-        return self._qasmif("U(%s,%s,%s) %s[%d];" % (theta, phi,
-                                                              lamb, qubit[0].name, qubit[1]))
+        return self._qasmif("U(%s,%s,%s) %s[%d];" % (
+            theta, phi, lamb, qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate.
@@ -55,7 +57,7 @@ class UBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.param,self.arg[0]))
+        self._modifiers(circ.u_base(self.param, self.arg[0]))
 
 
 def u_base(self, tpl, q):

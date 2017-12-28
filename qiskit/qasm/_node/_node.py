@@ -25,6 +25,7 @@ class Node(object):
 
     def __init__(self, type, children=None, root=None):
         """Construct a new node object."""
+        # pylint: disable=redefined-builtin
         self.type = type
         if children:
             self.children = children

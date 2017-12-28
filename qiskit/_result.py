@@ -1,7 +1,26 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""Module for working with Results."""
+
 import copy
 import numpy
 from qiskit._qiskiterror import QISKitError
-from qiskit import RegisterSizeError
+
 
 class Result(object):
     """ Result Class.
@@ -41,7 +60,7 @@ class Result(object):
         """Get the status of the run.
 
         Returns:
-            the status of the results.
+            string: the status of the results.
         """
         return self._result['status']
 
@@ -57,7 +76,9 @@ class Result(object):
         Arg:
             other (Result): a Result object to append.
         Returns:
-            The current object with appended results.
+            Result: The current object with appended results.
+        Raises:
+            QISKitError: if the Results cannot be combined.
         """
         if self._qobj['config'] == other._qobj['config']:
             if isinstance(self._qobj['id'], str):
@@ -78,7 +99,7 @@ class Result(object):
         Arg:
             other (Result): a Result object to combine.
         Returns:
-            A new Result object consisting of combined objects.
+            Result: A new Result object consisting of combined objects.
         """
         ret = copy.deepcopy(self)
         ret += other
@@ -94,8 +115,8 @@ class Result(object):
     def circuit_statuses(self):
         """Return statuses of all circuits
 
-        Return:
-            List of status result strings.
+        Returns:
+            list(str): List of status result strings.
         """
         return [circuit_result['status']
                 for circuit_result in self._result['result']]
@@ -105,6 +126,8 @@ class Result(object):
 
         Args:
             icircuit (int): index of circuit
+        Returns:
+            string: the status of the circuit.
         """
         return self._result['result'][icircuit]['status']
 
@@ -112,7 +135,7 @@ class Result(object):
         """Return the job id assigned by the api if this is a remote job.
 
         Returns:
-            a string containing the job id.
+            string: a string containing the job id.
         """
         return self._result['job_id']
 
@@ -123,7 +146,9 @@ class Result(object):
             name (str): the name of the quantum circuit.
 
         Returns:
-            A text version of the qasm file that has been run.
+            string: A text version of the qasm file that has been run.
+        Raises:
+            QISKitError: if the circuit was not found.
         """
         try:
             qobj = self._qobj
@@ -131,7 +156,8 @@ class Result(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
         except KeyError:
-            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
+            pass
+        raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_data(self, name):
         """Get the data of circuit name.
@@ -165,11 +191,12 @@ class Result(object):
             name (str): the name of the quantum circuit.
 
         Returns:
-            A dictionary of data for the different backends.
+            dict: A dictionary of data for the different backends.
 
         Raises:
-            If there's an error the function will throw a QISKitError or a
-            RegisterSizeError.
+            QISKitError: if there is no data for the circuit, or an unhandled
+                error occurred while fetching the data.
+            Exception: if a handled error occurred while fetching the data.
         """
         if self._is_error():
             exception = self._result['result']
@@ -184,7 +211,8 @@ class Result(object):
                 if qobj['circuits'][index]['name'] == name:
                     return self._result['result'][index]['data']
         except (KeyError, TypeError):
-            raise QISKitError('No data for circuit "{0}"'.format(name))
+            pass
+        raise QISKitError('No data for circuit "{0}"'.format(name))
 
     def get_counts(self, name):
         """Get the histogram data of circuit name.
@@ -197,6 +225,9 @@ class Result(object):
 
         Returns:
             Dictionary: Counts {’00000’: XXXX, ’00001’: XXXXX}.
+
+        Raises:
+            QISKitError: if there are no counts for the circuit.
         """
         try:
             return self.get_data(name)['counts']
@@ -248,12 +279,12 @@ class Result(object):
             xvals: mx1 array of the circuit xvals
         """
         ncircuits = len(self._qobj['circuits'])
-        #Is this the best way to get the number of qubits?
+        # Is this the best way to get the number of qubits?
         nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
-        #build Z operators for each qubit
+        # build Z operators for each qubit
         z_dicts = []
         for qubit_ind in range(nqubits):
             z_dicts.append(dict())
@@ -263,11 +294,12 @@ class Result(object):
                 if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
-        #go through each circuit and for eqch qubit and apply the operators using "average_data"
+        # go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
-            if not xvals_dict is None:
+            if xvals_dict:
                 xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind, qubit_ind] = self.average_data(self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                qubitpol[circuit_ind, qubit_ind] = self.average_data(
+                    self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
 
         return qubitpol, xvals

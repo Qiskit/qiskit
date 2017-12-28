@@ -1,15 +1,33 @@
-"""backend functions for registration, information, etc."""
-from collections import namedtuple
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""Backend functions for registration, information, etc."""
+
 import importlib
 import inspect
+import logging
 import os
 import pkgutil
-import logging
 import re
+from collections import namedtuple
 
-from .. import QISKitError
-from ._basebackend import BaseBackend
 from qiskit import mapper
+from ._basebackend import BaseBackend
+from .. import QISKitError
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +50,7 @@ as its contents are a combination of:
 
 FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
 ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
+
 
 def discover_local_backends(directory=os.path.dirname(__file__)):
     """This function attempts to discover all backend modules.
@@ -65,9 +84,9 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
                     except QISKitError:
                         # Ignore backends that could not be initialized.
                         logger.info(
-                            'backend {} could not be initialized'.format(
-                                fullname))
+                            'backend %s could not be initialized', fullname)
     return backend_name_list
+
 
 def discover_remote_backends(api):
     """Discover backends available on the Quantum Experience
@@ -108,10 +127,12 @@ def discover_remote_backends(api):
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
+
 def _snake_case_to_camel_case(name):
     """Return a snake case string from a camelcase string."""
     string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
     return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
+
 
 def update_backends(api=None):
     """Update registered backends.
@@ -131,6 +152,7 @@ def update_backends(api=None):
         backend_name_list += discover_remote_backends(api)
     return backend_name_list
 
+
 def register_backend(cls, configuration=None):
     """Register a backend in the list of available backends.
 
@@ -141,7 +163,7 @@ def register_backend(cls, configuration=None):
     * the backend is not already registered.
 
     Args:
-        cls (BaseBackend): a subclass of BaseBackend that contains a backend
+        cls (class): a subclass of BaseBackend that contains a backend
         configuration (dict): backend configuration to use instead of class'
             default.
 
@@ -180,6 +202,7 @@ def register_backend(cls, configuration=None):
 
     return backend_name
 
+
 def deregister_backend(backend_name):
     """Remove backend from list of available backens
 
@@ -209,6 +232,7 @@ def get_backend_class(backend_name):
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
+
 def get_backend_instance(backend_name):
     """Return a backend instance for the named backend.
 
@@ -227,6 +251,7 @@ def get_backend_instance(backend_name):
         raise LookupError('backend "{}" is not available'.format(backend_name))
     return registered_backend.cls(
         configuration=registered_backend.configuration)
+
 
 def get_backend_configuration(backend_name):
     """Return the configuration for the named backend.

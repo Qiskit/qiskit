@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, inconsistent-return-statements
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -19,17 +19,19 @@
 """
 Layout module to assist with mapping circuit qubits onto physical qubits.
 """
-import sys
 import copy
 import logging
+import pprint
+import sys
+
+import networkx as nx
+import numpy as np
 import sympy
 from sympy import Number as N
-import numpy as np
-import networkx as nx
-import pprint
-from ._mappererror import MapperError
-from qiskit.qasm import Qasm
+
 import qiskit.unroll as unroll
+from qiskit.qasm import Qasm
+from ._mappererror import MapperError
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,8 @@ logger = logging.getLogger(__name__)
 # because the initial state is zero. We don't do this.
 
 
-def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, seed=None):
+def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
+                      seed=None):
     """Find a swap circuit that implements a permutation for this layer.
 
     The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -96,7 +99,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, s
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
         logger.debug("layer_permutation: ----- exit -----")
-        return True, "", 0, layout, len(gates) == 0
+        return True, "", 0, layout, bool(gates)
 
     # Begin loop over trials of randomized algorithm
     n = coupling.size()
@@ -203,10 +206,10 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials, s
         logger.debug("layer_permutation: failed!")
         logger.debug("layer_permutation: ----- exit -----")
         return False, None, None, None, False
-    else:
-        logger.debug("layer_permutation: done")
-        logger.debug("layer_permutation: ----- exit -----")
-        return True, best_circ, best_d, best_layout, False
+
+    logger.debug("layer_permutation: done")
+    logger.debug("layer_permutation: ----- exit -----")
+    return True, best_circ, best_d, best_layout, False
 
 
 def direction_mapper(circuit_graph, coupling_graph):
@@ -256,7 +259,7 @@ def direction_mapper(circuit_graph, coupling_graph):
                          cxedge[1][0], cxedge[1][1])
         else:
             raise MapperError("circuit incompatible with CouplingGraph: "
-                              "cx on %s", pprint.pformat(cxedge))
+                              "cx on %s" % pprint.pformat(cxedge))
     return circuit_graph
 
 
@@ -317,16 +320,20 @@ def swap_mapper(circuit_graph, coupling_graph,
         coupling_graph (CouplingGraph): coupling graph to map onto
         initial_layout (dict): dict from qubits of circuit_graph to qubits
             of coupling_graph (optional)
-        basis (str, optional): basis string specifying basis of output
-            DAGCircuit
+        basis (str): basis string specifying basis of output DAGCircuit
+        trials (int): number of trials.
+        seed (int): initial seed.
 
     Returns:
-        Returns a DAGCircuit object containing a circuit equivalent to
+        DAGCircuit: object containing a circuit equivalent to
         circuit_graph that respects couplings in coupling_graph, and
         a layout dict mapping qubits of circuit_graph into qubits
         of coupling_graph. The layout may differ from the initial_layout
         if the first layer of gates cannot be executed on the
         initial_layout.
+    Raises:
+        MapperError: if there was any error during the mapping or with the
+            parameters.
     """
     if circuit_graph.width() > coupling_graph.size():
         raise MapperError("Not enough qubits in CouplingGraph")
@@ -471,15 +478,16 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
     delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
-             sympy.cos(xi) * sympy.cos(theta1 + theta2)
+        sympy.cos(xi) * sympy.cos(theta1 + theta2)
     delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
-             sympy.sin(xi) * sympy.cos(theta1 - theta2)
+        sympy.sin(xi) * sympy.cos(theta1 - theta2)
     delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
-             sympy.cos(xi) * sympy.sin(theta1 + theta2)
+        sympy.cos(xi) * sympy.sin(theta1 + theta2)
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
-             sympy.sin(xi) * sympy.sin(-theta1 + theta2)
+        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
 
-    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()), [delta1, delta2, delta3, delta4])
+    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()),
+                                           [delta1, delta2, delta3, delta4])
 
     return sympy.Max(delta1, delta2, delta3, delta4)
 
@@ -564,6 +572,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         solutions.append((sympy.acos(sympy.cos(xi) * sympy.cos(theta1 + theta2) /
                                      sympy.cos(sphi + slam + sympy.pi)),
                           sphi + sympy.pi, slam))
+
     # Select the first solution with the required accuracy
     deltas = list(map(lambda x: test_trig_solution(x[0], x[1], x[2],
                                                    xi, theta1, theta2),

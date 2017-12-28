@@ -51,4 +51,6 @@ class UnaryOperator(Node):
                                 self.value)
 
     def qasm(self, prec=15):
+        """Return QASM representation."""
+        # pylint: disable=unused-argument
         return self.value

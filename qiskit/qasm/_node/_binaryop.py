@@ -18,8 +18,9 @@
 """
 Node for an OPENQASM binary operation expression.
 """
-from ._node import Node
 import sympy
+
+from ._node import Node
 
 
 class BinaryOp(Node):
@@ -41,6 +42,7 @@ class BinaryOp(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
+        # pylint: disable=unused-argument
         # TODO prec ignored
         return sympy.latex(self.sym(nested_scope))
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,12 +19,12 @@
 """
 Identity gate.
 """
+from qiskit import CompositeGate
+from qiskit import Gate
+from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import Gate
-from qiskit import CompositeGate
-from qiskit import InstructionSet
-from qiskit.extensions.standard import header
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class IdGate(Gate):
@@ -54,9 +55,9 @@ def iden(self, q):
         for j in range(q.size):
             gs.add(self.iden((q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(IdGate(q, self))
+
+    self._check_qubit(q)
+    return self._attach(IdGate(q, self))
 
 
 QuantumCircuit.iden = iden

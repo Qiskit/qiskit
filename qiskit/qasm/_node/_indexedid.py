@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -44,4 +45,5 @@ class IndexedId(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
+        # pylint: disable=unused-argument
         return self.name + "[%d]" % self.index
