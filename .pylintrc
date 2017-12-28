@@ -9,9 +9,7 @@
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS,
-    standard,  # ignore qiskit.extensions.standard.*
-    _node      # ignore qiskit.qasm._node.*
+ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -68,8 +66,16 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 disable=print-statement,parameter-unpacking,unpacking-in-except,old-raise-syntax,backtick,import-star-module-level,apply-builtin,basestring-builtin,buffer-builtin,cmp-builtin,coerce-builtin,execfile-builtin,file-builtin,long-builtin,raw_input-builtin,reduce-builtin,standarderror-builtin,unicode-builtin,xrange-builtin,coerce-method,delslice-method,getslice-method,setslice-method,no-absolute-import,old-division,dict-iter-method,dict-view-method,next-method-called,metaclass-assignment,indexing-exception,raising-string,reload-builtin,oct-method,hex-method,nonzero-method,cmp-method,input-builtin,round-builtin,intern-builtin,unichr-builtin,map-builtin-not-iterating,zip-builtin-not-iterating,range-builtin-not-iterating,filter-builtin-not-iterating,using-cmp-argument,long-suffix,old-ne-operator,old-octal-literal,suppressed-message,useless-suppression,
-    no-self-use,  # disabled as it is too verbose
-    fixme         # disabled as TODOs would show up as warnings
+    no-self-use,        # disabled as it is too verbose
+    fixme,              # disabled as TODOs would show up as warnings
+    protected-access,   # disabled as we don't follow the public vs private
+                        # convention strictly
+    duplicate-code,     # disabled as it is too verbose
+    # disable the "too-many/few-..." refactoring hints
+    too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
+    too-many-statements, too-many-instance-attributes, too-many-arguments,
+    too-many-public-methods, too-few-public-methods
+
 
 
 [REPORTS]
@@ -291,9 +297,10 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=self.circuit.*
+generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx
 # self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
-# provides a "__getitem__" dynamic method.
+# provides a "__getitem__" dynamic method and gate definition is dynamic.
+# For qiskit.extensions.standard, self.foo is also needed.
 
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that

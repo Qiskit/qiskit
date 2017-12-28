@@ -28,10 +28,11 @@ run:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint qiskit test
+	pylint -rn qiskit test
 
-# TODO: Uncomment when the lint one passes.
-# test: lint
+style:
+	pycodestyle --exclude=qiskit/tools --max-line-length=100 qiskit test
+
 test:
 	python3 -m unittest discover -v
 
