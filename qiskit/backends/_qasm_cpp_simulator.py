@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """Interface to a fast C++ QASM simulator.
 
 Authors: Erick Winston <ewinston@us.ibm.com>
@@ -28,6 +45,7 @@ class QasmCppSimulator(BaseBackend):
         Raises:
             FileNotFoundError: if executable, 'qasm_simulator', is not on path
         """
+        super(QasmCppSimulator, self).__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_qasm_cpp_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
@@ -36,8 +54,7 @@ class QasmCppSimulator(BaseBackend):
                                    'local': True,
                                    'description': 'A c++ simulator for qasm files',
                                    'coupling_map': 'all-to-all',
-                                   'basis_gates': 'u1,u2,u3,cx,id'
-                                  }
+                                   'basis_gates': 'u1,u2,u3,cx,id'}
         else:
             self._configuration = configuration
         self._is_simulator = self._configuration['simulator']
@@ -61,6 +78,15 @@ class QasmCppSimulator(BaseBackend):
             except FileNotFoundError:
                 cmd = '"{0}" or "{1}" '.format(self._exe, './' + self._exe)
                 raise FileNotFoundError(cmd)
+
+        # Define attributes in __init__.
+        self._threads = 0
+        self._default_shots = 0
+        self.result = None
+        self._cpp_backend = None
+        self.cin_dict = None
+        self.config = None
+        self._default_seed = 0
 
     def run(self, q_job):
         """
@@ -114,7 +140,7 @@ class QasmCppSimulator(BaseBackend):
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
             cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
-        if len(cerr) == 0:
+        if not cerr:
             # no error messages, load std::cout
             cresult = json.loads(cout.decode())
             cresult['job_id'] = job_id
@@ -134,6 +160,11 @@ class QasmCppSimulator(BaseBackend):
 
         Args:
             circuit (dict): JSON circuit from qobj circuits list
+        Raises:
+            TypeError: if the seed is not valid.
+            SimulatorError: if the cpp simulator failed.
+        Returns:
+            Result: Result object.
         """
         self.cin_dict = {'qasm': circuit['compiled_circuit'],
                          'config': self.config}
@@ -170,7 +201,7 @@ class QasmCppSimulator(BaseBackend):
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
             cin = json.dumps(self.cin_dict).encode()
             cout, cerr = proc.communicate(cin)
-        if len(cerr) == 0:
+        if not cerr:
             # no error messages, load std::cout
             cresult = json.loads(cout.decode())
             # convert possible complex valued result fields

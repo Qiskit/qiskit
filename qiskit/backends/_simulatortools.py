@@ -31,6 +31,8 @@ Functions
 """
 import numpy as np
 
+from qiskit import QISKitError
+
 
 def index1(b, i, k):
     """Magic index1 function.
@@ -58,7 +60,7 @@ def index2(b1, i1, b2, i2, k):
     Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
     """
-    assert(i1 != i2)
+    assert i1 != i2
 
     if i1 > i2:
         # insert as (i1-1)th bit, will be shifted left 1 by next line
@@ -77,13 +79,16 @@ def enlarge_single_opt(opt, qubit, number_of_qubits):
     It is exponential in the number of qubits.
 
     Args:
-        opt: the single-qubit opt.
-        qubit: the qubit to apply it on counts from 0 and order
+        opt (array): the single-qubit opt.
+        qubit (int): the qubit to apply it on counts from 0 and order
             is q_{n-1} ... otimes q_1 otimes q_0.
-        number_of_qubits: the number of qubits in the system.
+        number_of_qubits (int): the number of qubits in the system.
+
+    Returns:
+        array: enlarge single operator to n qubits
     """
     temp_1 = np.identity(2**(number_of_qubits-qubit-1), dtype=complex)
-    temp_2 = np.identity(2**(qubit), dtype=complex)
+    temp_2 = np.identity(2**qubit, dtype=complex)
     enlarge_opt = np.kron(temp_1, np.kron(opt, temp_2))
     return enlarge_opt
 
@@ -104,7 +109,9 @@ def enlarge_two_opt(opt, q0, q1, num):
             for k in range(2):
                 for jj in range(2):
                     for kk in range(2):
-                        enlarge_opt[index2(j, q0, k, q1, i), index2(jj, q0, kk, q1, i)] = opt[j+2*k, jj+2*kk]
+                        enlarge_opt[index2(j, q0, k, q1, i),
+                                    index2(jj, q0, kk, q1, i)] = opt[j+2*k,
+                                                                     jj+2*kk]
     return enlarge_opt
 
 
@@ -115,25 +122,29 @@ def single_gate_params(gate, params=None):
         gate(str): the single qubit gate name
         params(list): the operation parameters op['params']
     Returns:
-        a tuple of U gate parameters (theta, phi, lam)
+        tuple: a tuple of U gate parameters (theta, phi, lam)
+    Raises:
+        QISKitError: if the gate name is not valid
     """
     if gate == 'U' or gate == 'u3':
-        return (params[0], params[1], params[2])
+        return params[0], params[1], params[2]
     elif gate == 'u2':
-        return (np.pi/2, params[0], params[1])
+        return np.pi/2, params[0], params[1]
     elif gate == 'u1':
-        return (0, 0, params[0])
+        return 0, 0, params[0]
     elif gate == 'id':
-        return (0, 0, 0)
+        return 0, 0, 0
+    raise QISKitError('Gate is not among the valid types: %s' % gate)
 
 
 def single_gate_matrix(gate, params=None):
     """Get the matrix for a single qubit.
 
     Args:
+        gate(str): the single qubit gate name
         params(list): the operation parameters op['params']
     Returns:
-        A numpy array representing the matrix
+        array: A numpy array representing the matrix
     """
 
     # Converting sym to floats improves the performance of the simulator 10x.

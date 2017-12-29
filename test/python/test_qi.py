@@ -18,11 +18,11 @@
 
 """Quick program to test the qi tools modules."""
 
-from copy import deepcopy
 import unittest
-import sys
-sys.path.append("../..")
+from copy import deepcopy
+
 import numpy as np
+
 from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, \
     pauli_group, sgn_prod
 from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer

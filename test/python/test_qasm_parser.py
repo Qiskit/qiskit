@@ -78,5 +78,6 @@ class TestParser(QiskitTestCase):
         res_if = qasm_if.parse()
         inspect(res_if)
 
+
 if __name__ == '__main__':
     unittest.main()

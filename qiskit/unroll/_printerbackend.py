@@ -33,6 +33,7 @@ class PrinterBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
+        super(PrinterBackend, self).__init__(basis)
         self.prec = 15
         self.creg = None
         self.cval = None
@@ -235,7 +236,7 @@ class PrinterBackend(UnrollerBackend):
             if self.creg is not None:
                 print("if(%s==%d) " % (self.creg, self.cval), end="")
             print(name, end="")
-            if len(args) > 0:
+            if args:
                 print("(%s)" % ",".join(map(lambda x:
                                             str(x.sym(nested_scope)),
                                             args)), end="")
