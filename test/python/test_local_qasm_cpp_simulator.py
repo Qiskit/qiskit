@@ -17,22 +17,22 @@
 
 # =============================================================================
 
-import unittest
 import os
-import logging
+import unittest
 
 import qiskit
 import qiskit.backends._qasm_cpp_simulator as qasmcppsimulator
-from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
+from qiskit import QuantumRegister
 from qiskit import _openquantumcompiler as openquantumcompiler
 from .common import QiskitTestCase
 
+
 class TestLocalQasmCppSimulator(QiskitTestCase):
     """
-    Test job_pocessor module.
+    Test job_processor module.
     """
     def setUp(self):
         self.seed = 88
@@ -71,8 +71,7 @@ class TestLocalQasmCppSimulator(QiskitTestCase):
                              'basis_gates': 'u1,u2,u3,cx,id',
                              'layout': None,
                          }
-                     ]
-                     }
+                     ]}
         self.q_job = QuantumJob(self.qobj,
                                 backend='local_qasm_cpp_simulator',
                                 preformatted=True)
@@ -93,6 +92,7 @@ class TestLocalQasmCppSimulator(QiskitTestCase):
                      '110 110': 5,
                      '111 111': 20}
         self.assertEqual(result.get_counts('test_circuit2'), expected2)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

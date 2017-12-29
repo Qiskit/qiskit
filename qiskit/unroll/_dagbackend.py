@@ -31,6 +31,7 @@ class DAGBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
+        super(DAGBackend, self).__init__(basis)
         self.prec = 15
         self.creg = None
         self.cval = None
@@ -135,9 +136,9 @@ class DAGBackend(UnrollerBackend):
         """
         if self.listen:
             names = []
-            for x in qubitlists:
-                for j in range(len(x)):
-                    names.append(x[j])
+            for qubit in qubitlists:
+                for j, _ in enumerate(qubit):
+                    names.append(qubit[j])
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
                 self.circuit.add_basis_element("barrier", -1)

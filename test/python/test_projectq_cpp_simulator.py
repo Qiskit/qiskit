@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,broad-except
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -17,25 +17,22 @@
 
 # =============================================================================
 
-import unittest
-import os
-import logging
 import random
+import unittest
+
 import numpy
 from scipy.stats import chi2_contingency
-import qiskit
+
 import qiskit.backends._projectq_simulator as projectq_simulator
 import qiskit.backends._qasmsimulator as qasm_simulator
-from qiskit import QuantumProgram
-from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
+from qiskit import QuantumProgram
+from qiskit import QuantumRegister
 from qiskit import _openquantumcompiler as openquantumcompiler
-from qiskit import JobProcessor
-from qiskit._jobprocessor import run_backend
-from .common import QiskitTestCase
 from ._random_circuit_generator import RandomCircuitGenerator
+from .common import QiskitTestCase
 
 try:
     pq_simulator = projectq_simulator.ProjectQSimulator()
@@ -43,6 +40,7 @@ except Exception as err:
     _skip_class = True
 else:
     _skip_class = False
+
 
 @unittest.skipIf(_skip_class, 'Project Q C++ simulator unavailable')
 class TestProjectQCppSimulator(QiskitTestCase):
@@ -58,14 +56,14 @@ class TestProjectQCppSimulator(QiskitTestCase):
         maxDepth = 10
         minQubits = 1
         maxQubits = 4
-        randomCircuits = RandomCircuitGenerator(minQubits=minQubits,
-                                                maxQubits=maxQubits,
-                                                minDepth=minDepth,
-                                                maxDepth=maxDepth,
+        randomCircuits = RandomCircuitGenerator(min_qubits=minQubits,
+                                                max_qubits=maxQubits,
+                                                min_depth=minDepth,
+                                                max_depth=maxDepth,
                                                 seed=None)
-        for i in range(nCircuits):
-            basis = list(random.sample(randomCircuits.opSignature.keys(),
-                                       random.randint(2,7)))
+        for _ in range(nCircuits):
+            basis = list(random.sample(randomCircuits.op_signature.keys(),
+                                       random.randint(2, 7)))
             if 'reset' in basis:
                 basis.remove('reset')
             randomCircuits.add_circuits(1, basis=basis)
@@ -107,15 +105,12 @@ class TestProjectQCppSimulator(QiskitTestCase):
                             'basis_gates': 'u1,u2,u3,cx,id',
                             'layout': None,
                         }
-                    ]
-        }
+                    ]}
         cls.q_job = QuantumJob(cls.qobj,
                                backend='local_projectq_simulator',
                                preformatted=True)
 
-
     def test_gate_x(self):
-        N = 1
         shots = 100
         qp = QuantumProgram()
         qr = qp.create_quantum_register("qr", 1)
@@ -127,7 +122,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
                                backend='local_projectq_simulator',
                                seed=1, shots=shots)
         self.assertEqual(result_pq.get_counts(result_pq.get_names()[0]),
-                         {'1':shots})
+                         {'1': shots})
 
     def test_entangle(self):
         N = 5
@@ -144,12 +139,12 @@ class TestProjectQCppSimulator(QiskitTestCase):
                             seed=1, shots=100)
         counts = result.get_counts(result.get_names()[0])
         self.log.info(counts)
-        for key, value in counts.items():
+        for key, _ in counts.items():
             self.assertTrue(key in ['0' * N, '1' * N])
-        
+
     def test_random_circuits(self):
         local_simulator = qasm_simulator.QasmSimulator()
-        for circuit in self.rqg.get_circuits(format='QuantumCircuit'):
+        for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
             compiled_circuit = openquantumcompiler.compile(circuit.qasm())
             shots = 100
@@ -165,19 +160,22 @@ class TestProjectQCppSimulator(QiskitTestCase):
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
             counts_py = result_py.get_counts(result_py.get_names()[0])
             # filter states with few counts
-            counts_pq = {key:cnt for key,cnt in counts_pq.items() if cnt > min_cnts}
-            counts_py = {key:cnt for key,cnt in counts_py.items() if cnt > min_cnts}
-            self.log.info('local_projectq_simulator: ' + str(counts_pq))
-            self.log.info('local_qasm_simulator: ' + str(counts_py))
+            counts_pq = {key: cnt for key, cnt in counts_pq.items()
+                         if cnt > min_cnts}
+            counts_py = {key: cnt for key, cnt in counts_py.items()
+                         if cnt > min_cnts}
+            self.log.info('local_projectq_simulator: %s', str(counts_pq))
+            self.log.info('local_qasm_simulator: %s', str(counts_py))
             self.assertTrue(counts_pq.keys() == counts_py.keys())
             states = counts_py.keys()
             # contingency table
             ctable = numpy.array([[counts_pq[key] for key in states],
                                   [counts_py[key] for key in states]])
             result = chi2_contingency(ctable)
-            self.log.info('chi2_contingency: ' + str(result))
+            self.log.info('chi2_contingency: %s', str(result))
             with self.subTest():
                 self.assertGreater(result[1], 0.01)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

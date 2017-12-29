@@ -185,7 +185,6 @@ class TestStandard(QiskitTestCase):
 
     def test_ry(self):
         c = self.circuit
-        qasm_txt = ''
         self.assertRaises(QISKitError, c.ry, 1, self.c[0])
         # TODO self.assertRaises(QISKitError, c.ry, 1, 1)
         c.ry(1, self.q[1])
@@ -245,7 +244,6 @@ class TestStandard(QiskitTestCase):
         self.assertResult(TGate, 'tdg q[1];', 't q[1];')
 
     def test_u1(self):
-        qasm_txt = 'u1(1) q[1];'
         c = self.circuit
         self.assertRaises(QISKitError, c.u1, self.c[0], self.c[0])
         # TODO self.assertRaises(QISKitError, c.u1, self.q[0], 1)

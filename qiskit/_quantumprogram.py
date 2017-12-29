@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+
 """
 Qasm Program Class
 """
-# pylint: disable=line-too-long
+
 import random
 import json
 import logging
@@ -193,7 +197,8 @@ class QuantumProgram(object):
             size (int): the size of the quantum register
 
         Returns:
-            QuantumRegister: internal reference to a quantum register in __quantum_registers
+            QuantumRegister: internal reference to a quantum register in
+                __quantum_registers
 
         Raises:
             QISKitError: if the register already exists in the program.
@@ -272,7 +277,8 @@ class QuantumProgram(object):
             name (str): the name of the classical register
             size (int): the size of the classical register
         Returns:
-            ClassicalRegister: internal reference to a classical register in __classical_registers
+            ClassicalRegister: internal reference to a classical register
+                in __classical_registers
 
         Raises:
             QISKitError: if the register already exists in the program.
@@ -348,13 +354,14 @@ class QuantumProgram(object):
 
         Args:
             name (str): the name of the circuit.
-            qregisters (list(QuantumRegister)): is an Array of Quantum Registers by object
-                reference
-            cregisters (list(ClassicalRegister)): is an Array of Classical Registers by
-                object reference
+            qregisters (list(QuantumRegister)): is an Array of Quantum
+                Registers by object reference
+            cregisters (list(ClassicalRegister)): is an Array of Classical
+                Registers by object reference
 
         Returns:
-            QuantumCircuit: A quantum circuit is created and added to the Quantum Program
+            QuantumCircuit: A quantum circuit is created and added to the
+                Quantum Program
         """
         if not qregisters:
             qregisters = []
@@ -389,7 +396,8 @@ class QuantumProgram(object):
 
         Args:
             name (str): the name of the circuit to add.
-            quantum_circuit (QuantumCircuit): a quantum circuit to add to the program-name
+            quantum_circuit (QuantumCircuit): a quantum circuit to add to the
+                program-name
         """
         for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
@@ -418,7 +426,7 @@ class QuantumProgram(object):
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
         node_circuit = qasm.Qasm(filename=qasm_file).parse()  # Node (AST)
-        logger.info("circuit name: " + name)
+        logger.info("circuit name: %s", name)
         logger.info("******************************")
         logger.info(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
@@ -446,7 +454,7 @@ class QuantumProgram(object):
             # Get a random name if none is given
             name = "".join([random.choice(string.ascii_letters+string.digits)
                             for n in range(10)])
-        logger.info("circuit name: " + name)
+        logger.info("circuit name: %s", name)
         logger.info("******************************")
         logger.info(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
@@ -608,9 +616,9 @@ class QuantumProgram(object):
             'project': project
         }
 
-        for k, v in config_dict.items():
-            self.__api.config[k] = v
-            self.__api_config['config'][k] = v
+        for key, value in config_dict.items():
+            self.__api.config[key] = value
+            self.__api_config['config'][key] = value
 
     def get_api_config(self):
         """Return the program specs."""
@@ -829,6 +837,8 @@ class QuantumProgram(object):
                                     cmap = configuration[key]
                                 configuration_edit[new_key] = cmap
                     return configuration_edit
+            raise LookupError('Configuration for %s could not be found.' %
+                              backend)
         else:
             return qiskit.backends.get_backend_configuration(backend)
 
@@ -1010,20 +1020,20 @@ class QuantumProgram(object):
         if backend == 'ibmqx_hpc_qasm_simulator':
             if hpc is None:
                 logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
-                    'parameter. Setting defaults to hpc.multi_shot_optimization '
-                    '= true and hpc.omp_num_threads = 16')
+                            'parameter. Setting defaults to hpc.multi_shot_optimization '
+                            '= true and hpc.omp_num_threads = 16')
                 hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
 
-            if not all (key in hpc for key in
-                ('multi_shot_optimization','omp_num_threads')):
+            if not all(key in hpc for key in
+                       ('multi_shot_optimization', 'omp_num_threads')):
                 raise QISKitError('Unknown HPC parameter format!')
 
             qobj['config']['hpc'] = hpc
         elif hpc is not None:
             logger.info('HPC paramter is only available for '
-                'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
-                'but you are not using ibmqx_hpc_qasm_simulator, so we will '
-                'ignore it.')
+                        'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
+                        'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                        'ignore it.')
             hpc = None
 
         qobj['circuits'] = []
@@ -1033,8 +1043,8 @@ class QuantumProgram(object):
                 basis_gates = backend_conf['basis_gates']
         elif len(basis_gates.split(',')) < 2:
             # catches deprecated basis specification like 'SU2+CNOT'
-            logger.warn('encountered deprecated basis specification: '
-                        '"{}" substituting u1,u2,u3,cx,id'.format(basis_gates))
+            logger.warning('encountered deprecated basis specification: '
+                           '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
             basis_gates = 'u1,u2,u3,cx,id'
         if not coupling_map:
             coupling_map = backend_conf['coupling_map']
@@ -1171,7 +1181,8 @@ class QuantumProgram(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["config"]
         except KeyError:
-            raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
+            pass
+        raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
     def get_compiled_qasm(self, qobj, name):
         """Return the compiled cricuit in qasm format.
@@ -1191,7 +1202,8 @@ class QuantumProgram(object):
                 if qobj["circuits"][index]['name'] == name:
                     return qobj["circuits"][index]["compiled_circuit_qasm"]
         except KeyError:
-            raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
+            pass
+        raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
 
     ###############################################################
     # methods to run quantum programs
@@ -1291,8 +1303,8 @@ class QuantumProgram(object):
         q_job_list = []
         for qobj in qobj_list:
             q_job = QuantumJob(qobj, preformatted=True, resources={
-                'max_credits':qobj['config']['max_credits'], 'wait':wait,
-                'timeout':timeout})
+                'max_credits': qobj['config']['max_credits'], 'wait': wait,
+                'timeout': timeout})
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,

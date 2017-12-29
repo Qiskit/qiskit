@@ -18,9 +18,10 @@
 """
 Quantum computer instruction.
 """
-from ._register import Register
-from ._qiskiterror import QISKitError
 from sympy import Number, Basic
+
+from ._qiskiterror import QISKitError
+from ._register import Register
 
 
 class Instruction(object):
@@ -39,13 +40,13 @@ class Instruction(object):
                 raise QISKitError("argument not (Register, int) tuple")
         self.name = name
         self.param = []
-        for p in param:
-            if not isinstance(p, (Basic, complex)):
+        for single_param in param:
+            if not isinstance(single_param, (Basic, complex)):
                 # If the item in param is not symbolic and not complex (used
                 # by InitializeGate), make it symbolic.
-                self.param.append(Number(p))
+                self.param.append(Number(single_param))
             else:
-                self.param.append(p)
+                self.param.append(single_param)
         self.arg = arg
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit

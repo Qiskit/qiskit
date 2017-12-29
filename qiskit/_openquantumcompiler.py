@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=redefined-builtin
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""Tools for compiling Quantum Programs."""
 import logging
 
 import qiskit.qasm as qasm
@@ -47,11 +66,17 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
+        get_layout (bool): flag for returning the layout.
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
 
     Returns:
-        Compiled circuit
+        object: If get_layout == False, the compiled circuit in the specified
+            format. If get_layout == True, a tuple is returned, with the
+            second element being the layout.
+
+    Raises:
+        QISKitCompilerError: if the format is not valid.
     """
     compiled_dag_circuit = _unroller_code(qasm_circuit,
                                           basis_gates=basis_gates)
@@ -84,7 +109,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     elif format == 'qasm':
         compiled_circuit = compiled_dag_circuit.qasm()
     else:
-        raise QiskitCompilerError('unrecognized circuit format')
+        raise QISKitCompilerError('unrecognized circuit format')
 
     if get_layout:
         return compiled_circuit, final_layout
@@ -98,12 +123,11 @@ def _unroller_code(qasm_circuit, basis_gates=None):
     This is an internal function.
 
     Args:
-        qasm_circuit: a circuit representation as qasm text.
+        qasm_circuit (str): a circuit representation as qasm text.
         basis_gates (str): a comma seperated string and are the base gates,
                            which by default are: u1,u2,u3,cx,id
     Return:
-        dag_ciruit (dag object): a dag representation of the circuit
-                                 unrolled to basis gates
+        object: a dag representation of the circuit unrolled to basis gates
     """
     if not basis_gates:
         basis_gates = "u1,u2,u3,cx,id"  # QE target basis
@@ -122,7 +146,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
         filename (str): a string for the filename including its location.
         basis_gates (str): basis to unroll circuit to.
     Returns:
-        Returns a unrolled QuantumCircuit object
+        object: Returns a unrolled QuantumCircuit object
     """
     # create Program object Node (AST)
     program_node_circuit = qasm.Qasm(filename=filename).parse()
@@ -140,12 +164,12 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     function.
 
     Args:
-        dag_ciruit (dag object): a dag representation of the circuit.
+        dag_circuit (QuantumCircuit): a dag representation of the circuit.
         basis_gates (str): a comma seperated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
 
     Returns:
-        the json version of the dag
+        json: the json version of the dag
     """
     # TODO: Jay: I think this needs to become a method like .qasm() for the DAG.
     try:
@@ -158,6 +182,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     json_circuit = unroller.execute()
     return json_circuit
 
-class QiskitCompilerError(QISKitError):
+
+class QISKitCompilerError(QISKitError):
     """Exceptions raised during compilation"""
     pass

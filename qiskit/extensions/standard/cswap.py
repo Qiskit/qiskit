@@ -18,10 +18,9 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
-from qiskit import QuantumCircuit
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit.extensions.standard import cx, ccx
+from qiskit import QuantumCircuit
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class FredkinGate(CompositeGate):

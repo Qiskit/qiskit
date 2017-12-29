@@ -44,7 +44,6 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
-import json
 from qiskit.unroll import BackendError
 from qiskit.unroll import UnrollerBackend
 
@@ -58,6 +57,7 @@ class JsonBackend(UnrollerBackend):
         basis is a list of operation name strings.
         The default basis is ["U", "CX"].
         """
+        super(JsonBackend, self).__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
         self.circuit['header'] = {}
@@ -193,7 +193,7 @@ class JsonBackend(UnrollerBackend):
                 })
             self._add_condition()
 
-    def measure(self, qubit, cbit):
+    def measure(self, qubit, bit):
         """Measurement operation.
 
         qubit is (regname, idx) tuple for the input qubit.
@@ -202,7 +202,7 @@ class JsonBackend(UnrollerBackend):
         if "measure" not in self.basis:
             self.basis.append("measure")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
-        clbit_indices = [self._cbit_order_internal.get(cbit)]
+        clbit_indices = [self._cbit_order_internal.get(bit)]
         self.circuit['operations'].append({
             'name': 'measure',
             'qubits': qubit_indices,
@@ -310,5 +310,5 @@ class JsonBackend(UnrollerBackend):
 
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
-        return len(self.circuit['header']) > 0 \
-               and len(self.circuit['operations']) > 0
+        return (len(self.circuit['header']) > 0 and
+                len(self.circuit['operations']) > 0)
