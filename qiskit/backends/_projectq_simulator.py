@@ -123,7 +123,7 @@ class ProjectQSimulator(BaseBackend):
                 {
                 "data":
                     {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "counts": {'00000': XXXX, '00001': XXXXX},
                     "time"  : xx.xxxxxxxx
                     },
                 "status": --status (string)--

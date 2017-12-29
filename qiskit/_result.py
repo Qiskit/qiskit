@@ -42,7 +42,7 @@ class Result(object):
                     {
                     "data":
                         {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                        "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                        "counts": {'00000': XXXX, '00001': XXXXX},
                         "time"  : xx.xxxxxxxx
                         },
                     "status": --status (string)--
@@ -165,7 +165,7 @@ class Result(object):
         The data format will depend on the backend. For a real device it
         will be for the form::
 
-            "counts": {’00000’: XXXX, ’00001’: XXXX},
+            "counts": {'00000': XXXX, '00001': XXXX},
             "time"  : xx.xxxxxxxx
 
         for the qasm simulators of 1 shot::
@@ -218,13 +218,13 @@ class Result(object):
         """Get the histogram data of circuit name.
 
         The data from the a qasm circuit is dictionary of the format
-        {’00000’: XXXX, ’00001’: XXXXX}.
+        {'00000': XXXX, '00001': XXXXX}.
 
         Args:
             name (str): the name of the quantum circuit.
 
         Returns:
-            Dictionary: Counts {’00000’: XXXX, ’00001’: XXXXX}.
+            Dictionary: Counts {'00000': XXXX, '00001': XXXXX}.
 
         Raises:
             QISKitError: if there are no counts for the circuit.
