@@ -85,35 +85,10 @@ class Coupling:
             for origin, destinations in couplingdict.items():
                 for destination in destinations:
                     self.add_edge(origin, destination)
-        # self.qubits is dict from qubit (reg,idx) tuples to node indices
-        self.qubits = OrderedDict()
-        # self.index_to_qubit is a dict from node indices to qubits
-        self.index_to_qubit = {}
-        # self.node_counter is integer counter for labeling nodes
-        self.node_counter = 0
-        # self.G is the coupling digraph
-        self.G = nx.DiGraph()
-        # self.dist is a dict of dicts from node pairs to distances
-        # it must be computed, it is the distance_qubits on the digraph
-        self.dist = None
-        # Add edges to the graph if the couplingdict is present
-        if couplingdict is not None:
-            couplinglist = Coupling.coupling_dict2list(couplingdict)
-            num_qubits = 1 + max(max(x[0] for x in couplinglist),
-                                 max(x[1] for x in couplinglist))
-            reg = _quantumregister.QuantumRegister(num_qubits, 'q')
-            for v0, alist in couplingdict.items():
-                for v1 in alist:
-                    self.add_edge_qubit((reg, v0), (reg, v1))
 
     def size(self):
         """Return the number of wires in this graph."""
         return len(self.graph.nodes)
-
-    def get_qubits(self):
-        """Return the qubits in this graph as a sorted (qreg, index) tuples."""
-        warnings.warn("get_qubits is being removed", DeprecationWarning, stacklevel=2)
-        return sorted(list(self.qubits.keys()))
 
     def get_edges(self):
         """Return a list of edges in the coupling graph.
@@ -121,29 +96,6 @@ class Coupling:
         Each edge is a pair of wires.
         """
         return [edge for edge in self.graph.edges()]
-
-    def add_qubit(self, qubit):
-        """
-        Add a qubit to the coupling graph.
-
-        qubit = tuple (reg, idx) for qubit
-        """
-        # TODO remove
-        if qubit in self.qubits:
-            raise CouplingError("%s already in coupling graph" % qubit)
-        if not isinstance(qubit, tuple):
-            raise CouplingError("qubit %s is not a tuple")
-        if not (isinstance(qubit[0], _quantumregister.QuantumRegister) and
-                isinstance(qubit[1], int)):
-            raise CouplingError("qubit %s is not of the right form, it must"
-                                " be: (reg, idx)")
-
-        self.node_counter += 1
-        self.G.add_node(self.node_counter)
-        self.G.node[self.node_counter]["name"] = str((qubit[0].name, qubit[1]))
-        self.qubits[qubit] = self.node_counter
-        self.index_to_qubit[self.node_counter] = qubit
-
 
     def add_wire(self, wire):
         """
@@ -157,20 +109,6 @@ class Coupling:
             raise CouplingError("The wire %s is already in the coupling graph" % wire)
 
         self.graph.add_node(wire)
-
-    def add_edge_qubit(self, s_qubit, d_qubit):
-        """
-        Add directed edge to coupling graph.
-
-        s_qubit = source qubit tuple
-        d_qubit = destination qubit tuple
-        """
-        #TODO remove!
-        if s_qubit not in self.qubits:
-            self.add_qubit(s_qubit)
-        if d_qubit not in self.qubits:
-            self.add_qubit(d_qubit)
-        self.G.add_edge(self.qubits[s_qubit], self.qubits[d_qubit])
 
     def add_edge(self, src_wire, dst_wire):
         """
@@ -225,21 +163,7 @@ class Coupling:
         except nx.exception.NetworkXNoPath:
             raise CouplingError("Nodes %s and %s are not connected" % (str(wire1), str(wire2)))
 
-    def __str__(self): #TODO Remove
-        """Return a string representation of the coupling graph."""
-        s = ""
-        if self.qubits:
-            s += "qubits: "
-            s += ", ".join(["%s[%d] @ %d" % (k[0].name, k[1], v)
-                            for k, v in self.qubits.items()])
-        if self.get_edges_qubits():
-            s += "\nedges: "
-            s += ", ".join(
-                ["%s[%d]-%s[%d]" % (e[0][0].name, e[0][1], e[1][0].name, e[1][1])
-                 for e in self.get_edges_qubits()])
-        return s
-
-    def __repr__(self): #TODO rename to __str__
+    def __str__(self):
         """Return a string representation of the coupling graph."""
         s = ""
         if self.get_edges():

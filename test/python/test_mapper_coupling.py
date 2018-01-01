@@ -19,13 +19,13 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual([], coupling.wires)
         self.assertEqual([], coupling.get_edges())
         self.assertFalse(coupling.is_connected())
-        self.assertEqual("", repr(coupling))
+        self.assertEqual("", str(coupling))
 
     def test_coupling_str(self):
         coupling_dict = {0: [1, 2], 1: [2]}
         coupling = Coupling(coupling_dict)
         expected = ("[(0, 1), (0, 2), (1, 2)]")
-        self.assertEqual(expected, repr(coupling))
+        self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
         coupling_dict = {0: [1, 2], 1: [2]}
@@ -37,10 +37,10 @@ class CouplingTest(QiskitTestCase):
 
     def test_add_wire(self):
         coupling = Coupling()
-        self.assertEqual("", repr(coupling))
+        self.assertEqual("", str(coupling))
         coupling.add_wire(0)
         self.assertEqual([0], coupling.wires)
-        self.assertEqual("", repr(coupling))
+        self.assertEqual("", str(coupling))
 
     def test_add_wire_not_int(self):
         coupling = Coupling()
@@ -48,10 +48,10 @@ class CouplingTest(QiskitTestCase):
 
     def test_add_edge(self):
         coupling = Coupling()
-        self.assertEqual("", repr(coupling))
+        self.assertEqual("", str(coupling))
         coupling.add_edge(0, 1)
         expected = ("[(0, 1)]")
-        self.assertEqual(expected, repr(coupling))
+        self.assertEqual(expected, str(coupling))
 
     def test_distance_error(self):
         """Test distance between unconected wires."""
