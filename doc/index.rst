@@ -42,8 +42,8 @@ Authors (alphabetical)
 ======================
 
 Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
-Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston,
-Chris Wood.
+Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez, and John Smolin,
+Erick Winston, Chris Wood.
 
 In future releases, anyone who contributes code to this project can include
 their name here.
