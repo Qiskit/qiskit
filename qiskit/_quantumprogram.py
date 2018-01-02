@@ -77,13 +77,13 @@ class QuantumProgram(object):
             used in the quantum program.
             __quantum_registers =
                 {
-                --register name (string)--: QuantumRegistor,
+                --register name (string)--: QuantumRegister,
                 }
         __classical_registers (list[dic]): An ordered list of classical
             registers used in the quantum program.
             __classical_registers =
                 {
-                --register name (string)--: ClassicalRegistor,
+                --register name (string)--: ClassicalRegister,
                 }
         __quantum_program (dic): An dictionary of quantum circuits
             __quantum_program =
@@ -106,8 +106,7 @@ class QuantumProgram(object):
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__quantum_program = {}  # stores all the quantum programs
-        self.__init_circuit = None  # stores the intial quantum circuit of the
-        # program
+        self.__init_circuit = None  # stores the intial quantum circuit of the program
         self.__ONLINE_BACKENDS = []  # pylint: disable=invalid-name
         self.__LOCAL_BACKENDS = qiskit.backends.local_backends()  # pylint: disable=invalid-name
         self.mapper = mapper
@@ -233,7 +232,7 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionay format::
+                dictionary format::
 
                     "quantum_registers": [
                         {
@@ -257,7 +256,7 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionay format::
+                dictionary format::
 
                     "quantum_registers": [
                         {
@@ -265,6 +264,7 @@ class QuantumProgram(object):
                         },
                         ...
                     ]
+
                 "size" may be a key for compatibility, but is ignored.
         """
         for register in register_array:
@@ -298,7 +298,7 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionay fromat::
+                dictionary format::
 
                     "classical_registers": [
                         {
@@ -336,7 +336,7 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionay fromat::
+                dictionary format::
 
                     "classical_registers": [
                         {
@@ -344,6 +344,7 @@ class QuantumProgram(object):
                         },
                         ...
                     ]
+
                 "size" may be a key for compatibility, but is ignored.
         """
         for register in registers_array:
@@ -895,7 +896,7 @@ class QuantumProgram(object):
             try:
                 parameters = self.__api.backend_parameters(backend)
             except Exception as ex:
-                raise ConnectionError("Couldn't get backend paramters: {0}"
+                raise ConnectionError("Couldn't get backend parameters: {0}"
                                       .format(ex))
             parameters_edit = {}
             for key, vals in parameters.items():
@@ -916,18 +917,18 @@ class QuantumProgram(object):
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
                 qobj_id=None, hpc=None):
-        """Compile the circuits into the exectution list.
+        """Compile the circuits into the execution list.
 
         This builds the internal "to execute" list which is list of quantum
         circuits to run on different backends.
 
         Args:
             name_of_circuits (list[str]): circuit names to be compiled.
-            backend (str): a string representing the backend to compile to
+            backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
-                compiler
-            basis_gates (str): a comma seperated string and are the base gates,
-                               which by default are provided by the backend
+                compiler.
+            basis_gates (str): a comma separated string and are the base gates,
+                               which by default are provided by the backend.
             coupling_map (dict): A directed graph of coupling::
 
                 {
@@ -944,31 +945,33 @@ class QuantumProgram(object):
 
             initial_layout (dict): A mapping of qubit to qubit::
 
-                                  {
-                                    ("q", strart(int)): ("q", final(int)),
-                                    ...
-                                  }
-                                  eg.
-                                  {
-                                    ("q", 0): ("q", 0),
-                                    ("q", 1): ("q", 1),
-                                    ("q", 2): ("q", 2),
-                                    ("q", 3): ("q", 3)
-                                  }
+                {
+                ("q", strart(int)): ("q", final(int)),
+                ...
+                }
+                eg.
+                {
+                ("q", 0): ("q", 0),
+                ("q", 1): ("q", 1),
+                ("q", 2): ("q", 2),
+                ("q", 3): ("q", 3)
+                }
 
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
-            seed (int): the intial seed the simulatros use
+            seed (int): the initial seed the simulators use
             qobj_id (str): identifier of the qobj.
             hpc (dict): This will setup some parameter for
-                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
-                        {
-                            'multi_shot_optimization': Boolean,
-                            'omp_num_threads': Numeric
-                        }
-                        This paramter MUST be used only with
-                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
-                        the user via logging, and set the value to None.
+                ibmqx_hpc_qasm_simulator, using a JSON-like format like::
+
+                    {
+                        'multi_shot_optimization': Boolean,
+                        'omp_num_threads': Numeric
+                    }
+
+                This parameter MUST be used only with
+                ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                the user via logging, and set the value to None.
 
         Returns:
             dict: the job id and populates the qobj::
@@ -998,7 +1001,7 @@ class QuantumProgram(object):
                             },
                             ...
                         ]
-                    }
+                }
 
         Raises:
             ValueError: if no names of the circuits have been specified.
@@ -1030,7 +1033,7 @@ class QuantumProgram(object):
 
             qobj['config']['hpc'] = hpc
         elif hpc is not None:
-            logger.info('HPC paramter is only available for '
+            logger.info('HPC parameter is only available for '
                         'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
                         'but you are not using ibmqx_hpc_qasm_simulator, so we will '
                         'ignore it.')
@@ -1254,7 +1257,7 @@ class QuantumProgram(object):
 
     def run_async(self, qobj, wait=5, timeout=60, callback=None):
         """Run a program (a pre-compiled quantum program) asynchronously. This
-        is a non-blocking function, so it will return inmediately.
+        is a non-blocking function, so it will return immediately.
 
         All input for run comes from qobj.
 
@@ -1275,7 +1278,7 @@ class QuantumProgram(object):
     def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None):
         """Run various programs (a list of pre-compiled quantum program)
         asynchronously. This is a non-blocking function, so it will return
-        inmediately.
+        immediately.
 
         All input for run comes from qobj.
 
@@ -1354,7 +1357,7 @@ class QuantumProgram(object):
                 compiler
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
-            basis_gates (str): a comma seperated string and are the base gates,
+            basis_gates (str): a comma separated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id
             coupling_map (dict): A directed graph of coupling::
 
@@ -1370,7 +1373,7 @@ class QuantumProgram(object):
                                 eg. {0: [2], 1: [2], 3: [2]}
             initial_layout (dict): A mapping of qubit to qubit
                                   {
-                                  ("q", strart(int)): ("q", final(int)),
+                                  ("q", start(int)): ("q", final(int)),
                                   ...
                                   }
                                   eg.
@@ -1382,14 +1385,16 @@ class QuantumProgram(object):
                                   }
             shots (int): the number of shots
             max_credits (int): the max credits to use 3, or 5
-            seed (int): the intial seed the simulatros use
+            seed (int): the initial seed the simulators use
             hpc (dict): This will setup some parameter for
-                        ibmqx_hpc_qasm_simulator, using a JSON-like format like:
-                        {
-                            'multi_shot_optimization': Boolean,
-                            'omp_num_threads': Numeric
-                        }
-                        This paramter MUST be used only with
+                        ibmqx_hpc_qasm_simulator, using a JSON-like format like::
+
+                            {
+                                'multi_shot_optimization': Boolean,
+                                'omp_num_threads': Numeric
+                            }
+
+                        This parameter MUST be used only with
                         ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
                         the user via logging, and set the value to None.
 

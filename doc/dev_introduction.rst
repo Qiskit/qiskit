@@ -136,7 +136,7 @@ will be created on the test directory with the output of the log calls, which
 will also be printed to stdout. You can adjust the verbosity via the content
 of that variable, for example:
 
-.. code-block::
+.. code-block:: bash
 
     $ LOG_LEVEL=DEBUG make test
     $ LOG_LEVEL=INFO python -m unittest test/python/test_apps.py
