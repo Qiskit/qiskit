@@ -23,10 +23,12 @@ by creating a stack of lexers.
 """
 
 import os
+
 import ply.lex as lex
-from ._qasmerror import QasmError
-from . import _node as node
 from sympy import Number
+
+from . import _node as node
+from ._qasmerror import QasmError
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
@@ -38,7 +40,8 @@ class QasmLexer(object):
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
-    # pylint: disable=invalid-name
+    # pylint: disable=invalid-name,missing-docstring,unused-argument
+    # pylint: disable=attribute-defined-outside-init
 
     def __mklexer__(self, filename):
         """Create a PLY lexer."""
@@ -127,37 +130,34 @@ class QasmLexer(object):
 
     def t_INCLUDE(self, t):
         'include'
-
-        '''
-        Now eat up the next two tokens which must be
-        1 - the name of the include file, and
-        2 - a terminating semicolon
-
-        Then push the current lexer onto the stack, create a new one from
-        the include file, and push it onto the stack.
-
-        When we hit eof (the t_eof) rule, we pop.
-        '''
-        next = self.lexer.token()
-        lineno = next.lineno
+        #
+        # Now eat up the next two tokens which must be
+        # 1 - the name of the include file, and
+        # 2 - a terminating semicolon
+        #
+        # Then push the current lexer onto the stack, create a new one from
+        # the include file, and push it onto the stack.
+        #
+        # When we hit eof (the t_eof) rule, we pop.
+        next_token = self.lexer.token()
+        lineno = next_token.lineno
         # print('NEXT', next, "next.value", next.value, type(next))
-        if isinstance(next.value, str):
-            incfile = next.value.strip('"')
+        if isinstance(next_token.value, str):
+            incfile = next_token.value.strip('"')
         else:
             raise QasmError("Invalid include: must be a quoted string.")
 
         if incfile in CORE_LIBS:
             incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
-        next = self.lexer.token()
-        if next is None or next.value != ';':
-            raise QasmError('Invalid syntax, missing ";" at line',
-                                str(lineno))
+        next_token = self.lexer.token()
+        if next_token is None or next_token.value != ';':
+            raise QasmError('Invalid syntax, missing ";" at line', str(lineno))
 
         if not os.path.exists(incfile):
-            raise QasmError('Include file', incfile,
-                                'cannot be found, line', str(next.lineno),
-                                ', file', self.filename)
+            raise QasmError(
+                'Include file %s cannot be found, line %s, file %s' %
+                (incfile, str(next_token.lineno), self.filename))
         self.push(incfile)
         return self.lexer.token()
 
@@ -191,11 +191,10 @@ class QasmLexer(object):
         t.lexer.lineno = self.lineno
 
     def t_eof(self, t):
-        if len(self.stack) > 0:
+        if self.stack:
             self.pop()
             return self.lexer.token()
-        else:
-            return None
+        return None
 
     t_ignore = ' \t\r'
 

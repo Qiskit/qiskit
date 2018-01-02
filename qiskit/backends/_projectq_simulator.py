@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=unused-import
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""Backend for the Project Q C++ simulator."""
+
+
 import itertools
 import operator
 import random
@@ -42,7 +63,10 @@ class ProjectQSimulator(BaseBackend):
         """
         Args:
             configuration (dict): backend configuration
+        Raises:
+             ImportError: if the Project Q simulator is not available.
         """
+        super(ProjectQSimulator, self).__init__(configuration)
         if CppSim is None:
             logger.info('Project Q C++ simulator unavailable.')
             raise ImportError('Project Q C++ simulator unavailable.')
@@ -58,6 +82,15 @@ class ProjectQSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
+
+        # Define the attributes inside __init__.
+        self._number_of_qubits = 0
+        self._number_of_clbits = 0
+        self._quantum_state = 0
+        self._classical_state = 0
+        self._seed = None
+        self._shots = 0
+        self._sim = None
 
     def run(self, q_job):
         """Run circuits in q_job"""
@@ -85,24 +118,27 @@ class ProjectQSimulator(BaseBackend):
             circuit (dict): JSON circuit from qobj circuits list
 
         Returns:
-            A dictionary of results which looks something like::
+            dict: A dictionary of results which looks something like::
 
                 {
                 "data":
                     {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "counts": {'00000': XXXX, '00001': XXXXX},
                     "time"  : xx.xxxxxxxx
                     },
                 "status": --status (string)--
                 }
+        Raises:
+            SimulatorError: if an error occurred.
         """
+        # pylint: disable=expression-not-assigned,pointless-statement
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_clbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
         self._classical_state = 0
-        cl_reg_index = [] # starting bit index of classical register
-        cl_reg_nbits = [] # number of bits in classical register
+        cl_reg_index = []  # starting bit index of classical register
+        cl_reg_nbits = []  # number of bits in classical register
         clbit_index = 0
         qobj_quregs = OrderedDict(_get_register_specs(
             ccircuit['header']['qubit_labels']))
@@ -117,14 +153,14 @@ class ProjectQSimulator(BaseBackend):
                 if circuit['config']['seed'] is not None:
                     self._sim._simulator = CppSim(circuit['config']['seed'])
         outcomes = []
-        for shot in range(self._shots):
+        for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
             self._quantum_state[0] = 1
             # initialize starting state
             self._classical_state = 0
             unmeasured_qubits = list(range(self._number_of_qubits))
-            projq_qureg_dict = OrderedDict(((key,eng.allocate_qureg(size))
+            projq_qureg_dict = OrderedDict(((key, eng.allocate_qureg(size))
                                             for key, size in
                                             qobj_quregs.items()))
             qureg = [qubit for sublist in projq_qureg_dict.values()
@@ -148,11 +184,11 @@ class ProjectQSimulator(BaseBackend):
                     Ry(params[0]) | qubit
                     Rz(params[1]) | qubit
                 elif operation['name'] in ['u1']:
-                    params = operation['params']                    
+                    params = operation['params']
                     qubit = qureg[operation['qubits'][0]]
                     Rz(params[0]) | qubit
                 elif operation['name'] in ['u2']:
-                    params = operation['params']                    
+                    params = operation['params']
                     qubit = qureg[operation['qubits'][0]]
                     Rz(params[1] - np.pi/2) | qubit
                     Rx(np.pi/2) | qubit
@@ -188,7 +224,7 @@ class ProjectQSimulator(BaseBackend):
                 # Check if reset
                 elif operation['name'] == 'reset':
                     qubit = operation['qubits'][0]
-                    raise SimulatorError('Reset operation not yet implemented '+
+                    raise SimulatorError('Reset operation not yet implemented '
                                          'for ProjectQ C++ backend')
                 elif operation['name'] == 'barrier':
                     pass
@@ -201,7 +237,7 @@ class ProjectQSimulator(BaseBackend):
                 qubit = qureg[ind]
                 Measure | qubit
             eng.flush()
-            # Turn classical_state (int) into bit string            
+            # Turn classical_state (int) into bit string
             state = format(self._classical_state, 'b')
             outcomes.append(state.zfill(self._number_of_clbits))
         # Return the results
@@ -210,12 +246,14 @@ class ProjectQSimulator(BaseBackend):
             counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
             data['quantum_state'] = self._quantum_state
-            data['classical_state'] = self._classical_state,
+            data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
+
 
 def _get_register_specs(bit_labels):
     """
-    Get the number and size of unique registers from bit_labels list.
+    Get the number and size of unique registers from bit_labels list with an
+    iterator of register_name:size pairs.
 
     Args:
         bit_labels (list): this list is of the form::
@@ -224,15 +262,15 @@ def _get_register_specs(bit_labels):
 
             which indicates a register named "reg1" of size 2
             and a register named "reg2" of size 1. This is the
-            format of classic and quantum bit labels in qobj 
+            format of classic and quantum bit labels in qobj
             header.
-
-    Returns:
-        iterator of register_name:size pairs.
+    Yields:
+        tuple: pairs of (register_name, size)
     """
-    it = itertools.groupby(bit_labels, operator.itemgetter(0))
-    for register_name, sub_it in it:
+    iterator = itertools.groupby(bit_labels, operator.itemgetter(0))
+    for register_name, sub_it in iterator:
         yield register_name, max(ind[1] for ind in sub_it) + 1
+
 
 def _format_result(counts, cl_reg_index, cl_reg_nbits):
     """Format the result bit string.
@@ -241,11 +279,11 @@ def _format_result(counts, cl_reg_index, cl_reg_nbits):
     at register divisions.
 
     Args:
-        counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
-        cl_reg_index: starting bit index of classical register
-        cl_reg_nbits: total amount of bits in classical register
+        counts (dict): dictionary of counts e.g. {'1111': 1000, '0000':5}
+        cl_reg_index (list): starting bit index of classical register
+        cl_reg_nbits (list): total amount of bits in classical register
     Returns:
-        spaces inserted into dictionary keys at register boundries.
+        dict: spaces inserted into dictionary keys at register boundaries.
     """
     fcounts = {}
     for key, value in counts.items():
@@ -255,4 +293,3 @@ def _format_result(counts, cl_reg_index, cl_reg_nbits):
             new_key.insert(0, key[-(index+nbits):-index])
         fcounts[' '.join(new_key)] = value
     return fcounts
-        

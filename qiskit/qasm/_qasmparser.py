@@ -19,19 +19,21 @@
 OPENQASM parser.
 """
 import os
-import sympy
-import tempfile
 import shutil
+import tempfile
 
 import ply.yacc as yacc
+import sympy
 
-from ._qasmlexer import QasmLexer
-from ._qasmerror import QasmError
 from . import _node as node
+from ._qasmerror import QasmError
+from ._qasmlexer import QasmLexer
 
 
 class QasmParser(object):
     """OPENQASM Parser."""
+
+    # pylint: disable=unused-argument,missing-docstring,invalid-name
 
     def __init__(self, filename):
         """Create the parser."""
@@ -41,10 +43,10 @@ class QasmParser(object):
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='qiskit')
         self.precedence = (
-        ('left', '+', '-'),
-        ('left', '*', '/'),
-        ('left', 'negative', 'positive'),
-        ('right', '^'))
+            ('left', '+', '-'),
+            ('left', '*', '/'),
+            ('left', 'negative', 'positive'),
+            ('right', '^'))
         # For yacc, also, write_tables = Bool and optimize = Bool
         self.parser = yacc.yacc(module=self, debug=False,
                                 outputdir=self.parse_dir)
@@ -53,7 +55,8 @@ class QasmParser(object):
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
-        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt','acos','atan','asin']
+        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt',
+                                   'acos', 'atan', 'asin']
 
     def __enter__(self):
         return self
@@ -173,8 +176,9 @@ class QasmParser(object):
 
         if g_sym.type != object_type:
             raise QasmError("Type for '" + g_sym.name + "' should be '"
-                            + object_type + "' but was found to be '" + g_sym.type
-                            + "'", "line", str(obj.line), "file", obj.file)
+                            + object_type + "' but was found to be '"
+                            + g_sym.type + "'", "line", str(obj.line),
+                            "file", obj.file)
 
         if obj.type == 'indexed_id':
             bound = g_sym.index
@@ -456,8 +460,8 @@ class QasmParser(object):
         """
         if len(program) > 2:
             if program[2] != ';':
-                raise QasmError("Missing ';' in qreg or creg declaraton."
-                                + " Instead received '" + program[2].value + "'")
+                raise QasmError("Missing ';' in qreg or creg declaration."
+                                " Instead received '" + program[2].value + "'")
         program[0] = program[1]
 
     # ----------------------------------------
