@@ -21,11 +21,13 @@ Exception for errors raised by unroller backends.
 
 from qiskit import QISKitError
 
+
 class BackendError(QISKitError):
     """Base class for errors raised by unroller backends."""
 
     def __init__(self, *message):
         """Set the error message."""
+        super(BackendError, self).__init__(*message)
         self.message = ' '.join(message)
 
     def __str__(self):

@@ -56,12 +56,13 @@ class Unroller(object):
 
         Return a list of tuples (name,index).
         """
+        # pylint: disable=inconsistent-return-statements
         if node.type == "indexed_id":
             # An indexed bit or qubit
             return [(node.name, node.index)]
         elif node.type == "id":
             # A qubit or qreg or creg
-            if len(self.bit_stack[-1]) == 0:
+            if not self.bit_stack[-1]:
                 # Global scope
                 if node.name in self.qregs:
                     return [(node.name, j)
@@ -69,18 +70,17 @@ class Unroller(object):
                 elif node.name in self.cregs:
                     return [(node.name, j)
                             for j in range(self.cregs[node.name])]
-                else:
-                    raise UnrollerError("expected qreg or creg name:",
-                                        "line=%s" % node.line,
-                                        "file=%s" % node.file)
+                raise UnrollerError("expected qreg or creg name:",
+                                    "line=%s" % node.line,
+                                    "file=%s" % node.file)
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
-                else:
-                    raise UnrollerError("excepted local bit name:",
-                                        "line=%s" % node.line,
-                                        "file=%s" % node.file)
+                raise UnrollerError("excepted local bit name:",
+                                    "line=%s" % node.line,
+                                    "file=%s" % node.file)
+        return None
 
     def _process_custom_unitary(self, node):
         """Process a custom unitary node."""
@@ -101,8 +101,8 @@ class Unroller(object):
                 self.arg_stack.append({gargs[j]: args[j]
                                        for j in range(len(gargs))})
                 # Only index into register arguments.
-                element = list(map(lambda x: idx * x,
-                                   [len(bits[j]) > 1 for j in range(len(bits))]))
+                element = [idx*x for x in
+                           [len(bits[j]) > 1 for j in range(len(bits))]]
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
                 self.backend.start_gate(name,
@@ -119,7 +119,7 @@ class Unroller(object):
                 self.bit_stack.pop()
         else:
             raise UnrollerError("internal error undefined gate:",
-                                    "line=%s" % node.line, "file=%s" % node.file)
+                                "line=%s" % node.line, "file=%s" % node.file)
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
@@ -127,20 +127,20 @@ class Unroller(object):
         If opaque is True, process the node as an opaque gate node.
         """
         self.gates[node.name] = {}
-        de = self.gates[node.name]
-        de["opaque"] = opaque
-        de["n_args"] = node.n_args()
-        de["n_bits"] = node.n_bits()
+        de_gate = self.gates[node.name]
+        de_gate["opaque"] = opaque
+        de_gate["n_args"] = node.n_args()
+        de_gate["n_bits"] = node.n_bits()
         if node.n_args() > 0:
-            de["args"] = [element.name for element in node.arguments.children]
+            de_gate["args"] = [element.name for element in node.arguments.children]
         else:
-            de["args"] = []
-        de["bits"] = [c.name for c in node.bitlist.children]
+            de_gate["args"] = []
+        de_gate["bits"] = [c.name for c in node.bitlist.children]
         if opaque:
-            de["body"] = None
+            de_gate["body"] = None
         else:
-            de["body"] = node.body
-        self.backend.define_gate(node.name, copy.deepcopy(de))
+            de_gate["body"] = node.body
+        self.backend.define_gate(node.name, copy.deepcopy(de_gate))
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
@@ -148,7 +148,7 @@ class Unroller(object):
         id1 = self._process_bit_id(node.children[1])
         if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
             raise UnrollerError("internal error: qreg size mismatch",
-                                    "line=%s" % node.line, "file=%s" % node.file)
+                                "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
@@ -164,7 +164,7 @@ class Unroller(object):
         id1 = self._process_bit_id(node.children[1])
         if len(id0) != len(id1):
             raise UnrollerError("internal error: reg size mismatch",
-                                    "line=%s" % node.line, "file=%s" % node.file)
+                                "line=%s" % node.line, "file=%s" % node.file)
         for idx, idy in zip(id0, id1):
             self.backend.measure(idx, idy)
 
@@ -252,8 +252,8 @@ class Unroller(object):
 
         elif node.type == "reset":
             id0 = self._process_bit_id(node.children[0])
-            for idx in range(len(id0)):
-                self.backend.reset(id0[idx])
+            for i, _ in enumerate(id0):
+                self.backend.reset(id0[i])
 
         elif node.type == "if":
             self._process_if(node)
@@ -266,8 +266,9 @@ class Unroller(object):
 
         else:
             raise UnrollerError("internal error: undefined node type",
-                                    node.type, "line=%s" % node.line,
-                                    "file=%s" % node.file)
+                                node.type, "line=%s" % node.line,
+                                "file=%s" % node.file)
+        return None
 
     def set_backend(self, backend):
         """Set the backend object."""

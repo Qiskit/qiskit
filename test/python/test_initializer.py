@@ -193,7 +193,7 @@ class TestInitialize(QiskitTestCase):
     def test_sympy(self):
         desired_vector = [
             0,
-            math.cos(math.pi / 3) * complex(0,1) / math.sqrt(4),
+            math.cos(math.pi / 3) * complex(0, 1) / math.sqrt(4),
             math.sin(math.pi / 3) / math.sqrt(4),
             0,
             0,
@@ -219,6 +219,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
+
 
 if __name__ == '__main__':
     unittest.main()

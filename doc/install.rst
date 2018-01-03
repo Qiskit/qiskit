@@ -75,7 +75,16 @@ with QISKit, and install the required dependencies:
     conda create -y -n QISKitenv python=3 pip scipy
     activate QISKitenv
     pip install -r requirements.txt
-    
+
+Please note that depending on your Mac OS environment, you might need to execute the following
+set of commands instead:
+
+.. code:: sh
+
+    conda create -y -n QISKitenv python=3 pip scipy
+    source activate QISKitenv
+    pip install -r requirements.txt
+
 -  If running on Windows, make sure to execute an Anaconda Prompt and run
    the following command:
 
@@ -165,11 +174,12 @@ shown below the error:
 
     pip install -U --no-cache-dir IBMQuantumExperience
     
-- Fix: run the command below
+- Fix: run the command below:
 
 .. code:: sh
 
     curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
-For additional troubleshooting tips, see the QISKit troubleshooting page
-on the project's GitHub wiki
+For additional troubleshooting tips, see the `QISKit troubleshooting page
+<https://github.com/QISKit/qiskit-sdk-py/wiki/QISKit-Troubleshooting>`_
+on the project's GitHub wiki.

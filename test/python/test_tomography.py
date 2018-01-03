@@ -19,10 +19,12 @@
 """Test of QCVV/tomography module."""
 
 import unittest
-from .common import QiskitTestCase
+
+import numpy as np
+
 from qiskit import QuantumProgram
 from qiskit.tools.qcvv import tomography as tomo
-import numpy as np
+from .common import QiskitTestCase
 
 
 class TestTomography(QiskitTestCase):

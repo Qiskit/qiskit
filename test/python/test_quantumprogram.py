@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,broad-except
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -22,14 +22,13 @@ import os
 import unittest
 
 import numpy as np
+
+import qiskit.backends
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
-import qiskit.backends
-from  qiskit.tools import file_io
-
+from qiskit.tools import file_io
 from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
-
 
 # We need the environment variable for Travis.
 try:
@@ -66,6 +65,8 @@ class TestQuantumProgram(QiskitTestCase):
                     "size": 3}]
             }]
         }
+        self.qp_program_finished = False
+        self.qp_program_exception = Exception()
 
     ###############################################################
     # Tests to initiate an build a quantum program
@@ -599,7 +600,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct some should exists (even if ofline).
         """
-        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        _ = QuantumProgram(specs=self.QPS_SPECS)
         local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
@@ -843,19 +844,19 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        config = {'seed': 10, 'shots': 1, 'xvals':[1, 2, 3, 4]}
+        config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = QP_program.compile(circuits, backend=backend, shots=shots,
-                                  seed=88, config=config)
+                                   seed=88, config=config)
         qobj1['circuits'][0]['config']['shots'] = 50
-        qobj1['circuits'][0]['config']['xvals'] = [1,1,1]
+        qobj1['circuits'][0]['config']['xvals'] = [1, 1, 1]
         config['shots'] = 1000
         config['xvals'][0] = 'only for qobj2'
         qobj2 = QP_program.compile(circuits, backend=backend, shots=shots,
-                                  seed=88, config=config)
+                                   seed=88, config=config)
         self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
         self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
-        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1,1,1])
-        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1,2,3,4])
+        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1, 1, 1])
+        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1, 2, 3, 4])
         self.assertTrue(qobj1['config']['shots'] == 1024)
         self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
         self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
@@ -934,7 +935,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         self.qp_program_finished = False
         self.qp_program_exception = None
-        out = QP_program.run_async(qobj, callback=_job_done_callback)
+        _ = QP_program.run_async(qobj, callback=_job_done_callback)
 
         while not self.qp_program_finished:
             # Wait until the job_done_callback is invoked and completed.
@@ -962,14 +963,12 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        qobj_list = [ QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88) ]
+        qobj_list = [
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88)
+        ]
 
         results = QP_program.run_batch(qobj_list)
         for result in results:
@@ -1014,19 +1013,16 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        qobj_list = [ QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88),
-                      QP_program.compile(circuits, backend=backend, shots=shots,
-                      seed=88) ]
+        qobj_list = [
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88)
+        ]
 
         self.qp_program_finished = False
         self.qp_program_exception = None
-        results = QP_program.run_batch_async(qobj_list,
-                                             callback=_jobs_done_callback)
+        _ = QP_program.run_batch_async(qobj_list, callback=_jobs_done_callback)
         while not self.qp_program_finished:
             # Wait until the job_done_callback is invoked and completed.
             pass
@@ -1144,8 +1140,8 @@ class TestQuantumProgram(QiskitTestCase):
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
                                  [0.5, 0.5, -0.5, -0.5],
                                  [0.5, -0.5, -0.5, 0.5]])
-        unitaryreal2 = np.array([[1,  0,  0, 0], [0, 0,  0,  1],
-                                 [0.,  0, 1, 0], [0,  1,  0,  0]])
+        unitaryreal2 = np.array([[1, 0, 0, 0], [0, 0, 0, 1],
+                                 [0., 0, 1, 0], [0, 1, 0, 0]])
         norm1 = np.trace(np.dot(np.transpose(np.conj(unitaryreal1)), unitary1))
         norm2 = np.trace(np.dot(np.transpose(np.conj(unitaryreal2)), unitary2))
         self.assertAlmostEqual(norm1, 4)
@@ -1217,9 +1213,9 @@ class TestQuantumProgram(QiskitTestCase):
         meanzi = results.average_data("qc", observable)
         observable = {"00": 1, "11": -1, "01": -1, "10": 1}
         meaniz = results.average_data("qc", observable)
-        self.assertAlmostEqual(meanzz,  1, places=1)
-        self.assertAlmostEqual(meanzi,  0, places=1)
-        self.assertAlmostEqual(meaniz,  0, places=1)
+        self.assertAlmostEqual(meanzz, 1, places=1)
+        self.assertAlmostEqual(meanzi, 0, places=1)
+        self.assertAlmostEqual(meaniz, 0, places=1)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_one_circuit_simulator_online(self):
@@ -1289,8 +1285,8 @@ class TestQuantumProgram(QiskitTestCase):
                                     max_credits=3, seed=1287126141)
         counts1 = result.get_counts('qc1')
         counts2 = result.get_counts('qc2')
-        self.assertEqual(counts1,  {'10': 277, '11': 238, '01': 258,
-                                    '00': 251})
+        self.assertEqual(counts1, {'10': 277, '11': 238, '01': 258,
+                                   '00': 251})
         self.assertEqual(counts2, {'11': 515, '00': 509})
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -1442,25 +1438,27 @@ class TestQuantumProgram(QiskitTestCase):
                         3: [2, 4],
                         4: [2]}
         QPS_SPECS = {
-            "circuits": [{
-                "name": "ghz",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": 5
-                }],
-                "classical_registers": [{
-                    "name": "c",
-                    "size": 5}
-                ]}, {
-                "name": "bell",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": 5
-                }],
-                "classical_registers": [{
-                    "name": "c",
-                    "size": 5
-                }]}
+            "circuits": [
+                {
+                    "name": "ghz",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                },
+                {
+                    "name": "bell",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                }
             ]
         }
         qp = QuantumProgram(specs=QPS_SPECS)
@@ -1516,19 +1514,27 @@ class TestQuantumProgram(QiskitTestCase):
             qc.cx(q0, q1)
         n = 3  # make this at least 3
         QPS_SPECS = {
-            "circuits": [{
-                "name": "swapping",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": n},
-                    {"name": "r",
-                     "size": n}
-                ],
-                "classical_registers": [
-                    {"name": "ans",
-                     "size": 2*n},
-                ]
-            }]
+            "circuits": [
+                {
+                    "name": "swapping",
+                    "quantum_registers": [
+                        {
+                            "name": "q",
+                            "size": n
+                        },
+                        {
+                            "name": "r",
+                            "size": n
+                        }
+                    ],
+                    "classical_registers": [
+                        {
+                            "name": "ans",
+                            "size": 2*n
+                        },
+                    ]
+                }
+            ]
         }
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
@@ -1581,7 +1587,7 @@ class TestQuantumProgram(QiskitTestCase):
         Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
         """
         QP_program = QuantumProgram()
-        metadata = {'testval':5}
+        metadata = {'testval': 5}
         q = QP_program.create_quantum_register("q", 2)
         c = QP_program.create_classical_register("c", 2)
         qc1 = QP_program.create_circuit("qc1", [q], [c])
@@ -1596,7 +1602,7 @@ class TestQuantumProgram(QiskitTestCase):
         test_1_path = self._get_resource_path('test_save_load1.json')
         test_2_path = self._get_resource_path('test_save_load2.json')
 
-        #delete these files if they exist
+        # delete these files if they exist
         if os.path.exists(test_1_path):
             os.remove(test_1_path)
 
@@ -1606,18 +1612,17 @@ class TestQuantumProgram(QiskitTestCase):
         file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
         file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
 
-        result_loaded1, metadata_loaded1 = file_io.load_result_from_file(file1)
-        result_loaded2, metadata_loaded2 = file_io.load_result_from_file(file1)
+        _, metadata_loaded1 = file_io.load_result_from_file(file1)
+        _, metadata_loaded2 = file_io.load_result_from_file(file1)
 
         self.assertAlmostEqual(metadata_loaded1['testval'], 5)
         self.assertAlmostEqual(metadata_loaded2['testval'], 5)
 
-        #remove files to keep directory clean
+        # remove files to keep directory clean
         os.remove(file1)
         os.remove(file2)
 
     def test_qubitpol(self):
-
         """Test the results of the qubitpol function in Results. Do two 2Q circuits
         in the first do nothing and in the second do X on the first qubit.
         """
@@ -1636,8 +1641,8 @@ class TestQuantumProgram(QiskitTestCase):
 
         yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
 
-        self.assertTrue(np.array_equal(yvals, [[-1,-1],[1,-1]]))
-        self.assertTrue(np.array_equal(xvals, [0,1]))
+        self.assertTrue(np.array_equal(yvals, [[-1, -1], [1, -1]]))
+        self.assertTrue(np.array_equal(xvals, [0, 1]))
 
     def test_ccx(self):
         """Checks a CCNOT gate.
@@ -1685,8 +1690,8 @@ class TestQuantumProgram(QiskitTestCase):
         out = QP_program.run(qobj)
         results = out.get_counts('qc2')
 
-        #change the number of shots and re-run to test if the reconfig does not break
-        #the ability to run the qobj
+        # change the number of shots and re-run to test if the reconfig does not break
+        # the ability to run the qobj
         qobj = QP_program.reconfig(qobj, shots=2048)
         out2 = QP_program.run(qobj)
         results2 = out2.get_counts('qc2')
@@ -1694,16 +1699,16 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(results, {'000': 1024})
         self.assertEqual(results2, {'000': 2048})
 
-        #change backend
+        # change backend
         qobj = QP_program.reconfig(qobj, backend='local_unitary_simulator')
         self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
-        #change maxcredits
+        # change maxcredits
         qobj = QP_program.reconfig(qobj, max_credits=11)
         self.assertEqual(qobj['config']['max_credits'], 11)
-        #change seed
+        # change seed
         qobj = QP_program.reconfig(qobj, seed=11)
         self.assertEqual(qobj['circuits'][0]['seed'], 11)
-        #change the config
+        # change the config
         test_config_2 = {'0': 2}
         qobj = QP_program.reconfig(qobj, config=test_config_2)
         self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
@@ -1726,13 +1731,13 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
-                                seed=88)
+                                  seed=88)
         try:
-            out = QP_program.run(qobj, timeout=0.01)
-            self.assertTrue(False, "Should timeout! but it didn't!")
+            _ = QP_program.run(qobj, timeout=0.01)
+            raise Exception("Should timeout! but it didn't!")
         except QISKitError as ex:
-            self.assertEqual(ex.message,
-                'Error waiting for Job results: Timeout after 0.01 seconds.')
+            self.assertEqual(
+                ex.message, 'Error waiting for Job results: Timeout after 0.01 seconds.')
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_hpc_parameter_is_correct(self):
@@ -1754,8 +1759,9 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmqx_hpc_qasm_simulator'
         QP_program.set_api(QE_TOKEN, QE_URL)
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
-                    seed=88, hpc={'multi_shot_optimization': True,
-                                  'omp_num_threads': 16})
+                                  seed=88,
+                                  hpc={'multi_shot_optimization': True,
+                                       'omp_num_threads': 16})
         self.assertTrue(qobj)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -1777,7 +1783,8 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmqx_hpc_qasm_simulator'
         QP_program.set_api(QE_TOKEN, QE_URL)
         self.assertRaises(QISKitError, QP_program.compile, circuits,
-            backend=backend, shots=shots, seed=88, hpc={'invalid_key': None})
+                          backend=backend, shots=shots, seed=88,
+                          hpc={'invalid_key': None})
 
 
 if __name__ == '__main__':

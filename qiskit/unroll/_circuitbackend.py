@@ -18,15 +18,12 @@
 """
 Backend for the unroller that produces a QuantumCircuit.
 """
+
 from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend
-from .._quantumregister import QuantumRegister
 from .._classicalregister import ClassicalRegister
 from .._quantumcircuit import QuantumCircuit
-
-import sys
-sys.path.append("../..")
-import qiskit.extensions.standard
+from .._quantumregister import QuantumRegister
 
 
 class CircuitBackend(UnrollerBackend):
@@ -40,6 +37,7 @@ class CircuitBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
+        super(CircuitBackend, self).__init__(basis)
         self.creg = None
         self.cval = None
         if basis:
@@ -72,8 +70,8 @@ class CircuitBackend(UnrollerBackend):
         sz = size of the register
         """
         assert size >= 0, "invalid qreg size"
-        q = QuantumRegister(name, size)
-        self.circuit.add(q)
+        q_register = QuantumRegister(name, size)
+        self.circuit.add(q_register)
 
     def new_creg(self, name, size):
         """Create a new classical register.
@@ -82,8 +80,8 @@ class CircuitBackend(UnrollerBackend):
         sz = size of the register
         """
         assert size >= 0, "invalid creg size"
-        c = ClassicalRegister(name, size)
-        self.circuit.add(c)
+        c_register = ClassicalRegister(name, size)
+        self.circuit.add(c_register)
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -246,11 +244,9 @@ class CircuitBackend(UnrollerBackend):
                    "ry": [(1, 1), lambda x: self.circuit.ry(x[0][0], x[1][0])],
                    "rz": [(1, 1), lambda x: self.circuit.rz(x[0][0], x[1][0])],
                    "s": [(0, 1), lambda x: self.circuit.s(x[1][0])],
-                   "sdg": [(0, 1), lambda x: self.circuit.s(x[1][0]).inverse()
-                           ],
+                   "sdg": [(0, 1), lambda x: self.circuit.s(x[1][0]).inverse()],
                    "t": [(0, 1), lambda x: self.circuit.t(x[1][0]).inverse()],
-                   "tdg": [(0, 1), lambda x: self.circuit.t(x[1][0]).inverse()
-                           ],
+                   "tdg": [(0, 1), lambda x: self.circuit.t(x[1][0]).inverse()],
                    "u1": [(1, 1), lambda x: self.circuit.u1(x[0][0], x[1][0])],
                    "u2": [(2, 1), lambda x: self.circuit.u2(x[0][0], x[0][1],
                                                             x[1][0])],
@@ -258,17 +254,16 @@ class CircuitBackend(UnrollerBackend):
                                                             x[0][2], x[1][0])],
                    "x": [(0, 1), lambda x: self.circuit.x(x[1][0])],
                    "y": [(0, 1), lambda x: self.circuit.y(x[1][0])],
-                   "z": [(0, 1), lambda x: self.circuit.z(x[1][0])],
-                   }
+                   "z": [(0, 1), lambda x: self.circuit.z(x[1][0])]}
             if name not in lut:
                 raise BackendError("gate %s not in standard extensions" %
-                                       name)
+                                   name)
             gate_data = lut[name]
             if gate_data[0] != (len(args), len(qubits)):
                 raise BackendError("gate %s signature (%d, %d) is " %
-                                       (name, len(args), len(qubits)) +
-                                       "incompatible with the standard " +
-                                       "extensions")
+                                   (name, len(args), len(qubits)) +
+                                   "incompatible with the standard " +
+                                   "extensions")
             this_gate = gate_data[1]([list(map(lambda x:
                                                x.sym(nested_scope), args)),
                                       list(map(self._map_qubit, qubits))])
