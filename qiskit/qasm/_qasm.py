@@ -30,8 +30,8 @@ class Qasm(object):
         if filename is None and data is None:
             raise QasmError("Missing input file and/or data")
         if filename is not None and data is not None:
-            raise QasmError("File and data must not both be"
-                                + " specified initializing qasm")
+            raise QasmError("File and data must not both be specified"
+                            "initializing qasm")
         self._filename = filename
         self._data = data
 

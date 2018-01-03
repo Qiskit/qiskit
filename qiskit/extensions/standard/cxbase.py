@@ -18,10 +18,10 @@
 """
 Fundamental controlled-NOT gate.
 """
-from qiskit import Instruction
+from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class CXBase(Gate):

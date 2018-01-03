@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,no-member
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -20,11 +20,9 @@ import os
 from unittest import skipIf
 from unittest.mock import patch
 
-from qiskit import QuantumProgram, QISKitError
 from IBMQuantumExperience.IBMQuantumExperience import _Request
-
+from qiskit import QuantumProgram, QISKitError
 from .common import QiskitTestCase
-
 
 # We need the environment variable for Travis.
 HAS_GROUP_VARS = False
@@ -122,7 +120,6 @@ class TestApiHub(QiskitTestCase):
             _ = quantum_program.execute(
                 ['qc'], backend=self.backend, shots=1, max_credits=3)
         self.assertIn('Backend ibmqx4 not found!', str(context.exception))
-
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_execute_api_modified_parameters(self):
