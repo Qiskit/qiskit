@@ -127,6 +127,6 @@ test/python/test_save.json
 
 test/python/*.tex
 
-src/cpp-simulator/local_qiskit_simulator
-
 src/cpp-simulator/src/main.o
+
+src/cpp-simulator/qiskit_simulator

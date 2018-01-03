@@ -35,8 +35,8 @@ LIBS = -lpthread $(LIB_BLAS)
 all: sim
 
 sim: main.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ../local_qiskit_simulator main.o $(LIBS)
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ../qiskit_simulator main.o $(LIBS)
 
 clean:
-	rm -f *.o ../local_qiskit_simulator main.o *.*~ *~ 2>/dev/null
+	rm -f *.o ../qiskit_simulator main.o *.*~ *~ 2>/dev/null
 
