@@ -82,7 +82,6 @@ def run(qobj, exe='local_qiskit_simulator', path=None):
 
     if 'config' in qobj:
         qobj['config'] = __to_json_complex(qobj['config'])
-
     for j in range(len(qobj['circuits'])):
         if 'config' in qobj['circuits'][j]:
             qobj['circuits'][j]['config'] = __to_json_complex(
