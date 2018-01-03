@@ -17,17 +17,17 @@
 
 """
 Interface to Realistic Noise Simulator.
-
-Date: Nov 29 2017
-Author: Christopher J. Wood <cjwood@us.ibm.com>
 """
 
 import os
 import json
 import subprocess
-from subprocess import PIPE, CalledProcessError
+from subprocess import PIPE
 import numpy as np
 import numbers
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def simulator_config():
@@ -36,7 +36,7 @@ def simulator_config():
     """
     return {
         "name": "local_qiskit_simulator",
-        "url": "https://github.com/QISKit/qiskit-sdk-py/external/cpp-simulator",
+        "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
         "simulator": True,
         'local': True,
         "description": "A C++ realistic noise simulator for qobj files",
@@ -51,7 +51,7 @@ def clifford_config():
     """
     return {
         "name": "local_clifford_simulator",
-        "url": "https://github.com/QISKit/qiskit-sdk-py/external/cpp-simulator",
+        "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
         "simulator": True,
         'local': True,
         "description": "A C++ Clifford simulator with approximate noise",
@@ -82,6 +82,7 @@ def run(qobj, exe='local_qiskit_simulator', path=None):
 
     if 'config' in qobj:
         qobj['config'] = __to_json_complex(qobj['config'])
+
     for j in range(len(qobj['circuits'])):
         if 'config' in qobj['circuits'][j]:
             qobj['circuits'][j]['config'] = __to_json_complex(
@@ -107,7 +108,7 @@ def run(qobj, exe='local_qiskit_simulator', path=None):
 
     except FileNotFoundError:
         msg = "ERROR: Simulator exe not found at: " + cmd
-        print(">> " + msg)
+        logger.error(msg)
         return {"status": msg, "success": False}
 
 
@@ -182,3 +183,68 @@ def __parse_sim_data(data):
                                 for row in val])
                 tmp[int(key)] = val
             data['saved_density_matrix'][j] = tmp
+
+
+# =============================================================================
+# Create QISKit backends for accessing the simulator
+# =============================================================================
+
+def register_local_qiskit_simulator_backend():
+    """Register local_qiskit_simulator backends with qiskit."""
+
+    try:
+        from qiskit._result import Result
+        from qiskit.backends._basebackend import BaseBackend
+        from qiskit.backends._backendutils import register_backend
+
+        import qiskitsimulatorgates
+
+        class QiskitCppSimulator(BaseBackend):
+            "C++ quantum circuit simulator with realistic noise."
+
+            def __init__(self, configuration=None):
+                if configuration is None:
+                    self._configuration = simulator_config()
+                else:
+                    self._configuration = configuration
+
+            def run(self, q_job):
+                qobj = q_job.qobj
+                exe = qobj.get("config").get("exe", None)
+                if exe is None:
+                    exe = 'local_qiskit_simulator'
+                path = qobj.get("config").get("path")
+                result = run(qobj, path=path, exe=exe)
+                return Result(result, qobj)
+
+        class CliffordCppSimulator(BaseBackend):
+            "C++ Clifford circuit simulator with realistic noise."
+
+            def __init__(self, configuration=None):
+                if configuration is None:
+                    self._configuration = clifford_config()
+                else:
+                    self._configuration = configuration
+
+            def run(self, q_job):
+                qobj = q_job.qobj
+                exe = qobj.get("config").get("exe")
+                # set backend to Clifford simulator
+                qobj["simulator"] = "clifford"
+                if exe is None:
+                    exe = "local_qiskit_simulator"
+                path = qobj.get("config").get("path")
+                result = run(qobj, path=path, exe=exe)
+                return Result(result, qobj)
+
+        # Register simulator backends with QISKit
+        register_backend(QiskitCppSimulator)
+        register_backend(CliffordCppSimulator)
+
+        # Load custom simulator gates
+        qiskitsimulatorgates.attach_local_qiskit_simulator_gates()
+
+        logger.info(">> local_qiskit_simulator backend successfully imported")
+
+    except:
+        logger.warn(">> WARNING: failed to import local_qiskit_simulator")
