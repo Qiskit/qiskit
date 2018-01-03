@@ -60,28 +60,27 @@ def clifford_config():
     }
 
 
-def run(qobj, exe='local_qiskit_simulator', path=None):
+def run(qobj, path=None):
     """
     Run simulation on C++ simulator.
 
     Args:
         qobj (dict): qobj dictionary defining the simulation to run
-        exe (str): qobj simulator executable (default: 'wood_simulator')
-        path (str): path to exe directory (default: None)
+        path (str): path to simulator executable (default: None)
 
     Returns:
         A dict of simulation results
     """
-    # Get path to exe
+    # Get path to executable
     if path is None:
         cmd = os.path.dirname(os.path.abspath(__file__))
+        cmd = os.path.join(cmd, 'qiskit_simulator')
     else:
         cmd = os.path.expanduser(path)
-    # Add exe name
-    cmd = os.path.join(cmd, exe)
 
     if 'config' in qobj:
         qobj['config'] = __to_json_complex(qobj['config'])
+
     for j in range(len(qobj['circuits'])):
         if 'config' in qobj['circuits'][j]:
             qobj['circuits'][j]['config'] = __to_json_complex(
@@ -106,7 +105,7 @@ def run(qobj, exe='local_qiskit_simulator', path=None):
         return cresult
 
     except FileNotFoundError:
-        msg = "ERROR: Simulator exe not found at: " + cmd
+        msg = "ERROR: Simulator executable not found at: " + cmd
         logger.error(msg)
         return {"status": msg, "success": False}
 
@@ -196,7 +195,8 @@ def register_local_qiskit_simulator_backend():
         from qiskit.backends._basebackend import BaseBackend
         from qiskit.backends._backendutils import register_backend
 
-        import qiskitsimulatorgates
+        # Import qiskit simulator custom gate extensions
+        import qiskit.extensions.qiskitsimulator
 
         class QiskitCppSimulator(BaseBackend):
             "C++ quantum circuit simulator with realistic noise."
@@ -209,11 +209,8 @@ def register_local_qiskit_simulator_backend():
 
             def run(self, q_job):
                 qobj = q_job.qobj
-                exe = qobj.get("config").get("exe", None)
-                if exe is None:
-                    exe = 'local_qiskit_simulator'
-                path = qobj.get("config").get("path")
-                result = run(qobj, path=path, exe=exe)
+                path = qobj.get("config").get("qiskit_simulator_path")
+                result = run(qobj, path=path)
                 return Result(result, qobj)
 
         class CliffordCppSimulator(BaseBackend):
@@ -227,23 +224,20 @@ def register_local_qiskit_simulator_backend():
 
             def run(self, q_job):
                 qobj = q_job.qobj
-                exe = qobj.get("config").get("exe")
                 # set backend to Clifford simulator
-                qobj["simulator"] = "clifford"
-                if exe is None:
-                    exe = "local_qiskit_simulator"
-                path = qobj.get("config").get("path")
-                result = run(qobj, path=path, exe=exe)
+                if "config" in qobj:
+                    qobj["config"]["simulator"] = "clifford"
+                else:
+                    qobj["config"] = {"simulator": "clifford"}
+                path = qobj.get("config").get("qiskit_simulator_path")
+                result = run(qobj, path=path)
                 return Result(result, qobj)
 
         # Register simulator backends with QISKit
         register_backend(QiskitCppSimulator)
         register_backend(CliffordCppSimulator)
 
-        # Load custom simulator gates
-        qiskitsimulatorgates.attach_local_qiskit_simulator_gates()
-
-        logger.info(">> local_qiskit_simulator backend successfully imported")
+        logger.info(">> C++ qiskit_simulator backend successfully imported")
 
     except:
-        logger.warn(">> WARNING: failed to import local_qiskit_simulator")
+        logger.warn(">> WARNING: failed to import C++ qiskit_simulator")
