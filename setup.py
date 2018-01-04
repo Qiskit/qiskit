@@ -1,4 +1,10 @@
+import os
 from setuptools import setup
+from setuptools.command.install import install
+from distutils.command.build import build
+from multiprocessing import cpu_count
+from subprocess import call
+import platform
 
 
 requirements = [
@@ -28,6 +34,41 @@ packages = ["qiskit",
             "qiskit.tools.qcvv",
             "qiskit.tools.qi"]
 
+
+# C++ components compilation
+class QiskitSimulatorBuild(build):
+    def run(self):
+        build.run(self)
+        supported_platforms = ['Linux', 'Darwin']
+        if not platform.system() in supported_platforms:
+            print('QISKit cpp simulator is ment to be built with these '
+                  'platforms: {}. We will support other platforms soon!'
+                  .format(supported_platforms))
+            sys.exit()
+
+        target_platform = '{}-{}'.format(platform.system(), platform.machine()).lower()
+        build_path = os.path.join(os.path.abspath(self.build_base), target_platform)
+        binary_path = os.path.join(build_path, 'qiskit_simulator')
+
+        cmd = [
+            'make',
+            'sim',
+            'OUTPUT_DIR=' + build_path,
+        ]
+
+        try:
+            cmd.append('-j%d' % cpu_count())
+        except NotImplementedError:
+            print('Unable to determine number of CPUs. Using single threaded make.')
+
+        def compile():
+            call(cmd)
+
+        self.execute(compile, [], 'Compiling QISKit C++ Simulator')
+        self.mkpath(self.build_lib)
+        if not self.dry_run:
+            self.copy_file(binary_path, '{}/qiskit/backends'.format(self.build_lib))
+
 setup(
     name="qiskit",
     version="0.4.0",
@@ -56,4 +97,7 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
+    cmdclass={
+        'build': QiskitSimulatorBuild,
+    }
 )
