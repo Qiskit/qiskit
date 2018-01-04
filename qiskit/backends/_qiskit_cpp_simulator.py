@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-Interface to Realistic Noise Simulator.
+Interface to C++ quantum circuit simulator with realistic noise.
 """
 
 import os
@@ -29,35 +29,72 @@ import numbers
 import logging
 logger = logging.getLogger(__name__)
 
+from qiskit._result import Result
+from qiskit.backends._basebackend import BaseBackend
+from qiskit.backends._backendutils import register_backend
 
-def simulator_config():
-    """
-    Return the configuration dictionary for local_qiskit_simulator.
-    """
-    return {
-        "name": "local_qiskit_simulator",
-        "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
-        "simulator": True,
-        'local': True,
-        "description": "A C++ realistic noise simulator for qobj files",
-        "coupling_map": "all-to-all",
-        "basis_gates": "u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz"
-    }
+# Add path to compiled qiskit simulator
+DEFAULT_SIMULATOR_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__),
+                 '../../src/cpp-simulator/qiskit_simulator'))
 
 
-def clifford_config():
-    """
-    Return the configuration dictionary for local_clifford_simulator.
-    """
-    return {
-        "name": "local_clifford_simulator",
-        "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
-        "simulator": True,
-        'local': True,
-        "description": "A C++ Clifford simulator with approximate noise",
-        "coupling_map": "all-to-all",
-        "basis_gates": "cx,id,x,y,z,h,s,sdg,wait,noise,save,load"
-    }
+class QiskitCppSimulator(BaseBackend):
+    "C++ quantum circuit simulator with realistic noise."
+
+    def __init__(self, configuration=None):
+        if configuration is None:
+            self._configuration = {
+                "name": "local_qiskit_simulator",
+                "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
+                "simulator": True,
+                'local': True,
+                "description": "A C++ realistic noise simulator for qobj files",
+                "coupling_map": "all-to-all",
+                "basis_gates": "u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz"
+            }
+        else:
+            self._configuration = configuration
+
+    def run(self, q_job):
+        qobj = q_job.qobj
+        path = qobj.get("config").get("qiskit_simulator_path")
+        result = run(qobj, path=path)
+        return Result(result, qobj)
+
+
+class CliffordCppSimulator(BaseBackend):
+    "C++ Clifford circuit simulator with realistic noise."
+
+    def __init__(self, configuration=None):
+        if configuration is None:
+            self._configuration = {
+                "name": "local_clifford_simulator",
+                "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
+                "simulator": True,
+                'local': True,
+                "description": "A C++ Clifford simulator with approximate noise",
+                "coupling_map": "all-to-all",
+                "basis_gates": "cx,id,x,y,z,h,s,sdg,wait,noise,save,load"
+            }
+        else:
+            self._configuration = configuration
+
+    def run(self, q_job):
+        qobj = q_job.qobj
+        # set backend to Clifford simulator
+        if "config" in qobj:
+            qobj["config"]["simulator"] = "clifford"
+        else:
+            qobj["config"] = {"simulator": "clifford"}
+        path = qobj.get("config").get("qiskit_simulator_path")
+        result = run(qobj, path=path)
+        return Result(result, qobj)
+
+
+# Register simulator backends with QISKit
+register_backend(QiskitCppSimulator)
+register_backend(CliffordCppSimulator)
 
 
 def run(qobj, path=None):
@@ -73,8 +110,7 @@ def run(qobj, path=None):
     """
     # Get path to executable
     if path is None:
-        cmd = os.path.dirname(os.path.abspath(__file__))
-        cmd = os.path.join(cmd, 'qiskit_simulator')
+        cmd = DEFAULT_SIMULATOR_PATH
     else:
         cmd = os.path.expanduser(path)
 
@@ -183,60 +219,3 @@ def __parse_sim_data(data):
                                 for row in val])
                 tmp[int(key)] = val
             data['saved_density_matrix'][j] = tmp
-
-
-# =============================================================================
-# Create QISKit backends for accessing the simulator
-# =============================================================================
-
-def register_local_qiskit_simulator_backend():
-    """Register local_qiskit_simulator backends with qiskit."""
-
-    try:
-        from qiskit._result import Result
-        from qiskit.backends._basebackend import BaseBackend
-        from qiskit.backends._backendutils import register_backend
-
-        class QiskitCppSimulator(BaseBackend):
-            "C++ quantum circuit simulator with realistic noise."
-
-            def __init__(self, configuration=None):
-                if configuration is None:
-                    self._configuration = simulator_config()
-                else:
-                    self._configuration = configuration
-
-            def run(self, q_job):
-                qobj = q_job.qobj
-                path = qobj.get("config").get("qiskit_simulator_path")
-                result = run(qobj, path=path)
-                return Result(result, qobj)
-
-        class CliffordCppSimulator(BaseBackend):
-            "C++ Clifford circuit simulator with realistic noise."
-
-            def __init__(self, configuration=None):
-                if configuration is None:
-                    self._configuration = clifford_config()
-                else:
-                    self._configuration = configuration
-
-            def run(self, q_job):
-                qobj = q_job.qobj
-                # set backend to Clifford simulator
-                if "config" in qobj:
-                    qobj["config"]["simulator"] = "clifford"
-                else:
-                    qobj["config"] = {"simulator": "clifford"}
-                path = qobj.get("config").get("qiskit_simulator_path")
-                result = run(qobj, path=path)
-                return Result(result, qobj)
-
-        # Register simulator backends with QISKit
-        register_backend(QiskitCppSimulator)
-        register_backend(CliffordCppSimulator)
-
-        logger.info(">> C++ qiskit_simulator backend successfully imported")
-
-    except:
-        logger.warn(">> WARNING: failed to import C++ qiskit_simulator")
