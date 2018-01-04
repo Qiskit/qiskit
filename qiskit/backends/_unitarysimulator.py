@@ -57,8 +57,8 @@ Internal circuit_object::
                 "conditional":  // optional -- map
                     {
                         "type": , // string
-                        "mask": , // hex string 
-                        "val":  , // bhex string 
+                        "mask": , // hex string
+                        "val":  , // bhex string
                     }
             },
         ]
@@ -90,14 +90,14 @@ returned results object::
             'state': 'DONE'
             }
 """
-import uuid
 import logging
+import uuid
+
 import numpy as np
-import json
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
+
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
-
+from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,7 @@ class UnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
+        super(UnitarySimulator, self).__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
@@ -121,6 +122,10 @@ class UnitarySimulator(BaseBackend):
                                    'basis_gates': 'u1,u2,u3,cx,id'}
         else:
             self._configuration = configuration
+
+        # Define attributes inside __init__.
+        self._unitary_state = None
+        self._number_of_qubits = 0
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -133,7 +138,7 @@ class UnitarySimulator(BaseBackend):
         unitaty_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def _add_unitary_two(self, gate, q0, q1):
+    def _add_unitary_two(self, gate, q_0, q_1):
         """Apply the two-qubit gate.
 
         gate is the two-qubit gate
@@ -141,23 +146,26 @@ class UnitarySimulator(BaseBackend):
         q1 is the second qubit (target)
         returns a complex numpy array
         """
-        unitaty_add = enlarge_two_opt(gate, q0, q1, self._number_of_qubits)
+        unitaty_add = enlarge_two_opt(gate, q_0, q_1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self, q_job):
         """Run q_job
 
         Args:
-        q_job (QuantumJob): job to run
+            q_job (QuantumJob): job to run
+        Returns:
+            Result: Result object
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)            
+            result_list.append(self.run_circuit(circuit))
+        return Result(
+            {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
+            qobj)
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""

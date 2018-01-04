@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -23,33 +24,35 @@ import numpy
 from qiskit import QuantumProgram
 
 
-class RandomQasmGenerator():
+class RandomQasmGenerator(object):
     """
     Generate random size circuits for profiling.
     """
     def __init__(self, seed=None,
-                 maxQubits=5, minQubits=1,
-                 maxDepth=100, minDepth=1):
+                 max_qubits=5, min_qubits=1,
+                 max_depth=100, min_depth=1):
         """
         Args:
-          seed: Random number seed. If none, don't seed the generator.
-          maxDepth: Maximum number of operations in a circuit.
-          maxQubits: Maximum number of qubits in a circuit.
+            seed (int): Random number seed. If none, don't seed the generator.
+            max_qubits (int): Maximum number of qubits in a circuit.
+            min_qubits (int): Minimum number of qubits in a circuit.
+            max_depth (int): Maximum number of operations in a circuit.
+            min_depth (int): Minimum number of operations in a circuit.
         """
-        self.maxDepth = maxDepth
-        self.maxQubits = maxQubits
-        self.minDepth = minDepth
-        self.minQubits = minQubits
-        self.qp = QuantumProgram()
-        self.qr = self.qp.create_quantum_register('qr', maxQubits)
-        self.cr = self.qp.create_classical_register('cr', maxQubits)
-        self.circuitNameList = []
-        self.nQubitList = []
-        self.depthList = []
+        self.max_depth = max_depth
+        self.max_qubits = max_qubits
+        self.min_depth = min_depth
+        self.min_qubits = min_qubits
+        self.qprogram = QuantumProgram()
+        self.qreg = self.qprogram.create_quantum_register('qr', max_qubits)
+        self.creg = self.qprogram.create_classical_register('cr', max_qubits)
+        self.circuit_name_list = []
+        self.n_qubit_list = []
+        self.depth_list = []
         if seed is not None:
             random.seed(a=seed)
 
-    def add_circuits(self, nCircuits, doMeasure=True):
+    def add_circuits(self, n_circuits, do_measure=True):
         """Adds circuits to program.
 
         Generates a circuit with a random number of operations equally weighted
@@ -57,43 +60,44 @@ class RandomQasmGenerator():
         [1,nQubits] to end of circuit.
 
         Args:
-          nCircuits (int): Number of circuits to add.
-          doMeasure (boolean): whether to add measurements
+          n_circuits (int): Number of circuits to add.
+          do_measure (boolean): whether to add measurements
         """
-        self.circuitNameList = []
-        self.nQubitList = numpy.random.choice(
-            range(self.minQubits, self.maxQubits+1), size=nCircuits)
-        self.depthList = numpy.random.choice(
-            range(self.minDepth, self.maxDepth+1), size=nCircuits)
-        for i in range(nCircuits):
-            circuitName = ''.join(numpy.random.choice(
+        self.circuit_name_list = []
+        self.n_qubit_list = numpy.random.choice(
+            range(self.min_qubits, self.max_qubits + 1), size=n_circuits)
+        self.depth_list = numpy.random.choice(
+            range(self.min_depth, self.max_depth + 1), size=n_circuits)
+        for i in range(n_circuits):
+            circuit_name = ''.join(numpy.random.choice(
                 list(string.ascii_letters + string.digits), size=10))
-            self.circuitNameList.append(circuitName)
-            nQubits = self.nQubitList[i]
-            depth = self.depthList[i]
-            circuit = self.qp.create_circuit(circuitName, [self.qr], [self.cr])
-            for j in range(depth):
-                if nQubits == 1:
-                    opInd = 0
+            self.circuit_name_list.append(circuit_name)
+            n_qubits = self.n_qubit_list[i]
+            depth = self.depth_list[i]
+            circuit = self.qprogram.create_circuit(circuit_name,
+                                                   [self.qreg], [self.creg])
+            for _ in range(depth):
+                if n_qubits == 1:
+                    op_ind = 0
                 else:
-                    opInd = random.randint(0, 1)
-                if opInd == 0:  # U3
-                    qind = random.randint(0, nQubits-1)
+                    op_ind = random.randint(0, 1)
+                if op_ind == 0:  # U3
+                    qind = random.randint(0, n_qubits-1)
                     circuit.u3(random.random(), random.random(), random.random(),
-                               self.qr[qind])
-                elif opInd == 1:  # CX
-                    source, target = random.sample(range(nQubits), 2)
-                    circuit.cx(self.qr[source], self.qr[target])
-            nmeasure = random.randint(1, nQubits)
-            for j in range(nmeasure):
-                qind = random.randint(0, nQubits-1)
-                if doMeasure:
+                               self.qreg[qind])
+                elif op_ind == 1:  # CX
+                    source, target = random.sample(range(n_qubits), 2)
+                    circuit.cx(self.qreg[source], self.qreg[target])
+            n_measure = random.randint(1, n_qubits)
+            for _ in range(n_measure):
+                qind = random.randint(0, n_qubits-1)
+                if do_measure:
                     # doing this if here keeps the RNG from depending on
                     # whether measurements are done.
-                    circuit.measure(self.qr[qind], self.cr[qind])
+                    circuit.measure(self.qreg[qind], self.creg[qind])
 
     def get_circuit_names(self):
-        return self.circuitNameList
+        return self.circuit_name_list
 
-    def getProgram(self):
-        return self.qp
+    def get_program(self):
+        return self.qprogram

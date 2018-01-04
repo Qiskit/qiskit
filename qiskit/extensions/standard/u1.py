@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,12 +19,12 @@
 """
 Diagonal single qubit gate.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
+from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class U1Gate(Gate):
@@ -37,8 +38,8 @@ class U1Gate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("u1(%.15f) %s[%d];" % (theta, qubit[0].name,
-                                                   qubit[1]))
+        return self._qasmif("u1(%s) %s[%d];" % (
+            theta, qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -57,9 +58,9 @@ def u1(self, theta, q):
         for j in range(q.size):
             gs.add(self.u1(theta, (q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(U1Gate(theta, q, self))
+
+    self._check_qubit(q)
+    return self._attach(U1Gate(theta, q, self))
 
 
 QuantumCircuit.u1 = u1

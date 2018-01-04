@@ -31,6 +31,7 @@ class Real(Node):
 
     def __init__(self, id):
         """Create the real node."""
+        # pylint: disable=redefined-builtin
         Node.__init__(self, "real", None, None)
         self.value = id
 
@@ -43,17 +44,20 @@ class Real(Node):
         """Return the corresponding OPENQASM string."""
         if self.value == pi:
             return "pi"
-        else:
-            return ccode(self.value, precision=prec)
+
+        return ccode(self.value, precision=prec)
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
+        # pylint: disable=unused-argument
         return latex(self.value)
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
+        # pylint: disable=unused-argument
         return self.value
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
+        # pylint: disable=unused-argument
         return float(self.value.evalf())
