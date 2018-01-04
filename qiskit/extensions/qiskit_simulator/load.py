@@ -56,9 +56,8 @@ def load(self, m, q):
         for j in range(q.size):
             gs.add(self.load(m, (q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(LoadGate(m, q, self))
+    self._check_qubit(q)
+    return self._attach(LoadGate(m, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes

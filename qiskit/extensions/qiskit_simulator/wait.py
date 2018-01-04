@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to toggle noise off or on.
+local_qiskit_simulator single qubit wait gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -26,20 +26,20 @@ from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 
 
-class NoiseGate(Gate):
-    """Simulator save operation."""
+class WaitGate(Gate):
+    """Wait gate."""
 
-    def __init__(self, m, qubit, circ=None):
-        """Create new save gate."""
-        super(NoiseGate, self).__init__("noise", [m], [qubit], circ)
+    def __init__(self, t, qubit, circ=None):
+        """Create new wait gate."""
+        super(WaitGate, self).__init__("wait", [t], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        m = self.param[0]
-        return self._qasmif("noise(%d) %s[%d];" % (m,
-                                                   qubit[0].name,
-                                                   qubit[1]))
+        t = self.param[0]
+        return self._qasmif("wait(%f) %s[%d];" % (t,
+                                                  qubit[0].name,
+                                                  qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -47,26 +47,24 @@ class NoiseGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.noise(self.param[0], self.arg[0]))
+        self._modifiers(circ.wait(self.param[0], self.arg[0]))
 
 
-def noise(self, m, q):
-    """Cache the quantum state of locla_qiskit_simulator."""
+def wait(self, t, q):
+    """Apply wait for time t to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
-            gs.add(self.noise(m, (q, j)))
+            gs.add(self.wait(t, (q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(NoiseGate(m, q, self))
-
+    self._check_qubit(q)
+    return self._attach(WaitGate(t, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
-QuantumCircuit.noise = noise
-CompositeGate.noise = noise
+QuantumCircuit.wait = wait
+CompositeGate.wait = wait
 
 # Add to QASM header for parsing
-QuantumCircuit.header += "\ngate noise(m) a {}" + \
-    "  // (local_qiskit_simulator) switch noise off (0) or on (1)"
+QuantumCircuit.header += "\ngate wait(t) a {}" + \
+    "  // (local_qiskit_simulator) idle for time t"

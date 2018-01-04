@@ -125,8 +125,8 @@ class QuantumJob():
                     'max_credits': resources['max_credits'],
                     'shots': shots,
                     'backend': backend
-        },
-            'circuits': circuit_records}
+                },
+                'circuits': circuit_records}
 
     def _generate_job_id(self, length=10):
         return ''.join([random.choice(

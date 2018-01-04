@@ -19,19 +19,17 @@
 Interface to C++ quantum circuit simulator with realistic noise.
 """
 
-import os
 import json
+import logging
+import numbers
+import os
 import subprocess
 from subprocess import PIPE
-import numpy as np
-import numbers
 
-import logging
-logger = logging.getLogger(__name__)
+import numpy as np
 
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
-from qiskit.backends._backendutils import register_backend
+from qiskit.backends import BaseBackend
 
 # Add path to compiled qiskit simulator
 DEFAULT_SIMULATOR_PATHS = [
@@ -40,82 +38,99 @@ DEFAULT_SIMULATOR_PATHS = [
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator'),
 ]
+logger = logging.getLogger(__name__)
 
-class QiskitCppSimulator(BaseBackend):
-    "C++ quantum circuit simulator with realistic noise."
 
+class QISKitCppSimulator(BaseBackend):
+    """C++ quantum circuit simulator with realistic noise"""
     def __init__(self, configuration=None):
-        if configuration is None:
+        super(QISKitCppSimulator, self).__init__(configuration)
+        self._configuration = configuration
+
+        if not configuration:
             self._configuration = {
-                "name": "local_qiskit_simulator",
-                "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
-                "simulator": True,
+                'name': 'local_qiskit_simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
+                'simulator': True,
                 'local': True,
-                "description": "A C++ realistic noise simulator for qobj files",
-                "coupling_map": "all-to-all",
-                "basis_gates": "u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz"
+                'description': 'A C++ realistic noise simulator for qobj files',
+                'coupling_map': 'all-to-all',
+                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz',
             }
+
+        # Try to use the default executable if not specified.
+        if self._configuration.get('exe'):
+            paths = [self._configuration.get('exe')]
         else:
-            self._configuration = configuration
+            paths = DEFAULT_SIMULATOR_PATHS
+
+        # Ensure that the executable is available.
+        try:
+            self._configuration['exe'] = next(path for path in paths
+                                              if os.path.exists(path))
+        except StopIteration:
+            raise FileNotFoundError('Simulator executable not found (using %s)' %
+                                    self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
         qobj = q_job.qobj
-        path = qobj.get("config").get("qiskit_simulator_path")
-        result = run(qobj, path=path)
+        result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
 
 class CliffordCppSimulator(BaseBackend):
-    "C++ Clifford circuit simulator with realistic noise."
-
+    """"C++ Clifford circuit simulator with realistic noise."""
     def __init__(self, configuration=None):
-        if configuration is None:
+        super(CliffordCppSimulator, self).__init__(configuration)
+        self._configuration = configuration
+
+        if not configuration:
             self._configuration = {
-                "name": "local_clifford_simulator",
-                "url": "https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator",
-                "simulator": True,
+                'name': 'local_clifford_simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
+                'simulator': True,
                 'local': True,
-                "description": "A C++ Clifford simulator with approximate noise",
-                "coupling_map": "all-to-all",
-                "basis_gates": "cx,id,x,y,z,h,s,sdg,wait,noise,save,load"
+                'description': 'A C++ Clifford simulator with approximate noise',
+                'coupling_map': 'all-to-all',
+                'basis_gates': 'cx,id,x,y,z,h,s,sdg,wait,noise,save,load'
             }
+
+        # Try to use the default executable if not specified.
+        if self._configuration.get('exe'):
+            paths = [self._configuration.get('exe')]
         else:
-            self._configuration = configuration
+            paths = DEFAULT_SIMULATOR_PATHS
+
+        # Ensure that the executable is available.
+        try:
+            self._configuration['exe'] = next(path for path in paths
+                                              if os.path.exists(path))
+        except StopIteration:
+            raise FileNotFoundError('Simulator executable not found (using %s)' %
+                                    self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
         qobj = q_job.qobj
         # set backend to Clifford simulator
-        if "config" in qobj:
-            qobj["config"]["simulator"] = "clifford"
+        if 'config' in qobj:
+            qobj['config']['simulator'] = 'clifford'
         else:
-            qobj["config"] = {"simulator": "clifford"}
-        path = qobj.get("config").get("qiskit_simulator_path")
-        result = run(qobj, path=path)
+            qobj['config'] = {'simulator': 'clifford'}
+
+        result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
 
-# Register simulator backends with QISKit
-register_backend(QiskitCppSimulator)
-register_backend(CliffordCppSimulator)
-
-
-def run(qobj, path=None):
+def run(qobj, executable):
     """
-    Run simulation on C++ simulator.
+    Run simulation on C++ simulator inside a subprocess.
 
     Args:
         qobj (dict): qobj dictionary defining the simulation to run
-        path (str): path to simulator executable (default: None)
-
+        executable (string): filename (with path) of the simulator executable
     Returns:
-        A dict of simulation results
+        dict: A dict of simulation results
     """
-    # Get path to executable
-    if path is None:
-        cmd = [sim for sim in DEFAULT_SIMULATOR_PATHS if os.path.isfile(sim)][0]
-    else:
-        cmd = os.path.expanduser(path)
-
     if 'config' in qobj:
         qobj['config'] = __to_json_complex(qobj['config'])
 
@@ -126,11 +141,11 @@ def run(qobj, path=None):
 
     # Open subprocess and execute external command
     try:
-        with subprocess.Popen([cmd, '-'],
+        with subprocess.Popen([executable, '-'],
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
             cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
-        if len(cerr) > 0:
+        if cerr:
             print('Simulator encountered a runtime error:')
             print(cerr.decode())
 
@@ -138,38 +153,37 @@ def run(qobj, path=None):
 
         if 'result' in cresult:
             # If not Clifford simulator parse JSON complex numbers in output
-            if cresult.get("simulator") != "clifford":
+            if cresult.get('simulator') != 'clifford':
                 for result in cresult['result']:
                     if result['success'] is True:
                         __parse_sim_data(result['data'])
         return cresult
 
     except FileNotFoundError:
-        msg = "ERROR: Simulator executable not found at: " + cmd
+        msg = "ERROR: Simulator exe not found at: %s" % executable
         logger.error(msg)
         return {"status": msg, "success": False}
 
 
 def __to_json_complex(obj):
     """Converts a numpy array to a nested list.
-
     This is for exporting to JSON. Complex numbers are converted to
     a length two list z -> [z.real, z.imag].
     """
     if isinstance(obj, complex):
         obj = [obj.real, obj.imag]
         return obj
-    elif isinstance(obj, np.ndarray) or isinstance(obj, list):
+    elif isinstance(obj, (np.ndarray, list)):
         obj = list(obj)
-        for i in range(len(obj)):
+        for i, _ in enumerate(obj):
             obj[i] = __to_json_complex(obj[i])
         return obj
     elif isinstance(obj, dict):
         for i, j in obj.items():
             obj[i] = __to_json_complex(j)
         return obj
-    else:
-        return obj
+
+    return obj
 
 
 def __parse_json_complex_single(val):
@@ -180,6 +194,7 @@ def __parse_json_complex_single(val):
         return val[0] + 1j * val[1]
     elif isinstance(val, numbers.Real):
         return val
+    return val
 
 
 def __parse_json_complex(val):
@@ -189,8 +204,7 @@ def __parse_json_complex(val):
     elif isinstance(val, dict):
         return {i: __parse_json_complex_single(j)
                 for i, j in val.items()}
-    else:
-        return val
+    return val
 
 
 def __parse_sim_data(data):

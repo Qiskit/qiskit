@@ -112,8 +112,8 @@ cat input.json | ./local_qiskit_simulator -
 The simulator may be called from Python 3 by importing `qiskit/backends/_qiskit_cpp_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
-# Set the path to the simulator executable
-SIM_PATH = '/path/to/simulator/executable/qiskit_simulator'
+# Set the path and file for the simulator executable
+SIM_EXECUTABLE = '/path/to/simulator/executable/qiskit_simulator'
 
 # Import simulator
 import qiskit.backends._qiskit_cpp_simulator as qs
@@ -132,9 +132,9 @@ This simulator can also be used as a backend for the QISKit Python SDK.  This is
 backend = 'local_qiskit_simulator'
 shots = <int>
 config = <dict>
-results = QuantumProgram.execute(circs, 
-				backend=backend, 
-				shots=shots, 
+results = QuantumProgram.execute(circs,
+				backend=backend,
+				shots=shots,
 				config=config)
 ```
 
@@ -203,7 +203,7 @@ If a qobj contains multiple circuits failure of one circuit will not terminate e
 ```
 
 where for any circuit that encounted an error `<circ-n result>` will be given by `{"status": "FAILED", "message": "error message"}`.
- 
+
 
 ## Config Settings
 
@@ -211,7 +211,7 @@ The following table lists all recognized keys and allowed values for the config 
 
 ##### Table of config options
 | Key | Allowed Values | Default | Description |
-| --- | --- | --- | --- | 
+| --- | --- | --- | --- |
 | `"shots"`| Integer > 0 | 1 | The number of simulation shots to be evaluated for a given circuit.
 | `"seed"` | Integer >= 0 |Random | The inital seed to be used for setting the random number generater used by the simulator. Simulator output should be deterministic of fixed `"seed"` and `"shots_threads"` values.
 | `"shots_threads"` | Integer >= 0 | 1 | Allows parallelization of the simulation by evaluating multiple shots simultaneously. Note that this will cause the simulator to use more memory.
@@ -264,7 +264,7 @@ The second type of parallelization is used to update lare N-qubit state vectors 
 
 ### Using a custom initial state
 
-By defaul the simulator will always initalize with all qubits in the 0-state. A custom initial state for each shot of the simulator maybe be specified by using the config setting `"initial_state"`. This maybe be specified in the QOBJ as a vector or in a Bra-Ket style notaiton. If the initial state is the wrong dimension for the circuit being evaluated then the simulation will fail and return an error message. 
+By defaul the simulator will always initalize with all qubits in the 0-state. A custom initial state for each shot of the simulator maybe be specified by using the config setting `"initial_state"`. This maybe be specified in the QOBJ as a vector or in a Bra-Ket style notaiton. If the initial state is the wrong dimension for the circuit being evaluated then the simulation will fail and return an error message.
 
 
 ##### Qobj Example
@@ -290,7 +290,7 @@ config = {'initial_state': np.array([1, 0, 0, 1j]) / np.sqrt(2)}
 
 ##### Table of config options
 | Key |  Description |
-| --- | --- | 
+| --- | --- |
 | `"classical_state"` | Returns a list of the final classical register bitstring after each shot.
 | `"quantum_state"`| Returns a list of the final quantum state vector of the system after each shot.
 | `"quantum_state_ket"`| As above but with the states represented in ket form.
@@ -314,7 +314,7 @@ We now describe the noise model parameters used by the simulator
 
 ### Gate Errors
 
-Gate errors are specified by the error name, and a dictionary of error parameters. Gate names are 
+Gate errors are specified by the error name, and a dictionary of error parameters. Gate names are
 
 | Name | Operations Affected |
 | --- | --- |
@@ -331,7 +331,7 @@ In terms of X90 pulses single qubit gates are effected as:
 
 - `u1, z, s, sdg, t, tdg` have no error (zero X-90 pulses)
 - `u2, h`: have single gate error (one X-90 pulse)
-- `U, u3, x, y` have double gate error (two X-90 pulses) 
+- `U, u3, x, y` have double gate error (two X-90 pulses)
 - `u0`: has multiples of X-90 pulse relaxation error only
 
 The following keys specifify the implemented error models for single qubit gates:
@@ -341,7 +341,7 @@ The following keys specifify the implemented error models for single qubit gates
 | `"p_depol"` | p >= 0 | Depolarizing error channel with depolarizing probability *p* |
 | `"p_pauli"` | list[p >= 0] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector. For 1-qubit operations it is `[pI, pX, pY, pZ]`, for 2-qubit operations it is `[pII, pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
 | `"gate_time"` | t >=0  | The length of the gate. This is used for computing the thermal relaxation error probability in combination with the `"relaxation_rate"` parameter for thermal relaxation errors. Thermal relaxation is implemented as *T<sub>1</sub>* and *T<sub>2</sub>* relaxation with *T<sub>2</sub> = T<sub>1</sub>*.
-| `"U_error"` | unitary matrix | This is a coherent error which is applied after the ideal gate operation. 
+| `"U_error"` | unitary matrix | This is a coherent error which is applied after the ideal gate operation.
 
 
 ##### Example
@@ -353,8 +353,8 @@ A single qubit gate error with gate time of *1* unit, depolarizing probability *
 	"p_depol": 0.001,
 	"p_pauli": [0.99, 0, 0, 0.01],
 	"gate_time": 1,
-	"U_error": [ 
-		[[1, 0], [0, 0]], 
+	"U_error": [
+		[[1, 0], [0, 0]],
 		[[0, 0], [0.995004165, 0.099833417]]
 	]
 }
@@ -383,7 +383,7 @@ A coherent error model for a CX gate implemented via a cross-resonance interacti
 ```
 
 In this case the unitary for the CX gate is implemented as *U<sub>CX</sub> = U<sub>L</sub>\*U<sub>CR</sub>\*U<sub>R</sub>* where, *U<sub>CR</sub>* is the cross-resonance unitary, and *U<sub>L</sub>*, *U<sub>R</sub>* are the ideal local unitary rotations that would convert this to a CX in the ideal case. The ideal CR unitary is given by $$ U_{CR} = \exp\left[ -i \frac{\pi}{4} ZX  \right]$$, and the noisy one with the above errors is given by
-$$ U_{CR} = \exp\left[ -i (\frac{\pi}{4} + \beta) ( ZX + \gamma ZZ) \right]$$, 
+$$ U_{CR} = \exp\left[ -i (\frac{\pi}{4} + \beta) ( ZX + \gamma ZZ) \right]$$,
 
 If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
 
@@ -424,7 +424,7 @@ This error models incorrectly assigning the value of a classical bit after a mea
 "readout_error": [m0, m1]
 ```
 
-- If a system is measured to be in the 0 state, the correct (0) and incorrect (1) outcome will be recorded with probability *1-m0* and *m0* respecitvely. 
+- If a system is measured to be in the 0 state, the correct (0) and incorrect (1) outcome will be recorded with probability *1-m0* and *m0* respecitvely.
 - If the system is measured to be in the 1 state the correct (1) and incorrect (0) outcome will be recorded with probability *1-m1* and *m1* repectively.
 
 ## Full Config Specification
@@ -492,9 +492,9 @@ An example of a configuration file for a 2-qubit circuit using all options is gi
 		},
 		"CX": {
 			"p_depol": p_cx,
-			"p_pauli": [pII_cx, pIX_cx, pIY_cx, pIZ_cx, 
-						pXI_cx, pXX_cx, pXY_cx, pXZ_cx, 
-						pYI_cx, pYX_cx, pYY_cx, pYZ_cx, 
+			"p_pauli": [pII_cx, pIX_cx, pIY_cx, pIZ_cx,
+						pXI_cx, pXX_cx, pXY_cx, pXZ_cx,
+						pYI_cx, pYX_cx, pYY_cx, pYZ_cx,
 						pZI_cx, pZX_cx, pZY_cx, pZZ_cx],
 			"gate_time": t_cx,
 			"U_error": matrix_cx,
