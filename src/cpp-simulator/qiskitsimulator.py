@@ -99,9 +99,11 @@ def run(qobj, path=None):
         cresult = json.loads(cout.decode())
 
         if 'result' in cresult:
-            for result in cresult['result']:
-                if result['success'] is True:
-                    __parse_sim_data(result['data'])
+            # If not Clifford simulator parse JSON complex numbers in output
+            if cresult.get("simulator") != "clifford":
+                for result in cresult['result']:
+                    if result['success'] is True:
+                        __parse_sim_data(result['data'])
         return cresult
 
     except FileNotFoundError:
