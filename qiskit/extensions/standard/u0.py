@@ -57,9 +57,8 @@ def u0(self, m, q):
         for j in range(q.size):
             gs.add(self.u0(m, (q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(U0Gate(m, q, self))
+    self._check_qubit(q)
+    return self._attach(U0Gate(m, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes

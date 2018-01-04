@@ -47,7 +47,7 @@ doc:
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
 	done
 
-sim: 
+sim:
 	make -C src/cpp-simulator/src clean
 	make -C src/cpp-simulator/src
 

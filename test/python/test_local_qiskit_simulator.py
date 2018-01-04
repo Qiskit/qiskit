@@ -79,7 +79,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
 
     def test_run_qobj(self):
         try:
-            simulator = qiskitsimulator.QiskitCppSimulator()
+            simulator = qiskitsimulator.QISKitCppSimulator()
         except FileNotFoundError as fnferr:
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))

@@ -61,11 +61,10 @@ def uzz(self, theta, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.uzz(theta, (ctl, i), (tgt, i)))
         return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(UZZGate(theta, ctl, tgt, self))
+    self._check_qubit(ctl)
+    self._check_qubit(tgt)
+    self._check_dups([ctl, tgt])
+    return self._attach(UZZGate(theta, ctl, tgt, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
