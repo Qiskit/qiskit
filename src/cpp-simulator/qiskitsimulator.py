@@ -197,9 +197,6 @@ def register_local_qiskit_simulator_backend():
         from qiskit.backends._basebackend import BaseBackend
         from qiskit.backends._backendutils import register_backend
 
-        # Import qiskit simulator custom gate extensions
-        import qiskit.extensions.qiskitsimulator
-
         class QiskitCppSimulator(BaseBackend):
             "C++ quantum circuit simulator with realistic noise."
 
