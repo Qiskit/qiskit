@@ -33,8 +33,10 @@ lint:
 style:
 	pycodestyle --exclude=qiskit/tools --max-line-length=100 qiskit test
 
+# Use the -s (starting directory) flag for "unittest discover" is necessary,
+# otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -v
+	python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
