@@ -109,29 +109,20 @@ cat input.json | ./local_qiskit_simulator -
 
 ### Running in Python
 
-The simulator may be called from Python 3 by importing `qiskitsimulator.py` module. This is done by calling the compiled simulator as a Python subprocess.
+The simulator may be called from Python 3 by importing `qiskit/backends/_qiskit_cpp_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
-# Add simulator dir to path
-SIM_PATH = 'path to qiskit-sdk-py/external/cpp-simulator'
-import sys, os
-sys.path.append(os.path.expanduser(SIM_PATH))
+# Set the path to the simulator executable
+SIM_PATH = '/path/to/simulator/executable/qiskit_simulator'
 
 # Import simulator
-import qiskitsimulator as ws
+import qiskit.backends._qiskit_cpp_simulator as qs
 
 # Run a qobj on the simulator
 qobj = {...}  # qobj as a Python dictionary
-result = ws.run(qobj)  # result json as a Python dictionary
+result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 ```
 
-By default the `run` command will look for the `local_qiskit_simulator` exe in the same directory that the `qiskitsimulator.py` module was loaded from. To specify an alternative location for the exe you may use the optional `path` keyword argument, and to run a different exe you may use the `exe` keyword argument. For example:
-
-```Python
-exe = 'my_simulator'
-path = '~/my_sim_repo/'
-ws.run(qobj, path=path, exe=exe)
-```
 
 ### Running as a backend for qiskit-sdk-py
 
@@ -145,22 +136,6 @@ results = QuantumProgram.execute(circs,
 				backend=backend, 
 				shots=shots, 
 				config=config)
-```
-
-The simulator is tested to work with the *master* branch of the *qiskit-sdk-py* repository. Specific import instructions for the two cases are as follows:
-
-#### Cloned qiskit-sdk-py repository
-
-To use the simulator with a clone of the qiskit repo you must make sure you add the respository to your python path *__before__* importing the simulator module:
-
-```python
-# Add simulator and QISKit sdk to path
-QISKIT_PATH = "path to qiskit-sdk-py"
-import sys, os
-sys.path.append(os.path.expanduser(QISKIT_PATH))
-
-# Import
-import qiskit
 ```
 
 You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qiskit_simulator` and `local_clifford_simulator`.

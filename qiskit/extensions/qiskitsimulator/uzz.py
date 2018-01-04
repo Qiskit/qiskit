@@ -38,9 +38,9 @@ class UZZGate(Gate):
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("izz %s[%d],%s[%d];" % (theta,
-                                                    ctl[0].name, ctl[1],
-                                                    tgt[0].name, tgt[1]))
+        return self._qasmif("uzz(%d) %s[%d],%s[%d];" % (theta,
+                                                        ctl[0].name, ctl[1],
+                                                        tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
