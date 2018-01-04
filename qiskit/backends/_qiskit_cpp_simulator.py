@@ -34,7 +34,8 @@ from qiskit.backends import BaseBackend
 # Add path to compiled qiskit simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
-    os.path.abspath(os.path.dirname(__file__) + '../../../out/qiskit_simulator'),
+    os.path.abspath(os.path.dirname(__file__) + \
+                    '../../../out/qiskit_simulator'),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator'),
 ]
@@ -43,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 class QISKitCppSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
+
     def __init__(self, configuration=None):
         super(QISKitCppSimulator, self).__init__(configuration)
         self._configuration = configuration
@@ -80,6 +82,7 @@ class QISKitCppSimulator(BaseBackend):
 
 class CliffordCppSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
+
     def __init__(self, configuration=None):
         super(CliffordCppSimulator, self).__init__(configuration)
         self._configuration = configuration
@@ -146,8 +149,8 @@ def run(qobj, executable):
             cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
-            print('Simulator encountered a runtime error:')
-            print(cerr.decode())
+            logger.error('ERROR: Simulator encountered a runtime error: ' +
+                         cerr.decode())
 
         cresult = json.loads(cout.decode())
 
