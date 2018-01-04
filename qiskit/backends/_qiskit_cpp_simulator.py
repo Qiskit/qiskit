@@ -34,10 +34,12 @@ from qiskit.backends._basebackend import BaseBackend
 from qiskit.backends._backendutils import register_backend
 
 # Add path to compiled qiskit simulator
-DEFAULT_SIMULATOR_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__),
-                 '../../src/cpp-simulator/qiskit_simulator'))
-
+DEFAULT_SIMULATOR_PATHS = [
+    # This is the path where Makefile creates the simulator by default
+    os.path.abspath(os.path.dirname(__file__) + '../../../out/qiskit_simulator'),
+    # This is the path where PIP installs the simulator
+    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator'),
+]
 
 class QiskitCppSimulator(BaseBackend):
     "C++ quantum circuit simulator with realistic noise."
@@ -110,7 +112,7 @@ def run(qobj, path=None):
     """
     # Get path to executable
     if path is None:
-        cmd = DEFAULT_SIMULATOR_PATH
+        cmd = [sim for sim in DEFAULT_SIMULATOR_PATHS if os.path.isfile(sim)][0]
     else:
         cmd = os.path.expanduser(path)
 
