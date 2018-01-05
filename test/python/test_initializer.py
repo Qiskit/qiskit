@@ -27,6 +27,7 @@ from qiskit import QuantumProgram
 from qiskit.tools.qi.qi import state_fidelity
 from .common import QiskitTestCase
 
+
 class TestInitialize(QiskitTestCase):
     """QISKIT InitializeGate tests."""
 
