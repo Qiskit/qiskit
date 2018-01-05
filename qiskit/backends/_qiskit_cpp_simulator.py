@@ -68,8 +68,9 @@ class QISKitCppSimulator(BaseBackend):
 
         # Ensure that the executable is available.
         try:
-            self._configuration['exe'] = next(path for path in paths
-                                              if os.path.exists(path))
+            self._configuration['exe'] = next(
+                path for path in paths if (os.path.exists(path) and
+                                           os.path.getsize(path) > 100))
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
@@ -106,8 +107,9 @@ class CliffordCppSimulator(BaseBackend):
 
         # Ensure that the executable is available.
         try:
-            self._configuration['exe'] = next(path for path in paths
-                                              if os.path.exists(path))
+            self._configuration['exe'] = next(
+                path for path in paths if (os.path.exists(path) and
+                                           os.path.getsize(path) > 100))
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
@@ -149,7 +151,7 @@ def run(qobj, executable):
             cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
-            logger.error('ERROR: Simulator encountered a runtime error: ' +
+            logger.error('ERROR: Simulator encountered a runtime error: %s',
                          cerr.decode())
 
         cresult = json.loads(cout.decode())
