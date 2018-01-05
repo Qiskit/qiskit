@@ -68,3 +68,6 @@ Bug Fixes
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
+Backward-incompatible changes
+-----------------------------
+- The standar extension for creating U base gates was modified to be consistent with the other gate APIs (see #203).
