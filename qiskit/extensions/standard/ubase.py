@@ -22,18 +22,14 @@ Element of SU(2).
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class UBase(Gate):
     """Element of SU(2)."""
 
-    def __init__(self, param, qubit, circ=None):
-        """Create new reset instruction."""
-        if len(param) != 3:
-            raise ExtensionError("expected 3 parameters")
-        super(UBase, self).__init__("U", param, [qubit], circ)
+    def __init__(self, theta, phi, lam, qubit, circ=None):
+        super(UBase, self).__init__("U", [theta, phi, lam], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -57,13 +53,14 @@ class UBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.param, self.arg[0]))
+        self._modifiers(circ.u_base(self.param[0], self.param[1], self.param[2],
+                                    self.arg[0]))
 
 
-def u_base(self, tpl, q):
+def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
     self._check_qubit(q)
-    return self._attach(UBase(tpl, q, self))
+    return self._attach(UBase(theta, phi, lam, q, self))
 
 
 QuantumCircuit.u_base = u_base
