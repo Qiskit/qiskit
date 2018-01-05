@@ -85,7 +85,7 @@ class TomographyBasis(dict):
         A measurement in the Pauli-X basis has two outcomes corresponding to
         the projectors:
             `Xp = [[0.5, 0.5], [0.5, 0.5]]`
-            `Zm = [[0.5, -0.5], [-0.5, 0.5]]`
+            `Xm = [[0.5, -0.5], [-0.5, 0.5]]`
         We can express this as a basis by
             `BX = TomographyBasis( {'X': [Xp, Xm]} )`
         To specifiy the gates to prepare and measure in this basis we :
