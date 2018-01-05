@@ -34,6 +34,8 @@ from qiskit import _openquantumcompiler as openquantumcompiler
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
+random.seed(42)
+
 try:
     pq_simulator = projectq_simulator.ProjectQSimulator()
 except Exception as err:

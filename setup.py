@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 requirements = [
     "IBMQuantumExperience>=1.8.25",
     "requests>=2.18,<2.19",
@@ -12,7 +11,6 @@ requirements = [
     "sphinx>=1.6,<1.7",
     "sympy>=1.0",
 ]
-
 
 packages = ["qiskit",
             "qiskit.backends",
