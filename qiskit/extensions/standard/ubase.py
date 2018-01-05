@@ -22,7 +22,6 @@ Element of SU(2).
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
