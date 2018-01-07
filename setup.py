@@ -42,10 +42,10 @@ class QiskitSimulatorBuild(build):
         build.run(self)
         supported_platforms = ['Linux', 'Darwin']
         if not platform.system() in supported_platforms:
-            print('QISKit cpp simulator is ment to be built with these '
+            print('WARNING: QISKit cpp simulator is ment to be built with these '
                   'platforms: {}. We will support other platforms soon!'
                   .format(supported_platforms))
-            sys.exit()
+            return
 
         target_platform = '{}-{}'.format(platform.system(), platform.machine()).lower()
         build_path = os.path.join(os.path.abspath(self.build_base), target_platform)
@@ -60,12 +60,18 @@ class QiskitSimulatorBuild(build):
         try:
             cmd.append('-j%d' % cpu_count())
         except NotImplementedError:
-            print('Unable to determine number of CPUs. Using single threaded make.')
+            print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
 
         def compile():
             call(cmd)
 
-        self.execute(compile, [], 'Compiling QISKit C++ Simulator')
+        try:
+            self.execute(compile, [], 'Compiling QISKit C++ Simulator')
+        except:
+            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
+                  "install anyway, but won't have this simulator support.")
+            return
+
         self.mkpath(self.build_lib)
         if not self.dry_run:
             self.copy_file(binary_path, '{}/qiskit/backends'.format(self.build_lib))
