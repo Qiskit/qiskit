@@ -136,7 +136,7 @@ echo -e "[OK]"
 
 echo -n "Building distributable package..."
 # Let's build the wheel package
-python setup.py sdist bdist_wheel &>> $self.log
+python setup.py sdist bdist_wheel -p manylinux1_x86_64 &>> $self.log
 if [ $? != 0 ]
 then
     echo -e "[ERROR]"

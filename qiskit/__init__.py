@@ -29,9 +29,12 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
-# These two qiskit.extensions imports needs to be placed here.
+
+# The qiskit.extensions.x imports needs to be placed here due to the
+# mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
+
 from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
