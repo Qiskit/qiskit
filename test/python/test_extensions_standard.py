@@ -286,12 +286,12 @@ class TestStandard(QiskitTestCase):
         # self.assertRaises(QISKitError, c.ubase, self.c[1], self.c[2])
         # self.assertRaises(QISKitError, c.ubase, self.q[0], self.q[0])
         # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
-        c.u_base([1, 2, 3], self.q[1])  # <- is that use intented?! CHECKME
+        c.u_base(1, 2, 3, self.q[1])
         self.assertResult(UBase, 'U(1,2,3) q[1];', 'U(-1,-3,-2) q[1];')
 
     def test_ubase_pi(self):
         c = self.circuit
-        c.u_base([pi, pi / 2, 0.3 * pi], self.q[1])
+        c.u_base(pi, pi / 2, 0.3 * pi, self.q[1])
         self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', 'U(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_x(self):
