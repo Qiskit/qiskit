@@ -1,1 +1,4 @@
-include qiskit/qasm/libs/*.inc
+include qiskit/qasm/libs/*.
+include Makefile
+recursive-include src *
+include qiskit/backends/qiskit_simulator
