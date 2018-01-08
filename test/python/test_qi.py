@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -14,35 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""Quick program to test the Pauli class."""
-import numpy as np
-from scipy import linalg as la
+
+"""Quick program to test the qi tools modules."""
+
 import unittest
-import logging
-import os
-import sys
-sys.path.append("../..")
-from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, pauli_group, sgn_prod
+from copy import deepcopy
+
+import numpy as np
+
+from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, \
+    pauli_group, sgn_prod
 from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
 from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
+from .common import QiskitTestCase
 
 
-class TestQI(unittest.TestCase):
+class TestQI(QiskitTestCase):
     """Tests for qi.py"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
 
     def test_partial_trace(self):
         # reference
@@ -56,19 +45,19 @@ class TestQI(unittest.TestCase):
         rhos = [rho0, rho1, rho2, rho10, rho20, rho21]
 
         # test partial trace
-        tau0 = partial_trace(rho210, sys=[1, 2])
-        tau1 = partial_trace(rho210, sys=[0, 2])
-        tau2 = partial_trace(rho210, sys=[0, 1])
+        tau0 = partial_trace(rho210, [1, 2])
+        tau1 = partial_trace(rho210, [0, 2])
+        tau2 = partial_trace(rho210, [0, 1])
 
         # test different dimensions
-        tau10 = partial_trace(rho210, dims=[4, 2], sys=[1])
-        tau20 = partial_trace(rho210, dims=[2, 2, 2], sys=[1])
-        tau21 = partial_trace(rho210, dims=[2, 4], sys=[0])
+        tau10 = partial_trace(rho210, [1], dimensions=[4, 2])
+        tau20 = partial_trace(rho210, [1], dimensions=[2, 2, 2])
+        tau21 = partial_trace(rho210, [0], dimensions=[2, 4])
         taus = [tau0, tau1, tau2, tau10, tau20, tau21]
 
         all_pass = True
         for i, j in zip(rhos, taus):
-            all_pass &= (np.linalg.norm(i-j) == 0)
+            all_pass &= (np.linalg.norm(i - j) == 0)
         self.assertTrue(all_pass)
 
     def test_vectorize(self):
@@ -110,7 +99,8 @@ class TestQI(unittest.TestCase):
         psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
         psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
+        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
+               [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
         test_pass = round(state_fidelity(psi1, psi1), 7) == 1.0 and \
             round(state_fidelity(psi1, psi2), 8) == 0.0 and \
             round(state_fidelity(psi1, rho1), 8) == 1.0 and \
@@ -134,7 +124,8 @@ class TestQI(unittest.TestCase):
     def test_concurrence(self):
         psi1 = [1, 0, 0, 0]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0], [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
+        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0],
+                [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
         test_pass = concurrence(psi1) == 0.0 and \
@@ -145,25 +136,10 @@ class TestQI(unittest.TestCase):
         self.assertTrue(test_pass)
 
 
-class TestPauli(unittest.TestCase):
+class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
     def test_pauli(self):
-
         v = np.zeros(3)
         w = np.zeros(3)
         v[0] = 1
@@ -177,7 +153,6 @@ class TestPauli(unittest.TestCase):
         self.log.info(p.to_label())
         self.log.info("In matrix form:")
         self.log.info(p.to_matrix())
-
 
         q = random_pauli(2)
         self.log.info(q)
@@ -211,6 +186,45 @@ class TestPauli(unittest.TestCase):
         self.log.info(p1.to_label())
         self.log.info(p3.to_label())
         self.log.info(sgn)
+
+    def test_equality_equal(self):
+        """Test equality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertTrue(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_equality_different(self):
+        """Test equality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertFalse(p1 == p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 == p2)
+
+    def test_inequality_equal(self):
+        """Test inequality operator: equal Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        self.assertFalse(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
+    def test_inequality_different(self):
+        """Test inequality operator: different Paulis"""
+        p1 = random_pauli(5)
+        p2 = deepcopy(p1)
+        p2.v[0] = (p1.v[0] + 1) % 2
+        self.assertTrue(p1 != p2)
+        self.log.info(p2.to_label())
+        self.log.info(p1.to_label())
+        self.log.info(p1 != p2)
+
 
 if __name__ == '__main__':
     unittest.main()

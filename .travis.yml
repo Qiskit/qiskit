@@ -16,15 +16,22 @@
 # Authors: Jesus Perez <jesusper@us.ibm.com>
 
 language: python
+cache: pip
 
-python:
-  - "3.6"
+matrix:
+  include:
+    - python: 3.5
+      env: LINT_JOB=YES
+    - python: 3.5
+    - python: 3.6
+  fast_finish: true
 
 install:
-  - pip install -r requires.txt
-  - pip install -r requires-dev.txt
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
 
-script: make test
+script:
+  - if [ "$LINT_JOB" = "YES" ]; then make style && make lint; else make test; fi
 
 deploy:
   provider: script

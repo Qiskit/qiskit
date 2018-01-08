@@ -44,7 +44,6 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
-import json
 from qiskit.unroll import BackendError
 from qiskit.unroll import UnrollerBackend
 
@@ -58,6 +57,7 @@ class JsonBackend(UnrollerBackend):
         basis is a list of operation name strings.
         The default basis is ["U", "CX"].
         """
+        super(JsonBackend, self).__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
         self.circuit['header'] = {}
@@ -144,9 +144,10 @@ class JsonBackend(UnrollerBackend):
             qubit_indices = [self._qubit_order_internal.get(qubit)]
             self.circuit['operations'].append({
                 'name': "U",
-                'params': [arg[0].real(nested_scope),
-                           arg[1].real(nested_scope),
-                           arg[2].real(nested_scope)],
+                # TODO: keep these real for now, until a later time
+                'params': [float(arg[0].real(nested_scope)),
+                           float(arg[1].real(nested_scope)),
+                           float(arg[2].real(nested_scope))],
                 'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
                               arg[1].latex(prec=8, nested_scope=nested_scope),
                               arg[2].latex(prec=8, nested_scope=nested_scope)],
@@ -192,7 +193,7 @@ class JsonBackend(UnrollerBackend):
                 })
             self._add_condition()
 
-    def measure(self, qubit, cbit):
+    def measure(self, qubit, bit):
         """Measurement operation.
 
         qubit is (regname, idx) tuple for the input qubit.
@@ -201,7 +202,7 @@ class JsonBackend(UnrollerBackend):
         if "measure" not in self.basis:
             self.basis.append("measure")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
-        clbit_indices = [self._cbit_order_internal.get(cbit)]
+        clbit_indices = [self._cbit_order_internal.get(bit)]
         self.circuit['operations'].append({
             'name': 'measure',
             'qubits': qubit_indices,
@@ -275,7 +276,9 @@ class JsonBackend(UnrollerBackend):
                              for qubit in qubits]
             self.circuit['operations'].append({
                 'name': name,
-                'params': list(map(lambda x: x.real(nested_scope), args)),
+                # TODO: keep these real for now, until a later time
+                'params': list(map(lambda x: float(x.real(nested_scope)),
+                                   args)),
                 'texparams': list(map(lambda x:
                                       x.latex(prec=8,
                                               nested_scope=nested_scope),
@@ -299,12 +302,13 @@ class JsonBackend(UnrollerBackend):
 
     def get_output(self):
         """Returns the generated circuit."""
-        assert self._is_circuit_valid(), "Invalid circuit! " \
-            "Has the Qasm parsing been called?. e.g: unroller.execute()"
-        # Convert simple quotes from the json strings to double quotes.
-        return json.dumps(self.circuit).encode()
+        assert self._is_circuit_valid(), """Invalid circuit!
+            Please check the syntax of your circuit.
+            Has the Qasm parsing been called?. e.g: unroller.execute().
+        """
+        return self.circuit
 
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
-        return len(self.circuit['header']) > 0 \
-               and len(self.circuit['operations']) > 0
+        return (len(self.circuit['header']) > 0 and
+                len(self.circuit['operations']) > 0)

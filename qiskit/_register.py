@@ -18,8 +18,8 @@
 """
 Base register reference object.
 """
-from ._qiskiterror import QISKitError
 import re
+from ._qiskiterror import QISKitError
 
 
 class Register(object):

@@ -21,11 +21,13 @@ Exception for errors raised while parsing OPENQASM.
 
 from qiskit import QISKitError
 
+
 class QasmError(QISKitError):
     """Base class for errors raised while parsing OPENQASM."""
 
     def __init__(self, *msg):
         """Set the error message."""
+        super(QasmError, self).__init__(*msg)
         self.msg = ' '.join(msg)
 
     def __str__(self):

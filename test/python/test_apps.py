@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -15,33 +16,21 @@
 # limitations under the License.
 # =============================================================================
 """Test the the trial functions."""
-import sys
-import numpy as np
+
 import unittest
-import logging
-import os
+
+import numpy as np
 from scipy import linalg as la
-sys.path.append("../..")
-from qiskit.tools.apps.optimization import trial_circuit_ry
-from qiskit.tools.apps.optimization import Energy_Estimate, make_Hamiltonian, Hamiltonian_from_file
+
+from qiskit.tools.apps.optimization import (Energy_Estimate, make_Hamiltonian,
+                                            Hamiltonian_from_file,
+                                            trial_circuit_ry)
 from qiskit.tools.qi.pauli import Pauli
+from .common import QiskitTestCase
 
-class TestQuantumOptimization(unittest.TestCase):
+
+class TestQuantumOptimization(QiskitTestCase):
     """Tests for quantum optimization"""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
 
     def test_trial_functions(self):
         entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
@@ -51,42 +40,43 @@ class TestQuantumOptimization(unittest.TestCase):
         theta = np.zeros(m * n)
 
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
-
-        self.log.info(trial_circuit.qasm())
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 456)
 
         self.log.info("With No measurement:\n")
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
-
-        self.log.info(trial_circuit.qasm())
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 324)
 
         self.log.info("With Y measurement:\n")
         meas_sting = ['Y' for x in range(n)]
-
         trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 564)
 
-        self.log.info(trial_circuit.qasm())
 
-
-class TestHamiltonian(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
-
+class TestHamiltonian(QiskitTestCase):
     def test_hamiltonian(self):
+        # pylint: disable=unexpected-keyword-arg
         # printing an example from a H2 file
-        hfile = os.path.dirname(__file__) + "/H2Equilibrium.txt"
-        self.log.info(make_Hamiltonian(Hamiltonian_from_file(hfile)))
+        hfile = self._get_resource_path("H2Equilibrium.txt")
+        hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
+        self.log.info(hamiltonian)
+        # [[-0.24522469381221926 0 0 0.18093133934472627 ]
+        # [0 -1.0636560168497590 0.18093133934472627 0]
+        # [0 0.18093133934472627 -1.0636560168497592 0]
+        # [0.18093133934472627 0 0 -1.8369675149908681]]
+        self.assertSequenceEqual([str(i) for i in hamiltonian[0]],
+                                 ['(-0.245224693812+0j)', '0j', '0j', '(0.180931339345+0j)'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[1]],
+                                 ['0j', '(-1.06365601685+0j)', '(0.180931339345+0j)', '0j'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[2]],
+                                 ['0j', '(0.180931339345+0j)', '(-1.06365601685+0j)', '0j'])
+        self.assertSequenceEqual([str(i) for i in hamiltonian[3]],
+                                 ['(0.180931339345+0j)', '0j', '0j', '(-1.83696751499+0j)'])
 
         # printing an example from a graph input
         n = 3
@@ -102,7 +92,8 @@ class TestHamiltonian(unittest.TestCase):
         v3[1] = 1
         v3[2] = 1
 
-        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))), (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
+        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))),
+                      (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
         a = make_Hamiltonian(pauli_list)
         self.log.info(a)
 
@@ -126,6 +117,7 @@ class TestHamiltonian(unittest.TestCase):
         self.log.info(Energy_Estimate(data, pauli_list))
         data = {'111': 10}
         self.log.info(Energy_Estimate(data, pauli_list))
+
 
 if __name__ == '__main__':
     unittest.main()

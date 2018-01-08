@@ -21,11 +21,13 @@ Exception for errors raised by mapper module.
 
 from qiskit import QISKitError
 
+
 class MapperError(QISKitError):
     """Base class for errors raised by mapper module."""
 
     def __init__(self, *message):
         """Set the error message."""
+        super(MapperError, self).__init__(*message)
         self.message = ' '.join(message)
 
     def __str__(self):

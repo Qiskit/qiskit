@@ -49,7 +49,7 @@ IF "%QISKIT_ENV_FOUND%"=="No" (
 	conda create -y -n QISKitenv python=3
 )
 IF errorlevel 9009 GOTO :error
-activate QISKitenv & pip install -r requires.txt
+activate QISKitenv & pip install -r requirements.txt
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
@@ -60,12 +60,12 @@ IF errorlevel 9009 GOTO :error
 GOTO :next
 
 :lint
-pylint --ignore=.\qiskit\qasm\parsetab.py examples qiskit test tutorial
+pylint qiskit test
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
 :test
-pip install -r requires.txt
+pip install -r requirements.txt
 IF errorlevel 9009 GOTO :error
 python -m unittest discover -v
 IF errorlevel 9009 GOTO :error

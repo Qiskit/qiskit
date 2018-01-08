@@ -56,7 +56,7 @@ Needed libraries should be installed in this way:
 .. code:: sh
 
     # Depending on the system and setup to append "sudo -H" before could be needed.
-    pip3 install -r requires-dev.txt
+    pip3 install -r requirements-dev.txt
 
 Test
 ~~~~
@@ -80,6 +80,13 @@ the new stuff respects it run the next command:
 .. code:: sh
 
 					make lint
+
+Good first contributions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are welcome to contribute wherever in the code you want to, of course, but
+we recommend taking a look at the "Good first contribution" label into the issues and
+pick one. We would love to mentor you!
 
 Doc
 ~~~

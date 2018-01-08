@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -25,7 +26,7 @@ class IndexedId(Node):
     """Node for an OPENQASM indexed id.
 
     children[0] is an id node.
-    children[1] is an integer (not a node).
+    children[1] is an Int node.
     """
 
     def __init__(self, children):
@@ -35,7 +36,7 @@ class IndexedId(Node):
         self.name = self.id.name
         self.line = self.id.line
         self.file = self.id.file
-        self.index = children[1]
+        self.index = children[1].value
 
     def to_string(self, indent):
         """Print with indent."""
@@ -44,4 +45,5 @@ class IndexedId(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
+        # pylint: disable=unused-argument
         return self.name + "[%d]" % self.index
