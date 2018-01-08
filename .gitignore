@@ -6,6 +6,7 @@ qiskit/qasm/parser.out
 
 # editor files
 .vscode/
+.idea/
 
 #standard python ignores follow
 
@@ -123,3 +124,7 @@ doc/**/_autodoc
 qiskit/bin/*
 
 test/python/test_save.json
+
+test/python/*.tex
+
+out/*

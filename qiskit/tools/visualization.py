@@ -21,14 +21,21 @@ Visualization functions for quantum states.
 import numpy as np
 from functools import reduce
 from scipy import linalg as la
-from collections import Counter
+from collections import Counter, OrderedDict
+from io import StringIO
+import itertools
+import re
+import operator
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit import qasm, unroll, QISKitError
+
 
 ###############################################################
-# Plotting historgram
+# Plotting histogram
 ###############################################################
 
 
@@ -447,5 +454,1005 @@ def plot_state(rho, method='city'):
                                np.dot(x.to_matrix(), rho))),
                                pauli_singles(i, num)))
             plot_bloch_vector(bloch_state, "qubit " + str(i))
+    elif method == "wigner":
+        plot_wigner_function(rho)
+
+
+###############################################################
+# Plotting Wigner functions
+###############################################################
+
+def plot_wigner_function(state, res=100):
+    """Plot the equal angle slice spin Wigner function of an arbitrary
+    quantum state.
+
+    Args:
+        state (np.matrix[[complex]]):
+            - Matrix of 2**n x 2**n complex numbers
+            - State Vector of 2**n x 1 complex numbers
+        res (int) : number of theta and phi values in meshgrid
+            on sphere (creates a res x res grid of points)
+    Returns:
+        none: plot is shown with matplotlib on the screen
+    References:
+        [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
+        and K. Nemoto, Phys. Rev. Lett. 117, 180401 (2016).
+        [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
+        M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
+    """
+    state = np.array(state)
+    if state.ndim == 1:
+        state = np.outer(state,
+                         state)  # turns state vector to a density matrix
+    state = np.matrix(state)
+    num = int(np.log2(len(state)))  # number of qubits
+    phi_vals = np.linspace(0, np.pi, num=res,
+                           dtype=np.complex_)
+    theta_vals = np.linspace(0, 0.5*np.pi, num=res,
+                             dtype=np.complex_)  # phi and theta values for WF
+    w = np.empty([res, res])
+    harr = np.sqrt(3)
+    delta_su2 = np.zeros((2, 2), dtype=np.complex_)
+
+    # create the spin Wigner function
+    for theta in range(res):
+        costheta = harr*np.cos(2*theta_vals[theta])
+        sintheta = harr*np.sin(2*theta_vals[theta])
+
+        for phi in range(res):
+            delta_su2[0, 0] = 0.5*(1+costheta)
+            delta_su2[0, 1] = -0.5*(np.exp(2j*phi_vals[phi])*sintheta)
+            delta_su2[1, 0] = -0.5*(np.exp(-2j*phi_vals[phi])*sintheta)
+            delta_su2[1, 1] = 0.5*(1-costheta)
+            kernel = 1
+            for i in range(num):
+                kernel = np.kron(kernel,
+                                 delta_su2)  # creates phase point kernel
+
+            w[phi, theta] = np.real(np.trace(state*kernel))  # Wigner function
+
+    # Plot a sphere (x,y,z) with Wigner function facecolor data stored in Wc
+    fig = plt.figure(figsize=(11, 9))
+    ax = fig.gca(projection='3d')
+    w_max = np.amax(w)
+    # Color data for plotting
+    w_c = cm.seismic_r((w+w_max)/(2*w_max))  # color data for sphere
+    w_c2 = cm.seismic_r((w[0:res, int(res/2):res]+w_max)/(2*w_max))  # bottom
+    w_c3 = cm.seismic_r((w[int(res/4):int(3*res/4),
+                         0:res]+w_max)/(2*w_max))  # side
+    w_c4 = cm.seismic_r((w[int(res/2):res, 0:res]+w_max)/(2*w_max))  # back
+
+    u = np.linspace(0, 2 * np.pi, res)
+    v = np.linspace(0, np.pi, res)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones(np.size(u)), np.cos(v))  # creates a sphere mesh
+
+    ax.plot_surface(x, y, z, facecolors=w_c,
+                    vmin=-w_max, vmax=w_max,
+                    rcount=res, ccount=res,
+                    linewidth=0, zorder=0.5,
+                    antialiased=False)  # plots Wigner Bloch sphere
+
+    ax.plot_surface(x[0:res, int(res/2):res],
+                    y[0:res, int(res/2):res],
+                    -1.5*np.ones((res, int(res/2))),
+                    facecolors=w_c2,
+                    vmin=-w_max, vmax=w_max,
+                    rcount=res/2, ccount=res/2,
+                    linewidth=0, zorder=0.5,
+                    antialiased=False)  # plots bottom reflection
+
+    ax.plot_surface(-1.5*np.ones((int(res/2), res)),
+                    y[int(res/4):int(3*res/4), 0:res],
+                    z[int(res/4):int(3*res/4), 0:res],
+                    facecolors=w_c3,
+                    vmin=-w_max, vmax=w_max,
+                    rcount=res/2, ccount=res/2,
+                    linewidth=0, zorder=0.5,
+                    antialiased=False)  # plots side reflection
+
+    ax.plot_surface(x[int(res/2):res, 0:res],
+                    1.5*np.ones((int(res/2), res)),
+                    z[int(res/2):res, 0:res],
+                    facecolors=w_c4,
+                    vmin=-w_max, vmax=w_max,
+                    rcount=res/2, ccount=res/2,
+                    linewidth=0, zorder=0.5,
+                    antialiased=False)  # plots back reflection
+
+    ax.w_xaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
+    ax.w_yaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
+    ax.w_zaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
+    ax.set_xticks([], [])
+    ax.set_yticks([], [])
+    ax.set_zticks([], [])
+    ax.grid(False)
+    ax.xaxis.pane.set_edgecolor('black')
+    ax.yaxis.pane.set_edgecolor('black')
+    ax.zaxis.pane.set_edgecolor('black')
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
+    ax.set_zlim(-1.5, 1.5)
+    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m.set_array([-w_max, w_max])
+    plt.colorbar(m, shrink=0.5, aspect=10)
+
+    plt.show()
+
+
+def plot_wigner_curve(wigner_data, xaxis=None):
+    """Plots a curve for points in phase space of the spin Wigner function.
+
+    Args:
+        wigner_data(np.array): an array of points to plot as a 2d curve
+        xaxis (np.array):  the range of the x axis
+
+    Returns:
+        none: plot is shown with matplotlib to the screen
+    """
+    if not xaxis:
+        xaxis = np.linspace(0, len(wigner_data)-1, num=len(wigner_data))
+
+    plt.plot(xaxis, wigner_data)
+    plt.show()
+
+
+def plot_wigner_plaquette(wigner_data, max_wigner='local'):
+    """Plots plaquette of wigner function data, the plaquette will
+    consist of cicles each colored to match the value of the Wigner
+    function at the given point in phase space.
+
+    Args:
+        wigner_data (matrix): array of Wigner function data where the
+                            rows are plotted along the x axis and the
+                            columns are plotted along the y axis
+        max_wigner:  - 'local' puts the maximum value to maximum of the points
+                    - 'unit' sets maximum to 1
+                    - float for a custom maximum.
+
+    Returns:
+        none: plot is shown with matplotlib to the screen
+    """
+    wigner_data = np.matrix(wigner_data)
+    dim = wigner_data.shape
+
+    if max_wigner == 'local':
+        w_max = np.amax(wigner_data)
+    elif max_wigner == 'unit':
+        w_max = 1
+    else:
+        w_max = max_wigner  # For a float input
+
+    cmap = plt.cm.get_cmap('seismic_r')
+
+    xax = dim[1]-0.5
+    yax = dim[0]-0.5
+    norm = np.amax(dim)
+
+    fig = plt.figure(figsize=((xax+0.5)*6/norm, (yax+0.5)*6/norm))
+    ax = fig.gca()
+
+    for x in range(int(dim[1])):
+        for y in range(int(dim[0])):
+            circle = plt.Circle(
+                (x, y), 0.49, color=cmap((wigner_data[y, x]+w_max)/(2*w_max)))
+            ax.add_artist(circle)
+
+    ax.set_xlim(-1, xax+0.5)
+    ax.set_ylim(-1, yax+0.5)
+    ax.set_xticks([], [])
+    ax.set_yticks([], [])
+    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m.set_array([-w_max, w_max])
+    plt.colorbar(m, shrink=0.5, aspect=10)
+    plt.show()
+
+
+def plot_wigner_data(wigner_data, phis=None, method=None):
+    """Plots Wigner results in appropriate format.
+
+    Args:
+        wigner_data: Output returned from the wigner_data function
+        phis: Values of phi
+        method: how the data is to be plotted,
+            methods are:
+                point: a single point in phase space
+                curve: a two dimensional curve
+                plaquette: points plotted as circles
+
+    Returns:
+        none: plot is shown with matplotlib to the screen
+    """
+    if not method:
+        wig_dim = len(np.shape(wigner_data))
+        if wig_dim == 1:
+            if np.shape(wigner_data) == 1:
+                method = 'point'
+            else:
+                method = 'curve'
+        elif wig_dim == 2:
+            method = 'plaquette'
+
+    if method == 'curve':
+        plot_wigner_curve(wigner_data, xaxis=phis)
+    elif method == 'plaquette':
+        plot_wigner_plaquette(wigner_data)
+    elif method == 'state':
+        plot_wigner_function(wigner_data)
+    elif method == 'point':
+        plot_wigner_plaquette(wigner_data)
+        print('point in phase space is '+str(wigner_data))
     else:
         print("No method given")
+
+###############################################################
+# Plotting circuit
+###############################################################
+
+
+def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
+    """Convert QuantumCircuit to LaTeX string.
+
+    Args:
+        circuit (QuantumCircuit): input circuit
+        filename (str): optional filename to write latex
+        basis (str): optional comma-separated list of gate names
+
+    Returns:
+        Latex string appropriate for writing to file.
+    """
+    ast = qasm.Qasm(data=circuit.qasm()).parse()
+    if basis:
+        # Split basis only if it is not the empty string.
+        basis = basis.split(',')
+    u = unroll.Unroller(ast, unroll.JsonBackend(basis))
+    u.execute()
+    json_circuit = u.backend.circuit
+    qcimg = QCircuitImage(json_circuit)
+    latex = qcimg.latex()
+    if filename:
+        with open(filename, 'w') as latex_file:
+            latex_file.write(latex)
+    return latex
+
+
+class QCircuitImage:
+    """This class contains methods to create \LaTeX circuit images.
+
+    The class targets the \LaTeX package Q-circuit
+    (https://arxiv.org/pdf/quant-ph/0406003).
+
+    Thanks to Eric Sabo for the initial implementation for QISKit.
+    """
+    def __init__(self, circuit, aliases=None):
+        """
+        Args:
+            circuit (dict): compiled_circuit from qobj
+        """
+        # compiled qobj circuit
+        self.circuit = circuit
+        
+        # Map of qregs to sizes
+        self.qregs = {}
+
+        # Map of cregs to sizes
+        self.cregs = {}
+
+        # List of qregs and cregs in order of appearance in code and image
+        self.ordered_regs = []
+
+        # Map from registers to the list they appear in the image
+        self.img_regs = {}
+
+        # Array to hold the \LaTeX commands to generate a circuit image.
+        self._latex = []
+
+        # Variable to hold image depth (width)
+        self.img_depth = 0
+
+        # Variable to hold image width (height)
+        self.img_width = 0
+
+        #################################
+        self.header = self.circuit['header']
+        self.qregs = OrderedDict(_get_register_specs(
+            self.header['qubit_labels']))
+        self.qubit_list = []
+        for qr in self.qregs:
+            for i in range(self.qregs[qr]):
+                self.qubit_list.append((qr, i))
+        # TODO: clbit_labels has different format than qubit_labels
+        # in qobj?
+        self.cregs = OrderedDict()
+        for item in self.header['clbit_labels']:
+            self.cregs[item[0]] = item[1]
+        self.clbit_list = []
+        for cr in self.cregs:
+            for i in range(self.cregs[cr]):
+                self.clbit_list.append((cr, i))
+        self.ordered_regs = [(item[0], item[1]) for
+                             item in self.header['qubit_labels']]
+        for clabel in self.header['clbit_labels']:
+            for cind in range(clabel[1]):
+                self.ordered_regs.append((clabel[0], cind))
+        self.img_regs = {bit: ind for ind, bit in
+                         enumerate(self.ordered_regs)}
+        self.img_width = len(self.img_regs)
+        self.wire_type = {}
+        for key, value in self.ordered_regs:
+            if key in self.cregs.keys():
+                self.wire_type[(key, value)] = True
+            else:
+                self.wire_type[(key, value)] = False
+        self._initialize_latex_array(aliases=aliases)
+        self._build_latex_array(aliases=aliases)
+
+    def latex(self, aliases=None):
+        """Return LaTeX string representation of circuit.
+
+        This method uses the LaTeX Qconfig package to create a graphical
+        representation of the circuit.
+
+        Returns:
+            string: for writing to a LaTeX file.
+
+        """
+        self._initialize_latex_array(aliases)
+        self._build_latex_array(aliases)
+        header_1 = r"""% \documentclass[preview]{standalone}
+% If the image is too large to fit on this documentclass use
+\documentclass[final]{beamer}
+"""
+        beamer_line = "\\usepackage[size=custom,width=%d,height=%d]{beamerposter}\n"
+        header_2 = r"""% instead and customize the height and width (in cm) to fit.
+% Large images may run out of memory quickly.
+% To fix this use the LuaLaTeX compiler, which dynamically
+% allocates memory.
+\usepackage[braket, qm]{qcircuit}
+\usepackage{amsmath}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+% Defines a measurement target symbol
+\newcommand{\ctarg}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
+\begin{document}
+\begin{equation*}
+    \Qcircuit @C=.5em @R=0em @!R {
+"""
+        output = StringIO()
+        output.write(header_1)
+        output.write('%% img_depth = %d, img_width = %d\n'
+                     % (self.img_depth, self.img_width))
+        # TODO: the scaling in the next line is arbitrary
+        # TODO: and should be computed based on the column width
+        output.write(beamer_line %
+                     (3*self.img_depth, 1.7*self.img_width))
+        output.write(header_2)
+        for i in range(self.img_width):
+            output.write("\t \t")
+            for j in range(self.img_depth + 1):
+                cell_str = self._latex[i][j]
+                # floats can cause "Dimension too large" latex error in xymatrix
+                # this truncates floats to avoid issue.
+                cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float,
+                                  cell_str)
+                output.write(cell_str)
+                if j != self.img_depth:
+                    output.write(" & ")
+                elif j == self.img_depth:
+                    output.write(r'\\'+'\n')
+                else:
+                    output.write('\n')
+        output.write('\t }\n')                    
+        output.write('\end{equation*}\n\n')
+        output.write('\end{document}')
+        contents = output.getvalue()
+        output.close()
+        return contents
+
+    def _initialize_latex_array(self, aliases=None):
+        self.img_depth = len(self.circuit['operations'])
+        self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]]
+                       else "\\qw" for i in range(self.img_depth + 1)]
+                       for j in range(self.img_width)]
+        self._latex.append([" "] * (self.img_depth + 1))
+        for i in range(self.img_width):
+            if self.wire_type[self.ordered_regs[i]]:
+                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + \
+                                    "_" + str(self.ordered_regs[i][1]) + "}"
+            else:
+                self._latex[i][0] = "\\lstick{\\ket{" + \
+                                    self.ordered_regs[i][0] + "_" + \
+                                    str(self.ordered_regs[i][1]) + "}}"
+
+    def _get_image_depth(self, aliases=None):
+        columns = 2
+        is_occupied = [False] * self.img_width
+        for op in self.circuit['operations']:
+            if 'clbits' not in op:
+                if op['name'] != 'barrier':
+                    qarglist = [self.qubit_list[i] for i in op['qubits']]
+                    if aliases is not None:
+                        qarglist = map(lambda x: aliases[x], qarglist)
+                    if len(qarglist) == 1:
+                        pos_1 = self.img_regs[(qarglist[0][0],
+                                               qarglist[0][1])]
+                        if 'conditional' in op:
+                            mask = int(op['conditional']['mask'], 16)
+                            cl_reg = self.clbit_list[self._ffs(mask)]
+                            if_reg = cl_reg[0]
+                            pos_2 = self.img_regs[cl_reg]
+                            for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(pos_1, pos_2 + 1):
+                                        is_occupied[j] = True
+                                    break
+                        else:
+                            if is_occupied[pos_1] is False:
+                                is_occupied[pos_1] = True
+                            else:
+                                columns += 1
+                                is_occupied = [False] * self.img_width
+                                is_occupied[pos_1] = True
+                    elif len(qarglist) == 2:
+                        pos_1 = self.img_regs[(qarglist[0][0],
+                                              qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0],
+                                              qarglist[1][1])]
+
+                        if 'conditional' in op:
+                            mask = int(op['conditional']['mask'], 16)
+                            cl_reg = self.clbit_list[self._ffs(mask)]
+                            if_reg = cl_reg[0]
+                            pos_3 = self.img_regs[(if_reg, 0)]
+                            if pos_1 > pos_2:
+                                for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
+                                    if is_occupied[i] is False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False] * self.img_width
+                                        for j in range(pos_2, pos_3 + 1):
+                                            is_occupied[j] = True
+                                        break
+                            else:
+                                for i in range(pos_1, pos_3 + self.cregs[if_reg] + 1):
+                                    if is_occupied[i] is False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False] * self.img_width
+                                        for j in range(pos_1, pos_3 + 1):
+                                            is_occupied[j] = True
+                                        break
+                        else:
+                            temp = [pos_1, pos_2]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[1]
+
+                            for i in range(top, bottom + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, bottom + 1):
+                                        is_occupied[j] = True
+                                    break
+            else:
+                if op['name'] == "measure":
+                    assert len(op['clbits']) == 1 and len(op['qubits']) == 1
+                    if 'conditional' in op:
+                        assert False,\
+                            "If controlled measures currently not supported."
+                    qname, qindex = self.total_2_register_index(
+                        op['qubits'][0], self.qregs)
+                    cname, cindex = self.total_2_register_index(
+                        op['clbits'][0], self.cregs)
+                    if aliases:
+                        newq = aliases[(qname, qindex)]
+                        qname = newq[0]
+                        qindex = newq[1]
+                    pos_1 = self.img_regs[(qname, qindex)]
+                    pos_2 = self.img_regs[(cname, cindex)]
+                    temp = [pos_1, pos_2]
+                    temp.sort(key=int)
+                    [pos_1, pos_2] = temp
+                    for i in range(pos_1, pos_2 + 1):
+                        if is_occupied[i] is False:
+                            is_occupied[i] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(pos_1, pos_2 + 1):
+                                is_occupied[j] = True
+                            break
+
+                else:
+                    assert False, "bad node data"
+        return columns+1
+
+    def total_2_register_index(self, index, registers):
+        """Get register name for qubit index.
+
+        This function uses the self.qregs ordered dictionary, which looks like
+        {'qr1': 2, 'qr2', 3}
+        to get the register name for the total qubit index. For the above example,
+        index in [0,1] returns 'qr1' and index in [2,4] returns 'qr2'.
+
+        Args:
+            index (int): total qubit index among all quantum registers
+            registers (OrderedDict): OrderedDict as described above.
+        Returns:
+            name (str) of register associated with qubit index.
+        """
+        count = 0
+        for name, size in registers.items():
+            if count + size > index:
+                return name, index - count
+            else:
+                count += size
+        raise ValueError('qubit index lies outside range of qubit registers')
+            
+    def _build_latex_array(self, aliases=None):
+        """Returns an array of strings containing \LaTeX for this circuit.
+
+        If aliases is not None, aliases contains a dict mapping
+        the current qubits in the circuit to new qubit names.
+        We will deduce the register names and sizes from aliases.
+        """
+        columns = 1
+        is_occupied = [False] * self.img_width
+
+        # Rename qregs if necessary
+        if aliases:
+            qregdata = {}
+            for q in aliases.values():
+                if q[0] not in qregdata:
+                    qregdata[q[0]] = q[1] + 1
+                elif qregdata[q[0]] < q[1] + 1:
+                    qregdata[q[0]] = q[1] + 1
+        else:
+            qregdata = self.qregs
+
+        for iop, op in enumerate(self.circuit['operations']):
+            # print(iop, op)
+            if 'conditional' in op:
+                mask = int(op['conditional']['mask'], 16)
+                cl_reg = self.clbit_list[self._ffs(mask)]
+                if_reg = cl_reg[0]
+                pos_2 = self.img_regs[cl_reg]
+                if_value = format(int(op['conditional']['val'], 16),
+                                  'b').zfill(self.cregs[if_reg])[::-1]
+            if 'clbits' not in op:
+                nm = op['name']
+                if nm != 'barrier':
+                    qarglist = [self.qubit_list[i] for i in op['qubits']]
+                    if aliases is not None:
+                        qarglist = map(lambda x: aliases[x], qarglist)
+                    if len(qarglist) == 1:
+                        pos_1 = self.img_regs[(qarglist[0][0],
+                                               qarglist[0][1])]
+                        if 'conditional' in op:
+                            mask = int(op['conditional']['mask'], 16)
+                            cl_reg = self.clbit_list[self._ffs(mask)]
+                            if_reg = cl_reg[0]
+                            pos_2 = self.img_regs[cl_reg]
+                            for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(pos_1, pos_2 + 1):
+                                        is_occupied[j] = True
+                                    break
+
+                            if nm == "x":
+                                self._latex[pos_1][columns] = "\\gate{X}"
+                            elif nm == "y":
+                                self._latex[pos_1][columns] = "\\gate{Y}"
+                            elif nm == "z":
+                                self._latex[pos_1][columns] = "\\gate{Z}"
+                            elif nm == "h":
+                                self._latex[pos_1][columns] = "\\gate{H}"
+                            elif nm == "s":
+                                self._latex[pos_1][columns] = "\\gate{S}"
+                            elif nm == "sdg":
+                                self._latex[pos_1][columns] = "\\gate{S^\\dag}"
+                            elif nm == "t":
+                                self._latex[pos_1][columns] = "\\gate{T}"
+                            elif nm == "tdg":
+                                self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                            elif nm == "u1":
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "u2":
+                                self._latex[pos_1][columns] =\
+                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                        op["texparams"][0], op["texparams"][1])
+                            elif nm == "u3":
+                                self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                            elif nm == "rx":
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "ry":
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "rz":
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
+                                    op["texparams"][0])
+
+                            gap = pos_2 - pos_1
+                            for i in range(self.cregs[if_reg]):
+                                if if_value[i] == '1':
+                                    self._latex[pos_2 + i][columns] = \
+                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                                else:
+                                    self._latex[pos_2 + i][columns] = \
+                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+
+                        else:
+                            if not is_occupied[pos_1]:
+                                is_occupied[pos_1] = True
+                            else:
+                                columns += 1
+                                is_occupied = [False] * self.img_width
+                                is_occupied[pos_1] = True
+
+                            if nm == "x":
+                                self._latex[pos_1][columns] = "\\gate{X}"
+                            elif nm == "y":
+                                self._latex[pos_1][columns] = "\\gate{Y}"
+                            elif nm == "z":
+                                self._latex[pos_1][columns] = "\\gate{Z}"
+                            elif nm == "h":
+                                self._latex[pos_1][columns] = "\\gate{H}"
+                            elif nm == "s":
+                                self._latex[pos_1][columns] = "\\gate{S}"
+                            elif nm == "sdg":
+                                self._latex[pos_1][columns] = "\\gate{S^\\dag}"
+                            elif nm == "t":
+                                self._latex[pos_1][columns] = "\\gate{T}"
+                            elif nm == "tdg":
+                                self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                            elif nm == "u1":
+                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "u2":
+                                self._latex[pos_1][columns] = \
+                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                        op["texparams"][0], op["texparams"][1])
+                            elif nm == "u3":
+                                self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                            elif nm == "rx":
+                                self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "ry":
+                                self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
+                                    op["texparams"][0])
+                            elif nm == "rz":
+                                self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
+                                    op["texparams"][0])
+
+                    elif len(qarglist) == 2:
+                        pos_1 = self.img_regs[(qarglist[0][0],
+                                              qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0],
+                                              qarglist[1][1])]
+
+                        if 'conditional' in op:
+                            pos_3 = self.img_regs[(if_reg, 0)]
+
+                            if pos_1 > pos_2:
+                                for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
+                                    if is_occupied[i] is False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False] * self.img_width
+                                        for j in range(pos_2, pos_3 + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                if nm == "cx":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\targ"
+                                elif nm == "cz":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Z}"
+                                elif nm == "cy":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Y}"
+                                elif nm == "ch":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{H}"
+                                elif nm == "swap":
+                                    self._latex[pos_1][columns] = "\\qswap"
+                                    self._latex[pos_2][columns] = "\\qwx"
+                                elif nm == "crz":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                elif nm == "cu1":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                elif nm == "cu3":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(%s,%s,%s)}" % (op["texparams"][0],
+                                                                 op["texparams"][1],
+                                                                 op["texparams"][2])
+
+                                gap = pos_3 - pos_1
+                                for i in range(self.cregs[if_reg]):
+                                    if if_value[i] == '1':
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                                    else:
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                            else:
+                                for i in range(pos_1, pos_3 + self.cregs[if_reg]):
+                                    if is_occupied[i] is False:
+                                        is_occupied[i] = True
+                                    else:
+                                        columns += 1
+                                        is_occupied = [False] * self.img_width
+                                        for j in range(pos_1, pos_3 + 1):
+                                            is_occupied[j] = True
+                                        break
+
+                                if nm == "cx":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = "\\targ"
+                                elif nm == "cz":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Z}"
+                                elif nm == "cy":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{Y}"
+                                elif nm == "ch":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{H}"
+                                elif nm == "swap":
+                                    self._latex[pos_1][columns] = "\\qswap"
+                                    self._latex[pos_2][columns] = "\\qwx"
+                                elif nm == "crz":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{R_z(%s)}" % (op["texparams"][0])
+                                elif nm == "cu1":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = \
+                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                elif nm == "cu3":
+                                    self._latex[pos_1][columns] = \
+                                        "\\ctrl{" + str(pos_1 - pos_2) + "}"
+                                    self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                        % (op["texparams"][0], op["texparams"][1],
+                                           op["texparams"][2])
+
+                                gap = pos_3 - pos_2
+                                for i in range(self.cregs[if_reg]):
+                                    if if_value[i] == '1':
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                                    else:
+                                        self._latex[pos_3 + i][columns] = \
+                                            "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+
+                        else:
+                            temp = [pos_1, pos_2]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[1]
+
+                            for i in range(top, bottom + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, bottom + 1):
+                                        is_occupied[j] = True
+                                    break
+
+                            if nm == "cx":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\targ"
+                            elif nm == "cz":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\gate{Z}"
+                            elif nm == "cy":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\gate{Y}"
+                            elif nm == "ch":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\gate{H}"
+                            elif nm == "swap":
+                                self._latex[pos_1][columns] = "\\qswap"
+                                self._latex[pos_2][columns] = "\\qwx"
+                            elif nm == "crz":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = \
+                                    "\\gate{R_z(%s)}" % (op["texparams"][0])
+                            elif nm == "cu1":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = \
+                                    "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                            elif nm == "cu3":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                    % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+
+                    elif len(qarglist) == 3:
+                        pos_1 = self.img_regs[(qarglist[0][0],
+                                              qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0],
+                                              qarglist[1][1])]
+                        pos_3 = self.img_regs[(qarglist[2][0],
+                                              qarglist[2][1])]
+
+                        if 'conditional' in op:
+                            pos_4 = self.img_regs[(if_reg, 0)]
+
+                            temp = [pos_1, pos_2, pos_3, pos_4]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[2]
+
+                            for i in range(top, pos_4 + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, pos_4 + 1):
+                                        is_occupied[j] = True
+                                    break
+
+                            gap = pos_4 - bottom
+                            for i in range(self.cregs[if_reg]):
+                                if if_value[i] == '1':
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                                else:
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                        else:
+                            temp = [pos_1, pos_2, pos_3]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[2]
+
+                            for i in range(top, bottom + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, bottom + 1):
+                                        is_occupied[j] = True
+                                    break
+
+                            if nm == "ccx":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\ctrl{" + str(pos_3 - pos_2) + "}"
+                                self._latex[pos_3][columns] = "\\targ"
+
+            else:
+                if op["name"] == "measure":
+                    assert len(op['clbits']) == 1 and \
+                        len(op['qubits']) == 1 and \
+                        'params' not in op, "bad operation record"
+
+                    if 'conditional' in op:
+                        assert False, "If controlled measures currently not supported."
+                    qname, qindex = self.total_2_register_index(
+                        op['qubits'][0], self.qregs)
+                    cname, cindex = self.total_2_register_index(
+                        op['clbits'][0], self.cregs)
+
+                    if aliases:
+                        newq = aliases[(qname, qindex)]
+                        qname = newq[0]
+                        qindex = newq[1]
+
+                    pos_1 = self.img_regs[(qname, qindex)]
+                    pos_2 = self.img_regs[(cname, cindex)]
+
+                    for i in range(pos_1, pos_2 + 1):
+                        if is_occupied[i] is False:
+                            is_occupied[i] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(pos_1, pos_2 + 1):
+                                is_occupied[j] = True
+                            break
+
+                    try:
+                        self._latex[pos_1][columns] = "\\meter"
+                        self._latex[pos_2][columns] = \
+                            "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                    except Exception as e:
+                        raise QISKitError('Error during Latex building: %s' %
+                                          str(e))
+                else:
+                    assert False, "bad node data"
+
+    def _ffs(self, mask):
+        """Find index of first set bit.
+
+        Args:
+            mask (int): integer to search
+        """
+        return (mask & (-mask)).bit_length() - 1
+        
+
+def _get_register_specs(bit_labels):
+    """
+    Get the number and size of unique registers from bit_labels list.
+
+    TODO: this function also appears in _projectq_simulator.py. Perhaps it
+    should be placed in _quantumcircuit.py or tools.
+
+    Args:
+        bit_labels (list): this list is of the form::
+
+            [['reg1', 0], ['reg1', 1], ['reg2', 0]]
+
+            which indicates a register named "reg1" of size 2
+            and a register named "reg2" of size 1. This is the
+            format of classic and quantum bit labels in qobj 
+            header.
+
+    Returns:
+        iterator of register_name:size pairs.
+    """
+    it = itertools.groupby(bit_labels, operator.itemgetter(0))
+    for register_name, sub_it in it:
+        yield register_name, max(ind[1] for ind in sub_it) + 1
+
+
+def _truncate_float(matchobj, format_str='0.2g'):
+    """Truncate long floats
+
+    Args:
+        matchobj (re.Match object): contains original float
+        format_str (str): format specifier
+    Returns:
+        returns truncated float
+    """
+    if matchobj.group(0):
+        return format(float(matchobj.group(0)), format_str)

@@ -17,10 +17,10 @@
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
 	if test $(findstring QISKitenv, $(shell conda info --envs)); then \
-		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+		bash -c "source activate QISKitenv;pip install -r requirements.txt"; \
 	else \
 		conda create -y -n QISKitenv python=3; \
-		bash -c "source activate QISKitenv;pip install -r requires.txt"; \
+		bash -c "source activate QISKitenv;pip install -r requirements.txt"; \
 	fi;
 
 run:
@@ -28,12 +28,15 @@ run:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint --ignore=./qiskit/qasm/parsetab.py examples qiskit test tutorial
+	pylint -rn qiskit test
 
-# TODO: Uncomment when the lint one passes.
-# test: lint
+style:
+	pycodestyle --exclude=qiskit/tools --max-line-length=100 qiskit test
+
+# Use the -s (starting directory) flag for "unittest discover" is necessary,
+# otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -v
+	python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
@@ -46,6 +49,11 @@ doc:
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
 	done
 
+sim:
+	make -C src/cpp-simulator/src clean
+	make -C src/cpp-simulator/src
+
 clean:
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
+	make -C src/cpp-simulator/src clean

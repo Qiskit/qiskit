@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,missing-docstring,broad-except
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -14,39 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""
-Quantum Program QISKit Test.
-"""
 
-import sys
+"""Quantum Program QISKit Test."""
+
 import os
 import unittest
+
 import numpy as np
-import logging
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qiskit import QuantumProgram
-from qiskit import Result
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
-from qiskit import QISKitError
-
-
-QASM_FILE_PATH = os.path.join(os.path.dirname(__file__),
-                              '../../examples/qasm/entangled_registers.qasm')
-QASM_FILE_PATH_2 = os.path.join(os.path.dirname(__file__),
-                                '../../examples/qasm/plaquette_check.qasm')
-
+import qiskit.backends
+from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
+                    QuantumRegister, QuantumProgram, Result,
+                    RegisterSizeError)
+from qiskit.tools import file_io
+from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
 
 # We need the environment variable for Travis.
 try:
-    # We don't know from where the user is running the example,
-    # so we need a relative position from this file path.
-    # TODO: Relative imports for intra-package imports are highly discouraged.
-    # http://stackoverflow.com/a/7506006
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     import Qconfig
+
     QE_TOKEN = Qconfig.APItoken
     # TODO: Why "APItoken" is in the root (the unique) and
     # "url" inside "config"?
@@ -57,41 +44,30 @@ except ImportError:
         QE_TOKEN = os.environ["QE_TOKEN"]
         QE_URL = os.environ["QE_URL"]
 
-TRAVIS_FORK_PULL_REQUEST = False
-if 'TRAVIS_PULL_REQUEST_SLUG' in os.environ:
-    if os.environ['TRAVIS_REPO_SLUG'] != os.environ['TRAVIS_PULL_REQUEST_SLUG']:
-        TRAVIS_FORK_PULL_REQUEST = True
 
-# Define Program Specifications.
-QPS_SPECS = {
-    "circuits": [{
-        "name": "circuitName",
-        "quantum_registers": [{
-            "name": "qname",
-            "size": 3}],
-        "classical_registers": [{
-            "name": "cname",
-            "size": 3}]
-    }]
-}
-
-
-class TestQuantumProgram(unittest.TestCase):
+class TestQuantumProgram(QiskitTestCase):
     """QISKIT QuatumProgram Object Tests."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.moduleName = os.path.splitext(__file__)[0]
-        cls.log = logging.getLogger(__name__)
-        cls.log.setLevel(logging.INFO)
-        logFileName = cls.moduleName + '.log'
-        handler = logging.FileHandler(logFileName)
-        handler.setLevel(logging.INFO)
-        log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-                   ' %(message)s'.format(cls.__name__))
-        formatter = logging.Formatter(log_fmt)
-        handler.setFormatter(formatter)
-        cls.log.addHandler(handler)
+    def setUp(self):
+        self.QASM_FILE_PATH = self._get_resource_path(
+            'qasm/entangled_registers.qasm', Path.EXAMPLES)
+        self.QASM_FILE_PATH_2 = self._get_resource_path(
+            'qasm/plaquette_check.qasm', Path.EXAMPLES)
+
+        self.QPS_SPECS = {
+            "circuits": [{
+                "name": "circuitName",
+                "quantum_registers": [{
+                    "name": "qname",
+                    "size": 3}],
+                "classical_registers": [{
+                    "name": "cname",
+                    "size": 3}]
+            }]
+        }
+        self.qp_program_finished = False
+        self.qp_program_exception = Exception()
+
     ###############################################################
     # Tests to initiate an build a quantum program
     ###############################################################
@@ -108,7 +84,7 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
 
         """
-        result = QuantumProgram(specs=QPS_SPECS)
+        result = QuantumProgram(specs=self.QPS_SPECS)
         self.assertIsInstance(result, QuantumProgram)
 
     def test_create_program(self):
@@ -148,7 +124,7 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import ClassicalRegister
         """
         QP_program = QuantumProgram()
-        cr = QP_program.create_classical_register("cr", 3, verbose=False)
+        cr = QP_program.create_classical_register("cr", 3)
         self.assertIsInstance(cr, ClassicalRegister)
 
     def test_create_quantum_register(self):
@@ -162,7 +138,7 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumRegister
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 3)
         self.assertIsInstance(qr, QuantumRegister)
 
     def test_fail_create_quantum_register(self):
@@ -178,10 +154,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QISKitError
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr", 3, verbose=False)
+        qr1 = QP_program.create_quantum_register("qr", 3)
         self.assertIsInstance(qr1, QuantumRegister)
         self.assertRaises(QISKitError, QP_program.create_quantum_register,
-                          "qr", 2, verbose=False)
+                          "qr", 2)
 
     def test_fail_create_classical_register(self):
         """Test create_quantum_register.
@@ -196,11 +172,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QISKitError
         """
         QP_program = QuantumProgram()
-        cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
+        cr1 = QP_program.create_classical_register("cr", 3)
         self.assertIsInstance(cr1, ClassicalRegister)
         self.assertRaises(QISKitError,
-                          QP_program.create_classical_register, "cr", 2,
-                          verbose=False)
+                          QP_program.create_classical_register, "cr", 2)
 
     def test_create_quantum_register_same(self):
         """Test create_quantum_register of same name and size.
@@ -213,8 +188,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumRegister
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr", 3, verbose=False)
-        qr2 = QP_program.create_quantum_register("qr", 3, verbose=False)
+        qr1 = QP_program.create_quantum_register("qr", 3)
+        qr2 = QP_program.create_quantum_register("qr", 3)
         self.assertIs(qr1, qr2)
 
     def test_create_classical_register_same(self):
@@ -228,8 +203,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import ClassicalRegister
         """
         QP_program = QuantumProgram()
-        cr1 = QP_program.create_classical_register("cr", 3, verbose=False)
-        cr2 = QP_program.create_classical_register("cr", 3, verbose=False)
+        cr1 = QP_program.create_classical_register("cr", 3)
+        cr2 = QP_program.create_classical_register("cr", 3)
         self.assertIs(cr1, cr2)
 
     def test_create_classical_registers(self):
@@ -303,8 +278,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumCircuit
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
-        cr = QP_program.create_classical_register("cr", 3, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 3)
+        cr = QP_program.create_classical_register("cr", 3)
         qc = QP_program.create_circuit("qc", [qr], [cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
@@ -319,10 +294,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumCircuit
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr1", 3, verbose=False)
-        cr1 = QP_program.create_classical_register("cr1", 3, verbose=False)
-        qr2 = QP_program.create_quantum_register("qr2", 3, verbose=False)
-        cr2 = QP_program.create_classical_register("cr2", 3, verbose=False)
+        qr1 = QP_program.create_quantum_register("qr1", 3)
+        cr1 = QP_program.create_classical_register("cr1", 3)
+        qr2 = QP_program.create_quantum_register("qr2", 3)
+        cr2 = QP_program.create_classical_register("cr2", 3)
         qc1 = QP_program.create_circuit("qc1", [qr1], [cr1])
         qc2 = QP_program.create_circuit("qc2", [qr2], [cr2])
         qc3 = QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
@@ -355,12 +330,11 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        name = QP_program.load_qasm_file(QASM_FILE_PATH, name="",
-                                         verbose=False)
+        name = QP_program.load_qasm_file(self.QASM_FILE_PATH, name="")
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 554)
+        self.assertEqual(len(to_check), 430)
 
     def test_fail_load_qasm_file(self):
         """Test fail_load_qasm_file.
@@ -374,8 +348,7 @@ class TestQuantumProgram(unittest.TestCase):
         """
         QP_program = QuantumProgram()
         self.assertRaises(QISKitError,
-                          QP_program.load_qasm_file, "", name=None,
-                          verbose=False)
+                          QP_program.load_qasm_file, "", name=None)
 
     def test_load_qasm_text(self):
         """Test load_qasm_text and get_circuit.
@@ -395,11 +368,11 @@ class TestQuantumProgram(unittest.TestCase):
         QASM_string += "measure a[3]->c[3];\nmeasure b[0]->d[0];\n"
         QASM_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
         QASM_string += "measure b[3]->d[3];"
-        name = QP_program.load_qasm_text(QASM_string, verbose=False)
+        name = QP_program.load_qasm_text(QASM_string)
         result = QP_program.get_circuit(name)
         to_check = result.qasm()
         self.log.info(to_check)
-        self.assertEqual(len(to_check), 554)
+        self.assertEqual(len(to_check), 430)
 
     def test_get_register_and_circuit(self):
         """Test get_quantum_registers, get_classical_registers, and get_circuit.
@@ -411,7 +384,7 @@ class TestQuantumProgram(unittest.TestCase):
             Libraries:
                 from qiskit import QuantumProgram
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -429,10 +402,10 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        qr1 = QP_program.create_quantum_register("qr1", 3, verbose=False)
-        cr1 = QP_program.create_classical_register("cr1", 3, verbose=False)
-        qr2 = QP_program.create_quantum_register("qr2", 3, verbose=False)
-        cr2 = QP_program.create_classical_register("cr2", 3, verbose=False)
+        qr1 = QP_program.create_quantum_register("qr1", 3)
+        cr1 = QP_program.create_classical_register("cr1", 3)
+        qr2 = QP_program.create_quantum_register("qr2", 3)
+        cr2 = QP_program.create_classical_register("cr2", 3)
         QP_program.create_circuit("qc1", [qr1], [cr1])
         QP_program.create_circuit("qc2", [qr2], [cr2])
         QP_program.create_circuit("qc2", [qr1, qr2], [cr1, cr2])
@@ -452,7 +425,7 @@ class TestQuantumProgram(unittest.TestCase):
             Libraries:
                 from qiskit import QuantumProgram
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -476,8 +449,8 @@ class TestQuantumProgram(unittest.TestCase):
                 from qiskit import QuantumProgram
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 3, verbose=False)
-        cr = QP_program.create_classical_register("cr", 3, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 3)
+        cr = QP_program.create_classical_register("cr", 3)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
         qc1.h(qr[0])
@@ -503,7 +476,7 @@ class TestQuantumProgram(unittest.TestCase):
             Libraries:
                 from qiskit import QuantumProgram
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -535,7 +508,7 @@ class TestQuantumProgram(unittest.TestCase):
             Libraries:
                 from qiskit import QuantumProgram
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_initial_circuit()
         self.assertIsInstance(qc, QuantumCircuit)
 
@@ -544,7 +517,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         Save a Quantum Program in Json file
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
 
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
@@ -561,7 +534,8 @@ class TestQuantumProgram(unittest.TestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        result = QP_program.save("./test/python/test_save.json", beauty=True)
+        result = QP_program.save(self._get_resource_path('test_save.json'),
+                                 beauty=True)
 
         self.assertEqual(result['status'], 'Done')
 
@@ -570,7 +544,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         Save a Quantum Program in Json file: Errors Control
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         self.assertRaises(LookupError, QP_program.load)
 
     def test_load(self):
@@ -578,20 +552,21 @@ class TestQuantumProgram(unittest.TestCase):
 
         Load a Json Quantum Program
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
 
-        result = QP_program.load("./test/python/test_load.json")
+        result = QP_program.load(self._get_resource_path('test_load.json'))
         self.assertEqual(result['status'], 'Done')
 
         check_result = QP_program.get_qasm('circuitName')
-        self.assertEqual(len(check_result), 1872)
+        self.log.info(check_result)
+        self.assertEqual(len(check_result), 1662)
 
     def test_load_wrong(self):
         """Test load Json.
 
         Load a Json Quantum Program: Errors Control.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         self.assertRaises(LookupError, QP_program.load)
 
     ###############################################################
@@ -604,7 +579,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct is should be true.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         config = QP_program.get_api_config()
         self.assertTrue(config)
@@ -615,7 +590,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct some should exists (even if offline).
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         available_backends = QP_program.available_backends()
         self.assertTrue(available_backends)
@@ -625,8 +600,8 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct some should exists (even if ofline).
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
-        local_backends = QP_program.local_backends()
+        _ = QuantumProgram(specs=self.QPS_SPECS)
+        local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -636,7 +611,7 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct some should exists.
         """
         # TODO: Jay should we check if we the QX is online before runing.
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         online_backends = QP_program.online_backends()
         self.log.info(online_backends)
@@ -649,7 +624,7 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct some should exists. NEED internet connection for this.
         """
         # TODO: Jay should we check if we the QX is online before runing.
-        qp = QuantumProgram(specs=QPS_SPECS)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_devices = qp.online_devices()
         self.log.info(online_devices)
@@ -662,7 +637,7 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct some should exists. NEED internet connection for this.
         """
         # TODO: Jay should we check if we the QX is online before runing.
-        qp = QuantumProgram(specs=QPS_SPECS)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_simulators = qp.online_simulators()
         self.log.info(online_simulators)
@@ -673,7 +648,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return dictionary with available: True/False.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         out = QP_program.get_backend_status("local_qasm_simulator")
         self.assertIn(out['available'], [True])
 
@@ -682,7 +657,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return dictionary with available: True/False.
         """
-        qp = QuantumProgram(specs=QPS_SPECS)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
         self.assertRaises(ValueError, qp.get_backend_status, "fail")
 
     def test_get_backend_configuration(self):
@@ -691,19 +666,20 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return configuration for the
         local_qasm_simulator.
         """
-        qp = QuantumProgram(specs=QPS_SPECS)
-        test = len(qp.get_backend_configuration("local_qasm_simulator"))
-        self.assertEqual(test, 6)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
+        config_keys = {'name', 'simulator', 'local', 'description',
+                       'coupling_map', 'basis_gates'}
+        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        self.assertTrue(config_keys < backend_config.keys())
 
     def test_get_backend_configuration_fail(self):
         """Test get_backend_configuration fail.
 
         If all correct should return LookupError.
         """
-        qp = QuantumProgram(specs=QPS_SPECS)
+        qp = QuantumProgram(specs=self.QPS_SPECS)
         # qp.get_backend_configuration("fail")
         self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
-
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_get_backend_calibration(self):
@@ -711,7 +687,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return dictionay on length 4.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend_list = QP_program.online_backends()
         if backend_list:
@@ -726,7 +702,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return dictionay on length 4.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend_list = QP_program.online_backends()
         if backend_list:
@@ -744,7 +720,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return COMPLETED.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -752,10 +728,10 @@ class TestQuantumProgram(unittest.TestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'test'
+        backend = 'local_qasm_simulator'
         coupling_map = None
         out = QP_program.compile(['circuitName'], backend=backend,
-                                 coupling_map=coupling_map, qobjid='cooljob')
+                                 coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
         self.assertEqual(len(out), 3)
 
@@ -764,7 +740,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return lenght 6 dictionary.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -785,7 +761,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should return lenght  dictionary.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -799,14 +775,14 @@ class TestQuantumProgram(unittest.TestCase):
                                   coupling_map=coupling_map)
         result = QP_program.get_compiled_qasm(qobj, 'circuitName',)
         self.log.info(result)
-        self.assertEqual(len(result), 184)
+        self.assertEqual(len(result), 181)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
 
         If all correct should return {'local_qasm_simulator': ['circuitName']}.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = QP_program.get_circuit("circuitName")
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
@@ -817,8 +793,8 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'local_qasm_simulator'
         coupling_map = None
         qobj = QP_program.compile(['circuitName'], backend=backend,
-                                  coupling_map=coupling_map, qobjid="cooljob")
-        result = QP_program.get_execution_list(qobj)
+                                  coupling_map=coupling_map, qobj_id='cooljob')
+        result = QP_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
         self.assertEqual(result, ['circuitName'])
 
@@ -829,8 +805,8 @@ class TestQuantumProgram(unittest.TestCase):
         be different.
         """
         QP_program = QuantumProgram()
-        q = QP_program.create_quantum_register("q", 3, verbose=False)
-        c = QP_program.create_classical_register("c", 3, verbose=False)
+        q = QP_program.create_quantum_register("q", 3)
+        c = QP_program.create_classical_register("c", 3)
         qc = QP_program.create_circuit("circuitName", [q], [c])
         qc.h(q[0])
         qc.cx(q[0], q[1])
@@ -853,6 +829,42 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result.get_counts("circuitName"),
                          {'000': 518, '111': 506})
 
+    def test_change_circuit_qobj_after_compile(self):
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
+        qobj1 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                   seed=88, config=config)
+        qobj1['circuits'][0]['config']['shots'] = 50
+        qobj1['circuits'][0]['config']['xvals'] = [1, 1, 1]
+        config['shots'] = 1000
+        config['xvals'][0] = 'only for qobj2'
+        qobj2 = QP_program.compile(circuits, backend=backend, shots=shots,
+                                   seed=88, config=config)
+        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
+        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
+        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1, 1, 1])
+        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1, 2, 3, 4])
+        self.assertTrue(qobj1['config']['shots'] == 1024)
+        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
+        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
+        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
+            'only for qobj2', 2, 3, 4])
+
     ###############################################################
     # Test for running programs
     ###############################################################
@@ -862,7 +874,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should the data.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
@@ -885,6 +897,138 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
                                     '100': 117, '000': 129, '101': 126,
                                     '010': 145, '011': 125})
+
+    def test_run_async_program(self):
+        """Test run_async.
+
+        If all correct should the data.
+        """
+        def _job_done_callback(result):
+            try:
+                results2 = result.get_counts('qc2')
+                results3 = result.get_counts('qc3')
+                self.assertEqual(results2, {'000': 518, '111': 506})
+                self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
+                                            '100': 117, '000': 129, '101': 126,
+                                            '010': 145, '011': 125})
+            except Exception as e:
+                self.qp_program_exception = e
+            finally:
+                self.qp_program_finished = True
+
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88)
+
+        self.qp_program_finished = False
+        self.qp_program_exception = None
+        _ = QP_program.run_async(qobj, callback=_job_done_callback)
+
+        while not self.qp_program_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.qp_program_exception:
+            raise self.qp_program_exception
+
+    def test_run_batch(self):
+        """Test run_batch
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj_list = [
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88)
+        ]
+
+        results = QP_program.run_batch(qobj_list)
+        for result in results:
+            counts2 = result.get_counts('qc2')
+            counts3 = result.get_counts('qc3')
+            self.assertEqual(counts2, {'000': 518, '111': 506})
+            self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
+                                       '100': 117, '000': 129, '101': 126,
+                                       '010': 145, '011': 125})
+
+    def test_run_batch_async(self):
+        """Test run_batch_async
+
+        If all correct should the data.
+        """
+        def _jobs_done_callback(results):
+            try:
+                for result in results:
+                    counts2 = result.get_counts('qc2')
+                    counts3 = result.get_counts('qc3')
+                    self.assertEqual(counts2, {'000': 518, '111': 506})
+                    self.assertEqual(counts3, {'001': 119, '111': 129,
+                                               '110': 134, '100': 117,
+                                               '000': 129, '101': 126,
+                                               '010': 145, '011': 125})
+            except Exception as e:
+                self.qp_program_exception = e
+            finally:
+                self.qp_program_finished = True
+
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc3 = QP_program.create_circuit("qc3", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc3.h(qr)
+        qc2.measure(qr, cr)
+        qc3.measure(qr, cr)
+        circuits = ['qc2', 'qc3']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj_list = [
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88),
+            QP_program.compile(circuits, backend=backend, shots=shots, seed=88)
+        ]
+
+        self.qp_program_finished = False
+        self.qp_program_exception = None
+        _ = QP_program.run_batch_async(qobj_list, callback=_jobs_done_callback)
+        while not self.qp_program_finished:
+            # Wait until the job_done_callback is invoked and completed.
+            pass
+
+        if self.qp_program_exception:
+            raise self.qp_program_exception
 
     def test_combine_results(self):
         """Test run.
@@ -914,7 +1058,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should the data.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
@@ -947,7 +1091,7 @@ class TestQuantumProgram(unittest.TestCase):
 
         If all correct should the quantum state.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
@@ -982,8 +1126,8 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should the h otimes h and cx.
         """
         QP_program = QuantumProgram()
-        q = QP_program.create_quantum_register("q", 2, verbose=False)
-        c = QP_program.create_classical_register("c", 2, verbose=False)
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
         qc1 = QP_program.create_circuit("qc1", [q], [c])
         qc2 = QP_program.create_circuit("qc2", [q], [c])
         qc1.h(q)
@@ -996,8 +1140,8 @@ class TestQuantumProgram(unittest.TestCase):
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
                                  [0.5, 0.5, -0.5, -0.5],
                                  [0.5, -0.5, -0.5, 0.5]])
-        unitaryreal2 = np.array([[1,  0,  0, 0], [0, 0,  0,  1],
-                                 [0.,  0, 1, 0], [0,  1,  0,  0]])
+        unitaryreal2 = np.array([[1, 0, 0, 0], [0, 0, 0, 1],
+                                 [0., 0, 1, 0], [0, 1, 0, 0]])
         norm1 = np.trace(np.dot(np.transpose(np.conj(unitaryreal1)), unitary1))
         norm2 = np.trace(np.dot(np.transpose(np.conj(unitaryreal2)), unitary2))
         self.assertAlmostEqual(norm1, 4)
@@ -1016,7 +1160,7 @@ class TestQuantumProgram(unittest.TestCase):
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
-        QP_program.load_qasm_file(QASM_FILE_PATH_2, name="circuit-dev")
+        QP_program.load_qasm_file(self.QASM_FILE_PATH_2, name="circuit-dev")
         circuits = ["circuit-dev"]
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
                                   max_credits=max_credits, seed=65,
@@ -1038,7 +1182,7 @@ class TestQuantumProgram(unittest.TestCase):
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
-        QP_program.load_qasm_file(QASM_FILE_PATH_2, "circuit-dev")
+        QP_program.load_qasm_file(self.QASM_FILE_PATH_2, "circuit-dev")
         circuits = ["circuit-dev"]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
                                     max_credits=max_credits,
@@ -1052,8 +1196,8 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return the data.
         """
         QP_program = QuantumProgram()
-        q = QP_program.create_quantum_register("q", 2, verbose=False)
-        c = QP_program.create_classical_register("c", 2, verbose=False)
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
         qc = QP_program.create_circuit("qc", [q], [c])
         qc.h(q[0])
         qc.cx(q[0], q[1])
@@ -1069,9 +1213,9 @@ class TestQuantumProgram(unittest.TestCase):
         meanzi = results.average_data("qc", observable)
         observable = {"00": 1, "11": -1, "01": -1, "10": 1}
         meaniz = results.average_data("qc", observable)
-        self.assertAlmostEqual(meanzz,  1, places=1)
-        self.assertAlmostEqual(meanzi,  0, places=1)
-        self.assertAlmostEqual(meaniz,  0, places=1)
+        self.assertAlmostEqual(meanzz, 1, places=1)
+        self.assertAlmostEqual(meanzi, 0, places=1)
+        self.assertAlmostEqual(meaniz, 0, places=1)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_one_circuit_simulator_online(self):
@@ -1080,8 +1224,8 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return the data.
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("q", 1, verbose=False)
-        cr = QP_program.create_classical_register("c", 1, verbose=False)
+        qr = QP_program.create_quantum_register("q", 1)
+        cr = QP_program.create_classical_register("c", 1)
         qc = QP_program.create_circuit("qc", [qr], [cr])
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
@@ -1090,7 +1234,7 @@ class TestQuantumProgram(unittest.TestCase):
         backend = QP_program.online_simulators()[0]
         # print(backend)
         result = QP_program.execute(['qc'], backend=backend,
-                                    shots=shots, max_credits=3, silent=True,
+                                    shots=shots, max_credits=3,
                                     seed=73846087)
         counts = result.get_counts('qc')
         self.assertEqual(counts, {'0': 498, '1': 526})
@@ -1102,19 +1246,18 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return the data.
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("q", 25, verbose=False)
-        cr = QP_program.create_classical_register("c", 25, verbose=False)
+        qr = QP_program.create_quantum_register("q", 25)
+        cr = QP_program.create_classical_register("c", 25)
         qc = QP_program.create_circuit("qc", [qr], [cr])
         qc.h(qr)
         qc.measure(qr, cr)
         shots = 1  # the number of shots in the experiment.
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend = QP_program.online_simulators()[0]
-        # print(backend)
-        # result = QP_program.execute(['qc'], backend=backend,
-                           # shots=shots, max_credits=3, silent=True,
-                           # seed=73846087)
-        #TODO: THIS SHOULD GIVE AN ERROR MESSAGE THAT SIMULATION IS TOO LARGE
+        backend = 'ibmqx_qasm_simulator'
+        result = QP_program.execute(['qc'], backend=backend,
+                                    shots=shots, max_credits=3,
+                                    seed=73846087)
+        self.assertRaises(RegisterSizeError, result.get_data, 'qc')
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_execute_several_circuits_simulator_online(self):
@@ -1123,8 +1266,8 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return the data.
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("q", 2, verbose=False)
-        cr = QP_program.create_classical_register("c", 2, verbose=False)
+        qr = QP_program.create_quantum_register("q", 2)
+        cr = QP_program.create_classical_register("c", 2)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
         qc1.h(qr)
@@ -1139,12 +1282,11 @@ class TestQuantumProgram(unittest.TestCase):
         QP_program.set_api(QE_TOKEN, QE_URL)
         backend = QP_program.online_simulators()[0]
         result = QP_program.execute(circuits, backend=backend, shots=shots,
-                                    max_credits=3, silent=True,
-                                    seed=1287126141)
+                                    max_credits=3, seed=1287126141)
         counts1 = result.get_counts('qc1')
         counts2 = result.get_counts('qc2')
-        self.assertEqual(counts1,  {'10': 277, '11': 238, '01': 258,
-                                    '00': 251})
+        self.assertEqual(counts1, {'10': 277, '11': 238, '01': 258,
+                                   '00': 251})
         self.assertEqual(counts2, {'11': 515, '00': 509})
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -1154,18 +1296,16 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return a result object
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 1, verbose=False)
-        cr = QP_program.create_classical_register("cr", 1, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 1)
+        cr = QP_program.create_classical_register("cr", 1)
         qc = QP_program.create_circuit("circuitName", [qr], [cr])
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         QP_program.set_api(QE_TOKEN, QE_URL)
-        backend_list = QP_program.online_backends()
-        if backend_list:
-            backend = backend_list[0]
+        backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
         status = QP_program.get_backend_status(backend)
-        if status['available'] is False:
+        if not status.get('available', False):
             pass
         else:
             result = QP_program.execute(['circuitName'], backend=backend,
@@ -1178,10 +1318,10 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should the data.
         """
         QP_program = QuantumProgram()
-        q1 = QP_program.create_quantum_register("q1", 2, verbose=False)
-        c1 = QP_program.create_classical_register("c1", 2, verbose=False)
-        q2 = QP_program.create_quantum_register("q2", 2, verbose=False)
-        c2 = QP_program.create_classical_register("c2", 2, verbose=False)
+        q1 = QP_program.create_quantum_register("q1", 2)
+        c1 = QP_program.create_classical_register("c1", 2)
+        q2 = QP_program.create_quantum_register("q2", 2)
+        c2 = QP_program.create_classical_register("c2", 2)
         qc1 = QP_program.create_circuit("qc1", [q1, q2], [c1, c2])
         qc2 = QP_program.create_circuit("qc2", [q1, q2], [c1, c2])
 
@@ -1212,10 +1352,10 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should the data.
         """
         QP_program = QuantumProgram()
-        q1 = QP_program.create_quantum_register("q1", 2, verbose=False)
-        c1 = QP_program.create_classical_register("c1", 2, verbose=False)
-        q2 = QP_program.create_quantum_register("q2", 2, verbose=False)
-        c2 = QP_program.create_classical_register("c2", 2, verbose=False)
+        q1 = QP_program.create_quantum_register("q1", 2)
+        c1 = QP_program.create_classical_register("c1", 2)
+        q2 = QP_program.create_quantum_register("q2", 2)
+        c2 = QP_program.create_classical_register("c2", 2)
         qc1 = QP_program.create_circuit("qc1", [q1, q2], [c1, c2])
         qc2 = QP_program.create_circuit("qc2", [q1, q2], [c1, c2])
 
@@ -1240,7 +1380,6 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result1, {'00 01': 1024})
         self.assertEqual(result2, {'10 00': 1024})
 
-
     ###############################################################
     # More test cases for interesting examples
     ###############################################################
@@ -1251,8 +1390,8 @@ class TestQuantumProgram(unittest.TestCase):
         If all correct should return the data
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 2, verbose=False)
-        cr = QP_program.create_classical_register("cr", 2, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 2)
+        cr = QP_program.create_classical_register("cr", 2)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
         qc1.h(qr[0])
@@ -1276,10 +1415,10 @@ class TestQuantumProgram(unittest.TestCase):
         If the circuits have different registers it should return a QISKitError
         """
         QP_program = QuantumProgram()
-        qr = QP_program.create_quantum_register("qr", 1, verbose=False)
-        cr = QP_program.create_classical_register("cr", 1, verbose=False)
-        q = QP_program.create_quantum_register("q", 1, verbose=False)
-        c = QP_program.create_classical_register("c", 1, verbose=False)
+        qr = QP_program.create_quantum_register("qr", 1)
+        cr = QP_program.create_classical_register("cr", 1)
+        q = QP_program.create_quantum_register("q", 1)
+        c = QP_program.create_classical_register("c", 1)
         qc1 = QP_program.create_circuit("qc1", [qr], [cr])
         qc2 = QP_program.create_circuit("qc2", [q], [c])
         qc1.h(qr[0])
@@ -1299,25 +1438,27 @@ class TestQuantumProgram(unittest.TestCase):
                         3: [2, 4],
                         4: [2]}
         QPS_SPECS = {
-            "circuits": [{
-                "name": "ghz",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": 5
-                }],
-                "classical_registers": [{
-                    "name": "c",
-                    "size": 5}
-                ]}, {
-                "name": "bell",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": 5
-                }],
-                "classical_registers": [{
-                    "name": "c",
-                    "size": 5
-                }]}
+            "circuits": [
+                {
+                    "name": "ghz",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                },
+                {
+                    "name": "bell",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                }
             ]
         }
         qp = QuantumProgram(specs=QPS_SPECS)
@@ -1373,24 +1514,32 @@ class TestQuantumProgram(unittest.TestCase):
             qc.cx(q0, q1)
         n = 3  # make this at least 3
         QPS_SPECS = {
-            "circuits": [{
-                "name": "swapping",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": n},
-                    {"name": "r",
-                     "size": n}
-                ],
-                "classical_registers": [
-                    {"name": "ans",
-                     "size": 2*n},
-                ]
-            }]
+            "circuits": [
+                {
+                    "name": "swapping",
+                    "quantum_registers": [
+                        {
+                            "name": "q",
+                            "size": n
+                        },
+                        {
+                            "name": "r",
+                            "size": n
+                        }
+                    ],
+                    "classical_registers": [
+                        {
+                            "name": "ans",
+                            "size": 2*n
+                        },
+                    ]
+                }
+            ]
         }
         qp = QuantumProgram(specs=QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         if backend not in qp.online_simulators():
-            return
+            unittest.skip('backend "{}" not available'.format(backend))
         qc = qp.get_circuit("swapping")
         q = qp.get_quantum_register("q")
         r = qp.get_quantum_register("r")
@@ -1421,6 +1570,175 @@ class TestQuantumProgram(unittest.TestCase):
         self.assertEqual(result.get_counts("swapping"),
                          {'010000': 1024})
 
+    def test_offline(self):
+        import string
+        import random
+        qp = QuantumProgram()
+        FAKE_TOKEN = 'thistokenisnotgoingtobesentnowhere'
+        FAKE_URL = 'http://{0}.com'.format(
+            ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
+        )
+        # SDK will throw ConnectionError on every call that implies a connection
+        self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+
+    def test_results_save_load(self):
+        """Test saving and loading the results of a circuit.
+
+        Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
+        """
+        QP_program = QuantumProgram()
+        metadata = {'testval': 5}
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc1.h(q)
+        qc2.cx(q[0], q[1])
+        circuits = ['qc1', 'qc2']
+
+        result1 = QP_program.execute(circuits, backend='local_unitary_simulator')
+        result2 = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        test_1_path = self._get_resource_path('test_save_load1.json')
+        test_2_path = self._get_resource_path('test_save_load2.json')
+
+        # delete these files if they exist
+        if os.path.exists(test_1_path):
+            os.remove(test_1_path)
+
+        if os.path.exists(test_2_path):
+            os.remove(test_2_path)
+
+        file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
+        file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
+
+        _, metadata_loaded1 = file_io.load_result_from_file(file1)
+        _, metadata_loaded2 = file_io.load_result_from_file(file1)
+
+        self.assertAlmostEqual(metadata_loaded1['testval'], 5)
+        self.assertAlmostEqual(metadata_loaded2['testval'], 5)
+
+        # remove files to keep directory clean
+        os.remove(file1)
+        os.remove(file2)
+
+    def test_qubitpol(self):
+        """Test the results of the qubitpol function in Results. Do two 2Q circuits
+        in the first do nothing and in the second do X on the first qubit.
+        """
+        QP_program = QuantumProgram()
+        q = QP_program.create_quantum_register("q", 2)
+        c = QP_program.create_classical_register("c", 2)
+        qc1 = QP_program.create_circuit("qc1", [q], [c])
+        qc2 = QP_program.create_circuit("qc2", [q], [c])
+        qc2.x(q[0])
+        qc1.measure(q, c)
+        qc2.measure(q, c)
+        circuits = ['qc1', 'qc2']
+        xvals_dict = {circuits[0]: 0, circuits[1]: 1}
+
+        result = QP_program.execute(circuits, backend='local_qasm_simulator')
+
+        yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
+
+        self.assertTrue(np.array_equal(yvals, [[-1, -1], [1, -1]]))
+        self.assertTrue(np.array_equal(xvals, [0, 1]))
+
+    def test_ccx(self):
+        """Checks a CCNOT gate.
+
+        Based on https://github.com/QISKit/qiskit-sdk-py/pull/172.
+        """
+        Q_program = QuantumProgram()
+        q = Q_program.create_quantum_register('q', 3)
+        c = Q_program.create_classical_register('c', 3)
+        pqm = Q_program.create_circuit('pqm', [q], [c])
+
+        # Toffoli gate.
+        pqm.ccx(q[0], q[1], q[2])
+
+        # Measurement.
+        for k in range(3):
+            pqm.measure(q[k], c[k])
+
+        # Prepare run.
+        circuits = ['pqm']
+        backend = 'local_qasm_simulator'
+        shots = 1024  # the number of shots in the experiment
+
+        # Run.
+        result = Q_program.execute(circuits, backend=backend, shots=shots,
+                                   max_credits=3, wait=10, timeout=240)
+
+        self.assertEqual({'000': 1024}, result.get_counts('pqm'))
+
+    def test_reconfig(self):
+        """Test reconfiguring the qobj from 1024 shots to 2048 using
+        reconfig instead of recompile
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        qc2.measure(qr[2], cr[2])
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        test_config = {'0': 0, '1': 1}
+        qobj = QP_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
+        out = QP_program.run(qobj)
+        results = out.get_counts('qc2')
+
+        # change the number of shots and re-run to test if the reconfig does not break
+        # the ability to run the qobj
+        qobj = QP_program.reconfig(qobj, shots=2048)
+        out2 = QP_program.run(qobj)
+        results2 = out2.get_counts('qc2')
+
+        self.assertEqual(results, {'000': 1024})
+        self.assertEqual(results2, {'000': 2048})
+
+        # change backend
+        qobj = QP_program.reconfig(qobj, backend='local_unitary_simulator')
+        self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
+        # change maxcredits
+        qobj = QP_program.reconfig(qobj, max_credits=11)
+        self.assertEqual(qobj['config']['max_credits'], 11)
+        # change seed
+        qobj = QP_program.reconfig(qobj, seed=11)
+        self.assertEqual(qobj['circuits'][0]['seed'], 11)
+        # change the config
+        test_config_2 = {'0': 2}
+        qobj = QP_program.reconfig(qobj, config=test_config_2)
+        self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
+        self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
+
+    def test_timeout(self):
+        """Test run.
+
+        If all correct should the data.
+        """
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
+        qr = QP_program.get_quantum_register("qname")
+        cr = QP_program.get_classical_register("cname")
+        qc2 = QP_program.create_circuit("qc2", [qr], [cr])
+        qc2.h(qr[0])
+        qc2.cx(qr[0], qr[1])
+        qc2.cx(qr[0], qr[2])
+        qc2.measure(qr, cr)
+        circuits = ['qc2']
+        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator'
+        qobj = QP_program.compile(circuits, backend=backend, shots=shots,
+                                  seed=88)
+        try:
+            _ = QP_program.run(qobj, timeout=0.01)
+            raise Exception("Should timeout! but it didn't!")
+        except QISKitError as ex:
+            self.assertEqual(
+                ex.message, 'Error waiting for Job results: Timeout after 0.01 seconds.')
+
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
     def test_hpc_parameter_is_correct(self):
         """Test for checking HPC parameter in compile() method.
@@ -1428,7 +1746,7 @@ class TestQuantumProgram(unittest.TestCase):
         It will warn the user if the parameter is passed correctly but the
         backend is not ibmqx_hpc_qasm_simulator.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
@@ -1441,8 +1759,9 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'ibmqx_hpc_qasm_simulator'
         QP_program.set_api(QE_TOKEN, QE_URL)
         qobj = QP_program.compile(circuits, backend=backend, shots=shots,
-                    seed=88, hpc={'multi_shot_optimization': True,
-                                  'omp_num_threads': 16})
+                                  seed=88,
+                                  hpc={'multi_shot_optimization': True,
+                                       'omp_num_threads': 16})
         self.assertTrue(qobj)
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
@@ -1451,7 +1770,7 @@ class TestQuantumProgram(unittest.TestCase):
         It must be only used when the backend is ibmqx_hpc_qasm_simulator.
         If the parameter format is incorrect, it will raise a QISKitError.
         """
-        QP_program = QuantumProgram(specs=QPS_SPECS)
+        QP_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = QP_program.get_quantum_register("qname")
         cr = QP_program.get_classical_register("cname")
         qc2 = QP_program.create_circuit("qc2", [qr], [cr])
@@ -1464,8 +1783,9 @@ class TestQuantumProgram(unittest.TestCase):
         backend = 'ibmqx_hpc_qasm_simulator'
         QP_program.set_api(QE_TOKEN, QE_URL)
         self.assertRaises(QISKitError, QP_program.compile, circuits,
-            backend=backend, shots=shots, seed=88, hpc={'invalid_key': None})
+                          backend=backend, shots=shots, seed=88,
+                          hpc={'invalid_key': None})
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

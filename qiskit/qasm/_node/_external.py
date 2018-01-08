@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=invalid-name
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
 """
 Node for an OPENQASM external function.
 """
-import math
+import sympy
 from ._node import Node
 from ._nodeexception import NodeException
 
@@ -41,20 +41,24 @@ class External(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        return "\\" + self.children[0].latex(prec, None) + "({" + \
-               self.children[1].latex(prec, nested_scope) + "})"
+        # pylint: disable=unused-argument
+        # TODO prec ignored
+        return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': math.sin,
-            'cos': math.cos,
-            'tan': math.tan,
-            'exp': math.exp,
-            'ln': math.log,
-            'sqrt': math.sqrt
+            'sin': sympy.sin,
+            'cos': sympy.cos,
+            'tan': sympy.tan,
+            'asin': sympy.asin,
+            'acos': sympy.acos,
+            'atan': sympy.atan,
+            'exp': sympy.exp,
+            'ln': sympy.log,
+            'sqrt': sympy.sqrt
         }
         if op in dispatch:
             arg = expr.real(nested_scope)
@@ -62,4 +66,23 @@ class External(Node):
         else:
             raise NodeException("internal error: undefined external")
 
-        pass
+    def sym(self, nested_scope=None):
+        """Return the corresponding symbolic expression."""
+        op = self.children[0].name
+        expr = self.children[1]
+        dispatch = {
+            'sin': sympy.sin,
+            'cos': sympy.cos,
+            'tan': sympy.tan,
+            'asin': sympy.asin,
+            'acos': sympy.acos,
+            'atan': sympy.atan,
+            'exp': sympy.exp,
+            'ln': sympy.log,
+            'sqrt': sympy.sqrt
+        }
+        if op in dispatch:
+            arg = expr.sym(nested_scope)
+            return dispatch[op](arg)
+        else:
+            raise NodeException("internal error: undefined external")

@@ -23,9 +23,12 @@ by creating a stack of lexers.
 """
 
 import os
+
 import ply.lex as lex
-from ._qasmerror import QasmError
+from sympy import Number
+
 from . import _node as node
+from ._qasmerror import QasmError
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
@@ -37,6 +40,8 @@ class QasmLexer(object):
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
+    # pylint: disable=invalid-name,missing-docstring,unused-argument
+    # pylint: disable=attribute-defined-outside-init
 
     def __mklexer__(self, filename):
         """Create a PLY lexer."""
@@ -76,61 +81,39 @@ class QasmLexer(object):
         self.lexer.input(self.data)
 
     # ---- Beginning of the PLY lexer ----
-    literals = r'=()[]{};<>,.+-/*"'
-    tokens = (
+    literals = r'=()[]{};<>,.+-/*^"'
+    reserved = {
+        'barrier': 'BARRIER',
+        'creg': 'CREG',
+        'gate': 'GATE',
+        'if': 'IF',
+        'measure': 'MEASURE',
+        'opaque': 'OPAQUE',
+        'qreg': 'QREG',
+        'pi': 'PI',
+        'reset': 'RESET',
+    }
+    tokens = [
         'NNINTEGER',
-        'BARRIER',
-        'OPAQUE',
-        'RESET',
-        'IF',
         'REAL',
-        'QREG',
-        'CREG',
-        'GATE',
-        'PI',
         'CX',
         'U',
-        'MEASURE',
         'MAGIC',
         'ASSIGN',
         'MATCHES',
         'ID',
         'STRING',
-    )
+    ] + list(reserved.values())
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
-        t.value = float(t.value)
+        t.value = Number(t.value)
         # tad nasty, see mkfloat.py to see how this is derived from python spec
         return t
 
     def t_NNINTEGER(self, t):
         r'[1-9]+[0-9]*|0'
         t.value = int(t.value)
-        return t
-
-    def t_QREG(self, t):
-        'qreg'
-        return t
-
-    def t_CREG(self, t):
-        'creg'
-        return t
-
-    def t_GATE(self, t):
-        'gate'
-        return t
-
-    def t_MEASURE(self, t):
-        'measure'
-        return t
-
-    def t_IF(self, t):
-        'if'
-        return t
-
-    def t_RESET(self, t):
-        'reset'
         return t
 
     def t_ASSIGN(self, t):
@@ -141,51 +124,40 @@ class QasmLexer(object):
         '=='
         return t
 
-    def t_BARRIER(self, t):
-        'barrier'
-        return t
-
-    def t_OPAQUE(self, t):
-        'opaque'
-        return t
-
     def t_STRING(self, t):
         r'\"([^\\\"]|\\.)*\"'
         return t
 
     def t_INCLUDE(self, t):
         'include'
-
-        '''
-        Now eat up the next two tokens which must be
-        1 - the name of the include file, and
-        2 - a terminating semicolon
-
-        Then push the current lexer onto the stack, create a new one from
-        the include file, and push it onto the stack.
-
-        When we hit eof (the t_eof) rule, we pop.
-        '''
-        next = self.lexer.token()
-        lineno = next.lineno
+        #
+        # Now eat up the next two tokens which must be
+        # 1 - the name of the include file, and
+        # 2 - a terminating semicolon
+        #
+        # Then push the current lexer onto the stack, create a new one from
+        # the include file, and push it onto the stack.
+        #
+        # When we hit eof (the t_eof) rule, we pop.
+        next_token = self.lexer.token()
+        lineno = next_token.lineno
         # print('NEXT', next, "next.value", next.value, type(next))
-        if isinstance(next.value, str):
-            incfile = next.value.strip('"')
+        if isinstance(next_token.value, str):
+            incfile = next_token.value.strip('"')
         else:
             raise QasmError("Invalid include: must be a quoted string.")
 
         if incfile in CORE_LIBS:
             incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
-        next = self.lexer.token()
-        if next is None or next.value != ';':
-            raise QasmError('Invalid syntax, missing ";" at line',
-                                str(lineno))
+        next_token = self.lexer.token()
+        if next_token is None or next_token.value != ';':
+            raise QasmError('Invalid syntax, missing ";" at line', str(lineno))
 
         if not os.path.exists(incfile):
-            raise QasmError('Include file', incfile,
-                                'cannot be found, line', str(next.lineno),
-                                ', file', self.filename)
+            raise QasmError(
+                'Include file %s cannot be found, line %s, file %s' %
+                (incfile, str(next_token.lineno), self.filename))
         self.push(incfile)
         return self.lexer.token()
 
@@ -208,11 +180,9 @@ class QasmLexer(object):
     def t_ID(self, t):
         r'[a-z][a-zA-Z0-9_]*'
 
-        if t.value == 'pi':
-            t.type = 'PI'
-            return t
-
-        t.value = node.Id(t.value, self.lineno, self.filename)
+        t.type = self.reserved.get(t.value, 'ID')
+        if t.type == 'ID':
+            t.value = node.Id(t.value, self.lineno, self.filename)
         return t
 
     def t_newline(self, t):
@@ -221,11 +191,10 @@ class QasmLexer(object):
         t.lexer.lineno = self.lineno
 
     def t_eof(self, t):
-        if len(self.stack) > 0:
+        if self.stack:
             self.pop()
             return self.lexer.token()
-        else:
-            return None
+        return None
 
     t_ignore = ' \t\r'
 

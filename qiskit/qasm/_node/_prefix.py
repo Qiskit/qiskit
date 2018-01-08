@@ -18,14 +18,15 @@
 """
 Node for an OPENQASM prefix expression.
 """
+import sympy
+
 from ._node import Node
-from ._nodeexception import NodeException
 
 
 class Prefix(Node):
     """Node for an OPENQASM prefix expression.
 
-    children[0] is a prefix string such as '-'.
+    children[0] is a unary operator node.
     children[1] is an expression node.
     """
 
@@ -35,20 +36,22 @@ class Prefix(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return self.children[0] + "(" + self.children[1].qasm(prec) + ")"
+        return self.children[0].value + "(" + self.children[1].qasm(prec) + ")"
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        return self.children[0] + "(" + \
-            self.children[1].latex(prec, nested_scope) + ")"
+        # pylint: disable=unused-argument
+        # TODO prec ignored
+        return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        operation = self.children[0]
+        operation = self.children[0].operation()
         expr = self.children[1].real(nested_scope)
-        if operation == '+':
-            return expr
-        elif operation == '-':
-            return -expr
-        else:
-            raise NodeException("internal error: undefined prefix")
+        return operation(expr)
+
+    def sym(self, nested_scope=None):
+        """Return the correspond symbolic number."""
+        operation = self.children[0].operation()
+        expr = self.children[1].sym(nested_scope)
+        return operation(expr)

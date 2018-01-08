@@ -26,6 +26,7 @@ class UnrollerBackend(object):
 
     This backend also serves as a base class for other unroller backends.
     """
+    # pylint: disable=unused-argument
 
     def __init__(self, basis=None):
         """Setup this backend.
@@ -34,7 +35,6 @@ class UnrollerBackend(object):
         """
         if basis:
             basis = []
-        raise BackendError("Backend __init__ unimplemented")
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit.
@@ -82,6 +82,7 @@ class UnrollerBackend(object):
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
+        # pylint: disable=invalid-name
         raise BackendError("Backend u unimplemented")
 
     def cx(self, qubit0, qubit1):
@@ -90,6 +91,7 @@ class UnrollerBackend(object):
         qubit0 is (regname,idx) tuple for the control qubit.
         qubit1 is (regname,idx) tuple for the target qubit.
         """
+        # pylint: disable=invalid-name
         raise BackendError("Backend cx unimplemented")
 
     def measure(self, qubit, bit):

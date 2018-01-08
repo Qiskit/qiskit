@@ -23,6 +23,7 @@ from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Barrier(Instruction):
@@ -57,12 +58,12 @@ class Barrier(Instruction):
 def barrier(self, *tuples):
     """Apply barrier to tuples (reg, idx)."""
     tuples = list(tuples)
-    if len(tuples) == 0:  # TODO: implement this for all single qubit gates
+    if not tuples:  # TODO: implement this for all single qubit gates
         if isinstance(self, QuantumCircuit):
             for register in self.regs.values():
                 if isinstance(register, QuantumRegister):
                     tuples.append(register)
-    if len(tuples) == 0:
+    if not tuples:
         raise ExtensionError("no arguments passed")
     qubits = []
     for tuple_element in tuples:

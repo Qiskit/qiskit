@@ -15,6 +15,10 @@
 
 version: 1.0.{build}
 
+branches:
+    only:
+        - invalidbranch
+
 environment:
     matrix:
         - PYTHON_VERSION: 3.5
@@ -34,9 +38,9 @@ install:
     # Install each dependency in requires.txt individually *from conda*. It
     # cannot be pointed to "requirements.txt" directly as IBMQuantumExperience
     # is not on the conda repositories.
-    - for /F "tokens=*" %%A in (requires.txt) do conda install -y -q %%A
+    - for /F "tokens=*" %%A in (requirements.txt) do conda install -y -q %%A
     # Install the rest of dependencies via pip.
-    - pip.exe install -r requires.txt
+    - pip.exe install -r requirements.txt
     - pip.exe install pytest
 
 # Use py.test for output of xunit test results.

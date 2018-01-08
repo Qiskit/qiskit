@@ -174,18 +174,26 @@ class QuantumCircuit(object):
         return string
 
     def measure(self, qubit, cbit):
-        """Measure quantum bit into classical bit (tuples)."""
+        """Measure quantum bit into classical bit (tuples).
+
+        Returns:
+            Gate: the attached measure gate.
+
+        Raises:
+            QISKitError: if qubit is not in this circuit or bad format;
+                if cbit is not in this circuit or not creg.
+        """
         if isinstance(qubit, QuantumRegister) and \
            isinstance(cbit, ClassicalRegister) and len(qubit) == len(cbit):
             instructions = InstructionSet()
             for i in range(qubit.size):
                 instructions.add(self.measure((qubit, i), (cbit, i)))
             return instructions
-        else:
-            self._check_qubit(qubit)
-            self._check_creg(cbit[0])
-            cbit[0].check_range(cbit[1])
-            return self._attach(Measure(qubit, cbit, self))
+
+        self._check_qubit(qubit)
+        self._check_creg(cbit[0])
+        cbit[0].check_range(cbit[1])
+        return self._attach(Measure(qubit, cbit, self))
 
     def reset(self, quantum_register):
         """Reset q."""
@@ -194,6 +202,5 @@ class QuantumCircuit(object):
             for sizes in range(quantum_register.size):
                 instructions.add(self.reset((quantum_register, sizes)))
             return instructions
-        else:
-            self._check_qubit(quantum_register)
-            return self._attach(Reset(quantum_register, self))
+        self._check_qubit(quantum_register)
+        return self._attach(Reset(quantum_register, self))
