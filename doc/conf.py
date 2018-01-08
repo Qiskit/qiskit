@@ -22,6 +22,8 @@ import sys
 from qiskit import __version__
 sys.path.insert(0, os.path.abspath('.'))
 
+# Imported manually, as otherwise it will not be fully imported.
+import qiskit.extensions.qiskit_simulator
 
 # -- General configuration ------------------------------------------------
 

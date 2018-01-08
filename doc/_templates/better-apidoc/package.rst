@@ -32,11 +32,18 @@
     {%- endif -%}
 {%- endfor -%}
 
-{# Bypass the automatic discovery of simulators at qiskit.backends #}
+{# Bypass the automatic discovery of simulators at qiskit.backends and of
+   gates. #}
 {%- if fullname == 'qiskit.backends' -%}
-    {%- set imported_modules = ['_qasm_cpp_simulator',
-                                '_qasmsimulator', '_unitarysimulator'] -%}
+    {%- set imported_modules = ['_qiskit_cpp_simulator',
+                                '_qasmsimulator',
+                                '_unitarysimulator',
+                                '_projectq_simulator'] -%}
     {%- set imported_classes = ['BaseBackend'] -%}
+{%- elif fullname == 'qiskit.extensions' -%}
+    {%- set imported_modules = ['standard',
+                                'qiskit_simulator',
+                                'quantum_initializer'] -%}
 {%- endif -%}
 
 {% if imported_modules %}
