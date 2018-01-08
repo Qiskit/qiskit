@@ -1,0 +1,2 @@
+Do not remove this file.
+It's needed in order to not leave garbage when pip uninstalls the package.
