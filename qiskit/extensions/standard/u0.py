@@ -17,51 +17,50 @@
 # =============================================================================
 
 """
-Element of SU(2).
+Single qubit gate cycle idle.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
 
 
-class UBase(Gate):
-    """Element of SU(2)."""
+class U0Gate(Gate):
+    """Wait gate."""
 
-    def __init__(self, theta, phi, lam, qubit, circ=None):
-        super(UBase, self).__init__("U", [theta, phi, lam], [qubit], circ)
+    def __init__(self, m, qubit, circ=None):
+        """Create new u0 gate."""
+        super(U0Gate, self).__init__("u0", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
-        theta = self.param[0]
-        phi = self.param[1]
-        lamb = self.param[2]
         qubit = self.arg[0]
-        return self._qasmif("U(%s,%s,%s) %s[%d];" % (
-            theta, phi, lamb, qubit[0].name, qubit[1]))
+        m = self.param[0]
+        return self._qasmif("u0(%f) %s[%d];" % (m,
+                                                qubit[0].name,
+                                                qubit[1]))
 
     def inverse(self):
-        """Invert this gate.
-
-        U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
-        """
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
-        return self
+        """Invert this gate."""
+        return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.param[0], self.param[1], self.param[2],
-                                    self.arg[0]))
+        self._modifiers(circ.u0(self.param[0], self.arg[0]))
 
 
-def u_base(self, theta, phi, lam, q):
-    """Apply U to q."""
+def u0(self, m, q):
+    """Apply u0 with length m to q."""
+    if isinstance(q, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(q.size):
+            gs.add(self.u0(m, (q, j)))
+        return gs
     self._check_qubit(q)
-    return self._attach(UBase(theta, phi, lam, q, self))
+    return self._attach(U0Gate(m, q, self))
 
 
-QuantumCircuit.u_base = u_base
-CompositeGate.u_base = u_base
+# Add to QuantumCircuit and CompositeGate classes
+QuantumCircuit.u0 = u0
+CompositeGate.u0 = u0
