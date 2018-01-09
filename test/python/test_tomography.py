@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
 """Test of QCVV/tomography module."""
 
 import unittest
@@ -44,8 +43,7 @@ class TestTomography(QiskitTestCase):
         tomo_set = tomo.process_tomography_set([0])
         default_set = tomo.process_tomography_set(
             [0], meas_basis='Pauli', prep_basis='SIC')
-        self.assertEqual(tomo_set['circuits'],
-                         default_set['circuits'])
+        self.assertEqual(tomo_set['circuits'], default_set['circuits'])
 
     def test_state_tomography_1qubit(self):
         # Tomography set
@@ -55,28 +53,26 @@ class TestTomography(QiskitTestCase):
         # Test simulation and fitting
         shots = 2000
         threshold = 1e-2
-        rho = _tomography_test_data(
-            qp, 'Zp', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(qp, 'Zp', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [1, 0], threshold))
-        rho = _tomography_test_data(
-            qp, 'Zm', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(qp, 'Zm', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 1], threshold))
-        rho = _tomography_test_data(
-            qp, 'Xp', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [1 / np.sqrt(2), 1 / np.sqrt(2)], threshold))
-        rho = _tomography_test_data(
-            qp, 'Xm', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [1 / np.sqrt(2), -1 / np.sqrt(2)], threshold))
-        rho = _tomography_test_data(
-            qp, 'Yp', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [1 / np.sqrt(2), 1j / np.sqrt(2)], threshold))
-        rho = _tomography_test_data(
-            qp, 'Ym', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [1 / np.sqrt(2), -1j / np.sqrt(2)], threshold))
+        rho = _tomography_test_data(qp, 'Xp', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(rho, [1 / np.sqrt(2), 1 / np.sqrt(2)],
+                                 threshold))
+        rho = _tomography_test_data(qp, 'Xm', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(rho, [1 / np.sqrt(2), -1 / np.sqrt(2)],
+                                 threshold))
+        rho = _tomography_test_data(qp, 'Yp', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(rho, [1 / np.sqrt(2), 1j / np.sqrt(2)],
+                                 threshold))
+        rho = _tomography_test_data(qp, 'Ym', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(rho, [1 / np.sqrt(2), -1j / np.sqrt(2)],
+                                 threshold))
 
     def test_state_tomography_2qubit(self):
         # Tomography set
@@ -86,14 +82,12 @@ class TestTomography(QiskitTestCase):
         shots = 2000
         threshold = 1e-2
         # Test simulation and fitting
-        rho = _tomography_test_data(
-            qp, 'Bell', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], threshold))
-        rho = _tomography_test_data(
-            qp, 'X1Id0', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            rho, [0, 0, 1, 0], threshold))
+        rho = _tomography_test_data(qp, 'Bell', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(rho, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)],
+                                 threshold))
+        rho = _tomography_test_data(qp, 'X1Id0', qr, cr, tomo_set, shots)
+        self.assertTrue(_tomography_test_fit(rho, [0, 0, 1, 0], threshold))
 
     def test_process_tomography_1qubit(self):
         # Tomography set
@@ -103,14 +97,13 @@ class TestTomography(QiskitTestCase):
         # Test simulation and fitting
         shots = 2000
         threshold = 1e-2
-        choi = _tomography_test_data(
-            qp, 'Zp', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            choi, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], threshold))
-        choi = _tomography_test_data(
-            qp, 'Xp', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            choi, [0.5, 0.5, 0.5, -0.5], threshold))
+        choi = _tomography_test_data(qp, 'Zp', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(choi, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)],
+                                 threshold))
+        choi = _tomography_test_data(qp, 'Xp', qr, cr, tomo_set, shots)
+        self.assertTrue(
+            _tomography_test_fit(choi, [0.5, 0.5, 0.5, -0.5], threshold))
 
     def test_process_tomography_2qubit(self):
         # Tomography set
@@ -120,17 +113,16 @@ class TestTomography(QiskitTestCase):
         # Test simulation and fitting
         shots = 1000
         threshold = 1e-2
-        ref_X1Id0 = np.array([0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0])
-        choi = _tomography_test_data(
-            qp, 'X1Id0', qr, cr, tomo_set, shots)
-        self.assertTrue(_tomography_test_fit(
-            choi, ref_X1Id0, threshold))
+        ref_X1Id0 = np.array(
+            [0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0]) / 2
+        choi = _tomography_test_data(qp, 'X1Id0', qr, cr, tomo_set, shots)
+        self.assertTrue(_tomography_test_fit(choi, ref_X1Id0, threshold))
 
 
 def _tomography_test_data(qp, name, qr, cr, tomoset, shots):
     tomo.create_tomography_circuits(qp, name, qr, cr, tomoset)
-    result = qp.execute(tomo.tomography_circuit_names(
-        tomoset, name), shots=shots, seed=42)
+    result = qp.execute(
+        tomo.tomography_circuit_names(tomoset, name), shots=shots, seed=42)
     data = tomo.tomography_data(result, name, tomoset)
     return tomo.fit_tomography_data(data)
 
