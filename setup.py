@@ -9,17 +9,15 @@ import platform
 
 
 requirements = [
-    "IBMQuantumExperience>=1.8.25",
-    "requests>=2.18,<2.19",
+    "IBMQuantumExperience>=1.8.26",
+    "matplotlib>=2.0,<=2.1",
     "networkx>=1.11,<1.12",
+    "numpy>=1.13,<=1.14",
     "ply==3.10",
-    "numpy>=1.13,<1.14",
-    "scipy>=0.19,<0.20",
-    "matplotlib>=2.0,<2.1",
-    "sphinx>=1.6,<1.7",
-    "sympy>=1.0",
+    "scipy>=0.19,<=1.0",
+    "Sphinx>=1.6,<1.7",
+    "sympy>=1.0"
 ]
-
 
 
 packages = ["qiskit",
