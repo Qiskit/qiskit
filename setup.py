@@ -79,7 +79,7 @@ class QiskitSimulatorBuild(build):
 
 setup(
     name="qiskit",
-    version="0.4.3",
+    version="0.4.4",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
