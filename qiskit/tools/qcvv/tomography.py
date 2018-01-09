@@ -57,6 +57,7 @@ from functools import reduce
 from re import match
 
 from qiskit.tools.qi.qi import vectorize, devectorize, outer
+from qiskit import QISKitError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -184,7 +185,7 @@ def __pauli_prep_gates(circuit, qreg, op):
     Add state preparation gates to a circuit.
     """
     bas, proj = op
-    if not bas in ['X', 'Y', 'Z']:
+    if bas not in ['X', 'Y', 'Z']:
         raise QISKitError("There's no X, Y or Z basis for this Pauli preparation")
 
     if bas == "X":
@@ -205,7 +206,7 @@ def __pauli_meas_gates(circuit, qreg, op):
     """
     Add state measurement gates to a circuit.
     """
-    if not op in ['X', 'Y', 'Z']:
+    if op not in ['X', 'Y', 'Z']:
         raise QISKitError("There's no X, Y or Z basis for this Pauli measurement")
 
     if op == "X":
@@ -250,6 +251,7 @@ def __sic_prep_gates(circuit, qreg, op):
         circuit.u3(theta, np.pi / 3, 0.0, qreg)
     elif proj == 3:
         circuit.u3(theta, -np.pi / 3, 0.0, qreg)
+
 
 __SIC_BASIS_OPS = {
     'S': [
@@ -330,13 +332,15 @@ def tomography_set(qubits,
 
     num_of_qubits = len(qubits)
 
-    if meas_basis == 'Pauli':
-        meas_basis = PAULI_BASIS
+    if isinstance(meas_basis, str):
+        if meas_basis.lower() == 'pauli':
+            meas_basis = PAULI_BASIS
 
-    if prep_basis == 'Pauli':
-        prep_basis = PAULI_BASIS
-    elif prep_basis == 'SIC':
-        prep_basis = SIC_BASIS
+    if isinstance(prep_basis, str):
+        if prep_basis.lower() == 'pauli':
+            prep_basis = PAULI_BASIS
+        elif prep_basis.lower() == 'sic':
+            prep_basis = SIC_BASIS
 
     circuits = []
     circuit_labels = []
@@ -363,7 +367,8 @@ def tomography_set(qubits,
                        for b in prep_basis.keys()
                        for s in range(num_of_s)]
         for plst_product in product(plst_single, repeat=num_of_qubits):
-            for meas_product in product(meas_basis.keys(), repeat=num_of_qubits):
+            for meas_product in product(meas_basis.keys(),
+                                        repeat=num_of_qubits):
                 prep = dict(zip(qubits, plst_product))
                 meas = dict(zip(qubits, meas_product))
                 circuits.append({'prep': prep, 'meas': meas})
@@ -623,7 +628,7 @@ def tomography_data(results, name, tomoset):
             circuit[c]['meas'] = [(meas[meas_qubits[k]], int(c[-1 - k]))
                                   for k in range(len(meas_qubits))]
             if prep is not None:
-                circuit[c]['prep'] = [prep[prep_qubits[-1 - k]]
+                circuit[c]['prep'] = [prep[prep_qubits[k]]
                                       for k in range(len(prep_qubits))]
         data.append({'counts': counts, 'shots': shots, 'circuit': circuit})
 
@@ -694,7 +699,7 @@ def count_keys(n):
 ###############################################################################
 
 
-def fit_tomography_data(tomo_data, method=None, options=None):
+def fit_tomography_data(tomo_data, method='wizard', options=None):
     """
     Reconstruct a density matrix or process-matrix from tomography data.
 
@@ -729,10 +734,8 @@ def fit_tomography_data(tomo_data, method=None, options=None):
             - 'trace': Same as for 'wizard' method.
             - 'beta': Same as for 'wizard' method.
     """
-    if method is None:
-        method = 'wizard'  # set default method
 
-    if method in ['wizard', 'leastsq']:
+    if isinstance(method, str) and method.lower() in ['wizard', 'leastsq']:
         # get options
         trace = __get_option('trace', options)
         beta = __get_option('beta', options)
@@ -782,7 +785,7 @@ def __leastsq_fit(tomo_data, weights=None, trace=None, beta=None):
         trace = 1.  # default to unit trace
 
     data = tomo_data['data']
-    keys = data[0]['counts'].keys()
+    keys = data[0]['circuit'].keys()
 
     # Get counts and shots
     counts = []
@@ -797,7 +800,7 @@ def __leastsq_fit(tomo_data, weights=None, trace=None, beta=None):
             if 'prep' in projectors:
                 op_prep = __projector(projectors['prep'],
                                       tomo_data['prep_basis'])
-                op = np.kron(op_prep.T, op)
+                op = np.kron(op_prep.conj(), op)
             ops.append(op)
 
     # Convert counts to frequencies
@@ -922,14 +925,14 @@ def build_state_tomography_circuits(Q_program,
                                     qubits,
                                     qreg,
                                     creg,
-                                    meas_basis='pauli',
+                                    meas_basis='Pauli',
                                     silent=False):
     """Depreciated function: Use `create_tomography_circuits` function instead.
     """
 
     tomoset = tomography_set(qubits, meas_basis)
     logger.warn('WARNING: `build_state_tomography_circuits` is depreciated. ' +
-          'Use `tomography_set` and `create_tomography_circuits` instead')
+                'Use `tomography_set` and `create_tomography_circuits` instead')
 
     return create_tomography_circuits(
         Q_program, name, qreg, creg, tomoset)
@@ -940,48 +943,48 @@ def build_process_tomography_circuits(Q_program,
                                       qubits,
                                       qreg,
                                       creg,
-                                      prep_basis='sic',
-                                      meas_basis='pauli'):
+                                      prep_basis='SIC',
+                                      meas_basis='Pauli'):
     """Depreciated function: Use `create_tomography_circuits` function instead.
     """
 
     logger.warn('WARNING: `build_process_tomography_circuits` is depreciated. ' +
-          'Use `tomography_set` and `create_tomography_circuits` instead')
+                'Use `tomography_set` and `create_tomography_circuits` instead')
 
     tomoset = tomography_set(qubits, meas_basis, prep_basis)
     return create_tomography_circuits(
         Q_program, name, qreg, creg, tomoset)
 
 
-def state_tomography_circuit_names(name, qubits, meas_basis='pauli'):
+def state_tomography_circuit_names(name, qubits, meas_basis='Pauli'):
     """Depreciated function: Use `tomography_circuit_names` function instead.
     """
 
     logger.warn('WARNING: `state_tomography_circuit_names` is depreciated. ' +
-          'Use `tomography_set` and `tomography_circuit_names` instead')
+                'Use `tomography_set` and `tomography_circuit_names` instead')
     tomoset = tomography_set(qubits, meas_basis=meas_basis)
     return tomography_circuit_names(tomoset, name)
 
 
 def process_tomography_circuit_names(name,
                                      qubits,
-                                     prep_basis='sic',
-                                     meas_basis='pauli'):
+                                     prep_basis='SIC',
+                                     meas_basis='Pauli'):
     """Depreciated function: Use `tomography_circuit_names` function instead.
     """
 
     logger.warn('WARNING: `process_tomography_circuit_names` is depreciated.' +
-          'Use `tomography_set` and `tomography_circuit_names` instead')
+                'Use `tomography_set` and `tomography_circuit_names` instead')
     tomoset = tomography_set(
         qubits, meas_basis=meas_basis, prep_basis=prep_basis)
     return tomography_circuit_names(tomoset, name)
 
 
-def state_tomography_data(Q_result, name, meas_qubits, meas_basis='pauli'):
+def state_tomography_data(Q_result, name, meas_qubits, meas_basis='Pauli'):
     """Depreciated function: Use `tomography_data` function instead."""
 
     logger.warn('WARNING: `state_tomography_data` is depreciated. ' +
-          'Use `tomography_set` and `tomography_data` instead')
+                'Use `tomography_set` and `tomography_data` instead')
     tomoset = tomography_set(meas_qubits, meas_basis=meas_basis)
     return tomography_data(Q_result, name, tomoset)
 
@@ -989,12 +992,12 @@ def state_tomography_data(Q_result, name, meas_qubits, meas_basis='pauli'):
 def process_tomography_data(Q_result,
                             name,
                             meas_qubits,
-                            prep_basis='sic',
-                            meas_basis='pauli'):
+                            prep_basis='SIC',
+                            meas_basis='Pauli'):
     """Depreciated function: Use `tomography_data` function instead."""
 
     logger.warn('WARNING: `process_tomography_data` is depreciated. ' +
-          'Use `tomography_set` and `tomography_data` instead')
+                'Use `tomography_set` and `tomography_data` instead')
     tomoset = tomography_set(
         meas_qubits, meas_basis=meas_basis, prep_basis=prep_basis)
     return tomography_data(Q_result, name, tomoset)
@@ -1037,7 +1040,7 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
         q_program.add_circuit(name + label, orig + circuit)
         labels.append(name + label)
 
-    logger.info('>> created Wigner function circuits for "%s"' % name)
+    logger.info('>> Created Wigner function circuits for "%s"' % name)
     return labels
 
 
