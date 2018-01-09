@@ -113,8 +113,8 @@ class TestTomography(QiskitTestCase):
         # Test simulation and fitting
         shots = 1000
         threshold = 1e-2
-        ref_X1Id0 = np.array([0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0
-                              ]) / 2
+        ref_X1Id0 = np.array(
+            [0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0]) / 2
         choi = _tomography_test_data(qp, 'X1Id0', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(choi, ref_X1Id0, threshold))
 
