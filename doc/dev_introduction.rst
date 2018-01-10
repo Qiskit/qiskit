@@ -21,7 +21,9 @@ components in the *qiskit* directory.
 The :py:mod:`extensions <qiskit.extensions>` directory extends quantum circuits
 as needed to support other gate sets and algorithms. Currently there is a
 :py:mod:`standard <qiskit.extensions.standard>` extension defining some typical
-quantum gates.
+quantum gates, and two additional extensions:
+:py:mod:`qiskit_simulator <qiskit.extensions.qiskit_simulator>` and
+:py:mod:`quantum_initializer <qiskit.extensions.quantum_initializer>`.
 
 Internal modules
 ----------------
@@ -136,7 +138,7 @@ will be created on the test directory with the output of the log calls, which
 will also be printed to stdout. You can adjust the verbosity via the content
 of that variable, for example:
 
-.. code-block::
+.. code-block:: bash
 
     $ LOG_LEVEL=DEBUG make test
     $ LOG_LEVEL=INFO python -m unittest test/python/test_apps.py

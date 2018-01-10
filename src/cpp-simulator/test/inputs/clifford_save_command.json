@@ -1,0 +1,31 @@
+{
+  "id": "test_save_command",
+  "config": {
+    "shots": 1,
+    "seed": 1,
+    "simulator": "clifford",
+    "data": ["saved_quantum_states"]
+  },
+  "circuits": [
+    {
+    	"name": "save_command",
+    	"compiled_circuit": {
+        "header": {
+          "clbit_labels": [],
+          "number_of_clbits": 0,
+          "number_of_qubits": 3,
+          "qubit_labels": [["q", 0], ["q", 1], ["q", 2]]
+      	},
+        "operations": [
+          {"name": "save", "qubits": [0], "params": [0]},
+          {"name": "h", "qubits": [0]},
+          {"name": "save", "qubits": [0], "params": [1]},
+          {"name": "cx", "qubits": [0, 1]},
+          {"name": "save", "qubits": [0], "params": [2]},
+          {"name": "cx", "qubits": [1, 2]},
+          {"name": "save", "qubits": [0], "params": [3]}
+      	]
+    	}
+    }
+  ]
+}
