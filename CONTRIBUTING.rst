@@ -1,7 +1,7 @@
 Contributing
 ============
 
-**We appreciate all kinds of help, so thank you!** 
+**We appreciate all kinds of help, so thank you!**
 
 You can contribute in many ways to this project.
 
@@ -31,7 +31,7 @@ Documentation
 
 The documentation for the project is in the ``doc`` directory. The
 documentation for the python SDK is auto-generated from python
-docstrings using `Sphinx <www.sphinx-doc.org>`_ for generating the
+docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
 for docstrings. A good example of the style can also be found with
