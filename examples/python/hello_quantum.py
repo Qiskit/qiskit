@@ -15,9 +15,9 @@ Q_program = QuantumProgram()
 try:
     import Qconfig
     Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
-                  hub=Qconfig.config["hub"],
-                  group=Qconfig.config["group"],
-                  project=Qconfig.config["project"])
+                      hub=Qconfig.config["hub"],
+                      group=Qconfig.config["group"],
+                      project=Qconfig.config["project"])
 except:
     offline = True
     print("""WARNING: There's no connection with IBMQuantumExperience servers.
