@@ -83,13 +83,15 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     final_layout = None
     # if a coupling map is given compile to the map
     if coupling_map:
+        print("pre-mapping properties: ", compiled_dag_circuit.property_summary())
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
         # Insert swap gates
         coupling = mapper.Coupling(coupling_map)
         logger.info("initial layout: %s", initial_layout)
-        compiled_dag_circuit, final_layout = mapper.swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+        # compiled_dag_circuit, final_layout = mapper.swap_mapper(compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+        compiled_dag_circuit, final_layout = mapper.a_star_mapper(compiled_dag_circuit, coupling)
+        
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
@@ -101,6 +103,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         compiled_dag_circuit = mapper.optimize_1q_gates(compiled_dag_circuit)
         logger.info("post-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
+        print("post-mapping properties: ", compiled_dag_circuit.property_summary())
     # choose output format
     if format == 'dag':
         compiled_circuit = compiled_dag_circuit

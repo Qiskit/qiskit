@@ -33,6 +33,9 @@ import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
 from ._mappererror import MapperError
 
+sys.path.append('/home/zulehner/dev/qiskit-sdk-py/qiskit/mapper/')
+import a_star_mapping
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +48,24 @@ logger = logging.getLogger(__name__)
 # It can happen that initial swaps can be removed or partly simplified
 # because the initial state is zero. We don't do this.
 
+
+def a_star_mapper(circuit_graph, coupling_graph):
+	ve = a_star_mapping.vector_edge()	
+	for e in coupling_graph.get_edges():
+		ee = a_star_mapping.edge()
+		ee.v1 = e[0][1]
+		ee.v2 = e[1][1]
+		ve.push_back(ee)
+	
+	basis="cx,u1,u2,u3,id"
+	res = a_star_mapping.map(circuit_graph.qasm(qeflag=True), ve, coupling_graph.size())
+	ast = Qasm(data=res.qasm).parse()
+	u = unroll.Unroller(ast, unroll.DAGBackend(basis.split(",")))
+
+	initial_layout = {}
+	for e in res.initial_layout:
+		initial_layout[('q', e.v1)] = ('q', e.v2)
+	return u.execute(), initial_layout
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                       seed=None):
