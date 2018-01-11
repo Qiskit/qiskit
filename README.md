@@ -79,7 +79,7 @@ We recommend using python virtual environments to improve your experience. Refer
 
 Now that the SDK is installed, it's time to begin working with QISKit.
 
-We are ready to try out some QASM examples, which runs via the local simulator.
+We are ready to try out a quantum circuit example, which runs via the local simulator.
 
 This is a simple example that makes an entangled state.
 
@@ -94,7 +94,7 @@ try:
     qr = Q_program.create_quantum_register("qr", 2)
     # Create a Classical Register called "cr" with 2 bits.
     cr = Q_program.create_classical_register("cr", 2)
-    # Create a Quantum Circuit called "qc". involving the Quantum Register "qr"
+    # Create a Quantum Circuit called "qc" involving the Quantum Register "qr"
     # and the Classical Register "cr".
     qc = Q_program.create_circuit("bell", [qr], [cr])
 
@@ -127,7 +127,7 @@ COMPLETED
 {'counts': {'00': 512, '11': 512}}
 ```
 
-This script is avaiable in in examples/python/hello_quantum.py.
+This script is avaiable [here](examples/python/hello_quantum.py).
 
 ### Executing your code on a real Quantum chip
 
