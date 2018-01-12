@@ -85,17 +85,22 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if coupling_map:
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
-        # Insert swap gates
         coupling = mapper.Coupling(coupling_map)
         logger.info("initial layout: %s", initial_layout)
-        # compiled_dag_circuit, final_layout = mapper.swap_mapper(compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
-        compiled_dag_circuit, final_layout = mapper.a_star_mapper(compiled_dag_circuit, coupling)
-        
-        logger.info("final layout: %s", final_layout)
-        # Expand swaps
-        compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
-        # Change cx directions
-        compiled_dag_circuit = mapper.direction_mapper(compiled_dag_circuit, coupling)
+        use_a_star_mapper = True
+        if use_a_star_mapper:
+            # Insert swap gates composed of CNOT and H gates
+            compiled_dag_circuit, final_layout = mapper.a_star_mapper(compiled_dag_circuit, coupling)
+            compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
+        else:
+            # Insert swap gates
+            compiled_dag_circuit, final_layout = mapper.swap_mapper(compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+            # Expand swaps
+            compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
+            # Change cx directions
+            compiled_dag_circuit = mapper.direction_mapper(compiled_dag_circuit, coupling)
+      
+        logger.info("final layout: %s", final_layout)        
         # Simplify cx gates
         mapper.cx_cancellation(compiled_dag_circuit)
         # Simplify single qubit gates

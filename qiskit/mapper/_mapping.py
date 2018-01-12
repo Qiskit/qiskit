@@ -49,6 +49,23 @@ logger = logging.getLogger(__name__)
 
 
 def a_star_mapper(circuit_graph, coupling_graph):
+	"""Map a DAGCircuit onto a CouplingGraph using swap gates.
+
+    Args:
+        circuit_graph (DAGCircuit): input DAG circuit
+        coupling_graph (CouplingGraph): coupling graph to map onto
+
+    Returns:
+        DAGCircuit: object containing a circuit equivalent to
+        circuit_graph that respects couplings in coupling_graph, and
+        a layout dict mapping qubits of circuit_graph into qubits
+        of coupling_graph.
+		
+	Details of the mapper are described in the paper entitled "Efficient Mapping of
+	Quantum Circuits to the IBM QX Architectures." by Alwin Zulehner, Alexandru Paler,
+    and Robert Wille (available at https://arxiv.org/abs/1712.04722). 
+    It replaces the call of swap_mapper and direction_mapper."""
+    
 	ve = a_star_mapping.vector_edge()	
 	for e in coupling_graph.get_edges():
 		ee = a_star_mapping.edge()

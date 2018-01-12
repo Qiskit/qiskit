@@ -108,7 +108,7 @@ void build_dist_table(std::set<edge>& graph) {
 	}
 }
 
-//A very simplified QASM parser
+//A simplified QASM parser
 void read_qasm(std::stringstream& infile) {
 	std::string line;
 
@@ -242,9 +242,8 @@ void expand_node(const vector<int>& qubits, int qubit, edge *swaps, int nswaps,
 							it++) {
 				gate g = *it;
 				if (g.control != -1) {
-					//TODO
-					if(new_node.locations[g.control] == -1 && new_node.locations[g.target]) {
-						//TODO
+					if(new_node.locations[g.control] == -1 && new_node.locations[g.target] == -1) {
+
 					} else if(new_node.locations[g.control] == -1) {
 						int min = 1000;
 						for(int i=0; i< positions; i++) {
@@ -412,6 +411,10 @@ node a_star_fixlayer(int layer, int* map, int* loc, int** dist) {
 	return result;
 }
 
+/* Maps a circuit given as QASM string onto a coupling graph using swap gates.
+    Details of the mapper are described in the paper entitled "Efficient Mapping of
+	Quantum Circuits to the IBM QX Architectures." by Alwin Zulehner, Alexandru Paler,
+    and Robert Wille (available at https://arxiv.org/abs/1712.04722). */
 mapping_result map(std::string qasm, std::vector<edge> coupling, int n) {
 
 	positions = n;
@@ -430,13 +433,6 @@ mapping_result map(std::string qasm, std::vector<edge> coupling, int n) {
 		}
 	}
 
-//	char* bName = basename(argv[1]);
-//	cout << "Circuit name: " << bName << " (requires " << nqubits << " qubits)" << endl;
-
-//	cout << endl << "Before mapping: " << endl;
-//	cout << "  elementary gates: " << ngates << endl;
-//	cout << "  depth: " << layers.size() << endl;
-
 	int *locations = new int[nqubits];
 	int *qubits = new int[positions];
 
@@ -446,9 +442,6 @@ mapping_result map(std::string qasm, std::vector<edge> coupling, int n) {
 	for(int i = 0; i < nqubits; i++) {
 		locations[i] = qubits[i] = i;
 	}
-
-	//Start mapping algorithm
-	clock_t begin_time = clock();
 
 	//Initially, no physical qubit is occupied
 	for (int i = 0; i < positions; i++) {
@@ -659,26 +652,14 @@ mapping_result map(std::string qasm, std::vector<edge> coupling, int n) {
 			last_layer[g.control] = layer;
 		}
 	}
-
-/*	double time = double(clock() - begin_time) / CLOCKS_PER_SEC;
-
-	cout << endl << "After mapping (no post mapping optimizations are conducted): " << endl;
-	cout << "  elementary gates: " << all_gates.size()-total_swaps << endl;
-	cout << "  depth: " << mapped_circuit.size() << endl;
-
-	cout << endl << "The mapping required " << time << " seconds" << endl;
-
-	cout << endl << "Initial mapping of the logical qubits (q) to the physical qubits (Q) of the IBM QX3 architecture: " << endl;*/
 	
 	mapping_result mr;	
 	edge e;
 	for(int i=0; i<nqubits; i++) {
-//		cout << "  q" << i << " is initially mapped to Q" << locations[i] << endl;
 		e.v1 = i;
 		e.v2 = locations[i];
 		mr.initial_layout.push_back(e);
 	}
-
 
 	//Dump resulting circuit
 
