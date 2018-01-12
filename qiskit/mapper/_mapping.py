@@ -33,8 +33,7 @@ import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
 from ._mappererror import MapperError
 
-sys.path.append('/home/zulehner/dev/qiskit-sdk-py/qiskit/mapper/')
-import a_star_mapping
+from . import a_star_mapping
 
 logger = logging.getLogger(__name__)
 
