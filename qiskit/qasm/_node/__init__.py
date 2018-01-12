@@ -31,7 +31,7 @@ from ._idlist import IdList
 from ._if import If
 from ._indexedid import IndexedId
 from ._intnode import Int
-from ._magic import Magic
+from ._format import Format
 from ._measure import Measure
 from ._opaque import Opaque
 from ._prefix import Prefix
