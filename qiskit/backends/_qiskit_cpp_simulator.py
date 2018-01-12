@@ -45,6 +45,7 @@ DEFAULT_SIMULATOR_PATHS = [
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
 ]
 
+
 class QISKitCppSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
