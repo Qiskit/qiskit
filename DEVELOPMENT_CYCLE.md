@@ -13,16 +13,16 @@ There are two main branches in the repository:
     * You should expect this branch to be updated very frequently.
     * Even though we are always doing our best to not push code that breaks things, is more likely to eventually push
     code that breaks something... we will fix it ASAP, promise :).
-    * This should not be considered as an stable branch to use in production environments.
+    * This should not be considered as a stable branch to use in production environments.
     * The API of the SDK could change without prior notice.
 
 * `stable`
     * This is our stable release branch.
     * It's always synchronized with the latest distributed package, as for now, the package you can download from pip.
     * The code in this branch is well tested and should be free of errors (unfortunately sometimes it's not).
-    * This is an stable branch (as the name suggest), meaning that you can expect an stable software ready for production
+    * This is a stable branch (as the name suggest), meaning that you can expect stable software ready for production
     environments.
-    * All the tags from the release versions are created from this branch
+    * All the tags from the release versions are created from this branch.
 
 ## RELEASE CYCLE
 From time to time, we will release brand new versions of the QISKit SDK. These are well-tested versions of the software.

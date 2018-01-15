@@ -296,16 +296,16 @@ class QasmParser(object):
     # ----------------------------------------
     #  statement : decl
     #            | quantum_op ';'
-    #            | magic ';'
+    #            | format ';'
     # ----------------------------------------
     def p_statement(self, program):
         """
            statement : decl
                      | quantum_op ';'
-                     | magic ';'
+                     | format ';'
                      | ignore
                      | quantum_op error
-                     | magic error
+                     | format error
         """
         if len(program) > 2:
             if program[2] != ';':
@@ -313,18 +313,18 @@ class QasmParser(object):
                                 + "received", str(program[2].value))
         program[0] = program[1]
 
-    def p_magic(self, program):
+    def p_format(self, program):
         """
-           magic : MAGIC REAL
+           format : FORMAT
         """
-        program[0] = node.Magic([node.Real(sympy.N(program[2]))])
+        program[0] = node.Format(program[1])
 
-    def p_magic_0(self, program):
+    def p_format_0(self, program):
         """
-           magic : MAGIC error
+           format : FORMAT error
         """
-        magic = "2.0;"
-        raise QasmError("Invalid magic string. Expected '" + magic
+        version = "2.0;"
+        raise QasmError("Invalid version string. Expected '" + version
                         + "'.  Is the semicolon missing?")
 
     # ----------------------------------------
