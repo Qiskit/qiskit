@@ -25,21 +25,25 @@ import numbers
 import os
 import subprocess
 from subprocess import PIPE
+import platform
 
 import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 
+logger = logging.getLogger(__name__)
+
+EXTENSION = '.exe' if platform.system() == 'Windows' else ''
+
 # Add path to compiled qiskit simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/qiskit_simulator'),
+                    '../../../out/qiskit_simulator' + EXTENSION),
     # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator'),
+    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
 ]
-logger = logging.getLogger(__name__)
 
 
 class QISKitCppSimulator(BaseBackend):
