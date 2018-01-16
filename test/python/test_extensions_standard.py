@@ -316,11 +316,11 @@ class TestStandard(QiskitTestCase):
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
 
     def assertResult(self, t, qasm_txt, qasm_txt_):
-        '''
+        """
         t: type
         qasm_txt: qasm representation
         qasm_txt_: qasm representation of inverse
-        '''
+        """
         c = self.circuit
         c_header = 58
         c_txt = len(qasm_txt)

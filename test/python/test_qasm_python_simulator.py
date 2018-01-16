@@ -46,9 +46,9 @@ class LocalQasmSimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
+        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
+        self.qp.load_qasm_file(self.qasm_filename, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
@@ -238,19 +238,19 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         """
         seed = 88
         shots = 1024
-        nCircuits = 100
-        minDepth = 1
-        maxDepth = 40
-        minQubits = 1
-        maxQubits = 5
+        n_circuits = 100
+        min_depth = 1
+        max_depth = 40
+        min_qubits = 1
+        max_qubits = 5
         pr = cProfile.Profile()
-        randomCircuits = RandomQasmGenerator(seed,
-                                             min_qubits=minQubits,
-                                             max_qubits=maxQubits,
-                                             min_depth=minDepth,
-                                             max_depth=maxDepth)
-        randomCircuits.add_circuits(nCircuits)
-        self.qp = randomCircuits.get_program()
+        random_circuits = RandomQasmGenerator(seed,
+                                              min_qubits=min_qubits,
+                                              max_qubits=max_qubits,
+                                              min_depth=min_depth,
+                                              max_depth=max_depth)
+        random_circuits.add_circuits(n_circuits)
+        self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
                         backend='local_qasm_simulator',
