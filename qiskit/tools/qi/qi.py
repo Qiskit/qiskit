@@ -407,7 +407,7 @@ def __random_density_bures(N, rank=None):
     Returns:
         rho (N,N) ndarray: a density matrix.
     """
-    P = np.eye(N) + random_unitary(N)
+    P = np.eye(N) + random_unitary_matrix(N)
     G = P.dot(__ginibre_matrix(N, rank))
     G = G.dot(G.conj().T)
     return G / np.trace(G)
