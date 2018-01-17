@@ -29,15 +29,18 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
-# These two qiskit.extensions imports needs to be placed here.
+
+# The qiskit.extensions.x imports needs to be placed here due to the
+# mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
+
 from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 from ._util import _check_ibmqe_version
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 _check_ibmqe_version()

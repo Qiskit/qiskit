@@ -242,9 +242,9 @@ class Unroller(object):
         elif node.type == "measure":
             self._process_measure(node)
 
-        elif node.type == "magic":
-            self.version = node.children[0].value
-            self.backend.version(node.children[0])
+        elif node.type == "format":
+            self.version = node.version()
+            self.backend.version(node.version())
 
         elif node.type == "barrier":
             ids = self._process_node(node.children[0])
