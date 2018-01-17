@@ -66,7 +66,6 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
     Returns:
         A density matrix with the appropriate subsytems traced over.
     """
-
     state = np.array(state)  # convert op to density matrix
 
     if dimensions is None:  # compute dims if not specified
