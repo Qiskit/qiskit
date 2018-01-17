@@ -274,7 +274,7 @@ def choi_to_rauli(choi, order=1):
         for j in pgp:
             pauliop = np.kron(j.to_matrix().T, i.to_matrix())
             rauli += [np.trace(np.dot(choi, pauliop))]
-    return np.array(rauli).reshape(4 ** n, 4 ** n)
+    return np.array(rauli).reshape(4 ** num_qubits, 4 ** num_qubits)
 
 
 def chop(array, epsilon=1e-10):
@@ -407,7 +407,7 @@ def __random_density_bures(N, rank=None):
     Returns:
         rho (N,N) ndarray: a density matrix.
     """
-    P = np.eye(N) + random_unitary(N)
+    P = np.eye(N) + random_unitary_matrix(N)
     G = P.dot(__ginibre_matrix(N, rank))
     G = G.dot(G.conj().T)
     return G / np.trace(G)
