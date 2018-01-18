@@ -139,6 +139,16 @@ class TestQI(QiskitTestCase):
 class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
+    def test_random_pauli5(self):
+        length = 2
+        q = random_pauli(length)
+        self.log.info(q)
+        self.assertEqual(q.numberofqubits, length)
+        self.assertEqual(len(q.v), length)
+        self.assertEqual(len(q.w), length)
+        self.assertEqual(len(q.to_label()), length)
+        self.assertEqual(len(q.to_matrix()), 2**length)
+
     def test_pauli(self):
         v = np.zeros(3)
         w = np.zeros(3)
@@ -166,9 +176,6 @@ class TestPauli(QiskitTestCase):
  [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
  [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
         self.assertMultiLineEqual(str(p.to_matrix()),m)
-
-        q = random_pauli(2)
-        self.log.info(q)
 
         r = inverse_pauli(p)
         self.log.info("In label form:")
