@@ -139,6 +139,16 @@ class TestQI(QiskitTestCase):
 class TestPauli(QiskitTestCase):
     """Tests for Pauli class"""
 
+    def setUp(self):
+        v = np.zeros(3)
+        w = np.zeros(3)
+        v[0] = 1
+        w[1] = 1
+        v[2] = 1
+        w[2] = 1
+
+        self.p3 = Pauli(v, w)
+
     def test_random_pauli5(self):
         length = 2
         q = random_pauli(length)
@@ -150,24 +160,16 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.to_matrix()), 2**length)
 
     def test_pauli_invert(self):
-        v = np.zeros(3)
-        w = np.zeros(3)
-        v[0] = 1
-        w[1] = 1
-        v[2] = 1
-        w[2] = 1
-
-        p = Pauli(v, w)
-        self.log.info("===== p =====")
-        self.log.info(p)
-        self.assertEqual(str(p),'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
+        self.log.info("===== p3 =====")
+        self.log.info(self.p3)
+        self.assertEqual(str(self.p3),'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
 
         self.log.info("\tIn label form:")
-        self.log.info(p.to_label())
-        self.assertEqual(p.to_label(), 'ZXY')
+        self.log.info(self.p3.to_label())
+        self.assertEqual(self.p3.to_label(), 'ZXY')
 
         self.log.info("\tIn matrix form:")
-        self.log.info(p.to_matrix())
+        self.log.info(self.p3.to_matrix())
         m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
  [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
  [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j]
@@ -176,10 +178,10 @@ class TestPauli(QiskitTestCase):
  [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
  [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
  [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
-        self.assertMultiLineEqual(str(p.to_matrix()),m)
+        self.assertMultiLineEqual(str(self.p3.to_matrix()),m)
 
         self.log.info("===== r =====")
-        r = inverse_pauli(p)
+        r = inverse_pauli(self.p3)
         self.assertEqual(str(r), 'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
 
         self.log.info("In label form:")
