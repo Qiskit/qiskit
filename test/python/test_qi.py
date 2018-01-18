@@ -149,10 +149,23 @@ class TestPauli(QiskitTestCase):
 
         p = Pauli(v, w)
         self.log.info(p)
+        self.assertEqual(str(p),'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
+
         self.log.info("In label form:")
         self.log.info(p.to_label())
+        self.assertEqual(p.to_label(), 'ZXY')
+
         self.log.info("In matrix form:")
         self.log.info(p.to_matrix())
+        m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
+        self.assertMultiLineEqual(str(p.to_matrix()),m)
 
         q = random_pauli(2)
         self.log.info(q)
