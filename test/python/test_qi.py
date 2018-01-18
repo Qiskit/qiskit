@@ -245,12 +245,15 @@ class TestPauli(QiskitTestCase):
 
     def test_equality_equal(self):
         """Test equality operator: equal Paulis"""
-        p1 = random_pauli(5)
+        p1 = self.p3
         p2 = deepcopy(p1)
+
+        self.log.info(p1 == p2)
         self.assertTrue(p1 == p2)
+
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
-        self.log.info(p1 == p2)
+        self.assertEqual(p1.to_label(),p2.to_label())
 
     def test_equality_different(self):
         """Test equality operator: different Paulis"""
