@@ -121,7 +121,6 @@ class MapperTest(QiskitTestCase):
                                    '10101': 20, '11110': 1, '11111': 20,
                                    '00011': 15, '11000': 2, '10010': 27,
                                    '01010': 4, '11011': 6, '01110': 14})
-            
 # values with python 3.6 and networkX 2.0
 #                                    {'00000': 86, '00001': 34, '00010': 102,
 #                                     '00011': 24, '00100': 42, '00101': 4,
@@ -133,7 +132,6 @@ class MapperTest(QiskitTestCase):
 #                                     '10110': 41, '10111': 59, '11000': 1,
 #                                     '11001': 13, '11010': 14, '11011': 9,
 #                                     '11100': 28, '11111': 14}
-
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
 
