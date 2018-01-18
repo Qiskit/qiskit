@@ -165,7 +165,7 @@ class Coupling:
         """
         if not self.connected():
             raise CouplingError("coupling graph not connected")
-        lengths = nx.all_pairs_shortest_path_length(self.G.to_undirected())
+        lengths = dict(nx.all_pairs_shortest_path_length(self.G.to_undirected()))
         self.dist = {}
         for i in self.qubits.keys():
             self.dist[i] = {}

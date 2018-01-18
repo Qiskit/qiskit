@@ -778,13 +778,13 @@ def optimize_1q_gates(circuit):
         if right_name == "u3":
             new_params = list(right_parameters)
 
-        nx.set_node_attributes(unrolled.multi_graph, 'name',
-                               {run[0]: right_name})
+        nx.set_node_attributes(unrolled.multi_graph, name = 'name',
+                               values = {run[0]: right_name})
         # params is a list of sympy symbols and the str() method
         # will return Python expressions. To get the correct
         # OpenQASM expression, we need to replace "**" with "^".
-        nx.set_node_attributes(unrolled.multi_graph, 'params',
-                               {run[0]: tuple(map(lambda x:
+        nx.set_node_attributes(unrolled.multi_graph, name = 'params',
+                               values = {run[0]: tuple(map(lambda x:
                                                   str(x).replace("**", "^"),
                                                   new_params))})
 
