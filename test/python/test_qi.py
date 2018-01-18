@@ -262,8 +262,8 @@ class TestPauli(QiskitTestCase):
         p2 = deepcopy(p1)
 
         p2.v[0] = (p1.v[0] + 1) % 2
-        self.assertFalse(p1 == p2)
         self.log.info(p1 == p2)
+        self.assertFalse(p1 == p2)
 
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
@@ -272,12 +272,16 @@ class TestPauli(QiskitTestCase):
 
     def test_inequality_equal(self):
         """Test inequality operator: equal Paulis"""
-        p1 = random_pauli(5)
+        p1 = self.p3
         p2 = deepcopy(p1)
+
+        self.log.info(p1 != p2)
         self.assertFalse(p1 != p2)
+
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
-        self.log.info(p1 != p2)
+        self.assertEqual(p1.to_label(), 'ZXY')
+        self.assertEqual(p2.to_label(), 'ZXY')
 
     def test_inequality_different(self):
         """Test inequality operator: different Paulis"""
