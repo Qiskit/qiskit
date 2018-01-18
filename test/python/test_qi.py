@@ -200,14 +200,20 @@ class TestPauli(QiskitTestCase):
 
     def test_pauli_group(self):
         self.log.info("Group in tensor order:")
+        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'XXI', 'YXI', 'ZXI', 'IYI', 'XYI', 'YYI', 'ZYI', 'IZI', 'XZI','YZI', 'ZZI', 'IIX', 'XIX', 'YIX', 'ZIX', 'IXX', 'XXX', 'YXX', 'ZXX', 'IYX', 'XYX', 'YYX', 'ZYX', 'IZX', 'XZX', 'YZX', 'ZZX', 'IIY', 'XIY', 'YIY', 'ZIY', 'IXY', 'XXY', 'YXY', 'ZXY', 'IYY', 'XYY', 'YYY', 'ZYY', 'IZY', 'XZY', 'YZY', 'ZZY', 'IIZ', 'XIZ', 'YIZ', 'ZIZ', 'IXZ', 'XXZ', 'YXZ', 'ZXZ', 'IYZ', 'XYZ', 'YYZ', 'ZYZ', 'IZZ', 'XZZ', 'YZZ', 'ZZZ']
         grp = pauli_group(3, case=1)
         for j in grp:
+            self.log.info('==== j (tensor order) ====')
             self.log.info(j.to_label())
+            self.assertEqual(expected.pop(0),j.to_label())
 
         self.log.info("Group in weight order:")
+        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'IYI', 'IZI', 'IIX', 'IIY', 'IIZ', 'XXI', 'YXI', 'ZXI', 'XYI', 'YYI', 'ZYI', 'XZI', 'YZI', 'ZZI', 'XIX', 'YIX', 'ZIX', 'IXX', 'IYX', 'IZX', 'XIY', 'YIY', 'ZIY', 'IXY', 'IYY', 'IZY', 'XIZ', 'YIZ', 'ZIZ', 'IXZ', 'IYZ', 'IZZ', 'XXX', 'YXX', 'ZXX', 'XYX', 'YYX', 'ZYX', 'XZX', 'YZX', 'ZZX', 'XXY', 'YXY', 'ZXY', 'XYY', 'YYY', 'ZYY', 'XZY', 'YZY', 'ZZY', 'XXZ', 'YXZ', 'ZXZ', 'XYZ', 'YYZ', 'ZYZ', 'XZZ', 'YZZ', 'ZZZ']
         grp = pauli_group(3)
         for j in grp:
+            self.log.info('==== j (weight order) ====')
             self.log.info(j.to_label())
+            self.assertEqual(expected.pop(0), j.to_label())
 
     def test_pauli_sgn_prod(self):
         self.log.info("sign product:")
