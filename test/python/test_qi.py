@@ -66,9 +66,9 @@ class TestQI(QiskitTestCase):
         row = [1, 2, 3, 4]
         paul = [5, 5, -1j, -3]
         test_pass = np.linalg.norm(vectorize(mat) - col) == 0 and \
-            np.linalg.norm(vectorize(mat, method='col') - col) == 0 and \
-            np.linalg.norm(vectorize(mat, method='row') - row) == 0 and \
-            np.linalg.norm(vectorize(mat, method='pauli') - paul) == 0
+                    np.linalg.norm(vectorize(mat, method='col') - col) == 0 and \
+                    np.linalg.norm(vectorize(mat, method='row') - row) == 0 and \
+                    np.linalg.norm(vectorize(mat, method='pauli') - paul) == 0
         self.assertTrue(test_pass)
 
     def test_devectorize(self):
@@ -77,9 +77,9 @@ class TestQI(QiskitTestCase):
         row = [1, 2, 3, 4]
         paul = [5, 5, -1j, -3]
         test_pass = np.linalg.norm(devectorize(col) - mat) == 0 and \
-            np.linalg.norm(devectorize(col, method='col') - mat) == 0 and \
-            np.linalg.norm(devectorize(row, method='row') - mat) == 0 and \
-            np.linalg.norm(devectorize(paul, method='pauli') - mat) == 0
+                    np.linalg.norm(devectorize(col, method='col') - mat) == 0 and \
+                    np.linalg.norm(devectorize(row, method='row') - mat) == 0 and \
+                    np.linalg.norm(devectorize(paul, method='pauli') - mat) == 0
         self.assertTrue(test_pass)
 
     def test_outer(self):
@@ -90,9 +90,9 @@ class TestQI(QiskitTestCase):
         op_zy = [[1, -1j], [0, 0]]
         op_yz = [[1, 0], [1j, 0]]
         test_pass = np.linalg.norm(outer(v_z) - rho_z) == 0 and \
-            np.linalg.norm(outer(v_y) - rho_y) == 0 and \
-            np.linalg.norm(outer(v_y, v_z) - op_yz) == 0 and \
-            np.linalg.norm(outer(v_z, v_y) - op_zy) == 0
+                    np.linalg.norm(outer(v_y) - rho_y) == 0 and \
+                    np.linalg.norm(outer(v_y, v_z) - op_yz) == 0 and \
+                    np.linalg.norm(outer(v_z, v_y) - op_zy) == 0
         self.assertTrue(test_pass)
 
     def test_state_fidelity(self):
@@ -102,14 +102,14 @@ class TestQI(QiskitTestCase):
         mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
                [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
         test_pass = round(state_fidelity(psi1, psi1), 7) == 1.0 and \
-            round(state_fidelity(psi1, psi2), 8) == 0.0 and \
-            round(state_fidelity(psi1, rho1), 8) == 1.0 and \
-            round(state_fidelity(psi1, mix), 8) == 0.5 and \
-            round(state_fidelity(psi2, rho1), 8) == 0.0 and \
-            round(state_fidelity(psi2, mix), 8) == 0.5 and \
-            round(state_fidelity(rho1, rho1), 8) == 1.0 and \
-            round(state_fidelity(rho1, mix), 8) == 0.5 and \
-            round(state_fidelity(mix, mix), 8) == 1.0
+                    round(state_fidelity(psi1, psi2), 8) == 0.0 and \
+                    round(state_fidelity(psi1, rho1), 8) == 1.0 and \
+                    round(state_fidelity(psi1, mix), 8) == 0.5 and \
+                    round(state_fidelity(psi2, rho1), 8) == 0.0 and \
+                    round(state_fidelity(psi2, mix), 8) == 0.5 and \
+                    round(state_fidelity(rho1, rho1), 8) == 1.0 and \
+                    round(state_fidelity(rho1, mix), 8) == 0.5 and \
+                    round(state_fidelity(mix, mix), 8) == 1.0
         self.assertTrue(test_pass)
 
     def test_purity(self):
@@ -117,8 +117,8 @@ class TestQI(QiskitTestCase):
         rho2 = [[0.5, 0], [0, 0.5]]
         rho3 = 0.7 * np.array(rho1) + 0.3 * np.array(rho2)
         test_pass = purity(rho1) == 1.0 and \
-            purity(rho2) == 0.5 and \
-            round(purity(rho3), 10) == 0.745
+                    purity(rho2) == 0.5 and \
+                    round(purity(rho3), 10) == 0.745
         self.assertTrue(test_pass)
 
     def test_concurrence(self):
@@ -129,10 +129,10 @@ class TestQI(QiskitTestCase):
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
         test_pass = concurrence(psi1) == 0.0 and \
-            concurrence(rho1) == 1.0 and \
-            concurrence(rho2) == 1.0 and \
-            concurrence(rho3) == 0.0 and \
-            concurrence(rho4) == 0.5
+                    concurrence(rho1) == 1.0 and \
+                    concurrence(rho2) == 1.0 and \
+                    concurrence(rho3) == 0.0 and \
+                    concurrence(rho4) == 0.5
         self.assertTrue(test_pass)
 
 
@@ -157,12 +157,12 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.v), length)
         self.assertEqual(len(q.w), length)
         self.assertEqual(len(q.to_label()), length)
-        self.assertEqual(len(q.to_matrix()), 2**length)
+        self.assertEqual(len(q.to_matrix()), 2 ** length)
 
     def test_pauli_invert(self):
         self.log.info("===== p3 =====")
         self.log.info(self.p3)
-        self.assertEqual(str(self.p3),'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
+        self.assertEqual(str(self.p3), 'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
 
         self.log.info("\tIn label form:")
         self.log.info(self.p3.to_label())
@@ -178,7 +178,7 @@ class TestPauli(QiskitTestCase):
  [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
  [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
  [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
-        self.assertMultiLineEqual(str(self.p3.to_matrix()),m)
+        self.assertMultiLineEqual(str(self.p3.to_matrix()), m)
 
         self.log.info("===== r =====")
         r = inverse_pauli(self.p3)
@@ -202,15 +202,25 @@ class TestPauli(QiskitTestCase):
 
     def test_pauli_group(self):
         self.log.info("Group in tensor order:")
-        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'XXI', 'YXI', 'ZXI', 'IYI', 'XYI', 'YYI', 'ZYI', 'IZI', 'XZI','YZI', 'ZZI', 'IIX', 'XIX', 'YIX', 'ZIX', 'IXX', 'XXX', 'YXX', 'ZXX', 'IYX', 'XYX', 'YYX', 'ZYX', 'IZX', 'XZX', 'YZX', 'ZZX', 'IIY', 'XIY', 'YIY', 'ZIY', 'IXY', 'XXY', 'YXY', 'ZXY', 'IYY', 'XYY', 'YYY', 'ZYY', 'IZY', 'XZY', 'YZY', 'ZZY', 'IIZ', 'XIZ', 'YIZ', 'ZIZ', 'IXZ', 'XXZ', 'YXZ', 'ZXZ', 'IYZ', 'XYZ', 'YYZ', 'ZYZ', 'IZZ', 'XZZ', 'YZZ', 'ZZZ']
+        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'XXI', 'YXI', 'ZXI', 'IYI', 'XYI', 'YYI',
+                    'ZYI', 'IZI', 'XZI', 'YZI', 'ZZI', 'IIX', 'XIX', 'YIX', 'ZIX', 'IXX', 'XXX',
+                    'YXX', 'ZXX', 'IYX', 'XYX', 'YYX', 'ZYX', 'IZX', 'XZX', 'YZX', 'ZZX', 'IIY',
+                    'XIY', 'YIY', 'ZIY', 'IXY', 'XXY', 'YXY', 'ZXY', 'IYY', 'XYY', 'YYY', 'ZYY',
+                    'IZY', 'XZY', 'YZY', 'ZZY', 'IIZ', 'XIZ', 'YIZ', 'ZIZ', 'IXZ', 'XXZ', 'YXZ',
+                    'ZXZ', 'IYZ', 'XYZ', 'YYZ', 'ZYZ', 'IZZ', 'XZZ', 'YZZ', 'ZZZ']
         grp = pauli_group(3, case=1)
         for j in grp:
             self.log.info('==== j (tensor order) ====')
             self.log.info(j.to_label())
-            self.assertEqual(expected.pop(0),j.to_label())
+            self.assertEqual(expected.pop(0), j.to_label())
 
         self.log.info("Group in weight order:")
-        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'IYI', 'IZI', 'IIX', 'IIY', 'IIZ', 'XXI', 'YXI', 'ZXI', 'XYI', 'YYI', 'ZYI', 'XZI', 'YZI', 'ZZI', 'XIX', 'YIX', 'ZIX', 'IXX', 'IYX', 'IZX', 'XIY', 'YIY', 'ZIY', 'IXY', 'IYY', 'IZY', 'XIZ', 'YIZ', 'ZIZ', 'IXZ', 'IYZ', 'IZZ', 'XXX', 'YXX', 'ZXX', 'XYX', 'YYX', 'ZYX', 'XZX', 'YZX', 'ZZX', 'XXY', 'YXY', 'ZXY', 'XYY', 'YYY', 'ZYY', 'XZY', 'YZY', 'ZZY', 'XXZ', 'YXZ', 'ZXZ', 'XYZ', 'YYZ', 'ZYZ', 'XZZ', 'YZZ', 'ZZZ']
+        expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'IYI', 'IZI', 'IIX', 'IIY', 'IIZ', 'XXI',
+                    'YXI', 'ZXI', 'XYI', 'YYI', 'ZYI', 'XZI', 'YZI', 'ZZI', 'XIX', 'YIX', 'ZIX',
+                    'IXX', 'IYX', 'IZX', 'XIY', 'YIY', 'ZIY', 'IXY', 'IYY', 'IZY', 'XIZ', 'YIZ',
+                    'ZIZ', 'IXZ', 'IYZ', 'IZZ', 'XXX', 'YXX', 'ZXX', 'XYX', 'YYX', 'ZYX', 'XZX',
+                    'YZX', 'ZZX', 'XXY', 'YXY', 'ZXY', 'XYY', 'YYY', 'ZYY', 'XZY', 'YZY', 'ZZY',
+                    'XXZ', 'YXZ', 'ZXZ', 'XYZ', 'YYZ', 'ZYZ', 'XZZ', 'YZZ', 'ZZZ']
         grp = pauli_group(3)
         for j in grp:
             self.log.info('==== j (weight order) ====')
@@ -223,10 +233,10 @@ class TestPauli(QiskitTestCase):
 
         self.log.info("sign product:")
         p3, sgn = sgn_prod(p1, p2)
-        self.log.info("p1: "+ p1.to_label())
-        self.log.info("p2: "+ p2.to_label())
-        self.log.info("p3: "+ p3.to_label())
-        self.log.info("sgn_prod(p1, p2): "+str(sgn))
+        self.log.info("p1: " + p1.to_label())
+        self.log.info("p2: " + p2.to_label())
+        self.log.info("p3: " + p3.to_label())
+        self.log.info("sgn_prod(p1, p2): " + str(sgn))
         self.assertEqual(p1.to_label(), 'X')
         self.assertEqual(p2.to_label(), 'Y')
         self.assertEqual(p3.to_label(), 'Z')
@@ -234,10 +244,10 @@ class TestPauli(QiskitTestCase):
 
         self.log.info("sign product reverse:")
         p3, sgn = sgn_prod(p2, p1)
-        self.log.info("p2: "+p2.to_label())
-        self.log.info("p1: "+p1.to_label())
-        self.log.info("p3: "+p3.to_label())
-        self.log.info("sgn_prod(p2, p1): "+str(sgn))
+        self.log.info("p2: " + p2.to_label())
+        self.log.info("p1: " + p1.to_label())
+        self.log.info("p3: " + p3.to_label())
+        self.log.info("sgn_prod(p2, p1): " + str(sgn))
         self.assertEqual(p1.to_label(), 'X')
         self.assertEqual(p2.to_label(), 'Y')
         self.assertEqual(p3.to_label(), 'Z')
@@ -253,8 +263,8 @@ class TestPauli(QiskitTestCase):
 
         self.log.info(p2.to_label())
         self.log.info(p1.to_label())
-        self.assertEqual(p1.to_label(),'ZXY')
-        self.assertEqual(p2.to_label(),'ZXY')
+        self.assertEqual(p1.to_label(), 'ZXY')
+        self.assertEqual(p2.to_label(), 'ZXY')
 
     def test_equality_different(self):
         """Test equality operator: different Paulis"""
@@ -296,6 +306,7 @@ class TestPauli(QiskitTestCase):
         self.log.info(p1.to_label())
         self.assertEqual(p1.to_label(), 'ZXY')
         self.assertEqual(p2.to_label(), 'IXY')
+
 
 if __name__ == '__main__':
     unittest.main()
