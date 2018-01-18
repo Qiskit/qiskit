@@ -749,7 +749,7 @@ class DAGCircuit:
             if qeflag:
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3"]
+                         "cu3", "swap"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             for k in self.basis.keys():
