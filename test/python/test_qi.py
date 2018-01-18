@@ -149,7 +149,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.to_label()), length)
         self.assertEqual(len(q.to_matrix()), 2**length)
 
-    def test_pauli(self):
+    def test_pauli_invert(self):
         v = np.zeros(3)
         w = np.zeros(3)
         v[0] = 1
@@ -158,14 +158,15 @@ class TestPauli(QiskitTestCase):
         w[2] = 1
 
         p = Pauli(v, w)
+        self.log.info("===== p =====")
         self.log.info(p)
         self.assertEqual(str(p),'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
 
-        self.log.info("In label form:")
+        self.log.info("\tIn label form:")
         self.log.info(p.to_label())
         self.assertEqual(p.to_label(), 'ZXY')
 
-        self.log.info("In matrix form:")
+        self.log.info("\tIn matrix form:")
         self.log.info(p.to_matrix())
         m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
  [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
@@ -177,10 +178,27 @@ class TestPauli(QiskitTestCase):
  [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
         self.assertMultiLineEqual(str(p.to_matrix()),m)
 
+        self.log.info("===== r =====")
         r = inverse_pauli(p)
+        self.assertEqual(str(r), 'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
+
         self.log.info("In label form:")
         self.log.info(r.to_label())
+        self.assertEqual(r.to_label(), 'ZXY')
 
+        self.log.info("\tIn matrix form:")
+        self.log.info(r.to_matrix())
+        m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
+        self.assertMultiLineEqual(str(r.to_matrix()), m)
+
+    def test_pauli_group(self):
         self.log.info("Group in tensor order:")
         grp = pauli_group(3, case=1)
         for j in grp:
