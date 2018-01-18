@@ -209,6 +209,7 @@ class TestPauli(QiskitTestCase):
         for j in grp:
             self.log.info(j.to_label())
 
+    def test_pauli_sgn_prod(self):
         self.log.info("sign product:")
         p1 = Pauli(np.array([0]), np.array([1]))
         p2 = Pauli(np.array([1]), np.array([1]))
