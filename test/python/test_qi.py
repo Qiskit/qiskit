@@ -220,17 +220,17 @@ class TestPauli(QiskitTestCase):
         p1 = Pauli(np.array([0]), np.array([1]))
         p2 = Pauli(np.array([1]), np.array([1]))
         p3, sgn = sgn_prod(p1, p2)
-        self.log.info(p1.to_label())
-        self.log.info(p2.to_label())
-        self.log.info(p3.to_label())
-        self.log.info(sgn)
+        self.log.info("p1: "+ p1.to_label())
+        self.log.info("p2: "+ p2.to_label())
+        self.log.info("p3: "+ p3.to_label())
+        self.log.info("sgn_prod(p1, p2)"+str(sgn))
 
         self.log.info("sign product reverse:")
         p3, sgn = sgn_prod(p2, p1)
-        self.log.info(p2.to_label())
-        self.log.info(p1.to_label())
-        self.log.info(p3.to_label())
-        self.log.info(sgn)
+        self.log.info("p2: "+p2.to_label())
+        self.log.info("p1: "+p1.to_label())
+        self.log.info("p3: "+p3.to_label())
+        self.log.info("sgn_prod(p2, p1)"+str(sgn))
 
     def test_equality_equal(self):
         """Test equality operator: equal Paulis"""
