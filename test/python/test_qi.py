@@ -171,15 +171,15 @@ class TestPauli(QiskitTestCase):
 
         self.log.info("\tIn matrix form:")
         self.log.info(self.p3.to_matrix())
-        m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
-        self.assertMultiLineEqual(str(self.p3.to_matrix()), m)
+        m = np.array([[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 1.j, 0. + 0.j],
+                      [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 1.j],
+                      [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                      [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 1.j, 0. + 0.j, 0. + 0.j],
+                      [0. + 0.j, 0. + 0.j, 0. + 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                      [0. + 0.j, 0. - 0.j, 0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                      [0. + 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                      [0. + 0.j, 0. - 1.j, 0. + 0.j, 0. - 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]])
+        self.assertTrue((self.p3.to_matrix() == m).all())
 
         self.log.info("===== r =====")
         r = inverse_pauli(self.p3)
@@ -190,16 +190,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(r.to_label(), 'ZXY')
 
         self.log.info("\tIn matrix form:")
-        self.log.info(r.to_matrix())
-        m = '''[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.-0.j  0.+0.j  0.-1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+1.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
- [ 0.+0.j  0.-1.j  0.+0.j  0.-0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]'''
-        self.assertMultiLineEqual(str(r.to_matrix()), m)
+        self.assertTrue((r.to_matrix() == m).all())
 
     def test_pauli_group(self):
         self.log.info("Group in tensor order:")
