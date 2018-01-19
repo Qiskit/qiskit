@@ -1196,7 +1196,6 @@ class DAGCircuit:
                         if nxt_nd["name"] != "barrier":
                             # support_list.append(list(set(qa) | set(ca) |
                             #                          set(cob)))
-#                             support_list.append(list(set(qa)))
                             support_list.append(list(qa))
                         emit = True
             if emit:
@@ -1239,7 +1238,6 @@ class DAGCircuit:
                 # Add operation to partition
                 if nxt_nd["name"] != "barrier":
                     # support_list.append(list(set(qa) | set(ca) | set(cob)))
-#                     support_list.append(list(set(qa)))
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
                 layers_list.append(l_dict)
