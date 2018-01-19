@@ -125,6 +125,7 @@ class DAGBackend(UnrollerBackend):
             condition = None
         if "measure" not in self.basis:
             self.basis.append("measure")
+        if "measure" not in self.circuit.basis:
             self.circuit.add_basis_element("measure", 1, 1)
         self.circuit.apply_operation_back(
             "measure", [qubit], [bit], [], condition)
