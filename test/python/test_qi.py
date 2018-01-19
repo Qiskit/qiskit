@@ -160,6 +160,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.to_matrix()), 2 ** length)
 
     def test_pauli_invert(self):
+        self.maxDiff = None
         self.log.info("===== p3 =====")
         self.log.info(self.p3)
         self.assertEqual(str(self.p3), 'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
