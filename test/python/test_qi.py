@@ -65,10 +65,10 @@ class TestQI(QiskitTestCase):
         col = [1, 3, 2, 4]
         row = [1, 2, 3, 4]
         paul = [5, 5, -1j, -3]
-        test_pass = np.linalg.norm(vectorize(mat) - col) == 0 and \
-                    np.linalg.norm(vectorize(mat, method='col') - col) == 0 and \
-                    np.linalg.norm(vectorize(mat, method='row') - row) == 0 and \
-                    np.linalg.norm(vectorize(mat, method='pauli') - paul) == 0
+        test_pass = (np.linalg.norm(vectorize(mat) - col) == 0 and
+                     np.linalg.norm(vectorize(mat, method='col') - col) == 0 and
+                     np.linalg.norm(vectorize(mat, method='row') - row) == 0 and
+                     np.linalg.norm(vectorize(mat, method='pauli') - paul) == 0)
         self.assertTrue(test_pass)
 
     def test_devectorize(self):
@@ -76,10 +76,10 @@ class TestQI(QiskitTestCase):
         col = [1, 3, 2, 4]
         row = [1, 2, 3, 4]
         paul = [5, 5, -1j, -3]
-        test_pass = np.linalg.norm(devectorize(col) - mat) == 0 and \
-                    np.linalg.norm(devectorize(col, method='col') - mat) == 0 and \
-                    np.linalg.norm(devectorize(row, method='row') - mat) == 0 and \
-                    np.linalg.norm(devectorize(paul, method='pauli') - mat) == 0
+        test_pass = (np.linalg.norm(devectorize(col) - mat) == 0 and
+                     np.linalg.norm(devectorize(col, method='col') - mat) == 0 and
+                     np.linalg.norm(devectorize(row, method='row') - mat) == 0 and
+                     np.linalg.norm(devectorize(paul, method='pauli') - mat) == 0)
         self.assertTrue(test_pass)
 
     def test_outer(self):
@@ -89,10 +89,10 @@ class TestQI(QiskitTestCase):
         rho_y = [[1, -1j], [1j, 1]]
         op_zy = [[1, -1j], [0, 0]]
         op_yz = [[1, 0], [1j, 0]]
-        test_pass = np.linalg.norm(outer(v_z) - rho_z) == 0 and \
-                    np.linalg.norm(outer(v_y) - rho_y) == 0 and \
-                    np.linalg.norm(outer(v_y, v_z) - op_yz) == 0 and \
-                    np.linalg.norm(outer(v_z, v_y) - op_zy) == 0
+        test_pass = (np.linalg.norm(outer(v_z) - rho_z) == 0 and
+                     np.linalg.norm(outer(v_y) - rho_y) == 0 and
+                     np.linalg.norm(outer(v_y, v_z) - op_yz) == 0 and
+                     np.linalg.norm(outer(v_z, v_y) - op_zy) == 0)
         self.assertTrue(test_pass)
 
     def test_state_fidelity(self):
@@ -101,24 +101,24 @@ class TestQI(QiskitTestCase):
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
         mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
                [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
-        test_pass = round(state_fidelity(psi1, psi1), 7) == 1.0 and \
-                    round(state_fidelity(psi1, psi2), 8) == 0.0 and \
-                    round(state_fidelity(psi1, rho1), 8) == 1.0 and \
-                    round(state_fidelity(psi1, mix), 8) == 0.5 and \
-                    round(state_fidelity(psi2, rho1), 8) == 0.0 and \
-                    round(state_fidelity(psi2, mix), 8) == 0.5 and \
-                    round(state_fidelity(rho1, rho1), 8) == 1.0 and \
-                    round(state_fidelity(rho1, mix), 8) == 0.5 and \
-                    round(state_fidelity(mix, mix), 8) == 1.0
+        test_pass = (round(state_fidelity(psi1, psi1), 7) == 1.0 and
+                     round(state_fidelity(psi1, psi2), 8) == 0.0 and
+                     round(state_fidelity(psi1, rho1), 8) == 1.0 and
+                     round(state_fidelity(psi1, mix), 8) == 0.5 and
+                     round(state_fidelity(psi2, rho1), 8) == 0.0 and
+                     round(state_fidelity(psi2, mix), 8) == 0.5 and
+                     round(state_fidelity(rho1, rho1), 8) == 1.0 and
+                     round(state_fidelity(rho1, mix), 8) == 0.5 and
+                     round(state_fidelity(mix, mix), 8) == 1.0)
         self.assertTrue(test_pass)
 
     def test_purity(self):
         rho1 = [[1, 0], [0, 0]]
         rho2 = [[0.5, 0], [0, 0.5]]
         rho3 = 0.7 * np.array(rho1) + 0.3 * np.array(rho2)
-        test_pass = purity(rho1) == 1.0 and \
-                    purity(rho2) == 0.5 and \
-                    round(purity(rho3), 10) == 0.745
+        test_pass = (purity(rho1) == 1.0 and
+                     purity(rho2) == 0.5 and
+                     round(purity(rho3), 10) == 0.745)
         self.assertTrue(test_pass)
 
     def test_concurrence(self):
@@ -128,11 +128,11 @@ class TestQI(QiskitTestCase):
                 [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
-        test_pass = concurrence(psi1) == 0.0 and \
-                    concurrence(rho1) == 1.0 and \
-                    concurrence(rho2) == 1.0 and \
-                    concurrence(rho3) == 0.0 and \
-                    concurrence(rho4) == 0.5
+        test_pass = (concurrence(psi1) == 0.0 and
+                     concurrence(rho1) == 1.0 and
+                     concurrence(rho2) == 1.0 and
+                     concurrence(rho3) == 0.0 and
+                     concurrence(rho4) == 0.5)
         self.assertTrue(test_pass)
 
 
