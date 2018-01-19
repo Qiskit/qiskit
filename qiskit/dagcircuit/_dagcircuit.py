@@ -639,7 +639,7 @@ class DAGCircuit:
         # Compose
         self.basis = union_basis
         self.gates = union_gates
-        for n in nx.topological_sort(input_circuit.multi_graph, reverse=True):
+        for n in reversed(list(nx.topological_sort(input_circuit.multi_graph)):
             nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "out":
                 # if in wire_map, get new name, else use existing name
