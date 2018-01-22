@@ -93,7 +93,8 @@ class MapperTest(QiskitTestCase):
     # TODO: Appveyor (Windows) uses Miniconda, and with python 3.5 enviornment,
     # the version of NetowrkX library is still 1.x, so this test fails.
     # We are going to skip it will figuring out a fix.
-    @unittest.skipIf(version_info.minor == 5 and platform.system() == 'Windows')
+    @unittest.skipIf(version_info.minor == 5 and platform.system() == 'Windows',
+                     'Appveyor temporary skipping!')
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
         self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
