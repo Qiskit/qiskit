@@ -10,11 +10,11 @@ import platform
 
 requirements = [
     "IBMQuantumExperience>=1.8.26",
-    "matplotlib>=2.0,<=2.1",
-    "networkx>=1.11,<1.12",
-    "numpy>=1.13,<=1.14",
+    "matplotlib>=2.1,<2.2",
+    "networkx>=1.11,<2.1",
+    "numpy>=1.13,<1.15",
     "ply==3.10",
-    "scipy>=0.19,<=1.0",
+    "scipy>=0.19,<1.1",
     "Sphinx>=1.6,<1.7",
     "sympy>=1.0"
 ]

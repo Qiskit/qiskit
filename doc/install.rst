@@ -22,20 +22,33 @@ if you are willing to contribute to QISKit or just wanted to extend it, you
 should install Git too: https://git-scm.com/download/.
 
 
-2. PIP Install
+2. Installation
 --------------
 
-The fastest way to install QISKit is by using the PIP tool (Python package manager):
+Option A: Installing via PIP
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The recommended way to install QISKit is by using the PIP tool (Python
+package manager):
 
 .. code:: sh
 
     pip install qiskit
 
-3. Repository Install
----------------------
+This will install the latest stable release along with all the dependencies.
 
-Other common option is to clone the QISKit SDK repository on your local machine,
-and change into the cloned directory:
+Option B: Installing from the git repository
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As an alternative for users interesting in contributing to QISKit or using
+features that are still in development, QISKit can be installed manually from
+the git repository.
+
+Please note that this option requires more familiarity with the tools involved
+compared to the more streamline option of installing via PIP:
+
+Getting the source files
+""""""""""""""""""""""""
 
 -  If you have Git installed, run the following commands:
 
@@ -48,8 +61,8 @@ and change into the cloned directory:
   button on the `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-sdk-py>`__, unzip the file if
   needed and finally change into the unziped directory.
 
-3.1 Setup the environment
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Setup the environment
+"""""""""""""""""""""
 
 To use QISKit as standalone library, install all the dependencies:
 
@@ -96,7 +109,7 @@ set of commands instead:
 
 .. _qconfig-setup:
 
-4. Configure your API token and QE credentials
+3. Configure your API token and QE credentials
 ----------------------------------------------
 
 -  Create an `IBM Q
