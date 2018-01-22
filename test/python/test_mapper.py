@@ -17,7 +17,6 @@
 # =============================================================================
 
 from sys import version_info
-import platform
 import unittest
 
 from qiskit import QuantumProgram
