@@ -221,7 +221,7 @@ def __parse_noise_params(noise):
         for key, val in noise:
             if 'U_error' in val:
                 tmp = np.array([__parse_json_complex(row)
-                               for row in val['U_error']])
+                                for row in val['U_error']])
                 noise[key]['U_error'] = tmp
 
 
