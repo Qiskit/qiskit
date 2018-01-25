@@ -688,8 +688,8 @@ void IdealBackend::qc_measure_reset(const uint_t qubit,
           for (uint_t k2 = 0; k2 < end2; k2++) {
             const auto i0 = k1 | k2;
             const auto i1 = i0 | end2;
-            qreg[i0] = renorm * qreg[i1];
-            qreg[i1] = 0;
+            qreg[i1] = renorm * qreg[i0];
+            qreg[i0] = 0;
           }
       }
     } else { // Measurement outcome was 0

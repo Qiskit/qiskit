@@ -367,8 +367,8 @@ A single qubit gate error with gate time of *1* unit, depolarizing probability *
 A coherent error model for X-90 rotations due to pulse amplitude and a phase-offset errors may be implemented directly with the following keywords:
 
 ```python
-"amp_error": alpha,
-"phase_error: omega
+"calibration_error": alpha,
+"detuning_error: omega
 ```
 
 In this case the ideal X-90 rotation will be implemented as the unitary $$U_{X90} = \exp\left[ -i (\frac{\pi}{2} + alpha) (\cos(\omega) X + \sin(\omega) Y ) \right]$$. If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
@@ -378,12 +378,12 @@ In this case the ideal X-90 rotation will be implemented as the unitary $$U_{X90
 A coherent error model for a CX gate implemented via a cross-resonance interaction with a pulse amplitude error, and a ZZ-interaction error may be implemented directly with the following keywords:
 
 ```python
-"amp_error": beta,
+"calibration_error": beta,
 "zz_error": gamma
 ```
 
 In this case the unitary for the CX gate is implemented as *U<sub>CX</sub> = U<sub>L</sub>\*U<sub>CR</sub>\*U<sub>R</sub>* where, *U<sub>CR</sub>* is the cross-resonance unitary, and *U<sub>L</sub>*, *U<sub>R</sub>* are the ideal local unitary rotations that would convert this to a CX in the ideal case. The ideal CR unitary is given by $$ U_{CR} = \exp\left[ -i \frac{\pi}{4} ZX  \right]$$, and the noisy one with the above errors is given by
-$$ U_{CR} = \exp\left[ -i (\frac{\pi}{4} + \beta) ( ZX + \gamma ZZ) \right]$$,
+$$ U_{CR} = \exp\left[ -i (\frac{\pi}{2} + \beta) ( \frac{Z \otimes X}{2} + \gamma \frac{Z\otimes Z}{2}) \right]$$,
 
 If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
 
