@@ -390,7 +390,7 @@ If a `"U_error"` keyword is specified this additional coherent error will then b
 ### Thermal Relaxation Error
 
 ```python
-"relaxation_rates": r
+"relaxation_rate": r
 "thermal_populations": p0
 ```
 
