@@ -36,7 +36,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
+        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
         self.qp = QuantumProgram()
 
     def tearDown(self):
@@ -44,7 +44,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
 
     def test_unitary_simulator(self):
         """test generation of circuit unitary"""
-        self.qp.load_qasm_file(self.qasmFileName, name='example')
+        self.qp.load_qasm_file(self.qasm_filename, name='example')
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
             qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
@@ -130,15 +130,15 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         number of operations/circuit in [1, 40]
         number of qubits in [1, 5]
         """
-        nCircuits = 100
-        maxDepth = 40
-        maxQubits = 5
+        n_circuits = 100
+        max_depth = 40
+        max_qubits = 5
         pr = cProfile.Profile()
-        randomCircuits = RandomQasmGenerator(seed=self.seed,
-                                             max_depth=maxDepth,
-                                             max_qubits=maxQubits)
-        randomCircuits.add_circuits(nCircuits, do_measure=False)
-        self.qp = randomCircuits.get_program()
+        random_circuits = RandomQasmGenerator(seed=self.seed,
+                                              max_depth=max_depth,
+                                              max_qubits=max_qubits)
+        random_circuits.add_circuits(n_circuits, do_measure=False)
+        self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
                         backend='local_unitary_simulator')
