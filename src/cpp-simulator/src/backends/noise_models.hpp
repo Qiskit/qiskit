@@ -650,10 +650,11 @@ inline void from_json(const json_t &js, QubitNoise &noise) {
           g = load_gate_error(n, 1, js);
 
         // Check for special gate params
-        if (n == "x90") {
+        if (n == "X90") {
           double theta = 0., omega = 0.;
           const json_t &jsg = js[n];
-          JSON::get_value(theta, "amp_error", jsg);
+          JSON::get_value(theta, "amp_error", jsg); // legacy key (use calibration_error)
+          JSON::get_value(theta, "calibration_error", jsg);
           JSON::get_value(omega, "detuning_error", jsg);
 
           if (theta > 0. || theta < 0. || omega > 0. || omega < 0.) {
@@ -693,7 +694,8 @@ inline void from_json(const json_t &js, QubitNoise &noise) {
 
           double theta = 0., omega = 0.;
           const json_t &jsg = js[n];
-          JSON::get_value(theta, "amp_error", jsg);
+          JSON::get_value(theta, "amp_error", jsg); // legacy key (use calibration_error)
+          JSON::get_value(theta, "calibration_error", jsg);
           JSON::get_value(omega, "zz_error", jsg);
 
           if (theta > 0. || theta < 0. || omega > 0. || omega < 0.) {
@@ -709,7 +711,7 @@ inline void from_json(const json_t &js, QubitNoise &noise) {
 
             // CR gate noise
             double b = sqrt(1. + omega * omega);
-            double a = b * (M_PI / 4. + theta);
+            double a = 0.5 * b * (M_PI / 2. + theta);
             double c = 1. / (sqrt(2.) * b);
             U_CNOT_noise(0, 0) = c * (b * cos(a) + sin(a));
             U_CNOT_noise(1, 3) = U_CNOT_noise(0, 0);
