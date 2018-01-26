@@ -5,7 +5,6 @@ The following code is an example of how to execute a Quantum Program on a real
 Quantum device:
 
 .. code-block:: python
-    :linenos:
 
     from qiskit import QuantumProgram
     
@@ -53,7 +52,6 @@ executing the same example as described on the previous section, but using
 the IBM Q features:
 
 .. code-block:: python
-    :linenos:
 
     from qiskit import QuantumProgram
 
@@ -116,7 +114,6 @@ The parameters can be specified to ``QuantumProgram.compile()`` and
 ``QuantumProgram.execute()`` via the ``hpc`` parameter. For example:
 
 .. code-block:: python
-    :linenos:
 
     QP_program.compile(circuits,
                        backend=backend,
