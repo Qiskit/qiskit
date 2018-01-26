@@ -41,6 +41,6 @@ from ._quantumprogram import QuantumProgram
 from ._result import Result
 from ._util import _check_ibmqe_version
 
-__version__ = '0.4.6'
+__version__ = '0.4.7'
 
 _check_ibmqe_version()

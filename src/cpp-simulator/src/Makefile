@@ -10,9 +10,9 @@ OUTPUT_DIR = ../../../out
 # Check if compiler is Apple LLVM and doesn't support OpenMP
 APPLELLVM = $(shell ${CC} --version | grep ^Apple)
 ifeq ($(APPLELLVM),)
-	CPPFLAGS = -std=c++14 -fopenmp $(OPT) $(INCLUDE) $(WARNINGS)
+	CPPFLAGS = $(USER_FLAGS) -std=c++14 -fopenmp $(OPT) $(INCLUDE) $(WARNINGS)
 else
-	CPPFLAGS = -std=c++14 $(OPT) $(INCLUDE) $(WARNINGS)
+	CPPFLAGS = $(USER_FLAGS) -std=c++14 $(OPT) $(INCLUDE) $(WARNINGS)
 endif
 
 # BLAS distribution to use (change to use OpenBLAS or MKL for example)
