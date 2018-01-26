@@ -218,7 +218,7 @@ def __parse_json_complex(val):
 
 def __parse_noise_params(noise):
     if isinstance(noise, dict):
-        for key, val in noise:
+        for key, val in noise.items():
             if 'U_error' in val:
                 tmp = np.array([__parse_json_complex(row)
                                 for row in val['U_error']])
