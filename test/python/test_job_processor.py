@@ -56,18 +56,18 @@ class TestJobProcessor(QiskitTestCase):
             if 'QE_URL' in os.environ:
                 cls.QE_URL = os.environ['QE_URL']
 
-        nCircuits = 20
-        minDepth = 1
-        maxDepth = 40
-        minQubits = 1
-        maxQubits = 5
-        randomCircuits = RandomCircuitGenerator(100,
-                                                min_qubits=minQubits,
-                                                max_qubits=maxQubits,
-                                                min_depth=minDepth,
-                                                max_depth=maxDepth)
-        randomCircuits.add_circuits(nCircuits)
-        cls.rqg = randomCircuits
+        n_circuits = 20
+        min_depth = 1
+        max_depth = 40
+        min_qubits = 1
+        max_qubits = 5
+        random_circuits = RandomCircuitGenerator(100,
+                                                 min_qubits=min_qubits,
+                                                 max_qubits=max_qubits,
+                                                 min_depth=min_depth,
+                                                 max_depth=max_depth)
+        random_circuits.add_circuits(n_circuits)
+        cls.rqg = random_circuits
         if hasattr(cls, 'QE_TOKEN'):
             cls._api = IBMQuantumExperience(cls.QE_TOKEN,
                                             {"url": cls.QE_URL},
@@ -76,8 +76,8 @@ class TestJobProcessor(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = self._get_resource_path('qasm/example.qasm')
-        with open(self.qasmFileName, 'r') as qasm_file:
+        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
+        with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
         # create QuantumCircuit
         qr = QuantumRegister('q', 2)
@@ -115,7 +115,7 @@ class TestJobProcessor(QiskitTestCase):
         self.job_processor_finished = False
 
     def test_load_unroll_qasm_file(self):
-        _ = openquantumcompiler.load_unroll_qasm_file(self.qasmFileName)
+        _ = openquantumcompiler.load_unroll_qasm_file(self.qasm_filename)
 
     def test_init_quantum_job(self):
         _ = QuantumJob(self.qc)
