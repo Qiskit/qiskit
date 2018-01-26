@@ -161,7 +161,7 @@ public:
    * Eg: qs_srt = {0, 1, 2}
    */
   template <size_t N>
-  uint_t index0(const std::array<uint_t, N> qs_srt, const uint_t k) const;
+  uint_t index0(const std::array<uint_t, N> &qs_srt, const uint_t k) const;
 
   /**
    * This function does not require the qubits to be sorted, but takes as input
@@ -169,16 +169,16 @@ public:
    * specified by qs.
    */
   template <size_t N>
-  std::array<uint_t, 1ULL << N> indexes(const std::array<uint_t, N> qs,
-                                        const std::array<uint_t, N> qs_srt,
+  std::array<uint_t, 1ULL << N> indexes(const std::array<uint_t, N> &qs,
+                                        const std::array<uint_t, N> &qs_srt,
                                         const uint_t k) const;
 
-  std::array<uint_t, 4> indexes(const std::array<uint_t, 2> qs,
-                                const std::array<uint_t, 2> qs_srt,
+  std::array<uint_t, 4> indexes(const std::array<uint_t, 2> &qs,
+                                const std::array<uint_t, 2> &qs_srt,
                                 const uint_t k) const;
 
-  std::array<uint_t, 2> indexes(const std::array<uint_t, 1> qs,
-                                const std::array<uint_t, 1> qs_srt,
+  std::array<uint_t, 2> indexes(const std::array<uint_t, 1> &qs,
+                                const std::array<uint_t, 1> &qs_srt,
                                 const uint_t k) const;
 };
 
@@ -326,7 +326,7 @@ void from_json(const json_t &js, Clifford &clif);
 //------------------------------------------------------------------------------
 
 template <size_t N>
-uint_t MultiPartiteIndex::index0(const std::array<uint_t, N> qs_srt,
+uint_t MultiPartiteIndex::index0(const std::array<uint_t, N> &qs_srt,
                                  const uint_t k) const {
   uint_t lowbits = 0, mask = 0;
   for (size_t j = 0; j < N; j++) {
@@ -341,8 +341,8 @@ uint_t MultiPartiteIndex::index0(const std::array<uint_t, N> qs_srt,
 
 template <size_t N>
 std::array<uint_t, 1ULL << N>
-MultiPartiteIndex::indexes(const std::array<uint_t, N> qs,
-                           const std::array<uint_t, N> qs_srt,
+MultiPartiteIndex::indexes(const std::array<uint_t, N> &qs,
+                           const std::array<uint_t, N> &qs_srt,
                            const uint_t k) const {
   std::array<uint_t, 1ULL << N> ret;
   ret[0] = index0<N>(qs_srt, k);
@@ -356,8 +356,8 @@ MultiPartiteIndex::indexes(const std::array<uint_t, N> qs,
 }
 
 std::array<uint_t, 2>
-MultiPartiteIndex::indexes(const std::array<uint_t, 1> qs,
-                           const std::array<uint_t, 1> qs_srt,
+MultiPartiteIndex::indexes(const std::array<uint_t, 1> &qs,
+                           const std::array<uint_t, 1> &qs_srt,
                            const uint_t k) const {
   std::array<uint_t, 2> ret;
   ret[0] = index0(qs_srt, k);
@@ -366,8 +366,8 @@ MultiPartiteIndex::indexes(const std::array<uint_t, 1> qs,
 }
 
 std::array<uint_t, 4>
-MultiPartiteIndex::indexes(const std::array<uint_t, 2> qs,
-                           const std::array<uint_t, 2> qs_srt,
+MultiPartiteIndex::indexes(const std::array<uint_t, 2> &qs,
+                           const std::array<uint_t, 2> &qs_srt,
                            const uint_t k) const {
   std::array<uint_t, 4> ret;
   ret[0] = index0(qs_srt, k);
