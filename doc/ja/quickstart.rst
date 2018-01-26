@@ -10,7 +10,6 @@ QuantumProgramのメソッドは量子回路を実機やシミュレーターの
 シミュレーター上で量子回路を設計して実行するには、以下のようにします。
 
 .. code-block:: python
-   :linenos:
 
    from qiskit import QuantumProgram
    qp = QuantumProgram()
