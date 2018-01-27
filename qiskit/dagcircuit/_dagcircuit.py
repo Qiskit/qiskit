@@ -32,6 +32,8 @@ import copy
 import networkx as nx
 import sympy
 from ._dagcircuiterror import DAGCircuitError
+from .. import qasm
+import qiskit.unroll
 
 
 class DAGCircuit:
@@ -960,6 +962,80 @@ class DAGCircuit:
                                 "expected 1 predecessor to pass filter"
                             self.multi_graph.remove_edge(
                                 p[0], self.output_map[w])
+
+    def expand_gates(self, basis=[]):
+        """Expand all gate nodes to the given basis.
+
+        If basis is empty, each custom gate node is replaced by its
+        implementation over U and CX. If basis contains names, then
+        those custom gates are not expanded. For example, if "u3"
+        is in basis, then the gate "u3" will not be expanded wherever
+        it occurs.
+
+        This member function replicates the behavior of the unroller
+        module without using the OpenQASM parser.
+
+        basis = list of gate name strings
+        """
+        # Build the Gate AST nodes for user-defined gates
+        gatedefs = []
+        for name, gate in self.gates.items():
+            children = [qasm._node.Id(name, 0, "")]
+            if gate["n_args"] > 0:
+                children.append(qasm._node.ExpressionList(list(
+                    map(lambda x: qasm._node.Id(x, 0, ""),
+                        gate["args"])
+                )))
+            children.append(qasm._node.IdList(list(
+                map(lambda x: qasm._node.Id(x, 0, ""),
+                    gate["bits"])
+            )))
+            children.append(gate["body"])
+            gatedefs.append(qasm._node.Gate(children))
+        print(list(map(lambda x: x.qasm(), gatedefs)))
+        # Walk through the DAG and examine each node
+        builtins = ["U", "CX", "measure", "reset", "barrier"]
+        ts = list(nx.topological_sort(self.multi_graph))
+        for node in ts:
+            nd = self.multi_graph.node[node]
+            if nd["type"] == "op" and \
+               nd["name"] not in builtins + basis and \
+               not self.gates[nd["name"]]["opaque"]:
+                print("node name: ", nd["name"])
+                # Build AST for subcircuit
+                children = [qasm._node.Id(nd["name"], 0, "")]
+                if len(nd["params"]) > 0:
+                    children.append(
+                        qasm._node.ExpressionList(
+                            list(map(lambda x: qasm._node.Real(x),
+                                     nd["params"]))
+                        )
+                    )
+                newwires = [("q", j) for j in range(len(nd["qargs"]))]
+                children.append(
+                    qasm._node.PrimaryList(
+                        list(map(lambda x: qasm._node.IndexedId([
+                            qasm._node.Id(x[0], 0, ""),
+                            qasm._node.Int(x[1])]),
+                                 newwires
+                        ))
+                    )
+                )
+                # TODO: condition!!!!!!
+                subast = qasm._node.Program(gatedefs + [
+                    qasm._node.Qreg([
+                        qasm._node.IndexedId([
+                            qasm._node.Id("q", 0, ""),
+                            qasm._node.Int(len(nd["qargs"]))
+                        ])
+                    ]),
+                    qasm._node.CustomUnitary(children)
+                    ])
+                u = qiskit.unroll.Unroller(subast,
+                                           qiskit.unroll.DAGBackend(basis))
+                subcircuit = u.execute()
+                print(subcircuit.qasm())
+                self.substitute_circuit_one(node, subcircuit, newwires)
 
     def substitute_circuit_one(self, node, input_circuit, wires=None):
         """Replace one node with input_circuit.
