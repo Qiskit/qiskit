@@ -189,7 +189,7 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
 ```
 
 For more details on this and more information see
-[our QISKit documentation](doc/qiskit.rst).
+[our QISKit documentation](https://www.qiskit.org/documentation/).
 
 
 ### Next Steps

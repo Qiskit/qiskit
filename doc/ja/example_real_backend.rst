@@ -2,7 +2,6 @@
 ^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
-    :linenos:
 
     from qiskit import QuantumProgram
 

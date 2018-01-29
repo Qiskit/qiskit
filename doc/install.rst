@@ -23,7 +23,7 @@ should install Git too: https://git-scm.com/download/.
 
 
 2. Installation
---------------
+---------------
 
 Option A: Installing via PIP
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
