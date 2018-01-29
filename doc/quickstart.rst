@@ -13,7 +13,6 @@ To compose and run a circuit on a simulator, which is distributed with
 this project, one can do,
 
 .. code-block:: python
-   :linenos:
 
    from qiskit import QuantumProgram
    qp = QuantumProgram()
