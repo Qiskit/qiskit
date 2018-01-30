@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,anomalous-backslash-in-string
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,20 +19,23 @@
 Visualization functions for quantum states.
 """
 
-import numpy as np
-from functools import reduce
-from scipy import linalg as la
-from collections import Counter, OrderedDict
-from io import StringIO
 import itertools
-import re
 import operator
+import re
+from collections import Counter, OrderedDict
+from functools import reduce
+from io import StringIO
+
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+import numpy as np
+from mpl_toolkits.mplot3d import proj3d
+from scipy import linalg as la
+
 from qiskit import qasm, unroll, QISKitError
+from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 
 
 ###############################################################
@@ -57,7 +61,7 @@ def plot_histogram(data, number_to_keep=False):
     numelem = len(values)
     ind = np.arange(numelem)  # the x locations for the groups
     width = 0.35  # the width of the bars
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     rects = ax.bar(ind, pvalues, width, color='seagreen')
     # add some text for labels, title, and axes ticks
     ax.set_ylabel('Probabilities', fontsize=12)
@@ -88,7 +92,7 @@ class Arrow3D(FancyArrowPatch):
     def draw(self, renderer):
         """Draw the arrow."""
         xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -101,10 +105,6 @@ def plot_bloch_vector(bloch, title=""):
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
-
     """
     # Set arrow lengths
     arlen = 1.3
@@ -167,10 +167,6 @@ def plot_state_city(rho, title=""):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
-
     """
     num = int(np.log2(len(rho)))
 
@@ -235,10 +231,6 @@ def plot_state_paulivec(rho, title=""):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
-
     """
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
@@ -247,7 +239,7 @@ def plot_state_paulivec(rho, title=""):
     numelem = len(values)
     ind = np.arange(numelem)  # the x locations for the groups
     width = 0.5  # the width of the bars
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     ax.grid(zorder=0)
     ax.bar(ind, values, width, color='seagreen')
 
@@ -271,14 +263,12 @@ def n_choose_k(n, k):
 
     Returns:
         int: returns the binomial coefficient
-
     """
     if n == 0:
         return 0
-    else:
-        return reduce(lambda x, y: x * y[0] / y[1],
-                      zip(range(n - k + 1, n + 1),
-                          range(1, k + 1)), 1)
+    return reduce(lambda x, y: x * y[0] / y[1],
+                  zip(range(n - k + 1, n + 1),
+                      range(1, k + 1)), 1)
 
 
 def lex_index(n, k, lst):
@@ -287,7 +277,7 @@ def lex_index(n, k, lst):
     Args:
         n (int): the total number of options .
         k (int): The number of elements.
-        lst
+        lst (list): list
 
     Returns:
         int: returns int index for lex order
@@ -317,19 +307,20 @@ def phase_to_color_wheel(complex_number):
     angles = np.angle(complex_number)
     angle_round = int(((angles + 2 * np.pi) % (2 * np.pi))/np.pi*6)
     # print(angleround)
-    color_map = {0: (0, 0, 1),  # blue,
-                 1: (0.5, 0, 1),  # blue-violet
-                 2: (1, 0, 1),  # violet
-                 3: (1, 0, 0.5),  # red-violet,
-                 4: (1, 0, 0),  # red
-                 5: (1, 0.5, 0),  # red-oranage,
-                 6: (1, 1, 0),  # orange
-                 7: (0.5, 1, 0),  # orange-yellow
-                 8: (0, 1, 0),  # yellow,
-                 9: (0, 1, 0.5),  # yellow-green,
-                 10: (0, 1, 1),  # green,
-                 11: (0, 0.5, 1)  # green-blue,
-                 }
+    color_map = {
+        0: (0, 0, 1),  # blue,
+        1: (0.5, 0, 1),  # blue-violet
+        2: (1, 0, 1),  # violet
+        3: (1, 0, 0.5),  # red-violet,
+        4: (1, 0, 0),  # red
+        5: (1, 0.5, 0),  # red-oranage,
+        6: (1, 1, 0),  # orange
+        7: (0.5, 1, 0),  # orange-yellow
+        8: (0, 1, 0),  # yellow,
+        9: (0, 1, 0.5),  # yellow-green,
+        10: (0, 1, 1),  # green,
+        11: (0, 0.5, 1)  # green-blue,
+    }
     return color_map[angle_round]
 
 
@@ -338,12 +329,12 @@ def plot_state_qsphere(rho):
     num = int(np.log2(len(rho)))
     # get the eigenvectors and egivenvalues
     we, stateall = la.eigh(rho)
-    for i in range(2**num):
+    for k in range(2**num):
         # start with the max
         probmix = we.max()
         prob_location = we.argmax()
         if probmix > 0.001:
-            print("The " + str(i) + "th eigenvalue = " + str(probmix))
+            print("The " + str(k) + "th eigenvalue = " + str(probmix))
             # get the max eigenvalue
             state = stateall[:, prob_location]
             loc = np.absolute(state).argmax()
@@ -406,7 +397,7 @@ def plot_state_qsphere(rho):
                 #    weight_order_temp = bit_string_index(com_key)
                 #    weight_order = np.floor(
                 #        number_of_divisions / 2) + weight_order_temp + 1
-                angle = (weight_order) * 2 * np.pi / number_of_divisions
+                angle = weight_order * 2 * np.pi / number_of_divisions
                 xvalue = np.sqrt(1 - zvalue**2) * np.cos(angle)
                 yvalue = np.sqrt(1 - zvalue**2) * np.sin(angle)
                 ax.plot([xvalue], [yvalue], [zvalue],
@@ -450,9 +441,9 @@ def plot_state(rho, method='city'):
         plot_state_qsphere(rho)
     elif method == "bloch":
         for i in range(num):
-            bloch_state = list(map(lambda x: np.real(np.trace(
-                               np.dot(x.to_matrix(), rho))),
-                               pauli_singles(i, num)))
+            bloch_state = list(
+                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
+                    pauli_singles(i, num)))
             plot_bloch_vector(bloch_state, "qubit " + str(i))
     elif method == "wigner":
         plot_wigner_function(rho)
@@ -472,8 +463,7 @@ def plot_wigner_function(state, res=100):
             - State Vector of 2**n x 1 complex numbers
         res (int) : number of theta and phi values in meshgrid
             on sphere (creates a res x res grid of points)
-    Returns:
-        none: plot is shown with matplotlib on the screen
+
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
         and K. Nemoto, Phys. Rev. Lett. 117, 180401 (2016).
@@ -505,7 +495,7 @@ def plot_wigner_function(state, res=100):
             delta_su2[1, 0] = -0.5*(np.exp(-2j*phi_vals[phi])*sintheta)
             delta_su2[1, 1] = 0.5*(1-costheta)
             kernel = 1
-            for i in range(num):
+            for _ in range(num):
                 kernel = np.kron(kernel,
                                  delta_su2)  # creates phase point kernel
 
@@ -518,8 +508,8 @@ def plot_wigner_function(state, res=100):
     # Color data for plotting
     w_c = cm.seismic_r((w+w_max)/(2*w_max))  # color data for sphere
     w_c2 = cm.seismic_r((w[0:res, int(res/2):res]+w_max)/(2*w_max))  # bottom
-    w_c3 = cm.seismic_r((w[int(res/4):int(3*res/4),
-                         0:res]+w_max)/(2*w_max))  # side
+    w_c3 = cm.seismic_r((w[int(res/4):int(3*res/4), 0:res]+w_max) /
+                        (2*w_max))  # side
     w_c4 = cm.seismic_r((w[int(res/2):res, 0:res]+w_max)/(2*w_max))  # back
 
     u = np.linspace(0, 2 * np.pi, res)
@@ -587,9 +577,6 @@ def plot_wigner_curve(wigner_data, xaxis=None):
     Args:
         wigner_data(np.array): an array of points to plot as a 2d curve
         xaxis (np.array):  the range of the x axis
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
     """
     if not xaxis:
         xaxis = np.linspace(0, len(wigner_data)-1, num=len(wigner_data))
@@ -607,12 +594,10 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
         wigner_data (matrix): array of Wigner function data where the
                             rows are plotted along the x axis and the
                             columns are plotted along the y axis
-        max_wigner:  - 'local' puts the maximum value to maximum of the points
-                    - 'unit' sets maximum to 1
-                    - float for a custom maximum.
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
+        max_wigner (str or float):
+            - 'local' puts the maximum value to maximum of the points
+            - 'unit' sets maximum to 1
+            - float for a custom maximum.
     """
     wigner_data = np.matrix(wigner_data)
     dim = wigner_data.shape
@@ -623,6 +608,7 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
         w_max = 1
     else:
         w_max = max_wigner  # For a float input
+    w_max = float(w_max)
 
     cmap = plt.cm.get_cmap('seismic_r')
 
@@ -653,16 +639,13 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
     """Plots Wigner results in appropriate format.
 
     Args:
-        wigner_data: Output returned from the wigner_data function
-        phis: Values of phi
-        method: how the data is to be plotted,
-            methods are:
-                point: a single point in phase space
-                curve: a two dimensional curve
-                plaquette: points plotted as circles
-
-    Returns:
-        none: plot is shown with matplotlib to the screen
+        wigner_data (numpy.array): Output returned from the wigner_data
+            function
+        phis (numpy.array): Values of phi
+        method (str or None): how the data is to be plotted, methods are:
+            point: a single point in phase space
+            curve: a two dimensional curve
+            plaquette: points plotted as circles
     """
     if not method:
         wig_dim = len(np.shape(wigner_data))
@@ -700,7 +683,7 @@ def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
         basis (str): optional comma-separated list of gate names
 
     Returns:
-        Latex string appropriate for writing to file.
+        str: Latex string appropriate for writing to file.
     """
     ast = qasm.Qasm(data=circuit.qasm()).parse()
     if basis:
@@ -717,7 +700,7 @@ def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
     return latex
 
 
-class QCircuitImage:
+class QCircuitImage(object):
     """This class contains methods to create \LaTeX circuit images.
 
     The class targets the \LaTeX package Q-circuit
@@ -729,10 +712,12 @@ class QCircuitImage:
         """
         Args:
             circuit (dict): compiled_circuit from qobj
+            aliases (dict): dict mapping the current qubits in the circuit to
+                new qubit names.
         """
         # compiled qobj circuit
         self.circuit = circuit
-        
+
         # Map of qregs to sizes
         self.qregs = {}
 
@@ -781,10 +766,8 @@ class QCircuitImage:
         self.img_width = len(self.img_regs)
         self.wire_type = {}
         for key, value in self.ordered_regs:
-            if key in self.cregs.keys():
-                self.wire_type[(key, value)] = True
-            else:
-                self.wire_type[(key, value)] = False
+            self.wire_type[(key, value)] = key in self.cregs.keys()
+
         self._initialize_latex_array(aliases=aliases)
         self._build_latex_array(aliases=aliases)
 
@@ -796,7 +779,6 @@ class QCircuitImage:
 
         Returns:
             string: for writing to a LaTeX file.
-
         """
         self._initialize_latex_array(aliases)
         self._build_latex_array(aliases)
@@ -814,7 +796,9 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 % Defines a measurement target symbol
-\newcommand{\ctarg}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
+\newcommand{\ctarg}{*+<.02em,.02em>{
+\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-},
+"i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
 \begin{document}
 \begin{equation*}
     \Qcircuit @C=.5em @R=0em @!R {
@@ -843,7 +827,7 @@ class QCircuitImage:
                     output.write(r'\\'+'\n')
                 else:
                     output.write('\n')
-        output.write('\t }\n')                    
+        output.write('\t }\n')
         output.write('\end{equation*}\n\n')
         output.write('\end{document}')
         contents = output.getvalue()
@@ -851,10 +835,12 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self, aliases=None):
+        # pylint: disable=unused-argument
         self.img_depth = len(self.circuit['operations'])
-        self._latex = [["\\cw" if self.wire_type[self.ordered_regs[j]]
-                       else "\\qw" for i in range(self.img_depth + 1)]
-                       for j in range(self.img_width)]
+        self._latex = [
+            ["\\cw" if self.wire_type[self.ordered_regs[j]]
+             else "\\qw" for i in range(self.img_depth + 1)]
+            for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
@@ -899,10 +885,8 @@ class QCircuitImage:
                                 is_occupied = [False] * self.img_width
                                 is_occupied[pos_1] = True
                     elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0][0],
-                                              qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0],
-                                              qarglist[1][1])]
+                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
                         if 'conditional' in op:
                             mask = int(op['conditional']['mask'], 16)
@@ -989,7 +973,10 @@ class QCircuitImage:
             index (int): total qubit index among all quantum registers
             registers (OrderedDict): OrderedDict as described above.
         Returns:
-            name (str) of register associated with qubit index.
+            str: name of register associated with qubit index.
+        Raises:
+            ValueError: if the qubit index lies outside the range of qubit
+                registers.
         """
         count = 0
         for name, size in registers.items():
@@ -998,7 +985,7 @@ class QCircuitImage:
             else:
                 count += size
         raise ValueError('qubit index lies outside range of qubit registers')
-            
+
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \LaTeX for this circuit.
 
@@ -1020,7 +1007,7 @@ class QCircuitImage:
         else:
             qregdata = self.qregs
 
-        for iop, op in enumerate(self.circuit['operations']):
+        for _, op in enumerate(self.circuit['operations']):
             # print(iop, op)
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
@@ -1145,10 +1132,8 @@ class QCircuitImage:
                                     op["texparams"][0])
 
                     elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0][0],
-                                              qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0],
-                                              qarglist[1][1])]
+                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
                         if 'conditional' in op:
                             pos_3 = self.img_regs[(if_reg, 0)]
@@ -1314,12 +1299,9 @@ class QCircuitImage:
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
 
                     elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0][0],
-                                              qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0],
-                                              qarglist[1][1])]
-                        pos_3 = self.img_regs[(qarglist[2][0],
-                                              qarglist[2][1])]
+                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
+                        pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
                         if 'conditional' in op:
                             pos_4 = self.img_regs[(if_reg, 0)]
@@ -1416,9 +1398,11 @@ class QCircuitImage:
 
         Args:
             mask (int): integer to search
+        Returns:
+            int: index of the first set bit.
         """
         return (mask & (-mask)).bit_length() - 1
-        
+
 
 def _get_register_specs(bit_labels):
     """
@@ -1434,11 +1418,11 @@ def _get_register_specs(bit_labels):
 
             which indicates a register named "reg1" of size 2
             and a register named "reg2" of size 1. This is the
-            format of classic and quantum bit labels in qobj 
+            format of classic and quantum bit labels in qobj
             header.
 
-    Returns:
-        iterator of register_name:size pairs.
+    Yields:
+        tuple: iterator of register_name:size pairs.
     """
     it = itertools.groupby(bit_labels, operator.itemgetter(0))
     for register_name, sub_it in it:
@@ -1449,10 +1433,11 @@ def _truncate_float(matchobj, format_str='0.2g'):
     """Truncate long floats
 
     Args:
-        matchobj (re.Match object): contains original float
+        matchobj (re.Match): contains original float
         format_str (str): format specifier
     Returns:
-        returns truncated float
+       str: returns truncated float
     """
     if matchobj.group(0):
         return format(float(matchobj.group(0)), format_str)
+    return ''
