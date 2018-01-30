@@ -362,6 +362,8 @@ class DAGCircuit:
         # params is a list of sympy symbols and the str() method
         # will return Python expressions. To get the correct
         # OpenQASM expression, we need to replace "**" with "^".
+        # To be clear, this line means we store node parameters
+        # as strings in the DAGCircuit, and not sympy expressions.
         node_params = list(map(lambda x: x.replace("**", "^"),
                                map(str, params)))
         self._add_op_node(name, qargs, cargs, node_params,
@@ -701,6 +703,50 @@ class DAGCircuit:
         else:
             out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
         return out
+
+    def json(self):
+        """Return the output of the JSONBackend of the unroller."""
+        json_backend = qiskit.unroll.JsonBackend(list(self.basis.keys()))
+        for name, width in self.qregs.items():
+            json_backend.new_qreg(name, width)
+        for name, width in self.cregs.items():
+            json_backend.new_creg(name, width)
+        for name, data in self.gates.items():
+            json_backend.define_gate(name, data)
+        for n in nx.topological_sort(self.multi_graph):
+            nd = self.multi_graph.node[n]
+            if nd["type"] == "op":
+                # nd["params"] are strings but here we want Real expressions
+                params = map(lambda x: x.replace("^", "**"), nd["params"])
+                params = map(lambda x: sympy.sympify(x), params)
+                params = map(lambda x: qiskit.qasm._node.Real(x), params)
+                params = list(params)
+                if nd["condition"] is not None:
+                    json_backend.set_condition(nd["condition"][0],
+                                               nd["condition"][1])
+                if not nd["cargs"]:
+                    if nd["name"] == "U":
+                        json_backend.u(params, nd["qargs"][0])
+                    elif nd["name"] == "CX":
+                        json_backend.cx(nd["qargs"][0], nd["qargs"][1])
+                    elif nd["name"] == "barrier":
+                        json_backend.barrier(nd["qargs"])
+                    elif nd["name"] == "reset":
+                        json_backend.reset(nd["qargs"][0])
+                    else:
+                        json_backend.start_gate(nd["name"], params,
+                                                nd["qargs"])
+                        json_backend.end_gate(nd["name"], params, nd["qargs"])
+                else:
+                    if nd["name"] == "measure":
+                        assert len(nd["cargs"]) == 1 and \
+                                len(nd["qargs"]) == 1 and \
+                                not nd["params"], "bad node data"
+                        json_backend.measure(nd["qargs"][0], nd["cargs"][0])
+                    else:
+                        assert False, "bad node data"
+                json_backend.drop_condition()
+        return json_backend.circuit
 
     def qasm(self, decls_only=False, add_swap=False,
              no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
