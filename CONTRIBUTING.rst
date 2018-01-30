@@ -72,15 +72,19 @@ Building
 The preferred way CMake is meant to be used, is by setting up an "out of source" build.
 So in order to build our native code, we have to follow these steps:
 
-Linux and Mac:
-.. code:: sh
+Linux and Mac
+
+.. code::
+
     qiskit-sdk-py$ mkdir out
     qiskit-sdk-py$ cd out
     qiskit-sdk-py/out$ cmake ..
     qiskit-sdk-py/out$ make
 
-Windows:
-.. code:: sh
+Windows
+
+.. code::
+
     C:\..\> mkdir out
     C:\..\> cd out
     C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
