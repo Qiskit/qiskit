@@ -28,7 +28,7 @@ from qiskit._qiskiterror import QISKitError
 logger = logging.getLogger(__name__)
 
 
-def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, get_layout=False, format='dag'):
     """Compile the circuit.
 
@@ -36,7 +36,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     circuits to run on different backends.
 
     Args:
-        qasm_circuit (str): qasm text to compile
+        quantum_circuit (QuantumCircuit): circuit to compile
         basis_gates (str): a comma seperated string and are the base gates,
                            which by default are: u1,u2,u3,cx,id
         coupling_map (dict): A directed graph of coupling::
@@ -78,8 +78,12 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         QISKitCompilerError: if the format is not valid.
     """
-    compiled_dag_circuit = _unroller_code(qasm_circuit,
-                                          basis_gates=basis_gates)
+    compiled_dag_circuit = quantum_circuit.dag()
+    if basis_gates is None:
+        basis = []
+    else:
+        basis = basis_gates.split(',')
+    compiled_dag_circuit.expand_gates(basis)
     final_layout = None
     # if a coupling map is given compile to the map
     if coupling_map:
@@ -105,7 +109,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if format == 'dag':
         compiled_circuit = compiled_dag_circuit
     elif format == 'json':
-        compiled_circuit = dag2json(compiled_dag_circuit)
+        compiled_circuit = compiled_dag_circuit.json()
     elif format == 'qasm':
         compiled_circuit = compiled_dag_circuit.qasm()
     else:

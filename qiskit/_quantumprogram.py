@@ -1067,7 +1067,7 @@ class QuantumProgram(object):
             if coupling_map == 'all-to-all':
                 coupling_map = None
             dag_circuit, final_layout = openquantumcompiler.compile(
-                circuit.qasm(),
+                circuit,
                 basis_gates=basis_gates,
                 coupling_map=coupling_map,
                 initial_layout=initial_layout,
@@ -1092,8 +1092,9 @@ class QuantumProgram(object):
             else:
                 job["config"]["seed"] = seed
             # the compiled circuit to be run saved as a dag
-            job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
-                                                                   basis_gates=basis_gates)
+            # we assume that openquantumcompiler has already expanded gates
+            # to the target basis, so we just need to generate json
+            job["compiled_circuit"] = dag_circuit.json()
             # set eval_symbols=True to evaluate each symbolic expression
             # TODO after transition to qobj, we can drop this
             job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
