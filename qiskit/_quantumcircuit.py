@@ -195,17 +195,13 @@ class QuantumCircuit(object):
         # Add registers
         for register in self.regs.values():
             if isinstance(register, QuantumRegister):
-                print("add_qreg: ", register.name, len(register))
                 dagcircuit.add_qreg(register.name, len(register))
             else:
-                print("add_creg: ", register.name, len(register))
                 dagcircuit.add_creg(register.name, len(register))
         # Add user gate definitions
         for name, data in self.definitions.items():
-            print("add_basis_element: ", name, data["n_bits"], data["n_args"])
             dagcircuit.add_basis_element(name, data["n_bits"], 0,
                                          data["n_args"])
-            print("add_gate_data: ", name, data["body"].qasm())
             dagcircuit.add_gate_data(name, data)
         # Add instructions
         builtins = {
@@ -218,7 +214,6 @@ class QuantumCircuit(object):
         for instruction in self.data:
             # Add OpenQASM built-in gates on demand
             if instruction.name in builtins:
-                print("add_basis_element: ", builtins[instruction.name])
                 dagcircuit.add_basis_element(*builtins[instruction.name])
             # Separate classical arguments to measurements
             if instruction.name == "measure":
@@ -227,11 +222,14 @@ class QuantumCircuit(object):
             else:
                 qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
                 cargs = []
-            print("apply_operation_back: ", instruction.name,
-                  qargs, cargs, instruction.param, instruction.control)
+            # Get arguments for classical control (if any)
+            if instruction.control is None:
+                control = None
+            else:
+                control = (instruction.control[0].name, instruction.control[1])
             dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
                                             instruction.param,
-                                            instruction.control)
+                                            control)
         return dagcircuit
 
     def measure(self, qubit, cbit):
