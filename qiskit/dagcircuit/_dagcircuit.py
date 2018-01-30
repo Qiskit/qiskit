@@ -795,7 +795,7 @@ class DAGCircuit:
             if qeflag:
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap"]
+                         "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             for k in self.basis.keys():
@@ -1086,6 +1086,9 @@ class DAGCircuit:
         corresponding to the gate's arguments.
         """
         # Build AST for subcircuit
+        # gate_params are strings and we want symbols here
+        gate_params = map(lambda x: x.replace("^", "**"), gate_params)
+        gate_params = list(map(lambda x: sympy.sympify(x), gate_params))
         children = [qasm._node.Id(gate_name, 0, "")]
         if len(gate_params) > 0:
             children.append(
