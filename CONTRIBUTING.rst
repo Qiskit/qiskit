@@ -51,12 +51,47 @@ This section include some tips that will help you to push source code.
 Dependencies
 ~~~~~~~~~~~~
 
-Needed libraries should be installed in this way:
+Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
+installed. As we will deal with languages that build native binaries, we will
+need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
+
+On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
+we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
+Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
+
+For the python code, we need some libraries that can be installed in this way:
 
 .. code:: sh
 
     # Depending on the system and setup to append "sudo -H" before could be needed.
     pip3 install -r requirements-dev.txt
+
+Building
+~~~~~~~~
+
+The preferred way CMake is meant to be used, is by setting up an "out of source" build.
+So in order to build our native code, we have to follow these steps:
+
+Linux and Mac:
+.. code:: sh
+    qiskit-sdk-py$ mkdir out
+    qiskit-sdk-py$ cd out
+    qiskit-sdk-py/out$ cmake ..
+    qiskit-sdk-py/out$ make
+
+Windows:
+.. code:: sh
+    C:\..\> mkdir out
+    C:\..\> cd out
+    C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
+    C:\..\out> make
+
+As you can see, the Windows cmake command invocation is slightly different from
+the Linux and Mac version, this is because we need to provide CMake with some
+more info about where to find libphreads.a for later building. Furthermore,
+we are forcing CMake to generate MingGW makefiles, because we don't support
+other toolchain at the moment.
+
 
 Test
 ~~~~
@@ -64,9 +99,11 @@ Test
 New features often imply changes in the existent tests or new ones are
 needed. Once they're updated/added run this be sure they keep passing:
 
+All platforms:
 .. code:: sh
+    $> cd out
+    out$> ctest -VV
 
-					make test
 
 Style guide
 ~~~~~~~~~~~
