@@ -109,7 +109,7 @@ if(MINGW)
 			COMMAND ${CMAKE_COMMAND}
 			ARGS -E copy ${dll_file} ${QISKIT_SIMULATOR_OUTPUT_DIR}/
 		)
-	endforeach(dll_file)
+	endforeach()
 endif()
 
 # Tests
