@@ -92,17 +92,27 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # Insert swap gates
         coupling = mapper.Coupling(coupling_map)
         logger.info("initial layout: %s", initial_layout)
+        #print("------------------ input")
+        #print(compiled_dag_circuit.qasm(qeflag=True))
         compiled_dag_circuit, final_layout = mapper.swap_mapper(
             compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
         logger.info("final layout: %s", final_layout)
+        #print("------------------ after swap_mapper")
+        #print(compiled_dag_circuit.qasm(qeflag=True))
         # Expand swaps
-        compiled_dag_circuit = _unroller_code(compiled_dag_circuit.qasm())
+        compiled_dag_circuit.expand_gates(basis)
+        #print("------------------ after expand_gates")
+        #print(compiled_dag_circuit.qasm(qeflag=True))
         # Change cx directions
         compiled_dag_circuit = mapper.direction_mapper(compiled_dag_circuit, coupling)
+        #print("------------------ after direction_mapper")
+        #print(compiled_dag_circuit.qasm(qeflag=True))
         # Simplify cx gates
         mapper.cx_cancellation(compiled_dag_circuit)
         # Simplify single qubit gates
         compiled_dag_circuit = mapper.optimize_1q_gates(compiled_dag_circuit)
+        #print("------------------ after optimize")
+        #print(compiled_dag_circuit.qasm(qeflag=True))
         logger.info("post-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
     # choose output format

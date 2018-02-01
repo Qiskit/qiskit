@@ -32,6 +32,8 @@ from sympy import Number as N
 import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
 from ._mappererror import MapperError
+import qiskit.qasm._node as node
+import qiskit.dagcircuit
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,97 @@ logger = logging.getLogger(__name__)
 # qubits in the layout. We don't do this.
 # It can happen that initial swaps can be removed or partly simplified
 # because the initial state is zero. We don't do this.
+
+cx_data = {
+    "opaque": False,
+    "n_args": 0,
+    "n_bits": 2,
+    "args": [],
+    "bits": ["c", "t"],
+    # gate cx c,t { CX c,t; }
+    "body": node.GateBody([
+        node.Cnot([
+            node.Id("c", 0, ""),
+            node.Id("t", 0, "")
+        ])
+    ])
+}
+
+swap_data = {
+    "opaque": False,
+    "n_args": 0,
+    "n_bits": 2,
+    "args": [],
+    "bits": ["a", "b"],
+    # gate swap a,b { cx a,b; cx b,a; cx a,b; }
+    "body": node.GateBody([
+        node.CustomUnitary([
+            node.Id("cx", 0, ""),
+            node.PrimaryList([
+                node.Id("a", 0, ""),
+                node.Id("b", 0, "")
+            ])
+        ]),
+        node.CustomUnitary([
+            node.Id("cx", 0, ""),
+            node.PrimaryList([
+                node.Id("b", 0, ""),
+                node.Id("a", 0, "")
+            ])
+        ]),
+        node.CustomUnitary([
+            node.Id("cx", 0, ""),
+            node.PrimaryList([
+                node.Id("a", 0, ""),
+                node.Id("b", 0, "")
+            ])
+        ])
+    ])
+}
+
+u2_data = {
+    "opaque": False,
+    "n_args": 2,
+    "n_bits": 1,
+    "args": ["phi", "lambda"],
+    "bits": ["q"],
+    # gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
+    "body": node.GateBody([
+        node.UniversalUnitary([
+            node.ExpressionList([
+                node.BinaryOp([
+                    node.BinaryOperator('/'),
+                    node.Real(sympy.pi),
+                    node.Int(2)
+                ]),
+                node.Id("phi", 0, ""),
+                node.Id("lambda", 0, "")
+            ]),
+            node.Id("q", 0, "")
+        ])
+    ])
+}
+
+h_data = {
+    "opaque": False,
+    "n_args": 0,
+    "n_bits": 1,
+    "args": [],
+    "bits": ["a"],
+    # gate h a { u2(0,pi) a; }
+    "body": node.GateBody([
+        node.CustomUnitary([
+            node.Id("u2", 0, ""),
+            node.ExpressionList([
+                node.Int(0),
+                node.Real(sympy.pi)
+            ]),
+            node.PrimaryList([
+                node.Id("a", 0, "")
+            ])
+        ])
+    ])
+}
 
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
@@ -66,7 +159,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
     Returns: success_flag, best_circ, best_d, best_layout, trivial_flag
 
-    If success_flag is True, then best_circ contains an OPENQASM string with
+    If success_flag is True, then best_circ contains a DAGCircuit with
     the swap circuit, best_d contains the depth of the swap circuit, and
     best_layout contains the new positions of the data qubits after the
     swap circuit has been applied. The trivial_flag is set if the layer
@@ -101,6 +194,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         logger.debug("layer_permutation: ----- exit -----")
         return True, "", 0, layout, bool(gates)
 
+    # Find layout maximum index
+    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+
     # Begin loop over trials of randomized algorithm
     n = coupling.size()
     best_d = sys.maxsize  # initialize best depth
@@ -111,7 +207,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         logger.debug("layer_permutation: trial %s", trial)
         trial_layout = copy.deepcopy(layout)
         rev_trial_layout = copy.deepcopy(rev_layout)
-        trial_circ = ""  # circuit produced in this trial
+        # SWAP circuit constructed this trial
+        trial_circ = qiskit.dagcircuit.DAGCircuit()
+        trial_circ.add_qreg('q', layout_max_index)
 
         # Compute Sergey's randomized distance
         xi = {}
@@ -125,7 +223,18 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Loop over depths d up to a max depth of 2n+1
         d = 1
-        circ = ""  # circuit for this swap slice
+        # Circuit for this swap slice
+        circ = qiskit.dagcircuit.DAGCircuit()
+        circ.add_qreg('q', layout_max_index)
+        circ.add_basis_element("CX", 2)
+        circ.add_basis_element("cx", 2)
+        circ.add_basis_element("swap", 2)
+        circ.add_gate_data("cx", cx_data)
+        circ.add_gate_data("swap", swap_data)
+
+        # Identity wire-map for composing the circuits
+        identity_wire_map = {('q', j): ('q', j) for j in range(layout_max_index)}
+
         while d < 2 * n + 1:
             # Set of available qubits
             qubit_set = set(qubit_subset)
@@ -166,10 +275,10 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                     qubit_set.remove(opt_edge[1])
                     trial_layout = opt_layout
                     rev_trial_layout = rev_opt_layout
-                    circ += "swap %s[%d],%s[%d]; " % (opt_edge[0][0],
-                                                      opt_edge[0][1],
-                                                      opt_edge[1][0],
-                                                      opt_edge[1][1])
+                    circ.apply_operation_back("swap", [(opt_edge[0][0],
+                                                        opt_edge[0][1]),
+                                                       (opt_edge[1][0],
+                                                        opt_edge[1][1])])
                     logger.debug("layer_permutation: chose pair %s",
                                  pprint.pformat(opt_edge))
                 else:
@@ -184,7 +293,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
             # Otherwise we need to consider a deeper swap circuit
             if dist == len(gates):
                 logger.debug("layer_permutation: all can be applied now")
-                trial_circ += circ
+                trial_circ.compose_back(circ, identity_wire_map)
                 break
 
             # Increment the depth
@@ -230,16 +339,23 @@ def direction_mapper(circuit_graph, coupling_graph):
     if circuit_graph.basis["cx"] != (2, 0, 0):
         raise MapperError("cx gate has unexpected signature %s" %
                           circuit_graph.basis["cx"])
-    flipped_qasm = "OPENQASM 2.0;\n" + \
-                   "gate cx c,t { CX c,t; }\n" + \
-                   "gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }\n" + \
-                   "gate h a { u2(0,pi) a; }\n" + \
-                   "gate cx_flipped a,b { h a; h b; cx b, a; h a; h b; }\n" + \
-                   "qreg q[2];\n" + \
-                   "cx_flipped q[0],q[1];\n"
-    u = unroll.Unroller(Qasm(data=flipped_qasm).parse(),
-                        unroll.DAGBackend(["cx", "h"]))
-    flipped_cx_circuit = u.execute()
+
+    flipped_cx_circuit = qiskit.dagcircuit.DAGCircuit()
+    flipped_cx_circuit.add_qreg('q', 2)
+    flipped_cx_circuit.add_basis_element("CX", 2)
+    flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
+    flipped_cx_circuit.add_basis_element("cx", 2)
+    flipped_cx_circuit.add_basis_element("u2", 1, 0, 2)
+    flipped_cx_circuit.add_basis_element("h", 1)
+    flipped_cx_circuit.add_gate_data("cx", cx_data)
+    flipped_cx_circuit.add_gate_data("u2", u2_data)
+    flipped_cx_circuit.add_gate_data("h", h_data)
+    flipped_cx_circuit.apply_operation_back("h", [("q", 0)])
+    flipped_cx_circuit.apply_operation_back("h", [("q", 1)])
+    flipped_cx_circuit.apply_operation_back("cx", [("q", 1), ("q", 0)])
+    flipped_cx_circuit.apply_operation_back("h", [("q", 0)])
+    flipped_cx_circuit.apply_operation_back("h", [("q", 1)])
+
     cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
     for cx_node in cx_node_list:
@@ -263,22 +379,27 @@ def direction_mapper(circuit_graph, coupling_graph):
     return circuit_graph
 
 
-def update_qasm(i, first_layer, best_layout, best_d,
-                best_circ, circuit_graph, layer_list):
+def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
+                             best_circ, layer_list,
+                             coupling):
     """Update the QASM string for an iteration of swap_mapper.
 
     i = layer number
     first_layer = True if this is the first layer with multi-qubit gates
     best_layout = layout returned from swap algorithm
-    best_d = depth returns from swap algorithm
+    best_d = depth returned from swap algorithm
     best_circ = swap circuit returned from swap algorithm
-    circuit_graph = original input circuit
     layer_list = list of circuit objects for each layer
+    coupling = underlying CouplingGraph
 
-    Return openqasm_output, the QASM string to append.
+    Return DAGCircuit object to append to the output DAGCircuit.
     """
-    openqasm_output = ""
     layout = best_layout
+    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+    dagcircuit_output = qiskit.dagcircuit.DAGCircuit()
+    dagcircuit_output.add_qreg("q", layout_max_index)
+    # Identity wire-map for composing the circuits
+    identity_wire_map = {('q', j): ('q', j) for j in range(layout_max_index)}
 
     # If this is the first layer with multi-qubit gates,
     # output all layers up to this point and ignore any
@@ -286,28 +407,20 @@ def update_qasm(i, first_layer, best_layout, best_d,
     if first_layer:
         logger.debug("update_qasm_and_layout: first multi-qubit gate layer")
         # Output all layers up to this point
-        openqasm_output += circuit_graph.qasm(
-            add_swap=True,
-            decls_only=True,
-            aliases=layout)
         for j in range(i + 1):
-            openqasm_output += layer_list[j]["graph"].qasm(
-                no_decls=True,
-                aliases=layout)
+            dagcircuit_output.compose_back(layer_list[j]["graph"], layout)
     # Otherwise, we output the current layer and the associated swap gates.
     else:
         # Output any swaps
         if best_d > 0:
             logger.debug("update_qasm_and_layout: swaps in this layer, "
                          "depth %d", best_d)
-            openqasm_output += best_circ
+            dagcircuit_output.compose_back(best_circ, identity_wire_map)
         else:
             logger.debug("update_qasm_and_layout: no swaps in this layer")
         # Output this layer
-        openqasm_output += layer_list[i]["graph"].qasm(
-            no_decls=True,
-            aliases=layout)
-    return openqasm_output
+        dagcircuit_output.compose_back(layer_list[i]["graph"], layout)
+    return dagcircuit_output
 
 
 def swap_mapper(circuit_graph, coupling_graph,
@@ -366,7 +479,25 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = copy.deepcopy(initial_layout)
-    openqasm_output = ""
+    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+
+    # Construct an empty DAGCircuit with one qreg "q"
+    # and the same set of cregs as the input circuit
+    dagcircuit_output = qiskit.dagcircuit.DAGCircuit()
+    dagcircuit_output.add_qreg("q", layout_max_index)
+    for name, size in circuit_graph.cregs.items():
+        dagcircuit_output.add_creg(name, size)
+
+    # Make a trivial wire mapping between the subcircuits
+    # returned by swap_mapper_layer_update and the circuit
+    # we are building
+    identity_wire_map = {}
+    for j in range(layout_max_index):
+        identity_wire_map[("q", j)] = ("q", j)
+    for name, size in circuit_graph.cregs.items():
+        for j in range(size):
+            identity_wire_map[(name, j)] = (name, j)
+
     first_layer = True  # True until first layer is output
     logger.debug("initial_layout = %s", layout)
 
@@ -418,10 +549,15 @@ def swap_mapper(circuit_graph, coupling_graph,
                 # Update the record of qubit positions for each inner iteration
                 layout = best_layout
                 # Update the QASM
-                openqasm_output += update_qasm(j, first_layer,
-                                               best_layout, best_d,
-                                               best_circ, circuit_graph,
-                                               serial_layerlist)
+                dagcircuit_output.compose_back(
+                    swap_mapper_layer_update(i,
+                                             first_layer,
+                                             best_layout,
+                                             best_d,
+                                             best_circ,
+                                             serial_layerlist,
+                                             coupling_graph),
+                    identity_wire_map)
                 # Update initial layout
                 if first_layer:
                     initial_layout = layout
@@ -432,10 +568,19 @@ def swap_mapper(circuit_graph, coupling_graph,
             layout = best_layout
 
             # Update the QASM
-            openqasm_output += update_qasm(i, first_layer,
-                                           best_layout, best_d,
-                                           best_circ, circuit_graph,
-                                           layerlist)
+            subcircuit = swap_mapper_layer_update(i,
+                                                  first_layer,
+                                                  best_layout,
+                                                  best_d,
+                                                  best_circ,
+                                                  layerlist,
+                                                  coupling_graph)
+            print(subcircuit.qasm(qeflag=True))
+            print(identity_wire_map)
+            print(dagcircuit_output.qasm(qeflag=True))
+            dagcircuit_output.compose_back(
+                subcircuit,
+                identity_wire_map)
             # Update initial layout
             if first_layer:
                 initial_layout = layout
@@ -445,20 +590,12 @@ def swap_mapper(circuit_graph, coupling_graph,
     # so we can use the initial layout to output the entire circuit
     if first_layer:
         layout = initial_layout
-        openqasm_output += circuit_graph.qasm(
-            add_swap=True,
-            decls_only=True,
-            aliases=layout)
         for i, layer in enumerate(layerlist):
-            openqasm_output += layer["graph"].qasm(
-                no_decls=True,
-                aliases=layout)
+            dagcircuit_output.compose_back(layer["graph"], layout)
 
     # Parse openqasm_output into DAGCircuit object
-    basis += ",swap"
-    ast = Qasm(data=openqasm_output).parse()
-    u = unroll.Unroller(ast, unroll.DAGBackend(basis.split(",")))
-    return u.execute(), initial_layout
+    dagcircuit_output.expand_gates(basis.split(","))
+    return dagcircuit_output, initial_layout
 
 
 def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
@@ -639,9 +776,8 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    urlr = unroll.Unroller(Qasm(data=circuit.qasm()).parse(),
-                           unroll.DAGBackend(qx_basis))
-    unrolled = urlr.execute()
+    circuit.expand_gates(qx_basis)
+    unrolled = circuit
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:
