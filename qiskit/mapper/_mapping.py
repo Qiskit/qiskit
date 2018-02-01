@@ -185,6 +185,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
     logger.debug("layer_permutation: gates = %s", pprint.pformat(gates))
 
+    # Find layout maximum index
+    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]],
                                   layout[g[1]]) for g in gates])
@@ -192,10 +195,14 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
         logger.debug("layer_permutation: ----- exit -----")
-        return True, "", 0, layout, bool(gates)
-
-    # Find layout maximum index
-    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+        circ = qiskit.dagcircuit.DAGCircuit()
+        circ.add_qreg('q', layout_max_index)
+        circ.add_basis_element("CX", 2)
+        circ.add_basis_element("cx", 2)
+        circ.add_basis_element("swap", 2)
+        circ.add_gate_data("cx", cx_data)
+        circ.add_gate_data("swap", swap_data)
+        return True, circ, 0, layout, bool(gates)
 
     # Begin loop over trials of randomized algorithm
     n = coupling.size()
@@ -550,7 +557,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                 layout = best_layout
                 # Update the QASM
                 dagcircuit_output.compose_back(
-                    swap_mapper_layer_update(i,
+                    swap_mapper_layer_update(j,
                                              first_layer,
                                              best_layout,
                                              best_d,
@@ -568,18 +575,14 @@ def swap_mapper(circuit_graph, coupling_graph,
             layout = best_layout
 
             # Update the QASM
-            subcircuit = swap_mapper_layer_update(i,
-                                                  first_layer,
-                                                  best_layout,
-                                                  best_d,
-                                                  best_circ,
-                                                  layerlist,
-                                                  coupling_graph)
-            print(subcircuit.qasm(qeflag=True))
-            print(identity_wire_map)
-            print(dagcircuit_output.qasm(qeflag=True))
             dagcircuit_output.compose_back(
-                subcircuit,
+                swap_mapper_layer_update(i,
+                                         first_layer,
+                                         best_layout,
+                                         best_d,
+                                         best_circ,
+                                         layerlist,
+                                         coupling_graph),
                 identity_wire_map)
             # Update initial layout
             if first_layer:
