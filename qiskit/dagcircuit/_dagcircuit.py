@@ -120,7 +120,7 @@ class DAGCircuit:
             self.output_map[(newname, i)] = self.output_map[(regname, i)]
             self.output_map.pop((regname, i), None)
         # n node d = data
-        for _, d in self.multi_graph.nodes_iter(data=True):
+        for _, d in self.multi_graph.nodes(data=True):
             if d["type"] == "in" or d["type"] == "out":
                 if d["name"][0] == regname:
                     d["name"] = (newname, d["name"][1])
@@ -141,7 +141,7 @@ class DAGCircuit:
                     if d["condition"][0] == regname:
                         d["condition"] = (newname, d["condition"][1])
         # eX = edge, d= data
-        for _, _, d in self.multi_graph.edges_iter(data=True):
+        for _, _, d in self.multi_graph.edges(data=True):
             if d["name"][0] == regname:
                 d["name"] = (newname, d["name"][1])
 
@@ -195,7 +195,7 @@ class DAGCircuit:
             self.multi_graph.node[out_node]["type"] = "out"
             self.multi_graph.node[in_node]["name"] = name
             self.multi_graph.node[out_node]["name"] = name
-            self.multi_graph.edge[in_node][out_node][0]["name"] = name
+            self.multi_graph.adj[in_node][out_node][0]["name"] = name
         else:
             raise DAGCircuitError("duplicate wire %s" % name)
 
@@ -369,7 +369,7 @@ class DAGCircuit:
         # and adding new edges from the operation node to each output node
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
-            ie = self.multi_graph.predecessors(self.output_map[q])
+            ie = list(self.multi_graph.predecessors(self.output_map[q]))
             assert len(ie) == 1, "output node has multiple in-edges"
             self.multi_graph.add_edge(ie[0], self.node_counter, name=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
@@ -581,8 +581,7 @@ class DAGCircuit:
         # Compose
         self.basis = union_basis
         self.gates = union_gates
-        topological_sort = nx.topological_sort(input_circuit.multi_graph)
-        for node in topological_sort:
+        for node in nx.topological_sort(input_circuit.multi_graph):
             nd = input_circuit.multi_graph.node[node]
             if nd["type"] == "in":
                 # if in wire_map, get new name, else use existing name
@@ -640,8 +639,7 @@ class DAGCircuit:
         # Compose
         self.basis = union_basis
         self.gates = union_gates
-        ts = nx.topological_sort(input_circuit.multi_graph, reverse=True)
-        for n in ts:
+        for n in reversed(list(nx.topological_sort(input_circuit.multi_graph))):
             nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "out":
                 # if in wire_map, get new name, else use existing name
@@ -769,8 +767,7 @@ class DAGCircuit:
                 out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
         if not decls_only:
-            ts = nx.topological_sort(self.multi_graph)
-            for n in ts:
+            for n in nx.topological_sort(self.multi_graph):
                 nd = self.multi_graph.node[n]
                 if nd["type"] == "op":
                     if nd["condition"] is not None:
@@ -843,9 +840,9 @@ class DAGCircuit:
         nodes for the operation node n in self.multi_graph.
         """
         pred_map = {e[2]['name']: e[0] for e in
-                    self.multi_graph.in_edges_iter(nbunch=n, data=True)}
+                    self.multi_graph.in_edges(nbunch=n, data=True)}
         succ_map = {e[2]['name']: e[1] for e in
-                    self.multi_graph.out_edges_iter(nbunch=n, data=True)}
+                    self.multi_graph.out_edges(nbunch=n, data=True)}
         return pred_map, succ_map
 
     def _full_pred_succ_maps(self, pred_map, succ_map, input_circuit,
@@ -874,7 +871,7 @@ class DAGCircuit:
                 full_succ_map[w] = self.output_map[w]
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
-                assert len(self.multi_graph.predecessors(self.output_map[w])) == 1,\
+                assert len(list(self.multi_graph.predecessors(self.output_map[w]))) == 1,\
                     "too many predecessors for (%s,%d) output node" % (
                         w[0], w[1])
         return full_pred_map, full_succ_map
@@ -913,8 +910,7 @@ class DAGCircuit:
         #       that we add from the input_circuit.
         self.basis = union_basis
         self.gates = union_gates
-        ts = nx.topological_sort(self.multi_graph)
-        for n in ts:
+        for n in nx.topological_sort(self.multi_graph):
             nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["name"] == name:
                 if nd["condition"] is None:
@@ -930,8 +926,7 @@ class DAGCircuit:
                     # Now that we know the connections, delete node
                     self.multi_graph.remove_node(n)
                     # Iterate over nodes of input_circuit
-                    tsin = nx.topological_sort(input_circuit.multi_graph)
-                    for m in tsin:
+                    for m in nx.topological_sort(input_circuit.multi_graph):
                         md = input_circuit.multi_graph.node[m]
                         if md["type"] == "op":
                             # Insert a new node
@@ -955,8 +950,8 @@ class DAGCircuit:
                     for w in full_pred_map:
                         self.multi_graph.add_edge(full_pred_map[w], full_succ_map[w],
                                                   name=w)
-                        o_pred = self.multi_graph.predecessors(
-                            self.output_map[w])
+                        o_pred = list(self.multi_graph.predecessors(
+                            self.output_map[w]))
                         if len(o_pred) > 1:
                             assert len(o_pred) == 2, \
                                 "expected 2 predecessors here"
@@ -1023,8 +1018,7 @@ class DAGCircuit:
             # Now that we know the connections, delete node
             self.multi_graph.remove_node(node)
             # Iterate over nodes of input_circuit
-            tsin = nx.topological_sort(input_circuit.multi_graph)
-            for m in tsin:
+            for m in nx.topological_sort(input_circuit.multi_graph):
                 md = input_circuit.multi_graph.node[m]
                 if md["type"] == "op":
                     # Insert a new node
@@ -1049,7 +1043,7 @@ class DAGCircuit:
             for w in full_pred_map:
                 self.multi_graph.add_edge(
                     full_pred_map[w], full_succ_map[w], name=w)
-                o_pred = self.multi_graph.predecessors(self.output_map[w])
+                o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
                 if len(o_pred) > 1:
                     assert len(o_pred) == 2, "expected 2 predecessors here"
                     p = [x for x in o_pred if x != full_pred_map[w]]
@@ -1064,8 +1058,7 @@ class DAGCircuit:
                                   % name)
 
         # Iterate through the nodes of self in topological order
-        ts = nx.topological_sort(self.multi_graph)
-        for n in ts:
+        for n in nx.topological_sort(self.multi_graph):
             nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["name"] == name:
                 nlist.append(n)
@@ -1213,8 +1206,7 @@ class DAGCircuit:
         same structure as in layers().
         """
         layers_list = []
-        ts = nx.topological_sort(self.multi_graph)
-        for n in ts:
+        for n in nx.topological_sort(self.multi_graph):
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = DAGCircuit()
@@ -1260,7 +1252,7 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        ts = nx.topological_sort(self.multi_graph)
+        ts = list(nx.topological_sort(self.multi_graph))
         nodes_seen = dict(zip(ts, [False] * len(ts)))
         for node in ts:
             nd = self.multi_graph.node[node]
@@ -1268,13 +1260,13 @@ class DAGCircuit:
                and not nodes_seen[node]:
                 group = [node]
                 nodes_seen[node] = True
-                s = self.multi_graph.successors(node)
+                s = list(self.multi_graph.successors(node))
                 while len(s) == 1 and \
                         self.multi_graph.node[s[0]]["type"] == "op" and \
                         self.multi_graph.node[s[0]]["name"] in namelist:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
-                    s = self.multi_graph.successors(s[0])
+                    s = list(self.multi_graph.successors(s[0]))
                 if len(group) > 1:
                     group_list.append(tuple(group))
         return set(group_list)
@@ -1285,8 +1277,7 @@ class DAGCircuit:
         Returns a dictionary of counts keyed on the operation name.
         """
         op_dict = {}
-        ts = nx.topological_sort(self.multi_graph)
-        for node in ts:
+        for node in nx.topological_sort(self.multi_graph):
             nd = self.multi_graph.node[node]
             name = nd["name"]
             if nd["type"] == "op":

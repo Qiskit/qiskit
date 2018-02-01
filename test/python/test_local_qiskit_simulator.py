@@ -37,9 +37,9 @@ class TestLocalQiskitSimulator(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasmFileName = os.path.join(qiskit.__path__[0],
-                                         '../test/python/qasm/example.qasm')
-        with open(self.qasmFileName, 'r') as qasm_file:
+        self.qasm_filename = os.path.join(qiskit.__path__[0],
+                                          '../test/python/qasm/example.qasm')
+        with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
         qr = QuantumRegister('q', 2)
         cr = ClassicalRegister('c', 2)

@@ -54,14 +54,12 @@ class TestBaseBackend(QiskitTestCase):
         """Test backend registration for invalid backends."""
         initial_backends_len = len(_REGISTERED_BACKENDS)
 
-        with self.assertRaises(QISKitError):
-            register_backend(NotSubclassBackend)
-
-        with self.assertRaises(QISKitError):
-            register_backend(NoConfigurationBackend)
-
-        with self.assertRaises(QISKitError):
-            register_backend(UninstantiableBackend)
+        for backend_cls in [NotSubclassBackend,
+                            NoConfigurationBackend,
+                            UninstantiableBackend]:
+            with self.subTest(backend_cls=backend_cls):
+                with self.assertRaises(QISKitError):
+                    register_backend(backend_cls)
 
         self.assertEqual(initial_backends_len, len(_REGISTERED_BACKENDS))
 
