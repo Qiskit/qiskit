@@ -51,7 +51,7 @@ function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
 
     set(SPHINX ${PYTHON} -msphinx)
 
-     # Set param defaults
+    # Set param defaults
     if(NOT DOC_FORMAT)
         set(DOC_FORMAT "html")
     endif()

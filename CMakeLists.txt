@@ -22,4 +22,3 @@ add_doc_target(html "./" "_build/")
 # Add Python distributable package generator
 include(cmake/python-build.cmake)
 add_pypi_package_target(pypi_package both)
-

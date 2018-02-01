@@ -2,6 +2,7 @@ import sys
 import os
 from setuptools import setup
 from setuptools.command.install import install
+from setuptools.dist import Distribution
 from distutils.command.build import build
 from multiprocessing import cpu_count
 from subprocess import call
@@ -78,6 +79,11 @@ class QiskitSimulatorBuild(build):
                   "install anyway, but won't have this simulator support.")
             return
 
+# This is for creating wheel specific platforms
+class BinaryDistribution(Distribution):
+    def has_ext_modules(self):
+        return True
+
 setup(
     name="qiskit",
     version="${QISKIT_VERSION}",
@@ -108,5 +114,6 @@ setup(
     python_requires=">=3.5",
     cmdclass={
         'build': QiskitSimulatorBuild,
-    }
+    },
+    distclass=BinaryDistribution
 )
