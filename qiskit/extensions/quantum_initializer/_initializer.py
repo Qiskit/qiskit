@@ -52,12 +52,11 @@ class InitializeGate(CompositeGate):
     gate does. Therefore self.data is the list of gates (in order) that must
     be applied to implement this meta-gate.
 
-    name = instruction name string
     param = list of complex amplitudes
     arg = list of qubits
     circ = QuantumCircuit or CompositeGate containing this gate
     """
-    def __init__(self, name, param, arg, circ=None):
+    def __init__(self, param, arg, circ=None):
         """Create new initialize composite gate."""
         num_qubits = math.log2(len(param))
 
@@ -77,7 +76,7 @@ class InitializeGate(CompositeGate):
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
-        super(InitializeGate, self).__init__(name, param, arg, circ)
+        super(InitializeGate, self).__init__("init", param, arg, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -103,6 +102,14 @@ class InitializeGate(CompositeGate):
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
         self._modifiers(circ.initialize(self.param, self.arg))
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubits = self.arg
+        params = self.param
+        print(params)
+        print(qubits)
+        return self.data[0]._qasmif("init(%s) %s;" % (params, qubits[0][0].name))
 
     def gates_to_uncompute(self):
         """
@@ -437,7 +444,7 @@ QuantumCircuit.last_atomic_gate_host = last_atomic_gate_host
 CompositeGate.last_atomic_gate_host = last_atomic_gate_host
 
 
-def initialize(self, name, params, qubits):
+def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     self._check_dups(qubits)
     for i in qubits:
@@ -445,7 +452,7 @@ def initialize(self, name, params, qubits):
         self._attach(Reset(i, self))
         # TODO: avoid explicit reset if compiler determines a |0> state
 
-    return self._attach(InitializeGate(name, params, qubits, self))
+    return self._attach(InitializeGate(params, qubits, self))
 
 
 QuantumCircuit.initialize = initialize
