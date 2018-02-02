@@ -109,6 +109,11 @@ if(MINGW)
 			COMMAND ${CMAKE_COMMAND}
 			ARGS -E copy ${dll_file} ${QISKIT_SIMULATOR_OUTPUT_DIR}/
 		)
+		# For 'make clean' target
+		get_filename_component(FINAL_FILE ${dll_file} NAME)
+		set_property(DIRECTORY APPEND PROPERTY
+			ADDITIONAL_MAKE_CLEAN_FILES
+				${QISKIT_SIMULATOR_OUTPUT_DIR}/${FINAL_FILE})
 	endforeach()
 endif()
 
