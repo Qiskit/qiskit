@@ -129,3 +129,4 @@ out/*
 
 # CMake generates this file on the fly
 setup.py
+qiskit/backends/qiskit_simulator
