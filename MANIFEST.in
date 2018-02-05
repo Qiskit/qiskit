@@ -1,4 +1,8 @@
 include qiskit/qasm/libs/*.inc
-include Makefile
-recursive-include src *
+recursive-include src/qiskit-simulator *
 include qiskit/backends/qiskit_simulator
+include qiskit/backends/qiskit_simulator.exe
+include qiskit/backends/*.dll
+include CMakeLists.txt
+include cmake/*.cmake
+include setup.py.in
