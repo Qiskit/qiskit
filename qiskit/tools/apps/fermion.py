@@ -30,9 +30,10 @@ References:
     arXiv e-print arXiv:1701.08213 (2017).
 
 """
-from qiskit.tools.qi.pauli import Pauli, label_to_pauli, sgn_prod
 import numpy as np
+
 from qiskit.tools.apps.optimization import Hamiltonian_from_file
+from qiskit.tools.qi.pauli import Pauli, sgn_prod
 
 
 def parity_set(j, n):
@@ -42,7 +43,7 @@ def parity_set(j, n):
         j (int) : the orbital index
         n (int) : the total number of modes
     Returns:
-        Array of mode indexes
+        numpy.array: Array of mode indexes
     """
     indexes = np.array([])
     if n % 2 == 0:
@@ -61,7 +62,7 @@ def update_set(j, n):
         j (int) : the orbital index
         n (int) : the total number of modes
     Returns:
-        Array of mode indexes
+        numpy.array: Array of mode indexes
     """
     indexes = np.array([])
     if n % 2 == 0:
@@ -75,12 +76,12 @@ def update_set(j, n):
 
 def flip_set(j, n):
     """Computes the flip set of the j-th orbital in n modes
-    
+
     Args:
         j (int) : the orbital index
         n (int) : the total number of modes
     Returns:
-        Array of mode indexes
+        numpy.array: Array of mode indexes
     """
     indexes = np.array([])
     if n % 2 == 0:
@@ -102,16 +103,16 @@ def pauli_term_append(pauli_term, pauli_list, threshold):
     threshold the pauli term is deleted from the list
 
     Args:
-        pauli_term : list of [coeff, pauli]
-        pauli_list : a list of pauli_terms
-        threshold : simplification threshold
+        pauli_term (list): list of [coeff, pauli]
+        pauli_list (list): a list of pauli_terms
+        threshold (float): simplification threshold
     Returns:
-        an updated pauli_list
+        list: an updated pauli_list
     """
     found = False
     if np.absolute(pauli_term[0]) > threshold:
-        if not not pauli_list:   # if the list is not empty
-            for i in range(len(pauli_list)):
+        if pauli_list:   # if the list is not empty
+            for i, _ in enumerate(pauli_list):
                 # check if the new pauli belongs to the list
                 if pauli_list[i][1] == pauli_term[1]:
                     # if found renormalize the coefficient of existent pauli
@@ -135,20 +136,20 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
     two-body operator.
 
     Args:
-        h1 : second-quantized fermionic one-body operator
-        h2 : second-quantized fermionic two-body operator
-        map_type : "JORDAN_WIGNER", "PARITY", "BINARY_TREE"
-        out_file : name of the optional file to write the Pauli list on
-        threshold : threshold for Pauli simplification
+        h1 (list): second-quantized fermionic one-body operator
+        h2 (list): second-quantized fermionic two-body operator
+        map_type (str): "JORDAN_WIGNER", "PARITY", "BINARY_TREE"
+        out_file (str): name of the optional file to write the Pauli list on
+        threshold (float): threshold for Pauli simplification
     Returns:
-        A list of Paulis with coefficients
+        list: A list of Paulis with coefficients
     """
+    # pylint: disable=invalid-name
 
-    """
     ####################################################################
-    ############   DEFINING MAPPED FERMIONIC OPERATORS    ##############
+    # ###########   DEFINING MAPPED FERMIONIC OPERATORS    #############
     ####################################################################
-    """
+
     pauli_list = []
     n = len(h1)  # number of fermionic modes / qubits
     a = []
@@ -237,15 +238,12 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
             # (a_[i][0]-i*a[i][1])/2
             a.append((update_pauli[j] * x_j * parity_pauli[j],
                       update_pauli[j] * y_j * remainder_pauli[j]))
-    """
-    ####################################################################
-    ############    BUILDING THE MAPPED HAMILTONIAN     ################
-    ####################################################################
-    """
 
-    """
-    #######################    One-body    #############################
-    """
+    ####################################################################
+    # ###########    BUILDING THE MAPPED HAMILTONIAN     ###############
+    ####################################################################
+
+    # ######################    One-body    #############################
     for i in range(n):
         for j in range(n):
             if h1[i, j] != 0:
@@ -258,9 +256,8 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
                                       pauli_prod[0]]
                         pauli_list = pauli_term_append(
                             pauli_term, pauli_list, threshold)
-    """
-    #######################    Two-body    #############################
-    """
+
+    # ######################    Two-body    ############################
     for i in range(n):
         for j in range(n):
             for k in range(n):
@@ -270,11 +267,9 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
                             for beta in range(2):
                                 for gamma in range(2):
                                     for delta in range(2):
-                                        """
                                         # Note: chemists' notation for the
                                         # labeling,
                                         # h2(i,j,k,m) adag_i adag_k a_m a_j
-                                        """
                                         pauli_prod_1 = sgn_prod(
                                             a[i][alpha], a[k][beta])
                                         pauli_prod_2 = sgn_prod(
@@ -294,11 +289,10 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
                                         pauli_list = pauli_term_append(
                                             pauli_term, pauli_list, threshold)
 
-    """
     ####################################################################
-    #################          WRITE TO FILE         ###################
+    # ################          WRITE TO FILE         ##################
     ####################################################################
-    """
+
     if out_file is not None:
         out_stream = open(out_file, 'w')
         for pauli_term in pauli_list:
@@ -309,7 +303,8 @@ def fermionic_maps(h1, h2, map_type, out_file=None, threshold=0.000000000001):
 
 
 def two_qubit_reduction(ham_in, m, out_file=None, threshold=0.000000000001):
-    """Eliminates the central and last qubit in a list of Pauli that has
+    """
+    Eliminates the central and last qubit in a list of Pauli that has
     diagonal operators (Z,I) at those positions.abs
 
     It can be used to taper two qubits in parity and binary-tree mapped
@@ -317,14 +312,15 @@ def two_qubit_reduction(ham_in, m, out_file=None, threshold=0.000000000001):
     sectors, according to the number of particles in the system.
 
     Args:
-        ham_in : a list of Paulis representing the mapped fermionic Hamiltonian
-        m (int) : number of fermionic particles
-        out_file (string) : option to write the simplified Hamiltonian to a
-            file
-        out_file : name of the optional file to write the Pauli list on
-        threshold : threshold for Pauli simplification
+        ham_in (list): a list of Paulis representing the mapped fermionic
+            Hamiltonian
+        m (int): number of fermionic particles
+        out_file (string or None): name of the optional file to write the Pauli
+            list on
+        threshold (float): threshold for Pauli simplification
     Returns:
-        A tapered Hamiltonian in the form of list of Paulis with coefficients
+        list: A tapered Hamiltonian in the form of list of Paulis with
+            coefficients
     """
     ham_out = []
     if m % 4 == 0:
@@ -361,11 +357,11 @@ def two_qubit_reduction(ham_in, m, out_file=None, threshold=0.000000000001):
                 w_temp.append(pauli_term[1].w[j])
         pauli_term_out = [coeff_out, Pauli(v_temp, w_temp)]
         ham_out = pauli_term_append(pauli_term_out, ham_out, threshold)
-    """
+
     ####################################################################
-    #################          WRITE TO FILE         ###################
+    # ################          WRITE TO FILE         ##################
     ####################################################################
-    """
+
     if out_file is not None:
         out_stream = open(out_file, 'w')
         for pauli_term in ham_out:

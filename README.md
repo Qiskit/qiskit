@@ -41,34 +41,25 @@ In addition, a basic understanding of quantum information is very helpful when i
 QISKit. If you're new to quantum, start with our
 [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
 
-### PIP Installation
+### Installation
 
-For those more familiar with python, the fastest way to install QISKit is by using the PIP tool
-(a python package manager):
+We encourage to install QISKit via the PIP tool (a python package manager):
 
 ```
     pip install qiskit
 ```
+PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
-### Source Installation
+PIP package comes with prebuilt binaries for these platforms:
 
-An alternative method is to clone the QISKit SDK repository onto your local machine, and change
-into the cloned directory:
+* Linux x86_64
+* Darwin
+* Win64
 
-#### Manual download
+If your platform is not in the list, PIP will try to build from the sources at installation time. It will require to have CMake 3.5 or higher pre-installed and at least one of the [build environments supported by CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html).
 
-Select the "Clone or download" button at the top of this webpage (or from the URL shown in the git
-clone command), unzip the file if needed, and change into **qiskit-sdk-py folder** in a terminal
-window.
+If during the installation PIP doesn't succeed to build, don't worry, you will have QISKit installed at the end but you probably couldn't take advantage of some of the high-performance components. Anyway, we always provide a python, not-so-fast alternative as a fallback.
 
-#### Git download
-
-Or, if you have Git installed, run the following commands:
-
-```
-    git clone https://github.com/QISKit/qiskit-sdk-py
-    cd qiskit-sdk-py
-```
 
 #### Setup your environment
 
@@ -87,28 +78,29 @@ This is a simple example that makes an entangled state.
 from qiskit import QuantumProgram, QISKitError, RegisterSizeError
 
 # Create a QuantumProgram object instance.
-Q_program = QuantumProgram()
+q_program = QuantumProgram()
 backend = 'local_qasm_simulator'
 try:
     # Create a Quantum Register called "qr" with 2 qubits.
-    qr = Q_program.create_quantum_register("qr", 2)
+    quantum_reg = q_program.create_quantum_register("qr", 2)
     # Create a Classical Register called "cr" with 2 bits.
-    cr = Q_program.create_classical_register("cr", 2)
+    classical_reg = q_program.create_classical_register("cr", 2)
     # Create a Quantum Circuit called "qc" involving the Quantum Register "qr"
     # and the Classical Register "cr".
-    qc = Q_program.create_circuit("bell", [qr], [cr])
+    quantum_circuit =
+        q_program.create_circuit("bell", [quantum_reg],[classical_reg])
 
     # Add the H gate in the Qubit 0, putting this qubit in superposition.
-    qc.h(qr[0])
-    # Add the CX gate on control qubit 0 and target qubit 1, putting 
+    quantum_circuit.h(quantum_reg[0])
+    # Add the CX gate on control qubit 0 and target qubit 1, putting
     # the qubits in a Bell state
-    qc.cx(qr[0], qr[1])
+    quantum_circuit.cx(quantum_reg[0], quantum_reg[1])
 
     # Add a Measure gate to see the state.
-    qc.measure(qr, cr)
+    quantum_circuit.measure(quantum_reg, classical_reg)
 
     # Compile and execute the Quantum Program in the local_qasm_simulator.
-    result = Q_program.execute(["bell"], backend=backend, shots=1024, seed=1)
+    result = q_program.execute(["bell"], backend=backend, shots=1024, seed=1)
 
     # Show the results.
     print(result)
@@ -146,27 +138,9 @@ your Quantum Experience Account:
    "`Personal Access Token`". This API token allows you to execute your
    programs with the IBM Q experience backends.
    [Example](doc/example_real_backend.rst).
-3. You will insert your API token in a file called `Qconfig.py`. First
-   copy the default version of this file from the tutorial folder to the
-   main SDK folder (on Windows, replace `cp` with `copy`):
-
-   ```bash
-    $ cp Qconfig.py.default Qconfig.py
-   ```
-
-4. Open your `Qconfig.py`, remove the `#` from the beginning of the API
-   token line, and copy/paste your API token into the space between the
-   quotation marks on that line. Save and close the file.
-
-5. If you have access to the IBM Q features, you also need to setup the
-   values for your hub, group, and project. You can do so by filling the
-   `config` variable with the values you can find on your IBM Q account
-   page.
-
-For example, a valid and fully configured `Qconfig.py` file would look like:
-
+3. We are going to create a new file called `Qconfig.py` and insert the API token into it. This file must have these contents:
 ```python
-APItoken = '123456789abc...'
+APItoken = 'MY_API_TOKEN'
 
 config = {
     'url': 'https://quantumexperience.ng.bluemix.net/api',
@@ -176,9 +150,14 @@ config = {
     'project': 'MY_PROJECT'
 }
 ```
+4. Substitute `'MY_API_TOKEN'` with your real API Token extracted in step 2.
 
-Once the `Qconfig.py` file is set up, it can be used for running Quantum
-Programs by passing its variables to `QuantumProgram.set_api()`. For example:
+5. If you have access to the IBM Q features, you also need to setup the
+   values for your hub, group, and project. You can do so by filling the
+   `config` variable with the values you can find on your IBM Q account
+   page.
+
+Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with `QuantumProgram.set_api()` function. For example:
 
 ```python
 from qiskit import QuantumProgram

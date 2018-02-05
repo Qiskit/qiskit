@@ -31,7 +31,7 @@ lint:
 	pylint -rn qiskit test
 
 style:
-	pycodestyle --exclude=qiskit/tools --max-line-length=100 qiskit test
+	pycodestyle --max-line-length=100 qiskit test
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
