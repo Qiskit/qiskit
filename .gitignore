@@ -126,3 +126,6 @@ test/python/test_save.json
 test/python/*.tex
 
 out/*
+
+# CMake generates this file on the fly
+setup.py

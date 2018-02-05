@@ -15,6 +15,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/qiskit-simulator)
 
 # Add tests and linters
 include(cmake/code-qa.cmake)
+add_lint_target()
 add_code_style_target()
 add_doc_target(html "./" "_build/")
 

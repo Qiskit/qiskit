@@ -3,21 +3,21 @@ enable_testing()
 # Create Python distrubution package
 find_program(PYTHON "python")
 if (NOT PYTHON)
-message(FATAL_ERROR "Couldn't find Python in your system. Please, install it and try again.")
+    message(FATAL_ERROR "Couldn't find Python in your system. Please, install it and try again.")
 endif()
 
 add_test(NAME qiskit_python
     COMMAND ${PYTHON} -m unittest discover -s test -v
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-function(add_linter_target)
+function(add_lint_target)
     find_program(PYLINT "pylint")
     if (NOT PYLINT)
         message(FATAL_ERROR "Couldn't find pylint in your system. Please, install it and try again.")
     endif()
 
-    add_custom_target(linter)
-    add_custom_command(TARGET linter
+    add_custom_target(lint)
+    add_custom_command(TARGET lint
         COMMAND ${PYLINT} -rn qiskit test
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
@@ -66,7 +66,7 @@ function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
     foreach(lang_dir "." "ja")
         add_custom_command(TARGET doc
             COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}
-                ${BETTER_APIDOC} -f -o doc/_templates doc/${lang_dir}
+                ${BETTER_APIDOC} -f -o doc/${lang_dir}/_autodoc
                 -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools
                 "qiskit/extensions/standard/[a-z]*"
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
