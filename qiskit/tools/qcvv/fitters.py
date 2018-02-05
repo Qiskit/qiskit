@@ -23,16 +23,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# function used to fit the exponetial decay
 def exp_fit_fun(x, a, tau, c):
+    """Function used to fit the exponential decay."""
+    # pylint: disable=invalid-name
     return a * np.exp(-x/tau) + c
 
-# function used to fit the decay cosine
+
 def osc_fit_fun(x, a, tau, f, phi, c):
+    """Function used to fit the decay cosine."""
+    # pylint: disable=invalid-name
     return a * np.exp(-x/tau)*np.cos(2*np.pi*f*x+phi) + c
 
-# function used to fit rb
+
 def rb_fit_fun(x, a, alpha, b):
+    """Function used to fit rb."""
+    # pylint: disable=invalid-name
     return a * alpha**x + b
 
 
@@ -64,63 +69,71 @@ def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
     plt.grid(True)
     plt.show()
 
+
 def shape_rb_data(raw_rb):
     """Take the raw rb data and convert it into averages and std dev
 
-    Args
-    raw_rb = m x n x l list where m is the number of seeds, n is the number of Clifford sequences and
-    l is the number of qubits
+    Args:
+        raw_rb (numpy.array): m x n x l list where m is the number of seeds, n
+            is the number of Clifford sequences and l is the number of qubits
 
     Return:
-    rb_data: 2 x n x l list where index 0 is the mean over seeds, 1 is the std dev over seeds
+        numpy_array: 2 x n x l list where index 0 is the mean over seeds, 1 is
+            the std dev overseeds
     """
     rb_data = []
-    rb_data.append(np.mean(raw_rb,0))
-    rb_data.append(np.std(raw_rb,0))
+    rb_data.append(np.mean(raw_rb, 0))
+    rb_data.append(np.std(raw_rb, 0))
 
     return rb_data
 
-def rb_epc(fit,rb_pattern):
+
+def rb_epc(fit, rb_pattern):
     """Take the rb fit data and convert it into EPC (error per Clifford)
 
-    Args
-    fit = dictionary of the fit quanties (A,alpha,B) with the keys 'qn' where n is the qubit
-    and subkeys 'fit', e.g. {'q0':{'fit': [1,0,0.9],'fiterr': [0,0,0]}}}
-    rb_pattern = (see randomized benchmarking functions). Pattern which specifies which qubits
-    performing RB with which qubits. E.g. [[1],[0,2]] is Q1 doing 1Q RB simultaneously with
-    Q0/Q2 doing 2Q RB
+    Args:
+        fit (dict): dictionary of the fit quanties (A, alpha, B) with the
+            keys 'qn' where n is  the qubit and subkeys 'fit', e.g.
+            {'q0':{'fit': [1, 0, 0.9], 'fiterr': [0, 0, 0]}}}
+        rb_pattern (list): (see randomized benchmarking functions). Pattern
+            which specifies which qubits performing RB with which qubits. E.g.
+            [[1],[0,2]] is Q1  doing 1Q RB simultaneously with Q0/Q2 doing
+            2Q RB
 
     Return:
-    fit: updates the passed in fit dictionary with the epc
+        dict: updates the passed in fit dictionary with the epc
     """
-
     for patterns in rb_pattern:
         for qubit in patterns:
-            fitalpha = fit['q%d'%qubit]['fit'][1]
-            fitalphaerr = fit['q%d'%qubit]['fiterr'][1]
+            fitalpha = fit['q%d' % qubit]['fit'][1]
+            fitalphaerr = fit['q%d' % qubit]['fiterr'][1]
             nrb = 2**len(patterns)
 
-            fit['q%d'%qubit]['fit_calcs'] = {}
-            fit['q%d'%qubit]['fit_calcs']['epc'] = [(nrb-1)/nrb*(1-fitalpha),fitalphaerr/fitalpha]
-            fit['q%d'%qubit]['fit_calcs']['epc'][1] *= fit['q%d'%qubit]['fit_calcs']['epc'][0]
-
+            fit['q%d' % qubit]['fit_calcs'] = {}
+            fit['q%d' % qubit]['fit_calcs']['epc'] = [(nrb-1)/nrb*(1-fitalpha),
+                                                      fitalphaerr/fitalpha]
+            fit['q%d' % qubit]['fit_calcs']['epc'][1] *= fit['q%d' % qubit]['fit_calcs']['epc'][0]
 
     return fit
 
 
-def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None, show_plt=1):
+def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None,
+                 show_plt=True):
     """Plot randomized benchmarking data.
 
-    xdata = list of subsequence lengths
-    ydatas = list of lists of survival probabilities for each sequence
-    yavg = mean of the survival probabilities at each sequence length
-    yerr = error of the survival
-    fit = fit parameters
-    survival_prob = function that computes survival probability
-    ax: plot axis (if passed in)
+    Args:
+        xdata (list): list of subsequence lengths
+        ydatas (list): list of lists of survival probabilities for each
+            sequence
+        yavg (list): mean of the survival probabilities at each sequence
+            length
+        yerr (list): error of the survival
+        fit (list): fit parameters
+        survival_prob (callable): function that computes survival probability
+        ax (Axes or None): plot axis (if passed in)
+        show_plt (bool): display the plot.
     """
-
-
+    # pylint: disable=invalid-name
     if ax is None:
         plt.figure()
         ax = plt.gca()
@@ -134,7 +147,7 @@ def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None, show_pl
     # Plot the fit
     ax.plot(xdata, survival_prob(xdata, *fit), color='blue', linestyle='-', linewidth=2)
     ax.tick_params(labelsize=14)
-    #ax.tick_params(axis='x',labelrotation=70)
+    # ax.tick_params(axis='x',labelrotation=70)
 
     ax.set_xlabel('Clifford Length', fontsize=16)
     ax.set_ylabel('Z', fontsize=16)
@@ -142,4 +155,3 @@ def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None, show_pl
 
     if show_plt:
         plt.show()
-
