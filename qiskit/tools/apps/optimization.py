@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=unused-import,invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,14 +19,13 @@
 These are tools that are used in the classical optimization and chemistry
 tutorials
 """
-import numpy as np
 import copy
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+import numpy as np
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
-from tools.qi.pauli import Pauli, label_to_pauli
+from qiskit.tools.qi.pauli import Pauli, label_to_pauli
 
 
 def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
@@ -34,8 +34,9 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
     approximation algorithm.
 
     Args:
-        obj_fun : the function to minimize
-        initial_theta : initial value for the variables of obj_fun
+        obj_fun (callable): the function to minimize
+        initial_theta (numpy.array): initial value for the variables of
+            obj_fun
         SPSA_parameters (list[float]) :  the parameters of the SPSA
             optimization routine
         max_trials (int) : the maximum number of trial steps ( = function
@@ -45,16 +46,18 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
         last_avg (int) : number of last updates of the variables to average
             on for the final obj_fun
     Returns:
-        cost_final : final optimized value for obj_fun
-        theta_best : final values of the variables corresponding to cost_final
-        cost_plus_save : array of stored values for obj_fun along the
-            optimization in the + direction
-        cost_minus_save : array of stored values for obj_fun along the
-            optimization in the - direction
-        theta_plus_save : array of stored variables of obj_fun along the
-            optimization in the + direction
-        theta_minus_save : array of stored variables of obj_fun along the
-            optimization in the - direction
+        list: a list with the following elements:
+            cost_final : final optimized value for obj_fun
+            theta_best : final values of the variables corresponding to
+                cost_final
+            cost_plus_save : array of stored values for obj_fun along the
+                optimization in the + direction
+            cost_minus_save : array of stored values for obj_fun along the
+                optimization in the - direction
+            theta_plus_save : array of stored variables of obj_fun along the
+                optimization in the + direction
+            theta_minus_save : array of stored variables of obj_fun along the
+                optimization in the - direction
     """
 
     theta_plus_save = []
@@ -106,15 +109,16 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
     """Calibrates and returns the SPSA parameters.
 
     Args:
-        obj_fun : the function to minimize.
-        initial_theta : initial value for the variables of obj_fun.
+        obj_fun (callable): the function to minimize.
+        initial_theta (numpy.array): initial value for the variables of
+            obj_fun.
         initial_c (float) : first perturbation of intitial_theta.
         target_update (float) : the aimed update of variables on the first
             trial step.
         stat (int) : number of random gradient directions to average on in
             the calibration.
     Returns:
-        An array of 5 SPSA_parameters to use in the optimization.
+        numpy.array: An array of 5 SPSA_parameters to use in the optimization.
     """
 
     SPSA_parameters = np.zeros((5))
@@ -147,10 +151,10 @@ def measure_pauli_z(data, pauli):
     if Z is present and 0 otherwise.
 
     Args:
-        data : a dictionary of the form data = {'00000': 10}
-        pauli : a Pauli object
+        data (dict): a dictionary of the form data = {'00000': 10}
+        pauli (Pauli): a Pauli object
     Returns:
-        Expected value of pauli given data
+        float: Expected value of pauli given data
  """
     observable = 0
     tot = sum(data.values())
@@ -171,10 +175,10 @@ def Energy_Estimate(data, pauli_list):
     appropriate post-rotations had to be performed in the collection of data
 
     Args:
-        data : output of the execution of a quantum program
-        pauli_list : list of [coeff, Pauli]
+        data (dict): output of the execution of a quantum program
+        pauli_list (list): list of [coeff, Pauli]
     Returns:
-        The expectation value
+        float: The expectation value
     """
     energy = 0
     if np.ndim(pauli_list) == 1:
@@ -189,10 +193,11 @@ def index_2_bit(state_index, num_bits):
     """Returns bit string corresponding to quantum state index
 
     Args:
-        state_index : basis index of a quantum state
-        num_bits : the number of bits in the returned string
+        state_index (int): basis index of a quantum state
+        num_bits (int): the number of bits in the returned string
     Returns:
-        A integer array with the binary representation of state_index
+        numpy.array: A integer array with the binary representation of
+            state_index
     """
     return np.array([int(c) for c
                      in np.binary_repr(state_index, num_bits)[::-1]],
@@ -200,13 +205,14 @@ def index_2_bit(state_index, num_bits):
 
 
 def group_paulis(pauli_list):
-    """Groups a list of (coeff,Pauli) tuples into tensor product basis (tpb) sets
+    """
+    Groups a list of (coeff,Pauli) tuples into tensor product basis (tpb) sets
 
     Args:
-        pauli_list : a list of (coeff, Pauli object) tuples.
+        pauli_list (list): a list of (coeff, Pauli object) tuples.
     Returns:
-        A list of tpb sets, each one being a list of (coeff, Pauli object)
-        tuples.
+        list: A list of tpb sets, each one being a list of (coeff, Pauli
+            object) tuples.
     """
     n = len(pauli_list[0][1].v)
     pauli_list_grouped = []
@@ -250,11 +256,9 @@ def print_pauli_list_grouped(pauli_list_grouped):
 
     Args:
         pauli_list_grouped (list of lists of (coeff, pauli) tuples): the
-        list of Pauli operators grouped into tpb sets
-    Returns:
-        None
+            list of Pauli operators grouped into tpb sets
     """
-    for i in range(len(pauli_list_grouped)):
+    for i, _ in enumerate(pauli_list_grouped):
         print('Post Rotations of TPB set ' + str(i) + ':')
         print(pauli_list_grouped[i][0][1].to_label())
         print(str(pauli_list_grouped[i][0][0]) + '\n')
@@ -264,30 +268,30 @@ def print_pauli_list_grouped(pauli_list_grouped):
 
         print('\n')
 
-    return None
-
 
 def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     """Calculates the average value of a Hamiltonian on a state created by the
      input circuit
 
     Args:
-        Q_program : QuantumProgram object used to run the imput circuit.
-        hamiltonian (array, matrix or list of Pauli operators grouped into
-            tpb sets) :
-            a representation of the Hamiltonian or observables to be measured.
-        shots (int) : number of shots considered in the averaging. If 1 the
+        Q_program (QuantumProgram): QuantumProgram object used to run the
+            input circuit.
+        hamiltonian (array or matrix or list): a representation of the
+            Hamiltonian or observables to be measured. If it is a list, it is
+            a list of Pauli operators grouped into tpb sets.
+        input_circuit (QuantumCircuit): input circuit.
+        shots (int): number of shots considered in the averaging. If 1 the
             averaging is exact.
-        device : the backend used to run the simulation.
+        device (str): the backend used to run the simulation.
     Returns:
-        Average value of the Hamiltonian or observable.
+        float: Average value of the Hamiltonian or observable.
     """
     energy = 0
 
     if shots == 1:
 
         # Hamiltonian is not a pauli_list grouped into tpb sets
-        if type(hamiltonian) is not list:
+        if not isinstance(hamiltonian, list):
             circuit = ['c']
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
@@ -297,7 +301,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             if quantum_state is None:
                 quantum_state = result.get_data(
                     circuit[0]).get('quantum_states')
-                if len(quantum_state) > 0:
+                if quantum_state:
                     quantum_state = quantum_state[0]
 
             # Diagonal Hamiltonian represented by 1D array
@@ -335,10 +339,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
-            quantum_state_0 = result.get_data(circuits_labels[0])['quantum_state']
+            quantum_state_0 = result.get_data(
+                circuits_labels[0])['quantum_state']
             i = 1
             for p in hamiltonian:
-                quantum_state_i = result.get_data(circuits_labels[i])['quantum_state']
+                quantum_state_i = result.get_data(
+                    circuits_labels[i])['quantum_state']
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(quantum_state_0),
                                           quantum_state_i)
@@ -365,8 +371,8 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             Q_program.add_circuit(circuits_labels[i], circuits[i])
             i += 1
         result = Q_program.execute(circuits_labels, device, shots=shots)
-        for j in range(len(hamiltonian)):
-            for k in range(len(hamiltonian[j])):
+        for j, _ in enumerate(hamiltonian):
+            for k, _ in enumerate(hamiltonian[j]):
                 energy += hamiltonian[j][k][0] *\
                     measure_pauli_z(result.get_counts(
                         circuits_labels[j]), hamiltonian[j][k][1])
@@ -379,16 +385,16 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
     parametrized single-qubit Y rotations and CZ two-qubit gates
 
     Args:
-        n (int) : number of qubits
-        m (int) : depth of the circuit
-        theta array[float] : angles that parametrize the Y rotations
-        entangler_map : CZ connectivity, e.g. {0: [1], 1: [2]}
-        meas_string (str) : measure a given Pauli operator at the end of the
+        n (int): number of qubits
+        m (int): depth of the circuit
+        theta (array[float]): angles that parametrize the Y rotations
+        entangler_map (dict): CZ connectivity, e.g. {0: [1], 1: [2]}
+        meas_string (str): measure a given Pauli operator at the end of the
             circuit
-        measurement (bool) : whether to measure the qubit (register "q")
+        measurement (bool): whether to measure the qubit (register "q")
             on classical bits (register "c")
     Returns:
-        A QuantumCircuit object
+        QuantumCircuit: A QuantumCircuit object
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
@@ -418,20 +424,20 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
 
 def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
                        measurement=True):
-    """Creates a QuantumCircuit object ocnsisting in layers of
+    """Creates a QuantumCircuit object consisting in layers of
     parametrized single-qubit Y and Z rotations and CZ two-qubit gates
 
     Args:
-        n (int) : number of qubits
-        m (int) : depth of the circuit
-        theta array[float] : angles that parametrize the Y and Z rotations
-        entangler_map : CZ connectivity, e.g. {0: [1], 1: [2]}
-        meas_string (str) : measure a given Pauli operator at the end of the
+        n (int): number of qubits
+        m (int): depth of the circuit
+        theta (array[float]): angles that parametrize the Y and Z rotations
+        entangler_map (dict): CZ connectivity, e.g. {0: [1], 1: [2]}
+        meas_string (str): measure a given Pauli operator at the end of the
             circuit
-        measurement (bool) : whether to measure the qubit (register "q")
+        measurement (bool): whether to measure the qubit (register "q")
             on classical bits (register "c")
     Returns:
-        A QuantumCircuit object
+        QuantumCircuit: A QuantumCircuit object
     """
     q = QuantumRegister("q", n)
     c = ClassicalRegister("c", n)
@@ -464,9 +470,9 @@ def make_Hamiltonian(pauli_list):
     """Creates a matrix operator out of a list of Paulis.
 
     Args:
-        pauli_list : list of list [coeff,Pauli]
+        pauli_list (list): list of list [coeff,Pauli]
     Returns:
-        A matrix representing pauli_list
+        numpy.matrix: A matrix representing pauli_list
     """
     Hamiltonian = 0
     for p in pauli_list:
@@ -479,10 +485,10 @@ def Hamiltonian_from_file(file_name):
     of Paulis.
 
     Args:
-        file_name : a text file containing a list of Paulis and
+        file_name (str): a text file containing a list of Paulis and
         coefficients.
     Returns:
-        A matrix representing pauli_list
+        list: A matrix representing pauli_list
     """
     with open(file_name, 'r+') as file:
         ham_array = file.readlines()

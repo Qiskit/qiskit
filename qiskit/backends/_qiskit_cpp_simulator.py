@@ -40,7 +40,7 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/qiskit_simulator' + EXTENSION),
+                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
 ]
