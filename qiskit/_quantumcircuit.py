@@ -39,6 +39,7 @@ class QuantumCircuit(object):
     # Class variable with gate definitions
     # This is a dict whose values are dicts with the
     # following keys:
+    #   "print" = True or False
     #   "opaque" = True or False
     #   "n_args" = number of real parameters
     #   "n_bits" = number of qubits
@@ -48,7 +49,6 @@ class QuantumCircuit(object):
     definitions = OrderedDict()
 
     # TODO: Update each definition on import or application.
-    # TODO: Add flag to definition to determine if print.
     # TODO: Propagate to other objects.
 
     def __init__(self, *regs):
@@ -200,11 +200,7 @@ class QuantumCircuit(object):
         """Return OPENQASM string."""
         string = self.header + "\n"
         for gate_name in self.definitions:
-            # TODO: find a better approach to this
-            if hasattr(QuantumCircuit, '_extension_standard'):
-                if gate_name not in self.standard_extension_gates:
-                    string += self._gate_string(gate_name)
-            else:
+            if self.definitions[gate_name]["print"]:
                 string += self._gate_string(gate_name)
         for register in self.regs.values():
             string += register.qasm() + "\n"

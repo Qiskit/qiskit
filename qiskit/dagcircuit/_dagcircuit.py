@@ -229,6 +229,7 @@ class DAGCircuit:
         """Add the definition of a gate.
 
         gatedata is dict with fields:
+        "print" = True or False
         "opaque" = True or False
         "n_args" = number of real parameters
         "n_bits" = number of qubits
@@ -793,12 +794,10 @@ class DAGCircuit:
                 out += "creg %s[%d];\n" % (k, v)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             if qeflag:
-                # TODO: we don't really want dagcircuit to have to know this
-                qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
-                         "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]
-                omit.extend(qelib)
-                printed_gates.extend(qelib)
+                for k in self.basis.keys():
+                    if not self.gates[k]["print"]:
+                        omit.append(k)
+                        printed_gates.append(k)
             for k in self.basis.keys():
                 if k not in omit:
                     if not self.gates[k]["opaque"]:

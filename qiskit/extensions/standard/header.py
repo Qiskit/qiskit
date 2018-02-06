@@ -27,15 +27,10 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
     QuantumCircuit._extension_standard = True
     QuantumCircuit.header = QuantumCircuit.header + "\n" \
         + "include \"qelib1.inc\";"
-    QuantumCircuit.standard_extension_gates = ["u3", "u2", "u1", "cx", "id",
-                                               "u0", "x", "y", "z", "h",
-                                               "s", "sdg", "t", "tdg", "rx",
-                                               "ry", "rz", "cz", "cy", "swap",
-                                               "ch", "ccx", "crz", "cu1",
-                                               "cu3"]
 
     # 3-parameter 2-pulse single qubit gate
     QuantumCircuit.definitions["u3"] = {
+        "print": False,
         "opaque": False,
         "n_args": 3,
         "n_bits": 1,
@@ -56,6 +51,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # 2-parameter 1-pulse single qubit gate
     QuantumCircuit.definitions["u2"] = {
+        "print": False,
         "opaque": False,
         "n_args": 2,
         "n_bits": 1,
@@ -80,6 +76,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # 1-parameter 0-pulse single qubit gate
     QuantumCircuit.definitions["u1"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 1,
@@ -100,6 +97,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled-NOT
     QuantumCircuit.definitions["cx"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 2,
@@ -116,6 +114,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # idle gate (identity)
     QuantumCircuit.definitions["id"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -136,6 +135,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # idle gate (identity) with length gamma*sqglen
     QuantumCircuit.definitions["u0"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 1,
@@ -156,6 +156,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Pauli gate: bit-flip
     QuantumCircuit.definitions["x"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -179,6 +180,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Pauli gate: bit and phase flip
     QuantumCircuit.definitions["y"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -210,6 +212,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Pauli gate: phase flip
     QuantumCircuit.definitions["z"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -231,6 +234,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Clifford gate: Hadamard
     QuantumCircuit.definitions["h"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -253,6 +257,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Clifford gate: sqrt(Z) phase gate
     QuantumCircuit.definitions["s"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -278,6 +283,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Clifford gate: conjugate of sqrt(Z)
     QuantumCircuit.definitions["sdg"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -306,6 +312,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # C3 gate: sqrt(S) phase gate
     QuantumCircuit.definitions["t"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -331,6 +338,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # C3 gate: conjugate of sqrt(S)
     QuantumCircuit.definitions["tdg"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 1,
@@ -359,6 +367,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Rotation around X-axis
     QuantumCircuit.definitions["rx"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 1,
@@ -393,6 +402,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Rotation around Y-axis
     QuantumCircuit.definitions["ry"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 1,
@@ -416,6 +426,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # Rotation around Z-axis
     QuantumCircuit.definitions["rz"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 1,
@@ -437,6 +448,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled-Phase
     QuantumCircuit.definitions["cz"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 2,
@@ -468,6 +480,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled-Y
     QuantumCircuit.definitions["cy"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 2,
@@ -499,6 +512,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # swap
     QuantumCircuit.definitions["swap"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 2,
@@ -532,6 +546,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled-H
     QuantumCircuit.definitions["ch"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 2,
@@ -618,6 +633,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # C3 gate: Toffoli
     QuantumCircuit.definitions["ccx"] = {
+        "print": False,
         "opaque": False,
         "n_args": 0,
         "n_bits": 3,
@@ -735,6 +751,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled rz rotation
     QuantumCircuit.definitions["crz"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 2,
@@ -796,6 +813,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled phase rotation
     QuantumCircuit.definitions["cu1"] = {
+        "print": False,
         "opaque": False,
         "n_args": 1,
         "n_bits": 2,
@@ -871,6 +889,7 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
 
     # controlled-U
     QuantumCircuit.definitions["cu3"] = {
+        "print": False,
         "opaque": False,
         "n_args": 3,
         "n_bits": 2,
