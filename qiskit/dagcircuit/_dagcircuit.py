@@ -731,7 +731,7 @@ class DAGCircuit:
                     elif nd["name"] == "CX":
                         json_backend.cx(nd["qargs"][0], nd["qargs"][1])
                     elif nd["name"] == "barrier":
-                        json_backend.barrier(nd["qargs"])
+                        json_backend.barrier([nd["qargs"]])
                     elif nd["name"] == "reset":
                         json_backend.reset(nd["qargs"][0])
                     else:
