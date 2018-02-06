@@ -770,6 +770,7 @@ class DAGCircuit:
         if add_swap is True, add the definition of swap in terms of
         cx if necessary.
         """
+        # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
             qregdata = {}
@@ -793,11 +794,13 @@ class DAGCircuit:
             for k, v in sorted(self.cregs.items()):
                 out += "creg %s[%d];\n" % (k, v)
             omit = ["U", "CX", "measure", "reset", "barrier"]
+            # TODO: dagcircuit shouldn't know about extensions
             if qeflag:
-                for k in self.basis.keys():
-                    if not self.gates[k]["print"]:
-                        omit.append(k)
-                        printed_gates.append(k)
+                qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
+                         "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
+                         "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]
+                omit.extend(qelib)
+                printed_gates.extend(qelib)
             for k in self.basis.keys():
                 if k not in omit:
                     if not self.gates[k]["opaque"]:
