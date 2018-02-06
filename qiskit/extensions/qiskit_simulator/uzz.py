@@ -24,6 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.qasm import _node as node
 
 
 class UZZGate(Gate):
@@ -71,6 +72,16 @@ def uzz(self, theta, ctl, tgt):
 QuantumCircuit.uzz = uzz
 CompositeGate.uzz = uzz
 
-# Add to QASM header for parsing
-QuantumCircuit.header += "\ngate uzz(theta) a, b {}" + \
-    "  // (local_qiskit_simulator) Uzz rotation by angle theta"
+
+# TODO: add a body for this gate?
+# Uzz rotation by angle theta
+QuantumCircuit.definitions["uzz"] = {
+    "print": True,
+    "opaque": False,
+    "n_args": 1,
+    "n_bits": 2,
+    "args": ["theta"],
+    "bits": ["a", "b"],
+    # gate uzz(theta) a, b { }
+    "body": node.GateBody([])
+}

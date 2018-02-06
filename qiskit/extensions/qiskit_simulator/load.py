@@ -24,6 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.qasm import _node as node
 
 
 class LoadGate(Gate):
@@ -64,6 +65,15 @@ def load(self, m, q):
 QuantumCircuit.load = load
 CompositeGate.load = load
 
-# Add to QASM header for parsing
-QuantumCircuit.header += "\ngate load(m) a {}" + \
-    "  // (local_qiskit_simulator) load cached quantum state"
+
+# command to load a saved state (identity)
+QuantumCircuit.definitions["load"] = {
+    "print": True,
+    "opaque": False,
+    "n_args": 1,
+    "n_bits": 1,
+    "args": ["m"],
+    "bits": ["a"],
+    # gate load(m) a { }
+    "body": node.GateBody([])
+}

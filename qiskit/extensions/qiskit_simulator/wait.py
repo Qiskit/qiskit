@@ -24,6 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.qasm import _node as node
 
 
 class WaitGate(Gate):
@@ -65,6 +66,15 @@ def wait(self, t, q):
 QuantumCircuit.wait = wait
 CompositeGate.wait = wait
 
-# Add to QASM header for parsing
-QuantumCircuit.header += "\ngate wait(t) a {}" + \
-    "  // (local_qiskit_simulator) idle for time t"
+
+# idle for time t (identity)
+QuantumCircuit.definitions["wait"] = {
+    "print": True,
+    "opaque": False,
+    "n_args": 1,
+    "n_bits": 1,
+    "args": ["t"],
+    "bits": ["a"],
+    # gate wait(t) a { }
+    "body": node.GateBody([])
+}
