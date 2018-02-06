@@ -27,6 +27,12 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
     QuantumCircuit._extension_standard = True
     QuantumCircuit.header = QuantumCircuit.header + "\n" \
         + "include \"qelib1.inc\";"
+    QuantumCircuit.standard_extension_gates = ["u3", "u2", "u1", "cx", "id",
+                                               "u0", "x", "y", "z", "h",
+                                               "s", "sdg", "t", "tdg", "rx",
+                                               "ry", "rz", "cz", "cy", "swap",
+                                               "ch", "ccx", "crz", "cu1",
+                                               "cu3"]
 
     # 3-parameter 2-pulse single qubit gate
     QuantumCircuit.definitions["u3"] = {

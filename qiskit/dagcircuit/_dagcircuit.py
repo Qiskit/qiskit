@@ -793,6 +793,7 @@ class DAGCircuit:
                 out += "creg %s[%d];\n" % (k, v)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             if qeflag:
+                # TODO: we don't really want dagcircuit to have to know this
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
                          "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]

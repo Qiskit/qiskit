@@ -45,7 +45,11 @@ class QuantumCircuit(object):
     #   "args"   = list of parameter names
     #   "bits"   = list of qubit names
     #   "body"   = GateBody AST node
-    definitions = {}
+    definitions = OrderedDict()
+
+    # TODO: Update each definition on import or application.
+    # TODO: Add flag to definition to determine if print.
+    # TODO: Propagate to other objects.
 
     def __init__(self, *regs):
         """Create a new circuit."""
@@ -176,9 +180,32 @@ class QuantumCircuit(object):
         if len(squbits) != len(qubits):
             raise QISKitError("duplicate qubit arguments")
 
+    def _gate_string(self, name):
+        """Return a QASM string for the named gate."""
+        out = ""
+        if self.definitions[name]["opaque"]:
+            out = "opaque " + name
+        else:
+            out = "gate " + name
+        if self.definitions[name]["n_args"] > 0:
+            out += "(" + ",".join(self.definitions[name]["args"]) + ")"
+        out += " " + ",".join(self.definitions[name]["bits"])
+        if self.definitions[name]["opaque"]:
+            out += ";"
+        else:
+            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}"
+        return out
+
     def qasm(self):
         """Return OPENQASM string."""
         string = self.header + "\n"
+        for gate_name in self.definitions:
+            # TODO: find a better approach to this
+            if hasattr(QuantumCircuit, '_extension_standard'):
+                if gate_name not in self.standard_extension_gates:
+                    string += self._gate_string(gate_name)
+            else:
+                string += self._gate_string(gate_name)
         for register in self.regs.values():
             string += register.qasm() + "\n"
         for instruction in self.data:
