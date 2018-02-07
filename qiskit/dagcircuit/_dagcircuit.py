@@ -445,7 +445,9 @@ class DAGCircuit:
         NOTE: gates in input_circuit that are also in self must
         be *identical* to the gates in self
         """
-        union_gates = copy.deepcopy(self.gates)
+        union_gates = {}
+        for k, v in self.gates.items():
+            union_gates[k] = v
         for k, v in input_circuit.gates.items():
             if k not in union_gates:
                 union_gates[k] = v

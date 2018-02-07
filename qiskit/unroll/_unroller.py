@@ -140,7 +140,7 @@ class Unroller(object):
             de_gate["body"] = None
         else:
             de_gate["body"] = node.body
-        self.backend.define_gate(node.name, copy.deepcopy(de_gate))
+        self.backend.define_gate(node.name, de_gate)
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
