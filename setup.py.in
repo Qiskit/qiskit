@@ -58,7 +58,7 @@ class QiskitSimulatorBuild(build):
             cmd_cmake.append("-GMinGW Makefiles")
         cmd_cmake.append('..')
 
-        cmd_make = ['make', 'qiskit_simulator']
+        cmd_make = ['make', 'pypi_package_copy_qiskit_simulator']
 
         try:
             cmd_make.append('-j%d' % cpu_count())
