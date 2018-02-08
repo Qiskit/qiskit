@@ -43,7 +43,7 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 
 	# For source distributions, we don't want any binary in the final package
 	if(PIP_PACKAGE_SOURCE_DIST)
-		set(TARGET_NAME_SDIST ${TARGET_NAME}_SDIST)
+		set(TARGET_NAME_SDIST ${TARGET_NAME}_sdist)
 		add_custom_target(${TARGET_NAME_SDIST})
 		add_custom_command(TARGET ${TARGET_NAME_SDIST}
 			COMMAND ${PYTHON} ${SETUP_PY} ${PIP_PACKAGE_SOURCE_DIST}
@@ -51,7 +51,7 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	endif()
 
 	if(PIP_PACKAGE_PLATFORM_WHEELS)
-		set(COPY_QISKIT_SIM_TARGET ${TARGET_NAME}_COPY_QISKIT_SIMULATOR)
+		set(COPY_QISKIT_SIM_TARGET ${TARGET_NAME}_copy_qiskit_simulator)
 		# We create a target which will depend on TARGET_NAME_WHEELS for
 		# copying all the binaries to their final locations
 		add_custom_target(${COPY_QISKIT_SIM_TARGET})
@@ -78,7 +78,7 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 			endforeach()
 		endif()
 
-		set(TARGET_NAME_WHEELS ${TARGET_NAME}_WHEELS)
+		set(TARGET_NAME_WHEELS ${TARGET_NAME}_wheels)
 		add_custom_target(${TARGET_NAME_WHEELS})
 		add_custom_command(TARGET ${TARGET_NAME_WHEELS}
 			COMMAND ${PYTHON} ${SETUP_PY} ${PIP_PACKAGE_PLATFORM_WHEELS}
