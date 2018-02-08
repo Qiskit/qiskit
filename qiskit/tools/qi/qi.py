@@ -447,7 +447,11 @@ def funm_svd(a, func):
 def state_fidelity(state1, state2):
     """Return the state fidelity between two quantum states.
 
-    Either input may be a state vector, or a density matrix.
+    Either input may be a state vector, or a density matrix. The state
+    fidelity (F) for two density matrices is defined as:
+        F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
+    For two pure states the fidelity is given by
+        F(|psi1>, |psi2>) = |<psi1|psi2>|^2
 
     Args:
         state1 (array_like): a quantum state vector or density matrix.
@@ -462,18 +466,18 @@ def state_fidelity(state1, state2):
 
     # fidelity of two state vectors
     if s1.ndim == 1 and s2.ndim == 1:
-        return np.abs(s2.conj().dot(s1))
+        return np.abs(s2.conj().dot(s1)) ** 2
     # fidelity of vector and density matrix
     elif s1.ndim == 1:
         # psi = s1, rho = s2
-        return np.sqrt(np.abs(s1.conj().dot(s2).dot(s1)))
+        return np.abs(s1.conj().dot(s2).dot(s1))
     elif s2.ndim == 1:
         # psi = s2, rho = s1
-        return np.sqrt(np.abs(s2.conj().dot(s1).dot(s2)))
+        return np.abs(s2.conj().dot(s1).dot(s2))
     # fidelity of two density matrices
     s1sq = funm_svd(s1, np.sqrt)
     s2sq = funm_svd(s2, np.sqrt)
-    return np.linalg.norm(s1sq.dot(s2sq), ord='nuc')
+    return np.linalg.norm(s1sq.dot(s2sq), ord='nuc') ** 2
 
 
 def purity(state):
