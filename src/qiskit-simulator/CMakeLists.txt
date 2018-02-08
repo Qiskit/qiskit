@@ -1,3 +1,25 @@
+# CMake config file to build the C++ Simulator
+#
+# For Windows, we always build static executables. QISKit provides with the 
+# necessary external binary libraries (.lib and .dll), these .lib comes from an
+# external source and they are simple import files, so we still need the .dll
+# files in order to run the final executable. We only support MinGW64 toolchain
+# so the static linking makes sure that other required libraries from this
+# toolchain are included in the final executable. As MinGW64 can be installed
+# anywhere in the system, the user needs to provide the PATH where the pthreads
+# library is installed using the USER_LIB_PATH variable, like:
+#     C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib -G "MinGW Makefiles" ..
+#
+# For Linux and Mac, we can build both statically or dynamically. The former is the
+# default. If you want to build a dynamic executable, you need to set
+# STATIC_LINKING to True, example:
+#     out$ cmake -DSTATIC_LINKING=False ..
+#
+# For Mac, you probably need to install static versions of the toolchain in order
+# to make a static executable. Additionaly, the OpenMP features are only supported
+# on GNU g++ comipler, CLang doesn't include it so if you are building with CLang
+# you won't get all the performance.
+
 project(qiskit_simulator VERSION 1.0 LANGUAGES CXX)
 
 set(QISKIT_SIMULATOR_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -22,7 +44,8 @@ enable_cxx_compiler_flag_if_supported("-O3")
 enable_cxx_compiler_flag_if_supported("-march=native")
 enable_cxx_compiler_flag_if_supported("-fopenmp")
 
-if(MINGW)
+# We force static linking on Windows
+if(STATIC_LINKING OR MINGW)
 	enable_cxx_compiler_flag_if_supported("-static")
 	enable_cxx_compiler_flag_if_supported("-static-libstdc++")
 	enable_cxx_compiler_flag_if_supported("-static-libgcc")
@@ -48,10 +71,11 @@ target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/
 
 # For header only libraries
 SET(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "")
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES} ".hpp")
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES} .hpp)
 
-if(MINGW)
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES} ".lib" ".a")
+# We force static linking on Windows
+if(STATIC_LINKING OR MINGW)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
 # Looking for external libraries
