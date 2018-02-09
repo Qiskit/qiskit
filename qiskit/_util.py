@@ -17,7 +17,6 @@
 """Common utilities for QISKit."""
 
 import logging
-from unittest.mock import patch
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
