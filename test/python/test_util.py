@@ -19,6 +19,7 @@
 from qiskit._util import _check_ibmqe_version, API_NAME
 from .common import QiskitTestCase
 
+
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
@@ -29,4 +30,4 @@ class TestUtil(QiskitTestCase):
 
     def test_api_name(self):
         """check API_NAME."""
-        self.assertEqual(API_NAME,'IBMQuantumExperience')
+        self.assertEqual(API_NAME, 'IBMQuantumExperience')
