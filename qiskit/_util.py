@@ -51,14 +51,16 @@ def _check_ibmqe_version():
     # Find the IBMQuantumExperience version specified in qiskit.
     if qiskit_local:
         try:
-            # Mock setuptools.setup, as it would be executed during the import.
-            with patch('setuptools.setup'):
-                # Use a local import to fall back gracefully if not present.
-                from setup import requirements
-                ibmqe_require_line = next(r for r in requirements if
-                                          r.startswith('IBMQuantumExperience'))
+            with open('requirements.txt') as reqfile:
+                for line in reqfile:
+                    if 'IBMQuantumExperience' in line:
+                        ibmqe_require_line = 'IBMQuantumExperience>=1.8.26\n'
+                        break
+                else:
+                    raise pkg_resources.RequirementParseError
                 ibmqe_require = pkg_resources.Requirement(ibmqe_require_line)
-        except (ImportError, pkg_resources.RequirementParseError):
+        except (FileNotFoundError, pkg_resources.RequirementParseError):
+            logger.warning('Something seems wrong with your requirements.txt')
             return
     else:
         # Retrieve the requirement line from pkg_resources
