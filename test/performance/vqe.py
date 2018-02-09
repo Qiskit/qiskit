@@ -27,9 +27,7 @@ from scipy import linalg as la
 from functools import partial
 
 # import qiskit modules
-from qiskit import QuantumProgram, QuantumCircuit
 from qiskit import QuantumProgram
-import Qconfig
 
 # import optimization tools
 from qiskit.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
@@ -40,33 +38,29 @@ from qiskit.tools.apps.optimization import eval_hamiltonian, group_paulis
 import warnings
 warnings.filterwarnings('ignore')
 
-n = 2
-m = 6
-device = 'local_qiskit_simulator'
+n_qubits = 2    # size of molecule
+depth = 6       # single_qubit_gate_layers - entangler_layers + 1
+device = 'local_qiskit_simulator' 
 
-initial_theta = np.random.randn(2 * n * m)
+initial_theta = np.random.randn(2 * n_qubits * depth)
 entangler_map = {1: [0]}    # map of two-qubit gates (key: control, values: target)
-shots = 1024
-max_trials = 100
+shots = 1
+max_trials = 200
 ham_name = os.path.join(os.path.dirname(__file__), 'H2/H2Equilibrium.txt')
 
 # Exact Energy
 pauli_list = Hamiltonian_from_file(ham_name)
+pauli_list_grouped = group_paulis(pauli_list)
 H = make_Hamiltonian(pauli_list)
 exact = np.amin(la.eig(H)[0]).real
-print('The exact ground state energy is:')
-print(exact)
-pauli_list_grouped = group_paulis(pauli_list)
+print('The exact ground state energy is: {}'.format(exact))
 
 # Optimization
-Q_program = QuantumProgram()
-Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
-print(Q_program.get_backend_status(device))
+qp = QuantumProgram()
 
-
-def cost_function(Q_program, H, n, m, entangler_map, shots, device, theta):
-    return eval_hamiltonian(Q_program, H,
-                            trial_circuit_ryrz(n, m, theta, entangler_map,
+def cost_function(qp, H, n_qubits, depth, entangler_map, shots, device, theta):
+    return eval_hamiltonian(qp, H,
+                            trial_circuit_ryrz(n_qubits, depth, theta, entangler_map,
                                                None, False), shots, device).real
 
 
@@ -76,20 +70,58 @@ def optimize():
     save_step = 20
 
     if shots == 1:
-        SPSA_params = SPSA_calibration(partial(cost_function, Q_program, H, n, m,
-                                               entangler_map, shots, device),
-                                       initial_theta, initial_c, target_update, 25)
-        output = SPSA_optimization(partial(cost_function, Q_program, H, n, m,
-                                           entangler_map, shots, device),
-                                   initial_theta, SPSA_params, max_trials, save_step, 1)
+        SPSA_params = SPSA_calibration(partial(cost_function,
+                                               qp,
+                                               H,
+                                               n_qubits,
+                                               depth,
+                                               entangler_map, 
+                                               shots, 
+                                               device),
+                                       initial_theta, 
+                                       initial_c, 
+                                       target_update, 
+                                       25)
+        output = SPSA_optimization(partial(cost_function,
+                                           qp,
+                                           H,
+                                           n_qubits,
+                                           depth,
+                                           entangler_map,
+                                           shots,
+                                           device),
+                                   initial_theta,
+                                   SPSA_params,
+                                   max_trials,
+                                   save_step,
+                                   1)
 
     else:
-        SPSA_params = SPSA_calibration(partial(cost_function, Q_program, pauli_list_grouped, n, m,
-                                               entangler_map, shots, device),
-                                       initial_theta, initial_c, target_update, 25)
-        output = SPSA_optimization(partial(cost_function, Q_program, pauli_list_grouped, n, m,
-                                           entangler_map, shots, device),
-                                   initial_theta, SPSA_params, max_trials, save_step, 1)
+        SPSA_params = SPSA_calibration(partial(cost_function,
+                                               qp,
+                                               pauli_list_grouped,
+                                               n_qubits,
+                                               depth,
+                                               entangler_map,
+                                               shots,
+                                               device),
+                                       initial_theta,
+                                       initial_c,
+                                       target_update,
+                                       25)
+        output = SPSA_optimization(partial(cost_function,
+                                           qp,
+                                           pauli_list_grouped,
+                                           n_qubits,
+                                           depth,
+                                           entangler_map,
+                                           shots,
+                                           device),
+                                   initial_theta,
+                                   SPSA_params,
+                                   max_trials,
+                                   save_step,
+                                   1)
 
 
 optimize()
