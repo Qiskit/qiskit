@@ -22,6 +22,7 @@ Generates many small circuits, thus good for profiling compiler overhead.
 
 import sys
 import os
+import argparse
 import numpy as np
 from scipy import linalg as la
 from functools import partial
@@ -38,51 +39,65 @@ from qiskit.tools.apps.optimization import eval_hamiltonian, group_paulis
 import warnings
 warnings.filterwarnings('ignore')
 
-n_qubits = 2    # size of molecule
-depth = 6       # single_qubit_gate_layers - entangler_layers + 1
-device = 'local_qiskit_simulator' 
-
-initial_theta = np.random.randn(2 * n_qubits * depth)
-entangler_map = {1: [0]}    # map of two-qubit gates (key: control, values: target)
-shots = 1
-max_trials = 200
-ham_name = os.path.join(os.path.dirname(__file__), 'H2/H2Equilibrium.txt')
-
-# Exact Energy
-pauli_list = Hamiltonian_from_file(ham_name)
-pauli_list_grouped = group_paulis(pauli_list)
-H = make_Hamiltonian(pauli_list)
-exact = np.amin(la.eig(H)[0]).real
-print('The exact ground state energy is: {}'.format(exact))
-
-# Optimization
-qp = QuantumProgram()
 
 def cost_function(qp, H, n_qubits, depth, entangler_map, shots, device, theta):
-    return eval_hamiltonian(qp, H,
-                            trial_circuit_ryrz(n_qubits, depth, theta, entangler_map,
-                                               None, False), shots, device).real
-
-
-def optimize():
-    initial_c = 0.01
-    target_update = 2 * np.pi * 0.1
-    save_step = 20
-
-    if shots == 1:
-        SPSA_params = SPSA_calibration(partial(cost_function,
-                                               qp,
-                                               H,
-                                               n_qubits,
+    return eval_hamiltonian(qp,
+                            H,
+                            trial_circuit_ryrz(n_qubits,
                                                depth,
-                                               entangler_map, 
-                                               shots, 
-                                               device),
-                                       initial_theta, 
-                                       initial_c, 
-                                       target_update, 
-                                       25)
-        output = SPSA_optimization(partial(cost_function,
+                                               theta,
+                                               entangler_map,
+                                               meas_string=None,
+                                               measurement=False),
+                            shots,
+                            device).real
+
+
+def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
+    device = 'local_qiskit_simulator'
+
+    if molecule == 'H2':
+        n_qubits = 2
+        Z1 = 1
+        Z2 = 1
+        min_distance = 0.2
+        max_distance = 4
+
+    elif molecule == 'LiH':
+        n_qubits = 4
+        Z1 = 1
+        Z2 = 3
+        min_distance = 0.5
+        max_distance = 5
+
+    else:
+        raise QISKitError("Unknown molecule for VQE.")
+
+    # Read Hamiltonian
+    ham_name = os.path.join(os.path.dirname(__file__),
+                            molecule + '/' + molecule + 'Equilibrium.txt')
+    pauli_list = Hamiltonian_from_file(ham_name)
+    H = make_Hamiltonian(pauli_list)
+    if shots != 1:
+        H = group_paulis(pauli_list)
+
+    # Exact Energy
+    exact = np.amin(la.eig(H)[0]).real
+    print('The exact ground state energy is: {}'.format(exact))
+
+    # Optimization
+    qp = QuantumProgram()
+
+    entangler_map = qp.get_backend_configuration(device)['coupling_map']
+    if entangler_map == 'all-to-all':
+        entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}
+
+    initial_theta = np.random.randn(2 * n_qubits * depth)   # initial angles
+    initial_c = 0.01    # first theta perturbations
+    target_update = 2 * np.pi * 0.1     # aimed update on first trial
+    save_step = 20      # print optimization trajectory
+
+    SPSA_params = SPSA_calibration(partial(cost_function,
                                            qp,
                                            H,
                                            n_qubits,
@@ -91,37 +106,32 @@ def optimize():
                                            shots,
                                            device),
                                    initial_theta,
-                                   SPSA_params,
-                                   max_trials,
-                                   save_step,
-                                   1)
+                                   initial_c,
+                                   target_update,
+                                   stat=25)
 
-    else:
-        SPSA_params = SPSA_calibration(partial(cost_function,
-                                               qp,
-                                               pauli_list_grouped,
-                                               n_qubits,
-                                               depth,
-                                               entangler_map,
-                                               shots,
-                                               device),
-                                       initial_theta,
-                                       initial_c,
-                                       target_update,
-                                       25)
-        output = SPSA_optimization(partial(cost_function,
-                                           qp,
-                                           pauli_list_grouped,
-                                           n_qubits,
-                                           depth,
-                                           entangler_map,
-                                           shots,
-                                           device),
-                                   initial_theta,
-                                   SPSA_params,
-                                   max_trials,
-                                   save_step,
-                                   1)
+    output = SPSA_optimization(partial(cost_function,
+                                       qp,
+                                       H,
+                                       n_qubits,
+                                       depth,
+                                       entangler_map,
+                                       shots,
+                                       device),
+                               initial_theta,
+                               SPSA_params,
+                               max_trials,
+                               save_step,
+                               last_avg=1)
 
 
-optimize()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            description="Performance testing for compiler, using the VQE application.")
+    parser.add_argument('--molecule', default='H2', help='molecule to calculate')  
+    parser.add_argument('--depth', default=6, type=int, help='depth of trial circuit')
+    parser.add_argument('--max_trials', default=200, type=int, help='how many trials')
+    parser.add_argument('--shots', default=1, type=int, help='shots per circuit')    
+    args = parser.parse_args()
+    
+    vqe()
