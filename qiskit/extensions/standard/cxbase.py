@@ -18,10 +18,10 @@
 """
 Fundamental controlled-NOT gate.
 """
-from qiskit import Instruction
+from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class CXBase(Gate):
@@ -44,7 +44,7 @@ class CXBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cxbase(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cx_base(self.arg[0], self.arg[1]))
 
 
 def cx_base(self, ctl, tgt):

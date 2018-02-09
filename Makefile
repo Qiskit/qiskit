@@ -28,12 +28,15 @@ run:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint qiskit test
+	pylint -rn qiskit test
 
-# TODO: Uncomment when the lint one passes.
-# test: lint
+style:
+	pycodestyle --max-line-length=100 qiskit test
+
+# Use the -s (starting directory) flag for "unittest discover" is necessary,
+# otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -v
+	python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
@@ -46,6 +49,13 @@ doc:
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
 	done
 
+sim:
+	make -C src/cpp-simulator/src clean
+	make -C src/cpp-simulator/src
+
 clean:
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
+	make -C src/cpp-simulator/src clean
+	rm -f test/python/test_latex_drawer.tex test/python/test_qasm_python_simulator.pdf \
+		test/python/test_save.json test/python/test_teleport.tex

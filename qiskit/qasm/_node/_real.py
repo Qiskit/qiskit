@@ -18,7 +18,8 @@
 """
 Node for an OPENQASM real number.
 """
-import math
+from sympy import latex, pi
+from sympy.printing.ccode import ccode
 from ._node import Node
 
 
@@ -30,6 +31,7 @@ class Real(Node):
 
     def __init__(self, id):
         """Create the real node."""
+        # pylint: disable=redefined-builtin
         Node.__init__(self, "real", None, None)
         self.value = id
 
@@ -40,16 +42,22 @@ class Real(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        fspec = "%%0.%df" % prec
-        return fspec % self.value
+        if self.value == pi:
+            return "pi"
+
+        return ccode(self.value, precision=prec)
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        if math.isclose(self.value, math.pi):
-            return "\\pi"
-        fspec = "%%0.%df" % prec
-        return fspec % self.value
+        # pylint: disable=unused-argument
+        return latex(self.value)
+
+    def sym(self, nested_scope=None):
+        """Return the correspond symbolic number."""
+        # pylint: disable=unused-argument
+        return self.value
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        return self.value
+        # pylint: disable=unused-argument
+        return float(self.value.evalf())

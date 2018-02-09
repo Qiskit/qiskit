@@ -18,12 +18,13 @@
 """
 controlled-rz gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit._quantumregister import QuantumRegister
+from qiskit import Gate
+from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
+
 
 class CrzGate(Gate):
     """controlled-rz gate."""
@@ -37,8 +38,8 @@ class CrzGate(Gate):
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("crz(%.15f) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
-                                                           tgt[0].name, tgt[1]))
+        return self._qasmif("crz(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
+                                                        tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -59,11 +60,11 @@ def crz(self, theta, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.crz(theta, (ctl, i), (tgt, i)))
         return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(CrzGate(theta, ctl, tgt, self))
+
+    self._check_qubit(ctl)
+    self._check_qubit(tgt)
+    self._check_dups([ctl, tgt])
+    return self._attach(CrzGate(theta, ctl, tgt, self))
 
 
 QuantumCircuit.crz = crz

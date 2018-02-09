@@ -27,8 +27,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -124,3 +122,11 @@ doc/**/_autodoc
 qiskit/bin/*
 
 test/python/test_save.json
+
+test/python/*.tex
+
+out/*
+
+# CMake generates this file on the fly
+setup.py
+qiskit/backends/qiskit_simulator

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,12 +19,12 @@
 """
 Rotation around the z-axis.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
+from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class RZGate(Gate):
@@ -37,8 +38,7 @@ class RZGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         phi = self.param[0]
-        return self._qasmif("rz(%.15f) %s[%d];" % (phi, qubit[0].name,
-                                                   qubit[1]))
+        return self._qasmif("rz(%s) %s[%d];" % (phi, qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate.
@@ -60,9 +60,9 @@ def rz(self, phi, q):
         for j in range(q.sz):
             gs.add(self.rx(phi, (q, j)))
         return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(RZGate(phi, q, self))
+
+    self._check_qubit(q)
+    return self._attach(RZGate(phi, q, self))
 
 
 QuantumCircuit.rz = rz
