@@ -128,10 +128,10 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
             description="Performance testing for compiler, using the VQE application.")
-    parser.add_argument('--molecule', default='H2', help='molecule to calculate')  
+    parser.add_argument('--molecule', default='H2', help='molecule to calculate')
     parser.add_argument('--depth', default=6, type=int, help='depth of trial circuit')
     parser.add_argument('--max_trials', default=200, type=int, help='how many trials')
-    parser.add_argument('--shots', default=1, type=int, help='shots per circuit')    
+    parser.add_argument('--shots', default=1, type=int, help='shots per circuit')
     args = parser.parse_args()
-    
+
     vqe()
