@@ -327,9 +327,9 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             for p in hamiltonian:
                 circuits.append(copy.deepcopy(input_circuit))
                 for j in range(n_qubits):
-                    if p[1].v[j] == 1 and p[1].w[j] == 0:
+                    if p[1].v[j] == 0 and p[1].w[j] == 1:
                         circuits[i].x(q[j])
-                    elif p[1].v[j] == 0 and p[1].w[j] == 1:
+                    elif p[1].v[j] == 1 and p[1].w[j] == 0:
                         circuits[i].z(q[j])
                     elif p[1].v[j] == 1 and p[1].w[j] == 1:
                         circuits[i].y(q[j])
