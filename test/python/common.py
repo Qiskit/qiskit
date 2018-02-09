@@ -79,3 +79,23 @@ class QiskitTestCase(unittest.TestCase):
             str: the absolute path to the resource.
         """
         return os.path.normpath(os.path.join(path.value, filename))
+
+    def assertNoLogs(self, logger=None, level=None):
+        """The opposite to assertLogs.
+        """
+        return _AssertNoLogsContext(self, logger, level)
+
+class _AssertNoLogsContext(unittest.case._AssertLogsContext):
+    """A context manager used to implement TestCase.assertNoLogs()."""
+
+    LOGGING_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+    def __exit__(self, exc_type, exc_value, tb):
+        self.logger.handlers = self.old_handlers
+        self.logger.propagate = self.old_propagate
+        self.logger.setLevel(self.old_level)
+        if exc_type is not None:
+            # let unexpected exceptions pass through
+            return False
+        for record in self.watcher.records:
+            self._raiseFailure(
+                "Something was logged in the logger %s by %s:%i" %(record.name,record.pathname,record.lineno))
