@@ -35,10 +35,6 @@ from qiskit.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization
 from qiskit.tools.apps.optimization import Hamiltonian_from_file, make_Hamiltonian
 from qiskit.tools.apps.optimization import eval_hamiltonian, group_paulis
 
-# Ignore warnings due to chopping of small imaginary part of the energy
-import warnings
-warnings.filterwarnings('ignore')
-
 
 def cost_function(qp, H, n_qubits, depth, entangler_map, shots, device, theta):
     return eval_hamiltonian(qp,
@@ -129,9 +125,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
             description="Performance testing for compiler, using the VQE application.")
     parser.add_argument('--molecule', default='H2', help='molecule to calculate')
-    parser.add_argument('--depth', default=6, type=int, help='depth of trial circuit')
-    parser.add_argument('--max_trials', default=200, type=int, help='how many trials')
-    parser.add_argument('--shots', default=1, type=int, help='shots per circuit')
+    parser.add_argument('--depth', type=int, default=6, type=int, help='depth of trial circuit')
+    parser.add_argument('--max_trials', type=int, default=200, type=int, help='how many trials')
+    parser.add_argument('--shots', type=int, default=1, type=int, help='shots per circuit')
     args = parser.parse_args()
 
-    vqe()
+    vqe(args.molecule, args.depth, args.max_trials, args.shots)

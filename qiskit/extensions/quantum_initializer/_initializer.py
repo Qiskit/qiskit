@@ -102,7 +102,7 @@ class InitializeGate(CompositeGate):
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.param, self.arg))
+        self._modifiers(circ.initialize(self.name, self.param, self.arg))
 
     def gates_to_uncompute(self):
         """

@@ -1,64 +1,122 @@
-# Checking the version of PYTHON; we only support > 3.5
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""
+Quantum State Tomography.
+Generates many small circuits, thus good for profiling compiler overhead.
+"""
+
 import sys
-if sys.version_info < (3,5):
-    raise Exception('Please use Python version 3.5 or greater.')
 import numpy as np
-    
-# importing the QISKit
-from qiskit import QuantumCircuit, QuantumProgram
-import Qconfig
+import argparse
 
-# import tomography libary
+# import qiskit modules
+from qiskit import QuantumProgram
+
+# import tomography libary and other useful tools
 import qiskit.tools.qcvv.tomography as tomo
-
-# useful additional packages 
-from qiskit.tools.visualization import plot_state, plot_histogram
-from qiskit.tools.qi.qi import state_fidelity, concurrence, purity, outer
-
-Q_program = QuantumProgram()
-Q_program.set_api(Qconfig.APItoken, Qconfig.config['url']) # set the APIToken and API url
-
-# Creating registers
-qr = Q_program.create_quantum_register('qr', 2)
-cr = Q_program.create_classical_register('cr', 2)
-
-# quantum circuit to make an entangled bell state 
-bell = Q_program.create_circuit('bell', [qr], [cr])
-bell.h(qr[0])
-bell.cx(qr[0], qr[1])
-
-# Construct state tomography set for measurement of qubits [0, 1] in the Pauli basis
-bell_tomo_set = tomo.state_tomography_set([0, 1])
-
-# Add the state tomography measurement circuits to the Quantum Program
-bell_tomo_circuits = tomo.create_tomography_circuits(Q_program, 'bell', qr, cr, bell_tomo_set)
-print('Created State tomography circuit labels:')
-for c in bell_tomo_circuits:
-    print(c)
-
-# Use the local simulator
-backend = 'local_qasm_simulator'
-
-# Take 5000 shots for each measurement basis
-shots = 5000
-
-# Run the simulation
-bell_tomo_result = Q_program.execute(bell_tomo_circuits, backend=backend, shots=shots)
-print(bell_tomo_result)
-
-bell_tomo_data = tomo.tomography_data(bell_tomo_result, 'bell', bell_tomo_set)
-
-rho_fit = tomo.fit_tomography_data(bell_tomo_data)
-
-# target state is (|00>+|11>)/sqrt(2)
-target = np.array([1., 0., 0., 1.]/np.sqrt(2.))
-
-# calculate fidelity, concurrence and purtity of fitted state
-F_fit = state_fidelity(rho_fit, [0.707107, 0, 0, 0.707107])
-con = concurrence(rho_fit)
-pur = purity(rho_fit)
-print('Fidelity =', F_fit)
-print('concurrence = ', str(con))
-print('purity = ', str(pur))
+from qiskit.tools.qi.qi import state_fidelity, purity
+from qiskit.tools.qi.qi import outer, random_unitary_matrix
 
 
+# circuit that outputs the target state
+def target_prep(qp, state, target):
+    # quantum circuit to make an entangled cat state
+    if state == 'cat':
+        n_qubits = int(np.log2(target.size))
+        qr = qp.create_quantum_register('qr', n_qubits)
+        cr = qp.create_classical_register('cr', n_qubits)
+        cat = qp.create_circuit('prep', [qr], [cr])
+        cat.h(qr[0])
+        for i in range(1, n_qubits):
+            cat.cx(qr[0], qr[i])
+
+    # quantum circuit to prepare arbitrary given state
+    elif state == 'random':
+        n_qubits = int(np.log2(target.size))
+        qr = qp.create_quantum_register('qr', n_qubits)
+        cr = qp.create_classical_register('cr', n_qubits)
+        random = qp.create_circuit('prep', [qr], [cr])
+        random.initialize("Qinit", target, [qr[i] for i in range(n_qubits)])
+
+    return qp
+
+
+# add basis measurements to the Quantum Program for tomography
+def add_tomo_circuits(qp):
+    # Construct state tomography set for measurement of qubits in the register
+    qr_name = list(qp.get_quantum_register_names())[0]
+    cr_name = list(qp.get_classical_register_names())[0]
+    qr = qp.get_quantum_register(qr_name)
+    cr = qp.get_classical_register(cr_name)
+    tomo_set = tomo.state_tomography_set(list(range(qr.size)))
+
+    # Add the state tomography measurement circuits to the Quantum Program
+    tomo_circuits = tomo.create_tomography_circuits(qp, 'prep', qr, cr, tomo_set)
+    print('Created state tomography circuit labels:')
+    for c in tomo_circuits:
+        print(c)
+
+    return qp, tomo_set, tomo_circuits
+
+
+# perform quantum state tomography and assess quality of reconstructed vector
+def state_tomography(state, size, shots):
+    # cat target state: [1. 0. 0. ... 0. 0. 1.]/sqrt(2.)
+    if state == 'cat':
+        target = np.zeros(pow(2, size))
+        target[0] = 1
+        target[pow(2, size)-1] = 1.0
+        target /= np.sqrt(2.0)
+    # random target state: first column of a random unitary
+    elif state == 'random':
+        target = random_unitary_matrix(pow(2, size))[0]
+
+    # Use the local qasm simulator
+    backend = 'local_qiskit_simulator'
+
+    qp = QuantumProgram()
+
+    # Prepared target state and assess quality
+    qp = target_prep(qp, state, target)
+    prep_result = qp.execute(['prep'], backend='local_qasm_simulator', shots=1)
+    prep_state = prep_result.get_data('prep')['quantum_state']
+    F_prep = state_fidelity(prep_state, target)
+    print('Prepared state fidelity =', F_prep)
+
+    # Run state tomography simulation and fit data to reconstruct circuit
+    qp, tomo_set, tomo_circuits = add_tomo_circuits(qp)
+    tomo_result = qp.execute(tomo_circuits, backend=backend, shots=shots)
+    tomo_data = tomo.tomography_data(tomo_result, 'prep', tomo_set)
+    rho_fit = tomo.fit_tomography_data(tomo_data)
+
+    # calculate fidelity and purity of fitted state
+    F_fit = state_fidelity(rho_fit, target)
+    pur = purity(rho_fit)
+    print('Fitted state fidelity =', F_fit)
+    print('Fitted state purity =', str(pur))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            description="Performance testing for compiler, using state tomography.")
+    parser.add_argument('--state', default='cat', help='state for tomography')
+    parser.add_argument('--size', type=int, default=2, help='size of qubit register')
+    parser.add_argument('--shots', type=int, default=5000, help='shots per measurement basis')
+    args = parser.parse_args()
+
+    state_tomography(args.state, args.size, args.shots)
