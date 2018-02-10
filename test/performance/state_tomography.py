@@ -23,6 +23,7 @@ Generates many small circuits, thus good for profiling compiler overhead.
 import sys
 import numpy as np
 import argparse
+import time
 
 # import qiskit modules
 from qiskit import QuantumProgram
@@ -57,6 +58,7 @@ def target_prep(qp, state, target):
 
 
 # add basis measurements to the Quantum Program for tomography
+# XX..X, XX..Y, .., ZZ..Z
 def add_tomo_circuits(qp):
     # Construct state tomography set for measurement of qubits in the register
     qr_name = list(qp.get_quantum_register_names())[0]
@@ -67,9 +69,6 @@ def add_tomo_circuits(qp):
 
     # Add the state tomography measurement circuits to the Quantum Program
     tomo_circuits = tomo.create_tomography_circuits(qp, 'prep', qr, cr, tomo_set)
-    print('Created state tomography circuit labels:')
-    for c in tomo_circuits:
-        print(c)
 
     return qp, tomo_set, tomo_circuits
 
@@ -85,6 +84,8 @@ def state_tomography(state, size, shots):
     # random target state: first column of a random unitary
     elif state == 'random':
         target = random_unitary_matrix(pow(2, size))[0]
+
+    print("target: {}".format(target))
 
     # Use the local qasm simulator
     backend = 'local_qiskit_simulator'
@@ -110,6 +111,8 @@ def state_tomography(state, size, shots):
     print('Fitted state fidelity =', F_fit)
     print('Fitted state purity =', str(pur))
 
+    return qp
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -119,4 +122,13 @@ if __name__ == '__main__':
     parser.add_argument('--shots', type=int, default=5000, help='shots per measurement basis')
     args = parser.parse_args()
 
-    state_tomography(args.state, args.size, args.shots)
+    tstart = time.time()
+    qp = state_tomography(args.state, args.size, args.shots)
+    tend = time.time()
+
+    all_circuits = list(qp.get_circuit_names())
+    avg = sum(qp.get_qasm(c).count("\n") for c in all_circuits) / len(all_circuits)
+
+    print("---- Total circuits run: {}".format(len(all_circuits)))
+    print("---- Avg circuit size: {}".format(avg))
+    print("---- Elapsed time: {}".format(tend - tstart))
