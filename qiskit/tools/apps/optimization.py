@@ -22,6 +22,7 @@ import numpy as np
 import copy
 import sys
 import os
+from random import random
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
@@ -285,21 +286,18 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     energy = 0
 
     if shots == 1:
-
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if type(hamiltonian) is not list:
-            circuit = ['c']
+            circuit = ['c' + str(random())]    # unique random circuit for no collision
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
                                        config={"data": ["quantum_state"]})
-
             quantum_state = result.get_data(circuit[0]).get('quantum_state')
             if quantum_state is None:
                 quantum_state = result.get_data(
                     circuit[0]).get('quantum_states')
                 if len(quantum_state) > 0:
                     quantum_state = quantum_state[0]
-
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
@@ -308,12 +306,13 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
                 energy = np.inner(np.conjugate(quantum_state),
                                   np.dot(hamiltonian, quantum_state))
-        else:  # Hamiltonian represented by a Pauli list
+        # Hamiltonian represented by a Pauli list                
+        else:
             circuits = []
             circuits_labels = []
             circuits.append(input_circuit)
             # Trial circuit w/o the final rotations
-            circuits_labels.append('circuit_label0')
+            circuits_labels.append('circuit_label0' + str(random()))
             Q_program.add_circuit(circuits_labels[0], circuits[0])
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
@@ -330,7 +329,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                     elif p[1].v[j] == 1 and p[1].w[j] == 1:
                         circuits[i].y(q[j])
 
-                circuits_labels.append('circuit_label' + str(i))
+                circuits_labels.append('circuit_label' + str(i) + str(random()))
                 Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)
@@ -343,7 +342,8 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 energy += p[0] * np.inner(np.conjugate(quantum_state_0),
                                           quantum_state_i)
                 i += 1
-    else:  # finite number of shots and hamiltonian grouped in tpb sets
+    # finite number of shots and hamiltonian grouped in tpb sets
+    else:
         circuits = []
         circuits_labels = []
         n = int(len(hamiltonian[0][0][1].v))
@@ -352,7 +352,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
-            circuits_labels.append('tpb_circuit_' + str(i))
+            circuits_labels.append('tpb_circuit_' + str(i) + str(random()))
             for j in range(n):
                 # Measure X
                 if tpb_set[0][1].v[j] == 0 and tpb_set[0][1].w[j] == 1:
@@ -370,6 +370,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 energy += hamiltonian[j][k][0] *\
                     measure_pauli_z(result.get_counts(
                         circuits_labels[j]), hamiltonian[j][k][1])
+
     return energy
 
 
