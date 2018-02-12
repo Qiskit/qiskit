@@ -94,9 +94,9 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
 
     # pylint: disable=inconsistent-return-statements
     def __exit__(self, exc_type, exc_value, tb):
-        '''
+        """
         This is a modified version of unittest.case._AssertLogsContext.__exit__(...)
-        '''
+        """
         self.logger.handlers = self.old_handlers
         self.logger.propagate = self.old_propagate
         self.logger.setLevel(self.old_level)

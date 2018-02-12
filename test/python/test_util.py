@@ -26,7 +26,3 @@ class TestUtil(QiskitTestCase):
         """Requiered IBMQE version."""
         with self.assertNoLogs('qiskit._util', level='WARNING'):
             _check_ibmqe_version()
-
-    def test_api_name(self):
-        """check API_NAME."""
-        self.assertEqual(API_NAME, 'IBMQuantumExperience')
