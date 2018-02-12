@@ -309,7 +309,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
                 energy = np.inner(np.conjugate(quantum_state),
                                   np.dot(hamiltonian, quantum_state))
-        # Hamiltonian represented by a Pauli list                
+        # Hamiltonian represented by a Pauli list
         else:
             circuits = []
             circuits_labels = []
