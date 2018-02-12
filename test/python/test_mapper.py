@@ -62,7 +62,7 @@ class MapperTest(QiskitTestCase):
         if version_info.minor == 5:  # Python 3.5
             self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
         else:  # Python 3.6 and higher
-            self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
+            self.assertEqual(result1.get_counts("test"), {'0001': 517, '0101': 507})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -96,31 +96,46 @@ class MapperTest(QiskitTestCase):
         result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
         res = result1.get_counts("rand")
+
+        expected_result = {'10000': 97, '00011': 24, '01000': 120, '10111': 59,
+                           '01111': 37, '11010': 14, '00001': 34, '00100': 42,
+                           '10110': 41, '00010': 102, '00110': 48, '10101': 19,
+                           '01101': 61, '00111': 46, '11100': 28, '01100': 1,
+                           '00000': 86, '11111': 14, '11011': 9, '10010': 35,
+                           '10100': 20, '01001': 21, '01011': 19, '10011': 10,
+                           '11001': 13, '00101': 4, '01010': 2, '01110': 17,
+                           '11000': 1}
+
         # TODO: the circuit produces different results under different versions
-        # of Python, which defeats the purpose of the "seed" parameter. A proper
-        # fix should be issued - this is a workaround for this particular test.
+        # of Python and NetworkX package, which defeats the purpose of the
+        # "seed" parameter. A proper fix should be issued - this is a workaround
+        # for this particular test.
         if version_info.minor == 5:  # Python 3.5
-            self.assertEqual(res, {'00101': 3, '00011': 22, '11100': 27,
-                                   '01100': 1, '10011': 15, '00111': 53,
-                                   '01000': 110, '11111': 19, '00100': 54,
-                                   '01111': 17, '10101': 11, '11010': 20,
-                                   '10111': 60, '01110': 6, '00110': 40,
-                                   '11001': 16, '11011': 9, '01010': 9,
-                                   '01011': 16, '11110': 4, '00000': 89,
-                                   '10110': 34, '00010': 113, '10010': 25,
-                                   '00001': 25, '01001': 41, '10000': 96,
-                                   '11000': 1, '10100': 20, '01101': 68})
-        else:
-            self.assertEqual(res, {'10000': 98, '11010': 22, '00000': 88,
-                                   '00010': 120, '10110': 55, '01111': 26,
-                                   '00100': 51, '10111': 62, '01101': 70,
-                                   '01000': 95, '01100': 6, '01011': 13,
-                                   '00111': 45, '00110': 30, '10011': 14,
-                                   '10100': 21, '11100': 28, '00001': 26,
-                                   '01001': 33, '00101': 5, '11001': 7,
-                                   '10101': 20, '11110': 1, '11111': 20,
-                                   '00011': 15, '11000': 2, '10010': 27,
-                                   '01010': 4, '11011': 6, '01110': 14})
+            import networkx
+            if networkx.__version__ == '1.11':
+                expected_result = {'01001': 41, '10010': 25, '00111': 53,
+                                   '01101': 68, '10101': 11, '10110': 34,
+                                   '01110': 6, '11100': 27, '00100': 54,
+                                   '11010': 20, '10100': 20, '01100': 1,
+                                   '10000': 96, '11000': 1, '11011': 9,
+                                   '10011': 15, '00101': 3, '00001': 25,
+                                   '00010': 113, '01011': 16, '11111': 19,
+                                   '11001': 16, '00011': 22, '00000': 89,
+                                   '00110': 40, '01000': 110, '10111': 60,
+                                   '11110': 4, '01010': 9, '01111': 17}
+            else:
+                expected_result = {'01001': 32, '11110': 1, '10010': 36,
+                                   '11100': 34, '11011': 10, '00001': 41,
+                                   '00000': 83, '10000': 94, '11001': 15,
+                                   '01011': 24, '00100': 43, '11000': 5,
+                                   '11010': 9, '01100': 5, '10100': 23,
+                                   '01101': 54, '01110': 6, '00011': 13,
+                                   '10101': 12, '00111': 36, '00110': 40,
+                                   '01000': 119, '11111': 19, '01010': 8,
+                                   '10111': 61, '10110': 52, '01111': 23,
+                                   '00010': 110, '00101': 2, '10011': 14}
+
+        self.assertEqual(res, expected_result)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.

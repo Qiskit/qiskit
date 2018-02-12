@@ -40,7 +40,7 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/qiskit_simulator' + EXTENSION),
+                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
 ]
@@ -166,6 +166,8 @@ def run(qobj, executable):
                 for result in cresult['result']:
                     if result['success'] is True:
                         __parse_sim_data(result['data'])
+                        if 'noise_params' in result:
+                            __parse_noise_params(result['noise_params'])
         return cresult
 
     except FileNotFoundError:
@@ -208,26 +210,32 @@ def __parse_json_complex_single(val):
 
 def __parse_json_complex(val):
     if isinstance(val, list):
-        return np.array([__parse_json_complex_single(j)
-                         for j in val])
+        return np.array([__parse_json_complex_single(j) for j in val])
     elif isinstance(val, dict):
-        return {i: __parse_json_complex_single(j)
-                for i, j in val.items()}
+        return {i: __parse_json_complex_single(j) for i, j in val.items()}
     return val
+
+
+def __parse_noise_params(noise):
+    if isinstance(noise, dict):
+        for key, val in noise.items():
+            if isinstance(val, dict):
+                if 'U_error' in val:
+                    tmp = np.array([__parse_json_complex(row)
+                                    for row in val['U_error']])
+                    noise[key]['U_error'] = tmp
 
 
 def __parse_sim_data(data):
     if 'quantum_states' in data:
-        tmp = [__parse_json_complex(psi)
-               for psi in data['quantum_states']]
+        tmp = [__parse_json_complex(psi) for psi in data['quantum_states']]
         data['quantum_states'] = tmp
     if 'density_matrix' in data:
         tmp = np.array([__parse_json_complex(row)
                         for row in data['density_matrix']])
         data['density_matrix'] = tmp
     if 'inner_products' in data:
-        tmp = [__parse_json_complex(ips)
-               for ips in data['inner_products']]
+        tmp = [__parse_json_complex(ips) for ips in data['inner_products']]
         data['inner_products'] = tmp
     if 'saved_quantum_states' in data:
         for j in range(len(data['saved_quantum_states'])):
@@ -240,7 +248,6 @@ def __parse_sim_data(data):
         for j in range(len(data['saved_density_matrix'])):
             tmp = {}
             for key, val in data['saved_density_matrix'][j].items():
-                val = np.array([__parse_json_complex(row)
-                                for row in val])
+                val = np.array([__parse_json_complex(row) for row in val])
                 tmp[int(key)] = val
             data['saved_density_matrix'][j] = tmp

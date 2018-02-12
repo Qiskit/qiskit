@@ -51,26 +51,26 @@ class TestProjectQCppSimulator(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super(TestProjectQCppSimulator, cls).setUpClass()
-        nCircuits = 20
-        minDepth = 1
-        maxDepth = 10
-        minQubits = 1
-        maxQubits = 4
-        randomCircuits = RandomCircuitGenerator(min_qubits=minQubits,
-                                                max_qubits=maxQubits,
-                                                min_depth=minDepth,
-                                                max_depth=maxDepth,
-                                                seed=None)
-        for _ in range(nCircuits):
-            basis = list(random.sample(randomCircuits.op_signature.keys(),
+        n_circuits = 20
+        min_depth = 1
+        max_depth = 10
+        min_qubits = 1
+        max_qubits = 4
+        random_circuits = RandomCircuitGenerator(min_qubits=min_qubits,
+                                                 max_qubits=max_qubits,
+                                                 min_depth=min_depth,
+                                                 max_depth=max_depth,
+                                                 seed=None)
+        for _ in range(n_circuits):
+            basis = list(random.sample(random_circuits.op_signature.keys(),
                                        random.randint(2, 7)))
             if 'reset' in basis:
                 basis.remove('reset')
-            randomCircuits.add_circuits(1, basis=basis)
-        cls.rqg = randomCircuits
+            random_circuits.add_circuits(1, basis=basis)
+        cls.rqg = random_circuits
         cls.seed = 88
-        cls.qasmFileName = cls._get_resource_path('qasm/example.qasm')
-        with open(cls.qasmFileName, 'r') as qasm_file:
+        cls.qasm_filename = cls._get_resource_path('qasm/example.qasm')
+        with open(cls.qasm_filename, 'r') as qasm_file:
             cls.qasm_text = qasm_file.read()
             qr1 = QuantumRegister('q1', 2)
             qr2 = QuantumRegister('q2', 3)
@@ -140,7 +140,8 @@ class TestProjectQCppSimulator(QiskitTestCase):
         counts = result.get_counts(result.get_names()[0])
         self.log.info(counts)
         for key, _ in counts.items():
-            self.assertTrue(key in ['0' * N, '1' * N])
+            with self.subTest(key=key):
+                self.assertTrue(key in ['0' * N, '1' * N])
 
     def test_random_circuits(self):
         local_simulator = qasm_simulator.QasmSimulator()
@@ -173,7 +174,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
                                   [counts_py[key] for key in states]])
             result = chi2_contingency(ctable)
             self.log.info('chi2_contingency: %s', str(result))
-            with self.subTest():
+            with self.subTest(circuit=circuit):
                 self.assertGreater(result[1], 0.01)
 
 
