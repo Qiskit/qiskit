@@ -19,9 +19,9 @@
 These are tools that are used in the classical optimization and chemistry
 tutorials
 """
+from random import random
 import copy
 import numpy as np
-from random import random
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
