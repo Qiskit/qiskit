@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
-project (QISKit VERSION 0.5.0 LANGUAGES CXX)
+project (QISKit VERSION 0.4.9 LANGUAGES CXX)
 
 # Verbose!!
 set(CMAKE_VERBOSE_MAKEFILE True)
