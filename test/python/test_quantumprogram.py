@@ -28,21 +28,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
 from qiskit.tools import file_io
-from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST, Path
-
-# We need the environment variable for Travis.
-try:
-    import Qconfig
-
-    QE_TOKEN = Qconfig.APItoken
-    # TODO: Why "APItoken" is in the root (the unique) and
-    # "url" inside "config"?
-    # (also unique) -> make it consistent.
-    QE_URL = Qconfig.config["url"]
-except ImportError:
-    if 'QE_TOKEN' in os.environ and 'QE_URL' in os.environ:
-        QE_TOKEN = os.environ["QE_TOKEN"]
-        QE_URL = os.environ["QE_URL"]
+from .common import requires_qe_access, QiskitTestCase, Path
 
 
 class TestQuantumProgram(QiskitTestCase):
@@ -99,8 +85,8 @@ class TestQuantumProgram(QiskitTestCase):
         result = QuantumProgram()
         self.assertIsInstance(result, QuantumProgram)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_config_scripts_file(self):
+    @requires_qe_access
+    def test_config_scripts_file(self, QE_TOKEN, QE_URL):
         """Test Qconfig.
 
         in this case we check if the QE_URL API is defined.
@@ -109,6 +95,7 @@ class TestQuantumProgram(QiskitTestCase):
             Libraries:
                 import Qconfig
         """
+        # pylint: disable=unused-argument
         self.assertEqual(
             QE_URL,
             "https://quantumexperience.ng.bluemix.net/api")
@@ -573,8 +560,8 @@ class TestQuantumProgram(QiskitTestCase):
     # Tests for working with backends
     ###############################################################
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_setup_api(self):
+    @requires_qe_access
+    def test_setup_api(self, QE_TOKEN, QE_URL):
         """Check the api is set up.
 
         If all correct is should be true.
@@ -584,8 +571,8 @@ class TestQuantumProgram(QiskitTestCase):
         config = q_program.get_api_config()
         self.assertTrue(config)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_available_backends_exist(self):
+    @requires_qe_access
+    def test_available_backends_exist(self, QE_TOKEN, QE_URL):
         """Test if there are available backends.
 
         If all correct some should exists (even if offline).
@@ -604,8 +591,8 @@ class TestQuantumProgram(QiskitTestCase):
         local_backends = qiskit.backends.local_backends()
         self.assertTrue(local_backends)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_online_backends_exist(self):
+    @requires_qe_access
+    def test_online_backends_exist(self, QE_TOKEN, QE_URL):
         """Test if there are online backends.
 
         If all correct some should exists.
@@ -617,8 +604,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.log.info(online_backends)
         self.assertTrue(online_backends)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_online_devices(self):
+    @requires_qe_access
+    def test_online_devices(self, QE_TOKEN, QE_URL):
         """Test if there are online backends (which are devices).
 
         If all correct some should exists. NEED internet connection for this.
@@ -630,8 +617,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.log.info(online_devices)
         self.assertTrue(isinstance(online_devices, list))
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_online_simulators(self):
+    @requires_qe_access
+    def test_online_simulators(self, QE_TOKEN, QE_URL):
         """Test if there are online backends (which are simulators).
 
         If all correct some should exists. NEED internet connection for this.
@@ -681,8 +668,8 @@ class TestQuantumProgram(QiskitTestCase):
         # qp.get_backend_configuration("fail")
         self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_get_backend_calibration(self):
+    @requires_qe_access
+    def test_get_backend_calibration(self, QE_TOKEN, QE_URL):
         """Test get_backend_calibration.
 
         If all correct should return dictionay on length 4.
@@ -696,8 +683,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_get_backend_parameters(self):
+    @requires_qe_access
+    def test_get_backend_parameters(self, QE_TOKEN, QE_URL):
         """Test get_backend_parameters.
 
         If all correct should return dictionay on length 4.
@@ -1217,8 +1204,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertAlmostEqual(meanzi, 0, places=1)
         self.assertAlmostEqual(meaniz, 0, places=1)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_execute_one_circuit_simulator_online(self):
+    @requires_qe_access
+    def test_execute_one_circuit_simulator_online(self, QE_TOKEN, QE_URL):
         """Test execute_one_circuit_simulator_online.
 
         If all correct should return the data.
@@ -1239,8 +1226,8 @@ class TestQuantumProgram(QiskitTestCase):
         counts = result.get_counts('qc')
         self.assertEqual(counts, {'0': 498, '1': 526})
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_simulator_online_size(self):
+    @requires_qe_access
+    def test_simulator_online_size(self, QE_TOKEN, QE_URL):
         """Test test_simulator_online_size.
 
         If all correct should return the data.
@@ -1261,8 +1248,8 @@ class TestQuantumProgram(QiskitTestCase):
                       cm.output[0])
         self.assertRaises(RegisterSizeError, result.get_data, 'qc')
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_execute_several_circuits_simulator_online(self):
+    @requires_qe_access
+    def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL):
         """Test execute_several_circuits_simulator_online.
 
         If all correct should return the data.
@@ -1291,8 +1278,8 @@ class TestQuantumProgram(QiskitTestCase):
                                    '00': 251})
         self.assertEqual(counts2, {'11': 515, '00': 509})
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_execute_one_circuit_real_online(self):
+    @requires_qe_access
+    def test_execute_one_circuit_real_online(self, QE_TOKEN, QE_URL):
         """Test execute_one_circuit_real_online.
 
         If all correct should return a result object
@@ -1347,8 +1334,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result1, {'00 01': 1024})
         self.assertEqual(result2, {'10 00': 1024})
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_online_qasm_simulator_two_registers(self):
+    @requires_qe_access
+    def test_online_qasm_simulator_two_registers(self, QE_TOKEN, QE_URL):
         """Test online_qasm_simulator_two_registers.
 
         If all correct should the data.
@@ -1497,8 +1484,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(ghzresult.get_counts("ghz"),
                          {'00000': 1047, '11111': 1001})
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_example_swap_bits(self):
+    @requires_qe_access
+    def test_example_swap_bits(self, QE_TOKEN, QE_URL):
         """Test a toy example swapping a set bit around.
 
         Uses the mapper. Pass if results are correct.
@@ -1741,8 +1728,8 @@ class TestQuantumProgram(QiskitTestCase):
             self.assertEqual(
                 ex.message, 'Error waiting for Job results: Timeout after 0.01 seconds.')
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_hpc_parameter_is_correct(self):
+    @requires_qe_access
+    def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmqx_hpc_qasm_simulator.
         It will warn the user if the parameter is passed correctly but the
@@ -1766,8 +1753,8 @@ class TestQuantumProgram(QiskitTestCase):
                                       'omp_num_threads': 16})
         self.assertTrue(qobj)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_hpc_parameter_is_incorrect(self):
+    @requires_qe_access
+    def test_hpc_parameter_is_incorrect(self, QE_TOKEN, QE_URL):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmqx_hpc_qasm_simulator.
         If the parameter format is incorrect, it will raise a QISKitError.

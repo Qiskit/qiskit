@@ -29,7 +29,18 @@ from qiskit.tools.visualization import latex_drawer
 from qiskit.tools.visualization import circuit_drawer
 from .common import QiskitTestCase
 
+try:
+    from qiskit.tools.visualization import latex_drawer
+    VALID_MATPLOTLIB = True
+except RuntimeError:
+    # Under some combinations (travis osx vms, or headless configurations)
+    # matplotlib might not be fully, raising:
+    # RuntimeError: Python is not installed as a framework.
+    # when importing. If that is the case, the full test is skipped.
+    VALID_MATPLOTLIB = False
 
+
+@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestLatexDrawer(QiskitTestCase):
     """QISKit latex drawer tests."""
 
