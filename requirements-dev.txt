@@ -1,4 +1,4 @@
-pylint
+pylint>=1.8
 sphinx
 better-apidoc==0.1.2
 sphinxcontrib-fulltoc==1.2.0
