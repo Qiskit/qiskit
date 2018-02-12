@@ -51,15 +51,10 @@ def _check_ibmqe_version():
     if qiskit_local:
         try:
             with open('requirements.txt') as reqfile:
-                for line in reqfile:
-                    if 'IBMQuantumExperience' in line:
-                        ibmqe_require_line = 'IBMQuantumExperience>=1.8.26\n'
-                        break
-                else:
-                    raise pkg_resources.RequirementParseError
+                ibmqe_require_line = next(line for line in reqfile if line.startswith('IBMQuantumExperience'))
                 ibmqe_require = pkg_resources.Requirement(ibmqe_require_line)
-        except (FileNotFoundError, pkg_resources.RequirementParseError):
-            logger.warning('Something seems wrong with your requirements.txt')
+        except (FileNotFoundError, StopIteration, pkg_resources.RequirementParseError):
+            logger.warning('Could not find IBMQuantumExperience in requirements.txt or the requirements.txt file was not found or unparsable')
             return
     else:
         # Retrieve the requirement line from pkg_resources
