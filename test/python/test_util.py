@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,no-member
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
