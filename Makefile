@@ -31,7 +31,7 @@ lint:
 	pylint -rn qiskit test
 
 style:
-	pycodestyle --exclude=qiskit/tools --max-line-length=100 qiskit test
+	pycodestyle --max-line-length=100 qiskit test
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
@@ -57,3 +57,5 @@ clean:
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
 	make -C src/cpp-simulator/src clean
+	rm -f test/python/test_latex_drawer.tex test/python/test_qasm_python_simulator.pdf \
+		test/python/test_save.json test/python/test_teleport.tex

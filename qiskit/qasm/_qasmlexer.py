@@ -98,7 +98,7 @@ class QasmLexer(object):
         'REAL',
         'CX',
         'U',
-        'MAGIC',
+        'FORMAT',
         'ASSIGN',
         'MATCHES',
         'ID',
@@ -161,8 +161,8 @@ class QasmLexer(object):
         self.push(incfile)
         return self.lexer.token()
 
-    def t_MAGIC(self, t):
-        'OPENQASM'
+    def t_FORMAT(self, t):
+        r'OPENQASM\s+(\d+)\.(\d+)'
         return t
 
     def t_COMMENT(self, t):

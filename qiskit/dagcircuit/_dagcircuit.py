@@ -747,7 +747,7 @@ class DAGCircuit:
             if qeflag:
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3"]
+                         "cu3", "swap"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             for k in self.basis.keys():
@@ -1189,7 +1189,7 @@ class DAGCircuit:
                         if nxt_nd["name"] != "barrier":
                             # support_list.append(list(set(qa) | set(ca) |
                             #                          set(cob)))
-                            support_list.append(list(set(qa)))
+                            support_list.append(list(qa))
                         emit = True
             if emit:
                 l_dict = {"graph": new_layer, "partition": support_list}
@@ -1230,7 +1230,7 @@ class DAGCircuit:
                 # Add operation to partition
                 if nxt_nd["name"] != "barrier":
                     # support_list.append(list(set(qa) | set(ca) | set(cob)))
-                    support_list.append(list(set(qa)))
+                    support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
                 layers_list.append(l_dict)
         return layers_list
