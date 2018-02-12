@@ -1,0 +1,71 @@
+{
+	"id": "tests_cx",
+  "config": {
+    "shots": 1,
+    "seed": 1,
+    "simulator": "ideal",
+    "data": ["quantum_state"]
+  },
+  "circuits": [
+    {
+    	"name": "h0cx01",
+    	"compiled_circuit": {
+        "header": {
+          "clbit_labels": [],
+          "number_of_clbits": 0,
+          "number_of_qubits": 2,
+          "qubit_labels": [["q", 0], ["q", 1]]
+      	},
+        "operations": [
+          {"name": "h", "qubits": [0]},
+          {"name": "cx", "qubits": [0, 1]}
+      	]
+    	}
+    },
+    {
+    	"name": "h0cx10",
+    	"compiled_circuit": {
+        "header": {
+          "clbit_labels": [],
+          "number_of_clbits": 0,
+          "number_of_qubits": 2,
+          "qubit_labels": [["q", 0], ["q", 1]]
+      	},
+        "operations": [
+          {"name": "h", "qubits": [0]},
+          {"name": "cx", "qubits": [1, 0]}
+      	]
+    	}
+    },
+    {
+    	"name": "h1cx01",
+    	"compiled_circuit": {
+        "header": {
+          "clbit_labels": [],
+          "number_of_clbits": 0,
+          "number_of_qubits": 2,
+          "qubit_labels": [["q", 0], ["q", 1]]
+      	},
+        "operations": [
+          {"name": "h", "qubits": [1]},
+          {"name": "cx", "qubits": [0, 1]}
+      	]
+    	}
+    },
+    {
+    	"name": "h1cx10",
+    	"compiled_circuit": {
+        "header": {
+          "clbit_labels": [],
+          "number_of_clbits": 0,
+          "number_of_qubits": 2,
+          "qubit_labels": [["q", 0], ["q", 1]]
+      	},
+        "operations": [
+          {"name": "h", "qubits": [1]},
+          {"name": "cx", "qubits": [1, 0]}
+      	]
+    	}
+    }
+  ]
+}
