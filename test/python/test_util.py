@@ -16,12 +16,13 @@
 # =============================================================================
 """Tests for qiskit/_util.py"""
 
-from qiskit._util import _check_ibmqe_version, API_NAME
+from qiskit._util import _check_ibmqe_version
 from .common import QiskitTestCase
 
 
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
+
     def test_check_ibmqe_version(self):
         """Requiered IBMQE version."""
         with self.assertNoLogs('qiskit._util', level='WARNING'):
