@@ -19,7 +19,7 @@
 These are tools that are used in the classical optimization and chemistry
 tutorials
 """
-from random import random
+import uuid
 import copy
 import numpy as np
 
@@ -291,7 +291,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     if shots == 1:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
-            circuit = ['c' + str(random())]    # unique random circuit for no collision
+            circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
                                        config={"data": ["quantum_state"]})
@@ -315,7 +315,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             circuits_labels = []
             circuits.append(input_circuit)
             # Trial circuit w/o the final rotations
-            circuits_labels.append('circuit_label0' + str(random()))
+            circuits_labels.append('circuit_label0' + str(uuid.uuid4()))
             Q_program.add_circuit(circuits_labels[0], circuits[0])
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
@@ -332,7 +332,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                     elif p[1].v[j] == 1 and p[1].w[j] == 1:
                         circuits[i].y(q[j])
 
-                circuits_labels.append('circuit_label' + str(i) + str(random()))
+                circuits_labels.append('circuit_label' + str(i) + str(uuid.uuid4()))
                 Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)

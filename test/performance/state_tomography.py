@@ -122,8 +122,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
             description="Performance testing for compiler, using state tomography.")
     parser.add_argument('--state', default='cat', help='state for tomography')
-    parser.add_argument('--n_qubits', type=int, default=2, help='num qubits')
-    parser.add_argument('--shots', type=int, default=5000, help='shots per measurement basis')
+    parser.add_argument('--n_qubits', type=int, default=5, help='num qubits')
+    parser.add_argument('--shots', type=int, default=1024, help='shots per measurement basis')
     args = parser.parse_args()
 
     tstart = time.time()
