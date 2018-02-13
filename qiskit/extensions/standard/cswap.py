@@ -28,8 +28,7 @@ class FredkinGate(CompositeGate):
 
     def __init__(self, ctl, tgt1, tgt2, circ=None):
         """Create new Fredkin gate."""
-        super(FredkinGate, self).__init__("fredkin", [], [ctl, tgt1, tgt2],
-                                          circ)
+        super().__init__("fredkin", [], [ctl, tgt1, tgt2], circ)
         self.cx(tgt2, tgt1)
         self.ccx(ctl, tgt1, tgt2)
         self.cx(tgt2, tgt1)

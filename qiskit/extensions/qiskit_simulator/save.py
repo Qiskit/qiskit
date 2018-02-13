@@ -31,7 +31,7 @@ class SaveGate(Gate):
 
     def __init__(self, m, qubit, circ=None):
         """Create new save gate."""
-        super(SaveGate, self).__init__("save", [m], [qubit], circ)
+        super().__init__("save", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

@@ -29,7 +29,7 @@ class UBase(Gate):
     """Element of SU(2)."""
 
     def __init__(self, theta, phi, lam, qubit, circ=None):
-        super(UBase, self).__init__("U", [theta, phi, lam], [qubit], circ)
+        super().__init__("U", [theta, phi, lam], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
