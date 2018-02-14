@@ -485,7 +485,7 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
         sympy.sin(xi) * sympy.sin(-theta1 + theta2)
 
-    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()),
+    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x),
                                            [delta1, delta2, delta3, delta4])
 
     return sympy.Max(delta1, delta2, delta3, delta4)
