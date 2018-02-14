@@ -35,7 +35,6 @@ from ._mappererror import MapperError
 
 logger = logging.getLogger(__name__)
 
-
 # Notes:
 # Measurements may occur and be followed by swaps that result in repeated
 # measurement of the same qubit. Near-term experiments cannot implement
@@ -656,12 +655,11 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (N(0), N(0), sympy.sympify(nd["params"][0]))
+                left_parameters = (N(0), N(0), nd["params"][0])
             elif left_name == "u2":
-                left_parameters = (sympy.pi / 2, sympy.sympify(nd["params"][0]),
-                                   sympy.sympify(nd["params"][1]))
+                left_parameters = (sympy.pi / 2, nd["params"][0], nd["params"][1])
             elif left_name == "u3":
-                left_parameters = tuple(sympy.sympify(nd["params"]))
+                left_parameters = tuple(nd["params"])
             else:
                 left_name = "u1"  # replace id with u1
                 left_parameters = (N(0), N(0), N(0))
