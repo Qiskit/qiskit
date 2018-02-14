@@ -37,6 +37,9 @@ from scipy import linalg as la
 from qiskit import qasm, unroll, QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 
+import os
+import shutil
+import pdf2image
 
 ###############################################################
 # Plotting histogram
@@ -672,6 +675,22 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 # Plotting circuit
 ###############################################################
+
+
+def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
+    """Convert QuantumCircuit to PIL image
+    Note: Requires pdflatex installed (to compile Latex)
+    Note: Requires pdf2image Python package and Poppler installed (to display pdf as image)
+    """
+    filename = 'circuit'
+    tmpdir = 'tmp/'
+    if not os.path.exists(tmpdir):
+        os.makedirs(tmpdir)
+    latex_drawer(circuit, tmpdir+filename+".tex", basis=basis)
+    os.system("pdflatex -output-directory {} {}".format(tmpdir, filename+".tex"))
+    images = pdf2image.convert_from_path(tmpdir+filename+".pdf")
+    shutil.rmtree(tmpdir)
+    plt.imshow(np.asarray(images[0]))
 
 
 def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
