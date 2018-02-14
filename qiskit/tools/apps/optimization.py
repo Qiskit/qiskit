@@ -357,7 +357,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
-            circuits_labels.append('tpb_circuit_' + str(i) + str(random()))
+            circuits_labels.append('tpb_circuit_' + str(i) + str(uuid.uuid4()))
             for j in range(n):
                 # Measure X
                 if tpb_set[0][1].v[j] == 0 and tpb_set[0][1].w[j] == 1:
