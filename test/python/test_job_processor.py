@@ -44,7 +44,7 @@ class TestJobProcessor(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestJobProcessor, cls).setUpClass()
+        super().setUpClass()
 
         try:
             import Qconfig

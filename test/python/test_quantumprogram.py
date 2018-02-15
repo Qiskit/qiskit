@@ -1254,9 +1254,11 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1  # the number of shots in the experiment.
         q_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmqx_qasm_simulator'
-        result = q_program.execute(['qc'], backend=backend,
-                                   shots=shots, max_credits=3,
-                                   seed=73846087)
+        with self.assertLogs('IBMQuantumExperience', level='WARNING') as cm:
+            result = q_program.execute(['qc'], backend=backend, shots=shots, max_credits=3,
+                                       seed=73846087)
+        self.assertIn('The registers exceed the number of qubits, it can\'t be greater than 24.',
+                      cm.output[0])
         self.assertRaises(RegisterSizeError, result.get_data, 'qc')
 
     @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')

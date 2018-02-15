@@ -32,7 +32,7 @@ class ZGate(Gate):
 
     def __init__(self, qubit, circ=None):
         """Create new Z gate."""
-        super(ZGate, self).__init__("z", [], [qubit], circ)
+        super().__init__("z", [], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
