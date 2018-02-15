@@ -35,6 +35,7 @@ from ._mappererror import MapperError
 
 logger = logging.getLogger(__name__)
 
+
 # Notes:
 # Measurements may occur and be followed by swaps that result in repeated
 # measurement of the same qubit. Near-term experiments cannot implement
@@ -476,17 +477,14 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     as a Max symbol. See:
     http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
-    delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
-        sympy.cos(xi) * sympy.cos(theta1 + theta2)
-    delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
-        sympy.sin(xi) * sympy.cos(theta1 - theta2)
-    delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
-        sympy.cos(xi) * sympy.sin(theta1 + theta2)
-    delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
-        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-
-    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x),
-                                           [delta1, delta2, delta3, delta4])
+    delta1 = sympy.Abs(sympy.cos(phi + lamb) * sympy.cos(theta) - \
+                       sympy.cos(xi) * sympy.cos(theta1 + theta2))
+    delta2 = sympy.Abs(sympy.sin(phi + lamb) * sympy.cos(theta) - \
+                       sympy.sin(xi) * sympy.cos(theta1 - theta2))
+    delta3 = sympy.Abs(sympy.cos(phi - lamb) * sympy.sin(theta) - \
+                       sympy.cos(xi) * sympy.sin(theta1 + theta2))
+    delta4 = sympy.Abs(sympy.sin(phi - lamb) * sympy.sin(theta) - \
+                       sympy.sin(xi) * sympy.sin(-theta1 + theta2))
 
     return sympy.Max(delta1, delta2, delta3, delta4)
 
