@@ -23,7 +23,9 @@ import itertools
 import operator
 import re
 import os
+import subprocess
 import shutil
+import logging
 from collections import Counter, OrderedDict
 from functools import reduce
 from io import StringIO
@@ -39,6 +41,7 @@ from scipy import linalg as la
 from qiskit import qasm, unroll, QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 
+logger = logging.getLogger(__name__)
 
 ###############################################################
 # Plotting histogram
@@ -678,15 +681,18 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 
 def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
+    Defaults to an overcomplete basis, in order to not alter gates.
     Note: Requires pdflatex installed (to compile Latex)
     Note: Requires poppler installed (to convert pdf to image)
     """
     im = circuit_drawer(circuit, basis)
-    im.show()
+    if im:
+        im.show()
 
 
 def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Obtain the circuit in image format (output can be inlined in Jupyter)
+    Defaults to an overcomplete basis, in order to not alter gates.
     Note: Requires pdflatex installed (to compile Latex)
     Note: Requires poppler installed (to convert pdf to image)
     """
@@ -694,13 +700,24 @@ def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     tmpdir = 'tmp/'
     if not os.path.exists(tmpdir):
         os.makedirs(tmpdir)
-    latex_drawer(circuit, tmpdir+filename+".tex", basis=basis)
-    os.system("pdflatex -interaction=batchmode -output-directory {} {}".format(tmpdir,
-                                                                               filename + ".tex"))
-    os.system("pdftocairo -singlefile -png {}".format(tmpdir + filename + ".pdf"))
-    im = Image.open(filename + ".png")
-    im = trim(im)
-    os.remove(filename + ".png")
+    latex_drawer(circuit, tmpdir + filename + ".tex", basis=basis)
+    im = None
+    try:
+        subprocess.call(["pdflatex", "-interaction=batchmode",
+                         "-output-directory={}".format(tmpdir),
+                         "{}".format(filename + ".tex")])
+        subprocess.call(["pdftocairo", "-singlefile", "-png",
+                         "{}".format(tmpdir + filename + ".pdf")])
+        im = Image.open(filename + ".png")
+        im = trim(im)
+        os.remove(filename + ".png")
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            logger.warning(
+                    'WARNING: `pdflatex` or `poppler` not installed. '
+                    'Skipping circuit drawing...')
+        else:
+            raise
     shutil.rmtree(tmpdir)
     return im
 
