@@ -32,7 +32,7 @@ class HGate(Gate):
 
     def __init__(self, qubit, circ=None):
         """Create new Hadamard gate."""
-        super(HGate, self).__init__("h", [], [qubit], circ)
+        super().__init__("h", [], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

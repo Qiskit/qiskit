@@ -101,16 +101,24 @@ class TestQI(QiskitTestCase):
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
         mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
                [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
-        test_pass = (round(state_fidelity(psi1, psi1), 7) == 1.0 and
-                     round(state_fidelity(psi1, psi2), 8) == 0.0 and
-                     round(state_fidelity(psi1, rho1), 8) == 1.0 and
-                     round(state_fidelity(psi1, mix), 8) == 0.5 and
-                     round(state_fidelity(psi2, rho1), 8) == 0.0 and
-                     round(state_fidelity(psi2, mix), 8) == 0.5 and
-                     round(state_fidelity(rho1, rho1), 8) == 1.0 and
-                     round(state_fidelity(rho1, mix), 8) == 0.5 and
-                     round(state_fidelity(mix, mix), 8) == 1.0)
-        self.assertTrue(test_pass)
+        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(psi2, rho1), 0.0, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(psi2, mix), 0.25, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7,
+                               msg='matrix-vector input')
+        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7,
+                               msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7,
+                               msg='matrix-matrix input')
 
     def test_purity(self):
         rho1 = [[1, 0], [0, 0]]
