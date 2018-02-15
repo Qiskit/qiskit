@@ -477,13 +477,13 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     as a Max symbol. See:
     http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
-    delta1 = sympy.Abs(sympy.cos(phi + lamb) * sympy.cos(theta) - \
+    delta1 = sympy.Abs(sympy.cos(phi + lamb) * sympy.cos(theta) -
                        sympy.cos(xi) * sympy.cos(theta1 + theta2))
-    delta2 = sympy.Abs(sympy.sin(phi + lamb) * sympy.cos(theta) - \
+    delta2 = sympy.Abs(sympy.sin(phi + lamb) * sympy.cos(theta) -
                        sympy.sin(xi) * sympy.cos(theta1 - theta2))
-    delta3 = sympy.Abs(sympy.cos(phi - lamb) * sympy.sin(theta) - \
+    delta3 = sympy.Abs(sympy.cos(phi - lamb) * sympy.sin(theta) -
                        sympy.cos(xi) * sympy.sin(theta1 + theta2))
-    delta4 = sympy.Abs(sympy.sin(phi - lamb) * sympy.sin(theta) - \
+    delta4 = sympy.Abs(sympy.sin(phi - lamb) * sympy.sin(theta) -
                        sympy.sin(xi) * sympy.sin(-theta1 + theta2))
 
     return sympy.Max(delta1, delta2, delta3, delta4)
