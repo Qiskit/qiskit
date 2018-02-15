@@ -713,9 +713,8 @@ def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
         os.remove(filename + ".png")
     except OSError as e:
         if e.errno == os.errno.ENOENT:
-            logger.warning(
-                    'WARNING: `pdflatex` or `poppler` not installed. '
-                    'Skipping circuit drawing...')
+            logger.warning('WARNING: `pdflatex` or `poppler` not installed. '
+                           'Skipping circuit drawing...')
         else:
             raise
     shutil.rmtree(tmpdir)
