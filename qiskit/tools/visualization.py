@@ -22,10 +22,12 @@ Visualization functions for quantum states.
 import itertools
 import operator
 import re
+import os
+import shutil
 from collections import Counter, OrderedDict
 from functools import reduce
 from io import StringIO
-
+from PIL import Image, ImageChops
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -37,9 +39,6 @@ from scipy import linalg as la
 from qiskit import qasm, unroll, QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 
-import os
-import shutil
-from PIL import Image, ImageChops
 
 ###############################################################
 # Plotting histogram
@@ -714,9 +713,8 @@ def trim(im):
     diff = ImageChops.add(diff, diff, 2.0, -100)
     bbox = diff.getbbox()
     if bbox:
-        return im.crop(bbox)
-    else:
-        return im
+        im = im.crop(bbox)
+    return im
 
 
 def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
