@@ -27,7 +27,7 @@ class MapperError(QISKitError):
 
     def __init__(self, *message):
         """Set the error message."""
-        super(MapperError, self).__init__(*message)
+        super().__init__(*message)
         self.message = ' '.join(message)
 
     def __str__(self):

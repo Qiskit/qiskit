@@ -14,20 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+"""Tests for qiskit/_util.py"""
 
-"""
-Exception for errors raised by the QISKit SDK.
-"""
+from qiskit._util import _check_ibmqe_version
+from .common import QiskitTestCase
 
 
-class QISKitError(Exception):
-    """Base class for errors raised by the QISKit SDK."""
+class TestUtil(QiskitTestCase):
+    """Tests for qiskit/_util.py"""
 
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(' '.join(message))
-        self.message = ' '.join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
+    def test_check_ibmqe_version(self):
+        """Requiered IBMQE version."""
+        with self.assertNoLogs('qiskit._util', level='WARNING'):
+            _check_ibmqe_version()

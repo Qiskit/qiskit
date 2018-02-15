@@ -50,7 +50,7 @@ class QISKitCppSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
-        super(QISKitCppSimulator, self).__init__(configuration)
+        super().__init__(configuration)
         self._configuration = configuration
 
         if not configuration:
@@ -89,7 +89,7 @@ class CliffordCppSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
-        super(CliffordCppSimulator, self).__init__(configuration)
+        super().__init__(configuration)
         self._configuration = configuration
 
         if not configuration:

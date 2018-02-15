@@ -31,7 +31,7 @@ class WaitGate(Gate):
 
     def __init__(self, t, qubit, circ=None):
         """Create new wait gate."""
-        super(WaitGate, self).__init__("wait", [t], [qubit], circ)
+        super().__init__("wait", [t], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

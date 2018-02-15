@@ -31,7 +31,7 @@ class LoadGate(Gate):
 
     def __init__(self, m, qubit, circ=None):
         """Create new load gate."""
-        super(LoadGate, self).__init__("load", [m], [qubit], circ)
+        super().__init__("load", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

@@ -32,7 +32,7 @@ class CyGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CY gate."""
-        super(CyGate, self).__init__("cy", [], [ctl, tgt], circ)
+        super().__init__("cy", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

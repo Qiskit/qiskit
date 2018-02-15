@@ -32,7 +32,7 @@ class U3Gate(Gate):
 
     def __init__(self, theta, phi, lam, qubit, circ=None):
         """Create new two-pulse single qubit gate."""
-        super(U3Gate, self).__init__("u3", [theta, phi, lam], [qubit], circ)
+        super().__init__("u3", [theta, phi, lam], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
