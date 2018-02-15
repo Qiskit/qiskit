@@ -676,6 +676,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 # Plotting circuit
 ###############################################################
 
+
 def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Note: Requires pdflatex installed (to compile Latex)
@@ -690,16 +691,17 @@ def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     Note: Requires pdflatex installed (to compile Latex)
     Note: Requires poppler installed (to convert pdf to image)
     """
-    filename='circuit'
-    tmpdir='tmp/'
+    filename = 'circuit'
+    tmpdir = 'tmp/'
     if not os.path.exists(tmpdir):
         os.makedirs(tmpdir)
     latex_drawer(circuit, tmpdir+filename+".tex", basis=basis)
-    os.system("pdflatex -interaction=batchmode -output-directory {} {}".format(tmpdir, filename+".tex"))
-    os.system("pdftocairo -singlefile -png {}".format(tmpdir+filename+".pdf"))
-    im = Image.open(filename+".png")
+    os.system("pdflatex -interaction=batchmode -output-directory {} {}".format(tmpdir,
+                                                                               filename + ".tex"))
+    os.system("pdftocairo -singlefile -png {}".format(tmpdir + filename + ".pdf"))
+    im = Image.open(filename + ".png")
     im = trim(im)
-    os.remove(filename+".png")
+    os.remove(filename + ".png")
     shutil.rmtree(tmpdir)
     return im
 
@@ -707,7 +709,7 @@ def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
 def trim(im):
     """Trim image and remove white space
     """
-    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
+    bg = Image.new(im.mode, im.size, im.getpixel((0, 0)))
     diff = ImageChops.difference(im, bg)
     diff = ImageChops.add(diff, diff, 2.0, -100)
     bbox = diff.getbbox()
