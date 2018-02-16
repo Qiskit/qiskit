@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -15,112 +14,129 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""Test the the trial functions."""
+
+"""Quick program to test the apps tools modules."""
 
 import unittest
 
-import numpy as np
-from scipy import linalg as la
-
-from qiskit.tools.apps.optimization import (Energy_Estimate, make_Hamiltonian,
-                                            Hamiltonian_from_file,
-                                            trial_circuit_ry)
+from qiskit.tools.apps.optimization import make_Hamiltonian
+from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermionic_maps, \
+    two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
+
+import numpy as np
+
 from .common import QiskitTestCase
 
 
-class TestQuantumOptimization(QiskitTestCase):
-    """Tests for quantum optimization"""
+class TestAppsFermion(QiskitTestCase):
+    """Tests for apps"""
 
-    def test_trial_functions(self):
-        entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
+    def setUp(self):
+        self.j1 = 20
+        self.j2 = 3
+        self.j3 = 5
+        self.n = 10
 
-        m = 1
-        n = 6
-        theta = np.zeros(m * n)
+        self.a2 = np.arange(4).reshape(2, 2)
+        self.a5 = np.arange(16).reshape(2, 2, 2, 2)
+        self.e0 = [np.complex(-0.75, 0),
+                   np.complex(0.75, 0),
+                   np.complex(0, -0.25),
+                   np.complex(0, 0.25),
+                   np.complex(-1.5, 0),
+                   np.complex(1.5, 0)]
+        self.zz = np.array([0, 0])
+        self.oz = np.array([1, 0])
+        self.zo = np.array([0, 1])
+        self.oo = np.array([1, 1])
 
-        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
-        qasm_txt = trial_circuit.qasm()
-        self.log.info(qasm_txt)
-        self.assertEqual(len(qasm_txt), 456)
+    def test_parity_set(self):
+        r = parity_set(self.j1, self.n)
+        self.assertEqual(r, [4.])
+        r = parity_set(self.j2, self.n)
+        self.assertFalse(r)
+        self.assertEqual(len(r), 0)
 
-        self.log.info("With No measurement:\n")
-        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
-        qasm_txt = trial_circuit.qasm()
-        self.log.info(qasm_txt)
-        self.assertEqual(len(qasm_txt), 324)
+    def test_update_set(self):
+        r = update_set(self.j1, self.n)
+        self.assertFalse(r)
+        r = update_set(self.j2, self.n)
+        self.assertEqual(r, [9.])
 
-        self.log.info("With Y measurement:\n")
-        meas_sting = ['Y' for x in range(n)]
-        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
-        qasm_txt = trial_circuit.qasm()
-        self.log.info(qasm_txt)
-        self.assertEqual(len(qasm_txt), 564)
+    def test_flip_set(self):
+        r = flip_set(self.j1, self.n)
+        self.assertEqual(r, [4.])
+        r = flip_set(self.j2, self.n)
+        self.assertFalse(r)
+        r = flip_set(self.j3, self.n)
+        self.assertFalse(r)
 
+    def test_fermionic_maps_jordan_wigner(self):
+        self.e0[0] = np.complex(0.75, 0)
+        r = fermionic_maps(self.a2, self.a5, "JORDAN_WIGNER")
+        self.assertEqual(len(r), 6)
+        r0 = [i[0] for i in r]
+        self.assertEqual(self.e0, r0)
+        r1 = [i[1] for i in r]
+        e = [Pauli(self.oo, self.oo),
+             Pauli(self.zz, self.oo),
+             Pauli(self.zo, self.oo),
+             Pauli(self.oz, self.oo),
+             Pauli(self.zo, self.zz),
+             Pauli(self.zz, self.zz)]
+        self.assertEqual(r1, e)
 
-class TestHamiltonian(QiskitTestCase):
-    def test_hamiltonian(self):
-        # pylint: disable=unexpected-keyword-arg
-        # printing an example from a H2 file
-        hfile = self._get_resource_path("H2Equilibrium.txt")
-        hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
-        self.log.info(hamiltonian)
-        # [[-0.24522469381221926 0 0 0.18093133934472627 ]
-        # [0 -1.0636560168497590 0.18093133934472627 0]
-        # [0 0.18093133934472627 -1.0636560168497592 0]
-        # [0.18093133934472627 0 0 -1.8369675149908681]]
+    def test_fermionic_maps_parity(self):
+        r = fermionic_maps(self.a2, self.a5, "PARITY")
+        self.assertEqual(len(r), 6)
+        r0 = [i[0] for i in r]
+        self.assertEqual(self.e0, r0)
+        r1 = [i[1] for i in r]
+        e = [Pauli(self.zo, self.oz),
+             Pauli(self.zz, self.oz),
+             Pauli(self.oo, self.oz),
+             Pauli(self.oz, self.oz),
+             Pauli(self.oo, self.zz),
+             Pauli(self.zz, self.zz)]
+        self.assertEqual(r1, e)
 
-        expected_result = [
-            [(-0.245224693812+0j), 0j, 0j, (0.180931339345+0j)],
-            [0j, (-1.06365601685+0j), (0.180931339345+0j), 0j],
-            [0j, (0.180931339345+0j), (-1.06365601685+0j), 0j],
-            [(0.180931339345+0j), 0j, 0j, (-1.83696751499+0j)]
-        ]
+    def test_fermionic_maps_binary_tree(self):
+        r = fermionic_maps(self.a2, self.a5, "BINARY_TREE")
+        self.assertEqual(len(r), 6)
+        r0 = [i[0] for i in r]
+        self.assertEqual(self.e0, r0)
+        r1 = [i[1] for i in r]
+        e = [Pauli(self.zo, self.oz),
+             Pauli(self.zz, self.oz),
+             Pauli(self.oo, self.oz),
+             Pauli(self.oz, self.oz),
+             Pauli(self.oo, self.zz),
+             Pauli(self.zz, self.zz)]
+        self.assertEqual(r1, e)
 
-        for i in range(4):
-            with self.subTest(i=i):
-                for result, expected in zip(hamiltonian[i], expected_result[i]):
-                    self.assertAlmostEqual(result, expected)
+    def test_two_qubit_reduction(self):
+        pauli_list = []
+        n = 4
+        w = np.arange(n ** 2).reshape(n, n)
 
-        # printing an example from a graph input
-        n = 3
-        v0 = np.zeros(n)
-        v0[2] = 1
-        v1 = np.zeros(n)
-        v1[0] = 1
-        v1[1] = 1
-        v2 = np.zeros(n)
-        v2[0] = 1
-        v2[2] = 1
-        v3 = np.zeros(n)
-        v3[1] = 1
-        v3[2] = 1
-
-        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))),
-                      (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
-        a = make_Hamiltonian(pauli_list)
-        self.log.info(a)
-
-        w, v = la.eigh(a, eigvals=(0, 0))
-        self.log.info(w)
-        self.log.info(v)
-
-        data = {'000': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'001': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'010': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'011': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'100': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'101': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'110': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
-        data = {'111': 10}
-        self.log.info(Energy_Estimate(data, pauli_list))
+        for i in range(n):
+            for j in range(i):
+                if w[i, j] != 0:
+                    wp = np.zeros(n)
+                    vp = np.zeros(n)
+                    vp[n - i - 1] = 1
+                    vp[n - j - 1] = 1
+                    pauli_list.append((w[i, j], Pauli(vp, wp)))
+        r = two_qubit_reduction(pauli_list, 10)
+        r0 = [i[0] for i in r]
+        self.assertEqual([-5, -8, -2, 13], r0)
+        r1 = [i[1] for i in r]
+        e  = [Pauli(self.zo, self.zz),
+              Pauli(self.zz, self.zz),
+              Pauli(self.oz, self.zz),
+              Pauli(self.oo, self.zz)]
+        self.assertEqual(e,r1)
 
 
 if __name__ == '__main__':
