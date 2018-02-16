@@ -46,7 +46,13 @@ enable_cxx_compiler_flag_if_supported("-fopenmp")
 
 # We force static linking on Windows
 if(STATIC_LINKING OR MINGW)
-	enable_cxx_compiler_flag_if_supported("-static")
+	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
+	# working on MacOS, when a flag is not supported, it cascades errors
+	# to the rest of the flgas being tested... and -static compilation on Mac
+	# with gcc is failing...
+	if(NOT APPLE)
+		enable_cxx_compiler_flag_if_supported("-static")
+	endif()
 	enable_cxx_compiler_flag_if_supported("-static-libstdc++")
 	enable_cxx_compiler_flag_if_supported("-static-libgcc")
 endif()
