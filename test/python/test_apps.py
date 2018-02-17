@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,6 +19,11 @@
 """Quick program to test the apps tools modules."""
 
 import unittest
+from unittest.mock import patch
+from functools import partial
+from io import StringIO
+from scipy import linalg as la
+import numpy as np
 
 from qiskit.tools.apps.optimization import make_Hamiltonian, Hamiltonian_from_file, group_paulis, \
     eval_hamiltonian, trial_circuit_ry, trial_circuit_ryrz, SPSA_calibration, SPSA_optimization, \
@@ -26,13 +32,6 @@ from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermioni
     two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
 from qiskit import QuantumProgram
-
-import numpy as np
-from scipy import linalg as la
-from functools import partial
-from io import StringIO
-from unittest.mock import patch
-import sys
 
 from .common import QiskitTestCase
 
@@ -61,6 +60,7 @@ class TestAppsFermion(QiskitTestCase):
         self.oo = np.array([1, 1])
 
     def test_parity_set(self):
+        """ qiskit.tools.apps.fermion.parity_set function"""
         r = parity_set(self.j1, self.n)
         self.assertEqual(r, [4.])
         r = parity_set(self.j2, self.n)
@@ -68,12 +68,14 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(len(r), 0)
 
     def test_update_set(self):
+        """ qiskit.tools.apps.fermion.update_set function"""
         r = update_set(self.j1, self.n)
         self.assertFalse(r)
         r = update_set(self.j2, self.n)
         self.assertEqual(r, [9.])
 
     def test_flip_set(self):
+        """ qiskit.tools.apps.fermion.flip_set function"""
         r = flip_set(self.j1, self.n)
         self.assertEqual(r, [4.])
         r = flip_set(self.j2, self.n)
@@ -82,6 +84,7 @@ class TestAppsFermion(QiskitTestCase):
         self.assertFalse(r)
 
     def test_fermionic_maps_jordan_wigner(self):
+        """ qiskit.tools.apps.fermion.fermionic_maps with JORDAN_WIGNER map type"""
         self.e0[0] = np.complex(0.75, 0)
         r = fermionic_maps(self.a2, self.a5, "JORDAN_WIGNER")
         self.assertEqual(len(r), 6)
@@ -97,6 +100,7 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(r1, e)
 
     def test_fermionic_maps_parity(self):
+        """ qiskit.tools.apps.fermion.fermionic_maps with PARITY map type"""
         r = fermionic_maps(self.a2, self.a5, "PARITY")
         self.assertEqual(len(r), 6)
         r0 = [i[0] for i in r]
@@ -111,6 +115,7 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(r1, e)
 
     def test_fermionic_maps_binary_tree(self):
+        """ qiskit.tools.apps.fermion.fermionic_maps with BINARY_TREE map type"""
         r = fermionic_maps(self.a2, self.a5, "BINARY_TREE")
         self.assertEqual(len(r), 6)
         r0 = [i[0] for i in r]
@@ -125,6 +130,7 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(r1, e)
 
     def test_two_qubit_reduction(self):
+        """ qiskit.tools.apps.fermion.two_qubit_reduction"""
         pauli_list = []
         n = 4
         w = np.arange(n ** 2).reshape(n, n)
@@ -148,6 +154,8 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(e, r1)
 
     def test_optimization_of_H2_at_bond_length(self):
+        """ From https://github.com/QISKit/qiskit-tutorial/blob/master/\
+        4_applications/quantum_chemistry.ipynb#Optimization-of-H2-at-bond-length but shorter."""
         n = 2
         m = 6
         device = 'local_qasm_simulator'
@@ -170,6 +178,7 @@ class TestAppsFermion(QiskitTestCase):
         Q_program = QuantumProgram()
 
         def cost_function(Q_program, H, n, m, entangler_map, shots, device, theta):
+            # pylint: disable=missing-docstring
             return eval_hamiltonian(Q_program, H,
                                     trial_circuit_ryrz(n, m, theta, entangler_map, None, False),
                                     shots, device).real
@@ -227,6 +236,7 @@ class TestAppsFermion(QiskitTestCase):
         self.assertEqual(output5.all(), output[5][0].all())
 
     def test_group_paulis(self):
+        """ qiskit.tools.apps.optimization.group_paulis function"""
         pauli_list = Hamiltonian_from_file(self.ham_name)
         pauli_list_grouped = group_paulis(pauli_list)
 
@@ -275,7 +285,8 @@ class TestAppsFermion(QiskitTestCase):
         energy = eval_hamiltonian(QuantumProgram(), pauli_list,
                                   trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
                                   device)
-        self.assertEqual(np.complex(-0.45295043823006692,3.3552033732806193e-18),energy)
+        self.assertEqual(np.complex(-0.45295043823006692, 3.3552033732806193e-18), energy)
+
 
 if __name__ == '__main__':
     unittest.main()
