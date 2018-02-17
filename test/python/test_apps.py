@@ -194,14 +194,18 @@ class TestQuantumOptimization(QiskitTestCase):
         m = 6
         device = 'local_qasm_simulator'
 
-        np.random.seed(40)
-        theta = np.random.randn(2 * n * m)
+        theta = np.array([-0.607547697211, -0.126136414606, - 0.684606358705, 0.928714748593, \
+                          -1.84440103405, -0.467002424077, 2.29249034315, 0.488810054396, \
+                          0.710266990661, 1.05553444322, 0.0540731003458, 0.257953416342, \
+                          0.588281649703, 0.885244238613, -1.01700702421, -0.133693031283, \
+                          -0.438185501332, 0.493443494428, -0.199009119848, -1.27498360732, \
+                          0.293494154438, 0.108950311827, 0.031726785859, 1.27263986303])
         entangler_map = {0: [1]}
 
         energy = eval_hamiltonian(QuantumProgram(), pauli_list,
                                   trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
                                   device)
-        self.assertEqual(np.complex(-0.45295043823006692, 3.3552033732806193e-18), energy)
+        self.assertEqual(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
 
 
 class TestHamiltonian(QiskitTestCase):
