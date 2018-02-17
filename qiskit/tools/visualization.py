@@ -24,19 +24,23 @@ import operator
 import re
 import os
 import subprocess
-import shutil
+import tempfile
 import logging
 from collections import Counter, OrderedDict
 from functools import reduce
 from io import StringIO
-from PIL import Image, ImageChops
 
+import numpy as np
+from scipy import linalg as la
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.patches import FancyArrowPatch
-import numpy as np
 from mpl_toolkits.mplot3d import proj3d
-from scipy import linalg as la
+try:
+    from PIL import Image, ImageChops
+except ImportError:
+    Image = None
+    ImageChops = None
 
 from qiskit import qasm, unroll, QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
@@ -682,8 +686,10 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
-    Note: Requires pdflatex installed (to compile Latex)
-    Note: Requires poppler installed (to convert pdf to image)
+    Requires pdflatex installed (to compile Latex)
+    Requires Qcircuit latex package (to compile latex)
+    Requires poppler installed (to convert pdf to png)
+    Requires pillow python package to handle images 
     """
     im = circuit_drawer(circuit, basis)
     if im:
@@ -693,31 +699,36 @@ def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
 def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Obtain the circuit in image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
-    Note: Requires pdflatex installed (to compile Latex)
-    Note: Requires poppler installed (to convert pdf to image)
+    Requires pdflatex installed (to compile Latex)
+    Requires Qcircuit latex package (to compile latex)
+    Requires poppler installed (to convert pdf to png)
+    Requires pillow python package to handle images
     """
     filename = 'circuit'
-    tmpdir = 'tmp/'
-    if not os.path.exists(tmpdir):
-        os.makedirs(tmpdir)
-    latex_drawer(circuit, tmpdir + filename + ".tex", basis=basis)
-    im = None
-    try:
-        subprocess.call(["pdflatex", "-interaction=batchmode",
-                         "-output-directory={}".format(tmpdir),
-                         "{}".format(filename + ".tex")])
-        subprocess.call(["pdftocairo", "-singlefile", "-png",
-                         "{}".format(tmpdir + filename + ".pdf")])
-        im = Image.open(filename + ".png")
-        im = trim(im)
-        os.remove(filename + ".png")
-    except OSError as e:
-        if e.errno == os.errno.ENOENT:
-            logger.warning('WARNING: `pdflatex` or `poppler` not installed. '
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
+        im = None
+        try:
+            subprocess.call(["pdflatex", "-interaction=batchmode",
+                             "-output-directory={}".format(tmpdirname),
+                             "{}".format(filename + '.tex')])
+            subprocess.call(["pdftocairo", "-singlefile", "-png",
+                             "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
+            im = Image.open(filename + ".png")
+            im = trim(im)
+            os.remove(filename + ".png")
+        except IOError:
+            logger.warning('WARNING: Unable to compile latex. Install `Qcircuit` latex package. '
                            'Skipping circuit drawing...')
-        else:
-            raise
-    shutil.rmtree(tmpdir)
+        except OSError as e:
+            if e.errno == os.errno.ENOENT:
+                logger.warning('WARNING: `pdflatex` or `poppler` not installed. '
+                               'Skipping circuit drawing...')
+            else:
+                raise
+        except AttributeError:
+            logger.warning('WARNING: `pillow` package not installed. '
+                           'Skipping circuit drawing...')
     return im
 
 
