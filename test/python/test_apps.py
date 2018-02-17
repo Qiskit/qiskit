@@ -27,13 +27,106 @@ import numpy as np
 
 from qiskit.tools.apps.optimization import make_Hamiltonian, Hamiltonian_from_file, group_paulis, \
     eval_hamiltonian, trial_circuit_ry, trial_circuit_ryrz, SPSA_calibration, SPSA_optimization, \
-    print_pauli_list_grouped
+    print_pauli_list_grouped, Energy_Estimate
 from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermionic_maps, \
     two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
 from qiskit import QuantumProgram
 
 from .common import QiskitTestCase
+
+class TestQuantumOptimization(QiskitTestCase):
+    """Tests for quantum optimization"""
+
+    def test_trial_functions(self):
+        entangler_map = {0: [2], 1: [2], 3: [2], 4: [2]}
+
+        m = 1
+        n = 6
+        theta = np.zeros(m * n)
+
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map)
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 456)
+
+        self.log.info("With No measurement:\n")
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, None, None)
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 324)
+
+        self.log.info("With Y measurement:\n")
+        meas_sting = ['Y' for x in range(n)]
+        trial_circuit = trial_circuit_ry(n, m, theta, entangler_map, meas_sting)
+        qasm_txt = trial_circuit.qasm()
+        self.log.info(qasm_txt)
+        self.assertEqual(len(qasm_txt), 564)
+
+
+class TestHamiltonian(QiskitTestCase):
+    def test_hamiltonian(self):
+        # pylint: disable=unexpected-keyword-arg
+        # printing an example from a H2 file
+        hfile = self._get_resource_path("H2Equilibrium.txt")
+        hamiltonian = make_Hamiltonian(Hamiltonian_from_file(hfile))
+        self.log.info(hamiltonian)
+        # [[-0.24522469381221926 0 0 0.18093133934472627 ]
+        # [0 -1.0636560168497590 0.18093133934472627 0]
+        # [0 0.18093133934472627 -1.0636560168497592 0]
+        # [0.18093133934472627 0 0 -1.8369675149908681]]
+
+        expected_result = [
+            [(-0.245224693812+0j), 0j, 0j, (0.180931339345+0j)],
+            [0j, (-1.06365601685+0j), (0.180931339345+0j), 0j],
+            [0j, (0.180931339345+0j), (-1.06365601685+0j), 0j],
+            [(0.180931339345+0j), 0j, 0j, (-1.83696751499+0j)]
+        ]
+
+        for i in range(4):
+            with self.subTest(i=i):
+                for result, expected in zip(hamiltonian[i], expected_result[i]):
+                    self.assertAlmostEqual(result, expected)
+
+        # printing an example from a graph input
+        n = 3
+        v0 = np.zeros(n)
+        v0[2] = 1
+        v1 = np.zeros(n)
+        v1[0] = 1
+        v1[1] = 1
+        v2 = np.zeros(n)
+        v2[0] = 1
+        v2[2] = 1
+        v3 = np.zeros(n)
+        v3[1] = 1
+        v3[2] = 1
+
+        pauli_list = [(1, Pauli(v0, np.zeros(n))), (1, Pauli(v1, np.zeros(n))),
+                      (1, Pauli(v2, np.zeros(n))), (1, Pauli(v3, np.zeros(n)))]
+        a = make_Hamiltonian(pauli_list)
+        self.log.info(a)
+
+        w, v = la.eigh(a, eigvals=(0, 0))
+        self.log.info(w)
+        self.log.info(v)
+
+        data = {'000': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'001': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'010': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'011': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'100': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'101': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'110': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
+        data = {'111': 10}
+        self.log.info(Energy_Estimate(data, pauli_list))
 
 
 class TestAppsFermion(QiskitTestCase):
