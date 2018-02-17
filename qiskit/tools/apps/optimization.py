@@ -137,7 +137,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
         delta_obj += np.absolute(obj_plus - obj_minus) / stat
 
     SPSA_parameters[0] = target_update * 2 / delta_obj \
-                         * SPSA_parameters[1] * (SPSA_parameters[4] + 1)
+        * SPSA_parameters[1] * (SPSA_parameters[4] + 1)
 
     print('calibrated SPSA_parameters[0] is %.7f' % SPSA_parameters[0])
 
@@ -162,7 +162,7 @@ def measure_pauli_z(data, pauli):
         value = 1
         for j in range(pauli.numberofqubits):
             if ((pauli.v[j] == 1 or pauli.w[j] == 1) and
-                        key[pauli.numberofqubits - j - 1] == '1'):
+                    key[pauli.numberofqubits - j - 1] == '1'):
                 value = -value
 
         observable = observable + value * data[key] / tot
@@ -230,9 +230,9 @@ def group_paulis(pauli_list):
                     j = 0
                     for i in range(n):
                         if not ((p_2[1].v[i] == 0 and p_2[1].w[i] == 0) or
-                                    (p_1[1].v[i] == 0 and p_1[1].w[i] == 0) or
-                                    (p_2[1].v[i] == p_1[1].v[i] and
-                                             p_2[1].w[i] == p_1[1].w[i])):
+                                (p_1[1].v[i] == 0 and p_1[1].w[i] == 0) or
+                                (p_2[1].v[i] == p_1[1].v[i] and
+                                 p_2[1].w[i] == p_1[1].w[i])):
                             break
                         else:
                             # update master
@@ -291,7 +291,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     if shots == 1:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
-            circuit = ['c' + str(uuid.uuid4())]  # unique random circuit for no collision
+            circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
                                        config={"data": ["quantum_state"]})
@@ -303,7 +303,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                     quantum_state = quantum_state[0]
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
-                        np.shape(np.shape(np.array(hamiltonian))) == (1,)):
+                    np.shape(np.shape(np.array(hamiltonian))) == (1,)):
                 energy = np.sum(hamiltonian * np.absolute(quantum_state) ** 2)
             # Hamiltonian represented by square matrix
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
@@ -372,9 +372,9 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         result = Q_program.execute(circuits_labels, device, shots=shots)
         for j, _ in enumerate(hamiltonian):
             for k, _ in enumerate(hamiltonian[j]):
-                energy += hamiltonian[j][k][0] * \
-                          measure_pauli_z(result.get_counts(
-                              circuits_labels[j]), hamiltonian[j][k][1])
+                energy += hamiltonian[j][k][0] *\
+                    measure_pauli_z(result.get_counts(
+                        circuits_labels[j]), hamiltonian[j][k][1])
 
     return energy
 
