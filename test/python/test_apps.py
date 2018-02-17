@@ -112,7 +112,7 @@ class TestQuantumOptimization(QiskitTestCase):
                           "-1.0909948\n"
                           "objective function at theta- for step # 0\n"
                           "-1.0675805\n"
-                          "Final objective function is: -1.26195479922")
+                          "Final objective function is: -1.2619548")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
             output = SPSA_optimization(
                 partial(cost_function, Q_program, H, n, m, entangler_map, shots, device),

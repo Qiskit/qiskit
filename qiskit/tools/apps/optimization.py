@@ -100,7 +100,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
 
     # final cost update
     cost_final = obj_fun(theta_best)
-    print('Final objective function is: ' + str(cost_final))
+    print('Final objective function is: %.7f' % cost_final)
     return [cost_final, theta_best, cost_plus_save, cost_minus_save,
             theta_plus_save, theta_minus_save]
 
