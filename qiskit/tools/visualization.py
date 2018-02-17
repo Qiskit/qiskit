@@ -689,7 +689,7 @@ def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
     Requires pdflatex installed (to compile Latex)
     Requires Qcircuit latex package (to compile latex)
     Requires poppler installed (to convert pdf to png)
-    Requires pillow python package to handle images 
+    Requires pillow python package to handle images
     """
     im = circuit_drawer(circuit, basis)
     if im:
