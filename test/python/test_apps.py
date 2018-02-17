@@ -101,7 +101,7 @@ class TestQuantumOptimization(QiskitTestCase):
         save_step = 20
 
         expected_stout = ("calibration step # 0 of 1\n"
-                          "calibrated SPSA_parameters[0] is 2.54598935979")
+                          "calibrated SPSA_parameters[0] is 2.5459894")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
             SPSA_params = SPSA_calibration(partial(cost_function, Q_program, H, n, m, entangler_map,
                                                    shots, device), initial_theta, initial_c,
@@ -109,9 +109,9 @@ class TestQuantumOptimization(QiskitTestCase):
         self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
 
         expected_stout = ("objective function at theta+ for step # 0\n"
-                          "-1.09099484712\n"
+                          "-1.0909948\n"
                           "objective function at theta- for step # 0\n"
-                          "-1.06758051895\n"
+                          "-1.0675805\n"
                           "Final objective function is: -1.26195479922")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
             output = SPSA_optimization(
@@ -175,10 +175,10 @@ class TestQuantumOptimization(QiskitTestCase):
         self.assertEqual([0.011279956224107712, 0.18093133934472627], r10)
         self.assertEqual(e11, r11)
 
-        expected_stout = ("Post Rotations of TPB set 0:\nZZ\n0\n\nZZ\n0.011279956224107712\n"
-                          "II\n-1.0523760606256514\nZI\n0.39793570529466216\nIZ\n"
-                          "0.39793570529466227\n\n\nPost Rotations of TPB set 1:\nXX\n0\n\n"
-                          "XX\n0.18093133934472627")
+        expected_stout = ("Post Rotations of TPB set 0:\nZZ\n0\n\nZZ\n0.0112800\n"
+                          "II\n-1.0523761\nZI\n0.3979357\nIZ\n"
+                          "0.3979357\n\n\nPost Rotations of TPB set 1:\nXX\n0\n\n"
+                          "XX\n0.1809313")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
             print_pauli_list_grouped(pauli_list_grouped)
 
