@@ -709,26 +709,33 @@ def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
         latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
         im = None
         try:
-            subprocess.call(["pdflatex", "-interaction=batchmode",
-                             "-output-directory={}".format(tmpdirname),
-                             "{}".format(filename + '.tex')])
-            subprocess.call(["pdftocairo", "-singlefile", "-png",
-                             "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-            im = Image.open(filename + ".png")
-            im = trim(im)
-            os.remove(filename + ".png")
-        except IOError:
-            logger.warning('WARNING: Unable to compile latex. Install `Qcircuit` latex package. '
-                           'Skipping circuit drawing...')
+            subprocess.run(["pdflatex", "-interaction=batchmode",
+                            "-output-directory={}".format(tmpdirname),
+                            "{}".format(filename + '.tex')],
+                           stdout=subprocess.DEVNULL, check=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                logger.warning('WARNING: `pdflatex` or `poppler` not installed. '
+                logger.warning('WARNING: Unable to compile latex; `pdflatex` not installed. '
                                'Skipping circuit drawing...')
-            else:
-                raise
-        except AttributeError:
-            logger.warning('WARNING: `pillow` package not installed. '
+        except subprocess.CalledProcessError as e:
+            logger.warning('WARNING: Unable to compile latex; `Qcircuit` package not installed. '
                            'Skipping circuit drawing...')
+        else:
+            try:
+                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
+                                "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
+                im = Image.open(filename + ".png")
+                im = trim(im)
+                os.remove(filename + ".png")
+            except OSError as e:
+                if e.errno == os.errno.ENOENT:
+                    logger.warning('WARNING: Unable to convert pdf; `poppler` not installed. '
+                                   'Skipping circuit drawing...')
+                else:
+                    raise
+            except AttributeError:
+                logger.warning('WARNING: `pillow` package not installed. '
+                               'Skipping circuit drawing...')
     return im
 
 
