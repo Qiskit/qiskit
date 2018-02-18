@@ -683,7 +683,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
+def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -696,7 +696,7 @@ def plot_circuit(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
         im.show()
 
 
-def circuit_drawer(circuit, basis="u1,u2,u3,cx,x,y,z,h,s,t,rx,ry,rz"):
+def circuit_drawer(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
     """Obtain the circuit in image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
