@@ -140,10 +140,10 @@ class TestQuantumOptimization(QiskitTestCase):
                             1.47564876892, -0.235776300487, 0.0575282046879, -1.43474818621])
 
         self.assertEqual(6, len(output))
-        self.assertEqual(-1.2619547992193472, output[0])
+        self.assertAlmostEqual(-1.2619547992193472, output[0])
         self.assertEqual(output1.all(), output[1].all())
-        self.assertEqual([-1.0909948471209499], output[2])
-        self.assertEqual([-1.0675805189515357], output[3])
+        self.assertAlmostEqual([-1.0909948471209499], output[2])
+        self.assertAlmostEqual([-1.0675805189515357], output[3])
         self.assertEqual(1, len(output[4]))
         self.assertEqual(output4.all(), output[4][0].all())
         self.assertEqual(output5.all(), output[5][0].all())
@@ -205,7 +205,7 @@ class TestQuantumOptimization(QiskitTestCase):
         energy = eval_hamiltonian(QuantumProgram(), pauli_list,
                                   trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
                                   device)
-        self.assertEqual(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
+        self.assertAlmostEqual(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
 
 
 class TestHamiltonian(QiskitTestCase):
