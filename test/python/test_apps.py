@@ -140,10 +140,10 @@ class TestQuantumOptimization(QiskitTestCase):
                             1.47564876892, -0.235776300487, 0.0575282046879, -1.43474818621])
 
         self.assertEqual(6, len(output))
-        self.assertAlmostEqual(-1.2619547992193472, output[0])
+        np.testing.assert_almost_equal(-1.2619547992193472, output[0])
         self.assertEqual(output1.all(), output[1].all())
-        self.assertAlmostEqual([-1.0909948471209499], output[2])
-        self.assertAlmostEqual([-1.0675805189515357], output[3])
+        np.testing.assert_almost_equal([-1.0909948471209499], output[2])
+        np.testing.assert_almost_equal([-1.0675805189515357], output[3])
         self.assertEqual(1, len(output[4]))
         self.assertEqual(output4.all(), output[4][0].all())
         self.assertEqual(output5.all(), output[5][0].all())
@@ -205,7 +205,7 @@ class TestQuantumOptimization(QiskitTestCase):
         energy = eval_hamiltonian(QuantumProgram(), pauli_list,
                                   trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
                                   device)
-        self.assertAlmostEqual(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
+        np.testing.assert_almost_equal(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
 
 
 class TestHamiltonian(QiskitTestCase):
@@ -232,7 +232,7 @@ class TestHamiltonian(QiskitTestCase):
         for i in range(4):
             with self.subTest(i=i):
                 for result, expected in zip(hamiltonian[i], expected_result[i]):
-                    self.assertAlmostEqual(result, expected)
+                    np.testing.assert_almost_equal(result, expected)
 
         # printing an example from a graph input
         n = 3
