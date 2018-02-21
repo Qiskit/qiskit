@@ -12,7 +12,7 @@
 **我们使用 GitHub issues 来追踪需求和错误。详见**
 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **中的提问和讨论。**
 **如果您有意对 QISKit 做出贡献，请参见我们的**
-[contribution guidelines](CONTRIBUTING.rst)。
+[contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTING.rst)。
 
 链接索引:
 
@@ -53,7 +53,7 @@ PIP 为以下平台预装有二进制版本：
 #### 配置您的安装环境
 
 我们建议采用python虚拟环境来提升运行体验。更多信息请参见
-[Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) 。
+[Environment Setup documentation](https://github.com/QISKit/qiskit-sdk-py/blob/master/doc/install.rst#3.1-Setup-the-environment) 。
 
 ## 创建您的第一个量子程序
 
@@ -106,7 +106,7 @@ except RegisterSizeError as ex:
 COMPLETED
 {'counts': {'00': 512, '11': 512}}
 ```
-可以在 [这里](examples/python/hello_quantum.py)找到此例的脚本。
+可以在 [这里](https://github.com/QISKit/qiskit-sdk-py/blob/master/examples/python/hello_quantum.py)找到此例的脚本。
 
 ### 在一个真实的量子芯片上执行您的程序
 
@@ -120,7 +120,7 @@ COMPLETED
    账号，如果您还没有的话。
 2. 在IBM Q experience网页上取得一个API 令牌： "`My Account`" >
    "`Personal Access Token`"。这个API令牌将使您可以在IBM Q 体验后端上运行您的程序。
-   [示例](doc/example_real_backend.rst)。
+   [示例](https://github.com/QISKit/qiskit-sdk-py/blob/master/doc/example_real_backend.rst)。
 3. 之后我们将创建一个新的文件叫 `Qconfig.py` 并在其中插入 API 令牌。此文件必须包含以下内容：
 ```python
 APItoken = 'MY_API_TOKEN'
@@ -161,8 +161,8 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
 那么您可以复制和修改这些notebooks来创建您自己的实验。
 
 如要将教程安装在 QISKit SDK 中，请参见
-[安装详述](doc/install.rst#Install-Jupyter-based-tutorials)。 完整的 SDK
-文档请参见 [*doc* directory](doc/qiskit.rst) 和
+[安装详述](https://github.com/QISKit/qiskit-sdk-py/blob/master/doc/install.rst#Install-Jupyter-based-tutorials)。 完整的 SDK
+文档请参见 [*doc* directory](https://github.com/QISKit/qiskit-sdk-py/blob/master/doc/qiskit.rst) 和
 [QISKit 官网](https://www.qiskit.org/documentation)。
 
 ## 更多信息
@@ -184,11 +184,11 @@ QISKit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
 [IBM-Q](http://www.research.ibm.com/ibm-q/) 团队的研究人员和开发人员开发的，
 旨在提供一个与量子计算机配套的高水平的开发工具包。
 
-欲知更多有关 QISKit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 QISKit 做出贡献，请参见我们的 [contribution guidelines](CONTRIBUTING.rst)。
+欲知更多有关 QISKit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 QISKit 做出贡献，请参见我们的 [contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTING.rst)。
 
 ## 多语言指导
 
-* **[Korean Translation](doc/ko/README.md)**， 基本的韩语指导。
+* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/blob/master/doc/ko/README.md)**， 基本的韩语指导。
 
 ## 作者 (按字母顺序)
 
