@@ -31,9 +31,11 @@ import itertools
 import copy
 import networkx as nx
 import sympy
+
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit import QISKitError
 from ._dagcircuiterror import DAGCircuitError
-from .. import qasm
-import qiskit.unroll
 
 
 class DAGCircuit:
@@ -367,7 +369,9 @@ class DAGCircuit:
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
             ie = list(self.multi_graph.predecessors(self.output_map[q]))
-            assert len(ie) == 1, "output node has multiple in-edges"
+            if len(ie) != 1:
+                raise QISKitError("output node has multiple in-edges")
+
             self.multi_graph.add_edge(ie[0], self.node_counter, name=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(
@@ -401,7 +405,9 @@ class DAGCircuit:
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
             ie = self.multi_graph.successors(self.input_map[q])
-            assert len(ie) == 1, "input node has multiple out-edges"
+            if len(ie) != 1:
+                raise QISKitError("input node has multiple out-edges")
+
             self.multi_graph.add_edge(self.node_counter, ie[0], name=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(
@@ -581,11 +587,13 @@ class DAGCircuit:
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
-                assert m_name in self.output_map, \
-                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
-                assert nd["name"] in input_circuit.wire_type, \
-                    "inconsistent wire_type for (%s,%d) in input_circuit" \
-                    % (nd["name"][0], nd["name"][1])
+                if m_name not in self.output_map:
+                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+
+                if nd["name"] not in input_circuit.wire_type:
+                    raise QISKitError("inconsistent wire_type for (%s,%d) in input_circuit" \
+                    % (nd["name"][0], nd["name"][1]))
+
             elif nd["type"] == "out":
                 # ignore output nodes
                 pass
@@ -597,7 +605,7 @@ class DAGCircuit:
                 self.apply_operation_back(nd["name"], m_qargs, m_cargs,
                                           nd["params"], condition)
             else:
-                assert False, "bad node type %s" % nd["type"]
+                raise QISKitError("bad node type %s" % nd["type"])
 
     def compose_front(self, input_circuit, wire_map=None):
         """Apply the input circuit to the input of this circuit.
@@ -639,11 +647,14 @@ class DAGCircuit:
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
-                assert m_name in self.input_map, \
-                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
-                assert nd["name"] in input_circuit.wire_type, \
-                    "inconsistent wire_type for (%s,%d) in input_circuit" \
-                    % (nd["name"][0], nd["name"][1])
+                if m_name not in self.input_map:
+                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+
+                if nd["name"] not in input_circuit.wire_type:
+                    raise QISKitError(
+                        "inconsistent wire_type for (%s,%d) in input_circuit" \
+                         % (nd["name"][0], nd["name"][1]))
+
             elif nd["type"] == "in":
                 # ignore input nodes
                 pass
@@ -655,7 +666,7 @@ class DAGCircuit:
                 self.apply_operation_front(nd["name"], m_qargs, m_cargs,
                                            nd["params"], condition)
             else:
-                assert False, "bad node type %s" % nd["type"]
+                raise QISKitError("bad node type %s" % nd["type"])
 
     def size(self):
         """Return the number of operations."""
@@ -663,7 +674,9 @@ class DAGCircuit:
 
     def depth(self):
         """Return the circuit depth."""
-        assert nx.is_directed_acyclic_graph(self.multi_graph), "not a DAG"
+        if not nx.is_directed_acyclic_graph(self.multi_graph):
+            raise QISKitError("not a DAG")
+
         return nx.dag_longest_path_length(self.multi_graph) - 1
 
     def width(self):
@@ -693,47 +706,6 @@ class DAGCircuit:
         else:
             out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
         return out
-
-    def json(self):
-        """Return the output of the JSONBackend of the unroller."""
-        json_backend = qiskit.unroll.JsonBackend(list(self.basis.keys()))
-        for name, width in self.qregs.items():
-            json_backend.new_qreg(name, width)
-        for name, width in self.cregs.items():
-            json_backend.new_creg(name, width)
-        for name, data in self.gates.items():
-            json_backend.define_gate(name, data)
-        for n in nx.topological_sort(self.multi_graph):
-            nd = self.multi_graph.node[n]
-            if nd["type"] == "op":
-                params = map(lambda x: qiskit.qasm._node.Real(x), nd["params"])
-                params = list(params)
-                if nd["condition"] is not None:
-                    json_backend.set_condition(nd["condition"][0],
-                                               nd["condition"][1])
-                if not nd["cargs"]:
-                    if nd["name"] == "U":
-                        json_backend.u(params, nd["qargs"][0])
-                    elif nd["name"] == "CX":
-                        json_backend.cx(nd["qargs"][0], nd["qargs"][1])
-                    elif nd["name"] == "barrier":
-                        json_backend.barrier([nd["qargs"]])
-                    elif nd["name"] == "reset":
-                        json_backend.reset(nd["qargs"][0])
-                    else:
-                        json_backend.start_gate(nd["name"], params,
-                                                nd["qargs"])
-                        json_backend.end_gate(nd["name"], params, nd["qargs"])
-                else:
-                    if nd["name"] == "measure":
-                        assert len(nd["cargs"]) == 1 and \
-                                len(nd["qargs"]) == 1 and \
-                                not nd["params"], "bad node data"
-                        json_backend.measure(nd["qargs"][0], nd["cargs"][0])
-                    else:
-                        assert False, "bad node data"
-                json_backend.drop_condition()
-        return json_backend.circuit
 
     def qasm(self, decls_only=False, add_swap=False,
              no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
@@ -830,9 +802,10 @@ class DAGCircuit:
                             out += "%s %s;\n" % (nm, qarg)
                     else:
                         if nd["name"] == "measure":
-                            assert len(nd["cargs"]) == 1 and \
-                                len(nd["qargs"]) == 1 and \
-                                not nd["params"], "bad node data"
+                            if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
+                               or nd["params"]:
+                               raise QISKitError("bad node data")
+
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
                             if aliases:
@@ -845,7 +818,8 @@ class DAGCircuit:
                                       nd["cargs"][0][0],
                                       nd["cargs"][0][1])
                         else:
-                            assert False, "bad node data"
+                            raise QISKitError("bad node data")
+
         return out
 
     def _check_wires_list(self, wires, name, input_circuit, condition=None):
@@ -917,9 +891,11 @@ class DAGCircuit:
                 full_succ_map[w] = self.output_map[w]
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
-                assert len(list(self.multi_graph.predecessors(self.output_map[w]))) == 1,\
-                    "too many predecessors for (%s,%d) output node" % (
-                        w[0], w[1])
+                if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
+                    raise QISKitError(
+                        "too many predecessors for (%s,%d) output node" % (w[0], w[1])
+                    )
+
         return full_pred_map, full_succ_map
 
     def substitute_circuit_all(self, name, input_circuit, wires=None):
@@ -1000,133 +976,15 @@ class DAGCircuit:
                         o_pred = list(self.multi_graph.predecessors(
                             self.output_map[w]))
                         if len(o_pred) > 1:
-                            assert len(o_pred) == 2, \
-                                "expected 2 predecessors here"
+                            if len(o_pred) != 2:
+                                raise QISKitError("expected 2 predecessors here")
+
                             p = [x for x in o_pred if x != full_pred_map[w]]
-                            assert len(p) == 1, \
-                                "expected 1 predecessor to pass filter"
+                            if len(p) != 1:
+                                raise QISKitError("expected 1 predecessor to pass filter")
+
                             self.multi_graph.remove_edge(
                                 p[0], self.output_map[w])
-
-    def expand_gates(self, basis=None):
-        """Expand all gate nodes to the given basis.
-
-        If basis is empty, each custom gate node is replaced by its
-        implementation over U and CX. If basis contains names, then
-        those custom gates are not expanded. For example, if "u3"
-        is in basis, then the gate "u3" will not be expanded wherever
-        it occurs.
-
-        This member function replicates the behavior of the unroller
-        module without using the OpenQASM parser.
-
-        basis = list of gate name strings
-        """
-        if basis is None:
-            basis = []
-        # Build the Gate AST nodes for user-defined gates
-        gatedefs = []
-        for name, gate in self.gates.items():
-            children = [qasm._node.Id(name, 0, "")]
-            if gate["n_args"] > 0:
-                children.append(qasm._node.ExpressionList(list(
-                    map(lambda x: qasm._node.Id(x, 0, ""),
-                        gate["args"])
-                )))
-            children.append(qasm._node.IdList(list(
-                map(lambda x: qasm._node.Id(x, 0, ""),
-                    gate["bits"])
-            )))
-            children.append(gate["body"])
-            gatedefs.append(qasm._node.Gate(children))
-        # Walk through the DAG and examine each node
-        builtins = ["U", "CX", "measure", "reset", "barrier"]
-        ts = list(nx.topological_sort(self.multi_graph))
-        for node in ts:
-            nd = self.multi_graph.node[node]
-            if nd["type"] == "op" and \
-               nd["name"] not in builtins + basis and \
-               not self.gates[nd["name"]]["opaque"]:
-                subcircuit, wires = self._build_subcircuit(gatedefs,
-                                                           basis,
-                                                           nd["name"],
-                                                           nd["params"],
-                                                           nd["qargs"],
-                                                           nd["condition"])
-                # nx.write_gml(subcircuit.multi_graph,
-                #              "subcircuit%d.gml" % node,
-                #              stringizer=str)
-                self.substitute_circuit_one(node, subcircuit, wires)
-
-    def _build_subcircuit(self, gatedefs, target_basis,
-                          gate_name, gate_params, gate_args,
-                          gate_condition):
-        """Build DAGCircuit for a given user-defined gate node.
-
-        gatedefs = dictionary of Gate AST nodes for user-defined gates
-        target_basis = list of gate names in the target basis
-        gate_name = name of gate to expand to target_basis (nd["name"])
-        gate_params = list of gate parameters (nd["params"])
-        gate_args = list of gate arguments (nd["qargs"])
-        gate_condition = None or tuple (string, int) (nd["condition"])
-
-        Returns (subcircuit, wires) where subcircuit is the DAGCircuit
-        corresponding to the user-defined gate node expanded to target_basis
-        and wires is the list of input wires to the subcircuit in order
-        corresponding to the gate's arguments.
-        """
-        # Build AST for subcircuit
-        children = [qasm._node.Id(gate_name, 0, "")]
-        if len(gate_params) > 0:
-            children.append(
-                qasm._node.ExpressionList(
-                    list(map(lambda x: qasm._node.Real(x),
-                             gate_params))
-                )
-            )
-        new_wires = [("q", j) for j in range(len(gate_args))]
-        children.append(
-            qasm._node.PrimaryList(
-                list(map(lambda x: qasm._node.IndexedId([
-                            qasm._node.Id(x[0], 0, ""),
-                            qasm._node.Int(x[1])]),
-                         new_wires))
-            )
-        )
-        gate_node = qasm._node.CustomUnitary(children)
-        # Make a list of register declaration nodes
-        reg_nodes = [
-            qasm._node.Qreg([
-                qasm._node.IndexedId([
-                    qasm._node.Id("q", 0, ""),
-                    qasm._node.Int(len(gate_args))
-                ])
-            ])]
-        # Add an If node when there is a condition present
-        if gate_condition is not None:
-            gate_node = qasm._node.If([
-                qasm._node.Id(gate_condition[0], 0, ""),
-                qasm._node.Int(gate_condition[1]),
-                gate_node
-            ])
-            new_wires += [(gate_condition[0], j)
-                          for j in range(self.cregs[gate_condition[0]])]
-            reg_nodes.append(
-                qasm._node.Creg([
-                    qasm._node.IndexedId([
-                        qasm._node.Id(gate_condition[0], 0, ""),
-                        qasm._node.Int(self.cregs[gate_condition[0]])
-                    ])
-                ])
-            )
-        # Build the whole program's AST
-        sub_ast = qasm._node.Program(gatedefs + reg_nodes +
-                                     [gate_node])
-        # Interpret the AST to give a new DAGCircuit over target_basis
-        u = qiskit.unroll.Unroller(sub_ast,
-                                   qiskit.unroll.DAGBackend(target_basis))
-        subcircuit = u.execute()
-        return subcircuit, new_wires
 
     def substitute_circuit_one(self, node, input_circuit, wires=None):
         """Replace one node with input_circuit.
@@ -1212,9 +1070,13 @@ class DAGCircuit:
                 full_pred_map[w], full_succ_map[w], name=w)
             o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
             if len(o_pred) > 1:
-                assert len(o_pred) == 2, "expected 2 predecessors here"
+                if len(o_pred) != 2:
+                    raise QISKitError("expected 2 predecessors here")
+
                 p = [x for x in o_pred if x != full_pred_map[w]]
-                assert len(p) == 1, "expected 1 predecessor to pass filter"
+                if len(p) != 1:
+                    raise QISKitError("expected 1 predecessor to pass filter")
+
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_named_nodes(self, name):
@@ -1322,7 +1184,9 @@ class DAGCircuit:
                 oe = [x for x in self.multi_graph.out_edges(nbunch=[node_map[w]],
                                                             data=True) if
                       x[2]["name"] == w]
-                assert len(oe) == 1, "should only be one out-edge per (qu)bit"
+                if len(oe) != 1:
+                    raise QISKitError("should only be one out-edge per (qu)bit")
+
                 nxt_nd_idx = oe[0][1]
                 nxt_nd = self.multi_graph.node[nxt_nd_idx]
                 # If we reach an output node, we are done with this wire.
@@ -1341,7 +1205,9 @@ class DAGCircuit:
                         ops_touched[nxt_nd_idx] = set(qa) | set(ca) | set(cob)
                     # Mark inputs visited by deleting from set
                     # NOTE: expect trouble with if(c==1) measure q -> c;
-                    assert w in ops_touched[nxt_nd_idx], "expected wire"
+                    if w not in ops_touched[nxt_nd_idx]:
+                        raise QISKitError("expected wire")
+
                     ops_touched[nxt_nd_idx].remove(w)
                     # Node becomes "foreground" if set becomes empty,
                     # i.e. every input is available for this operation
@@ -1363,7 +1229,9 @@ class DAGCircuit:
                 layers_list.append(l_dict)
                 emit = False
             else:
-                assert not wires_with_ops_remaining, "not finished but empty?"
+                if wires_with_ops_remaining:
+                    raise QISKitError("not finished but empty?")
+
         return layers_list
 
     def serial_layers(self):
@@ -1463,3 +1331,50 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    @staticmethod
+    def fromQuantumCircuit(circuit):
+        """Returns a DAGCircuit object from a QuantumCircuit
+
+        None of the gates are expanded, i.e. the gates that are defined in the
+        circuit are included in the gate basis.
+        """
+        dagcircuit = DAGCircuit()
+        for register in circuit.regs.values():
+            if isinstance(register, QuantumRegister):
+                dagcircuit.add_qreg(register.name, len(register))
+            else:
+                dagcircuit.add_creg(register.name, len(register))
+        # Add user gate definitions
+        for name, data in circuit.definitions.items():
+            dagcircuit.add_basis_element(name, data["n_bits"], 0,
+                                         data["n_args"])
+            dagcircuit.add_gate_data(name, data)
+        # Add instructions
+        builtins = {
+            "U": ["U", 1, 0, 3],
+            "CX": ["CX", 2, 0, 0],
+            "measure": ["measure", 1, 1, 0],
+            "reset": ["reset", 1, 0, 0],
+            "barrier": ["barrier", -1, 0, 0]
+        }
+        for instruction in circuit.data:
+            # Add OpenQASM built-in gates on demand
+            if instruction.name in builtins:
+                dagcircuit.add_basis_element(*builtins[instruction.name])
+            # Separate classical arguments to measurements
+            if instruction.name == "measure":
+                qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
+                cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+            else:
+                qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
+                cargs = []
+            # Get arguments for classical control (if any)
+            if instruction.control is None:
+                control = None
+            else:
+                control = (instruction.control[0].name, instruction.control[1])
+            dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
+                                            instruction.param,
+                                            control)
+        return dagcircuit

@@ -19,11 +19,11 @@
 Backend for the unroller that produces a QuantumCircuit.
 """
 
-import qiskit._quantumcircuit
+from qiskit import QuantumCircuit
+from qiskit import ClassicalRegister
+from qiskit import QuantumRegister
 from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend
-from .._classicalregister import ClassicalRegister
-from .._quantumregister import QuantumRegister
 
 
 class CircuitBackend(UnrollerBackend):
@@ -47,7 +47,7 @@ class CircuitBackend(UnrollerBackend):
         self.gates = {}
         self.listen = True
         self.in_gate = ""
-        self.circuit = qiskit._quantumcircuit.QuantumCircuit()
+        self.circuit = QuantumCircuit()
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit.

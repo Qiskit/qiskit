@@ -29,11 +29,11 @@ import numpy as np
 import sympy
 from sympy import Number as N
 
-import qiskit.unroll as unroll
 from qiskit.qasm import Qasm
-from ._mappererror import MapperError
-import qiskit.qasm._node as node
-import qiskit.dagcircuit
+from qiskit.qasm import _node as node
+from qiskit.mapper import MapperError
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.unroll import DagUnroller, DAGBackend
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +195,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
         logger.debug("layer_permutation: ----- exit -----")
-        circ = qiskit.dagcircuit.DAGCircuit()
+        circ = DAGCircuit()
         circ.add_qreg('q', layout_max_index)
         circ.add_basis_element("CX", 2)
         circ.add_basis_element("cx", 2)
@@ -215,7 +215,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         trial_layout = copy.deepcopy(layout)
         rev_trial_layout = copy.deepcopy(rev_layout)
         # SWAP circuit constructed this trial
-        trial_circ = qiskit.dagcircuit.DAGCircuit()
+        trial_circ = DAGCircuit()
         trial_circ.add_qreg('q', layout_max_index)
 
         # Compute Sergey's randomized distance
@@ -231,7 +231,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         # Loop over depths d up to a max depth of 2n+1
         d = 1
         # Circuit for this swap slice
-        circ = qiskit.dagcircuit.DAGCircuit()
+        circ = DAGCircuit()
         circ.add_qreg('q', layout_max_index)
         circ.add_basis_element("CX", 2)
         circ.add_basis_element("cx", 2)
@@ -347,7 +347,7 @@ def direction_mapper(circuit_graph, coupling_graph):
         raise MapperError("cx gate has unexpected signature %s" %
                           circuit_graph.basis["cx"])
 
-    flipped_cx_circuit = qiskit.dagcircuit.DAGCircuit()
+    flipped_cx_circuit = DAGCircuit()
     flipped_cx_circuit.add_qreg('q', 2)
     flipped_cx_circuit.add_basis_element("CX", 2)
     flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
@@ -403,7 +403,7 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     """
     layout = best_layout
     layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
-    dagcircuit_output = qiskit.dagcircuit.DAGCircuit()
+    dagcircuit_output = DAGCircuit()
     dagcircuit_output.add_qreg("q", layout_max_index)
     # Identity wire-map for composing the circuits
     identity_wire_map = {('q', j): ('q', j) for j in range(layout_max_index)}
@@ -490,7 +490,7 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Construct an empty DAGCircuit with one qreg "q"
     # and the same set of cregs as the input circuit
-    dagcircuit_output = qiskit.dagcircuit.DAGCircuit()
+    dagcircuit_output = DAGCircuit()
     dagcircuit_output.add_qreg("q", layout_max_index)
     for name, size in circuit_graph.cregs.items():
         dagcircuit_output.add_creg(name, size)
@@ -597,7 +597,9 @@ def swap_mapper(circuit_graph, coupling_graph,
             dagcircuit_output.compose_back(layer["graph"], layout)
 
     # Parse openqasm_output into DAGCircuit object
-    dagcircuit_output.expand_gates(basis.split(","))
+    dag_unrrolled = DagUnroller(dagcircuit_output,
+                                    DAGBackend(basis.split(",")))
+    dagcircuit_output = dag_unrrolled.expand_gates()
     return dagcircuit_output, initial_layout
 
 
@@ -776,8 +778,8 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    circuit.expand_gates(qx_basis)
-    unrolled = circuit
+    dag_unroller = unroll.DagUnroller(circuit, unroll.DAGBackend(qx_basis))
+    unrolled = dag_unroller.expand_gates()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

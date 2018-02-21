@@ -27,8 +27,6 @@ from ._classicalregister import ClassicalRegister
 from ._measure import Measure
 from ._reset import Reset
 from ._instructionset import InstructionSet
-from .dagcircuit import DAGCircuit
-from ._compositegate import CompositeGate
 
 
 class QuantumCircuit(object):
@@ -205,61 +203,6 @@ class QuantumCircuit(object):
         for instruction in self.data:
             string += instruction.qasm() + "\n"
         return string
-
-    def dag(self):
-        """Return corresponding DAGCircuit object.
-
-        None of the gates are expanded, i.e. the gates that are defined in the
-        circuit are included in the gate basis.
-        """
-        dagcircuit = DAGCircuit()
-        # Add registers
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                dagcircuit.add_qreg(register.name, len(register))
-            else:
-                dagcircuit.add_creg(register.name, len(register))
-        # Add user gate definitions
-        for name, data in self.definitions.items():
-            dagcircuit.add_basis_element(name, data["n_bits"], 0,
-                                         data["n_args"])
-            dagcircuit.add_gate_data(name, data)
-        # Add instructions
-        builtins = {
-            "U": ["U", 1, 0, 3],
-            "CX": ["CX", 2, 0, 0],
-            "measure": ["measure", 1, 1, 0],
-            "reset": ["reset", 1, 0, 0],
-            "barrier": ["barrier", -1, 0, 0]
-        }
-        for main_instruction in self.data:
-            # TODO: generate definitions and nodes for CompositeGates,
-            # for now simply drop their instructions into the DAG
-            instruction_list = []
-            if isinstance(main_instruction, CompositeGate):
-                instruction_list = main_instruction.instruction_list()
-            else:
-                instruction_list.append(main_instruction)
-            for instruction in instruction_list:
-                # Add OpenQASM built-in gates on demand
-                if instruction.name in builtins:
-                    dagcircuit.add_basis_element(*builtins[instruction.name])
-                # Separate classical arguments to measurements
-                if instruction.name == "measure":
-                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
-                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
-                else:
-                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
-                    cargs = []
-                # Get arguments for classical control (if any)
-                if instruction.control is None:
-                    control = None
-                else:
-                    control = (instruction.control[0].name, instruction.control[1])
-                dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
-                                                instruction.param,
-                                                control)
-        return dagcircuit
 
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples).

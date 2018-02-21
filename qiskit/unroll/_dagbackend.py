@@ -20,7 +20,7 @@ Backend for the unroller that creates a DAGCircuit object.
 """
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
-import qiskit.dagcircuit
+from qiskit.dagcircuit import DAGCircuit
 
 
 class DAGBackend(UnrollerBackend):
@@ -35,7 +35,7 @@ class DAGBackend(UnrollerBackend):
         self.prec = 15
         self.creg = None
         self.cval = None
-        self.circuit = qiskit.dagcircuit.DAGCircuit()
+        self.circuit = DAGCircuit()
         if basis:
             self.basis = basis
         else:
