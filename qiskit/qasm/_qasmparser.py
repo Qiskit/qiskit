@@ -1047,19 +1047,16 @@ class QasmParser(object):
         column = (token.lexpos - last_cr) + 1
         return column
 
-    def print_tokens(self):
+    def get_tokens(self):
         """Test method to verify tokenizer."""
         try:
             while True:
                 token = self.lexer.token()
+
                 if not token:
                     break
-                # TODO: This isn't really the column, it's the character
-                # position.  Need to do backtrack to the nearest \n to get
-                # the actual column.
-                print('TOKEN:' + str(token) + ":ENDTOKEN", 'at line',
-                      token.lineno, 'column', token.lexpos, 'file',
-                      self.lexer.filename)
+
+                yield token
         except QasmError as e:
             print('Exception tokenizing qasm file:', e.msg)
 
