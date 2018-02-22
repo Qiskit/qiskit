@@ -42,6 +42,7 @@ from . import QISKitError
 from . import JobProcessor
 from . import QuantumJob
 from ._logging import set_qiskit_logger, unset_qiskit_logger
+from ._result import Result
 
 # Beta Modules
 from . import unroll
@@ -1230,7 +1231,7 @@ class QuantumProgram(object):
         self._run_internal([qobj],
                            wait=wait,
                            timeout=timeout)
-        self.wait_for_results(timeout)
+        self.wait_for_results(timeout, [qobj])
         return self.jobs_results[0]
 
     def run_batch(self, qobj_list, wait=5, timeout=120):
@@ -1252,7 +1253,7 @@ class QuantumProgram(object):
                            wait=wait,
                            timeout=timeout,
                            are_multiple_results=True)
-        self.wait_for_results(timeout)
+        self.wait_for_results(timeout, qobj_list)
         return self.jobs_results
 
     def run_async(self, qobj, wait=5, timeout=60, callback=None):
@@ -1332,13 +1333,20 @@ class QuantumProgram(object):
         else:
             self.callback(jobs_results[0])  # for run_async() callback
 
-    def wait_for_results(self, timeout):
+    def wait_for_results(self, timeout, qobj_list):
         """Wait for all the results to be ready during an execution."""
         is_ok = self.jobs_results_ready_event.wait(timeout)
         self.jobs_results_ready_event.clear()
         if not is_ok:
-            raise QISKitError('Error waiting for Job results: Timeout after {0} '
-                              'seconds.'.format(timeout))
+            # Invalidate all the job results if there is a timeout.
+            exception = QISKitError('Error waiting for Job results: Timeout '
+                                    'after {0} seconds.'.format(timeout))
+            self.jobs_results = [Result({'job_id': '0',
+                                         'status': 'ERROR',
+                                         'result': exception},
+                                        qobj) for qobj in qobj_list]
+
+            raise exception
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
