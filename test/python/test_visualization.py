@@ -25,11 +25,11 @@ from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit.tools.visualization import circuit_drawer
 from .common import QiskitTestCase
 
 try:
     from qiskit.tools.visualization import latex_drawer
+    from qiskit.tools.visualization import circuit_drawer
     VALID_MATPLOTLIB = True
 except RuntimeError:
     # Under some combinations (travis osx vms, or headless configurations)
@@ -120,6 +120,7 @@ class TestLatexDrawer(QiskitTestCase):
             raise
 
 
+@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestCircuitDrawer(QiskitTestCase):
     """QISKit circuit drawer tests."""
 
