@@ -42,7 +42,6 @@ cd $TARGET_REPOSITORY_NAME
 
 echo "Replacing $TARGET_DOC_DIR with the new contents ..."
 git rm -rf $TARGET_DOC_DIR
-# git rm -rf $TARGET_DOC_DIR_JA
 cp -r $SOURCE_DIR/$SOURCE_DOC_DIR $TARGET_DOC_DIR
 cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_JA $TARGET_DOC_DIR_JA
 git add $TARGET_DOC_DIR
