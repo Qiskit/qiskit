@@ -25,7 +25,6 @@ from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit.tools.visualization import latex_drawer
 from qiskit.tools.visualization import circuit_drawer
 from .common import QiskitTestCase
 
