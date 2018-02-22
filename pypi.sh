@@ -134,6 +134,8 @@ echo -n "Clobbering build..."
 rm -rf qiskit.egg-info build dist
 echo -e "[OK]"
 
+export USER_FLAGS="-static"
+echo "Setting USER_FLAGS env variable for C++ compilation to: $USER_FLAGS"
 echo -n "Building distributable package..."
 # Let's build the wheel package
 python setup.py sdist bdist_wheel -p manylinux1_x86_64 &>> $self.log

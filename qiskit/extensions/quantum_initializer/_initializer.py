@@ -77,7 +77,7 @@ class InitializeGate(CompositeGate):
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
-        super(InitializeGate, self).__init__(name, param, arg, circ)
+        super().__init__(name, param, arg, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -102,7 +102,7 @@ class InitializeGate(CompositeGate):
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.param, self.arg))
+        self._modifiers(circ.initialize(self.name, self.param, self.arg))
 
     def gates_to_uncompute(self):
         """

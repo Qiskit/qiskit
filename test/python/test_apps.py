@@ -78,9 +78,9 @@ class TestHamiltonian(QiskitTestCase):
         ]
 
         for i in range(4):
-            for result, expected in zip(hamiltonian[i], expected_result[i]):
-                print(result, expected)
-                self.assertAlmostEqual(result, expected)
+            with self.subTest(i=i):
+                for result, expected in zip(hamiltonian[i], expected_result[i]):
+                    self.assertAlmostEqual(result, expected)
 
         # printing an example from a graph input
         n = 3

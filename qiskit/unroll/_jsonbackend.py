@@ -57,7 +57,7 @@ class JsonBackend(UnrollerBackend):
         basis is a list of operation name strings.
         The default basis is ["U", "CX"].
         """
-        super(JsonBackend, self).__init__(basis)
+        super().__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
         self.circuit['header'] = {}

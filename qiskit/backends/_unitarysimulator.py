@@ -111,7 +111,7 @@ class UnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        super(UnitarySimulator, self).__init__(configuration)
+        super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
