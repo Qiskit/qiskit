@@ -62,13 +62,14 @@ public:
     noise_flag = false;
     qreg_init_flag = false;
   };
-  virtual ~BaseBackend() {}
+  virtual ~BaseBackend() {};
 
   /**
    * Execute a program on backend
    * @param prog
    */
   void execute(const Circuit &prog);
+  void execute(const std::vector<operation> &ops);
 
   /**
    * Tests whether the the condition for implementing a conditional gate passes
@@ -139,13 +140,29 @@ public:
   inline std::map<uint_t, StateType> &access_saved() { return qreg_saved; };
 
   /**
+   * Returns a reference to the map of qreg state snapshots. These states are
+   * chached during execution of a QISKIT program by the "snapshot(j)" gate command.
+   * The keys of the map are the integer arguments j.
+   * @return a reference to qreg state snapshots
+   */
+  inline std::map<uint_t, StateType> &access_snapshots() { return qreg_snapshots; };
+
+  /**
    * Saves a copy of the current state of the qreg register to a map indexed by
    * the argument. If a saved state already exists for this key, the previous
    * value will be overwritten.
    * @param key the map key to save the state to
    */
   void save_state(uint_t key);
-
+  inline void save_state(std::complex<double> key) {save_state(static_cast<uint_t>(std::real(key)));};
+  /**
+   * Saves a snapshot of the current state of the qreg register to a map indexed by
+   * the argument. If a saved state already exists for this key, the previous
+   * value will be overwritten.
+   * @param key the map key to save the state to
+   */
+  void snapshot_state(uint_t key);
+  inline void snapshot_state(std::complex<double> key) {snapshot_state(static_cast<uint_t>(std::real(key)));};
   /**
    * Loads a previously saved state of the system into qreg. If a saved state
    * does not exist for the argument key it will raise an error and terminate
@@ -153,7 +170,13 @@ public:
    * @param key the map key to save the state to
    */
   void load_state(uint_t key);
+  inline void load_state(std::complex<double> key) {load_state(static_cast<uint_t>(std::real(key)));};
 
+  /**
+   * Config Settings
+   */
+
+  virtual inline void set_config(json_t &config) = 0; // raises unused param warning
   inline void set_omp_threads(int_t n) {
     if (n > 0)
       omp_threads = n;
@@ -205,6 +228,12 @@ protected:
    * states can then be loaded as into qreg using the 'load_qreg' method.
    */
   std::map<uint_t, StateType> qreg_saved;
+
+  /**
+   * Stores the saved qreg states from the 'save_state' method. These saved
+   * states can then be loaded as into qreg using the 'load_qreg' method.
+   */
+  std::map<uint_t, StateType> qreg_snapshots;
 
   /**
    * When set to 'true' this signals to the backend that when executing a QISKIT
@@ -259,6 +288,15 @@ void BaseBackend<StateType>::execute(const Circuit &prog) {
 }
 
 template <class StateType>
+void BaseBackend<StateType>::execute(const std::vector<operation> &ops) {
+  // Run through operation list
+  for (const auto &op : ops) {
+    if (!op.if_op || (op.if_op && qc_passed_if(op.cond)))
+      qc_operation(op);
+  }
+}
+
+template <class StateType>
 bool BaseBackend<StateType>::qc_passed_if(const operation_if &cond) {
 
   // Get masked vector
@@ -293,6 +331,15 @@ template <class StateType> void BaseBackend<StateType>::save_state(uint_t key) {
   std::clog << ss.str() << std::endl;
 #endif
   qreg_saved[key] = qreg;
+}
+
+template <class StateType> void BaseBackend<StateType>::snapshot_state(uint_t key) {
+#ifdef DEBUG
+  std::stringstream ss;
+  ss << "DEBUG BaseBackend::snapshot_state(" << key << ")";
+  std::clog << ss.str() << std::endl;
+#endif
+  qreg_snapshots[key] = qreg;
 }
 
 template <class StateType> void BaseBackend<StateType>::load_state(uint_t key) {
