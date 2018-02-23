@@ -40,7 +40,7 @@ class Qasm(object):
         return self._filename
 
     def get_tokens(self):
-        """Parse and print tokens."""
+        """Returns a generator of the tokens."""
         if self._filename:
             self._data = open(self._filename).read()
 

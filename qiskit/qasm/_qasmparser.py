@@ -1048,7 +1048,7 @@ class QasmParser(object):
         return column
 
     def get_tokens(self):
-        """Test method to verify tokenizer."""
+        """Returns a generator of the tokens."""
         try:
             while True:
                 token = self.lexer.token()
