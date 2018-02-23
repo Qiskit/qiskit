@@ -22,21 +22,30 @@ Visualization functions for quantum states.
 import itertools
 import operator
 import re
+import os
+import subprocess
+import tempfile
+import logging
 from collections import Counter, OrderedDict
 from functools import reduce
 from io import StringIO
 
-
+import numpy as np
+from scipy import linalg as la
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.patches import FancyArrowPatch
-import numpy as np
 from mpl_toolkits.mplot3d import proj3d
-from scipy import linalg as la
+try:
+    from PIL import Image, ImageChops
+except ImportError:
+    Image = None
+    ImageChops = None
 
 from qiskit import qasm, unroll, QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 
+logger = logging.getLogger(__name__)
 
 ###############################################################
 # Plotting histogram
@@ -672,6 +681,74 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 # Plotting circuit
 ###############################################################
+
+
+def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
+    """Plot and show circuit (opens new window, cannot inline in Jupyter)
+    Defaults to an overcomplete basis, in order to not alter gates.
+    Requires pdflatex installed (to compile Latex)
+    Requires Qcircuit latex package (to compile latex)
+    Requires poppler installed (to convert pdf to png)
+    Requires pillow python package to handle images
+    """
+    im = circuit_drawer(circuit, basis)
+    if im:
+        im.show()
+
+
+def circuit_drawer(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
+    """Obtain the circuit in image format (output can be inlined in Jupyter)
+    Defaults to an overcomplete basis, in order to not alter gates.
+    Requires pdflatex installed (to compile Latex)
+    Requires Qcircuit latex package (to compile latex)
+    Requires poppler installed (to convert pdf to png)
+    Requires pillow python package to handle images
+    """
+    filename = 'circuit'
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
+        im = None
+        try:
+            subprocess.run(["pdflatex", "-interaction=batchmode",
+                            "-output-directory={}".format(tmpdirname),
+                            "{}".format(filename + '.tex')],
+                           stdout=subprocess.DEVNULL, check=True)
+        except OSError as e:
+            if e.errno == os.errno.ENOENT:
+                logger.warning('WARNING: Unable to compile latex; `pdflatex` not installed. '
+                               'Skipping circuit drawing...')
+        except subprocess.CalledProcessError as e:
+            logger.warning('WARNING: Unable to compile latex; `Qcircuit` package not installed. '
+                           'Skipping circuit drawing...')
+        else:
+            try:
+                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
+                                "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
+                im = Image.open(filename + ".png")
+                im = trim(im)
+                os.remove(filename + ".png")
+            except OSError as e:
+                if e.errno == os.errno.ENOENT:
+                    logger.warning('WARNING: Unable to convert pdf; `poppler` not installed. '
+                                   'Skipping circuit drawing...')
+                else:
+                    raise
+            except AttributeError:
+                logger.warning('WARNING: `pillow` package not installed. '
+                               'Skipping circuit drawing...')
+    return im
+
+
+def trim(im):
+    """Trim image and remove white space
+    """
+    bg = Image.new(im.mode, im.size, im.getpixel((0, 0)))
+    diff = ImageChops.difference(im, bg)
+    diff = ImageChops.add(diff, diff, 2.0, -100)
+    bbox = diff.getbbox()
+    if bbox:
+        im = im.crop(bbox)
+    return im
 
 
 def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):

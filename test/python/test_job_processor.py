@@ -16,11 +16,11 @@
 # limitations under the License.
 # =============================================================================
 
-import os
 import pprint
 import unittest
 
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister, QISKitError)
 from qiskit import _openquantumcompiler as openquantumcompiler
@@ -29,7 +29,7 @@ import qiskit.backends
 from qiskit import QuantumJob
 
 from ._random_circuit_generator import RandomCircuitGenerator
-from .common import QiskitTestCase, TRAVIS_FORK_PULL_REQUEST
+from .common import requires_qe_access, QiskitTestCase
 
 
 def mock_run_local_backend(self):
@@ -39,22 +39,12 @@ def mock_run_local_backend(self):
 
 class TestJobProcessor(QiskitTestCase):
     """
-    Test job_pocessor module.
+    Test job_processor module.
     """
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-        try:
-            import Qconfig
-            cls.QE_TOKEN = Qconfig.APItoken
-            cls.QE_URL = Qconfig.config['url']
-        except ImportError:
-            if 'QE_TOKEN' in os.environ:
-                cls.QE_TOKEN = os.environ['QE_TOKEN']
-            if 'QE_URL' in os.environ:
-                cls.QE_URL = os.environ['QE_URL']
 
         n_circuits = 20
         min_depth = 1
@@ -68,11 +58,6 @@ class TestJobProcessor(QiskitTestCase):
                                                  max_depth=max_depth)
         random_circuits.add_circuits(n_circuits)
         cls.rqg = random_circuits
-        if hasattr(cls, 'QE_TOKEN'):
-            cls._api = IBMQuantumExperience(cls.QE_TOKEN,
-                                            {"url": cls.QE_URL},
-                                            verify=True)
-            qiskit.backends.discover_remote_backends(cls._api)
 
     def setUp(self):
         self.seed = 88
@@ -113,6 +98,10 @@ class TestJobProcessor(QiskitTestCase):
                      ]}
         self.job_processor_exception = Exception()
         self.job_processor_finished = False
+
+    def _init_api(self, QE_TOKEN, QE_URL):
+        api = IBMQuantumExperience(QE_TOKEN, {"url": QE_URL}, verify=True)
+        qiskit.backends.discover_remote_backends(api)
 
     def test_load_unroll_qasm_file(self):
         _ = openquantumcompiler.load_unroll_qasm_file(self.qasm_filename)
@@ -156,8 +145,10 @@ class TestJobProcessor(QiskitTestCase):
                                  backend='local_unitary_simulator')
         jobprocessor.run_backend(quantum_job)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_run_remote_simulator(self):
+    @requires_qe_access
+    def test_run_remote_simulator(self, QE_TOKEN, QE_URL):
+        self._init_api(QE_TOKEN, QE_URL)
+
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend='ibmqx_qasm_simulator')
@@ -168,8 +159,10 @@ class TestJobProcessor(QiskitTestCase):
                                  backend='local_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_run_remote_simulator_compile(self):
+    @requires_qe_access
+    def test_run_remote_simulator_compile(self, QE_TOKEN, QE_URL):
+        self._init_api(QE_TOKEN, QE_URL)
+
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend='ibmqx_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
@@ -193,8 +186,10 @@ class TestJobProcessor(QiskitTestCase):
         jp = jobprocessor.JobProcessor(job_list, callback=None)
         jp.submit()
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_run_job_processor_online(self):
+    @requires_qe_access
+    def test_run_job_processor_online(self, QE_TOKEN, QE_URL):
+        self._init_api(QE_TOKEN, QE_URL)
+
         njobs = 1
         job_list = []
         for _ in range(njobs):
@@ -205,8 +200,10 @@ class TestJobProcessor(QiskitTestCase):
         jp = jobprocessor.JobProcessor(job_list, callback=None)
         jp.submit()
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_quantum_program_online(self):
+    @requires_qe_access
+    def test_quantum_program_online(self, QE_TOKEN, QE_URL):
+        self._init_api(QE_TOKEN, QE_URL)
+
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', 2)
         cr = qp.create_classical_register('cr', 2)
@@ -215,7 +212,7 @@ class TestJobProcessor(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         backend = 'ibmqx_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
-        qp.set_api(self.QE_TOKEN, self.QE_URL)
+        qp.set_api(QE_TOKEN, QE_URL)
         _ = qp.execute(['qc'], backend=backend, shots=shots, seed=78)
 
     def test_run_job_processor_local_parallel(self):
@@ -263,8 +260,8 @@ class TestJobProcessor(QiskitTestCase):
         jp = jobprocessor.JobProcessor(job_list, max_workers=1, callback=None)
         jp.submit()
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_mix_local_remote_jobs(self):
+    @requires_qe_access
+    def test_mix_local_remote_jobs(self, QE_TOKEN, QE_URL):
         """test mixing local and remote jobs
 
         Internally local jobs execute in seperate processes since
@@ -272,6 +269,8 @@ class TestJobProcessor(QiskitTestCase):
         since they are I/O bound. The module gets results from potentially
         both kinds in one list. Test that this works.
         """
+        self._init_api(QE_TOKEN, QE_URL)
+
         njobs = 6
         job_list = []
         backend_type = ['local_qasm_simulator', 'ibmqx_qasm_simulator']
@@ -324,8 +323,10 @@ class TestJobProcessor(QiskitTestCase):
         if self.job_processor_exception:
             raise self.job_processor_exception
 
-    @unittest.skipIf(TRAVIS_FORK_PULL_REQUEST, 'Travis fork pull request')
-    def test_backend_not_found(self):
+    @requires_qe_access
+    def test_backend_not_found(self, QE_TOKEN, QE_URL):
+        self._init_api(QE_TOKEN, QE_URL)
+
         compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
         job = QuantumJob(compiled_circuit,
                          backend='non_existing_backend')
