@@ -18,10 +18,10 @@
 """Test for the QASM parser"""
 
 import unittest
+import ply
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm._node._node import Node
-import ply
 
 from .common import QiskitTestCase
 
@@ -84,6 +84,7 @@ class TestParser(QiskitTestCase):
         qasm = Qasm(self.QASM_FILE_PATH)
         for token in qasm.get_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
+
 
 if __name__ == '__main__':
     unittest.main()
