@@ -30,6 +30,7 @@ limitations under the License.
 #include <vector>
 
 #include "base_backend.hpp"
+#include "qubit_vector.hpp"
 
 namespace QISKIT {
 
@@ -39,18 +40,19 @@ namespace QISKIT {
  *
  ******************************************************************************/
 
-class IdealBackend : public BaseBackend<cvector_t> {
+class IdealBackend : public BaseBackend<QubitVector> {
 
 public:
   /************************
    * Constructors
    ************************/
 
-  IdealBackend() : BaseBackend<cvector_t>(){};
+  IdealBackend() : BaseBackend<QubitVector>(){};
 
   /************************
    * BaseBackend Methods
    ************************/
+  void set_config(json_t &config);
   virtual void initialize(const Circuit &prog);
   virtual void qc_operation(const operation &op);
 
@@ -60,27 +62,27 @@ public:
 
   const static gateset_t gateset;
 
-  /************************
-   * Measurement probabilities
-   ************************/
-  /*template <size_t N>
-  std::discrete_distribution<> measure_probs(const std::array<uint_t, N> qs,
-                                             const cvector_t &state);
-                                             */
 
 protected:
-  MultiPartiteIndex idx; // Indexing class
-  uint_t nstates;        // dimension of wavefunction
 
   /************************
    * Apply matrices
    ************************/
-  void qc_matrix1(const uint_t qubit, const cmatrix_t &U);
-  inline void qc_matrix2(const uint_t q0, const uint_t q1, const cmatrix_t &U) {
-    qc_matrix<2>({{q0, q1}}, U);
+  cvector_t vectorize_matrix(const cmatrix_t &mat) const;
+
+  void qc_matrix1(const uint_t qubit, const cmatrix_t &U) {
+    qreg.apply_matrix(qubit, vectorize_matrix(U));
   };
-  template <size_t N>
-  void qc_matrix(const std::array<uint_t, N> qs, const cmatrix_t &U);
+  void qc_matrix2(const uint_t qubit0, const uint_t qubit1, const cmatrix_t &U){
+    qreg.apply_matrix<2>({{qubit0, qubit1}}, vectorize_matrix(U));
+  };
+
+  inline void qc_matrix1(const uint_t qubit, const cvector_t &U) {
+    qreg.apply_matrix(qubit, U);
+  };
+  inline void qc_matrix2(const uint_t qubit0, const uint_t qubit1, const cvector_t &U) {
+    qreg.apply_matrix<2>({{qubit0, qubit1}}, U);
+  };
 
   /************************
    * Measurement and Reset
@@ -89,14 +91,14 @@ protected:
   virtual void qc_reset(const uint_t qubit, const uint_t state = 0);
   virtual void qc_measure(const uint_t qubit, const uint_t bit);
   virtual std::pair<uint_t, double> qc_measure_outcome(const uint_t qubit);
-  virtual void qc_measure_reset(const uint_t qubit, const uint_t reset_state,
-                                const std::pair<uint_t, double> meas_outcome);
 
   /************************
    * 1-Qubit Gates
    ************************/
   virtual cmatrix_t waltz_matrix(const double theta, const double phi,
                                  const double lambda);
+  virtual cvector_t waltz_vectorized_matrix(const double theta, const double phi,
+                                            const double lambda);
   virtual void qc_gate(const uint_t qubit, const double theta, const double phi,
                        const double lambda);
   virtual void qc_gate_x(const uint_t qubit);
@@ -114,49 +116,35 @@ protected:
 
 /*******************************************************************************
  *
- * Convert from JSON
- *
- ******************************************************************************/
-
-inline void from_json(const json_t &config, IdealBackend &be) {
-  be = IdealBackend();
-
-  // Set OMP threshold for state update functions
-  uint_t threshold = 20;
-  JSON::get_value(threshold, "theshold_threads_gates", config);
-  be.set_omp_threshold(threshold);
-
-  // parse initial state from JSON
-  if (JSON::check_key("initial_state", config)) {
-    cvector_t initial_state = config["initial_state"];
-    bool renorm_initial_state = true;
-    JSON::get_value(renorm_initial_state, "renorm", config);
-    JSON::get_value(renorm_initial_state, "renorm_initial_state", config);
-    if (renorm_initial_state)
-      renormalize(initial_state);
-    if (initial_state.empty() == false)
-      be.set_initial_state(initial_state);
-  }
-}
-
-/*******************************************************************************
- *
  * BaseBackend methods
  *
  ******************************************************************************/
 
+void IdealBackend::set_config(json_t &config) {
+  // Set OMP threshold for state update functions
+  uint_t num_qubits_omp_threshold = 20; // default threshold
+  JSON::get_value(num_qubits_omp_threshold, "theshold_threads_gates", config);
+  qreg.set_omp_threshold(num_qubits_omp_threshold);
+  
+  // parse initial state from JSON
+  if (JSON::check_key("initial_state", config)) {
+    QubitVector initial_state = config["initial_state"].get<cvector_t>();
+    bool renorm_initial_state = true;
+    JSON::get_value(renorm_initial_state, "renorm", config);
+    JSON::get_value(renorm_initial_state, "renorm_initial_state", config);
+    if (renorm_initial_state)
+      initial_state.renormalize();
+      //renormalize(initial_state);
+    if (initial_state.qubits() > 0)
+      set_initial_state(initial_state);
+  }
+}
+
 void IdealBackend::initialize(const Circuit &prog) {
 
-  // system parameters
-  omp_flag = (prog.nqubits > omp_threshold); // OpenMP threshold
-  nstates = 1ULL << prog.nqubits;
-
-  creg.assign(prog.nclbits, 0);
-  qreg_saved.erase(qreg_saved.begin(), qreg_saved.end());
-
   if (qreg_init_flag) {
-    if (qreg_init.size() == nstates)
-      // reset state std::vector to custom state
+    if (qreg_init.size() == (1ULL << prog.nqubits))
+      // reset state to custom state
       qreg = qreg_init;
     else {
       std::string msg = "initial state is wong size for the circuit";
@@ -164,9 +152,18 @@ void IdealBackend::initialize(const Circuit &prog) {
     }
   } else {
     // reset state std::vector to default state
-    qreg.assign(nstates, 0.);
-    qreg[0] = 1.;
+    qreg = QubitVector(prog.nqubits);
+    qreg.initialize();
   }
+
+  // OpenMP settings
+  qreg.set_omp_threshold(omp_threshold);
+  qreg.set_omp_threads(omp_threads);
+
+  // TODO: make a ClassicalRegister class using BinaryVector
+  creg.assign(prog.nclbits, 0);
+  qreg_saved.erase(qreg_saved.begin(), qreg_saved.end());
+  qreg_snapshots.erase(qreg_snapshots.begin(), qreg_snapshots.end());
 }
 
 void IdealBackend::qc_operation(const operation &op) {
@@ -237,12 +234,15 @@ void IdealBackend::qc_operation(const operation &op) {
     qc_cz(op.qubits[0], op.qubits[1]);
     break;
   // ZZ rotation by angle lambda
-  case gate_t::UZZ:
+  case gate_t::RZZ:
     qc_zzrot(op.qubits[0], op.qubits[1], op.params[0]);
     break;
   case gate_t::Wait:
     break;
   // Commands
+  case gate_t::Snapshot:
+    snapshot_state(op.params[0]);
+    break;
   case gate_t::Save:
     save_state(op.params[0]);
     break;
@@ -293,8 +293,9 @@ const gateset_t IdealBackend::gateset({// Core gates
                                        // Two-qubit gates
                                        {"cx", gate_t::CX},
                                        {"cz", gate_t::CZ},
-                                       {"uzz", gate_t::UZZ},
+                                       {"rzz", gate_t::RZZ},
                                        // Simulator commands
+                                       {"snapshot", gate_t::Snapshot},
                                        {"noise", gate_t::Noise},
                                        {"save", gate_t::Save},
                                        {"load", gate_t::Load}});
@@ -303,63 +304,13 @@ const gateset_t IdealBackend::gateset({// Core gates
 // Unitary Matrices
 //------------------------------------------------------------------------------
 
-void IdealBackend::qc_matrix1(const uint_t qubit, const cmatrix_t &U) {
-// apply an arbitary 1-qubit operator to a qubit
-#ifdef DEBUG
-  std::stringstream ss;
-  ss << "DEBUG IdealBackend::qc_matrix1(" << qubit << ")";
-  std::clog << ss.str() << std::endl;
-#endif
-
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto k = k1 | k2;
-        const auto cache0 = qreg[k];
-        const auto cache1 = qreg[k | end2];
-        qreg[k] = U(0, 0) * cache0 + U(0, 1) * cache1;
-        qreg[k | end2] = U(1, 0) * cache0 + U(1, 1) * cache1;
-      }
-  }
-}
-
-template <size_t N>
-void IdealBackend::qc_matrix(const std::array<uint_t, N> qs,
-                             const cmatrix_t &U) {
-
-#ifdef DEBUG
-  std::stringstream ss;
-  ss << "DEBUG IdealBackend::qc_matrix<" << N << ">(" << qs << ")";
-  std::clog << ss.str() << std::endl;
-#endif
-
-  const uint_t end = nstates >> N;
-  const uint_t dim = 1ULL << N;
-  auto qss = qs;
-  std::sort(qss.begin(), qss.end());
-  const auto &qs_srt = qss;
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for
-    for (size_t k = 0; k < end; k++) {
-      // store entries touched by U
-      const auto inds = idx.indexes(qs, qs_srt, k);
-      std::array<complex_t, dim> cache;
-      for (size_t i = 0; i < dim; i++) {
-        const auto ii = inds[i];
-        cache[i] = qreg[ii];
-        qreg[ii] = 0.;
-      }
-      for (size_t i = 0; i < dim; i++)
-        for (size_t j = 0; j < dim; j++)
-          qreg[inds[i]] += U(i, j) * cache[j];
-    }
-  }
+cvector_t IdealBackend::vectorize_matrix(const cmatrix_t &mat) const {
+  // Assumes matrices are stored as column-major vectors
+  cvector_t ret;
+  ret.reserve(mat.size());
+  for (size_t j=0; j < mat.size(); j++)
+    ret.push_back(mat[j]);
+  return ret;
 }
 
 //------------------------------------------------------------------------------
@@ -374,7 +325,7 @@ void IdealBackend::qc_gate(const uint_t qubit, const double theta,
      << lambda << "})";
   std::clog << ss.str() << std::endl;
 #endif
-  qc_matrix1(qubit, waltz_matrix(theta, phi, lambda));
+  qreg.apply_matrix(qubit, waltz_vectorized_matrix(theta, phi, lambda));
 }
 
 void IdealBackend::qc_gate_x(const uint_t qubit) {
@@ -383,22 +334,7 @@ void IdealBackend::qc_gate_x(const uint_t qubit) {
   ss << "DEBUG IdealBackend::qc_gate_x(" << qubit << ")";
   std::clog << ss.str() << std::endl;
 #endif
-
-  // Optimized ideal Pauli-X gate
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto i0 = k1 | k2;
-        const auto i1 = i0 | end2;
-        const complex_t cache = qreg[i0];
-        qreg[i0] = qreg[i1]; // U(0,1)
-        qreg[i1] = cache;    // U(1,0)
-      }
-  }
+  qreg.apply_x(qubit);
 }
 
 void IdealBackend::qc_gate_y(const uint_t qubit) {
@@ -408,22 +344,7 @@ void IdealBackend::qc_gate_y(const uint_t qubit) {
   ss << "DEBUG IdealBackend::qc_gate_y(" << qubit << ")";
   std::clog << ss.str() << std::endl;
 #endif
-  // Optimized ideal Pauli-Y gate
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  const complex_t I(0., 1.);
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto i0 = k1 | k2;
-        const auto i1 = i0 | end2;
-        const complex_t cache = qreg[i0];
-        qreg[i0] = -I * qreg[i1]; // U(0,1)
-        qreg[i1] = I * cache;     // U(1,0)
-      }
-  }
+  qreg.apply_y(qubit);
 }
 
 void IdealBackend::qc_phase(const uint_t qubit, const complex_t phase) {
@@ -433,19 +354,7 @@ void IdealBackend::qc_phase(const uint_t qubit, const complex_t phase) {
   ss << "DEBUG IdealBackend::qc_phase(" << qubit << ", " << phase << ")";
   std::clog << ss.str() << std::endl;
 #endif
-
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto i1 = k1 | k2 | end2;
-        qreg[i1] *= phase;
-      }
-  }
+  qreg.apply_matrix(qubit, cvector_t({1., phase}));
 }
 
 void IdealBackend::qc_zrot(const uint_t qubit, const double lambda) {
@@ -455,20 +364,7 @@ void IdealBackend::qc_zrot(const uint_t qubit, const double lambda) {
   ss << "DEBUG IdealBackend::qc_zrot(" << qubit << ",{" << lambda << "})";
   std::clog << ss.str() << std::endl;
 #endif
-
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  const complex_t phase = exp(complex_t(0, lambda));
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto i1 = k1 | k2 | end2;
-        qreg[i1] *= phase;
-      }
-  }
+  qreg.apply_matrix(qubit, cvector_t({1., exp(complex_t(0, lambda))}));
 }
 
 //------------------------------------------------------------------------------
@@ -482,24 +378,7 @@ void IdealBackend::qc_cnot(const uint_t q_ctrl, const uint_t q_trgt) {
   ss << "DEBUG IdealBackend::qc_cnot(" << q_ctrl << ", " << q_trgt << ")";
   std::clog << ss.str() << std::endl;
 #endif
-
-  const uint_t end = nstates >> 2;
-  const auto qs_srt = (q_ctrl < q_trgt)
-                          ? std::array<uint_t, 2>{{q_ctrl, q_trgt}}
-                          : std::array<uint_t, 2>{{q_trgt, q_ctrl}};
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for
-    for (size_t k = 0; k < end; k++) {
-      const auto i0 = idx.index0(qs_srt, k);
-      const auto i1 = i0 | idx.bits[q_ctrl];
-      const auto i3 = i1 | idx.bits[q_trgt];
-      const complex_t cache = qreg[i3];
-      qreg[i3] = qreg[i1];
-      qreg[i1] = cache;
-    }
-  } // end omp parallel
+  qreg.apply_cnot(q_ctrl, q_trgt);
 }
 
 void IdealBackend::qc_cz(const uint_t q_ctrl, const uint_t q_trgt) {
@@ -509,48 +388,23 @@ void IdealBackend::qc_cz(const uint_t q_ctrl, const uint_t q_trgt) {
   ss << "DEBUG IdealBackend::qc_cz(" << q_ctrl << ", " << q_trgt << ")";
   std::clog << ss.str() << std::endl;
 #endif
-
-  const uint_t end = nstates >> 2;
-  const auto qs_srt = (q_ctrl < q_trgt)
-                          ? std::array<uint_t, 2>{{q_ctrl, q_trgt}}
-                          : std::array<uint_t, 2>{{q_trgt, q_ctrl}};
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for
-    for (uint_t k = 0; k < end; k++) {
-      const auto i0 = idx.index0(qs_srt, k);
-      const auto i3 = i0 | idx.bits[q_ctrl] | idx.bits[q_trgt];
-      qreg[i3] *= -1.;
-    }
-  }
+  qreg.apply_cz(q_ctrl, q_trgt);
 }
 
 void IdealBackend::qc_zzrot(const uint_t q0, const uint_t q1,
                             const double lambda) {
-// optimized ZZ rotation (see useful_matrices.RZZ)
+// optimized ZZ rotation
+// Has overall global phase set so that
+// uzz(lambda) = exp(i*lambda/2) * exp(-I*lambda*(ZZ /2))
+// OR equivalently uzz(lambda) q0, q1; = cx q0, q1; u1 q1; cx q0, q1;
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG IdealBackend::qc_zzrot(" << q0 << ", " << q1 << ")";
   std::clog << ss.str() << std::endl;
 #endif
-
-  const uint_t end = nstates >> 2;
-  const auto qs_srt = (q0 < q1) ? std::array<uint_t, 2>{{q0, q1}}
-                                : std::array<uint_t, 2>{{q1, q0}};
-  const complex_t phase = exp(complex_t(0, lambda / 2.));
-
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-  {
-#pragma omp for
-    for (uint_t k = 0; k < end; k++) {
-      const auto i0 = idx.index0(qs_srt, k);
-      const auto i1 = i0 | idx.bits[q0];
-      const auto i2 = i0 | idx.bits[q1];
-      qreg[i1] *= phase;
-      qreg[i2] *= phase;
-    }
-  }
+  const complex_t one(1.0, 0);
+  const complex_t phase = exp(complex_t(0, lambda));
+  qreg.apply_matrix<2>({{q0, q1}}, cvector_t({one, phase, phase, one}));
 }
 
 //------------------------------------------------------------------------------
@@ -567,6 +421,16 @@ cmatrix_t IdealBackend::waltz_matrix(double theta, double phi, double lambda) {
   return U;
 }
 
+cvector_t IdealBackend::waltz_vectorized_matrix(double theta, double phi, double lambda) {
+  const complex_t I(0., 1.);
+  cvector_t U(4);
+  U[0] = std::cos(theta / 2.);
+  U[2] = -std::exp(I * lambda) * std::sin(theta / 2.);
+  U[1] = std::exp(I * phi) * std::sin(theta / 2.);
+  U[3] = std::exp(I * (phi + lambda)) * std::cos(theta / 2.);
+  return U;
+}
+
 //------------------------------------------------------------------------------
 // Measurement
 //------------------------------------------------------------------------------
@@ -580,8 +444,22 @@ void IdealBackend::qc_measure(const uint_t qubit, const uint_t cbit) {
 
   // Actual measurement outcome
   const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);
-  creg[cbit] = meas.first; // Update register with noisy outcome
-  qc_measure_reset(qubit, meas.first, meas);
+  creg[cbit] = meas.first; // Update register outcome
+
+  // Implement measurement                                            
+  cvector_t mdiag(2, 0.);
+  mdiag[meas.first] = 1. / std::sqrt(meas.second);
+  qreg.apply_matrix(qubit, mdiag);
+}
+
+std::pair<uint_t, double> IdealBackend::qc_measure_outcome(const uint_t qubit) {
+
+  // Probability of P0 outcome
+  double p0 = qreg.probability(qubit, 0);
+  rvector_t probs = {p0, 1. - p0};
+  // randomly pick outcome
+  const uint_t n = rng.rand_int(probs); 
+  return std::pair<uint_t, double>(n, probs[n]);
 }
 
 //------------------------------------------------------------------------------
@@ -595,148 +473,16 @@ void IdealBackend::qc_reset(const uint_t qubit, const uint_t state) {
   std::clog << ss.str() << std::endl;
 #endif
   // Simulate unobserved measurement
-  qc_measure_reset(qubit, state, qc_measure_outcome(qubit));
+  const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);                                          
+  cvector_t mdiag(2, 0.);
+  mdiag[meas.first] = 1. / std::sqrt(meas.second);
+  qreg.apply_matrix(qubit, mdiag);
+
+  // if reset state disagrees with measurement outcome flip the qubit
+  if (state != meas.first)
+    qreg.apply_x(qubit);
 }
 
-//------------------------------------------------------------------------------
-// Measurement Outcome and probability of outcome
-//------------------------------------------------------------------------------
-
-std::pair<uint_t, double> IdealBackend::qc_measure_outcome(const uint_t qubit) {
-#ifdef DEBUG
-  std::stringstream ss;
-  ss << "DEBUG IdealBackend::qc_measure_outcome(" << qubit << ")";
-  std::clog << ss.str() << std::endl;
-#endif
-
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  double p0 = 0.;
-#pragma omp parallel reduction(+ : p0) if (omp_flag &&omp_threads > 1)         \
-                                               num_threads(omp_threads)
-  {
-#pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
-        const auto v = qreg[k1 | k2];
-        p0 += std::real(std::conj(v) * v);
-      }
-  }
-
-  rvector_t probs = {p0, 1. - p0};
-
-  const uint_t n = rng.rand_int(probs); // randomly pick outcome
-  std::pair<uint_t, double> result(n, probs[n]);
-  return result;
-}
-
-//------------------------------------------------------------------------------
-// Post-Measurement Reset
-//------------------------------------------------------------------------------
-void IdealBackend::qc_measure_reset(const uint_t qubit,
-                                    const uint_t reset_state,
-                                    std::pair<uint_t, double> meas_result) {
-#ifdef DEBUG
-  std::stringstream ss;
-  ss << "DEBUG IdealBackend::qc_meas_reset(" << qubit << ", " << reset_state
-     << ", " << meas_result << ")";
-  std::clog << ss.str() << std::endl;
-#endif
-
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  const double renorm = 1. / std::sqrt(meas_result.second);
-
-  switch (reset_state) {
-
-  case 0: {
-    // Reset to |0> State
-    if (meas_result.first == 0) { // Measurement outcome was 0
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-      {
-#pragma omp for collapse(2)
-        for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-          for (uint_t k2 = 0; k2 < end2; k2++) {
-            const auto i0 = k1 | k2;
-            const auto i1 = i0 | end2;
-            qreg[i0] *= renorm;
-            qreg[i1] = 0.;
-          }
-      }
-    } else { // Measurement outcome was 1
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-      {
-#pragma omp for collapse(2)
-        for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-          for (uint_t k2 = 0; k2 < end2; k2++) {
-            const auto i0 = k1 | k2;
-            const auto i1 = i0 | end2;
-            qreg[i0] = renorm * qreg[i1];
-            qreg[i1] = 0;
-          }
-      }
-    }
-  } break;
-
-  case 1: {
-    // Reset to |1> State
-    if (meas_result.first == 0) { // Measurement outcome was 0
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-      {
-#pragma omp for collapse(2)
-        for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-          for (uint_t k2 = 0; k2 < end2; k2++) {
-            const auto i0 = k1 | k2;
-            const auto i1 = i0 | end2;
-            qreg[i1] = renorm * qreg[i0];
-            qreg[i0] = 0;
-          }
-      }
-    } else { // Measurement outcome was 0
-#pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
-      {
-#pragma omp for collapse(2)
-        for (uint_t k1 = 0; k1 < nstates; k1 += step1)
-          for (uint_t k2 = 0; k2 < end2; k2++) {
-            const auto i0 = k1 | k2;
-            const auto i1 = i0 | end2;
-            qreg[i0] = 0.;
-            qreg[i1] *= renorm;
-          }
-      }
-    }
-  } break;
-
-  default:
-    std::stringstream msg;
-    msg << "invalid reset state '" << reset_state << "'";
-    throw std::runtime_error(msg.str());
-  }
-}
-
-/*
-// New multi-qubit measurement
-// Should move this and index functions out of class into a separate library
-template <size_t N>
-std::discrete_distribution<>
-IdealBackend::measure_probs(const std::array<uint_t, N> qs,
-                            const cvector_t &state) {
-  const size_t end = state.size() >> N;
-  auto qs_srt = qs;
-  std::sort(qs_srt.begin(), qs_srt.end());
-  auto probs = std::array<double, 1ULL << N>(); // initialize to all 0s;
-  // to add omp parallelization we would need to define a custom reduction
-  for (size_t k = 0; k < end; k++) {
-    const auto inds = index(qs, qs_srt, k);
-    for (size_t i = 0; i < (1ULL << N); i++) {
-      const auto q = state[inds[i]];
-      probs[i] += std::real(std::conj(q) * q);
-    }
-  }
-  std::discrete_distribution<> ret(probs.begin(), probs.end());
-  return ret;
-}
-*/
 //------------------------------------------------------------------------------
 } // end namespace QISKIT
 
