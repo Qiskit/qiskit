@@ -1,5 +1,5 @@
 {
-    "backend": "wood_simulator",
+    "backend": "local_clifford_simulator",
     "id": "tests_cx",
     "result": [{
             "data": {
@@ -23,7 +23,7 @@
                                 "phase": 0
                             }]
                     }],
-                "time_taken": 0.000152
+                "time_taken": 0.000133
             },
             "name": "h0cx01",
             "seed": 1,
@@ -52,7 +52,7 @@
                                 "phase": 0
                             }]
                     }],
-                "time_taken": 3.4e-05
+                "time_taken": 6.4e-05
             },
             "name": "h0cx10",
             "seed": 1,
@@ -81,7 +81,7 @@
                                 "phase": 0
                             }]
                     }],
-                "time_taken": 3.5e-05
+                "time_taken": 5.7e-05
             },
             "name": "h1cx01",
             "seed": 1,
@@ -110,7 +110,7 @@
                                 "phase": 0
                             }]
                     }],
-                "time_taken": 3.3e-05
+                "time_taken": 5.9e-05
             },
             "name": "h1cx10",
             "seed": 1,
@@ -121,5 +121,5 @@
     "simulator": "clifford",
     "status": "COMPLETED",
     "success": true,
-    "time_taken": 0.00031
+    "time_taken": 0.000387
 }

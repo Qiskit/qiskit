@@ -4,7 +4,7 @@
     "result": [{
             "data": {
                 "probabilities": [1.0, 0.0],
-                "time_taken": 0.000582
+                "time_taken": 0.000466
             },
             "name": "reset_in0_out0",
             "noise_params": null,
@@ -16,7 +16,7 @@
         }, {
             "data": {
                 "probabilities": [1.0, 0.0],
-                "time_taken": 0.000255
+                "time_taken": 0.000237
             },
             "name": "reset_in1_out0",
             "noise_params": null,
@@ -28,7 +28,7 @@
         }, {
             "data": {
                 "probabilities": [0.0, 1.0],
-                "time_taken": 0.000231
+                "time_taken": 0.000299
             },
             "name": "reset_in0_out1",
             "noise_params": {
@@ -42,7 +42,7 @@
         }, {
             "data": {
                 "probabilities": [0.0, 1.0],
-                "time_taken": 0.000306
+                "time_taken": 0.000259
             },
             "name": "reset_in1_out1",
             "noise_params": {
@@ -57,5 +57,5 @@
     "simulator": "qubit",
     "status": "COMPLETED",
     "success": true,
-    "time_taken": 0.00142
+    "time_taken": 0.001309
 }
