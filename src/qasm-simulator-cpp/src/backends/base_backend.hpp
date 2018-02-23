@@ -148,6 +148,14 @@ public:
   inline std::map<int, StateType> &access_snapshots() { return qreg_snapshots; };
 
   /**
+   * Returns a reference to the map of qreg state snapshots. These states are
+   * chached during execution of a QISKIT program by the "snapshot(j)" gate command.
+   * The keys of the map are the integer arguments j.
+   * @return a reference to qreg state snapshots
+   */
+  inline std::map<uint_t, StateType> &access_snapshots() { return qreg_snapshots; };
+
+  /**
    * Saves a copy of the current state of the qreg register to a map indexed by
    * the argument. If a saved state already exists for this key, the previous
    * value will be overwritten.
@@ -234,6 +242,12 @@ protected:
    * states can then be loaded as into qreg using the 'load_qreg' method.
    */
   std::map<int, StateType> qreg_snapshots;
+
+  /**
+   * Stores the saved qreg states from the 'save_state' method. These saved
+   * states can then be loaded as into qreg using the 'load_qreg' method.
+   */
+  std::map<uint_t, StateType> qreg_snapshots;
 
   /**
    * When set to 'true' this signals to the backend that when executing a QISKIT
