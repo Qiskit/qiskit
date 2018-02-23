@@ -24,6 +24,7 @@ limitations under the License.
 #define _circuit_h_
 
 #include <algorithm>
+#include <complex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -31,6 +32,7 @@ limitations under the License.
 
 #include "misc.hpp"
 #include "types.hpp"
+#include "noise_models.hpp"
 
 /***************************************************************************/ /**
   *
@@ -90,14 +92,14 @@ public:
   reglist clbit_labels;
   std::vector<operation> operations;
 
-  // new
+  
   reglist qubit_sizes;
   std::string name = "";
   int_t rng_seed = -1;   // backend rng seed
   uint_t shots = 1;      // number of simulation shots
   bool opt_meas = false; // true if all measurements at end
   json_t config;         // local config
-
+  QubitNoise noise;      // Noise parameters
   /**
    * Default Constructor
    */
@@ -208,6 +210,8 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
 
   // parse operations
   const json_t &ops = circuit["compiled_circuit"]["operations"];
+  if (ops.empty())
+    throw std::runtime_error(std::string("operations list is empty"));
   for (auto it = ops.begin(); it != ops.end(); ++it)
     operations.push_back(parse_op(*it, gs));
   opt_meas = check_opt_meas(); // check measurement optimization
@@ -227,6 +231,12 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
   // load config
   JSON::get_value(shots, "shots", config);
   JSON::get_value(rng_seed, "seed", config);
+  JSON::get_value(noise, "noise_params", config);
+  // Verify noise
+  if (noise.verify(2) == false) {
+    std::string msg = "invalid noise parameters";
+    throw std::runtime_error(msg);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -338,7 +348,13 @@ reglist Circuit::parse_reglist(const json_t &node) {
 
 //------------------------------------------------------------------------------
 bool Circuit::check_opt_meas() {
-  // find first instance of a measurement
+
+  // Optimization not available if reset operations are used
+  for (auto it = operations.cbegin(); it < operations.cend(); it++)
+    if (it->id == gate_t::Reset)
+      return false;
+  
+  // Find first instance of a measurement
   uint_t pos = 0;
   while (operations[pos].id != gate_t::Measure && pos < operations.size()) {
     pos++;

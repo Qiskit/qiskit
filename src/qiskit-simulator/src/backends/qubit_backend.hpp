@@ -28,7 +28,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-#include "base_backend.hpp"
+#include "ideal_backend.hpp"
 
 namespace QISKIT {
 
@@ -104,24 +104,6 @@ protected:
   cmatrix_t U_CZ_ideal;
 };
 
-/*******************************************************************************
- *
- * Convert from JSON
- *
- ******************************************************************************/
-
-inline void from_json(const json_t &config, QubitBackend &be) {
-  be = QubitBackend();
-  // load noise from JSON
-  if (JSON::check_key("noise_params", config)) {
-    QubitNoise noise = config["noise_params"];
-    be.attach_noise(noise);
-    if (noise.verify(2) == false) {
-      std::string msg = "invalid noise parameters";
-      throw std::runtime_error(msg);
-    }
-  }
-}
 
 /*******************************************************************************
  *
@@ -204,7 +186,7 @@ void QubitBackend::qc_operation(const operation &op) {
     qc_cz(op.qubits[0], op.qubits[1]);
     break;
   // ZZ rotation by angle lambda
-  case gate_t::UZZ:
+  case gate_t::RZZ:
     IdealBackend::qc_zzrot(op.qubits[0], op.qubits[1], op.params[0]);
     break;
   case gate_t::Wait:
@@ -212,6 +194,9 @@ void QubitBackend::qc_operation(const operation &op) {
       qc_relax(op.qubits[0], op.params[0]);
     break;
   // Commands
+  case gate_t::Snapshot:
+    snapshot_state(op.params[0]);
+    break;
   case gate_t::Save:
     save_state(op.params[0]);
     break;
@@ -298,16 +283,18 @@ void QubitBackend::qc_measure(const uint_t qubit, const uint_t cbit) {
     qc_matrix1_noise(qubit, pauli[0], gate_error("measure"));
   }
 
-  // Actual measurement outcome
-  auto meas = IdealBackend::qc_measure_outcome(qubit);
-
+  // Compute measurement outcome
+  const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);
   // Update register with noisy outcome
   creg[cbit] = (noise_flag && noise.readout.ideal == false)
                    ? measure_error(meas.first)
                    : meas.first;
 
-  // Actual measurement outcome
-  IdealBackend::qc_measure_reset(qubit, meas.first, meas);
+  // Implement measurement                                            
+  cvector_t mdiag(2, 0.);
+  mdiag[meas.first] = 1. / std::sqrt(meas.second);
+  qreg.apply_matrix(qubit, mdiag);
+
 }
 
 //------------------------------------------------------------------------------
@@ -401,7 +388,7 @@ void QubitBackend::qc_u2(const uint_t qubit, const double phi,
     const GateError &err = gate_error("X90");
     cmatrix_t U = noise_matrix1(U_X90_ideal, err);
     U = rz_matrix(phi + M_PI / 2.) * U * rz_matrix(lambda - M_PI / 2.);
-    qc_matrix1(qubit, U); // TODO fix
+    qc_matrix1(qubit, U);
     qc_relax(qubit, err.gate_time);
   } else {
     cmatrix_t U = waltz_matrix(M_PI / 2., phi, lambda);
