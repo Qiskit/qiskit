@@ -16,7 +16,6 @@
 # limitations under the License.
 # =============================================================================
 
-from sys import version_info
 import unittest
 
 from qiskit import QuantumProgram
