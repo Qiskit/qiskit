@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator single qubit wait gate.
+local_qasm_simulator command to save the quantum state.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -27,18 +27,18 @@ from qiskit._quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 
 
-class WaitGate(Gate):
-    """Wait gate."""
+class SaveGate(Gate):
+    """Simulator save operation."""
 
-    def __init__(self, t, qubit, circ=None):
-        """Create new wait gate."""
-        super().__init__("wait", [t], [qubit], circ)
+    def __init__(self, m, qubit, circ=None):
+        """Create new save gate."""
+        super().__init__("save", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        t = self.param[0]
-        return self._qasmif("wait(%f) %s[%d];" % (t,
+        m = self.param[0]
+        return self._qasmif("save(%d) %s[%d];" % (m,
                                                   qubit[0].name,
                                                   qubit[1]))
 
@@ -48,33 +48,33 @@ class WaitGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.wait(self.param[0], self.arg[0]))
+        self._modifiers(circ.save(self.param[0], self.arg[0]))
 
 
-def wait(self, t, q):
-    """Apply wait for time t to q."""
+def save(self, m, q):
+    """Cache the quantum state of local_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
-            gs.add(self.wait(t, (q, j)))
+            gs.add(self.save(m, (q, j)))
         return gs
     self._check_qubit(q)
-    return self._attach(WaitGate(t, q, self))
+    return self._attach(SaveGate(m, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
-QuantumCircuit.wait = wait
-CompositeGate.wait = wait
+QuantumCircuit.save = save
+CompositeGate.save = save
 
 
-# idle for time t (identity)
-QuantumCircuit.definitions["wait"] = {
+# cache quantum state (identity)
+QuantumCircuit.definitions["save"] = {
     "print": True,
     "opaque": False,
     "n_args": 1,
     "n_bits": 1,
-    "args": ["t"],
+    "args": ["m"],
     "bits": ["a"],
-    # gate wait(t) a { }
+    # gate save(m) a { }
     "body": node.GateBody([])
 }

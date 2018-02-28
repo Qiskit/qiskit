@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to save the quantum state.
+local_qasm_simulator command to load a saved quantum state.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -27,19 +27,18 @@ from qiskit._quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 
 
-class SaveGate(Gate):
-    """Simulator save operation."""
+class LoadGate(Gate):
+    """Simulator load operation."""
 
     def __init__(self, m, qubit, circ=None):
-        """Create new save gate."""
-        super().__init__("save", [m], [qubit], circ)
+        """Create new load gate."""
+        super().__init__("load", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         m = self.param[0]
-        return self._qasmif("save(%d) %s[%d];" % (m,
-                                                  qubit[0].name,
+        return self._qasmif("load(%d) %s[%d];" % (m, qubit[0].name,
                                                   qubit[1]))
 
     def inverse(self):
@@ -48,33 +47,33 @@ class SaveGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.save(self.param[0], self.arg[0]))
+        self._modifiers(circ.load(self.param[0], self.arg[0]))
 
 
-def save(self, m, q):
-    """Cache the quantum state of local_qiskit_simulator."""
+def load(self, m, q):
+    """Load cached quantum state of local_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
-            gs.add(self.save(m, (q, j)))
+            gs.add(self.load(m, (q, j)))
         return gs
     self._check_qubit(q)
-    return self._attach(SaveGate(m, q, self))
+    return self._attach(LoadGate(m, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
-QuantumCircuit.save = save
-CompositeGate.save = save
+QuantumCircuit.load = load
+CompositeGate.load = load
 
 
-# cache quantum state (identity)
-QuantumCircuit.definitions["save"] = {
+# command to load a saved state (identity)
+QuantumCircuit.definitions["load"] = {
     "print": True,
     "opaque": False,
     "n_args": 1,
     "n_bits": 1,
     "args": ["m"],
     "bits": ["a"],
-    # gate save(m) a { }
+    # gate load(m) a { }
     "body": node.GateBody([])
 }

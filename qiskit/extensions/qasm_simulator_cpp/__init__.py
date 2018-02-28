@@ -15,9 +15,9 @@
 # limitations under the License.
 # =============================================================================
 
-"""C++ qiskit_simulator gates."""
+"""C++ qasm_simulator gates."""
 from .load import load
 from .noise import noise
 from .save import save
-from .uzz import uzz
+from .rzz import rzz
 from .wait import wait

@@ -36,17 +36,17 @@ logger = logging.getLogger(__name__)
 
 EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 
-# Add path to compiled qiskit simulator
+# Add path to compiled qasm simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
+                    '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp' + EXTENSION),
     # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
+    os.path.abspath(os.path.dirname(__file__) + '/qasm_simulator_cpp' + EXTENSION),
 ]
 
 
-class QISKitCppSimulator(BaseBackend):
+class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
@@ -55,13 +55,13 @@ class QISKitCppSimulator(BaseBackend):
 
         if not configuration:
             self._configuration = {
-                'name': 'local_qiskit_simulator',
+                'name': 'local_qasm_simulator_cpp',
                 'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ realistic noise simulator for qobj files',
                 'coupling_map': 'all-to-all',
-                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz',
+                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,rzz',
             }
 
         # Try to use the default executable if not specified.
@@ -85,7 +85,7 @@ class QISKitCppSimulator(BaseBackend):
         return Result(result, qobj)
 
 
-class CliffordCppSimulator(BaseBackend):
+class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):

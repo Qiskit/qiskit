@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator two-qubit ZZ-rotation gate.
+local_qasm_simulator two-qubit ZZ-rotation gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -28,6 +28,7 @@ from qiskit.qasm import _node as node
 
 
 class RZZGate(Gate):
+    """Two-qubit ZZ rotation gate."""
 
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new rzz gate."""

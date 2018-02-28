@@ -24,7 +24,7 @@ import numpy as np
 from numpy.linalg import norm
 
 import qiskit
-import qiskit.backends._qiskit_cpp_simulator as qiskitsimulator
+import qiskit.backends._qasm_simulator_cpp as QasmSimulatorCpp
 import numpy as np
 from numpy.linalg import norm
 from qiskit import ClassicalRegister
@@ -35,7 +35,7 @@ from qiskit import _openquantumcompiler as openquantumcompiler
 from .common import QiskitTestCase
 
 
-class TestLocalQiskitSimulator(QiskitTestCase):
+class TestLocalQasmSimulatorCpp(QiskitTestCase):
     """
     Test job_processor module.
     """
@@ -64,7 +64,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
                      'config': {
                          'max_credits': 3,
                          'shots': 100,
-                         'backend': 'local_qiskit_simulator',
+                         'backend': 'local_qasm_simulator_cpp',
                          'seed': 1111
                      },
                      'circuits': [
@@ -82,35 +82,35 @@ class TestLocalQiskitSimulator(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend='local_qiskit_simulator',
+                                backend='local_qasm_simulator_cpp',
                                 preformatted=True)
 
     def test_x90_coherent_error_matrix(self):
         X90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
-        U = qiskitsimulator.x90_error_matrix(0., 0.).dot(X90)
+        U = QasmSimulatorCpp.x90_error_matrix(0., 0.).dot(X90)
         target = X90
         self.assertAlmostEqual(norm(U - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = qiskitsimulator.x90_error_matrix(np.pi / 2., 0.).dot(X90)
+        U = QasmSimulatorCpp.x90_error_matrix(np.pi / 2., 0.).dot(X90)
         target = -1j * np.array([[0, 1], [1, 0]])
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = qiskitsimulator.x90_error_matrix(0., np.pi / 2.).dot(X90)
+        U = QasmSimulatorCpp.x90_error_matrix(0., np.pi / 2.).dot(X90)
         target = np.array([[1., -1], [1, 1.]]) / np.sqrt(2.)
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = qiskitsimulator.x90_error_matrix(np.pi / 2, np.pi / 2.).dot(X90)
+        U = QasmSimulatorCpp.x90_error_matrix(np.pi / 2, np.pi / 2.).dot(X90)
         target = np.array([[0., -1], [1, 0.]])
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = qiskitsimulator.x90_error_matrix(0.02, -0.03)
+        U = QasmSimulatorCpp.x90_error_matrix(0.02, -0.03)
         self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(2)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_cx_coherent_error_matrix(self):
         CX = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
-        U = qiskitsimulator.cx_error_matrix(0., 0.).dot(CX)
+        U = QasmSimulatorCpp.cx_error_matrix(0., 0.).dot(CX)
         target = CX
         self.assertAlmostEqual(norm(U - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = qiskitsimulator.cx_error_matrix(np.pi / 2., 0.).dot(CX)
+        U = QasmSimulatorCpp.cx_error_matrix(np.pi / 2., 0.).dot(CX)
         target = np.array([[1, 0, 1j, 0],
                            [0, -1j, 0, 1],
                            [1j, 0, 1, 0],
@@ -122,7 +122,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
 
     def test_run_qobj(self):
         try:
-            simulator = qiskitsimulator.QISKitCppSimulator()
+            simulator = QasmSimulatorCpp.QISKitCppSimulator()
         except FileNotFoundError as fnferr:
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))
