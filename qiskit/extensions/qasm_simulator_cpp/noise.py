@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to toggle noise off or on.
+local_qasm_simulator command to toggle noise off or on.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -52,7 +52,7 @@ class NoiseGate(Gate):
 
 
 def noise(self, m, q):
-    """Cache the quantum state of local_qiskit_simulator."""
+    """Cache the quantum state of local_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):

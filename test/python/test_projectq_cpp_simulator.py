@@ -102,7 +102,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
                 self.assertTrue(key in ['0' * N, '1' * N])
 
     def test_random_circuits(self):
-        local_simulator = qasm_simulator.QasmSimulator()
+        local_simulator = qasm_simulator.QasmSimulatorPy()
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
             compiled_circuit = openquantumcompiler.compile(circuit)

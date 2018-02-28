@@ -400,8 +400,8 @@ void IdealBackend::qc_zzrot(const uint_t q0, const uint_t q1,
                             const double lambda) {
 // optimized ZZ rotation
 // Has overall global phase set so that
-// uzz(lambda) = exp(i*lambda/2) * exp(-I*lambda*(ZZ /2))
-// OR equivalently uzz(lambda) q0, q1; = cx q0, q1; u1 q1; cx q0, q1;
+// rzz(lambda) = exp(i*lambda/2) * exp(-I*lambda*(ZZ /2))
+// OR equivalently rzz(lambda) q0, q1; = cx q0, q1; u1 q1; cx q0, q1;
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG IdealBackend::qc_zzrot(" << q0 << ", " << q1 << ")";

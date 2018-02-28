@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator two-qubit ZZ-rotation gate.
+local_qasm_simulator two-qubit ZZ-rotation gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate

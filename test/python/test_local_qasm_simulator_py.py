@@ -27,14 +27,14 @@ import unittest
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
-from qiskit.backends._qasmsimulator import QasmSimulator
+from qiskit.backends._qasm_simulator_py import QasmSimulatorPy
 
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 
-class LocalQasmSimulatorTest(QiskitTestCase):
-    """Test local qasm simulator."""
+class TestLocalQasmSimulatorPy(QiskitTestCase):
+    """Test local_qasm_simulator_py."""
 
     @classmethod
     def setUpClass(cls):
@@ -66,7 +66,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                      'config': {
                          'max_credits': resources['max_credits'],
                          'shots': 1024,
-                         'backend': 'local_qasm_simulator',
+                         'backend': 'local_qasm_simulator_py',
                      },
                      'circuits': [
                          {
@@ -77,7 +77,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend='local_qasm_simulator',
+                                backend='local_qasm_simulator_py',
                                 circuit_config=circuit_config,
                                 seed=self.seed,
                                 resources=resources,
@@ -90,7 +90,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj['config']['shots'] = shots
-        result = QasmSimulator().run(self.q_job)
+        result = QasmSimulatorPy().run(self.q_job)
         self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
@@ -143,7 +143,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': 3,
                 'shots': shots,
-                'backend': 'local_qasm_simulator',
+                'backend': 'local_qasm_simulator_py',
             },
             'circuits': [
                 {
@@ -171,7 +171,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
             ]
         }
         q_job = QuantumJob(qobj, preformatted=True)
-        result = QasmSimulator().run(q_job)
+        result = QasmSimulatorPy().run(q_job)
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
         self.log.info(circuit_if_true.qasm())
@@ -210,7 +210,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        backend = 'local_qasm_simulator'
+        backend = 'local_qasm_simulator_py'
         qobj = qp.compile('teleport', backend=backend, shots=shots,
                           seed=self.seed)
         results = qp.run(qobj)
@@ -261,15 +261,15 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        backend='local_qasm_simulator',
+                        backend='local_qasm_simulator_py',
                         shots=shots)
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
-        self.log.info('------- start profiling QasmSimulator -----------')
+        self.log.info('------- start profiling QasmSimulatorPy -----------')
         ps.print_stats()
         self.log.info(sout.getvalue())
-        self.log.info('------- stop profiling QasmSimulator -----------')
+        self.log.info('------- stop profiling QasmSimulatorPy -----------')
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 
@@ -292,7 +292,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         fmt_str2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
         fmt_str3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits},' \
                    'shots={shots}'
-        backend_list = ['local_qasm_simulator', 'local_unitary_simulator']
+        backend_list = ['local_qasm_simulator_py', 'local_unitary_simulator']
         if shutil.which('qasm_simulator'):
             backend_list.append('local_qasm_cpp_simulator')
         else:
@@ -372,7 +372,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         fmt_str2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
         fmt_str3 = 'minDepth={minDepth}, maxDepth={maxDepth},' \
                    'num circuits={nCircuits}, shots={shots}'
-        backend_list = ['local_qasm_simulator', 'local_unitary_simulator']
+        backend_list = ['local_qasm_simulator_py', 'local_unitary_simulator']
         if shutil.which('qasm_simulator'):
             backend_list.append('local_qasm_cpp_simulator')
         else:
