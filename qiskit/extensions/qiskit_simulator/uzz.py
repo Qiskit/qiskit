@@ -17,17 +17,17 @@
 # =============================================================================
 
 """
-local_qiskit_simulator two-qubit ZZ-rotation gate.
+local_qasm_simulator two-qubit ZZ-rotation gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit import InstructionSet
+from qiskit import QuantumRegister
 
 
 class UZZGate(Gate):
-    """controlled-Z gate."""
+    """ZZ gate."""
 
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new uzz gate."""
@@ -53,7 +53,7 @@ class UZZGate(Gate):
 
 
 def uzz(self, theta, ctl, tgt):
-    """Apply CZ to circuit."""
+    """Apply UZZ to circuit."""
     if isinstance(ctl, QuantumRegister) and \
             isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
         # apply cx to qubits between two registers
@@ -73,4 +73,4 @@ CompositeGate.uzz = uzz
 
 # Add to QASM header for parsing
 QuantumCircuit.header += "\ngate uzz(theta) a, b {}" + \
-    "  // (local_qiskit_simulator) Uzz rotation by angle theta"
+    "  // (local_qasm_simulator) Uzz rotation by angle theta"

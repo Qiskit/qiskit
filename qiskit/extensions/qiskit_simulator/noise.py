@@ -17,13 +17,13 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to toggle noise off or on.
+local_qasm_simulator command to toggle noise off or on.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit import InstructionSet
+from qiskit import QuantumRegister
 
 
 class NoiseGate(Gate):
@@ -51,7 +51,7 @@ class NoiseGate(Gate):
 
 
 def noise(self, m, q):
-    """Cache the quantum state of locla_qiskit_simulator."""
+    """Cache the quantum state of locla_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
@@ -67,4 +67,4 @@ CompositeGate.noise = noise
 
 # Add to QASM header for parsing
 QuantumCircuit.header += "\ngate noise(m) a {}" + \
-    "  // (local_qiskit_simulator) switch noise off (0) or on (1)"
+    "  // (local_qasm_simulator) switch noise off (0) or on (1)"
