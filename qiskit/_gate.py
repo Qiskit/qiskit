@@ -38,7 +38,7 @@ class Gate(Instruction):
             if not isinstance(argument[0], QuantumRegister):
                 raise QISKitError("argument not (QuantumRegister, int) "
                                   + "tuple")
-        super(Gate, self).__init__(name, param, args, circuit)
+        super().__init__(name, param, args, circuit)
 
     def inverse(self):
         """Invert this gate."""

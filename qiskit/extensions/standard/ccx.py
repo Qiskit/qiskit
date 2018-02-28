@@ -29,7 +29,7 @@ class ToffoliGate(Gate):
 
     def __init__(self, ctl1, ctl2, tgt, circ=None):
         """Create new Toffoli gate."""
-        super(ToffoliGate, self).__init__("ccx", [], [ctl1, ctl2, tgt], circ)
+        super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

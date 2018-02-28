@@ -37,7 +37,7 @@ class CircuitBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        super(CircuitBackend, self).__init__(basis)
+        super().__init__(basis)
         self.creg = None
         self.cval = None
         if basis:

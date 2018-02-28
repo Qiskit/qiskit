@@ -45,7 +45,7 @@ class QeRemote(BaseBackend):
         Args:
             configuration (dict, optional): configuration of backend
         """
-        super(QeRemote, self).__init__(configuration)
+        super().__init__(configuration)
         self._configuration = configuration
         self._configuration['local'] = False
 
