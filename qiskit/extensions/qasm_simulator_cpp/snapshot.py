@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to snapshot the quantum state.
+local_qasm_simulator command to snapshot internal simulator representation.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
@@ -31,15 +31,14 @@ class SnapshotGate(Gate):
     """Simulator snapshot operation."""
 
     def __init__(self, m, qubit, circ=None):
-        """Create new snapshot gate."""
+        """Create new load gate."""
         super().__init__("snapshot", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         m = self.param[0]
-        return self._qasmif("snapshot(%d) %s[%d];" % (m,
-                                                      qubit[0].name,
+        return self._qasmif("snapshot(%d) %s[%d];" % (m, qubit[0].name,
                                                       qubit[1]))
 
     def inverse(self):
@@ -52,7 +51,7 @@ class SnapshotGate(Gate):
 
 
 def snapshot(self, m, q):
-    """Cache the quantum state of local_qiskit_simulator."""
+    """Report a snapshot of the internal representation in local_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
@@ -67,7 +66,7 @@ QuantumCircuit.snapshot = snapshot
 CompositeGate.snapshot = snapshot
 
 
-# cache quantum state (identity)
+# Snapshot quantum state (identity)
 QuantumCircuit.definitions["snapshot"] = {
     "print": True,
     "opaque": False,

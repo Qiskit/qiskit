@@ -1,4 +1,4 @@
-# QISKit Simulator
+# QASM Simulator
 ## A C++ quantum circuit simulator with realistic noise
 
 Copyright (c) 2017 IBM Corporation. All Rights Reserved.
@@ -9,7 +9,7 @@ Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 
 ### Description
 
-*QISKit Simulator* is quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Software Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-sdk-py).
+*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Software Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-sdk-py).
 
 ## Contents
 
@@ -109,14 +109,14 @@ cat input.json | ./qasm_simulator_cpp -
 
 ### Running in Python
 
-The simulator may be called from Python 3 by importing `qiskit/backends/_qiskit_cpp_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
+The simulator may be called from Python 3 by importing `qiskit/backends/_qasm_simulator_cpp.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
 # Set the path and file for the simulator executable
-SIM_EXECUTABLE = '/path/to/simulator/executable/qiskit_simulator'
+SIM_EXECUTABLE = '/path/to/simulator/executable/qasm_simulator_cpp'
 
 # Import simulator
-import qiskit.backends._qiskit_cpp_simulator as qs
+import qiskit.backends._qasm_simulator_cpp as qs
 
 # Run a qobj on the simulator
 qobj = {...}  # qobj as a Python dictionary
@@ -129,7 +129,7 @@ result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 This simulator can also be used as a backend for the QISKit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
 
 ```python
-backend = 'local_qiskit_simulator'
+backend = 'local_qasm_simulator'
 shots = <int>
 config = <dict>
 results = QuantumProgram.execute(circs,
@@ -138,7 +138,9 @@ results = QuantumProgram.execute(circs,
                 config=config)
 ```
 
-You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qiskit_simulator` and `local_clifford_simulator`.
+You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qasm_simulator` and `local_clifford_simulator`.
+
+Note: `local_qasm_simulator` is provided as a shortcut and will automatically point to `local_qasm_simulator_cpp` if it is installed. However, if this simulator is not installed, then it will point to the (slower) `local_qasm_simulator_py`.
 
 
 ### Simulator output

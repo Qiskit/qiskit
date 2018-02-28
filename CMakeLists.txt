@@ -11,7 +11,7 @@ if (ENABLE_TARGETS_NON_PYTHON)
     # Add Toolchain utilities for C++ sources
     include(cmake/toolchain-utils.cmake)
 
-    # Add C++ Qiskit Simulator
+    # Add C++ Qasm Simulator
     add_subdirectory(${PROJECT_SOURCE_DIR}/src/qasm-simulator-cpp)
 
     # Add Python distributable package generator
