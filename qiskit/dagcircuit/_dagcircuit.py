@@ -706,10 +706,7 @@ class DAGCircuit:
         for n in nx.topological_sort(self.multi_graph):
             nd = self.multi_graph.node[n]
             if nd["type"] == "op":
-                # nd["params"] are strings but here we want Real expressions
-                params = map(lambda x: x.replace("^", "**"), nd["params"])
-                params = map(lambda x: sympy.sympify(x), params)
-                params = map(lambda x: qiskit.qasm._node.Real(x), params)
+                params = map(lambda x: qiskit.qasm._node.Real(x), nd["params"])
                 params = list(params)
                 if nd["condition"] is not None:
                     json_backend.set_condition(nd["condition"][0],
@@ -1079,9 +1076,6 @@ class DAGCircuit:
         corresponding to the gate's arguments.
         """
         # Build AST for subcircuit
-        # gate_params are strings and we want symbols here
-        gate_params = map(lambda x: x.replace("^", "**"), gate_params)
-        gate_params = list(map(lambda x: sympy.sympify(x), gate_params))
         children = [qasm._node.Id(gate_name, 0, "")]
         if len(gate_params) > 0:
             children.append(
