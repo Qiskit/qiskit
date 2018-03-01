@@ -128,7 +128,7 @@ class QasmSimulator(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-        super(QasmSimulator, self).__init__(configuration)
+        super().__init__(configuration)
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',

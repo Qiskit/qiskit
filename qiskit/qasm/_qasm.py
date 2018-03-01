@@ -39,13 +39,13 @@ class Qasm(object):
         """Return the filename."""
         return self._filename
 
-    def print_tokens(self):
-        """Parse and print tokens."""
+    def get_tokens(self):
+        """Returns a generator of the tokens."""
         if self._filename:
             self._data = open(self._filename).read()
 
         with QasmParser(self._filename) as qasm_p:
-            return qasm_p.print_tokens()
+            return qasm_p.get_tokens()
 
     def parse(self):
         """Parse the data."""

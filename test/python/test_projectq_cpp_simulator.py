@@ -50,7 +50,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestProjectQCppSimulator, cls).setUpClass()
+        super().setUpClass()
         n_circuits = 20
         min_depth = 1
         max_depth = 10

@@ -50,7 +50,7 @@ class TestApiHub(QiskitTestCase):
     """Tests for API hubs, groups, and projects."""
 
     def setUp(self):
-        super(TestApiHub, self).setUp()
+        super().setUp()
         self.backend = 'ibmqx4'
 
     def _get_quantum_program(self):

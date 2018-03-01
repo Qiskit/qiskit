@@ -26,7 +26,6 @@ from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QISKitError
 from qiskit import QuantumCircuit
-from qiskit import Reset
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -76,7 +75,7 @@ class InitializeGate(CompositeGate):
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
-        super(InitializeGate, self).__init__("init", param, arg, circ)
+        super().__init__(name, param, arg, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -101,7 +100,7 @@ class InitializeGate(CompositeGate):
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.param, self.arg))
+        self._modifiers(circ.initialize(self.name, self.param, self.arg))
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -449,7 +448,7 @@ def initialize(self, params, qubits):
     self._check_dups(qubits)
     for i in qubits:
         self._check_qubit(i)
-        self._attach(Reset(i, self))
+        # TODO: make initialize an Instruction, and insert reset
         # TODO: avoid explicit reset if compiler determines a |0> state
 
     return self._attach(InitializeGate(params, qubits, self))
