@@ -54,16 +54,16 @@ def snapshot(self, m, q):
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
-            gs.add(self.load(m, (q, j)))
+            gs.add(self.snapshot(m, (q, j)))
         return gs
     self._check_qubit(q)
-    return self._attach(LoadGate(m, q, self))
+    return self._attach(SnapshotGate(m, q, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
-QuantumCircuit.load = load
-CompositeGate.load = load
+QuantumCircuit.snapshot = snapshot
+CompositeGate.snapshot = snapshot
 
 # Add to QASM header for parsing
-QuantumCircuit.header += "\ngate load(m) a {}" + \
-    "  // (local_qasm_simulator) load cached quantum state"
+QuantumCircuit.header += "\ngate snapshot(m) a {}" + \
+    "  // (local_qasm_simulator) snapshot internal representation"
