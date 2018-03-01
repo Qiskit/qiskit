@@ -15,6 +15,12 @@
 # limitations under the License.
 # =============================================================================
 
+"""
+Dummy backend simulator.
+The purpose of this class is to create a Simulator that we can trick for testing
+purposes. Testing local timeouts, arbitrary responses or behavior, etc.
+"""
+
 import uuid
 import logging
 from threading import Event
@@ -26,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class DummySimulator(BaseBackend):
+    """ This is Dummy backend simulator just for testing purposes """
     def __init__(self, configuration=None, time_alive=10):
         super().__init__(configuration)
         self.time_alive = time_alive
@@ -42,9 +49,10 @@ class DummySimulator(BaseBackend):
             self._configuration = configuration
 
     def run(self, q_job):
+        """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
-        timeout  = q_job.timeout
+        timeout = q_job.timeout
         wait_time = q_job.wait
 
         time_passed = 0

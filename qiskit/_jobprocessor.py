@@ -102,12 +102,12 @@ class JobProcessor:
                              'result': ex},
                             future.qobj)
         with self.lock:
-            logger.debug("Have a Result: {}".format(pprint.pformat(result)))
+            logger.debug("Have a Result: %s", pprint.pformat(result))
             self.futures[future]['result'] = result
             self.jobs_results.append(result)
             if self.num_jobs != 0:
                 self.num_jobs -= 1
-                logger.debug("Jobs left count decreased: {}".format(self.num_jobs))
+                logger.debug("Jobs left count decreased: %d", self.num_jobs)
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
             logger.debug("No more jobs in queue, returning results")

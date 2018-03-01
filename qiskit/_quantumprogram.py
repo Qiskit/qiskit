@@ -1222,8 +1222,12 @@ class QuantumProgram(object):
             Result: A Result (class).
         """
         job_blocker_event = Event()
-        job_result = {}
+        job_result = None
         def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread
+            """
             nonlocal job_result
             job_result = results[0]
             job_blocker_event.set()
@@ -1256,6 +1260,10 @@ class QuantumProgram(object):
         job_results = []
 
         def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
             nonlocal job_results
             job_results = results
             job_blocker_event.set()
@@ -1285,6 +1293,10 @@ class QuantumProgram(object):
         """
 
         def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
             callback(results[0])  # The user is expecting a single Result
 
         self._run_internal([qobj],

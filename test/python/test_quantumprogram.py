@@ -942,6 +942,8 @@ class TestQuantumProgram(QiskitTestCase):
         lock = Lock()
 
         def _job_done_callback(result):
+            nonlocal qp_programs_finished
+            nonlocal qp_programs_exception
             try:
                 results2 = result.get_counts('qc2')
                 results3 = result.get_counts('qc3')
@@ -951,11 +953,9 @@ class TestQuantumProgram(QiskitTestCase):
                                             '010': 145, '011': 125})
             except Exception as e:
                 with lock:
-                    nonlocal qp_programs_exception
                     qp_programs_exception.append(e)
             finally:
                 with lock:
-                    nonlocal qp_programs_finished
                     qp_programs_finished += 1
 
         q_program = QuantumProgram(specs=self.QPS_SPECS)
@@ -984,7 +984,7 @@ class TestQuantumProgram(QiskitTestCase):
             # Wait until the job_done_callback is invoked and completed.
             pass
 
-        if len(qp_programs_exception) != 0:
+        if qp_programs_exception:
             raise self.qp_program_exception[0]
 
     def test_run_batch(self):
@@ -1782,11 +1782,13 @@ class TestQuantumProgram(QiskitTestCase):
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88)
         out = q_program.run(qobj, wait=0.1, timeout=0.01)
+        has_timeout = False
         try:
             out.get_counts("qc2")
-            self.assertTrue(False, "Should timed out! but it didn't!")
         except QISKitError as ex:
-            self.assertEqual(ex.message, 'Dummy backend has timed out!')
+            has_timeout = True if ex.message == 'Dummy backend has timed out!' else False
+
+        self.assertTrue(has_timeout, "The simulator didn't time out!!, but it should have to")
 
     @requires_qe_access
     def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL):
