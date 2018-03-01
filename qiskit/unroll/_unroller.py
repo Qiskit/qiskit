@@ -128,6 +128,7 @@ class Unroller(object):
         """
         self.gates[node.name] = {}
         de_gate = self.gates[node.name]
+        de_gate["print"] = True  # default
         de_gate["opaque"] = opaque
         de_gate["n_args"] = node.n_args()
         de_gate["n_bits"] = node.n_bits()

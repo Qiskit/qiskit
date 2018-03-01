@@ -48,9 +48,6 @@ class QuantumCircuit(object):
     #   "body"   = GateBody AST node
     definitions = OrderedDict()
 
-    # TODO: Update each definition on import or application.
-    # TODO: Propagate to other objects.
-
     def __init__(self, *regs):
         """Create a new circuit."""
         # Data contains a list of instructions in the order they were applied.
