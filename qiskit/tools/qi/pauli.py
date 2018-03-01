@@ -22,7 +22,7 @@ A simple pauli class and some tools.
 """
 import random
 import numpy as np
-
+from scipy import sparse
 
 class Pauli:
     """A simple class representing Pauli Operators.
@@ -102,27 +102,49 @@ class Pauli:
         Order is q_n x q_{n-1} .... q_0
         """
         x = np.array([[0, 1], [1, 0]], dtype=complex)
+        y = np.array([[0, -1j], [1j, 0]], dtype=complex)
         z = np.array([[1, 0], [0, -1]], dtype=complex)
         id_ = np.array([[1, 0], [0, 1]], dtype=complex)
-        x_temp = 1
+        matrix = 1
         for k in range(self.numberofqubits):
-            if self.v[k] == 0:
-                temp_z = id_
-            elif self.v[k] == 1:
-                temp_z = z
+            if self.v[k] == 0 and self.w[k] == 0:
+                new = id_
+            elif self.v[k] == 1 and self.w[k] == 0:
+                new = z
+            elif self.v[k] == 0 and self.w[k] == 1:
+                new = x
+            elif self.v[k] == 1 and self.w[k] == 1:
+                new = y
             else:
-                print('the z string is not of the form 0 and 1')
-            if self.w[k] == 0:
-                temp_x = id_
-            elif self.w[k] == 1:
-                temp_x = x
-            else:
-                print('the x string is not of the form 0 and 1')
-            ope = np.dot(temp_z, temp_x)
-            x_temp = np.kron(ope, x_temp)
-        pauli_mat = (-1j) ** np.dot(self.v, self.w) * x_temp
-        return pauli_mat
+                print('the string is not of the form 0 and 1')
+            matrix = np.kron(new, matrix)
 
+        return matrix
+
+    def to_spmatrix(self):
+        """Convert Pauli to a sparse matrix representation (CSR format).
+
+        Order is q_n x q_{n-1} .... q_0
+        """
+        x   = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
+        y   = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
+        z   = sparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
+        id_ = sparse.csr_matrix(np.array([[1, 0], [0, 1]], dtype=complex))
+        matrix = 1
+        for k in range(self.numberofqubits):
+            if self.v[k] == 0 and self.w[k] == 0:
+                new = id_
+            elif self.v[k] == 1 and self.w[k] == 0:
+                new = z
+            elif self.v[k] == 0 and self.w[k] == 1:
+                new = x
+            elif self.v[k] == 1 and self.w[k] == 1:
+                new = y
+            else:
+                print('the string is not of the form 0 and 1')
+            matrix = sparse.kron(new, matrix, 'csr')
+
+        return matrix
 
 def random_pauli(number_qubits):
     """Return a random Pauli on numberofqubits."""
