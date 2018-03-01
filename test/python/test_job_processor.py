@@ -152,7 +152,7 @@ class TestJobProcessor(QiskitTestCase):
     def test_run_remote_simulator(self, QE_TOKEN, QE_URL):
         self._init_api(QE_TOKEN, QE_URL)
 
-        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
+        compiled_circuit = openquantumcompiler.compile(self.qc)
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend='ibmqx_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
@@ -330,7 +330,7 @@ class TestJobProcessor(QiskitTestCase):
     def test_backend_not_found(self, QE_TOKEN, QE_URL):
         self._init_api(QE_TOKEN, QE_URL)
 
-        compiled_circuit = openquantumcompiler.compile(self.qc.qasm())
+        compiled_circuit = openquantumcompiler.compile(self.qc)
         job = QuantumJob(compiled_circuit,
                          backend='non_existing_backend')
         self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job],

@@ -183,6 +183,8 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr], [cr])
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
+        qc.reset(qr[0])
+        qc.reset(qr[1])
         qc.initialize(desired_vector, [qr[0], qr[1]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
