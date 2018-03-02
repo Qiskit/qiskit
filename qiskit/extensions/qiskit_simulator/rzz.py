@@ -72,5 +72,5 @@ QuantumCircuit.uzz = uzz
 CompositeGate.uzz = uzz
 
 # Add to QASM header for parsing
-QuantumCircuit.header += "\ngate uzz(theta) a, b {}" + \
+QuantumCircuit.header += "\ngate uzz(theta) a, b {cx a, b; u1(theta); cx a, b;}" + \
     "  // (local_qiskit_simulator) Uzz rotation by angle theta"

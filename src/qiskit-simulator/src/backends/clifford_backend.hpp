@@ -47,6 +47,7 @@ public:
    * BaseBackend Methods
    ************************/
 
+  void set_config(json_t &config);
   void initialize(const Circuit &prog);
   void qc_operation(const operation &op);
 
@@ -95,30 +96,17 @@ private:
 
 /*******************************************************************************
  *
- * Convert from JSON
- *
- ******************************************************************************/
-
-inline void from_json(const json_t &config, CliffordBackend &be) {
-  be = CliffordBackend();
-  // load noise from JSON
-  if (JSON::check_key("noise_params", config)) {
-    QubitNoise noise = config["noise_params"];
-    be.attach_noise(noise);
-    if (noise.verify(2) == false) {
-      std::string msg = "invalid noise parameters";
-      throw std::runtime_error(msg);
-    }
-  }
-  // TODO: Add omp
-  // TODO: parse initial state from JSON
-}
-
-/*******************************************************************************
- *
  * BaseBackend methods
  *
  ******************************************************************************/
+
+void CliffordBackend::set_config(json_t &config) {
+  // parse initial state from JSON
+  if (JSON::check_key("initial_state", config)) {
+    Clifford initial_state = config["initial_state"];
+    set_initial_state(initial_state);
+  }
+}
 
 void CliffordBackend::initialize(const Circuit &prog) {
 
@@ -127,6 +115,7 @@ void CliffordBackend::initialize(const Circuit &prog) {
   noise_flag = !ideal_sim;
 
   qreg_saved.erase(qreg_saved.begin(), qreg_saved.end());
+  qreg_snapshots.erase(qreg_snapshots.begin(), qreg_snapshots.end());
 
   if (qreg_init_flag) {
     if (qreg_init.size() == prog.nqubits)
@@ -192,6 +181,9 @@ void CliffordBackend::qc_operation(const operation &op) {
       qc_relax(op.qubits[0], op.params[0]);
     break;
   // Commands
+  case gate_t::Snapshot:
+    snapshot_state(op.params[0]);
+    break;
   case gate_t::Save:
     save_state(op.params[0]);
     break;
