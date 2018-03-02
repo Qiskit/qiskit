@@ -89,6 +89,7 @@ public:
   //============================================================================
   // Methods
   //============================================================================
+  void execute(Circuit &circ, BaseBackend<QubitVector> *be, uint_t nshots);
 
   // Adds results data from another engine.
   void add(const VectorEngine &eng);
@@ -151,6 +152,75 @@ void VectorEngine::add(const VectorEngine &eng) {
     std::copy(s.second.begin(), s.second.end(),
               back_inserter(snapshots_inprods[s.first]));
 
+}
+
+void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
+                           uint_t nshots) {
+
+  // Check to see if circuit is ideal and allows for measurement optimization
+  if (prog.opt_meas && prog.noise.ideal) {
+
+    // Find position of first measurement operation
+    uint_t pos = 0;
+    while (prog.operations[pos].id != gate_t::Measure &&
+           pos < prog.operations.size()) {
+      pos++;
+    }
+    // Execute operations before measurements
+    std::vector<operation> not_meas(prog.operations.begin(),
+                                    prog.operations.begin() + pos);
+    be->initialize(prog);
+    be->execute(not_meas);
+
+    VectorEngine::compute_results(prog, be);
+    // Clear creg results from shot without measurements
+    counts.clear();
+    output_creg.clear();
+
+    // Get measurement operations and set of measured qubits
+    std::vector<operation> meas(prog.operations.begin() + pos,
+                                prog.operations.end());
+    std::vector<uint_t> meas_qubits;
+    for (const auto &op : meas)
+      meas_qubits.push_back(op.qubits[0]);
+
+    // sort the qubits and delete duplicates
+    sort(meas_qubits.begin(),meas_qubits.end()); 
+    meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end() ), meas_qubits.end());
+    const uint_t N = meas_qubits.size(); // number of measured qubits
+
+    // Get vector of outcome probabilities
+    const rvector_t probs = be->access_qreg().probabilities(meas_qubits);
+    // Map to store measured outcome after
+    std::map<uint_t, uint_t> outcomes;
+    for (auto &qubit : meas_qubits)
+      outcomes[qubit] = 0;
+
+    // Sample measurement outcomes
+    auto &rng = be->access_rng();
+    for (uint_t shot = 0; shot < nshots; shot++) {
+      double p = 0.;
+      double r = rng.rand(0, 1);
+      uint_t result;
+      for (result = 0; result < (1ULL << N); result++) {
+        if (r < (p += probs[result]))
+          break;
+      }
+      // convert outcome to register
+      auto reg = int2reg(result, 2, N);
+      for (auto it = outcomes.cbegin(); it != outcomes.cend(); it++)
+        outcomes[it->first] = reg[std::distance(outcomes.cbegin(), it)];
+      // update creg
+      auto &creg = be->access_creg();
+      for (const auto &op : meas)
+        creg[op.clbits[0]] = outcomes[op.qubits[0]];
+      // compute count based results
+      compute_counts(prog.clbit_labels, creg);
+    }
+  } else {
+    // Standard execution of every shot
+    BaseEngine<QubitVector>::execute(prog, be, nshots);
+  }
 }
 
 //------------------------------------------------------------------------------

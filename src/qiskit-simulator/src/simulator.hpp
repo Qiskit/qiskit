@@ -44,7 +44,6 @@ limitations under the License.
 
 // Engines
 #include "base_engine.hpp"
-#include "sampleshots_engine.hpp"
 #include "vector_engine.hpp"
 
 // Backends
@@ -109,7 +108,7 @@ json_t Simulator::execute() {
       if (simulator == "clifford")
         circ_res = run_circuit<BaseEngine<Clifford>, CliffordBackend>(circ);
       else if (circ.noise.ideal)
-        circ_res = run_circuit<SampleShotsEngine, IdealBackend>(circ);
+        circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
       else
         circ_res = run_circuit<VectorEngine, QubitBackend>(circ);
 
