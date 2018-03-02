@@ -82,7 +82,7 @@ public:
   counts_t counts;        // Map of observed final creg values
 
   // Quantum state snapshots
-  std::vector<std::map<uint_t, StateType>> snapshots;   // final qreg state for each shot
+  std::map<uint_t, std::vector<StateType>> snapshots;   // final qreg state for each shot
   //std::map<uint_t, std::vector<StateType>> snapshots;   // final qreg state for each shot
   
   // Classical states
@@ -189,7 +189,9 @@ void BaseEngine<StateType>::compute_results(Circuit &qasm,
 
   // Snapshots
   if (show_snapshots && be->access_snapshots().empty() == false)
-    snapshots.push_back(be->access_snapshots());
+    for (const auto& pair: be->access_snapshots()) {
+    snapshots[pair.first].push_back(pair.second);
+  }
 }
 
 template <typename StateType>
@@ -238,8 +240,9 @@ void BaseEngine<StateType>::add(const BaseEngine<StateType> &eng) {
     counts[pair.first] += pair.second;
 
   // copy snapshots
-  std::copy(eng.snapshots.begin(), eng.snapshots.end(),
-            back_inserter(snapshots));
+  for (const auto &s: eng.snapshots)
+    std::copy(s.second.begin(), s.second.end(),
+              back_inserter(snapshots[s.first]));
 
   // copy output cregs
   std::copy(eng.output_creg.begin(), eng.output_creg.end(),
@@ -262,10 +265,11 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     js["classical_state"] = engine.output_creg;
 
   if (engine.show_snapshots && engine.snapshots.empty() == false) {
+    
     try {
       // use try incase state class doesn't have json conversion method
-      json_t js_qreg = engine.snapshots;
-      js["quantum_state"] = js_qreg;
+      for (const auto& pair: engine.snapshots)
+        js["snapshots"][std::to_string(pair.first)]["quantum_state"] = pair.second;
     } catch (std::exception &e) {
       // Leave message in output that type conversion failed
       js["quantum_state"] =

@@ -79,7 +79,7 @@ public:
   //============================================================================
 
   // Snapshots output data
-  std::vector<std::map<uint_t, cket_t>> snapshots_ket;
+  std::map<uint_t, std::vector<cket_t>> snapshots_ket;
   std::map<uint_t, cmatrix_t> snapshots_density;
   std::map<uint_t, rvector_t> snapshots_probs;
   std::map<uint_t, std::map<std::string, double>> snapshots_probs_ket;
@@ -103,6 +103,13 @@ public:
   // Compute results
   void compute_results(Circuit &circ, BaseBackend<QubitVector> *be);
 
+  // Additional snapshot formatting
+  void snapshot_ketform(const std::map<uint_t, QubitVector>& qreg_snapshots,
+                        const std::vector<uint_t> &labels);
+  void snapshot_density_matrix(const std::map<uint_t, QubitVector>& qreg_snapshots);
+  void snapshot_probabilities(const std::map<uint_t, QubitVector>& qreg_snapshots);
+  void snapshot_inner_products(const std::map<uint_t, QubitVector>& qreg_snapshots);
+
   // Convert a complex vector or ket to a real one
   double get_probs(const complex_t &val) const;
   rvector_t get_probs(const QubitVector &vec) const;
@@ -122,8 +129,9 @@ void VectorEngine::add(const VectorEngine &eng) {
   /* Accumulated snapshot sdata */
 
   // copy snapshots ket-maps
-  std::copy(eng.snapshots_ket.begin(), eng.snapshots_ket.end(),
-            back_inserter(snapshots_ket));
+  for (const auto &s: eng.snapshots_ket)
+    std::copy(s.second.begin(), s.second.end(),
+              back_inserter(snapshots_ket[s.first]));
 
   // Add snapshots density
   for (const auto &s : eng.snapshots_density) {
@@ -225,54 +233,40 @@ void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
 
 //------------------------------------------------------------------------------
 
-void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) {
-  // Run BaseEngine Counts
-  BaseEngine<QubitVector>::compute_results(qasm, be);
-
-  QubitVector &qreg = be->access_qreg();
-  std::map<uint_t, QubitVector> &qreg_snapshots = be->access_snapshots();
-
-  // String labels for ket form
-  bool ket_form = (show_snapshots_ket || show_snapshots_probs_ket);
-  std::vector<uint_t> regs;
-  if (ket_form)
-    for (auto it = qasm.qubit_sizes.crbegin(); it != qasm.qubit_sizes.crend();
-         ++it)
-      regs.push_back(it->second);
-
-  /* Snapshot quantum state output data */
-  if (snapshots.empty() == false) {
-    // Ket form
-    if (show_snapshots_ket || show_snapshots_probs_ket) {
-      std::map<uint_t, cket_t> km;
-      for (auto const &psi : qreg_snapshots)
-        km[psi.first] = vec2ket(psi.second.vector(), qudit_dim, epsilon, regs);
+void VectorEngine::snapshot_ketform(const std::map<uint_t, QubitVector>& qreg_snapshots,
+                                    const std::vector<uint_t> &labels) {
+  if (show_snapshots_ket || show_snapshots_probs_ket) {
+    for (auto const &psi : qreg_snapshots) {
+      cket_t psi_ket = vec2ket(psi.second.vector(), qudit_dim, epsilon, labels);
       // snapshots kets
       if (show_snapshots_ket)
-        snapshots_ket.push_back(km);
+        snapshots_ket[psi.first].push_back(psi_ket);
       // snapshots probabilities (ket form)
-      if (show_snapshots_probs_ket)
-        for (const auto &s : km) {
-          rket_t tmp;
-          for (const auto &vals : s.second)
-            tmp[vals.first] = get_probs(vals.second);
-          snapshots_probs_ket[s.first] += tmp;
+      if (show_snapshots_probs_ket) {
+        rket_t probs_ket;
+        for (const auto &val : psi_ket) {
+          probs_ket[val.first] = get_probs(val.second);
+        snapshots_probs_ket[psi.first] += probs_ket;
         }
-    }
-
-    // add density matrix (needs renormalizing after all shots)
-    if (show_snapshots_density) {
-      for (auto const &psi : qreg_snapshots) {
-        cmatrix_t &rho = snapshots_density[psi.first];
-        if (rho.size() == 0)
-          rho = outer_product(psi.second.vector(), psi.second.vector());
-        else
-          rho = rho + outer_product(psi.second.vector(), psi.second.vector());
       }
     }
+  }
+}
 
-    // add probs (needs renormalizing after all shots)
-    if (show_snapshots_probs) {
+void VectorEngine::snapshot_density_matrix(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+  if (show_snapshots_density) {
+    for (auto const &psi : qreg_snapshots) {
+      cmatrix_t &rho = snapshots_density[psi.first];
+      if (rho.size() == 0)
+        rho = outer_product(psi.second.vector(), psi.second.vector());
+      else
+        rho = rho + outer_product(psi.second.vector(), psi.second.vector());
+    }
+  }
+}
+
+void VectorEngine::snapshot_probabilities(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+  if (show_snapshots_probs) {
       for (auto const &psi : qreg_snapshots) {
         auto &pr = snapshots_probs[psi.first];
         if (pr.empty())
@@ -281,19 +275,20 @@ void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) 
           pr += get_probs(psi.second);
       }
     }
-    // Inner products
-    if (target_states.empty() == false &&
+}
+
+void VectorEngine::snapshot_inner_products(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+  if (target_states.empty() == false &&
         (show_snapshots_inner_product || show_snapshots_overlaps)) {
       for (auto const &psi : qreg_snapshots) {
         // compute inner products
         cvector_t inprods;
-        uint_t nstates = qreg.size();
         for (auto const &vec : target_states) {
           // check correct size
           if (vec.size() != psi.second.size()) {
             std::stringstream msg;
             msg << "error: target_state vector size \"" << vec.size()
-                << "\" should be \"" << nstates << "\"";
+                << "\" should be \"" << psi.second.size() << "\"";
             throw std::runtime_error(msg.str());
           }
           complex_t val = psi.second.inner_product(vec);
@@ -309,6 +304,32 @@ void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) 
           snapshots_overlaps[psi.first] += get_probs(inprods);
       }
     }
+}
+
+void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) {
+  // Run BaseEngine Counts
+  BaseEngine<QubitVector>::compute_results(qasm, be);
+
+  std::map<uint_t, QubitVector> &qreg_snapshots = be->access_snapshots();
+
+  /* Snapshot quantum state output data */
+  if (snapshots.empty() == false) {
+
+    // String labels for ket form
+    std::vector<uint_t> ket_regs;
+    for (auto it = qasm.qubit_sizes.crbegin(); it != qasm.qubit_sizes.crend(); ++it)
+      ket_regs.push_back(it->second);
+    // Snapshot ket-form of state vector or probabilities
+    snapshot_ketform(qreg_snapshots, ket_regs);
+
+    // add density matrix (needs renormalizing after all shots)
+    snapshot_density_matrix(qreg_snapshots);
+
+    // add probs (needs renormalizing after all shots)
+    snapshot_probabilities(qreg_snapshots);
+
+    // Inner products
+    snapshot_inner_products(qreg_snapshots);
   }
 }
 
@@ -348,57 +369,54 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
 
   /* Additional snapshot output data */
   // Snapshot skets
-  if (eng.show_snapshots_ket && eng.snapshots_ket.empty() == false) {
-    js["quantum_state_ket"] = eng.snapshots_ket;
-  }
+  if (eng.show_snapshots_ket && eng.snapshots_ket.empty() == false)
+    for (const auto& s: eng.snapshots_ket)
+        js["snapshots"][std::to_string(s.first)]["quantum_state_ket"] = s.second;
 
   // Snapshots density
-  if (eng.show_snapshots_density && eng.snapshots_density.empty() == false) {
-    std::map<uint_t, cmatrix_t> rhos;
+  if (eng.show_snapshots_density && eng.snapshots_density.empty() == false)
     for (const auto &s : eng.snapshots_density) {
       auto rho = s.second * renorm;
       chop(rho, eng.epsilon);
-      rhos[s.first] = rho;
+      js["snapshots"][std::to_string(s.first)]["density_matrix"] = rho;
     }
-    js["density_matrix"] = rhos;
-  }
+
   // Snapshots probs
-  if (eng.show_snapshots_probs && eng.snapshots_probs.empty() == false) {
-    std::map<uint_t, rvector_t> ret;
+  if (eng.show_snapshots_probs && eng.snapshots_probs.empty() == false)
     for (const auto &s : eng.snapshots_probs) {
-      const auto &val = s.second;
-      ret[s.first] = val * renorm;
-      chop(ret[s.first], eng.epsilon);
+      auto val = s.second;
+      val *= renorm;
+      chop(val, eng.epsilon);
+      js["snapshots"][std::to_string(s.first)]["probabilities"] = val;
     }
-    js["probabilities"] = ret;
-  }
+
   // Snapshots probs ket
-  if (eng.show_snapshots_probs_ket && eng.snapshots_probs_ket.empty() == false) {
+  if (eng.show_snapshots_probs_ket && eng.snapshots_probs_ket.empty() == false)
     std::map<uint_t, rket_t> ret;
     for (const auto &s : eng.snapshots_probs_ket) {
-      const auto &val = s.second;
-      ret[s.first] = val * renorm;
-      chop(ret[s.first], eng.epsilon);
+      auto val = s.second;
+      val *= renorm;
+      chop(val, eng.epsilon);
+      js["snapshots"][std::to_string(s.first)]["probabilities_ket"] = val;
     }
-    js["probabilities_ket"] = ret;
-  }
+
 
   // Snapshots inner products
-  if (eng.show_snapshots_inner_product && eng.snapshots_inprods.empty() == false) {
-    auto tmp = eng.snapshots_inprods;
-    for (auto &s : tmp)
-      tmp[s.first] = chop(s.second, eng.epsilon);
-    js["inner_products"] = eng.snapshots_inprods;
-  }
-  // Snapshots overlaps
-  if (eng.show_snapshots_overlaps && eng.snapshots_overlaps.empty() == false) {
-    auto tmp = eng.snapshots_overlaps;
-    for (auto &s : tmp) {
-      s.second *= renorm;
-      tmp[s.first] = chop(s.second, eng.epsilon);
+  if (eng.show_snapshots_inner_product && eng.snapshots_inprods.empty() == false)
+    for (const auto &s : eng.snapshots_inprods) {
+      auto val = s.second;
+      chop(val, eng.epsilon);
+      js["snapshots"][std::to_string(s.first)]["inner_products"] = val;
     }
-    js["overlaps"] = tmp;
-  }
+
+  // Snapshots overlaps
+  if (eng.show_snapshots_overlaps && eng.snapshots_overlaps.empty() == false)
+    for (const auto &s : eng.snapshots_overlaps) {
+      auto val = s.second;
+      val *= renorm;
+      chop(val, eng.epsilon);
+      js["snapshots"][std::to_string(s.first)]["overlaps"] = val;
+    }
 }
 
 inline void from_json(const json_t &js, VectorEngine &eng) {
