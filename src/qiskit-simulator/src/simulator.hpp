@@ -44,7 +44,6 @@ limitations under the License.
 
 // Engines
 #include "base_engine.hpp"
-#include "sampleshots_engine.hpp"
 #include "vector_engine.hpp"
 
 // Backends
@@ -98,7 +97,6 @@ json_t Simulator::execute() {
     ret["backend"] = std::string("local_clifford_simulator");
   else
     ret["backend"] = std::string("local_qiskit_simulator");
-  ret["simulator"] = simulator;
 
   // Choose simulator and execute circuits
   try {
@@ -109,8 +107,8 @@ json_t Simulator::execute() {
       // Choose Simulator Backend
       if (simulator == "clifford")
         circ_res = run_circuit<BaseEngine<Clifford>, CliffordBackend>(circ);
-      else if (simulator == "ideal")
-        circ_res = run_circuit<SampleShotsEngine, IdealBackend>(circ);
+      else if (circ.noise.ideal)
+        circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
       else
         circ_res = run_circuit<VectorEngine, QubitBackend>(circ);
 
@@ -153,7 +151,9 @@ json_t Simulator::run_circuit(Circuit &circ) const {
   try {
     // Initialize reference engine and backend from JSON config
     Engine engine = circ.config;
-    Backend backend = circ.config;
+    Backend backend;
+    backend.set_config(circ.config);
+    backend.attach_noise(circ.noise);
 
     // Set RNG Seed
     uint_t rng_seed = (circ.rng_seed < 0) ? std::random_device()()
@@ -169,7 +169,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     ncpus = std::max(1ULL, ncpus); // check 0 edge case
     int_t dq = (max_qubits > circ.nqubits) ? max_qubits - circ.nqubits : 0;
     uint_t threads = std::max<uint_t>(1UL, 2 * dq);
-    if (simulator == "ideal" && circ.opt_meas)
+    if (circ.noise.ideal && circ.opt_meas)
       threads = 1; // single shot thread
     else {
       threads = std::min<uint_t>(threads, ncpus);
@@ -228,7 +228,8 @@ json_t Simulator::run_circuit(Circuit &circ) const {
 
     // Return results
     ret["data"] = engine; // add engine output to return
-    if (simulator != "ideal" && JSON::check_key("noise_params", circ.config)) {
+    //if (simulator != "ideal" && JSON::check_key("noise_params", circ.config)) {
+    if (simulator != "ideal" && backend.noise.ideal == false) {
       ret["noise_params"] = backend.noise;
     }
 
@@ -292,6 +293,7 @@ inline void from_json(const json_t &js, Simulator &qobj) {
 
       // Override with user simulator backend specification
       JSON::get_value(qobj.simulator, "simulator", config);
+      JSON::get_value(qobj.simulator, "simulator_kernel", config);
       to_lowercase(qobj.simulator);
 
       // Set simulator gateset
@@ -306,7 +308,7 @@ inline void from_json(const json_t &js, Simulator &qobj) {
         throw std::runtime_error(std::string("invalid simulator."));
       }
 
-      // Load unrolled qasm circuits
+      // Load circuit instructions
       const json_t &circs = js["circuits"];
       for (auto it = circs.cbegin(); it != circs.cend(); ++it)
         qobj.circuits.push_back(Circuit(*it, config, gateset));
