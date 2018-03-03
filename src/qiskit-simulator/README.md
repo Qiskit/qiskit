@@ -109,14 +109,14 @@ cat input.json | ./local_qiskit_simulator -
 
 ### Running in Python
 
-The simulator may be called from Python 3 by importing `qiskit/backends/_qiskit_cpp_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
+The simulator may be called from Python 3 by importing `qiskit/backends/_qasm_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
 # Set the path and file for the simulator executable
 SIM_EXECUTABLE = '/path/to/simulator/executable/qiskit_simulator'
 
 # Import simulator
-import qiskit.backends._qiskit_cpp_simulator as qs
+import qiskit.backends._qasm_simulator as qs
 
 # Run a qobj on the simulator
 qobj = {...}  # qobj as a Python dictionary
