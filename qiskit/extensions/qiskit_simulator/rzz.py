@@ -17,16 +17,17 @@
 # =============================================================================
 
 """
-local_qiskit_simulator two-qubit ZZ-rotation gate.
+local_qasm_simulator two-qubit ZZ-rotation gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit import InstructionSet
+from qiskit import QuantumRegister
 
 
 class RZZGate(Gate):
+    """Entangling ZZ gate."""
 
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new rzz gate."""

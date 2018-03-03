@@ -17,13 +17,13 @@
 # =============================================================================
 
 """
-local_qiskit_simulator command to load a saved quantum state.
+local_qasm_simulator command to load a saved quantum state.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit import InstructionSet
+from qiskit import QuantumRegister
 
 
 class LoadGate(Gate):
@@ -50,7 +50,7 @@ class LoadGate(Gate):
 
 
 def load(self, m, q):
-    """Load cached quantum state of local_qiskit_simulator."""
+    """Load cached quantum state of local_qasm_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
@@ -66,4 +66,4 @@ CompositeGate.load = load
 
 # Add to QASM header for parsing
 QuantumCircuit.header += "\ngate load(m) a {}" + \
-    "  // (local_qiskit_simulator) load cached quantum state"
+    "  // (local_qasm_simulator) load cached quantum state"

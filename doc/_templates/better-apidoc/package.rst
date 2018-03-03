@@ -35,8 +35,8 @@
 {# Bypass the automatic discovery of simulators at qiskit.backends and of
    gates. #}
 {%- if fullname == 'qiskit.backends' -%}
-    {%- set imported_modules = ['_qiskit_cpp_simulator',
-                                '_qasmsimulator',
+    {%- set imported_modules = ['_qasm_simulator',
+                                '_qasm_simulator_py',
                                 '_unitarysimulator',
                                 '_projectq_simulator'] -%}
     {%- set imported_classes = ['BaseBackend'] -%}

@@ -17,13 +17,13 @@
 # =============================================================================
 
 """
-local_qiskit_simulator single qubit wait gate.
+local_qasm_simulator single qubit wait gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit import InstructionSet
+from qiskit import QuantumRegister
 
 
 class WaitGate(Gate):
@@ -67,4 +67,4 @@ CompositeGate.wait = wait
 
 # Add to QASM header for parsing
 QuantumCircuit.header += "\ngate wait(t) a {}" + \
-    "  // (local_qiskit_simulator) idle for time t"
+    "  // (local_qasm_simulator) idle for time t"
