@@ -57,10 +57,10 @@ sim:
 	make -C src/cpp-simulator/src clean
 	make -C src/cpp-simulator/src
 
-coveage_erase:
+coverage_erase:
 	coverage erase
 
-clean: coveage_erase
+clean: coverage_erase
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
 	make -C src/cpp-simulator/src clean
