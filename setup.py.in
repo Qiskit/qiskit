@@ -15,16 +15,17 @@
 # limitations under the License.
 # =============================================================================
 
-import sys
 import os
 import platform
-from distutils.command.build import build
+
+from distutils import log
+from distutils.dir_util import mkpath
+from distutils.file_util import copy_file
 from multiprocessing import cpu_count
 from subprocess import call
 
-from setuptools import setup
-from setuptools.dist import Distribution
-
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
 
 requirements = [
     "IBMQuantumExperience>=1.8.26",
@@ -44,6 +45,7 @@ packages = ["qiskit",
             "qiskit.extensions.standard",
             "qiskit.extensions.qiskit_simulator",
             "qiskit.extensions.quantum_initializer",
+            "qiskit.libs",
             "qiskit.mapper",
             "qiskit.qasm",
             "qiskit.qasm._node",
@@ -54,65 +56,143 @@ packages = ["qiskit",
             "qiskit.tools.qi"]
 
 
-# C++ components compilation
-class QiskitSimulatorBuild(build):
-    def run(self):
-        super().run()
-        # Store the current working directory, as invoking cmake involves
-        # an out of source build and might interfere with the rest of the steps.
-        current_directory = os.getcwd()
+class CMakeError(Exception):
+    pass
+
+
+class CMakeWrapper(object):
+    """
+    Utility class for invoking `cmake` commands.
+
+    Note: stdout is silenced by pip if the full setup.py invocation is
+        successful, unless using '-v' - hence the warnings might not be
+        displayed to the end user.
+    """
+    def __init__(self, cmake_dir='out'):
+        self.cmake_dir = os.path.abspath(cmake_dir)
+        self.cmd_make_extra_args = []
+        self.create_cmake_dir()
+
+    def create_cmake_dir(self):
+        """
+        Create the out of source cmake directory, setting the flags passed to
+        cmake based on the platform and available features.
+
+        Raises:
+            CMakeError: if `cmake` could not be found, or its invocation
+                resulted in an error.
+        """
+        # Check for supported platforms
+        supported_platforms = ['Linux', 'Darwin', 'Windows']
+        current_platform = platform.system()
+        if current_platform not in supported_platforms:
+            log.warning(
+                'The QISKit extensions are only supported currently under the '
+                'following platforms: {}'.format(supported_platforms))
+            raise CMakeError('Unsupported platform')
+
+        # Prepare the flags for the `cmake` command.
+        cmd_cmake = ['cmake', '-vvv']
+        if 'USER_LIB_PATH' in os.environ:
+            cmd_cmake.append('-DUSER_LIB_PATH={}'.format(
+                os.environ['USER_LIB_PATH']))
+        if current_platform == 'Windows':
+            # We only support MinGW so far
+            cmd_cmake.append("-GMinGW Makefiles")
+        cmd_cmake.append(os.path.abspath('.'))
+
+        # Prepare the flags for the `make` commands.
+        try:
+            self.cmd_make_extra_args.append('-j%d' % cpu_count())
+        except NotImplementedError:
+            log.warning('Unable to determine number of CPUs. Using single '
+                        'threaded make.')
+
+        # Run cmake for creating the out of source folder.
+        try:
+            log.info('Creating the cmake out of source directory')
+            mkpath(self.cmake_dir)
+            call(cmd_cmake, cwd=self.cmake_dir)
+        except Exception as e:
+            log.error('The initial cmake command could not be executed. '
+                      'Please check that cmake and the dependencies for the '
+                      'extensions are installed: %s' % str(e))
+            raise CMakeError(str(e))
+
+    def run_make_target(self, target, args=None):
+        """
+        Run a `make` target inside the cmake directory.
+        Args:
+            target (str): name of the target to run.
+            args (None or list): list of extra parameters for the target.
+
+        Raises:
+            CMakeError: if the make target returned an error.
+        """
+        args = args or []
+        cmd_make = ['make', target] + args + self.cmd_make_extra_args
 
         try:
-            supported_platforms = ['Linux', 'Darwin', 'Windows']
-            current_platform = platform.system()
-            if current_platform not in supported_platforms:
-                # TODO: stdout is silenced by pip if the full setup.py invocation is
-                # successful, unless using '-v' - hence the warnings are not printed.
-                print('WARNING: QISKit cpp simulator is meant to be built with these '
-                      'platforms: {}. We will support other platforms soon!'
-                      .format(supported_platforms))
-                return
-
-            cmd_cmake = ['cmake', '-vvv']
-            if 'USER_LIB_PATH' in os.environ:
-                cmd_cmake.append('-DUSER_LIB_PATH={}'.format(os.environ['USER_LIB_PATH']))
-            if current_platform == 'Windows':
-                # We only support MinGW so far
-                cmd_cmake.append("-GMinGW Makefiles")
-            cmd_cmake.append('..')
-
-            cmd_make = ['make', 'pypi_package_copy_qiskit_simulator']
-
-            try:
-                cmd_make.append('-j%d' % cpu_count())
-            except NotImplementedError:
-                print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
-
-            def compile_simulator():
-                self.mkpath('out')
-                os.chdir('out')
-                call(cmd_cmake)
-                call(cmd_make)
-
-            self.execute(compile_simulator, [], 'Compiling QISKit C++ Simulator')
+            log.info('Building cmake target "%s"' % target)
+            call(cmd_make, cwd=self.cmake_dir)
         except Exception as e:
-            print(str(e))
-            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
-                  "install anyway, but won't have this simulator support.")
-
-        # Restore working directory.
-        os.chdir(current_directory)
+            log.error('Unable to build target "%s": %s' % (target,
+                                                           str(e)))
+            raise CMakeError(str(e))
 
 
-# This is for creating wheel specific platforms
-class BinaryDistribution(Distribution):
-    def has_ext_modules(self):
-        return True
+class BuildCMakeExt(build_ext):
+    def run(self):
+        """Build extensions in build directory, then copy if --inplace"""
+        # Copy the files generated by cmake to the build directory, mimicking
+        # the default compilation.
+
+        # Try to initialize cmake.
+        self.cmake_path = os.path.join(self.build_temp, 'out')
+        try:
+            cmake_wrapper = CMakeWrapper(self.cmake_path)
+        except CMakeError:
+            return
+
+        for ext in self.extensions:
+            try:
+                source_so = ext.sources[0]
+                sources_other = ext.sources[1:]
+
+                # Get the names and paths used.
+                fullname = self.get_ext_fullname(ext.name)
+                shortname = fullname.split('.')[-1]
+                filename = self.get_ext_filename(fullname)
+                extension_dir = os.path.dirname(os.path.join(self.build_lib,
+                                                             filename))
+
+                # Execute cmake to invoke the target
+                cmake_wrapper.run_make_target(shortname)
+
+                # Copy the files to the temporary build directory. The first
+                # .so file is renamed to the  platform specific name, and the
+                # rest are copied as-is.
+                self.mkpath(extension_dir)
+                copy_file(os.path.join(self.cmake_path, source_so),
+                          os.path.join(extension_dir, os.path.basename(filename)))
+                for other_file in sources_other:
+                    copy_file(os.path.join(self.cmake_path, other_file),
+                              os.path.join(extension_dir,
+                                           os.path.basename(other_file)))
+            except CMakeError as e:
+                # TODO: cleanup in case a single extension fails to build
+                log.warning('Error building "%s": %s' % (ext.name, str(e)))
+
+        old_inplace, self.inplace = self.inplace, 0
+
+        self.inplace = old_inplace
+        if old_inplace:
+            self.copy_extensions_to_source()
 
 
 setup(
     name="qiskit",
-    version="${QISKIT_VERSION}",
+    version="0.5.0",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
@@ -138,11 +218,13 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
-    cmdclass={
-        'build': QiskitSimulatorBuild,
-    },
-    distclass=BinaryDistribution,
     extras_require={
         'ProjectQ':  ["projectq>=0.3.6"],
-    }
+    },
+    cmdclass={
+        "build_ext": BuildCMakeExt,
+    },
+    ext_modules=[Extension('qiskit.libs._qiskit_simulator_swig',
+                           sources=['swig/_qiskit_simulator_swig.so',
+                                    'swig/qiskit_simulator_swig.py'])],
 )

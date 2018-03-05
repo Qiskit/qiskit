@@ -23,20 +23,32 @@
 project(qiskit_simulator VERSION 1.0 LANGUAGES CXX)
 
 set(QISKIT_SIMULATOR_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(QISKIT_SIMULATOR_SRC
-    "${QISKIT_SIMULATOR_SRC_DIR}/main.cpp")
+set(QISKIT_SIMULATOR_SRC "${QISKIT_SIMULATOR_SRC_DIR}/main.cpp")
+set(QISKIT_SIMULATOR_HPP "${QISKIT_SIMULATOR_SRC_DIR}/qiskit_simulator.hpp")
 set(QISKIT_SIMULATOR_EXTERNAL_LIBS
     "${QISKIT_SIMULATOR_SRC_DIR}/third-party/headers"
     "${QISKIT_SIMULATOR_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
 
-# Target definition
-add_executable(qiskit_simulator ${QISKIT_SIMULATOR_SRC})
+# Target definitions:
+# - the "qiskit_simulator" target produces the library (it automatically sets
+#   the name of the final filename to "libqiskit_simulator.xxx").
+# - the "qiskit_simulator_binary" target produces a standalone executable.
+add_executable(qiskit_simulator_binary ${QISKIT_SIMULATOR_SRC})
+if (STATIC_LINKING OR MINGW)
+    add_library(qiskit_simulator STATIC ${QISKIT_SIMULATOR_SRC} ${QISKIT_SIMULATOR_HPP})
+else()
+    add_library(qiskit_simulator SHARED ${QISKIT_SIMULATOR_SRC} ${QISKIT_SIMULATOR_HPP})
+endif()
+set_target_properties(qiskit_simulator PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
 
 # Target properties: C++ program
+set_target_properties(qiskit_simulator_binary PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(qiskit_simulator PROPERTIES LINKER_LANGUAGE CXX)
 
 # Toolchain options
+set_property(TARGET qiskit_simulator_binary PROPERTY CXX_STANDARD 14)
 set_property(TARGET qiskit_simulator PROPERTY CXX_STANDARD 14)
 
 # Compiler flags
@@ -69,11 +81,14 @@ enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 enable_cxx_compiler_flag_if_supported("-Wshadow")
 enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR})
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/backends)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/engines)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/utilities)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/third-party/headers)
+set(CUSTOM_INCLUDE_DIRECTORIES
+    ${QISKIT_SIMULATOR_SRC_DIR}
+    ${QISKIT_SIMULATOR_SRC_DIR}/backends
+    ${QISKIT_SIMULATOR_SRC_DIR}/engines
+    ${QISKIT_SIMULATOR_SRC_DIR}/utilities
+    ${QISKIT_SIMULATOR_SRC_DIR}/third-party/headers)
+target_include_directories(qiskit_simulator_binary PRIVATE ${CUSTOM_INCLUDE_DIRECTORIES})
+target_include_directories(qiskit_simulator PRIVATE ${CUSTOM_INCLUDE_DIRECTORIES})
 
 # For header only libraries
 SET(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "")
@@ -117,12 +132,13 @@ endif()
 
 set(LIBRARIES PRIVATE ${LIB_BLAS}
                       ${LIB_LAPACK}
-					  ${LIB_THREADS})
+			          ${LIB_THREADS})
 
 # Linking
+target_link_libraries(qiskit_simulator_binary PRIVATE ${LIBRARIES})
 target_link_libraries(qiskit_simulator ${LIBRARIES})
 
-set(QISKIT_SIMULATOR_OUTPUT_DIR $<TARGET_FILE_DIR:qiskit_simulator>
+set(QISKIT_SIMULATOR_OUTPUT_DIR $<TARGET_FILE_DIR:qiskit_simulator_binary>
 	CACHE INTERNAL "Output directory for building QISKit C++ Simulator")
 
 if(MINGW)
@@ -134,7 +150,7 @@ if(MINGW)
 
 	foreach(dll_file ${QISKIT_SIMULATOR_THIRD_PARTY_DLLS})
 		add_custom_command(
-			TARGET qiskit_simulator
+			TARGET qiskit_simulator_binary
 			POST_BUILD
 			COMMAND ${CMAKE_COMMAND}
 			ARGS -E copy ${dll_file} ${QISKIT_SIMULATOR_OUTPUT_DIR}/

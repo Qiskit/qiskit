@@ -17,6 +17,9 @@ if (ENABLE_TARGETS_NON_PYTHON)
     # Add Python distributable package generator
     include(cmake/python-build.cmake)
     add_pypi_package_target(pypi_package both)
+
+    # SWIG components
+    include(cmake/swig.cmake)
 endif()
 
 include(cmake/tests.cmake)
