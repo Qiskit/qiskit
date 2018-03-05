@@ -30,6 +30,25 @@ function(add_code_style_target)
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
 
+function(add_coverage_target)
+    find_program(COV3 "coverage3")
+    if (NOT COV3)
+        message(FATAL_ERROR "Couldn't find coverage3 in your system. Please, install it and try again.")
+    endif()
+
+    add_custom_target(coverage_erase)
+    add_custom_command(TARGET coverage_erase
+        COMMAND ${COV3} erase
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_custom_target(coverage)
+    add_custom_command(TARGET coverage
+        COMMAND ${COV3} run --source qiskit -m unittest discover -s test -q
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_custom_command(TARGET coverage
+        COMMAND ${COV3} report
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endfunction()
+
 function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
     find_program(PYTHON python)
     if(NOT PYTHON)

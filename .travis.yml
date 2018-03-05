@@ -72,7 +72,7 @@ stage_osx: &stage_osx
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install python3
+      brew upgrade python3
       brew install gcc@6
       brew link --overwrite gcc@6
       virtualenv env -p python3
