@@ -19,19 +19,21 @@
 OPENQASM parser.
 """
 import os
-import sympy
-import tempfile
 import shutil
+import tempfile
 
 import ply.yacc as yacc
+import sympy
 
-from ._qasmlexer import QasmLexer
-from ._qasmerror import QasmError
 from . import _node as node
+from ._qasmerror import QasmError
+from ._qasmlexer import QasmLexer
 
 
 class QasmParser(object):
     """OPENQASM Parser."""
+
+    # pylint: disable=unused-argument,missing-docstring,invalid-name
 
     def __init__(self, filename):
         """Create the parser."""
@@ -40,6 +42,11 @@ class QasmParser(object):
         self.lexer = QasmLexer(filename)
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='qiskit')
+        self.precedence = (
+            ('left', '+', '-'),
+            ('left', '*', '/'),
+            ('left', 'negative', 'positive'),
+            ('right', '^'))
         # For yacc, also, write_tables = Bool and optimize = Bool
         self.parser = yacc.yacc(module=self, debug=False,
                                 outputdir=self.parse_dir)
@@ -48,7 +55,8 @@ class QasmParser(object):
         self.global_symtab = {}                          # global symtab
         self.current_symtab = self.global_symtab         # top of symbol stack
         self.symbols = []                                # symbol stack
-        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt','acos','atan','asin']
+        self.external_functions = ['sin', 'cos', 'tan', 'exp', 'ln', 'sqrt',
+                                   'acos', 'atan', 'asin']
 
     def __enter__(self):
         return self
@@ -168,8 +176,9 @@ class QasmParser(object):
 
         if g_sym.type != object_type:
             raise QasmError("Type for '" + g_sym.name + "' should be '"
-                            + object_type + "' but was found to be '" + g_sym.type
-                            + "'", "line", str(obj.line), "file", obj.file)
+                            + object_type + "' but was found to be '"
+                            + g_sym.type + "'", "line", str(obj.line),
+                            "file", obj.file)
 
         if obj.type == 'indexed_id':
             bound = g_sym.index
@@ -287,16 +296,16 @@ class QasmParser(object):
     # ----------------------------------------
     #  statement : decl
     #            | quantum_op ';'
-    #            | magic ';'
+    #            | format ';'
     # ----------------------------------------
     def p_statement(self, program):
         """
            statement : decl
                      | quantum_op ';'
-                     | magic ';'
+                     | format ';'
                      | ignore
                      | quantum_op error
-                     | magic error
+                     | format error
         """
         if len(program) > 2:
             if program[2] != ';':
@@ -304,18 +313,18 @@ class QasmParser(object):
                                 + "received", str(program[2].value))
         program[0] = program[1]
 
-    def p_magic(self, program):
+    def p_format(self, program):
         """
-           magic : MAGIC REAL
+           format : FORMAT
         """
-        program[0] = node.Magic([node.Real(sympy.N(program[2]))])
+        program[0] = node.Format(program[1])
 
-    def p_magic_0(self, program):
+    def p_format_0(self, program):
         """
-           magic : MAGIC error
+           format : FORMAT error
         """
-        magic = "2.0;"
-        raise QasmError("Invalid magic string. Expected '" + magic
+        version = "2.0;"
+        raise QasmError("Invalid version string. Expected '" + version
                         + "'.  Is the semicolon missing?")
 
     # ----------------------------------------
@@ -451,8 +460,8 @@ class QasmParser(object):
         """
         if len(program) > 2:
             if program[2] != ';':
-                raise QasmError("Missing ';' in qreg or creg declaraton."
-                                + " Instead received '" + program[2].value + "'")
+                raise QasmError("Missing ';' in qreg or creg declaration."
+                                " Instead received '" + program[2].value + "'")
         program[0] = program[1]
 
     # ----------------------------------------
@@ -932,7 +941,7 @@ class QasmParser(object):
         """
            unary : REAL
         """
-        program[0] = node.Real(sympy.N(program[1]))
+        program[0] = node.Real(sympy.Number(program[1]))
 
     def p_unary_2(self, program):
         """
@@ -965,59 +974,30 @@ class QasmParser(object):
     # ----------------------------------------
     # Prefix
     # ----------------------------------------
-    def p_prefix_expression_0(self, program):
-        """
-           prefix_expression : unary
-        """
-        program[0] = program[1]
-
-    def p_prefix_expression_1(self, program):
-        """
-           prefix_expression : '+' prefix_expression
-                             | '-' prefix_expression
-        """
-        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
-
-    def p_additive_expression_0(self, program):
-        """
-            additive_expression : prefix_expression
-        """
-        program[0] = program[1]
-
-    def p_additive_expression_1(self, program):
-        """
-            additive_expression : additive_expression '+' prefix_expression
-                                | additive_expression '-' prefix_expression
-        """
-        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
-                                    program[1], program[3]])
-
-    def p_multiplicative_expression_0(self, program):
-        """
-            multiplicative_expression : additive_expression
-        """
-        program[0] = program[1]
-
-    def p_multiplicative_expression_1(self, program):
-        """
-        multiplicative_expression : multiplicative_expression '*' additive_expression
-                                  | multiplicative_expression '/' additive_expression
-        """
-        program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
-                                    program[1], program[3]])
-
-    def p_expression_0(self, program):
-        """
-            expression : multiplicative_expression
-        """
-        program[0] = program[1]
 
     def p_expression_1(self, program):
         """
-            expression : expression '^' multiplicative_expression
+            expression : '-' expression %prec negative
+                        | '+' expression %prec positive
+        """
+        program[0] = node.Prefix([node.UnaryOperator(program[1]), program[2]])
+
+    def p_expression_0(self, program):
+        """
+        expression : expression '*' expression
+                    | expression '/' expression
+                    | expression '+' expression
+                    | expression '-' expression
+                    | expression '^' expression
         """
         program[0] = node.BinaryOp([node.BinaryOperator(program[2]),
                                     program[1], program[3]])
+
+    def p_expression_2(self, program):
+        """
+            expression : unary
+        """
+        program[0] = program[1]
 
     # ----------------------------------------
     # exp_list : exp
@@ -1067,19 +1047,16 @@ class QasmParser(object):
         column = (token.lexpos - last_cr) + 1
         return column
 
-    def print_tokens(self):
-        """Test method to verify tokenizer."""
+    def get_tokens(self):
+        """Returns a generator of the tokens."""
         try:
             while True:
                 token = self.lexer.token()
+
                 if not token:
                     break
-                # TODO: This isn't really the column, it's the character
-                # position.  Need to do backtrack to the nearest \n to get
-                # the actual column.
-                print('TOKEN:' + str(token) + ":ENDTOKEN", 'at line',
-                      token.lineno, 'column', token.lexpos, 'file',
-                      self.lexer.filename)
+
+                yield token
         except QasmError as e:
             print('Exception tokenizing qasm file:', e.msg)
 

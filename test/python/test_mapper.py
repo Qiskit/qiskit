@@ -62,7 +62,7 @@ class MapperTest(QiskitTestCase):
         if version_info.minor == 5:  # Python 3.5
             self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
         else:  # Python 3.6 and higher
-            self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
+            self.assertEqual(result1.get_counts("test"), {'0001': 517, '0101': 507})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -79,7 +79,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[1], qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'ibmqx4'
+        backend = 'local_qasm_simulator'
         cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
         qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
 
@@ -88,6 +88,54 @@ class MapperTest(QiskitTestCase):
         # expected programs, but proper revision should be done.
         self.assertIn(self.qp.get_compiled_qasm(qobj, "Bell"),
                       (EXPECTED_QASM_1Q_GATES, EXPECTED_QASM_1Q_GATES_3_5))
+
+    def test_random_parameter_circuit(self):
+        """Run a circuit with randomly generated parameters."""
+        self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
+        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
+                                  coupling_map=coupling_map, seed=self.seed)
+        res = result1.get_counts("rand")
+
+        expected_result = {'10000': 97, '00011': 24, '01000': 120, '10111': 59,
+                           '01111': 37, '11010': 14, '00001': 34, '00100': 42,
+                           '10110': 41, '00010': 102, '00110': 48, '10101': 19,
+                           '01101': 61, '00111': 46, '11100': 28, '01100': 1,
+                           '00000': 86, '11111': 14, '11011': 9, '10010': 35,
+                           '10100': 20, '01001': 21, '01011': 19, '10011': 10,
+                           '11001': 13, '00101': 4, '01010': 2, '01110': 17,
+                           '11000': 1}
+
+        # TODO: the circuit produces different results under different versions
+        # of Python and NetworkX package, which defeats the purpose of the
+        # "seed" parameter. A proper fix should be issued - this is a workaround
+        # for this particular test.
+        if version_info.minor == 5:  # Python 3.5
+            import networkx
+            if networkx.__version__ == '1.11':
+                expected_result = {'01001': 41, '10010': 25, '00111': 53,
+                                   '01101': 68, '10101': 11, '10110': 34,
+                                   '01110': 6, '11100': 27, '00100': 54,
+                                   '11010': 20, '10100': 20, '01100': 1,
+                                   '10000': 96, '11000': 1, '11011': 9,
+                                   '10011': 15, '00101': 3, '00001': 25,
+                                   '00010': 113, '01011': 16, '11111': 19,
+                                   '11001': 16, '00011': 22, '00000': 89,
+                                   '00110': 40, '01000': 110, '10111': 60,
+                                   '11110': 4, '01010': 9, '01111': 17}
+            else:
+                expected_result = {'01001': 32, '11110': 1, '10010': 36,
+                                   '11100': 34, '11011': 10, '00001': 41,
+                                   '00000': 83, '10000': 94, '11001': 15,
+                                   '01011': 24, '00100': 43, '11000': 5,
+                                   '11010': 9, '01100': 5, '10100': 23,
+                                   '01101': 54, '01110': 6, '00011': 13,
+                                   '10101': 12, '00111': 36, '00110': 40,
+                                   '01000': 119, '11111': 19, '01010': 8,
+                                   '10111': 61, '10110': 52, '01111': 23,
+                                   '00010': 110, '00101': 2, '10011': 14}
+
+        self.assertEqual(res, expected_result)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
@@ -171,13 +219,13 @@ EXPECTED_QASM_1Q_GATES = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];\n"""
 
 # This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
@@ -186,13 +234,13 @@ EXPECTED_QASM_1Q_GATES_3_5 = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
 creg cr[2];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,pi) q[1];
+u2(0,3.14159265358979) q[1];
 measure q[1] -> cr[0];
-u2(0,pi) q[0];
+u2(0,3.14159265358979) q[0];
 measure q[0] -> cr[1];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;

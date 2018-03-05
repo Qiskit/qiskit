@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,10 +19,10 @@
 """
 SWAP gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+from qiskit import Gate
+from qiskit import QuantumCircuit
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class SwapGate(Gate):
@@ -29,7 +30,7 @@ class SwapGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new SWAP gate."""
-        super(SwapGate, self).__init__("swap", [], [ctl, tgt], circ)
+        super().__init__("swap", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

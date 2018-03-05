@@ -22,20 +22,33 @@ if you are willing to contribute to QISKit or just wanted to extend it, you
 should install Git too: https://git-scm.com/download/.
 
 
-2. PIP Install
---------------
+2. Installation
+---------------
 
-The fastest way to install QISKit is by using the PIP tool (Python package manager):
+Option A: Installing via PIP
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The recommended way to install QISKit is by using the PIP tool (Python
+package manager):
 
 .. code:: sh
 
     pip install qiskit
 
-3. Repository Install
----------------------
+This will install the latest stable release along with all the dependencies.
 
-Other common option is to clone the QISKit SDK repository on your local machine,
-and change into the cloned directory:
+Option B: Installing from the git repository
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As an alternative for users interesting in contributing to QISKit or using
+features that are still in development, QISKit can be installed manually from
+the git repository.
+
+Please note that this option requires more familiarity with the tools involved
+compared to the more streamline option of installing via PIP:
+
+Getting the source files
+""""""""""""""""""""""""
 
 -  If you have Git installed, run the following commands:
 
@@ -48,8 +61,8 @@ and change into the cloned directory:
   button on the `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-sdk-py>`__, unzip the file if
   needed and finally change into the unziped directory.
 
-3.1 Setup the environment
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Setup the environment
+"""""""""""""""""""""
 
 To use QISKit as standalone library, install all the dependencies:
 
@@ -75,7 +88,16 @@ with QISKit, and install the required dependencies:
     conda create -y -n QISKitenv python=3 pip scipy
     activate QISKitenv
     pip install -r requirements.txt
-    
+
+Please note that depending on your Mac OS environment, you might need to execute the following
+set of commands instead:
+
+.. code:: sh
+
+    conda create -y -n QISKitenv python=3 pip scipy
+    source activate QISKitenv
+    pip install -r requirements.txt
+
 -  If running on Windows, make sure to execute an Anaconda Prompt and run
    the following command:
 
@@ -84,7 +106,10 @@ with QISKit, and install the required dependencies:
     .\make env
 
 
-4. Configure your API token and QE credentials
+
+.. _qconfig-setup:
+
+3. Configure your API token and QE credentials
 ----------------------------------------------
 
 -  Create an `IBM Q
@@ -162,11 +187,12 @@ shown below the error:
 
     pip install -U --no-cache-dir IBMQuantumExperience
     
-- Fix: run the command below
+- Fix: run the command below:
 
 .. code:: sh
 
     curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
-For additional troubleshooting tips, see the QISKit troubleshooting page
-on the project's GitHub wiki
+For additional troubleshooting tips, see the `QISKit troubleshooting page
+<https://github.com/QISKit/qiskit-sdk-py/wiki/QISKit-Troubleshooting>`_
+on the project's GitHub wiki.

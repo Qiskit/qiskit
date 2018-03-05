@@ -18,10 +18,9 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
-from qiskit import QuantumCircuit
 from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit.extensions.standard import cx, ccx
+from qiskit import QuantumCircuit
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class FredkinGate(CompositeGate):
@@ -29,8 +28,7 @@ class FredkinGate(CompositeGate):
 
     def __init__(self, ctl, tgt1, tgt2, circ=None):
         """Create new Fredkin gate."""
-        super(FredkinGate, self).__init__("fredkin", [], [ctl, tgt1, tgt2],
-                                          circ)
+        super().__init__("fredkin", [], [ctl, tgt1, tgt2], circ)
         self.cx(tgt2, tgt1)
         self.ccx(ctl, tgt1, tgt2)
         self.cx(tgt2, tgt1)

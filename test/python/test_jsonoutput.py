@@ -36,7 +36,6 @@ class TestJsonOutput(QiskitTestCase):
             'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
-        seed = 88
         qp = QuantumProgram()
         qp.load_qasm_file(self.QASM_FILE_PATH, name="example")
 
@@ -44,7 +43,7 @@ class TestJsonOutput(QiskitTestCase):
         unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
                                    unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
-        self.log.info('test_json_ouptut: {0}'.format(circuit))
+        self.log.info('test_json_ouptut: %s', circuit)
 
 
 if __name__ == '__main__':
