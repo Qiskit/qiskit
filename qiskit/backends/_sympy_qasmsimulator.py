@@ -251,6 +251,16 @@ class SympyQasmSimulator(BaseBackend):
         self._quantum_state = matrix_to_qubit(matrix_form_quantum_state)
 
 
+    # class bcolors:
+    #     HEADER = '\033[95m'
+    #     OKBLUE = '\033[94m'
+    #     OKGREEN = '\033[92m'
+    #     WARNING = '\033[93m'
+    #     FAIL = '\033[91m'
+    #     ENDC = '\033[0m'
+    #     BOLD = '\033[1m'
+    #     UNDERLINE = '\033[4m'
+
     def run(self, q_job):
         """Run circuits in q_job"""
         # Generating a string id for the job
@@ -258,6 +268,8 @@ class SympyQasmSimulator(BaseBackend):
         qobj = q_job.qobj
         result_list = []
         self._shots = qobj['config']['shots']
+        if self._shots > 1:
+            print('\033[95m' + "symbolic simulator does not need multiple shots! we will set shot=1 automatically!" + '\033[0m')
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},

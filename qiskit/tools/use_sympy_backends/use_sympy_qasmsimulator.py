@@ -14,9 +14,9 @@ print("analyzing: " + qasm_file)
 circuits = ['my_example'] #, 'superposition'
 backend = 'local_sympy_qasm_simulator' # the device to run on
 result = Q_program.execute(circuits, backend=backend, shots=10, timeout=300)
-print("count:")
-print(result.get_counts('my_example')) #{'11': 54, '00': 46}
-print("quantum_state prior to measurement: ")
+#print("count:")
+#print(result.get_counts('my_example')) #{'11': 54, '00': 46}
+print("final quantum amplitude vector: ")
 print(result.get_data('my_example')['quantum_state']) # [sqrt(2)/2 0 0 sqrt(2)/2]
 print("\n")
 
