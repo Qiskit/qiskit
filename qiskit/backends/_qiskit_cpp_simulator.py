@@ -120,9 +120,10 @@ def run(qobj):
 
     # Call the shared library.
     try:
-        cin = json.dumps(qobj).encode()
+        cin = json.dumps(qobj)
+        print(type(cin))
         cout = external_run(cin)
-        cresult = json.loads(cout.decode())
+        cresult = json.loads(cout)
 
         if 'result' in cresult:
             # If not Clifford simulator parse JSON complex numbers in output
