@@ -278,7 +278,7 @@ class TestAppsFermion(QiskitTestCase):
     """Tests for apps"""
 
     def setUp(self):
-        self.j1 = 20
+        self.j1 = 8
         self.j2 = 3
         self.j3 = 5
         self.n = 10
@@ -314,6 +314,8 @@ class TestAppsFermion(QiskitTestCase):
     def test_flip_set(self):
         """ qiskit.tools.apps.fermion.flip_set function"""
         r = flip_set(self.j1, self.n)
+        self.assertEqual(r, [])
+        r = flip_set(20, self.n)
         self.assertEqual(r, [4.])
         r = flip_set(self.j2, self.n)
         self.assertFalse(r)
