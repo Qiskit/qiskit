@@ -28,6 +28,9 @@ limitations under the License.
 
 // Simulator
 #include "simulator.hpp"
+#include "qiskit_simulator.hpp"
+
+int execute_simulation(json_t &qobj, std::ostream &out, int indent);
 
 /*******************************************************************************
  *
@@ -41,6 +44,27 @@ inline void failed(std::string msg, std::ostream &o = std::cout,
   ret["success"] = false;
   ret["status"] = std::string("ERROR: ") + msg;
   o << ret.dump(indent) << std::endl;
+}
+
+int execute_simulation(json_t &qobj, std::ostream &out, int indent) {
+  // Execute simulation
+  try {
+    QISKIT::Simulator sim = qobj;
+
+// Set qubit limit
+#if defined MAX_QUBITS
+    sim.max_qubits = std::map<std::string, uint_t>{{"qubit", MAX_QUBITS}};
+#endif
+
+    // Execute
+    out << sim.execute().dump(indent) << std::endl;
+    return 0;
+  } catch (std::exception &e) {
+    std::stringstream msg;
+    msg << "Failed to execute qobj (" << e.what() << ")";
+    failed(msg.str(), out, indent);
+    return 1;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -68,24 +92,25 @@ int main(int argc, char **argv) {
     std::cerr << "  file : qobj file\n" << std::endl;
     return 1;
   }
-
-  // Execute simulation
-  try {
-    QISKIT::Simulator sim = qobj;
-
-// Set qubit limit
-#if defined MAX_QUBITS
-    sim.max_qubits = std::map<std::string, uint_t>{{"qubit", MAX_QUBITS}};
-#endif
-
-    // Execute
-    out << sim.execute().dump(indent) << std::endl;
-    return 0;
-  } catch (std::exception &e) {
-    std::stringstream msg;
-    msg << "Failed to execute qobj (" << e.what() << ")";
-    failed(msg.str(), out, indent);
-    return 1;
-  }
-
+  return execute_simulation(qobj, out, indent);
 } // end main
+
+std::string run(std::string json_in) {
+
+  std::stringstream out;
+  int indent = 4;
+  json_t qobj;
+
+  try {
+      //qobj = JSON::parse(json_in);
+      qobj = json_t::parse(json_in);
+    } catch (std::exception &e) {
+      std::stringstream msg;
+      msg << "Invalid input (" << e.what() << ")";
+      failed(msg.str(), out, indent);
+    }
+
+  execute_simulation(qobj, out, indent);
+  return out.str();
+}
+

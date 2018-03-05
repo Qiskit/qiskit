@@ -22,7 +22,7 @@ import unittest
 
 import qiskit
 import qiskit.backends._qiskit_cpp_simulator as qiskitsimulator
-from qiskit import ClassicalRegister
+from qiskit import ClassicalRegister, QISKitError
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
 from qiskit import QuantumRegister
@@ -80,9 +80,9 @@ class TestLocalQiskitSimulator(QiskitTestCase):
     def test_run_qobj(self):
         try:
             simulator = qiskitsimulator.QISKitCppSimulator()
-        except FileNotFoundError as fnferr:
+        except QISKitError as fnferr:
             raise unittest.SkipTest(
-                'cannot find {} in path'.format(fnferr))
+                'cannot find Cpp simulator: {}'.format(fnferr))
         result = simulator.run(self.q_job)
 
         # TODO: reenable the assertEqual with the exact counts once the issue

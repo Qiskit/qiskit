@@ -22,34 +22,32 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import json
 import logging
 import numbers
-import os
-import subprocess
-from subprocess import PIPE
-import platform
 
 import numpy as np
 
+from qiskit import QISKitError
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 
+try:
+    # pylint: disable=invalid-name
+    from qiskit.libs import _qiskit_simulator_swig
+    external_run = _qiskit_simulator_swig.run
+except ImportError:
+    # pylint: disable=invalid-name
+    external_run = None
+
+
 logger = logging.getLogger(__name__)
-
-EXTENSION = '.exe' if platform.system() == 'Windows' else ''
-
-# Add path to compiled qiskit simulator
-DEFAULT_SIMULATOR_PATHS = [
-    # This is the path where Makefile creates the simulator by default
-    os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
-    # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
-]
 
 
 class QISKitCppSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
+        if not external_run:
+            raise QISKitError('Cpp simulator shared library not available.')
+
         super().__init__(configuration)
         self._configuration = configuration
 
@@ -64,24 +62,9 @@ class QISKitCppSimulator(BaseBackend):
                 "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,wait,noise,save,load,uzz',
             }
 
-        # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
-        else:
-            paths = DEFAULT_SIMULATOR_PATHS
-
-        # Ensure that the executable is available.
-        try:
-            self._configuration['exe'] = next(
-                path for path in paths if (os.path.exists(path) and
-                                           os.path.getsize(path) > 100))
-        except StopIteration:
-            raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
-
     def run(self, q_job):
         qobj = q_job.qobj
-        result = run(qobj, self._configuration['exe'])
+        result = run(qobj)
         return Result(result, qobj)
 
 
@@ -89,6 +72,9 @@ class CliffordCppSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
+        if not external_run:
+            raise QISKitError('Cpp simulator shared library not available.')
+
         super().__init__(configuration)
         self._configuration = configuration
 
@@ -103,21 +89,6 @@ class CliffordCppSimulator(BaseBackend):
                 'basis_gates': 'cx,id,x,y,z,h,s,sdg,wait,noise,save,load'
             }
 
-        # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
-        else:
-            paths = DEFAULT_SIMULATOR_PATHS
-
-        # Ensure that the executable is available.
-        try:
-            self._configuration['exe'] = next(
-                path for path in paths if (os.path.exists(path) and
-                                           os.path.getsize(path) > 100))
-        except StopIteration:
-            raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
-
     def run(self, q_job):
         qobj = q_job.qobj
         # set backend to Clifford simulator
@@ -126,17 +97,16 @@ class CliffordCppSimulator(BaseBackend):
         else:
             qobj['config'] = {'simulator': 'clifford'}
 
-        result = run(qobj, self._configuration['exe'])
+        result = run(qobj)
         return Result(result, qobj)
 
 
-def run(qobj, executable):
+def run(qobj):
     """
     Run simulation on C++ simulator inside a subprocess.
 
     Args:
         qobj (dict): qobj dictionary defining the simulation to run
-        executable (string): filename (with path) of the simulator executable
     Returns:
         dict: A dict of simulation results
     """
@@ -148,17 +118,12 @@ def run(qobj, executable):
             qobj['circuits'][j]['config'] = __to_json_complex(
                 qobj['circuits'][j]['config'])
 
-    # Open subprocess and execute external command
+    # Call the shared library.
     try:
-        with subprocess.Popen([executable, '-'],
-                              stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj).encode()
-            cout, cerr = proc.communicate(cin)
-        if cerr:
-            logger.error('ERROR: Simulator encountered a runtime error: %s',
-                         cerr.decode())
-
-        cresult = json.loads(cout.decode())
+        cin = json.dumps(qobj)
+        print(type(cin))
+        cout = external_run(cin)
+        cresult = json.loads(cout)
 
         if 'result' in cresult:
             # If not Clifford simulator parse JSON complex numbers in output
@@ -169,9 +134,8 @@ def run(qobj, executable):
                         if 'noise_params' in result:
                             __parse_noise_params(result['noise_params'])
         return cresult
-
-    except FileNotFoundError:
-        msg = "ERROR: Simulator exe not found at: %s" % executable
+    except QISKitError as exc:
+        msg = "ERROR: run() failed: : %s" % str(exc)
         logger.error(msg)
         return {"status": msg, "success": False}
 
