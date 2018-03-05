@@ -60,6 +60,7 @@ stage_linux: &stage_linux
         - liblapack-dev
         - libblas-dev
         - g++-5
+        - swig
 
 stage_osx: &stage_osx
   <<: *stage_generic
@@ -72,9 +73,10 @@ stage_osx: &stage_osx
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install python3
+      brew upgrade python
       brew install gcc@6
       brew link --overwrite gcc@6
+      brew install swig
       virtualenv env -p python3
       source env/bin/activate
     fi
