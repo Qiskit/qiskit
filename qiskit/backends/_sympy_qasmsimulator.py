@@ -18,100 +18,33 @@
 
 """Contains a (slow) python sympy-based simulator.
 
-It simulates a qasm quantum circuit that has been compiled to run on the
-simulator. It is exponential in the number of qubits.
-
-We advise using the c++ simulator or online simulator for larger size systems.
-
-The input is a qobj dictionary
-
-and the output is a Results object
-
-if shots = 1
-
-    compiled_circuit['result']['data']['quantum_state']
-
-and
-
-    results['data']['classical_state']
-
-where 'quantum_state' is a 2\ :sup:`n` complex numpy array representing the
-quantum state vector and 'classical_state' is an integer representing
-the state of the classical registors. Note the quantum state vector is in the symbolic form, e.g., E^(I*[pi])
+It produces the amplitude vector in the symbolic form.
+In particular, it simulates the quantum computation with the sympy APIs,
+which preserve the symbolic form of numbers, e.g., sqrt(2), e^{i*pi/2}.
 
 
-if shots > 1
+[example for using this simulator:]
+Q_program = QuantumProgram()
+currentFolder = os.path.dirname(os.path.realpath(__file__))
+qasm_file = currentFolder + "/testcases/naive.qasm"
+myqasm = Q_program.load_qasm_file(qasm_file, "my_example")
+print("analyzing: " + qasm_file)
+circuits = ['my_example'] #, 'superposition'
+backend = 'local_sympy_qasm_simulator' # the device to run on
+result = Q_program.execute(circuits, backend=backend, shots=1, timeout=300)
+#print("count:")
+#print(result.get_counts('my_example')) #{'11': 54, '00': 46}
+print("final quantum amplitude vector: ")
+print(result.get_data('my_example')['quantum_state'])
 
-    results['data']["counts"] where this is dict {"0000" : 454}
-
-The simulator is run using
-
-.. code-block:: python
-
-    QasmSimulator(compiled_circuit,shots,seed).run().
-
-.. code-block:: guess
-
-       compiled_circuit =
-       {
-        "header": {
-        "number_of_qubits": 2, // int
-        "number_of_clbits": 2, // int
-        "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
-        "clbit_labels": [["c", 2]], // list[list[string, int]]
-        }
-        "operations": // list[map]
-           [
-               {
-                   "name": , // required -- string
-                   "params": , // optional -- list[double]
-                   "qubits": , // required -- list[int]
-                   "clbits": , // optional -- list[int]
-                   "conditional":  // optional -- map
-                       {
-                           "type": , // string
-                           "mask": , // hex string
-                           "val":  , // bhex string
-                       }
-               },
-           ]
-       }
-
-if shots = 1
-
-.. code-block:: python
-
-       result =
-               {
-               'data':
-                   {
-                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
-                   'classical_state': 0
-                   'counts': {'0000': 1}
-                   }
-               'status': 'DONE'
-               }
-
-if shots > 1
-
-.. code-block:: python
-
-       result =
-               {
-               'data':
-                   {
-                   'counts': {'0000': 50, '1001': 44},
-                   }
-               'status': 'DONE'
-               }
+[example output:]
+final quantum amplitude vector: [sqrt(2)/2 0 0 sqrt(2)/2]
 
 
-
-
-NOTE: Thanks to the lossless precision of sympy, the final amplitude vector, or the probability distribution, is precise.
-We can directly sample from the probability distribution, rather than actually performing the multiple shots.
-Besides, because the sympy computation is costly, we do only 1 shot even if multiple shots are specified.
-
+Warning: it is slow.
+Warning: this simulator computes the final amplitude vector precisely within a single shot.
+Therefore we do not need multiple shots.
+If you specified multiple shots, we will set shot=1 automatically.
 
 """
 import uuid
@@ -141,10 +74,6 @@ from sympy.physics.quantum.represent import represent
 
 from sympy import pprint, pretty, symbols, Matrix, pi, E, I, cos, sin, N, exp, nsimplify
 
-
-
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
-# does not show up
 
 
 

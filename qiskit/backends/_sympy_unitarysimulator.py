@@ -17,78 +17,32 @@
 
 """Contains a (slow) Python simulator that returns the unitary of the circuit.
 
-It simulates a unitary of a quantum circuit that has been compiled to run on
-the simulator. It is exponential in the number of qubits.
+It produces the unitary of a quantum circuit in the symbolic form.
+In particular, it simulates the quantum computation with the sympy APIs,
+which preserve the symbolic form of numbers, e.g., sqrt(2), e^{i*pi/2}.
 
-The input is the circuit object and the output is the same circuit object with
-a result field added results['data']['unitary'] where the unitary is
-a 2**n x 2**n complex numpy array representing the unitary matrix.
+example code for using it:
+Q_program = QuantumProgram()
+currentFolder = os.path.dirname(os.path.realpath(__file__))
+qasm_file = currentFolder + "/testcases/naive.qasm"
+myqasm = Q_program.load_qasm_file(qasm_file, "my_example")
+print("analyzing: " + qasm_file)
+circuits = ['my_example'] #, 'superposition'
+backend = 'local_sympy_unitary_simulator' # the device to run on
+result = Q_program.execute(circuits, backend=backend, timeout=10)
+print("unitary matrix of the circuit: ")
+print(result.get_data('my_example')['unitary'])
+
+example output:
+[[sqrt(2)/2 sqrt(2)/2 0 0]
+ [0 0 sqrt(2)/2 -sqrt(2)/2]
+ [0 0 sqrt(2)/2 sqrt(2)/2]
+ [sqrt(2)/2 -sqrt(2)/2 0 0]]
+
+Warning: it is slow.
 
 
-The input is
 
-    compiled_circuit object
-
-and the output is the results object
-
-The simulator is run using
-
-    UnitarySimulator(compiled_circuit).run().
-
-In the qasm, key operations with type 'measure' and 'reset' are dropped.
-
-Internal circuit_object::
-
-    compiled_circuit =
-    {
-     "header": {
-     "number_of_qubits": 2, // int
-     "number_of_clbits": 2, // int
-     "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
-     "clbit_labels": [["c", 2]], // list[list[string, int]]
-     }
-     "operations": // list[map]
-        [
-            {
-                "name": , // required -- string
-                "params": , // optional -- list[double]
-                "qubits": , // required -- list[int]
-                "clbits": , //optional -- list[int]
-                "conditional":  // optional -- map
-                    {
-                        "type": , // string
-                        "mask": , // hex string 
-                        "val":  , // bhex string 
-                    }
-            },
-        ]
-    }
-
-returned results object::
-
-    result =
-            {
-            'data':
-                {
-                'unitary': np.array([[ 0.70710678 +0.00000000e+00j
-                                     0.70710678 -8.65956056e-17j
-                                     0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j]
-                                   [ 0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j
-                                     0.70710678 +0.00000000e+00j
-                                     -0.70710678 +8.65956056e-17j]
-                                   [ 0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j
-                                     0.70710678 +0.00000000e+00j
-                                     0.70710678 -8.65956056e-17j]
-                                   [ 0.70710678 +0.00000000e+00j
-                                    -0.70710678 +8.65956056e-17j
-                                     0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j]
-                }
-            'state': 'DONE'
-            }
 """
 import uuid
 import logging
