@@ -18,7 +18,7 @@
 """
 Updates the Coupling class to include plotting and layout generation routines.
 
-import qiskit.tools.layouts to extend the Coupling class
+import qiskit.tools.coupling_layouts to extend the Coupling class
 
 added Class methods are:
  get_dict  : Get a dictionary representation of the coupling graph
