@@ -156,7 +156,6 @@ class SympyQasmSimulator(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-        self._ignore_measure = True # this option is transparent to users
 
         if configuration is None:
             self._configuration = {
@@ -274,8 +273,24 @@ class SympyQasmSimulator(BaseBackend):
 #Note: 1 we only take one shot no matter how many shots the user specified.
 #      2 the quantum_state returned is in the symbolic form
 #      3 the quantum_state returned can be used for equivalence checking given that it does not lose information.
+    def run_circuit(self, circuit):
+        """Run a circuit and return a single Result.
 
-    def run_circuit_ignore_measure(self, circuit):
+        Args:
+            circuit (dict): JSON circuit from qobj circuits list
+
+        Returns:
+            A dictionary of results which looks something like::
+
+                {
+                "data":
+                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
+                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                    "time"  : xx.xxxxxxxx
+                    },
+                "status": --status (string)--
+                }
+        """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
@@ -375,126 +390,6 @@ class SympyQasmSimulator(BaseBackend):
             data['quantum_state'] = np.asarray(list_form)# consistent with other backend. each element is symbolic!
             data['classical_state'] = self._classical_state, # integer, which can be converted to bin_string: "bin(x)"
         return {'data': data, 'status': 'DONE'}
-
-
-
-
-
-#this method works the same as _qasmsimulator.py, which takes mulitple shots and collects statistics.
-#Note: 1 the sympy computation is very slow, so taking multiple shots is extremely slow. Please use the run_circuit_ignore_measure() if you want the efficiency.
-#     2 the quantum_state returned by this method collapses due to the measurement, and hence can NOT be used for equivalence
-#checking or similar tasks.
-    def run_circuit_like_qasmsimulator(self, circuit):
-        ccircuit = circuit['compiled_circuit']
-        self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        self._number_of_cbits = ccircuit['header']['number_of_clbits']
-        self._quantum_state = 0
-        self._classical_state = 0
-        cl_reg_index = [] # starting bit index of classical register
-        cl_reg_nbits = [] # number of bits in classical register
-        cbit_index = 0
-        for cl_reg in ccircuit['header']['clbit_labels']:
-            cl_reg_nbits.append(cl_reg[1])
-            cl_reg_index.append(cbit_index)
-            cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
-            random.seed(random.getrandbits(32))
-        else:
-            random.seed(circuit['config']['seed'])
-
-        outcomes = []
-        for shot in range(self._shots):
-            self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
-            self._classical_state = 0
-            # Do each operation in this shot
-            for operation in ccircuit['operations']:
-                if 'conditional' in operation: # not related to sympy
-                    mask = int(operation['conditional']['mask'], 16)
-                    if mask > 0:
-                        value = self._classical_state & mask
-                        while (mask & 0x1) == 0:
-                            mask >>= 1
-                            value >>= 1
-                        if value != int(operation['conditional']['val'], 16):
-                            continue
-                # Check if single  gate
-                if operation['name'] in ['U', 'u1', 'u2', 'u3']:# get this done first
-                    if 'params' in operation:
-                        params = operation['params']
-                    else:
-                        params = None
-                    qubit = operation['qubits'][0]
-                    _sym_op = SympyQasmSimulator.get_sym_op(operation['name'].upper(), tuple([qubit]), operation['params'])
-                    self._quantum_state = qapply(_sym_op * self._quantum_state)
-                # Check if CX gate
-                elif operation['name'] in ['id', 'u0']:
-                    pass
-                elif operation['name'] in ['CX', 'cx']:
-                    qubit0 = operation['qubits'][0]
-                    qubit1 = operation['qubits'][1]
-                    _sym_op = SympyQasmSimulator.get_sym_op(operation['name'].upper(), tuple([qubit0, qubit1]), operation['params'])
-                    self._quantum_state = qapply(_sym_op * self._quantum_state)
-                # Check if measure
-                elif operation['name'] == 'measure':# if we measure the state, the state will collapse
-                    qubit = operation['qubits'][0]
-                    cbit = operation['clbits'][0]
-                    self._add_qasm_measure(qubit, cbit)
-                # Check if reset
-                elif operation['name'] == 'reset': # supported modification of state
-                    qubit = operation['qubits'][0]
-                    self._add_qasm_reset(qubit)
-                elif operation['name'] == 'barrier':
-                    pass
-                else:
-                    backend = globals()['__configuration']['name']
-                    err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise SimulatorError(err_msg.format(backend,
-                                                        operation['name']))
-
-                    # Turn classical_state (int) into bit string
-            outcomes.append(bin(self._classical_state)[2:].zfill(
-                self._number_of_cbits))
-
-
-        # Return the results
-        counts = dict(Counter(outcomes))
-        data = {'counts': self._format_result(
-            counts, cl_reg_index, cl_reg_nbits)}
-        if self._shots == 1:
-            matrix_form = represent(self._quantum_state)
-            N = matrix_form.shape[0]
-            list_form = [matrix_form[i,0] for i in range(N)]
-
-            data['quantum_state'] = np.asarray(list_form)# consistent with other backend. each element is symbolic!
-            data['classical_state'] = self._classical_state, # integer, which can be converted to bin_string: "bin(x)"
-        return {'data': data, 'status': 'DONE'}
-
-
-
-
-    def run_circuit(self, circuit):
-        """Run a circuit and return a single Result.
-
-        Args:
-            circuit (dict): JSON circuit from qobj circuits list
-
-        Returns:
-            A dictionary of results which looks something like::
-
-                {
-                "data":
-                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
-                    "time"  : xx.xxxxxxxx
-                    },
-                "status": --status (string)--
-                }
-        """
-        if self._ignore_measure:
-            return self.run_circuit_ignore_measure(circuit) # by ignoring measure, we keep the lossless amplitude vector and can directly sample from the distrition computed from the amplitude vector
-        else:
-            return self.run_circuit_like_qasmsimulator(circuit) # works similarly as _qasmsimulator.py
-
 
 
     # array([ 0. +0.00000000e+00j,  0. +0.00000000e+00j,  1. -3.18258092e-15j,

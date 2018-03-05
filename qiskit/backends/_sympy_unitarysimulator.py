@@ -94,7 +94,6 @@ import uuid
 import logging
 import numpy as np
 import json
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
 from sympy.physics.quantum import TensorProduct
