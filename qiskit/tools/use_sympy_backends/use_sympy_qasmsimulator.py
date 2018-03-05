@@ -8,7 +8,7 @@ from qiskit import QuantumCircuit, QuantumProgram
 
 Q_program = QuantumProgram()
 currentFolder = os.path.dirname(os.path.realpath(__file__))
-qasm_file = currentFolder + "/testcases/naive.qasm"
+qasm_file = currentFolder + "/../../../examples/qasm/naive.qasm"
 myqasm = Q_program.load_qasm_file(qasm_file, "my_example")
 print("analyzing: " + qasm_file)
 circuits = ['my_example'] #, 'superposition'
