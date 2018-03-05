@@ -98,7 +98,6 @@ class TestQuantumOptimization(QiskitTestCase):
 
         initial_c = 0.01
         target_update = 2 * np.pi * 0.1
-        save_step = 20
 
         expected_stout = ("calibration step # 0 of 1\n"
                           "calibrated SPSA_parameters[0] is 2.5459894")
@@ -116,7 +115,7 @@ class TestQuantumOptimization(QiskitTestCase):
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
             output = SPSA_optimization(
                 partial(cost_function, Q_program, H, n, m, entangler_map, shots, device),
-                initial_theta, SPSA_params, max_trials, save_step, 1)
+                initial_theta, SPSA_params, max_trials)
 
         self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
 
