@@ -20,10 +20,11 @@
 import os
 import unittest
 
-import qiskit
-import qiskit.backends._qiskit_cpp_simulator as qiskitsimulator
 import numpy as np
 from numpy.linalg import norm
+
+import qiskit
+import qiskit.backends._qiskit_cpp_simulator as qiskitsimulator
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
@@ -111,7 +112,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
                            [0, 1, 0, -1j]]) / np.sqrt(2)
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
         U = qiskitsimulator.cx_error_matrix(0.03, -0.04)
-        self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(4)), 0.0, 
+        self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(4)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):

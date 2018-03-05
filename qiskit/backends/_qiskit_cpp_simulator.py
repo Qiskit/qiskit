@@ -186,7 +186,7 @@ def cx_error_matrix(cal_error, zz_error):
         zz_error (double): ZZ interaction term error
 
     Returns:
-        A coherent error matrix U_error for the CNOT gate.
+        numpy.ndarray: A coherent error matrix U_error for the CNOT gate.
 
     Details:
 
@@ -202,24 +202,24 @@ def cx_error_matrix(cal_error, zz_error):
     The retured error matrix is given by
         U_error = U_L * U_CR_noise * U_R * U_CX^dagger
     """
+    # pylint: disable=invalid-name
     if cal_error == 0 and zz_error == 0:
         return np.eye(4)
-    else:
 
-        cx_ideal = np.array([[1, 0, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [0, 1, 0, 0]])
-        b = np.sqrt(1.0 + zz_error * zz_error)
-        a = b * (np.pi / 2.0 + cal_error) / 2.0
-        sp = (1.0 + 1j * zz_error) * np.sin(a) / b
-        sm = (1.0 - 1j * zz_error) * np.sin(a) / b
-        c = np.cos(a)
-        cx_noise = np.array([[c + sm, 0, -1j * (c - sm), 0],
-                             [0, 1j * (c - sm), 0, c + sm],
-                             [-1j * (c - sp), 0, c + sp, 0],
-                             [0, c + sp, 0, 1j * (c - sp)]]) / np.sqrt(2)
-        return cx_noise.dot(cx_ideal.conj().T)
+    cx_ideal = np.array([[1, 0, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0],
+                         [0, 1, 0, 0]])
+    b = np.sqrt(1.0 + zz_error * zz_error)
+    a = b * (np.pi / 2.0 + cal_error) / 2.0
+    sp = (1.0 + 1j * zz_error) * np.sin(a) / b
+    sm = (1.0 - 1j * zz_error) * np.sin(a) / b
+    c = np.cos(a)
+    cx_noise = np.array([[c + sm, 0, -1j * (c - sm), 0],
+                         [0, 1j * (c - sm), 0, c + sm],
+                         [-1j * (c - sp), 0, c + sp, 0],
+                         [0, c + sp, 0, 1j * (c - sp)]]) / np.sqrt(2)
+    return cx_noise.dot(cx_ideal.conj().T)
 
 
 def x90_error_matrix(cal_error, detuning_error):
@@ -231,7 +231,7 @@ def x90_error_matrix(cal_error, detuning_error):
         detuning_error (double): detuning amount for rotation axis error
 
     Returns:
-        A coherent error matrix U_error for the X90 gate.
+        numpy.ndarray: A coherent error matrix U_error for the X90 gate.
 
     Details:
 
@@ -244,6 +244,7 @@ def x90_error_matrix(cal_error, detuning_error):
     The retured error matrix is given by
         U_error = U_X90_noise * U_X90_ideal^dagger
     """
+    # pylint: disable=invalid-name
     if cal_error == 0 and detuning_error == 0:
         return np.eye(2)
     else:
@@ -252,7 +253,7 @@ def x90_error_matrix(cal_error, detuning_error):
         s = np.sin(0.5 * cal_error)
         gamma = np.exp(-1j * detuning_error)
         x90_noise = np.array([[c - s, -1j * (c + s) * gamma],
-                             [-1j * (c + s) * np.conj(gamma), c - s]]) / np.sqrt(2)
+                              [-1j * (c + s) * np.conj(gamma), c - s]]) / np.sqrt(2)
     return x90_noise.dot(x90_ideal.conj().T)
 
 
@@ -268,6 +269,7 @@ def __generate_coherent_error_matrix(config):
         'CX' gate: 'calibration_error', 'zz_error'
         'X90' gate: 'calibration_error', 'detuning_error'
     """
+    # pylint: disable=invalid-name
     if 'noise_params' in config:
         # Check for CR coherent error parameters
         if 'CX' in config['noise_params']:
@@ -276,9 +278,9 @@ def __generate_coherent_error_matrix(config):
             zz_error = noise_cx.pop('zz_error', 0)
             # Add to current coherent error matrix
             if not cal_error == 0 or not zz_error == 0:
-                U_error = noise_cx.get('U_error', np.eye(4))
-                U_error = U_error.dot(cx_error_matrix(cal_error, zz_error))
-                config['noise_params']['CX']['U_error'] = U_error
+                u_error = noise_cx.get('U_error', np.eye(4))
+                u_error = u_error.dot(cx_error_matrix(cal_error, zz_error))
+                config['noise_params']['CX']['U_error'] = u_error
         # Check for X90 coherent error parameters
         if 'X90' in config['noise_params']:
             noise_x90 = config['noise_params']['X90']
@@ -286,10 +288,10 @@ def __generate_coherent_error_matrix(config):
             detuning_error = noise_x90.pop('detuning_error', 0)
             # Add to current coherent error matrix
             if not cal_error == 0 or not detuning_error == 0:
-                U_error = noise_x90.get('U_error', np.eye(2))
-                U_error = U_error.dot(x90_error_matrix(cal_error,
+                u_error = noise_x90.get('U_error', np.eye(2))
+                u_error = u_error.dot(x90_error_matrix(cal_error,
                                                        detuning_error))
-                config['noise_params']['X90']['U_error'] = U_error
+                config['noise_params']['X90']['U_error'] = u_error
 
 
 def __to_json_complex(obj):
