@@ -64,9 +64,6 @@ from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, 
 from sympy.physics.quantum.represent import represent
 from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
 
-
-
-
 class SympyQasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
 
@@ -89,7 +86,6 @@ class SympyQasmSimulator(BaseBackend):
         else:
             self._configuration = configuration
 
-
     @staticmethod
     def _conjugate_square(com):
         return im(com)**2 + re(com)**2
@@ -105,10 +101,8 @@ class SympyQasmSimulator(BaseBackend):
         for ii in range(1 << self._number_of_qubits):
             if ii & (1 << qubit) == 0:
                 probability_zero += SympyQasmSimulator._conjugate_square(vector_form[ii, 0])
-
         probability_zero_sym = nsimplify(probability_zero, tolerance=0.001)
-
-        if random_number <= probability_zero: #
+        if random_number <= probability_zero:
             outcome = '0'
             norm = sqrt(probability_zero_sym)
         else:
@@ -169,7 +163,6 @@ class SympyQasmSimulator(BaseBackend):
 
         self._quantum_state = matrix_to_qubit(matrix_form_quantum_state)
 
-
     def run(self, q_job):
         """Run circuits in q_job"""
         # Generating a string id for the job
@@ -189,7 +182,6 @@ class SympyQasmSimulator(BaseBackend):
         shapeN = matrix_form.shape[0]
         list_form = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
         return list_form
-
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
@@ -225,8 +217,6 @@ class SympyQasmSimulator(BaseBackend):
             random.seed(random.getrandbits(32))
         else:
             random.seed(circuit['config']['seed'])
-
-
 
         actual_shots = self._shots
         self._shots = 1 # overwrite users' configuration! taking only one shot for speed
@@ -300,7 +290,6 @@ class SympyQasmSimulator(BaseBackend):
                 outcomes.append(bin(_classical_state_observed)[2:].zfill(
                     self._number_of_cbits))
 
-
             # Return the results
             counts = dict(Counter(outcomes))
             data = {'counts': self._format_result(
@@ -309,11 +298,6 @@ class SympyQasmSimulator(BaseBackend):
             data['quantum_state'] = np.asarray(list_form)# consistent with other backends
             data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
-
-
-    # array([ 0. +0.00000000e+00j,  0. +0.00000000e+00j,  1. -3.18258092e-15j,
-    #     0. +0.00000000e+00j,  0. +0.00000000e+00j,  0. +0.00000000e+00j,
-    #     0. +0.00000000e+00j,  0. +0.00000000e+00j])
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
@@ -351,27 +335,17 @@ class SympyQasmSimulator(BaseBackend):
         else:
             return theta, theta == 0 # if theta ==0, we also think it is regular
 
-
-
     # extensible gate domain:
     class SDGGate(OneQubitGate):
         gate_name = u('SDG')
         def get_target_matrix(self, format='sympy'):
             return Matrix([[1, 0], [0, -I]])
 
-
-
     class TDGGate(OneQubitGate):
         gate_name = u('TDG')
         def get_target_matrix(self, format='sympy'):
             return Matrix([[1, 0], [0, exp(-I*pi/4)]])
 
-    # follow the computation method in _simulatortools.py:
-    # (theta, phi, lam) = single_gate_params(gate, params)
-    # return np.array([[np.cos(theta/2.0),
-    #                   -np.exp(1j*lam)*np.sin(theta/2.0)],
-    #                  [np.exp(1j*phi)*np.sin(theta/2.0),
-    #                   np.exp(1j*phi+1j*lam)*np.cos(theta/2.0)]])
     @staticmethod
     def compute_ugate_matrix(parafloatlist):
         theta = parafloatlist[0]
@@ -391,9 +365,6 @@ class SympyQasmSimulator(BaseBackend):
         else:
             uMatNumeric = uMat.evalf()
         return uMatNumeric
-
-
-
 
     @staticmethod
     def get_sym_op(name, qid_tuple, params=None):
