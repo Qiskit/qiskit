@@ -1223,6 +1223,7 @@ class QuantumProgram(object):
         """
         job_blocker_event = Event()
         job_result = None
+
         def job_done_callback(results):
             """Callback called when the job is done. It basically
             transforms the results to what the user expects and pass it
@@ -1237,8 +1238,9 @@ class QuantumProgram(object):
                            timeout=timeout,
                            callback=job_done_callback)
 
-        job_blocker_event.wait()  # Do not set a timeout, as the timeout is being managed
-                                  # by the job
+        # Do not set a timeout, as the timeout is being managed by the job
+        job_blocker_event.wait()
+
         return job_result
 
     def run_batch(self, qobj_list, wait=5, timeout=120):
