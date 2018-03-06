@@ -32,7 +32,7 @@ class CnotGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CNOT gate."""
-        super(CnotGate, self).__init__("cx", [], [ctl, tgt], circ)
+        super().__init__("cx", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

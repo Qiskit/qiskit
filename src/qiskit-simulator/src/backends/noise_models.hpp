@@ -649,106 +649,18 @@ inline void from_json(const json_t &js, QubitNoise &noise) {
         else
           g = load_gate_error(n, 1, js);
 
-        // Check for special gate params
-        if (n == "X90") {
-          double theta = 0., omega = 0.;
-          const json_t &jsg = js[n];
-          JSON::get_value(theta, "amp_error", jsg); // legacy key (use calibration_error)
-          JSON::get_value(theta, "calibration_error", jsg);
-          JSON::get_value(omega, "detuning_error", jsg);
-
-          if (theta > 0. || theta < 0. || omega > 0. || omega < 0.) {
-            g.coherent_error = true;
-            g.ideal = false;
-            complex_t I(0., 1.);
-            cmatrix_t U_X90_ideal(2, 2), U_X90_noise(2, 2);
-            U_X90_ideal(0, 0) = 1. / std::sqrt(2.);
-            U_X90_ideal(0, 1) = -I / std::sqrt(2.);
-            U_X90_ideal(1, 0) = -I / std::sqrt(2.);
-            U_X90_ideal(1, 1) = 1. / std::sqrt(2.);
-            U_X90_noise(0, 0) = (cos(theta / 2.) - sin(theta / 2.)) / sqrt(2.);
-            U_X90_noise(0, 1) = -I * exp(-I * omega) *
-                                (cos(theta / 2.) + sin(theta / 2.)) / sqrt(2.);
-            U_X90_noise(1, 0) = -I * exp(I * omega) *
-                                (cos(theta / 2.) + sin(theta / 2.)) / sqrt(2.);
-            U_X90_noise(1, 1) = U_X90_noise(0, 0);
-            // Get error term
-            U_X90_noise = U_X90_noise * MOs::Dagger(U_X90_ideal);
-            chop(U_X90_noise, 1e-12);
-
-            if (g.Uerr.size() > 2) {
-              // pad out for qudits
-              U_X90_noise = qudit_unitary1(U_X90_noise, g.Uerr.size());
+        // Check coherent error
+        if (g.coherent_error) {
+          cmatrix_t check = MOs::Dagger(g.Uerr) * g.Uerr;
+          double threshold = 1e-10;
+          double delta = 0.;
+          for (size_t i=0; i < check.GetRows(); i++)
+            for (size_t j=0; j < check.GetColumns(); j++) {
+              complex_t val = (i==j) ? 1. : 0.;
+              delta += std::real(std::abs(check(i, j) - val));
             }
-            if (g.Uerr.size() == 0)
-              g.Uerr = U_X90_noise;
-            else if (g.Uerr.size() == U_X90_noise.size())
-              g.Uerr = g.Uerr * U_X90_noise;
-            else {
-              throw std::runtime_error(std::string("U_error is invalid"));
-            }
-          }
-        }
-
-        if (g.label == "CX") {
-
-          double theta = 0., omega = 0.;
-          const json_t &jsg = js[n];
-          JSON::get_value(theta, "amp_error", jsg); // legacy key (use calibration_error)
-          JSON::get_value(theta, "calibration_error", jsg);
-          JSON::get_value(omega, "zz_error", jsg);
-
-          if (theta > 0. || theta < 0. || omega > 0. || omega < 0.) {
-            g.coherent_error = true;
-            g.ideal = false;
-
-            complex_t I(0., 1.);
-            cmatrix_t U_CNOT_ideal(4, 4), U_CNOT_noise(4, 4);
-            U_CNOT_ideal(0, 0) = 1.;
-            U_CNOT_ideal(1, 3) = 1.;
-            U_CNOT_ideal(2, 2) = 1.;
-            U_CNOT_ideal(3, 1) = 1.;
-
-            // CR gate noise
-            double b = sqrt(1. + omega * omega);
-            double a = 0.5 * b * (M_PI / 2. + theta);
-            double c = 1. / (sqrt(2.) * b);
-            U_CNOT_noise(0, 0) = c * (b * cos(a) + sin(a));
-            U_CNOT_noise(1, 3) = U_CNOT_noise(0, 0);
-            U_CNOT_noise(2, 2) = U_CNOT_noise(0, 0);
-            U_CNOT_noise(3, 1) = U_CNOT_noise(0, 0);
-
-            U_CNOT_noise(1, 1) = c * I * (b * cos(a) - sin(a));
-            U_CNOT_noise(3, 3) = U_CNOT_noise(1, 1);
-            U_CNOT_noise(0, 3) = -U_CNOT_noise(1, 1);
-            U_CNOT_noise(2, 0) = -U_CNOT_noise(1, 1);
-
-            double sa = -c * omega * sin(a);
-            U_CNOT_noise(0, 1) = sa;
-            U_CNOT_noise(1, 2) = -sa;
-            U_CNOT_noise(2, 3) = sa;
-            U_CNOT_noise(3, 0) = -sa;
-
-            U_CNOT_noise(0, 3) = I * sa;
-            U_CNOT_noise(1, 0) = I * sa;
-            U_CNOT_noise(2, 1) = I * sa;
-            U_CNOT_noise(3, 2) = I * sa;
-
-            // Get error term
-            U_CNOT_noise = U_CNOT_noise * MOs::Dagger(U_CNOT_ideal);
-            chop(U_CNOT_noise, 1e-12);
-
-            if (g.Uerr.size() > 4) {
-              // pad out for qudits
-              U_CNOT_noise = qudit_unitary2(U_CNOT_noise, g.Uerr.size());
-            }
-            if (g.Uerr.size() == 0)
-              g.Uerr = U_CNOT_noise;
-            else if (g.Uerr.size() == U_CNOT_noise.size())
-              g.Uerr = g.Uerr * U_CNOT_noise;
-            else {
-              throw std::runtime_error(std::string("U_error is invalid"));
-            }
+          if (delta > threshold) {
+            throw std::runtime_error(std::string(g.label + " U_error is not unitary"));
           }
         }
 

@@ -37,7 +37,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(LocalQasmSimulatorTest, cls).setUpClass()
+        super().setUpClass()
         cls.pdf = PdfPages(cls.moduleName + '.pdf')
 
     @classmethod

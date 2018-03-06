@@ -4,5 +4,5 @@ networkx>=1.11,<2.1
 numpy>=1.13,<1.15
 ply==3.10
 scipy>=0.19,<1.1
-Sphinx>=1.6,<1.7
 sympy>=1.0
+pillow>=4.2.1

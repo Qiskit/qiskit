@@ -32,7 +32,7 @@ class RZGate(Gate):
 
     def __init__(self, phi, qubit, circ=None):
         """Create new rz single qubit gate."""
-        super(RZGate, self).__init__("rz", [phi], [qubit], circ)
+        super().__init__("rz", [phi], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

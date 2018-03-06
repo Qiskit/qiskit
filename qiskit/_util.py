@@ -17,7 +17,6 @@
 """Common utilities for QISKit."""
 
 import logging
-from unittest.mock import patch
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
@@ -51,14 +50,14 @@ def _check_ibmqe_version():
     # Find the IBMQuantumExperience version specified in qiskit.
     if qiskit_local:
         try:
-            # Mock setuptools.setup, as it would be executed during the import.
-            with patch('setuptools.setup'):
-                # Use a local import to fall back gracefully if not present.
-                from setup import requirements
-                ibmqe_require_line = next(r for r in requirements if
-                                          r.startswith('IBMQuantumExperience'))
+            with open('requirements.txt') as reqfile:
+                ibmqe_require_line = next(line for line in reqfile if
+                                          line.startswith(API_NAME))
                 ibmqe_require = pkg_resources.Requirement(ibmqe_require_line)
-        except (ImportError, pkg_resources.RequirementParseError):
+        except (FileNotFoundError, StopIteration, pkg_resources.RequirementParseError):
+            logger.warning(
+                'Could not find %s in requirements.txt or the requirements.txt \
+                file was not found or unparsable', API_NAME)
             return
     else:
         # Retrieve the requirement line from pkg_resources
