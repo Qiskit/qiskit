@@ -50,7 +50,7 @@ class QISKitCppSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
-        super(QISKitCppSimulator, self).__init__(configuration)
+        super().__init__(configuration)
         self._configuration = configuration
 
         if not configuration:
@@ -89,7 +89,7 @@ class CliffordCppSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
-        super(CliffordCppSimulator, self).__init__(configuration)
+        super().__init__(configuration)
         self._configuration = configuration
 
         if not configuration:
@@ -145,6 +145,7 @@ def run(qobj, executable):
 
     for j in range(len(qobj['circuits'])):
         if 'config' in qobj['circuits'][j]:
+            __generate_coherent_error_matrix(qobj['circuits'][j]['config'])
             qobj['circuits'][j]['config'] = __to_json_complex(
                 qobj['circuits'][j]['config'])
 
@@ -174,6 +175,123 @@ def run(qobj, executable):
         msg = "ERROR: Simulator exe not found at: %s" % executable
         logger.error(msg)
         return {"status": msg, "success": False}
+
+
+def cx_error_matrix(cal_error, zz_error):
+    """
+    Return the coherent error matrix for CR error model of a CNOT gate.
+
+    Args:
+        cal_error (double): calibration error of rotation
+        zz_error (double): ZZ interaction term error
+
+    Returns:
+        numpy.ndarray: A coherent error matrix U_error for the CNOT gate.
+
+    Details:
+
+    The ideal cross-resonsance (CR) gate corresponds to a 2-qubit rotation
+        U_CR_ideal = exp(-1j * (pi/2) * XZ/2)
+    where qubit-0 is the control, and qubit-1 is the target. This can be
+    converted to a CNOT gate by single-qubit rotations
+        U_CX = U_L * U_CR_ideal * U_R.
+
+    The noisy rotation is implemented as
+        U_CR_noise = exp(-1j * (pi/2 + cal_error) * (XZ + zz_error ZZ)/2)
+
+    The retured error matrix is given by
+        U_error = U_L * U_CR_noise * U_R * U_CX^dagger
+    """
+    # pylint: disable=invalid-name
+    if cal_error == 0 and zz_error == 0:
+        return np.eye(4)
+
+    cx_ideal = np.array([[1, 0, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0],
+                         [0, 1, 0, 0]])
+    b = np.sqrt(1.0 + zz_error * zz_error)
+    a = b * (np.pi / 2.0 + cal_error) / 2.0
+    sp = (1.0 + 1j * zz_error) * np.sin(a) / b
+    sm = (1.0 - 1j * zz_error) * np.sin(a) / b
+    c = np.cos(a)
+    cx_noise = np.array([[c + sm, 0, -1j * (c - sm), 0],
+                         [0, 1j * (c - sm), 0, c + sm],
+                         [-1j * (c - sp), 0, c + sp, 0],
+                         [0, c + sp, 0, 1j * (c - sp)]]) / np.sqrt(2)
+    return cx_noise.dot(cx_ideal.conj().T)
+
+
+def x90_error_matrix(cal_error, detuning_error):
+    """
+    Return the coherent error matrix for a X90 rotation gate.
+
+    Args:
+        cal_error (double): calibration error of rotation
+        detuning_error (double): detuning amount for rotation axis error
+
+    Returns:
+        numpy.ndarray: A coherent error matrix U_error for the X90 gate.
+
+    Details:
+
+    The ideal X90 rotation is a pi/2 rotation about the X-axis:
+        U_X90_ideal = exp(-1j (pi/2) X/2)
+    The noisy rotation is implemented as
+        U_X90_noise = exp(-1j (pi/2 + cal_error) (cos(d) X + sin(d) Y)/2)
+    where d is the detuning_error.
+
+    The retured error matrix is given by
+        U_error = U_X90_noise * U_X90_ideal^dagger
+    """
+    # pylint: disable=invalid-name
+    if cal_error == 0 and detuning_error == 0:
+        return np.eye(2)
+    else:
+        x90_ideal = np.array([[1., -1.j], [-1.j, 1]]) / np.sqrt(2)
+        c = np.cos(0.5 * cal_error)
+        s = np.sin(0.5 * cal_error)
+        gamma = np.exp(-1j * detuning_error)
+        x90_noise = np.array([[c - s, -1j * (c + s) * gamma],
+                              [-1j * (c + s) * np.conj(gamma), c - s]]) / np.sqrt(2)
+    return x90_noise.dot(x90_ideal.conj().T)
+
+
+def __generate_coherent_error_matrix(config):
+    """
+    Generate U_error matrix for CX and X90 gates.
+
+    Args:
+        config (dict): the config of a qobj circuit
+
+    This parses the config for the following noise parameter keys and returns a
+    coherent error matrix for simulation coherent noise.
+        'CX' gate: 'calibration_error', 'zz_error'
+        'X90' gate: 'calibration_error', 'detuning_error'
+    """
+    # pylint: disable=invalid-name
+    if 'noise_params' in config:
+        # Check for CR coherent error parameters
+        if 'CX' in config['noise_params']:
+            noise_cx = config['noise_params']['CX']
+            cal_error = noise_cx.pop('calibration_error', 0)
+            zz_error = noise_cx.pop('zz_error', 0)
+            # Add to current coherent error matrix
+            if not cal_error == 0 or not zz_error == 0:
+                u_error = noise_cx.get('U_error', np.eye(4))
+                u_error = u_error.dot(cx_error_matrix(cal_error, zz_error))
+                config['noise_params']['CX']['U_error'] = u_error
+        # Check for X90 coherent error parameters
+        if 'X90' in config['noise_params']:
+            noise_x90 = config['noise_params']['X90']
+            cal_error = noise_x90.pop('calibration_error', 0)
+            detuning_error = noise_x90.pop('detuning_error', 0)
+            # Add to current coherent error matrix
+            if not cal_error == 0 or not detuning_error == 0:
+                u_error = noise_x90.get('U_error', np.eye(2))
+                u_error = u_error.dot(x90_error_matrix(cal_error,
+                                                       detuning_error))
+                config['noise_params']['X90']['U_error'] = u_error
 
 
 def __to_json_complex(obj):

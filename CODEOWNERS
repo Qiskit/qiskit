@@ -6,9 +6,9 @@ qiskit/doc/* @ewinston @pacomf
 
 qiskit/tools/qcvv/* @chriseclectic
 qiskit/tools/qi/* @chriseclectic
-qiskit/tools/apps/* @amezzac
+qiskit/tools/apps/* @antoniomezzacapo
 
 # other repository
 
-qiskit-tutorial @ewinston @awcross1 @jaygambetta @amezzac
+qiskit-tutorial @ewinston @awcross1 @jaygambetta @antoniomezzacapo
 qiskit-api-py @pacomf

@@ -33,7 +33,7 @@ class PrinterBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        super(PrinterBackend, self).__init__(basis)
+        super().__init__(basis)
         self.prec = 15
         self.creg = None
         self.cval = None

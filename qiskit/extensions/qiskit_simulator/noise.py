@@ -31,7 +31,7 @@ class NoiseGate(Gate):
 
     def __init__(self, m, qubit, circ=None):
         """Create new save gate."""
-        super(NoiseGate, self).__init__("noise", [m], [qubit], circ)
+        super().__init__("noise", [m], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
