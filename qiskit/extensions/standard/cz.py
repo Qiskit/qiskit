@@ -31,7 +31,7 @@ class CzGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CZ gate."""
-        super(CzGate, self).__init__("cz", [], [ctl, tgt], circ)
+        super().__init__("cz", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
