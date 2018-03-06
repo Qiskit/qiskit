@@ -27,7 +27,7 @@ class QasmError(QISKitError):
 
     def __init__(self, *msg):
         """Set the error message."""
-        super(QasmError, self).__init__(*msg)
+        super().__init__(*msg)
         self.msg = ' '.join(msg)
 
     def __str__(self):

@@ -54,7 +54,7 @@ def run_backend(q_job):
     return backend.run(q_job)
 
 
-class JobProcessor():
+class JobProcessor:
     """
     Process a series of jobs and collect the results
     """
@@ -102,13 +102,15 @@ class JobProcessor():
                              'result': ex},
                             future.qobj)
         with self.lock:
+            logger.debug("Have a Result: %s", pprint.pformat(result))
             self.futures[future]['result'] = result
             self.jobs_results.append(result)
             if self.num_jobs != 0:
                 self.num_jobs -= 1
+                logger.debug("Jobs left count decreased: %d", self.num_jobs)
         # Call the callback when all jobs have finished
         if self.num_jobs == 0:
-            logger.info(pprint.pformat(result))
+            logger.debug("No more jobs in queue, returning results")
             self.callback(self.jobs_results)
 
     def submit(self):

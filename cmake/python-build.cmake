@@ -23,11 +23,11 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 
 	if(PACKAGE_TYPE STREQUAL "both")
 		set(PIP_PACKAGE_SOURCE_DIST sdist --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
-		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
+		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel -p manylinux1_x86_64 --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	elseif(PACKAGE_TYPE STREQUAL "sdist")
 		set(PIP_PACKAGE_SOURCE_DIST sdist --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	elseif(PACKAGE_TYPE STREQUAL "bdist_wheel")
-		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
+		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel -p manylinux1_x86_64 --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	endif()
 
 	# For ' make clean' target
@@ -46,6 +46,8 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 		set(TARGET_NAME_SDIST ${TARGET_NAME}_sdist)
 		add_custom_target(${TARGET_NAME_SDIST})
 		add_custom_command(TARGET ${TARGET_NAME_SDIST}
+			COMMAND ${CMAKE_COMMAND} -E remove
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qiskit_simulator${EXECUTABLE_FILE_EXTENSION}
 			COMMAND ${PYTHON} ${SETUP_PY} ${PIP_PACKAGE_SOURCE_DIST}
 			WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 	endif()
@@ -86,27 +88,18 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	endif()
 
 	# Create our dependency graph
-	if(PIP_PACKAGE_PLATFORM_WHEELS)
-		add_dependencies(${TARGET_NAME} ${TARGET_NAME_WHEELS})
-		add_dependencies(${TARGET_NAME_WHEELS} ${COPY_QISKIT_SIM_TARGET})
-		add_dependencies(${COPY_QISKIT_SIM_TARGET} qiskit_simulator)
-		# If we have to build the source distribution as well, then we
-		# need to build and package source distribution package first, and the
-		# way to express this is by depending on the source distribution target.
-		# Otherwise the binaries of the wheel package will be added to the
-		# source distribution too, and we don't want that.
-		if(PIP_PACKAGE_SOURCE_DIST)
-			add_dependencies(${COPY_QISKIT_SIM_TARGET} ${TARGET_NAME_SDIST})
-		endif()
+	if(PIP_PACKAGE_SOURCE_DIST)
+		add_dependencies(${TARGET_NAME}
+							${TARGET_NAME_SDIST}
+							qiskit_simulator)
 	endif()
 
-	if(PIP_PACKAGE_SOURCE_DIST)
-		# if we have to build wheels package too, we already have a depdency
-		# with TARGET_NAME, but if we haven't, we need to depend on TARGET_NAME
-		if(NOT PIP_PACKAGE_PLATFORM_WHEELS)
-			add_dependencies(${TARGET_NAME} ${TARGET_NAME_SDIST})
-		endif()
-		add_dependencies(${TARGET_NAME_SDIST} qiskit_simulator)
+	if(PIP_PACKAGE_PLATFORM_WHEELS)
+		add_dependencies(${TARGET_NAME}
+							${TARGET_NAME_WHEELS}
+							${COPY_QISKIT_SIM_TARGET}
+							qiskit_simulator)
 	endif()
+
 endfunction()
 

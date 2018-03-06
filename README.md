@@ -216,6 +216,7 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 ## Multilanguage guide
 
 * **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
+* **[Chinese Translation](doc/zh/README.md)**, Basic guide line written in Chinese.
 
 ## Authors (alphabetical)
 

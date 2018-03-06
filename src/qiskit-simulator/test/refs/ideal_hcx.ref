@@ -1,10 +1,10 @@
 {
-    "backend": "wood_simulator",
+    "backend": "local_qiskit_simulator",
     "id": "tests_cx",
     "result": [{
             "data": {
                 "quantum_states": [[[0.707106781186548, 0.0], [0.0, 0.0], [0.0, 0.0], [0.707106781186547, 0.0]]],
-                "time_taken": 0.000172
+                "time_taken": 0.000189
             },
             "name": "h0cx01",
             "seed": 1,
@@ -14,7 +14,7 @@
         }, {
             "data": {
                 "quantum_states": [[[0.707106781186548, 0.0], [0.707106781186547, 0.0], [0.0, 0.0], [0.0, 0.0]]],
-                "time_taken": 2.2e-05
+                "time_taken": 7.5e-05
             },
             "name": "h0cx10",
             "seed": 1,
@@ -24,7 +24,7 @@
         }, {
             "data": {
                 "quantum_states": [[[0.707106781186548, 0.0], [0.0, 0.0], [0.707106781186547, 0.0], [0.0, 0.0]]],
-                "time_taken": 2e-05
+                "time_taken": 6.4e-05
             },
             "name": "h1cx01",
             "seed": 1,
@@ -34,7 +34,7 @@
         }, {
             "data": {
                 "quantum_states": [[[0.707106781186548, 0.0], [0.0, 0.0], [0.0, 0.0], [0.707106781186547, 0.0]]],
-                "time_taken": 1.9e-05
+                "time_taken": 6.5e-05
             },
             "name": "h1cx10",
             "seed": 1,
@@ -45,5 +45,5 @@
     "simulator": "ideal",
     "status": "COMPLETED",
     "success": true,
-    "time_taken": 0.000265
+    "time_taken": 0.000467
 }

@@ -2,7 +2,7 @@
 CC = g++
 #CC = g++-7 # use Homebrew GNU g++ for enabling OpenMP on macOS
 
-INCLUDE = -I./ -I./backends -I./engines -I./utilities -I./third-party
+INCLUDE = -I./ -I./backends -I./engines -I./utilities -I./third-party -I./third-party/headers
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
 OUTPUT_DIR = ../../../out
