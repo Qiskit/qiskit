@@ -477,17 +477,14 @@ def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
     as a Max symbol. See:
     http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
     """
-    delta1 = sympy.cos(phi + lamb) * sympy.cos(theta) - \
-        sympy.cos(xi) * sympy.cos(theta1 + theta2)
-    delta2 = sympy.sin(phi + lamb) * sympy.cos(theta) - \
-        sympy.sin(xi) * sympy.cos(theta1 - theta2)
-    delta3 = sympy.cos(phi - lamb) * sympy.sin(theta) - \
-        sympy.cos(xi) * sympy.sin(theta1 + theta2)
-    delta4 = sympy.sin(phi - lamb) * sympy.sin(theta) - \
-        sympy.sin(xi) * sympy.sin(-theta1 + theta2)
-
-    [delta1, delta2, delta3, delta4] = map(lambda x: sympy.Abs(x.simplify()),
-                                           [delta1, delta2, delta3, delta4])
+    delta1 = sympy.Abs(sympy.cos(phi + lamb) * sympy.cos(theta) -
+                       sympy.cos(xi) * sympy.cos(theta1 + theta2))
+    delta2 = sympy.Abs(sympy.sin(phi + lamb) * sympy.cos(theta) -
+                       sympy.sin(xi) * sympy.cos(theta1 - theta2))
+    delta3 = sympy.Abs(sympy.cos(phi - lamb) * sympy.sin(theta) -
+                       sympy.cos(xi) * sympy.sin(theta1 + theta2))
+    delta4 = sympy.Abs(sympy.sin(phi - lamb) * sympy.sin(theta) -
+                       sympy.sin(xi) * sympy.sin(-theta1 + theta2))
 
     return sympy.Max(delta1, delta2, delta3, delta4)
 
@@ -656,12 +653,11 @@ def optimize_1q_gates(circuit):
             left_name = nd["name"]
             assert left_name in ["u1", "u2", "u3", "id"], "internal error"
             if left_name == "u1":
-                left_parameters = (N(0), N(0), sympy.sympify(nd["params"][0]))
+                left_parameters = (N(0), N(0), nd["params"][0])
             elif left_name == "u2":
-                left_parameters = (sympy.pi / 2, sympy.sympify(nd["params"][0]),
-                                   sympy.sympify(nd["params"][1]))
+                left_parameters = (sympy.pi / 2, nd["params"][0], nd["params"][1])
             elif left_name == "u3":
-                left_parameters = tuple(sympy.sympify(nd["params"]))
+                left_parameters = tuple(nd["params"])
             else:
                 left_name = "u1"  # replace id with u1
                 left_parameters = (N(0), N(0), N(0))

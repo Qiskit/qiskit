@@ -19,12 +19,27 @@
 
 import os
 import unittest
+import numpy
 
 from qiskit import QuantumProgram
-from qiskit.tools.visualization import latex_drawer
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit import ClassicalRegister
 from .common import QiskitTestCase
 
+try:
+    from qiskit.tools.visualization import latex_drawer
+    from qiskit.tools.visualization import circuit_drawer
+    VALID_MATPLOTLIB = True
+except RuntimeError:
+    # Under some combinations (travis osx vms, or headless configurations)
+    # matplotlib might not be fully, raising:
+    # RuntimeError: Python is not installed as a framework.
+    # when importing. If that is the case, the full test is skipped.
+    VALID_MATPLOTLIB = False
 
+
+@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestLatexDrawer(QiskitTestCase):
     """QISKit latex drawer tests."""
 
@@ -103,6 +118,28 @@ class TestLatexDrawer(QiskitTestCase):
             if os.path.exists(filename):
                 os.remove(filename)
             raise
+
+
+@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+class TestCircuitDrawer(QiskitTestCase):
+    """QISKit circuit drawer tests."""
+
+    def setUp(self):
+        qr = QuantumRegister('qr', 2)
+        cr = ClassicalRegister('cr', 2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.measure(qr[1], cr[1])
+        qc.x(qr[1]).c_if(cr, 1)
+        qc.measure(qr, cr)
+        self.qc = qc
+
+    def test_teleport_image(self):
+        im = circuit_drawer(self.qc)
+        if im:
+            pix = numpy.array(im)
+            self.assertEqual(pix.shape, (260, 701, 3))
 
 
 if __name__ == '__main__':

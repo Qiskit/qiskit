@@ -31,7 +31,7 @@ class Barrier(Instruction):
 
     def __init__(self, args, circ):
         """Create new barrier instruction."""
-        super(Barrier, self).__init__("barrier", [], list(args), circ)
+        super().__init__("barrier", [], list(args), circ)
 
     def inverse(self):
         """Special case. Return self."""

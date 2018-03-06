@@ -41,6 +41,10 @@ test:
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
+coverage:
+	coverage3 run --source qiskit -m unittest discover -s test -q
+	coverage3 report
+
 doc:
 	export PYTHONPATH=$(PWD); \
 	for LANGUAGE in "." "ja"; do \
@@ -53,7 +57,10 @@ sim:
 	make -C src/cpp-simulator/src clean
 	make -C src/cpp-simulator/src
 
-clean:
+coverage_erase:
+	coverage erase
+
+clean: coverage_erase
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
 	make -C src/cpp-simulator/src clean
