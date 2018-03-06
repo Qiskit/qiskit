@@ -13,29 +13,166 @@
 # limitations under the License.
 # =============================================================================
 
-# Authors: Jesus Perez <jesusper@us.ibm.com>
+notifications:
+  email: false
 
-language: python
 cache: pip
+sudo: false
 
-matrix:
-  include:
-    - python: 3.5
-      env: LINT_JOB=YES
-    - python: 3.5
-    - python: 3.6
-  fast_finish: true
+###############################################################################
+# Anchored and aliased definitions.
+###############################################################################
 
-install:
-  - pip install -r requirements.txt
-  - pip install -r requirements-dev.txt
+# These are used for avoiding repeating code, and due to problems with
+# overriding some keys (in particular, "os" and "language: ptyhon") when using
+# the standard travis matrix with stages.
+#
+# This allows re-using different "sets" of configurations in the stages
+# matrix, mimicking a hierarchy:
+# * stage_generic
+#   * stage_linux
+#     * stage_linux_no_compile
+#   * stage_osx
 
-script:
-  - if [ "$LINT_JOB" = "YES" ]; then make style && make lint; else make test; fi
+stage_generic: &stage_generic
+  install:
+    # Install step for jobs that require compilation and qa.
+    - pip install -U -r requirements.txt
+    - pip install -U -r requirements-dev.txt
+    # Create the basic cmake structure, setting out/ as the default dir.
+    - mkdir out && cd out && cmake $CMAKE_FLAGS ..
+  script:
+    # Compile the executables and run the tests.
+    - make && ARGS="-V" make test
 
-deploy:
+stage_linux: &stage_linux
+  <<: *stage_generic
+  os: linux
+  dist: trusty
+  language: python
+  python: 3.5
+  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False"
+  addons:
+    apt:
+      sources:
+        - ubuntu-toolchain-r-test
+      packages:
+        - liblapack-dev
+        - libblas-dev
+        - g++-5
+
+stage_osx: &stage_osx
+  <<: *stage_generic
+  os: osx
+  osx_image: xcode9.2
+  language: generic
+  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-6 -D ENABLE_TARGETS_QA=False"
+  before_install:
+    # Travis does not provide support for Python 3 under osx - it needs to be
+    # installed manually.
+    |
+    if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+      brew upgrade python3
+      brew install gcc@6
+      brew link --overwrite gcc@6
+      virtualenv env -p python3
+      source env/bin/activate
+    fi
+
+stage_linux_no_compile: &stage_linux_no_compile
+  <<: *stage_linux
+  addons: false
+  env: CMAKE_FLAGS="-D ENABLE_TARGETS_NON_PYTHON=False"
+
+
+# Other aliases: for convenience, keeping the "jobs" matrix defined later on
+# less verbose.
+
+deploy_ghpages: &deploy_ghpages
   provider: script
   skip_cleanup: true
-  script: tools/ghpages-documentation-deploy.sh
+  script: tools/ghpages_documentation_deploy.sh
   on:
     branch: stable
+
+deploy_pypi: &deploy_pypi
+  provider: pypi
+  skip_cleanup: true
+  user: "diegoplan9"
+  password:
+     secure: "QIhEDs+gec0XvmJnzO2USLOz6I0eGKKcjqFtFYDdw1tbFby8OpnVviT7mJLrBx5qTWeR2RfiiEkm9v+HmevZQEdhOZg2A9w98bHLdWh2sYfjSJgvorNUjXgxba+mvsov9nixTf/k2RK8K7IvY1nbAuAwmS3uSXUBNvbyj0MhwUactPCcjwX9QCjCGrhVeZ1IlwoHPhOG7+zBPJ99ws6g0UBwhszotKN+3yTSgNU/PhW7jG3bjpKOso/CKg7Nv+UIdO8IljbcoJpLNZC/SC9XyHEjd8i4MKNi+tDFdguHk5b54Qobx2x0UaisrIrrNVfGZQliel5DU3eYs2kUPjVetmByO7sK8mXXj5HvIFv9t+XDkQVb1Y9D5CcU+DiKQGl0chWP+ZJu5uzxGClzm8MPO2ChGSKoFbYx95QFSiLc3gKjd6Z6lM4e3HYjMQ4ANt7Hjrez9mHbmbZnElKsg2vJS3gttglxEq5rlZg3Xm/6rRQfcbn93JHG29vLKAe+FjHCs9aG1l+MHn9eRgLbEz2JvMowHU7Tua0YM54J59ERZu1008FCvA2UR6k3sF+htnRiXDmbj/777cGcqv8ckm+OXKSB1ujGRbekkHgR9pf7HNUXPsZ3bwuHyio3mPikFQqU6m3Lm1esTQWrA5QoFuImyXQxDcSFeEx3/bFPkJfMOSw="
+  server: "https://test.pypi.org/legacy/"
+  distributions: "sdist bdist_wheel"
+  on:
+    branch: stable
+    condition: '$TRAVIS_COMMIT_MESSAGE == "pip release: "*'
+
+
+###############################################################################
+# Stage-related definitions
+###############################################################################
+
+# Define the order of the stages.
+stages:
+  - lint and pure python test
+  - test
+  - deploy doc and pypi
+
+# Define the job matrix explicitly, as matrix expansion causes issues when
+# using it with stages and some variables/sections cannot be overridden.
+jobs:
+  include:
+    # "lint and and pure python test" stage
+    ###########################################################################
+    # Linter and style check (GNU/Linux, Python 3.5)
+    - stage: lint and pure python test
+      <<: *stage_linux_no_compile
+      script: make style VERBOSE=""; make lint VERBOSE=""
+
+    # Run the tests against without compilation (GNU/Linux, Python 3.5)
+    - stage: lint and pure python test
+      <<: *stage_linux_no_compile
+
+    # "test" stage
+    ###########################################################################
+    # GNU/Linux, Python 3.5
+    - stage: test
+      <<: *stage_linux
+
+    # GNU/Linux, Python 3.6
+    - stage: test
+      <<: *stage_linux
+      python: 3.6
+
+    # OSX, Python 3.latest (brew does not support versioning)
+    - stage: test
+      <<: *stage_osx
+
+    # "deploy" stage.
+    ###########################################################################
+    # github pages documentation update (GNU/Linux, Python 3.5)
+    - stage: deploy doc and pypi
+      <<: *stage_linux_no_compile
+      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      script: cd ..
+      deploy:
+        <<: *deploy_ghpages
+
+    # GNU/Linux, Python 3.5
+    - stage: deploy doc and pypi
+      <<: *stage_linux
+      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
+      script: cd ..
+      deploy:
+        <<: *deploy_pypi
+
+    # OSX, Python 3.latest (brew does not support versions)
+    - stage: deploy doc and pypi
+      <<: *stage_osx
+      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
+      script: cd ..
+      deploy:
+        <<: *deploy_pypi
+        distributions: "bdist_wheel"

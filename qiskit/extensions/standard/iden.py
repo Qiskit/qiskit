@@ -32,7 +32,7 @@ class IdGate(Gate):
 
     def __init__(self, qubit, circ=None):
         """Create new Identity gate."""
-        super(IdGate, self).__init__("id", [], [qubit], circ)
+        super().__init__("id", [], [qubit], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

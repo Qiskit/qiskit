@@ -32,7 +32,7 @@ class CHGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CH gate."""
-        super(CHGate, self).__init__("ch", [], [ctl, tgt], circ)
+        super().__init__("ch", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

@@ -362,6 +362,8 @@ A single qubit gate error with gate time of *1* unit, depolarizing probability *
 
 #### Special Options for X90 and CX coherent errors
 
+The CX and X90 gate have special keys for automatically generating coherent error matrices. This is not supported directly by the simulator, but is handled by the QISKit backend in python.
+
 ##### X90 Gate
 
 A coherent error model for X-90 rotations due to calibration errors in the control pulse amplitude, and detuning errors in the control pulse frequency may be implemented directly with the following keywords:
@@ -382,8 +384,8 @@ A coherent error model for a CX gate implemented via a cross-resonance interacti
 "zz_error": gamma
 ```
 
-In this case the unitary for the CX gate is implemented as *U<sub>CX</sub> = U<sub>L</sub>\*U<sub>CR</sub>\*U<sub>R</sub>* where, *U<sub>CR</sub>* is the cross-resonance unitary, and *U<sub>L</sub>*, *U<sub>R</sub>* are the ideal local unitary rotations that would convert this to a CX in the ideal case. The ideal CR unitary is given by $$ U_{CR} = \exp\left[ -i \frac{\pi}{4} ZX  \right]$$, and the noisy one with the above errors is given by
-$$ U_{CR} = \exp\left[ -i (\frac{\pi}{2} + \beta) ( \frac{Z \otimes X}{2} + \gamma \frac{Z\otimes Z}{2}) \right]$$,
+In this case the unitary for the CX gate is implemented as *U<sub>CX</sub> = U<sub>L</sub>\*U<sub>CR</sub>\*U<sub>R</sub>* where, *U<sub>CR</sub>* is the cross-resonance unitary, and *U<sub>L</sub>*, *U<sub>R</sub>* are the ideal local unitary rotations that would convert this to a CX in the ideal case. The ideal CR unitary is given by $$ U_{CR} = \exp\left[ -i \frac{\pi}{2} \frac{XZ}{2} \right]$$, where qubit-0 is the control, and qubit-1 is the target. The noisy CR gate with the above errors is given by
+$$ U_{CR} = \exp\left[ -i (\frac{\pi}{2} + \beta) ( \frac{X \otimes Z}{2} + \gamma \frac{Z\otimes Z}{2}) \right]$$,
 
 If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
 

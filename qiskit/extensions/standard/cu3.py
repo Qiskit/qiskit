@@ -31,7 +31,7 @@ class Cu3Gate(Gate):
 
     def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
         """Create new cu3 gate."""
-        super(Cu3Gate, self).__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
+        super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

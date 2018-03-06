@@ -30,7 +30,7 @@ class SwapGate(Gate):
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new SWAP gate."""
-        super(SwapGate, self).__init__("swap", [], [ctl, tgt], circ)
+        super().__init__("swap", [], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
