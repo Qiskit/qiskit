@@ -66,7 +66,6 @@ from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
 
 class SympyQasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
-
     def __init__(self, configuration=None):
         """
         Args:
@@ -92,7 +91,6 @@ class SympyQasmSimulator(BaseBackend):
 
     def _add_qasm_decision(self, qubit):
         """Apply the decision of measurement/reset qubit gate.
-
         qubit is the qubit that is measured/reset
         """
         probability_zero = 0
@@ -112,7 +110,6 @@ class SympyQasmSimulator(BaseBackend):
 
     def _add_qasm_measure(self, qubit, cbit):
         """Apply the measurement qubit gate.
-
         qubit is the qubit measured.
         cbit is the classical bit the measurement is assigned to.
         """
@@ -174,8 +171,7 @@ class SympyQasmSimulator(BaseBackend):
             print("Warning: no need for multiple shots! set shot=1 automatically!")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
 
     def compute_distribution(self):
         matrix_form = represent(self._quantum_state)
@@ -185,7 +181,6 @@ class SympyQasmSimulator(BaseBackend):
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
-
         Args:
             circuit (dict): JSON circuit from qobj circuits list
 
@@ -219,9 +214,8 @@ class SympyQasmSimulator(BaseBackend):
             random.seed(circuit['config']['seed'])
 
         actual_shots = self._shots
-        self._shots = 1 # overwrite users' configuration! taking only one shot for speed
-
-        for shot in range(self._shots): # one shot only!
+        self._shots = 1 # set shot=1
+        for shot in range(self._shots):
             self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
             self._classical_state = 0
             # Do each operation in this shot
@@ -235,8 +229,7 @@ class SympyQasmSimulator(BaseBackend):
                             value >>= 1
                         if value != int(operation['conditional']['val'], 16):
                             continue
-                # Check if single  gate
-                if operation['name'] in ['U', 'u1', 'u2', 'u3']:# get this done first
+                if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                     if 'params' in operation:
                         params = operation['params']
                     else:
