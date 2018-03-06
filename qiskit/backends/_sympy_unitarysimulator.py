@@ -41,41 +41,19 @@ example output:
 
 Warning: it is slow.
 
-
-
 """
 import uuid
 import logging
 import numpy as np
-import json
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
-from sympy.physics.quantum import TensorProduct
-
 from sympy.matrices import eye, zeros
-
-from sympy.physics.quantum.qubit import Qubit
-from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, UGate
-from sympy.core.compatibility import is_sequence, u, unicode, range
-from sympy.physics.quantum.qapply import qapply
-from sympy.physics.quantum.represent import represent
-from sympy import pprint, pretty, Matrix, Integer, I, pi, E, Pow, exp, log, Add, sqrt, Mul
-from sympy.physics.quantum.qubit import IntQubit, matrix_to_qubit
-
-from sympy.physics.quantum.qubit import measure_partial, qubit_to_matrix
-from sympy import conjugate, N, re, im
+from sympy.core.compatibility import range
 from sympy.physics.quantum import TensorProduct
-
-from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, TwoQubitGate, Gate, XGate, CGate, UGate
-from sympy.physics.quantum.represent import represent
-
-from sympy import pprint, pretty, symbols, Matrix, pi, E, I, cos, sin, N, exp, nsimplify
+from sympy import Matrix, pi, E, I, cos, sin, N
 
 logger = logging.getLogger(__name__)
 
-
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
-# does not show up
 
 def index1(b, i, k):
     """Magic index1 function.
@@ -120,6 +98,7 @@ class SympyUnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
+        #super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_sympy_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',

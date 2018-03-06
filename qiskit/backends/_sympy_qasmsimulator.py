@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-
-"""Contains a (slow) python sympy-based simulator.
+"""
+Contains a (slow) python sympy-based simulator.
 
 It produces the amplitude vector in the symbolic form.
 In particular, it simulates the quantum computation with the sympy APIs,
@@ -45,34 +45,24 @@ Warning: it is slow.
 Warning: this simulator computes the final amplitude vector precisely within a single shot.
 Therefore we do not need multiple shots.
 If you specified multiple shots, we will set shot=1 automatically.
-
 """
+
+from __future__ import print_function
 import uuid
 import numpy as np
 import random
 from collections import Counter
-import json
-from ._simulatortools import single_gate_matrix
 from ._simulatorerror import SimulatorError
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
-
 from sympy.physics.quantum.qubit import Qubit
-from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, UGate
-from sympy.core.compatibility import is_sequence, u, unicode, range
 from sympy.physics.quantum.qapply import qapply
+from sympy import sqrt
+from sympy.physics.quantum.qubit import matrix_to_qubit
+from sympy import re, im
+from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
 from sympy.physics.quantum.represent import represent
-from sympy import pprint, pretty, Matrix, Integer, I, pi, E, Pow, exp, log, Add, sqrt, Mul
-from sympy.physics.quantum.qubit import IntQubit, matrix_to_qubit
-
-from sympy.physics.quantum.qubit import measure_partial, qubit_to_matrix
-from sympy import conjugate, N, re, im
-from sympy.physics.quantum import TensorProduct
-
-from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, TwoQubitGate, Gate, XGate, CGate, UGate
-from sympy.physics.quantum.represent import represent
-
-from sympy import pprint, pretty, symbols, Matrix, pi, E, I, cos, sin, N, exp, nsimplify
+from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
 
 
 
@@ -85,7 +75,7 @@ class SympyQasmSimulator(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-
+        super(SympyQasmSimulator, self).__init__()
         if configuration is None:
             self._configuration = {
                 'name': 'local_sympy_qasm_simulator',
@@ -114,9 +104,9 @@ class SympyQasmSimulator(BaseBackend):
         vector_form = represent(self._quantum_state)
         for ii in range(1 << self._number_of_qubits):
             if ii & (1 << qubit) == 0:
-                probability_zero += SympyQasmSimulator._conjugate_square(vector_form[ii,0]) # complex -> real!
+                probability_zero += SympyQasmSimulator._conjugate_square(vector_form[ii, 0])
 
-        probability_zero_sym = nsimplify(probability_zero, tolerance=0.001) # guess the most close symbol form
+        probability_zero_sym = nsimplify(probability_zero, tolerance=0.001)
 
         if random_number <= probability_zero: #
             outcome = '0'
@@ -138,9 +128,9 @@ class SympyQasmSimulator(BaseBackend):
         for ii in range(1 << self._number_of_qubits):
             # update quantum state
             if (ii >> qubit) & 1 == int(outcome):
-                matrix_form[ii,0] = matrix_form[ii,0]/norm #
+                matrix_form[ii, 0] = matrix_form[ii, 0]/norm
             else:
-                matrix_form[ii,0] = 0
+                matrix_form[ii, 0] = 0
 
         self._quantum_state = matrix_to_qubit(matrix_form)
         # update classical state
@@ -155,10 +145,10 @@ class SympyQasmSimulator(BaseBackend):
 
         qubit is the qubit that is reset.
         """
-        # TODO: slow, refactor later
+
         outcome, norm = self._add_qasm_decision(qubit)
         matrix_form_quantum_state = represent(self._quantum_state)
-        matrix_form_temp = matrix_form_quantum_state[:,:]
+        matrix_form_temp = matrix_form_quantum_state[:, :]
 
         # self._quantum_state.fill(0.0)
         matrix_form_quantum_state = matrix_form_quantum_state - matrix_form_quantum_state
@@ -166,29 +156,19 @@ class SympyQasmSimulator(BaseBackend):
         # measurement
         for ii in range(1 << self._number_of_qubits):
             if (ii >> qubit) & 1 == int(outcome):
-                matrix_form_temp[ii,0] = matrix_form_temp[ii,0]/norm
+                matrix_form_temp[ii, 0] = matrix_form_temp[ii, 0]/norm
             else:
-                matrix_form_temp[ii,0] = 0
+                matrix_form_temp[ii, 0] = 0
         # reset
         if outcome == '1':
             for ii in range(1 << self._number_of_qubits):
                 iip = (~ (1 << qubit)) & ii  # bit number qubit set to zero
-                matrix_form_quantum_state[iip,0] += matrix_form_temp[ii,0]
+                matrix_form_quantum_state[iip, 0] += matrix_form_temp[ii, 0]
         else:
             matrix_form_quantum_state = matrix_form_temp
 
         self._quantum_state = matrix_to_qubit(matrix_form_quantum_state)
 
-
-    # class bcolors:
-    #     HEADER = '\033[95m'
-    #     OKBLUE = '\033[94m'
-    #     OKGREEN = '\033[92m'
-    #     WARNING = '\033[93m'
-    #     FAIL = '\033[91m'
-    #     ENDC = '\033[0m'
-    #     BOLD = '\033[1m'
-    #     UNDERLINE = '\033[4m'
 
     def run(self, q_job):
         """Run circuits in q_job"""
@@ -198,7 +178,7 @@ class SympyQasmSimulator(BaseBackend):
         result_list = []
         self._shots = qobj['config']['shots']
         if self._shots > 1:
-            print('\033[95m' + "symbolic simulator does not need multiple shots! we will set shot=1 automatically!" + '\033[0m')
+            print("Warning: no need for multiple shots! set shot=1 automatically!")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
@@ -206,31 +186,28 @@ class SympyQasmSimulator(BaseBackend):
 
     def compute_distribution(self):
         matrix_form = represent(self._quantum_state)
-        N = matrix_form.shape[0]
-        list_form = [SympyQasmSimulator._conjugate_square(matrix_form[i,0]) for i in range(N)]
+        shapeN = matrix_form.shape[0]
+        list_form = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
         return list_form
 
-#by ignoring the measure, we keep the amplitude vector lossless and sample directly from the distribution represented by the amplitude vector without taking multiple shots.
-#Note: 1 we only take one shot no matter how many shots the user specified.
-#      2 the quantum_state returned is in the symbolic form
-#      3 the quantum_state returned can be used for equivalence checking given that it does not lose information.
+
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
 
         Args:
             circuit (dict): JSON circuit from qobj circuits list
 
-        Returns:
+        Returns: object
             A dictionary of results which looks something like::
 
                 {
-                "data":
-                    {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                    "counts": {’00000’: XXXX, ’00001’: XXXXX},
+                "data":{
                     "time"  : xx.xxxxxxxx
                     },
                 "status": --status (string)--
                 }
+        Raises:
+            SimulatorError: if an error occurred.
         """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
@@ -275,21 +252,24 @@ class SympyQasmSimulator(BaseBackend):
                     else:
                         params = None
                     qubit = operation['qubits'][0]
-                    _sym_op = SympyQasmSimulator.get_sym_op(operation['name'].upper(), tuple([qubit]), operation['params'])
-                    #print(represent(self._quantum_state))
-                    #print(_sym_op)
-                    self._quantum_state = qapply(_sym_op * self._quantum_state)
-                    #print(represent(self._quantum_state))
+                    opname = operation['name'].upper()
+                    opparas = operation['params']
+                    _sym_op = SympyQasmSimulator.get_sym_op(opname, tuple([qubit]), opparas)
+                    _applied_quantum_state = _sym_op * self._quantum_state
+                    self._quantum_state = qapply(_applied_quantum_state)
                 # Check if CX gate
                 elif operation['name'] in ['id', 'u0']:
                     pass
                 elif operation['name'] in ['CX', 'cx']:
                     qubit0 = operation['qubits'][0]
                     qubit1 = operation['qubits'][1]
-                    _sym_op = SympyQasmSimulator.get_sym_op(operation['name'].upper(), tuple([qubit0, qubit1]), operation['params'])
+                    opname = operation['name'].upper()
+                    opparas = operation['params']
+                    q0q1tuple = tuple([qubit0, qubit1])
+                    _sym_op = SympyQasmSimulator.get_sym_op(opname, q0q1tuple, opparas)
                     self._quantum_state = qapply(_sym_op * self._quantum_state)
                 # Check if measure
-                elif operation['name'] == 'measure':# if we measure the state, the state will collapse
+                elif operation['name'] == 'measure':# ignore the measure
                     pass
                     ## ignore the measure:
                     # qubit = operation['qubits'][0]
@@ -306,19 +286,17 @@ class SympyQasmSimulator(BaseBackend):
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
                                                         operation['name']))
-
-
         if self._shots == 1: # always true
-            outcomes = []         #  fake the multiple shots by directly sampling from the probability distribution
+            outcomes = []
             matrix_form = represent(self._quantum_state)
-            N = matrix_form.shape[0]
-            list_form = [matrix_form[i,0] for i in range(N)]
+            shapeN = matrix_form.shape[0]
+            list_form = [matrix_form[i, 0] for i in range(shapeN)]
 
-            pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i,0]) for i in range(N)]
+            pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
             norm_pdist = [float(i)/sum(pdist) for i in pdist]
 
             for shot in range(actual_shots):
-                _classical_state_observed = np.random.choice(np.arange(0, N), p=norm_pdist)
+                _classical_state_observed = np.random.choice(np.arange(0, shapeN), p=norm_pdist)
                 outcomes.append(bin(_classical_state_observed)[2:].zfill(
                     self._number_of_cbits))
 
@@ -328,8 +306,8 @@ class SympyQasmSimulator(BaseBackend):
             data = {'counts': self._format_result(
                 counts, cl_reg_index, cl_reg_nbits)}
 
-            data['quantum_state'] = np.asarray(list_form)# consistent with other backend. each element is symbolic!
-            data['classical_state'] = self._classical_state, # integer, which can be converted to bin_string: "bin(x)"
+            data['quantum_state'] = np.asarray(list_form)# consistent with other backends
+            data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
 
 
@@ -408,7 +386,7 @@ class SympyQasmSimulator(BaseBackend):
         uMat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
                        [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
 
-        if theta_is_regular and phi_is_regular and lamb_is_regular: # regular: we do not need concrete float value
+        if theta_is_regular and phi_is_regular and lamb_is_regular:
             uMatNumeric = uMat
         else:
             uMatNumeric = uMat.evalf()
@@ -444,7 +422,7 @@ class SympyQasmSimulator(BaseBackend):
         elif name == 'CZ':
             return CGate(qid_tuple[0], Z(qid_tuple[1])) # qid_tuple: control target
         elif name == 'CCX' or name == 'CCNOT' or name == 'TOFFOLI':
-            return CGate((qid_tuple[0], qid_tuple[1]), X(qid_tuple[2])) # qid_tuple: control1, control2, target
+            return CGate((qid_tuple[0], qid_tuple[1]), X(qid_tuple[2]))
         else: # U gate or CU gate
             if name.startswith('U') or name.startswith('CU'):
                 parafloatlist = params
@@ -461,12 +439,12 @@ class SympyQasmSimulator(BaseBackend):
 
                 uMat = SympyQasmSimulator.compute_ugate_matrix(parafloatlist)
                 class UGatePeng(OneQubitGate):
-                        gate_name = u('U')
-                        def get_target_matrix(self, format='sympy'):
-                            return uMat
-                # the original UGate in sympy does not accept the matrix with numerical values
+                    gate_name = u('U')
+                    def get_target_matrix(self, format='sympy'):
+                        return uMat
+
                 if name.startswith('U'):
-                    return UGatePeng(*qid_tuple) # the first arg of UGate should be a tuple of qubits to be applied to
+                    return UGatePeng(*qid_tuple)
                 elif name.startswith('CU'): # additional treatment for CU1, CU2, CU3
                     return CGate(qid_tuple[0], UGatePeng(*qid_tuple[1:]))
             elif name == "MEASURE":
