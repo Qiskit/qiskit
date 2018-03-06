@@ -301,24 +301,23 @@ class TestAppsFermion(QiskitTestCase):
         r = parity_set(self.j1, self.n)
         self.assertEqual(r, [4.])
         r = parity_set(self.j2, self.n)
-        self.assertFalse(r)
-        self.assertEqual(len(r), 0)
+        self.assertEqual(r.size, 0)
 
     def test_update_set(self):
         """ qiskit.tools.apps.fermion.update_set function"""
         r = update_set(self.j1, self.n)
-        self.assertFalse(r)
+        self.assertEqual(r.size, 0)
         r = update_set(self.j2, self.n)
         self.assertEqual(r, [9.])
 
     def test_flip_set(self):
         """ qiskit.tools.apps.fermion.flip_set function"""
         r = flip_set(self.j1, self.n)
-        self.assertEqual(r, [])
+        self.assertEqual(r.size, 0)
         r = flip_set(self.j2, self.n)
-        self.assertFalse(r)
+        self.assertEqual(r.size, 0)
         r = flip_set(self.j3, self.n)
-        self.assertFalse(r)
+        self.assertEqual(r.size, 0)
 
     def test_fermionic_maps_jordan_wigner(self):
         """ qiskit.tools.apps.fermion.fermionic_maps with JORDAN_WIGNER map type"""
