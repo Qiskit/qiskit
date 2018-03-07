@@ -73,7 +73,8 @@ def index1(barg, iarg, karg):
 
     return retval
 
-def index2(barg1, iarg1, barg2, iarg2, k):#assert(i1 != i2)
+
+def index2(barg1, iarg1, barg2, iarg2, k):  # assert(i1 != i2)
     """Magic index1 function.
 
     Takes a bitstring k and inserts bits b1 as the i1th bit
@@ -109,7 +110,6 @@ class SympyUnitarySimulator(BaseBackend):
         self._unitary_state = None
         self._number_of_qubits = None
 
-
     # the following is the sympy implementations of various gates, including basic gates and ugates.
     @staticmethod
     def regulate(theta):
@@ -122,13 +122,10 @@ class SympyUnitarySimulator(BaseBackend):
             return pi/2, True
         if abs(N(theta - pi/4)) < error_margin:
             return pi/4, True
-        if abs(N(theta- 2*pi)) < error_margin:
+        if abs(N(theta - 2*pi)) < error_margin:
             return 2*pi, True
 
-        return theta, theta == 0 # if theta ==0, we also think it is regular
-
-
-
+        return theta, theta == 0  # if theta ==0, we also think it is regular
 
     @staticmethod
     def compute_ugate_matrix(parafloatlist):
@@ -157,7 +154,6 @@ class SympyUnitarySimulator(BaseBackend):
             u_mat_numeric = u_mat.evalf()
         return u_mat_numeric
 
-
     @staticmethod
     def compute_ugate_matrix_wrap(parafloatlist):
         """preparation needed before computing the ugate matrix
@@ -166,19 +162,18 @@ class SympyUnitarySimulator(BaseBackend):
             Returns:
                 Matrix: matrix that represents the ugate
         """
-        if len(parafloatlist) == 1: # [theta=0, phi=0, lambda]
+        if len(parafloatlist) == 1:  # [theta=0, phi=0, lambda]
             parafloatlist.insert(0, 0.0)
             parafloatlist.insert(0, 0.0)
-        elif len(parafloatlist) == 2: #[theta=pi/2, phi, lambda]
+        elif len(parafloatlist) == 2:  # [theta=pi/2, phi, lambda]
             parafloatlist.insert(0, pi/2)
-        elif len(parafloatlist) == 3: #[theta, phi, lambda]
+        elif len(parafloatlist) == 3:  # [theta, phi, lambda]
             pass
         else:
             return NotImplemented
 
         u_mat = SympyUnitarySimulator.compute_ugate_matrix(parafloatlist)
         return u_mat
-
 
     def enlarge_single_opt_sympy(self, opt, qubit, number_of_qubits):
         """Enlarge single operator to n qubits.
@@ -195,9 +190,8 @@ class SympyUnitarySimulator(BaseBackend):
         """
         temp_1 = eye(2**(number_of_qubits-qubit-1))
         temp_2 = eye(2**(qubit))
-        enlarge_opt = TensorProduct(temp_1, TensorProduct(opt, temp_2)) # peng: smart trick!
+        enlarge_opt = TensorProduct(temp_1, TensorProduct(opt, temp_2))
         return enlarge_opt
-
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -208,9 +202,7 @@ class SympyUnitarySimulator(BaseBackend):
         number_of_qubits is the number of qubits in the system.
         """
         unitaty_add = self.enlarge_single_opt_sympy(gate, qubit, self._number_of_qubits)
-        self._unitary_state = unitaty_add*self._unitary_state # * means "dot product"
-
-
+        self._unitary_state = unitaty_add*self._unitary_state  # * means "dot product"
 
     def enlarge_two_opt_sympy(self, opt, qubit0, qubit1, num):
         """Enlarge two-qubit operator to n qubits.
@@ -221,7 +213,7 @@ class SympyUnitarySimulator(BaseBackend):
         returns a complex numpy array
         number_of_qubits is the number of qubits in the system.
         """
-        enlarge_opt = zeros(1 << (num), 1 << (num)) # np.zeros([1 << (num), 1 << (num)])
+        enlarge_opt = zeros(1 << (num), 1 << (num))  # np.zeros([1 << (num), 1 << (num)])
         for i in range(1 << (num-2)):
             for j in range(2):
                 for k in range(2):
@@ -281,8 +273,6 @@ class SympyUnitarySimulator(BaseBackend):
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
                 gate = Matrix([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
-                #np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                #                 [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
             elif operation['name'] == 'measure':
                 logger.info('Warning have dropped measure from unitary '
