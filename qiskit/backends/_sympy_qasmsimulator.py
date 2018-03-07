@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, no-name-in-module
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -271,7 +271,7 @@ class SympyQasmSimulator(BaseBackend):
         pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
         norm_pdist = [float(i)/sum(pdist) for i in pdist]
 
-        for i in range(actual_shots):
+        for i in range(actual_shots):  # pylint: disable=unused-variable
             _classical_state_observed = np.random.choice(np.arange(0, shapeN), p=norm_pdist)
             outcomes.append(bin(_classical_state_observed)[2:].zfill(
                 self._number_of_cbits))
