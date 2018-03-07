@@ -45,51 +45,48 @@ Warning: it is slow.
 import uuid
 import logging
 import numpy as np
-from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
 from sympy.matrices import eye, zeros
-from sympy.core.compatibility import range
 from sympy.physics.quantum import TensorProduct
 from sympy import Matrix, pi, E, I, cos, sin, N
+from qiskit._result import Result
+from qiskit.backends._basebackend import BaseBackend
 
 logger = logging.getLogger(__name__)
 
 
-def index1(b, i, k):
+def index1(barg, iarg, karg):
     """Magic index1 function.
 
     Takes a bitstring k and inserts bit b as the ith bit,
     shifting bits >= i over to make room.
     """
-    retval = k
-    lowbits = k & ((1 << i) - 1)  # get the low i bits
+    retval = karg
+    lowbits = karg & ((1 << iarg) - 1)  # get the low i bits
 
-    retval >>= i
+    retval >>= iarg
     retval <<= 1
 
-    retval |= b
+    retval |= barg
 
-    retval <<= i
+    retval <<= iarg
     retval |= lowbits
 
     return retval
 
-def index2(b1, i1, b2, i2, k):
+def index2(barg1, iarg1, barg2, iarg2, k):#assert(i1 != i2)
     """Magic index1 function.
 
     Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
     """
-    assert(i1 != i2)
-
-    if i1 > i2:
+    if iarg1 > iarg2:
         # insert as (i1-1)th bit, will be shifted left 1 by next line
-        retval = index1(b1, i1-1, k)
-        retval = index1(b2, i2, retval)
+        retval = index1(barg1, iarg1 - 1, k)
+        retval = index1(barg2, iarg2, retval)
     else:  # i2>i1
         # insert as (i2-1)th bit, will be shifted left 1 by next line
-        retval = index1(b2, i2-1, k)
-        retval = index1(b1, i1, retval)
+        retval = index1(barg2, iarg2 - 1, k)
+        retval = index1(barg1, iarg1, retval)
     return retval
 
 
@@ -98,7 +95,7 @@ class SympyUnitarySimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        #super().__init__(configuration)
+        super(SympyUnitarySimulator, self).__init__()
         if configuration is None:
             self._configuration = {'name': 'local_sympy_unitary_simulator',
                                    'url': 'https://github.com/IBM/qiskit-sdk-py',
@@ -109,29 +106,38 @@ class SympyUnitarySimulator(BaseBackend):
                                    'basis_gates': 'u1,u2,u3,cx,id'}
         else:
             self._configuration = configuration
+        self._unitary_state = None
+        self._number_of_qubits = None
 
 
     # the following is the sympy implementations of various gates, including basic gates and ugates.
     @staticmethod
     def regulate(theta):
+        """Find the most close symbolic form"""
         error_margin = 0.01
 
         if abs(N(theta - pi)) < error_margin:
             return pi, True
-        elif abs(N(theta - pi/2)) < error_margin:
+        if abs(N(theta - pi/2)) < error_margin:
             return pi/2, True
-        elif abs(N(theta - pi/4)) < error_margin:
+        if abs(N(theta - pi/4)) < error_margin:
             return pi/4, True
-        elif abs(N(theta- 2*pi)) < error_margin:
+        if abs(N(theta- 2*pi)) < error_margin:
             return 2*pi, True
-        else:
-            return theta, theta == 0 # if theta ==0, we also think it is regular
+
+        return theta, theta == 0 # if theta ==0, we also think it is regular
 
 
 
 
     @staticmethod
     def compute_ugate_matrix(parafloatlist):
+        """compute the ugate matrix
+            Args:
+                parafloatlist(list): parafloatlist
+            Returns:
+                Matrix: the matrix that represents the U gate
+        """
         theta = parafloatlist[0]
         phi = parafloatlist[1]
         lamb = parafloatlist[2]
@@ -139,20 +145,27 @@ class SympyUnitarySimulator(BaseBackend):
         theta, theta_is_regular = SympyUnitarySimulator.regulate(theta)
         phi, phi_is_regular = SympyUnitarySimulator.regulate(phi)
         lamb, lamb_is_regular = SympyUnitarySimulator.regulate(lamb)
+        left_up = cos(theta/2)
+        right_up = (-E**(I*lamb)) * sin(theta/2)
+        left_down = (E**(I*phi)) * sin(theta/2)
+        right_down = (E**(I*(phi+lamb))) * cos(theta/2)
+        u_mat = Matrix([[left_up, right_up], [left_down, right_down]])
 
-
-        uMat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
-                       [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
-
-        if theta_is_regular and phi_is_regular and lamb_is_regular: # regular: we do not need concrete float value
-            uMatNumeric = uMat
+        if theta_is_regular and phi_is_regular and lamb_is_regular:
+            u_mat_numeric = u_mat
         else:
-            uMatNumeric = uMat.evalf()
-        return uMatNumeric
+            u_mat_numeric = u_mat.evalf()
+        return u_mat_numeric
 
 
     @staticmethod
     def compute_ugate_matrix_wrap(parafloatlist):
+        """preparation needed before computing the ugate matrix
+            Args:
+                parafloatlist (list): parafloatlist
+            Returns:
+                Matrix: matrix that represents the ugate
+        """
         if len(parafloatlist) == 1: # [theta=0, phi=0, lambda]
             parafloatlist.insert(0, 0.0)
             parafloatlist.insert(0, 0.0)
@@ -163,8 +176,8 @@ class SympyUnitarySimulator(BaseBackend):
         else:
             return NotImplemented
 
-        uMat = SympyUnitarySimulator.compute_ugate_matrix(parafloatlist)
-        return uMat
+        u_mat = SympyUnitarySimulator.compute_ugate_matrix(parafloatlist)
+        return u_mat
 
 
     def enlarge_single_opt_sympy(self, opt, qubit, number_of_qubits):
@@ -173,10 +186,12 @@ class SympyUnitarySimulator(BaseBackend):
         It is exponential in the number of qubits.
 
         Args:
-            opt: the single-qubit opt.
-            qubit: the qubit to apply it on counts from 0 and order
+            opt (object): the single-qubit opt.
+            qubit (int): the qubit to apply it on counts from 0 and order
                 is q_{n-1} ... otimes q_1 otimes q_0.
-            number_of_qubits: the number of qubits in the system.
+            number_of_qubits (int): the number of qubits in the system.
+        Returns:
+            object: the enlarged tensor product.
         """
         temp_1 = eye(2**(number_of_qubits-qubit-1))
         temp_2 = eye(2**(qubit))
@@ -197,9 +212,8 @@ class SympyUnitarySimulator(BaseBackend):
 
 
 
-    def enlarge_two_opt_sympy(self,opt, q0, q1, num):
+    def enlarge_two_opt_sympy(self, opt, qubit0, qubit1, num):
         """Enlarge two-qubit operator to n qubits.
-
         It is exponential in the number of qubits.
         opt is the two-qubit gate
         q0 is the first qubit (control) counts from 0
@@ -211,12 +225,14 @@ class SympyUnitarySimulator(BaseBackend):
         for i in range(1 << (num-2)):
             for j in range(2):
                 for k in range(2):
-                    for jj in range(2):
-                        for kk in range(2):
-                            enlarge_opt[index2(j, q0, k, q1, i), index2(jj, q0, kk, q1, i)] = opt[j+2*k, jj+2*kk]
+                    for m in range(2):
+                        for n in range(2):
+                            enlarge_index1 = index2(j, qubit0, k, qubit1, i)
+                            enlarge_index2 = index2(m, qubit0, n, qubit1, i)
+                            enlarge_opt[enlarge_index1, enlarge_index2] = opt[j+2*k, m+2*n]
         return enlarge_opt
 
-    def _add_unitary_two(self, gate, q0, q1):
+    def _add_unitary_two(self, gate, qubit0, qubit1):
         """Apply the two-qubit gate.
 
         gate is the two-qubit gate
@@ -224,23 +240,24 @@ class SympyUnitarySimulator(BaseBackend):
         q1 is the second qubit (target)
         returns a complex numpy array
         """
-        unitaty_add = self.enlarge_two_opt_sympy(gate, q0, q1, self._number_of_qubits)
+        unitaty_add = self.enlarge_two_opt_sympy(gate, qubit0, qubit1, self._number_of_qubits)
         self._unitary_state = unitaty_add*self._unitary_state
 
     def run(self, q_job):
         """Run q_job
 
         Args:
-        q_job (QuantumJob): job to run
+            q_job (QuantumJob): job to run
+        Returns:
+            object: a dictionary that contains the necessary information is returned
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
-            result_list.append( self.run_circuit(circuit) )
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)            
+            result_list.append(self.run_circuit(circuit))
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""

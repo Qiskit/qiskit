@@ -49,12 +49,9 @@ If you specified multiple shots, we will set shot=1 automatically.
 
 from __future__ import print_function
 import uuid
-import numpy as np
 import random
 from collections import Counter
-from ._simulatorerror import SimulatorError
-from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
+import numpy as np
 from sympy.physics.quantum.qubit import Qubit
 from sympy.physics.quantum.qapply import qapply
 from sympy import sqrt
@@ -63,6 +60,9 @@ from sympy import re, im
 from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
 from sympy.physics.quantum.represent import represent
 from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
+from qiskit._result import Result
+from qiskit.backends._basebackend import BaseBackend
+from ._simulatorerror import SimulatorError
 
 class SympyQasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
@@ -84,6 +84,13 @@ class SympyQasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
+        self._classical_state = None
+        self._number_of_qubits = None
+        self._number_of_cbits = None
+        self._quantum_state = None
+        self._shots = 1
+
+
 
     @staticmethod
     def _conjugate_square(com):
@@ -174,19 +181,18 @@ class SympyQasmSimulator(BaseBackend):
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
 
     def compute_distribution(self):
+        """compute the distribution and return it in the list form"""
         matrix_form = represent(self._quantum_state)
         shapeN = matrix_form.shape[0]
         list_form = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
         return list_form
 
     def run_circuit(self, circuit):
-        """Run a circuit and return a single Result.
+        """Run a circuit and return object
         Args:
             circuit (dict): JSON circuit from qobj circuits list
-
-        Returns: object
-            A dictionary of results which looks something like::
-
+        Returns:
+            dict: A dictionary of results which looks something like::
                 {
                 "data":{
                     "time"  : xx.xxxxxxxx
@@ -214,94 +220,88 @@ class SympyQasmSimulator(BaseBackend):
             random.seed(circuit['config']['seed'])
 
         actual_shots = self._shots
-        self._shots = 1 # set shot=1
-        for shot in range(self._shots):
-            self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
-            self._classical_state = 0
-            # Do each operation in this shot
-            for operation in ccircuit['operations']:
-                if 'conditional' in operation: # not related to sympy
-                    mask = int(operation['conditional']['mask'], 16)
-                    if mask > 0:
-                        value = self._classical_state & mask
-                        while (mask & 0x1) == 0:
-                            mask >>= 1
-                            value >>= 1
-                        if value != int(operation['conditional']['val'], 16):
-                            continue
-                if operation['name'] in ['U', 'u1', 'u2', 'u3']:
-                    if 'params' in operation:
-                        params = operation['params']
-                    else:
-                        params = None
-                    qubit = operation['qubits'][0]
-                    opname = operation['name'].upper()
-                    opparas = operation['params']
-                    _sym_op = SympyQasmSimulator.get_sym_op(opname, tuple([qubit]), opparas)
-                    _applied_quantum_state = _sym_op * self._quantum_state
-                    self._quantum_state = qapply(_applied_quantum_state)
-                # Check if CX gate
-                elif operation['name'] in ['id', 'u0']:
-                    pass
-                elif operation['name'] in ['CX', 'cx']:
-                    qubit0 = operation['qubits'][0]
-                    qubit1 = operation['qubits'][1]
-                    opname = operation['name'].upper()
-                    opparas = operation['params']
-                    q0q1tuple = tuple([qubit0, qubit1])
-                    _sym_op = SympyQasmSimulator.get_sym_op(opname, q0q1tuple, opparas)
-                    self._quantum_state = qapply(_sym_op * self._quantum_state)
-                # Check if measure
-                elif operation['name'] == 'measure':# ignore the measure
-                    pass
-                    ## ignore the measure:
-                    # qubit = operation['qubits'][0]
-                    # cbit = operation['clbits'][0]
-                    # self._add_qasm_measure(qubit, cbit)
-                # Check if reset
-                elif operation['name'] == 'reset': # supported modification of state
-                    qubit = operation['qubits'][0]
-                    self._add_qasm_reset(qubit)
-                elif operation['name'] == 'barrier':
-                    pass
-                else:
-                    backend = globals()['__configuration']['name']
-                    err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise SimulatorError(err_msg.format(backend,
-                                                        operation['name']))
-        if self._shots == 1: # always true
-            outcomes = []
-            matrix_form = represent(self._quantum_state)
-            shapeN = matrix_form.shape[0]
-            list_form = [matrix_form[i, 0] for i in range(shapeN)]
+        self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
+        self._classical_state = 0
+        # Do each operation in this shot
+        for operation in ccircuit['operations']:
+            if 'conditional' in operation: # not related to sympy
+                mask = int(operation['conditional']['mask'], 16)
+                if mask > 0:
+                    value = self._classical_state & mask
+                    while (mask & 0x1) == 0:
+                        mask >>= 1
+                        value >>= 1
+                    if value != int(operation['conditional']['val'], 16):
+                        continue
+            if operation['name'] in ['U', 'u1', 'u2', 'u3']:
+                qubit = operation['qubits'][0]
+                opname = operation['name'].upper()
+                opparas = operation['params']
+                _sym_op = SympyQasmSimulator.get_sym_op(opname, tuple([qubit]), opparas)
+                _applied_quantum_state = _sym_op * self._quantum_state
+                self._quantum_state = qapply(_applied_quantum_state)
+            # Check if CX gate
+            elif operation['name'] in ['id', 'u0']:
+                pass
+            elif operation['name'] in ['CX', 'cx']:
+                qubit0 = operation['qubits'][0]
+                qubit1 = operation['qubits'][1]
+                opname = operation['name'].upper()
+                opparas = operation['params']
+                q0q1tuple = tuple([qubit0, qubit1])
+                _sym_op = SympyQasmSimulator.get_sym_op(opname, q0q1tuple, opparas)
+                self._quantum_state = qapply(_sym_op * self._quantum_state)
+            # Check if measure
+            elif operation['name'] == 'measure':# ignore the measure
+                pass
+                ## ignore the measure:
+                # qubit = operation['qubits'][0]
+                # cbit = operation['clbits'][0]
+                # self._add_qasm_measure(qubit, cbit)
+            # Check if reset
+            elif operation['name'] == 'reset': # supported modification of state
+                qubit = operation['qubits'][0]
+                self._add_qasm_reset(qubit)
+            elif operation['name'] == 'barrier':
+                pass
+            else:
+                backend = globals()['__configuration']['name']
+                err_msg = '{0} encountered unrecognized operation "{1}"'
+                raise SimulatorError(err_msg.format(backend, operation['name']))
 
-            pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
-            norm_pdist = [float(i)/sum(pdist) for i in pdist]
+        outcomes = []
+        matrix_form = represent(self._quantum_state)
+        shapeN = matrix_form.shape[0]
+        list_form = [matrix_form[i, 0] for i in range(shapeN)]
 
-            for shot in range(actual_shots):
-                _classical_state_observed = np.random.choice(np.arange(0, shapeN), p=norm_pdist)
-                outcomes.append(bin(_classical_state_observed)[2:].zfill(
-                    self._number_of_cbits))
+        pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
+        norm_pdist = [float(i)/sum(pdist) for i in pdist]
 
-            # Return the results
-            counts = dict(Counter(outcomes))
-            data = {'counts': self._format_result(
-                counts, cl_reg_index, cl_reg_nbits)}
+        for i in range(actual_shots):
+            _classical_state_observed = np.random.choice(np.arange(0, shapeN), p=norm_pdist)
+            outcomes.append(bin(_classical_state_observed)[2:].zfill(
+                self._number_of_cbits))
 
-            data['quantum_state'] = np.asarray(list_form)# consistent with other backends
-            data['classical_state'] = self._classical_state
+        # Return the results
+        counts = dict(Counter(outcomes))
+        data = {'counts': self._format_result(
+            counts, cl_reg_index, cl_reg_nbits)}
+
+        data['quantum_state'] = np.asarray(list_form)# consistent with other backends
+        data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
-
         This formats the result bit strings such that spaces are inserted
         at register divisions.
 
         Args:
-            counts : dictionary of counts e.g. {'1111': 1000, '0000':5}
+            counts (dict): dictionary of counts e.g. {'1111': 1000, '0000':5}
+            cl_reg_index (list): starting bit index of classical register
+            cl_reg_nbits (list): total amount of bits in classical register
         Returns:
-            spaces inserted into dictionary keys at register boundries.
+            dict: spaces inserted into dictionary keys at register boundaries.
         """
         fcounts = {}
         for key, value in counts.items():
@@ -312,35 +312,42 @@ class SympyQasmSimulator(BaseBackend):
             fcounts[' '.join(new_key)] = value
         return fcounts
 
-    # the following is the sympy implementations of various gates, including basic gates and ugates.
     @staticmethod
     def regulate(theta):
+        """find the symbolic form that is closest to the numeric value"""
         error_margin = 0.01
 
         if abs(N(theta - pi)) < error_margin:
             return pi, True
-        elif abs(N(theta - pi/2)) < error_margin:
+        if abs(N(theta - pi/2)) < error_margin:
             return pi/2, True
-        elif abs(N(theta - pi/4)) < error_margin:
+        if abs(N(theta - pi/4)) < error_margin:
             return pi/4, True
-        elif abs(N(theta- 2*pi)) < error_margin:
+        if abs(N(theta- 2*pi)) < error_margin:
             return 2*pi, True
-        else:
-            return theta, theta == 0 # if theta ==0, we also think it is regular
 
-    # extensible gate domain:
-    class SDGGate(OneQubitGate):
+        return theta, theta == 0 # if theta ==0, we also think it is regular
+
+    class SDGGate(OneQubitGate):# pylint: disable=too-many-ancestors, abstract-method
+        """implements the SDG gate"""
         gate_name = u('SDG')
-        def get_target_matrix(self, format='sympy'):
+        def get_target_matrix(self, format='sympy'):# pylint: disable=redefined-builtin
             return Matrix([[1, 0], [0, -I]])
 
-    class TDGGate(OneQubitGate):
+    class TDGGate(OneQubitGate):# pylint: disable=too-many-ancestors, abstract-method
+        """implements the TDG gate"""
         gate_name = u('TDG')
-        def get_target_matrix(self, format='sympy'):
+        def get_target_matrix(self, format='sympy'):# pylint: disable=redefined-builtin
             return Matrix([[1, 0], [0, exp(-I*pi/4)]])
 
     @staticmethod
     def compute_ugate_matrix(parafloatlist):
+        """compute the ugate matrix
+        Args:
+            parafloatlist (list): parameters
+        Returns:
+            Matrix: the u gate matrix
+        """
         theta = parafloatlist[0]
         phi = parafloatlist[1]
         lamb = parafloatlist[2]
@@ -361,32 +368,46 @@ class SympyQasmSimulator(BaseBackend):
 
     @staticmethod
     def get_sym_op(name, qid_tuple, params=None):
+        """ return the sympy version for the gate
+        Args:
+            name (str): gate name
+            qid_tuple (tuple): the ids of the qubits being operated on
+            params (list): optional parameter lists, needed by the U gates.
+        Returns:
+            object: gate applied to the qubits
+        Raises:
+            Exception: if an unsupported operation is seen
+        """
+        the_gate = None
         if name == 'ID':
-            return IdentityGate(*qid_tuple) # de-tuple means unpacking
+            the_gate = IdentityGate(*qid_tuple) # de-tuple means unpacking
         elif name == 'X':
-            return X(*qid_tuple)
+            the_gate = X(*qid_tuple)
         elif name == 'Y':
-            return Y(*qid_tuple)
+            the_gate = Y(*qid_tuple)
         elif name == 'Z':
-            return Z(*qid_tuple)
+            the_gate = Z(*qid_tuple)
         elif name == 'H':
-            return H(*qid_tuple)
+            the_gate = H(*qid_tuple)
         elif name == 'S':
-            return S(*qid_tuple)
+            the_gate = S(*qid_tuple)
         elif name == 'SDG':
-            return SympyQasmSimulator.SDGGate(*qid_tuple)
+            the_gate = SympyQasmSimulator.SDGGate(*qid_tuple)
         elif name == 'T':
-            return T(*qid_tuple)
+            the_gate = T(*qid_tuple)
         elif name == 'TDG':
-            return SympyQasmSimulator.TDGGate(*qid_tuple)
+            the_gate = SympyQasmSimulator.TDGGate(*qid_tuple)
         elif name == 'CX' or name == 'CNOT':
-            return CNOT(*qid_tuple)
+            the_gate = CNOT(*qid_tuple)
         elif name == 'CY':
-            return CGate(qid_tuple[0], Y(qid_tuple[1])) # qid_tuple: control target
+            the_gate = CGate(qid_tuple[0], Y(qid_tuple[1])) # qid_tuple: control target
         elif name == 'CZ':
-            return CGate(qid_tuple[0], Z(qid_tuple[1])) # qid_tuple: control target
+            the_gate = CGate(qid_tuple[0], Z(qid_tuple[1])) # qid_tuple: control target
         elif name == 'CCX' or name == 'CCNOT' or name == 'TOFFOLI':
-            return CGate((qid_tuple[0], qid_tuple[1]), X(qid_tuple[2]))
+            the_gate = CGate((qid_tuple[0], qid_tuple[1]), X(qid_tuple[2]))
+
+        if the_gate != None:
+            return the_gate
         else: # U gate or CU gate
             if name.startswith('U') or name.startswith('CU'):
                 parafloatlist = params
@@ -402,9 +423,10 @@ class SympyQasmSimulator(BaseBackend):
                     return NotImplemented
 
                 uMat = SympyQasmSimulator.compute_ugate_matrix(parafloatlist)
-                class UGatePeng(OneQubitGate):
+                class UGatePeng(OneQubitGate):# pylint: disable=too-many-ancestors, abstract-method
+                    """implements the general U gate"""
                     gate_name = u('U')
-                    def get_target_matrix(self, format='sympy'):
+                    def get_target_matrix(self, format='sympy'):# pylint: disable=redefined-builtin
                         return uMat
 
                 if name.startswith('U'):
