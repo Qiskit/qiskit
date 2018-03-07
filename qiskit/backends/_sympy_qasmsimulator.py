@@ -57,7 +57,8 @@ from sympy.physics.quantum.qapply import qapply
 from sympy import sqrt
 from sympy.physics.quantum.qubit import matrix_to_qubit
 from sympy import re, im
-from sympy.physics.quantum.gate import u, H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
+from sympy.core.compatibility import u
+from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
 from sympy.physics.quantum.represent import represent
 from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
 from qiskit._result import Result
