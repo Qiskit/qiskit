@@ -57,7 +57,6 @@ from sympy.physics.quantum.qapply import qapply
 from sympy import sqrt
 from sympy.physics.quantum.qubit import matrix_to_qubit
 from sympy import re, im
-from sympy.core.compatibility import u
 from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
 from sympy.physics.quantum.represent import represent
 from sympy import Matrix, pi, E, I, cos, sin, N, exp, nsimplify
@@ -324,14 +323,14 @@ class SympyQasmSimulator(BaseBackend):
 
     class SDGGate(OneQubitGate):  # pylint: disable=too-many-ancestors, abstract-method
         """implements the SDG gate"""
-        gate_name = u('SDG')
+        gate_name = 'SDG'
 
         def get_target_matrix(self, format='sympy'):  # pylint: disable=redefined-builtin
             return Matrix([[1, 0], [0, -I]])
 
     class TDGGate(OneQubitGate):  # pylint: disable=too-many-ancestors, abstract-method
         """implements the TDG gate"""
-        gate_name = u('TDG')
+        gate_name = 'TDG'
 
         def get_target_matrix(self, format='sympy'):  # pylint: disable=redefined-builtin
             return Matrix([[1, 0], [0, exp(-I*pi/4)]])
@@ -421,7 +420,7 @@ class SympyQasmSimulator(BaseBackend):
 
                 class UGatePeng(OneQubitGate):  # pylint: disable=too-many-ancestors,abstract-method
                     """implements the general U gate"""
-                    gate_name = u('U')
+                    gate_name = 'U'
 
                     def get_target_matrix(self, format='sympy'):  # pylint:disable=redefined-builtin
                         return uMat

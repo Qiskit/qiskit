@@ -24,7 +24,7 @@ from qiskit import QuantumProgram
 
 Q_program = QuantumProgram()
 currentFolder = os.path.dirname(os.path.realpath(__file__))
-qasm_file = currentFolder + "/../../../examples/qasm/naive.qasm"
+qasm_file = currentFolder + "/../../../examples/qasm/W3test.qasm"
 myqasm = Q_program.load_qasm_file(qasm_file, "my_example")
 print("analyzing: " + qasm_file)
 circuits = ['my_example']
