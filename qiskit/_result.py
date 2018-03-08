@@ -53,8 +53,8 @@ class Result(object):
     """
 
     def __init__(self, qobj_result, qobj):
-        self._qobj = qobj
         self._result = qobj_result
+        self._qobj = qobj
 
     def __str__(self):
         """Get the status of the run.
