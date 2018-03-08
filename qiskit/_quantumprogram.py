@@ -113,11 +113,6 @@ class QuantumProgram(object):
         if specs:
             self.__init_specs(specs)
 
-        self.callback = None
-        self.jobs_results = []
-        self.jobs_results_ready_event = Event()
-        self.are_multiple_results = False  # are we expecting multiple results?
-
     def enable_logs(self, level=logging.INFO):
         """Enable the console output of the logging messages.
 
@@ -1226,12 +1221,27 @@ class QuantumProgram(object):
         Returns:
             Result: A Result (class).
         """
-        self.callback = None
+        job_blocker_event = Event()
+        job_result = None
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread
+            """
+            nonlocal job_result
+            job_result = results[0]
+            job_blocker_event.set()
+
         self._run_internal([qobj],
                            wait=wait,
-                           timeout=timeout)
-        self.wait_for_results(timeout)
-        return self.jobs_results[0]
+                           timeout=timeout,
+                           callback=job_done_callback)
+
+        # Do not set a timeout, as the timeout is being managed by the job
+        job_blocker_event.wait()
+
+        return job_result
 
     def run_batch(self, qobj_list, wait=5, timeout=120):
         """Run various programs (a list of pre-compiled quantum programs). This
@@ -1248,12 +1258,25 @@ class QuantumProgram(object):
             list(Result): A list of Result (class). The list will contain one Result object
             per qobj in the input list.
         """
+        job_blocker_event = Event()
+        job_results = []
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
+            nonlocal job_results
+            job_results = results
+            job_blocker_event.set()
+
         self._run_internal(qobj_list,
                            wait=wait,
                            timeout=timeout,
-                           are_multiple_results=True)
-        self.wait_for_results(timeout)
-        return self.jobs_results
+                           callback=job_done_callback)
+
+        job_blocker_event.wait()
+        return job_results
 
     def run_async(self, qobj, wait=5, timeout=60, callback=None):
         """Run a program (a pre-compiled quantum program) asynchronously. This
@@ -1270,10 +1293,18 @@ class QuantumProgram(object):
                     fn(result):
                     The result param will be a Result object.
         """
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
+            callback(results[0])  # The user is expecting a single Result
+
         self._run_internal([qobj],
                            wait=wait,
                            timeout=timeout,
-                           callback=callback)
+                           callback=job_done_callback)
 
     def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None):
         """Run various programs (a list of pre-compiled quantum program)
@@ -1294,15 +1325,9 @@ class QuantumProgram(object):
         self._run_internal(qobj_list,
                            wait=wait,
                            timeout=timeout,
-                           callback=callback,
-                           are_multiple_results=True)
+                           callback=callback)
 
-    def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None,
-                      are_multiple_results=False):
-
-        self.callback = callback
-        self.are_multiple_results = are_multiple_results
-
+    def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
         q_job_list = []
         for qobj in qobj_list:
             q_job = QuantumJob(qobj, preformatted=True, resources={
@@ -1311,34 +1336,8 @@ class QuantumProgram(object):
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
-                                     callback=self._jobs_done_callback)
+                                     callback=callback)
         job_processor.submit()
-
-    def _jobs_done_callback(self, jobs_results):
-        """ This internal callback will be called once all Jobs submitted have
-            finished. NOT every time a job has finished.
-
-        Args:
-            jobs_results (list): list of Result objects
-        """
-        if self.callback is None:
-            # We are calling from blocking functions (run, run_batch...)
-            self.jobs_results = jobs_results
-            self.jobs_results_ready_event.set()
-            return
-
-        if self.are_multiple_results:
-            self.callback(jobs_results)  # for run_batch_async() callback
-        else:
-            self.callback(jobs_results[0])  # for run_async() callback
-
-    def wait_for_results(self, timeout):
-        """Wait for all the results to be ready during an execution."""
-        is_ok = self.jobs_results_ready_event.wait(timeout)
-        self.jobs_results_ready_event.clear()
-        if not is_ok:
-            raise QISKitError('Error waiting for Job results: Timeout after {0} '
-                              'seconds.'.format(timeout))
 
     def execute(self, name_of_circuits, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
