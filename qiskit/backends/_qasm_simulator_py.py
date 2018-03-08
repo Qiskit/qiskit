@@ -134,7 +134,7 @@ class QasmSimulatorPy(BaseBackend):
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator_py',
-                'url': 'https://github.com/IBM/qiskit-sdk-py',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
                 'description': 'A python simulator for qasm files',
