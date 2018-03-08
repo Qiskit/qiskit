@@ -38,7 +38,7 @@ leverages sympy's simplification engine to simplify the expressions as much as p
 Analysis of results and limitations:
 1. It can simplify expressions, including complex ones such as sqrt(2)*I*exp(-I*pi/4)/4.
 2. It may miss some simplification opportunities.
-For instance, the amplitude 
+For instance, the amplitude
 "0.245196320100808*sqrt(2)*exp(-I*pi/4) - 0.048772580504032*sqrt(2)*I*exp(-I*pi/4)"
 can be further simplified.
 3. It may produce results that are hard to interpret.
