@@ -21,17 +21,8 @@ It produces the unitary of a quantum circuit in the symbolic form.
 In particular, it simulates the quantum computation with the sympy APIs,
 which preserve the symbolic form of numbers, e.g., sqrt(2), e^{i*pi/2}.
 
-example code for using it:
-Q_program = QuantumProgram()
-currentFolder = os.path.dirname(os.path.realpath(__file__))
-qasm_file = currentFolder + "/../../../examples/qasm/naive.qasm"
-myqasm = Q_program.load_qasm_file(qasm_file, "my_example")
-print("analyzing: " + qasm_file)
-circuits = ['my_example'] #, 'superposition'
-backend = 'local_sympy_unitary_simulator' # the device to run on
-result = Q_program.execute(circuits, backend=backend, timeout=10)
-print("unitary matrix of the circuit: ")
-print(result.get_data('my_example')['unitary'])
+[how to use this simulator:]
+see examples/python/use_sympy_simulators.py
 
 example output:
 [[sqrt(2)/2 sqrt(2)/2 0 0]
