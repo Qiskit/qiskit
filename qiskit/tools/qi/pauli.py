@@ -83,7 +83,11 @@ class Pauli:
         return pauli_new
 
     def to_label(self):
-        """Print out the labels in X, Y, Z format."""
+        """Print out the labels in X, Y, Z format.
+
+        Returns:
+            str: pauli label
+        """
         p_label = ''
         for j_index in range(self.numberofqubits):
             if self.v[j_index] == 0 and self.w[j_index] == 0:
@@ -100,6 +104,9 @@ class Pauli:
         """Convert Pauli to a matrix representation.
 
         Order is q_n x q_{n-1} .... q_0
+
+        Returns:
+            numpy.array: a matrix that represnets the pauli.
         """
         x = np.array([[0, 1], [1, 0]], dtype=complex)
         y = np.array([[0, -1j], [1j, 0]], dtype=complex)
@@ -125,6 +132,10 @@ class Pauli:
         """Convert Pauli to a sparse matrix representation (CSR format).
 
         Order is q_n x q_{n-1} .... q_0
+
+        Returns:
+            scipy.sparse.csr_matrix: a sparse matrix with CSR format that
+            represnets the pauli.
         """
         x = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
         y = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
