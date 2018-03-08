@@ -89,7 +89,7 @@ class SympyUnitarySimulator(BaseBackend):
         super(SympyUnitarySimulator, self).__init__()
         if configuration is None:
             self._configuration = {'name': 'local_sympy_unitary_simulator',
-                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
+                                   'url': 'https://github.com/QISKit/qiskit-sdk-py',
                                    'simulator': True,
                                    'local': True,
                                    'description': 'A python simulator for unitary matrix',
