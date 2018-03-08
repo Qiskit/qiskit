@@ -1,6 +1,6 @@
+.SUFFIXES:.cc .o .c
 
-CC = g++
-#CC = g++-7 # use Homebrew GNU g++ for enabling OpenMP on macOS
+all: sim
 
 INCLUDE = -I../src/utilities/
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wredundant-decls -Wshadow 

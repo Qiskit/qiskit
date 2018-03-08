@@ -244,6 +244,7 @@ def x90_error_matrix(cal_error, detuning_error):
     The retured error matrix is given by
         U_error = U_X90_noise * U_X90_ideal^dagger
     """
+    # pylint: disable=invalid-name
     if cal_error == 0 and detuning_error == 0:
         return np.eye(2)
     else:
@@ -268,6 +269,7 @@ def __generate_coherent_error_matrix(config):
         'CX' gate: 'calibration_error', 'zz_error'
         'X90' gate: 'calibration_error', 'detuning_error'
     """
+    # pylint: disable=invalid-name
     if 'noise_params' in config:
         # Check for CR coherent error parameters
         if 'CX' in config['noise_params']:
@@ -290,6 +292,8 @@ def __generate_coherent_error_matrix(config):
                 U_error = U_error.dot(x90_error_matrix(cal_error,
                                                        detuning_error))
                 config['noise_params']['X90']['U_error'] = U_error
+                config['noise_params']['X90']['U_error'] = u_error
+>>>>>>> upstream/master:qiskit/backends/_qiskit_cpp_simulator.py
 
 
 def __to_json_complex(obj):

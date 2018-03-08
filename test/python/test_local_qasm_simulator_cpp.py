@@ -20,6 +20,9 @@
 import os
 import unittest
 
+import numpy as np
+from numpy.linalg import norm
+
 import qiskit
 import qiskit.backends._qasm_simulator_cpp as QasmSimulatorCpp
 import numpy as np
