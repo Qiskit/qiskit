@@ -21,17 +21,16 @@ It produces the unitary of a quantum circuit in the symbolic form.
 In particular, it simulates the quantum computation with the sympy APIs,
 which preserve the symbolic form of numbers, e.g., sqrt(2), e^{i*pi/2}.
 
-[how to use this simulator:]
+How to use this simulator:
 see examples/python/use_sympy_simulators.py
 
-example output:
+Example output:
 [[sqrt(2)/2 sqrt(2)/2 0 0]
  [0 0 sqrt(2)/2 -sqrt(2)/2]
  [0 0 sqrt(2)/2 sqrt(2)/2]
  [sqrt(2)/2 -sqrt(2)/2 0 0]]
 
 Warning: it is slow.
-
 """
 import uuid
 import logging

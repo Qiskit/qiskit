@@ -18,25 +18,39 @@
 """
 Contains a (slow) python sympy-based simulator.
 
-It produces the amplitude vector in the symbolic form.
+It produces the state vector in symbolic form.
 In particular, it simulates the quantum computation with the sympy APIs,
 which preserve the symbolic form of numbers, e.g., sqrt(2), e^{i*pi/2}.
 
-
-[how to use this simulator:]
+How to use this simulator:
 see examples/python/use_sympy_simulators.py
 
-[example output:]
+Example output:
 final quantum amplitude vector: [sqrt(2)/2 0 0 sqrt(2)/2]
 
+Advantages:
+1. The tool obviates the manual calculation with a pen and paper, enabling
+ quick adjustment of your prototype code.
+2. The tool leverages sympy's symbolic computational power to keep the most
+leverages sympy's simplification engine to simplify the expressions as much as possible.
+3. The tool supports u gates, including u1, u2, u3, cu1, cu2, cu3.
+
+Analysis of results and limitations:
+1. It can simplify expressions, including complex ones such as sqrt(2)*I*exp(-I*pi/4)/4.
+2. It may miss some simplification opportunities.
+For instance, the amplitude 
+"0.245196320100808*sqrt(2)*exp(-I*pi/4) - 0.048772580504032*sqrt(2)*I*exp(-I*pi/4)"
+can be further simplified.
+3. It may produce results that are hard to interpret.
+4. Memory error may occur if there are many qubits in the system.
+This is due to the limit of classical computers and show the advantage of the quantum hardware.
 
 Warning: it is slow.
 Warning: this simulator computes the final amplitude vector precisely within a single shot.
 Therefore we do not need multiple shots.
-If you specified multiple shots, we will set shot=1 automatically.
+If you specify multiple shots, it will automatically set shots=1.
 """
 
-from __future__ import print_function
 import uuid
 import random
 from collections import Counter
