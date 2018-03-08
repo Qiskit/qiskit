@@ -990,7 +990,6 @@ class QuantumProgram(object):
                             {
                             "name": --circuit name (string)--,
                             "compiled_circuit": --compiled quantum circuit (JSON format)--,
-                            "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
                             "config": --dictionary of additional config settings (dict)--,
                                 {
                                 "coupling_map": --adjacency list (dict)--,
@@ -1094,10 +1093,6 @@ class QuantumProgram(object):
             # the compiled circuit to be run saved as a dag
             job["compiled_circuit"] = openquantumcompiler.dag2json(dag_circuit,
                                                                    basis_gates=basis_gates)
-            # set eval_symbols=True to evaluate each symbolic expression
-            # TODO after transition to qobj, we can drop this
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                            eval_symbols=True)
             # add job to the qobj
             qobj["circuits"].append(job)
         return qobj

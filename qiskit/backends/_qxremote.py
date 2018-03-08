@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""QeRemote module
+"""QxRemote module
 
 This module is used for connecting to the Quantum Experience.
 """
@@ -30,7 +30,7 @@ from qiskit._resulterror import ResultError
 logger = logging.getLogger(__name__)
 
 
-class QeRemote(BaseBackend):
+class QxRemote(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
     Attributes:

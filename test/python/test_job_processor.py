@@ -110,20 +110,7 @@ class TestJobProcessor(QiskitTestCase):
         _ = QuantumJob(self.qc)
 
     def test_init_quantum_job_qobj(self):
-        formatted_circuit = self.qasm_text
-        qobj = {'id': 'qobj_init',
-                'config': {
-                    'max_credits': 3,
-                    'shots': 1024,
-                    'seed': None,
-                    'backend': 'local_qasm_simulator'},
-                'circuits': [
-                    {'name': 'example',
-                     'compiled_circuit': formatted_circuit,
-                     'layout': None,
-                     'seed': None}
-                ]}
-        _ = QuantumJob(qobj, preformatted=True)
+        _ = QuantumJob(self.qobj)
 
     def test_init_job_processor(self):
         njobs = 5

@@ -96,8 +96,8 @@ def discover_remote_backends(api):
     Returns:
         list: list of discovered backend names
     """
-    from ._qeremote import QeRemote
-    QeRemote.set_api(api)
+    from ._qxremote import QxRemote
+    QxRemote.set_api(api)
     configuration_list = api.available_backends()
     backend_name_list = []
     for configuration in configuration_list:
@@ -122,7 +122,7 @@ def discover_remote_backends(api):
                 configuration['simulator']):
             configuration_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
-                                               QeRemote,
+                                               QxRemote,
                                                configuration_edit)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list

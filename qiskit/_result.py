@@ -31,7 +31,7 @@ class Result(object):
 
     Internal::
 
-        qobj =  { -- the quantum object that was complied --}
+        qobj =  { -- the quantum object that was compiled --}
         result = {
             "job_id": --job-id (string),
                       #This string links the result with the job that computes it,

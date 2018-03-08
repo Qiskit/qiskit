@@ -26,7 +26,7 @@ from abc import ABC, abstractmethod
 class BaseBackend(ABC):
     """Base class for backends."""
     @abstractmethod
-    def __init__(self, configuration=None):
+    def __init__(self, configuration=None, schema=None):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -35,11 +35,12 @@ class BaseBackend(ABC):
 
         Args:
             configuration (dict): configuration dictionary
-
+            schema (dict): JSON schema
         Raises:
             FileNotFoundError if backend executable is not available.
         """
         self._configuration = configuration
+        self._schema = schema
 
     @abstractmethod
     def run(self, q_job):
@@ -50,3 +51,8 @@ class BaseBackend(ABC):
     def configuration(self):
         """Return backend configuration"""
         return self._configuration
+
+    @property
+    def schema(self):
+        """Return backend qobj schema"""
+        return self._schema

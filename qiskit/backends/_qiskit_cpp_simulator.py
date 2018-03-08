@@ -40,7 +40,7 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
+                    '../../../src/qiskit-simulator/qiskit_simulator' + EXTENSION),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
 ]
@@ -78,6 +78,234 @@ class QISKitCppSimulator(BaseBackend):
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
+
+        self._schema = {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "type": "object",
+            
+            "definitions": {
+                "probability": {"type": "number",
+                                "minimum": 0,
+                                "maximum": 1},
+                "gate_error_model": {
+                    "type": "object",
+                    "properties": {
+                        "p_depol": {"$ref": "#/definitions/probability"},
+                        "p_pauli": {
+                            "type": "array",
+                            "items": {"$ref": "#/definitions/probability"}},
+                        "gate_time": {"type": "number",
+                                      "minimum": 0},
+                        "U_error": {"type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "minItems": 2,
+                                        "maxItems": 2
+                                    },
+                                    "minItems": 2,
+                                    "maxItems": 2
+                        }
+                    },
+                    "additionalProperties": False                    
+                },
+                # can't seem to merge gate specific schemas in combination
+                # with additionalProperties=False. A "merge" is proposed for
+                # json-schema v5.
+                "gate_error_model_x90": {
+                    "type": "object",
+                    "properties": {
+                        "p_depol": {"$ref": "#/definitions/probability"},
+                        "p_pauli": {
+                            "type": "array",
+                            "items": {"$ref": "#/definitions/probability"}},
+                        "gate_time": {"type": "number",
+                                      "minimum": 0},
+                        "U_error": {"type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "minItems": 2,
+                                        "maxItems": 2
+                                    },
+                                    "minItems": 2,
+                                    "maxItems": 2
+                        },
+                        "calibration_error": {"$ref": "#/definitions/probability"},
+                        "detuning_error": {"$ref": "#/definitions/probability"}
+                    },
+                    "additionalProperties": False
+                },
+                "gate_error_model_cx": {
+                    "type": "object",
+                    "properties": {
+                        "p_depol": {"$ref": "#/definitions/probability"},
+                        "p_pauli": {
+                            "type": "array",
+                            "items": {"$ref": "#/definitions/probability"}},
+                        "gate_time": {"type": "number",
+                                      "minimum": 0},
+                        "U_error": {"type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "minItems": 2,
+                                        "maxItems": 2
+                                    },
+                                    "minItems": 2,
+                                    "maxItems": 2
+                        },
+                        "calibration_error": {"$ref": "#/definitions/probability"},
+                        "zz_error": {"$ref": "#/definitions/probability"}
+                    },
+                    "additionalProperties": False
+                }
+            },
+            "required": ["config"],
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "properties": {
+                        "shots": {"type": "integer",
+                                  "minimum": 1},
+                        "seed": {"oneOf":
+                                 [
+                                     {"type": "null"},
+                                     {"type": "integer",
+                                      "minimum": 0}
+                                 ]
+                        },
+                        "shots_threads": {"type": "integer",
+                                          "minimum": 1},
+                        "data": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": ["classical_states",
+                                         "density_matrix",
+                                         "overlaps",
+                                         "probabilities",
+                                         "probabilities_ket",
+                                         "quantum_states",
+                                         "quantum_states_ket",                                         
+                                         "saved_density_matrix",
+                                         "saved_inner_products",
+                                         "saved_overlaps",
+                                         "saved_probabilities",
+                                         "saved_probabilities_ket",                                         
+                                         "saved_quantum_states",
+                                         "saved_quantum_states_ket",
+                                         "saved_target_states_inner",
+                                         "saved_target_states_probs",
+                                         "target_states_inner",
+                                         "target_states_probs"]
+                            }
+                        },
+                        "noise_params": {
+                            "type": "object",
+                            "properties": {
+                                "reset_error": {"$ref": "#/definitions/probability"},
+                                "readout_error": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/probability"}
+                                },
+                                "relaxation_rate": {"type": "number"},
+                                "thermal_populations": {
+                                    "type": "array",
+                                    "items": {"type": "number"}
+                                },
+                                "U": {"$ref": "#/definitions/gate_error_model"},
+                                "id": {"$ref": "#/definitions/gate_error_model"},
+                                "measure": {"$ref": "#/definitions/gate_error_model"},
+                                "reset": {"$ref": "#/definitions/gate_error_model"},
+                                "X90": {"$ref": "#/definitions/gate_error_model_x90"},
+                                "CX": {"$ref": "#/definitions/gate_error_model_cx"}
+                            }
+                        },
+                        "initial_state": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {"type": "number"}
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {"type": "array",
+                                              "items": {"type": "number"}
+                                    }
+                                },
+                                {
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^[01]+$": {"type": "number"}
+                                    }
+                                },
+                                {
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^[01]+$": {"type": "array",
+                                                    "items": {
+                                                        "type": "number"}
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "target_states": {"type": "array"},
+                        "renorm_target_states": {"type": "boolean"},
+                        "chop": {"type": "number",
+                                 "minimum": 0},
+                        "max_memory": {"type": "integer"},
+                        "max_threads_shot": {"type": "integer"},
+                        "max_threads_gate": {"type": "integer"},
+                        "omp_threshold": {"type": "integer"}
+                    }
+                },
+                "circuits": {
+                    "items": {
+                        "properties": {
+                            "config": {"$ref": "#/properties/config"},
+                            "compiled-circuit": {
+                                "properties": {
+                                    "header": {
+                                        "properties": {
+                                            "number_of_qubits": {"minimum": 1},
+                                            "number_of_clbits": {"minimum": 1},
+                                        }
+                                    }
+                                },
+                                "operations": {
+                                    "items": {
+                                        "properties": {
+                                            "name": {
+                                                "enum": ["u1",
+                                                         "u2",
+                                                         "u3",
+                                                         "cx",
+                                                         "id",
+                                                         "x",
+                                                         "y",
+                                                         "z",
+                                                         "h",
+                                                         "s",
+                                                         "sdg",
+                                                         "t",
+                                                         "tdg",
+                                                         "wait",
+                                                         "noise",
+                                                         "save",
+                                                         "load",
+                                                         "uzz"]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     def run(self, q_job):
         qobj = q_job.qobj
