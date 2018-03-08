@@ -126,9 +126,9 @@ class Pauli:
 
         Order is q_n x q_{n-1} .... q_0
         """
-        x   = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
-        y   = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
-        z   = sparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
+        x = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
+        y = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
+        z = sparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
         id_ = sparse.csr_matrix(np.array([[1, 0], [0, 1]], dtype=complex))
         matrix = 1
         for k in range(self.numberofqubits):
