@@ -1410,5 +1410,6 @@ class QuantumProgram(object):
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,
                             hpc=hpc)
+
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result
