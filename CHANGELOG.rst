@@ -30,15 +30,16 @@ Improvements
 Bug Fixes
 ---------
 
-- Fix coherent error bug in ``local_qasm_simulator`` (#318)
+- Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
 
 Backward-incompatible changes
 -----------------------------
 
 - Simulator name changes
-  - local_qiskit_simulator -> local_qasm_simulator (fast c++)
-  - local_qasm_simulator -> local_qasm_simulator_py (slow python)
-- Simulators no longer return wavefunction by setting shots=1. Instead, explicitly ask for snapshot
+  - ``local_qiskit_simulator`` -> ``local_qasm_simulator_cpp`` (fast c++)
+  - ``local_qasm_simulator`` -> ``local_qasm_simulator_py`` (slow python)
+    (``local_qasm_simulator`` chooses the fast one if it is built, otherwise chooses the slow one.)
+- Simulators no longer return wavefunction by setting shots=1. Instead, explicitly ask for ``snapshot``.
 
 
 QISKit SDK 0.4.0

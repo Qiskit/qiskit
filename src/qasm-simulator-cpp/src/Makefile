@@ -40,10 +40,10 @@ directories:
 	mkdir -p $(OUTPUT_DIR)
 
 sim: main.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qiskit_simulator ${OUTPUT_DIR}/main.o $(LIBS)
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp ${OUTPUT_DIR}/main.o $(LIBS)
 
 sim_debug: main.o
-	$(CC) -g $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qiskit_simulator_debug ${OUTPUT_DIR}/main.o $(LIBS)
+	$(CC) -g $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp_debug ${OUTPUT_DIR}/main.o $(LIBS)
 
 clean:
 	rm -rf $(OUTPUT_DIR)

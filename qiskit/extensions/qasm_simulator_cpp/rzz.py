@@ -73,4 +73,4 @@ CompositeGate.rzz = rzz
 
 # Add to QASM header for parsing
 QuantumCircuit.header += "\ngate rzz(theta) a, b {cx a, b; u1(theta); cx a, b;}" + \
-    "  // (local_qiskit_simulator) two-qubit ZZ rotation by angle theta"
+    "  // (local_qasm_simulator) two-qubit ZZ rotation by angle theta"

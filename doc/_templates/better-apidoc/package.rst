@@ -42,7 +42,7 @@
     {%- set imported_classes = ['BaseBackend'] -%}
 {%- elif fullname == 'qiskit.extensions' -%}
     {%- set imported_modules = ['standard',
-                                'qiskit_simulator',
+                                'qasm_simulator',
                                 'quantum_initializer'] -%}
 {%- endif -%}
 

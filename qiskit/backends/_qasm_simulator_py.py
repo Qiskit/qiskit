@@ -47,7 +47,7 @@ The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulator(compiled_circuit,shots,seed).run().
+    QasmSimulatorPy(compiled_circuit,shots,seed).run().
 
 .. code-block:: guess
 
@@ -107,6 +107,7 @@ if shots > 1
 """
 import random
 import uuid
+import logging
 from collections import Counter
 
 import numpy as np
@@ -116,11 +117,12 @@ from qiskit.backends._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 
+logger = logging.getLogger(__name__)
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
-class QasmSimulator(BaseBackend):
+class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     def __init__(self, configuration=None):
@@ -131,7 +133,7 @@ class QasmSimulator(BaseBackend):
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {
-                'name': 'local_qasm_simulator',
+                'name': 'local_qasm_simulator_py',
                 'url': 'https://github.com/IBM/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
@@ -182,12 +184,12 @@ class QasmSimulator(BaseBackend):
 
         if i1 > i2:
             # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b1, i1-1, k)
-            retval = QasmSimulator._index1(b2, i2, retval)
+            retval = QasmSimulatorPy._index1(b1, i1-1, k)
+            retval = QasmSimulatorPy._index1(b2, i2, retval)
         else:  # i2>i1
             # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b2, i2-1, k)
-            retval = QasmSimulator._index1(b1, i1, retval)
+            retval = QasmSimulatorPy._index1(b2, i2-1, k)
+            retval = QasmSimulatorPy._index1(b1, i1, retval)
         return retval
 
     def _add_qasm_single(self, gate, qubit):
@@ -388,6 +390,11 @@ class QasmSimulator(BaseBackend):
         data = {'counts': self._format_result(
             counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
+            logger.warning('WARNING: The behvavior of getting quantum_state '
+                           'from simulators by setting shots=1 is deprecated '
+                           'and will be removed. Use the snapshot command of '
+                           'the quantum circuit instead.')
+            # TODO: remove
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}

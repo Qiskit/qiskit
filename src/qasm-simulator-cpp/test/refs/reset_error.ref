@@ -1,5 +1,5 @@
 {
-    "backend": "local_qiskit_simulator",
+    "backend": "local_qasm_simulator",
     "id": "test_reset_error",
     "result": [{
             "data": {

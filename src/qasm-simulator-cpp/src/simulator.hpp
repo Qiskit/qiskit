@@ -96,7 +96,7 @@ json_t Simulator::execute() {
   if (simulator == "clifford")
     ret["backend"] = std::string("local_clifford_simulator");
   else
-    ret["backend"] = std::string("local_qiskit_simulator");
+    ret["backend"] = std::string("local_qasm_simulator_cpp");
 
   // Choose simulator and execute circuits
   try {
