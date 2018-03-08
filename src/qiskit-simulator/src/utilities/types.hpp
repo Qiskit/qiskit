@@ -290,9 +290,9 @@ template <typename T> void to_json(json_t &js, const std::map<uint_t, T> &map);
 template <typename T> void to_json(json_t &js, const matrix<T> &mat);
 
 /**
- * Convert a matrix to JSON. This returns a list of list.
- * @param js a json_t object to cconvert.
- * @param mat a matrix to to contain result.
+ * Convert a JSON (list of list) to a matrix.
+ * @param js a json_t object to convert.
+ * @param mat a matrix to contain result.
  */
 template <typename T> void from_json(const json_t &js, matrix<T> &mat);
 

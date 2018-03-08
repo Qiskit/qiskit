@@ -130,7 +130,7 @@ public:
   };
 
   /**
-   * This function calculates results to based on the state of the backend after
+   * This function calculates results based on the state of the backend after
    * the execution of each shot of a qasm program
    * @param qasm the qasm_program which was executed on the backend
    * @param be a pointer to the backend containing the state of the system

@@ -80,7 +80,7 @@ protected:
     qc_matrix<2>({{q0, q1}}, U);
   };
   template <size_t N>
-  void qc_matrix(const std::array<uint_t, N> qs, const cmatrix_t &U);
+  void qc_matrix(const std::array<uint_t, N> &qs, const cmatrix_t &U);
 
   /************************
    * Measurement and Reset
@@ -90,7 +90,7 @@ protected:
   virtual void qc_measure(const uint_t qubit, const uint_t bit);
   virtual std::pair<uint_t, double> qc_measure_outcome(const uint_t qubit);
   virtual void qc_measure_reset(const uint_t qubit, const uint_t reset_state,
-                                const std::pair<uint_t, double> meas_outcome);
+                                const std::pair<uint_t, double> &meas_outcome);
 
   /************************
    * 1-Qubit Gates
@@ -101,7 +101,7 @@ protected:
                        const double lambda);
   virtual void qc_gate_x(const uint_t qubit);
   virtual void qc_gate_y(const uint_t qubit);
-  virtual void qc_phase(const uint_t qubit, const complex_t phase);
+  virtual void qc_phase(const uint_t qubit, const complex_t &phase);
   virtual void qc_zrot(const uint_t qubit, const double lambda);
 
   /************************
@@ -159,7 +159,7 @@ void IdealBackend::initialize(const Circuit &prog) {
       // reset state std::vector to custom state
       qreg = qreg_init;
     else {
-      std::string msg = "initial state is wong size for the circuit";
+      std::string msg = "initial state is wrong size for the circuit";
       throw std::runtime_error(msg);
     }
   } else {
@@ -311,6 +311,9 @@ void IdealBackend::qc_matrix1(const uint_t qubit, const cmatrix_t &U) {
   std::clog << ss.str() << std::endl;
 #endif
 
+  if(MOs::is_matrix_id(U))
+    return;
+
   const uint_t end2 = 1ULL << qubit; // end for k2 loop
   const uint_t step1 = end2 << 1;    // step for k1 loop
 #pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
@@ -328,7 +331,7 @@ void IdealBackend::qc_matrix1(const uint_t qubit, const cmatrix_t &U) {
 }
 
 template <size_t N>
-void IdealBackend::qc_matrix(const std::array<uint_t, N> qs,
+void IdealBackend::qc_matrix(const std::array<uint_t, N> &qs,
                              const cmatrix_t &U) {
 
 #ifdef DEBUG
@@ -336,6 +339,12 @@ void IdealBackend::qc_matrix(const std::array<uint_t, N> qs,
   ss << "DEBUG IdealBackend::qc_matrix<" << N << ">(" << qs << ")";
   std::clog << ss.str() << std::endl;
 #endif
+
+  // The following lines are probably correct,
+  // but we currently have no way to test them,
+  // since the is no 2-qubits idle gate.
+  //if(MOs::is_matrix_id(U))
+  //  return;
 
   const uint_t end = nstates >> N;
   const uint_t dim = 1ULL << N;
@@ -426,7 +435,7 @@ void IdealBackend::qc_gate_y(const uint_t qubit) {
   }
 }
 
-void IdealBackend::qc_phase(const uint_t qubit, const complex_t phase) {
+void IdealBackend::qc_phase(const uint_t qubit, const complex_t &phase) {
 // optimized Z rotation (see useful_matrices.RZ)
 #ifdef DEBUG
   std::stringstream ss;
@@ -557,7 +566,7 @@ void IdealBackend::qc_zzrot(const uint_t q0, const uint_t q1,
 // Matrices
 //------------------------------------------------------------------------------
 
-cmatrix_t IdealBackend::waltz_matrix(double theta, double phi, double lambda) {
+cmatrix_t IdealBackend::waltz_matrix(const double theta, const double phi, const double lambda) {
   const complex_t I(0., 1.);
   cmatrix_t U(2, 2);
   U(0, 0) = std::cos(theta / 2.);
@@ -635,7 +644,7 @@ std::pair<uint_t, double> IdealBackend::qc_measure_outcome(const uint_t qubit) {
 //------------------------------------------------------------------------------
 void IdealBackend::qc_measure_reset(const uint_t qubit,
                                     const uint_t reset_state,
-                                    std::pair<uint_t, double> meas_result) {
+                                    const std::pair<uint_t, double> &meas_result) {
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG IdealBackend::qc_meas_reset(" << qubit << ", " << reset_state
@@ -692,7 +701,7 @@ void IdealBackend::qc_measure_reset(const uint_t qubit,
             qreg[i0] = 0;
           }
       }
-    } else { // Measurement outcome was 0
+    } else { // Measurement outcome was 1
 #pragma omp parallel if (omp_flag &&omp_threads > 1) num_threads(omp_threads)
       {
 #pragma omp for collapse(2)
