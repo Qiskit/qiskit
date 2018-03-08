@@ -369,54 +369,59 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
 
   /* Additional snapshot output data */
   // Snapshot skets
-  if (eng.show_snapshots_ket && eng.snapshots_ket.empty() == false)
+  if (eng.show_snapshots_ket && eng.snapshots_ket.empty() == false) {
     for (const auto& s: eng.snapshots_ket)
         js["snapshots"][std::to_string(s.first)]["quantum_state_ket"] = s.second;
+  }
 
   // Snapshots density
-  if (eng.show_snapshots_density && eng.snapshots_density.empty() == false)
+  if (eng.show_snapshots_density && eng.snapshots_density.empty() == false) {
     for (const auto &s : eng.snapshots_density) {
       auto rho = s.second * renorm;
       chop(rho, eng.epsilon);
       js["snapshots"][std::to_string(s.first)]["density_matrix"] = rho;
     }
+  }
 
   // Snapshots probs
-  if (eng.show_snapshots_probs && eng.snapshots_probs.empty() == false)
+  if (eng.show_snapshots_probs && eng.snapshots_probs.empty() == false) {
     for (const auto &s : eng.snapshots_probs) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
       js["snapshots"][std::to_string(s.first)]["probabilities"] = val;
     }
+  }
 
   // Snapshots probs ket
-  if (eng.show_snapshots_probs_ket && eng.snapshots_probs_ket.empty() == false)
-    std::map<uint_t, rket_t> ret;
+  if (eng.show_snapshots_probs_ket && eng.snapshots_probs_ket.empty() == false) {
     for (const auto &s : eng.snapshots_probs_ket) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
       js["snapshots"][std::to_string(s.first)]["probabilities_ket"] = val;
     }
+  }
 
 
   // Snapshots inner products
-  if (eng.show_snapshots_inner_product && eng.snapshots_inprods.empty() == false)
+  if (eng.show_snapshots_inner_product && eng.snapshots_inprods.empty() == false) {
     for (const auto &s : eng.snapshots_inprods) {
       auto val = s.second;
       chop(val, eng.epsilon);
       js["snapshots"][std::to_string(s.first)]["inner_products"] = val;
     }
+  }
 
   // Snapshots overlaps
-  if (eng.show_snapshots_overlaps && eng.snapshots_overlaps.empty() == false)
+  if (eng.show_snapshots_overlaps && eng.snapshots_overlaps.empty() == false) {
     for (const auto &s : eng.snapshots_overlaps) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
       js["snapshots"][std::to_string(s.first)]["overlaps"] = val;
     }
+  }
 }
 
 inline void from_json(const json_t &js, VectorEngine &eng) {
