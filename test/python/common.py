@@ -17,17 +17,13 @@
 """Shared functionality and helpers for the unit tests."""
 
 from enum import Enum
+import functools
 import inspect
 import logging
 import os
 import unittest
 
 from qiskit import __path__ as qiskit_path
-
-TRAVIS_FORK_PULL_REQUEST = False
-if os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
-    if os.getenv('TRAVIS_REPO_SLUG') != os.getenv('TRAVIS_PULL_REQUEST_SLUG'):
-        TRAVIS_FORK_PULL_REQUEST = True
 
 
 class Path(Enum):
@@ -42,7 +38,6 @@ class Path(Enum):
 
 class QiskitTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
-
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
@@ -81,7 +76,9 @@ class QiskitTestCase(unittest.TestCase):
         return os.path.normpath(os.path.join(path.value, filename))
 
     def assertNoLogs(self, logger=None, level=None):
-        """The opposite to assertLogs.
+        """
+        Context manager to test that no message is sent to the specified
+        logger and level (the opposite of TestCase.assertLogs()).
         """
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
@@ -95,7 +92,7 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     # pylint: disable=inconsistent-return-statements
     def __exit__(self, exc_type, exc_value, tb):
         """
-        This is a modified version of unittest.case._AssertLogsContext.__exit__(...)
+        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
         """
         self.logger.handlers = self.old_handlers
         self.logger.propagate = self.old_propagate
@@ -107,3 +104,70 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
             self._raiseFailure(
                 "Something was logged in the logger %s by %s:%i" %
                 (record.name, record.pathname, record.lineno))
+
+
+def requires_qe_access(func):
+    """
+    Decorator that signals that the test uses the online API:
+        * determines if the test should be skipped by checking environment
+            variables.
+        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
+            `Qconfig.py` or from environment variables.
+        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
+            arguments to the test function.
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @functools.wraps(func)
+    def _(*args, **kwargs):
+        # pylint: disable=invalid-name
+        if SKIP_ONLINE_TESTS:
+            raise unittest.SkipTest('Skipping online tests')
+
+        # Try to read the variables from Qconfig.
+        try:
+            import Qconfig
+            QE_TOKEN = Qconfig.APItoken
+            QE_URL = Qconfig.config["url"]
+        except ImportError:
+            # Try to read them from environment variables (ie. Travis).
+            QE_TOKEN = os.getenv('QE_TOKEN')
+            QE_URL = os.getenv('QE_URL')
+
+        if not QE_TOKEN or not QE_URL:
+            raise Exception(
+                'Could not locate a valid "Qconfig.py" file nor read the QE '
+                'values from the environment')
+
+        kwargs['QE_TOKEN'] = QE_TOKEN
+        kwargs['QE_URL'] = QE_URL
+        return func(*args, **kwargs)
+
+    return _
+
+
+def _is_ci_fork_pull_request():
+    """
+    Check if the tests are being run in a CI environment and if it is a pull
+    request.
+
+    Returns:
+        bool: True if the tests are executed inside a CI tool, and the changes
+            are not against the "master" branch.
+    """
+    if os.getenv('TRAVIS'):
+        # Using Travis CI.
+        if (os.getenv('TRAVIS_REPO_SLUG') !=
+                os.getenv('TRAVIS_PULL_REQUEST_SLUG')):
+            return True
+    elif os.getenv('APPVEYOR'):
+        # Using AppVeyor CI.
+        if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
+            return True
+    return False
+
+
+SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())

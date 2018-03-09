@@ -117,7 +117,7 @@
                                 }]
                         }
                     }],
-                "time_taken": 0.000358
+                "time_taken": 0.000374
             },
             "name": "save_command",
             "seed": 1,
@@ -128,5 +128,5 @@
     "simulator": "clifford",
     "status": "COMPLETED",
     "success": true,
-    "time_taken": 0.000466
+    "time_taken": 0.00048
 }
