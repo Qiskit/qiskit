@@ -45,10 +45,10 @@ class QxRemote(BaseBackend):
         Args:
             configuration (dict, optional): configuration of backend
         """
-        super().__init__(configuration)
         self._configuration = configuration
         self._configuration['local'] = False
-
+        super().__init__(self._configuration)
+        
     def run(self, q_job):
         """Run jobs
 

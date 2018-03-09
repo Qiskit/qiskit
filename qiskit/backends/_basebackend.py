@@ -21,7 +21,12 @@ To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
 from abc import ABC, abstractmethod
+import os
+import json
+import qiskit
+import logging
 
+logger = logging.getLogger(__name__)
 
 class BaseBackend(ABC):
     """Base class for backends."""
@@ -40,7 +45,17 @@ class BaseBackend(ABC):
             FileNotFoundError if backend executable is not available.
         """
         self._configuration = configuration
-        self._schema = schema
+        if schema:
+            self._schema = schema
+        else:
+            try:
+                schema_dir = os.path.join(os.path.dirname(qiskit.__file__), 'qobj/schemas')
+                schema_file_name = os.path.join(schema_dir, self._configuration['name'] + '.json')
+                with open(schema_file_name, 'r') as schema_file:
+                    self._schema = json.load(schema_file)
+            except Exception as err:
+                logger.info(err)
+                self._schema = None
 
     @abstractmethod
     def run(self, q_job):

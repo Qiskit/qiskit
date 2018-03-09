@@ -66,7 +66,6 @@ class ProjectQSimulator(BaseBackend):
         Raises:
              ImportError: if the Project Q simulator is not available.
         """
-        super().__init__(configuration)
         if CppSim is None:
             logger.info('Project Q C++ simulator unavailable.')
             raise ImportError('Project Q C++ simulator unavailable.')
@@ -82,7 +81,8 @@ class ProjectQSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
-
+        super().__init__(self._configuration)
+        
         # Define the attributes inside __init__.
         self._number_of_qubits = 0
         self._number_of_clbits = 0

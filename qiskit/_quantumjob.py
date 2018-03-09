@@ -34,7 +34,7 @@ class QuantumJob():
        _required_schemas (list(str)): list of required schema files to validate.
        
     """
-    _schema_dir = os.path.dirname(qiskit.__file__) + '/qobj'
+    _schema_dir = os.path.dirname(qiskit.__file__) + '/qobj/schemas'
     _required_schemas = ['qobj-core-01.json', 'qobj-generic-01.json']
 
     # TODO We need to create more tests for checking all possible inputs.

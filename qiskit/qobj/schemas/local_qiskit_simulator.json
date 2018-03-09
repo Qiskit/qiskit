@@ -1,0 +1,326 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+        "gate_error_model": {
+            "additionalProperties": false,
+            "properties": {
+                "U_error": {
+                    "items": {
+                        "items": {
+                            "type": "number"
+                        },
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "type": "array"
+                    },
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "type": "array"
+                },
+                "gate_time": {
+                    "minimum": 0,
+                    "type": "number"
+                },
+                "p_depol": {
+                    "$ref": "#/definitions/probability"
+                },
+                "p_pauli": {
+                    "items": {
+                        "$ref": "#/definitions/probability"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "gate_error_model_cx": {
+            "additionalProperties": false,
+            "properties": {
+                "U_error": {
+                    "items": {
+                        "items": {
+                            "type": "number"
+                        },
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "type": "array"
+                    },
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "type": "array"
+                },
+                "calibration_error": {
+                    "$ref": "#/definitions/probability"
+                },
+                "gate_time": {
+                    "minimum": 0,
+                    "type": "number"
+                },
+                "p_depol": {
+                    "$ref": "#/definitions/probability"
+                },
+                "p_pauli": {
+                    "items": {
+                        "$ref": "#/definitions/probability"
+                    },
+                    "type": "array"
+                },
+                "zz_error": {
+                    "$ref": "#/definitions/probability"
+                }
+            },
+            "type": "object"
+        },
+        "gate_error_model_x90": {
+            "additionalProperties": false,
+            "properties": {
+                "U_error": {
+                    "items": {
+                        "items": {
+                            "type": "number"
+                        },
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "type": "array"
+                    },
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "type": "array"
+                },
+                "calibration_error": {
+                    "$ref": "#/definitions/probability"
+                },
+                "detuning_error": {
+                    "$ref": "#/definitions/probability"
+                },
+                "gate_time": {
+                    "minimum": 0,
+                    "type": "number"
+                },
+                "p_depol": {
+                    "$ref": "#/definitions/probability"
+                },
+                "p_pauli": {
+                    "items": {
+                        "$ref": "#/definitions/probability"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "probability": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+        }
+    },
+    "properties": {
+        "circuits": {
+            "items": {
+                "properties": {
+                    "compiled-circuit": {
+                        "operations": {
+                            "items": {
+                                "properties": {
+                                    "name": {
+                                        "enum": [
+                                            "u1",
+                                            "u2",
+                                            "u3",
+                                            "cx",
+                                            "id",
+                                            "x",
+                                            "y",
+                                            "z",
+                                            "h",
+                                            "s",
+                                            "sdg",
+                                            "t",
+                                            "tdg",
+                                            "wait",
+                                            "noise",
+                                            "save",
+                                            "load",
+                                            "uzz"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "properties": {
+                            "header": {
+                                "properties": {
+                                    "number_of_clbits": {
+                                        "minimum": 1
+                                    },
+                                    "number_of_qubits": {
+                                        "minimum": 1
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "config": {
+                        "$ref": "#/properties/config"
+                    }
+                }
+            }
+        },
+        "config": {
+            "properties": {
+                "chop": {
+                    "minimum": 0,
+                    "type": "number"
+                },
+                "data": {
+                    "items": {
+                        "enum": [
+                            "classical_states",
+                            "density_matrix",
+                            "overlaps",
+                            "probabilities",
+                            "probabilities_ket",
+                            "quantum_states",
+                            "quantum_states_ket",
+                            "saved_density_matrix",
+                            "saved_inner_products",
+                            "saved_overlaps",
+                            "saved_probabilities",
+                            "saved_probabilities_ket",
+                            "saved_quantum_states",
+                            "saved_quantum_states_ket",
+                            "saved_target_states_inner",
+                            "saved_target_states_probs",
+                            "target_states_inner",
+                            "target_states_probs"
+                        ],
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "initial_state": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "number"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "items": {
+                                "items": {
+                                    "type": "number"
+                                },
+                                "type": "array"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "patternProperties": {
+                                "^[01]+$": {
+                                    "type": "number"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "patternProperties": {
+                                "^[01]+$": {
+                                    "items": {
+                                        "type": "number"
+                                    },
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    ]
+                },
+                "max_memory": {
+                    "type": "integer"
+                },
+                "max_threads_gate": {
+                    "type": "integer"
+                },
+                "max_threads_shot": {
+                    "type": "integer"
+                },
+                "noise_params": {
+                    "properties": {
+                        "CX": {
+                            "$ref": "#/definitions/gate_error_model_cx"
+                        },
+                        "U": {
+                            "$ref": "#/definitions/gate_error_model"
+                        },
+                        "X90": {
+                            "$ref": "#/definitions/gate_error_model_x90"
+                        },
+                        "id": {
+                            "$ref": "#/definitions/gate_error_model"
+                        },
+                        "measure": {
+                            "$ref": "#/definitions/gate_error_model"
+                        },
+                        "readout_error": {
+                            "items": {
+                                "$ref": "#/definitions/probability"
+                            },
+                            "type": "array"
+                        },
+                        "relaxation_rate": {
+                            "type": "number"
+                        },
+                        "reset": {
+                            "$ref": "#/definitions/gate_error_model"
+                        },
+                        "reset_error": {
+                            "$ref": "#/definitions/probability"
+                        },
+                        "thermal_populations": {
+                            "items": {
+                                "type": "number"
+                            },
+                            "type": "array"
+                        }
+                    },
+                    "type": "object"
+                },
+                "omp_threshold": {
+                    "type": "integer"
+                },
+                "renorm_target_states": {
+                    "type": "boolean"
+                },
+                "seed": {
+                    "oneOf": [
+                        {
+                            "type": "null"
+                        },
+                        {
+                            "minimum": 0,
+                            "type": "integer"
+                        }
+                    ]
+                },
+                "shots": {
+                    "minimum": 1,
+                    "type": "integer"
+                },
+                "shots_threads": {
+                    "minimum": 1,
+                    "type": "integer"
+                },
+                "target_states": {
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        }
+    },
+    "required": [
+        "config"
+    ],
+    "type": "object"
+}

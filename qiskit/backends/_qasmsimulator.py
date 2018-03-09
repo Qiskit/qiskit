@@ -128,7 +128,6 @@ class QasmSimulator(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-        super().__init__(configuration)
         if configuration is None:
             self._configuration = {
                 'name': 'local_qasm_simulator',
@@ -141,7 +140,8 @@ class QasmSimulator(BaseBackend):
             }
         else:
             self._configuration = configuration
-
+        super().__init__(self._configuration)
+        
         self._local_random = random.Random()
 
         # Define attributes in __init__.
