@@ -23,7 +23,7 @@
 #
 # Examples:
 #   $ python run_qasm.py -b              # show backend information
-#   $ python run_qasm.py -l              # show job list
+#   $ python run_qasm.py -l 10           # show job list (10 jobs)
 #   $ python run_qasm.py -j (job id)     # show the result of a job
 #   $ python run_qasm.py -q (qasm file)  # submit a qasm file
 
