@@ -20,7 +20,12 @@
 #   ibmqx2(5 qubits), ibmqx4(5 qubits), ibmqx5(16 qubits),
 #   simulator(20 qubits), ibmqx_hpc_qasm_simulator(32 qubits).
 # see https://quantumexperience.ng.bluemix.net/qx/devices for more details of the backends.
-
+#
+# Examples:
+#   $ python run_qasm.py -b              # show backend information
+#   $ python run_qasm.py -l              # show job list
+#   $ python run_qasm.py -j (job id)     # show the result of a job
+#   $ python run_qasm.py -q (qasm file)  # submit a qasm file
 
 import json
 import time
@@ -36,58 +41,99 @@ except ImportError:
 
 def options():
     parser = ArgumentParser()
-    parser.add_argument('--qasm', action='store', help='QASM file')
-    parser.add_argument('--device', action='store', default='sim',
-                        help='choose a device to run the input (default: sim, qx2, qx4, qx5, hpc)')
-    parser.add_argument('--shots', action='store', default=1000, type=int,
+    parser.add_argument('-q', '--qasm', action='store', help='QASM file')
+    parser.add_argument('-d', '--device', action='store', default='sim',
+                        help='choose a device to run the input (sim [default], qx2, qx4, qx5, hpc)')
+    parser.add_argument('-s', '--shots', action='store', default=1000, type=int,
                         help='Number of shots (default: 1000)')
-    parser.add_argument('--interval', action='store', default=2, type=int,
+    parser.add_argument('-i', '--interval', action='store', default=2, type=int,
                         help='Interval time to poll a result (default: 2)')
+    parser.add_argument('-l', '--job-list', action='store', default=0, type=int,
+                        help='Number of jobs to show')
+    parser.add_argument('-j', '--jobid', action='store', type=str, help='Get job information')
+    parser.add_argument('-b', '--backends', action='store_true', help='Show backends information')
+    parser.add_argument('--verbose', action='store_true', help='verbose')
     args = parser.parse_args()
-    print('options:', args)
-    if not args.qasm:
-        parser.print_help()
-        quit()
+    if args.verbose:
+        print('options:', args)
     return args
 
 
-def read_asm(infilename):
-    with open(infilename) as infile:
-        return ''.join(infile.readlines())
+class JobManager:
+    def __init__(self):
+        self._api = IBMQuantumExperience(Qconfig.APItoken, Qconfig.config)
 
+    @staticmethod
+    def read_asm(infilename):
+        with open(infilename) as infile:
+            return ''.join(infile.readlines())
 
-def run_qasm(qasm, device='sim', shots=1000, verbose=True, interval=2):
-    api = IBMQuantumExperience(Qconfig.APItoken, Qconfig.config)
-    qasms = [{'qasm': qasm}]
-    devices = {'sim': 'simulator', 'hpc': 'ibmqx_hpc_qasm_simulator', 'qx2': 'ibmqx2', 'qx4': 'ibmqx4', 'qx5': 'ibmqx5'}
-    dev = 'simulator'
-    if device in devices:
-        dev = devices[device]
-    hpc = None
-    if dev == 'ibmqx_hpc_qasm_simulator':
-        hpc = {'multishot_optimization': True, 'omp_num_threads': 1}
-    out = api.run_job(qasms=qasms, backend=dev, shots=shots, max_credits=5, hpc=hpc)
-    if 'error' in out:
-        print(out['error']['message'])
-        return None
-    jobids = out['id']
-    results = api.get_job(jobids)
-    if verbose:
-        print(results['status'])
-    while results['status'] == 'RUNNING':
-        time.sleep(interval)
-        results = api.get_job(jobids)
+    def run_qasm(self, qasm, device='sim', shots=1000, verbose=True, interval=2):
+        qasms = [{'qasm': qasm}]
+        devices = {'sim': 'ibmqx_qasm_simulator', 'hpc': 'ibmqx_hpc_qasm_simulator',
+                   'qx2': 'ibmqx2', 'qx4': 'ibmqx4', 'qx5': 'ibmqx5'}
+        dev = 'simulator'
+        if device in devices:
+            dev = devices[device]
+        hpc = None
+        if dev == 'ibmqx_hpc_qasm_simulator':
+            hpc = {'multishot_optimization': True, 'omp_num_threads': 1}
+        out = self._api.run_job(qasms=qasms, backend=dev, shots=shots, max_credits=5, hpc=hpc)
+        if 'error' in out:
+            print(out['error']['message'])
+            return None
+        jobid = out['id']
+        print('job id:', jobid)
+        results = self._api.get_job(jobid)
         if verbose:
             print(results['status'])
-    return results['qasms'][0]
+        while results['status'] == 'RUNNING':
+            time.sleep(interval)
+            results = self._api.get_job(jobid)
+            if verbose:
+                print(results['status'])
+        return results
+
+    def get_job_list(self, n_jobs):
+        jobs = self._api.get_jobs(limit=n_jobs)
+        tab = {}
+        for v in jobs:
+            job_id = v['id']
+            status = v['status']
+            cdate = v['creationDate']
+            tab[cdate] = (status, job_id)
+        for cdate, v in sorted(tab.items()):
+            print('{}\t{}\t{}'.format(cdate, *v))
+
+    def get_job(self, job_id):
+        result = self._api.get_job(job_id)
+        print(json.dumps(result, sort_keys=True, indent=2))
+
+    def available_backends(self):
+        tab = {}
+        for e in self._api.available_backends() + self._api.available_backend_simulators():
+            try:
+                tab[e['name']] = (e['status'], ':', str(e['nQubits']) + ' qubits,', e['description'])
+            except KeyError:
+                tab[e['name']] = (e['status'],)
+        for k, v in sorted(tab.items()):
+            print(k, *v)
 
 
 def main():
+    jm = JobManager()
     args = options()
-    qasm = read_asm(args.qasm)
-    interval = max(1, args.interval)
-    results = run_qasm(qasm=qasm, device=args.device, shots=args.shots, interval=interval)
-    print(json.dumps(results, indent=2, sort_keys=True))
+    if args.backends:
+        jm.available_backends()
+    if args.qasm:
+        qasm = jm.read_asm(args.qasm)
+        interval = max(1, args.interval)
+        results = jm.run_qasm(qasm=qasm, device=args.device, shots=args.shots, interval=interval)
+        print(json.dumps(results, indent=2, sort_keys=True))
+    elif args.jobid:
+        jm.get_job(args.jobid)
+    elif args.job_list > 0:
+        jm.get_job_list(args.job_list)
 
 
 if __name__ == '__main__':
