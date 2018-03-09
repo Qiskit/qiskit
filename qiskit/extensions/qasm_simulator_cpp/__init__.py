@@ -21,3 +21,4 @@ from .noise import noise
 from .save import save
 from .rzz import rzz
 from .wait import wait
+from .snapshot import snapshot

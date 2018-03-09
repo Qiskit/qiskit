@@ -119,7 +119,7 @@ from ._simulatortools import single_gate_matrix
 
 logger = logging.getLogger(__name__)
 
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
 
 class QasmSimulatorPy(BaseBackend):
