@@ -948,9 +948,9 @@ class TestQuantumProgram(QiskitTestCase):
                 results2 = result.get_counts('qc2')
                 results3 = result.get_counts('qc3')
                 self.assertEqual(results2, {'000': 518, '111': 506})
-                self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                            '100': 117, '000': 129, '101': 126,
-                                            '010': 145, '011': 125})
+                self.assertEqual(results3, {'001': 117, '111': 129, '110': 125,
+                                            '100': 119, '000': 129, '101': 126,
+                                            '010': 145, '011': 134})
             except Exception as e:
                 with lock:
                     qp_programs_exception.append(e)
@@ -985,7 +985,7 @@ class TestQuantumProgram(QiskitTestCase):
             pass
 
         if qp_programs_exception:
-            raise self.qp_program_exception[0]
+            raise qp_programs_exception[0]
 
     def test_run_batch(self):
         """Test run_batch
