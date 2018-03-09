@@ -345,12 +345,6 @@ class QasmSimulatorPy(BaseBackend):
         else:
             self._local_random.seed(circuit['config']['seed'])
         outcomes = []
-
-        if 'measure' not in [op['name'] for op in ccircuit['operations']]:
-            wrn_msg = ("WARNING: no measurements in circuit '{}', "
-                       "classical register will remain all zeros.")
-            logger.warning(wrn_msg.format(circuit['name']))
-
         for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
@@ -395,11 +389,11 @@ class QasmSimulatorPy(BaseBackend):
                 elif operation['name'] == 'barrier':
                     pass
                 # Check if snapshot pragma
-                elif operation['name'] == 'snapshot':
+                elif operation['name'] = 'snapshot':
                     if 'params' in operation:
                         params = operation['params']
                     else:
-                        params = None
+                        params = None                    
                     self._add_qasm_snapshot(params[0])
                 else:
                     backend = self._configuration['name']
@@ -413,7 +407,7 @@ class QasmSimulatorPy(BaseBackend):
         counts = dict(Counter(outcomes))
         data = {'counts': self._format_result(
             counts, cl_reg_index, cl_reg_nbits)}
-        data['snapshots'] = self._snapshots
+        data['snapshots'] = self._snapshots        
         if self._shots == 1:
             logger.warning('WARNING: The behvavior of getting quantum_state '
                            'from simulators by setting shots=1 is deprecated '
@@ -445,3 +439,4 @@ class QasmSimulatorPy(BaseBackend):
                 new_key.insert(0, key[-(index+nbits):-index])
             fcounts[' '.join(new_key)] = value
         return fcounts
+
