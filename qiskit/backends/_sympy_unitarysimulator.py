@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 def index1(barg, iarg, karg):
-    """Magic index1 function.
+    """ index1 function.
 
     Takes a bitstring k and inserts bit b as the ith bit,
     shifting bits >= i over to make room.
@@ -65,7 +65,7 @@ def index1(barg, iarg, karg):
 
 
 def index2(barg1, iarg1, barg2, iarg2, k):  # assert(i1 != i2)
-    """Magic index1 function.
+    """ index1 function.
 
     Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
