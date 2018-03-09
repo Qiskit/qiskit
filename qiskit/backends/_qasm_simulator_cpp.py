@@ -278,9 +278,9 @@ def __generate_coherent_error_matrix(config):
             zz_error = noise_cx.pop('zz_error', 0)
             # Add to current coherent error matrix
             if not cal_error == 0 or not zz_error == 0:
-                U_error = noise_cx.get('U_error', np.eye(4))
-                U_error = U_error.dot(cx_error_matrix(cal_error, zz_error))
-                config['noise_params']['CX']['U_error'] = U_error
+                u_error = noise_cx.get('U_error', np.eye(4))
+                u_error = u_error.dot(cx_error_matrix(cal_error, zz_error))
+                config['noise_params']['CX']['U_error'] = u_error
         # Check for X90 coherent error parameters
         if 'X90' in config['noise_params']:
             noise_x90 = config['noise_params']['X90']
@@ -288,12 +288,10 @@ def __generate_coherent_error_matrix(config):
             detuning_error = noise_x90.pop('detuning_error', 0)
             # Add to current coherent error matrix
             if not cal_error == 0 or not detuning_error == 0:
-                U_error = noise_x90.get('U_error', np.eye(2))
-                U_error = U_error.dot(x90_error_matrix(cal_error,
+                u_error = noise_x90.get('U_error', np.eye(2))
+                u_error = u_error.dot(x90_error_matrix(cal_error,
                                                        detuning_error))
-                config['noise_params']['X90']['U_error'] = U_error
                 config['noise_params']['X90']['U_error'] = u_error
->>>>>>> upstream/master:qiskit/backends/_qiskit_cpp_simulator.py
 
 
 def __to_json_complex(obj):
