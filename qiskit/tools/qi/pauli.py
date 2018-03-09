@@ -24,6 +24,7 @@ import random
 import numpy as np
 from scipy import sparse
 
+
 class Pauli:
     """A simple class representing Pauli Operators.
 
@@ -156,6 +157,7 @@ class Pauli:
             matrix = sparse.kron(new, matrix, 'csr')
 
         return matrix
+
 
 def random_pauli(number_qubits):
     """Return a random Pauli on numberofqubits."""
