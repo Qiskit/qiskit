@@ -5,7 +5,7 @@
 
 O Quantum Information Software Kit (**QISKit**) é um kit de desenvolvimento de software (SDK) para trabalhar com o [OpenQASM](https://github.com/QISKit/qiskit-openqasm) e com a [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/).
 
-Utilize o **QISKit** para criar programas de computação quântica, compila-los e executa-los em um dos diversos back-ends (processadores quânticos reais online, simuladores online e simuladores locais). Para os back-ends online, QISKit usa um [cliente de uma API em python](https://github.com/QISKit/qiskit-api-py) para conectar-se à IBM Q experience.
+Utilize o **QISKit** para criar, compilar e executar programas de computação quântica em um dos diversos back-ends (processadores quânticos reais online, simuladores online e simuladores locais). Para os back-ends online, QISKit usa um [cliente de uma API em python](https://github.com/QISKit/qiskit-api-py) para conectar-se à IBM Q experience.
 
 **Usamos o GitHub issues para estar pendentes de requests e bugs. Para todo tipo de pergunta ou discussão, favor acessar a** [comunidade IBM Q experience](https://quantumexperience.ng.bluemix.net/qx/community).
 
@@ -23,13 +23,10 @@ Links para as seções:
 
 ### Dependências
 
-É necessário [Python 3.5](https://www.python.org/downloads/), ou uma versão maior, para usar o QISKit. Além disso, se recomenda utilizar [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) para interagir com os tutoriais.
-Por esa razão, recomendamos a instalação da distribuição [Anaconda 3](https://www.continuum.io/downloads) do python, já que ela tras todas as dependências pré-instaladas.
+É necessário possuir a [versão 3.5 do Python](https://www.python.org/downloads/) (ou outra mais recente) para usar o QISKit. Também se recomenda utilizar o [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) para interagir com os tutoriais.
+Por essa razão, recomendamos a instalação da distribuição [Anaconda 3](https://www.continuum.io/downloads) do python, já que ela traz todas as dependências pré-instaladas.
 
-In addition, a basic understanding of quantum information is very helpful when interacting with
-QISKit. If you're new to quantum, start with our
-[User Guides](https://github.com/QISKit/ibmqx-user-guides)!
-Além do mais, um entendimento básico de informação quântica é muito útil ao interagir com o QISKit. Se você é novo no tema, comece com nossos [Guias de Usuário](https://github.com/QISKit/ibmqx-user-guides)!
+Além disso, um entendimento básico de informação quântica é muito útil ao interagir com o QISKit. Se você é novo no tema, comece com os nossos [Guias de Usuário](https://github.com/QISKit/ibmqx-user-guides)!
 
 
 ### Instalação
@@ -39,7 +36,7 @@ Recomendamos instalar o QISKit com a ferramenta PIP (um gerenciador de pacotes d
 ```
     pip install qiskit
 ```
-PIP se encarregará de todas as dependências automaticamente e você sempre terá a última (e bem testada) versão.
+O PIP se encarregará de todas as dependências automaticamente e você sempre terá a versão mais recente e bem testada.
 
 O pacote PIP vem com os binários para as seguintes plataformas:
 
@@ -49,18 +46,18 @@ O pacote PIP vem com os binários para as seguintes plataformas:
 
 Se a sua plataforma não está na lista, PIP tentará realizar o build no momento da instalação. É necessário ter o CMake 3.5 ou uma versão mais recente pré-instalada, e ao menos um dos [ambientes de build suportados pelo CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html).
 
-Se durante a instalação o PIP falhar em realziar o build, não se preocupe, no final você terá o QISKit instalado, mas você provavelmente não poderá tirar vantagem de alguns dos componentes de alta performance. De qualquer forma, nós sempre proporcionamos uma opção não tão rápida em python como última alternativa.
+Se durante a instalação o PIP falhar em realziar o build, não se preocupe, no final você terá o QISKit instalado, mas provavelmente você não poderá tirar vantagem de alguns dos componentes de alta performance. De qualquer forma, nós sempre proporcionamos uma opção não tão rápida em python como última alternativa.
 
 
 ### Configure o seu ambiente
 
-Nós recomendamos a utilização de um ambiente virtual de pyhton para melhorar a sua experiencia. Consulte nossa [documentação para Configurar um Ambiente](doc/install.rst#3.1-Setup-the-environment) para mais informações.
+Nós recomendamos a utilização de um ambiente virtual em pyhton para melhorar a sua experiencia. Consulte nossa [documentação para Configurar um Ambiente](doc/install.rst#3.1-Setup-the-environment) para mais informações.
 
 ## Crie o seu primeiro Programa Quântico
 
 Agora que o SDK foi instalado, é hora de começar a trabalhar com o QISKit.
 
-Estamos prontos para testar um exemplo de circuito quântico, que é executado no simulador local.
+Estamos prontos para testar um exemplo de circuito quântico que é executado no simulador local.
 
 Este é um exemplo que realiza um entrelaçamento quântico.
 
@@ -111,7 +108,7 @@ COMPLETED
 
 Este script está disponível [aqui](examples/python/hello_quantum.py).
 
-### Executando seu códico em um chip quântico real
+### Executando seu código em um chip quântico real
 
 Você também pode utilizar o QISKit para executar seu código em um [chip quântico real](https://github.com/QISKit/ibmqx-backend-information).
 Para tanto, você precisa configurar o SDK para usar as credenciais da sua Quantum Experience Account:
@@ -119,7 +116,7 @@ Para tanto, você precisa configurar o SDK para usar as credenciais da sua Quant
 
 #### Configure o seu API token e as credenciais QE
 
-1. Crie um conta em [IBM Q experience]https://quantumexperience.ng.bluemix.net)> se você ainda não possuir uma.
+1. Crie um conta em [IBM Q experience](https://quantumexperience.ng.bluemix.net)> se você ainda não possuir uma.
 2. Consiga um API token no site da IBM Q experience em "`My Account`" > "`Personal Access Token`". Este token permite a execução de programas nos back-ends da IBM Q experience. [Exemplo](doc/example_real_backend.rst).
 3. Vamos criar um novo arquivo chamado `Qconfig.py` e inserir nele o API token. O arquivo deve ter o seguinte conteúdo:
 ```python
@@ -135,7 +132,7 @@ config = {
 ```
 4. Substitua `'MY_API_TOKEN'` com o seu API token adquirido no passo 2.
 
-5. Se você tem acesso aos IBM Q features, você precisa configurar também os valures para o seu hub, grupo e projeto. Para isso, assige à variável `config` os valores que você pode encontrar na página da sua conta IBM Q.
+5. Se você tem acesso aos IBM Q features, você precisa configurar também os valores para o seu hub, grupo e projeto. Para isso, assigne à variável `config` os valores que você pode encontrar na página da sua conta IBM Q.
 
 Uma vez que o arquivo `Qconfig.py` já foi configurado, você deve colocá-lo no mesmo diretório/pasta do seu programa/tutorial, para que as configurações sejam importadas e utilizadas para autenticar com a função `Qconfig.py`. Por exemplo:
 
@@ -157,7 +154,7 @@ Para mais detalhes sobre esse exemplo e mais informações veja a [documentaçã
 ### Próximos passos
 
 Agora você está preparado para conferir alguns dos outros exemplos do nosso repositório [Tutorial](https://github.com/QISKit/qiskit-tutorial). Comece com o [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) e depois siga com o [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb).
-Se você já tem [Notebooks Jupyter instalados](https://jupyter.readthedocs.io/en/latest/install.html), você pode copiar e modificar os notebooks para criar seus própios experimentos.
+Se você já tem [Notebooks Jupyter instalados](https://jupyter.readthedocs.io/en/latest/install.html), você pode copiar e modificar os notebooks para criar seus próprios experimentos.
 
 Para instalar os tutoriais como parte do QISKit SDK, veja os seguintes [detalhes de instalação](doc/install.rst#Install-Jupyter-based-tutorials). A documentação completa do SDK pode ser encontrada na [pasta *doc*](doc/qiskit.rst) e no [site oficial do QISKit](https://www.qiskit.org/documentation).
 
@@ -165,14 +162,13 @@ Para instalar os tutoriais como parte do QISKit SDK, veja os seguintes [detalhes
 
 Para mais informações sobre como usar o QISKit, tutoriais de exemplos e outros links úteis, dê uma olhada nos seguintes materiais:
 
-* **[User Guides](https://github.com/QISKit/ibmqx-user-guides)**,
-  a good starting place for learning about quantum information and computing
+* **[User Guides](https://github.com/QISKit/ibmqx-user-guides)**, um bom lugar para começar a aprender sobre informação quântica e computação quântica
 * **[Tutorials](https://github.com/QISKit/qiskit-tutorial)**, para exemplos de notebooks, comece com o [index](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) e [‘Getting Started’ Jupyter notebook](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb)
 * **[OpenQASM](https://github.com/QISKit/openqasm)**, para informações adicionais e exemplos de código QASM
 * **[IBM Quantum Experience Composer](https://quantumexperience.ng.bluemix.net/qx/editor)**, uma interface gráfica com computadores quânticos reais e simulados.
 * **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, uma API para usar o IBM Quantum Experience em Python
 
-QISKit for desenvolvido originalmente por pesquisadores e desenvolvedores do [IBM-Q](http://www.research.ibm.com/ibm-q/) Team no [IBM Research](http://www.research.ibm.com/), com o objetivo de oferecer um kit de desenvolvimento em alto nível para trabalhar com computadores quânticos.
+O QISKit for desenvolvido originalmente por pesquisadores e desenvolvedores do [IBM-Q](http://www.research.ibm.com/ibm-q/) Team no [IBM Research](http://www.research.ibm.com/), com o objetivo de oferecer um kit de desenvolvimento em alto nível para trabalhar com computadores quânticos.
 
 Visite a [comunidade IBM Q experience](https://quantumexperience.ng.bluemix.net/qx/community) para perguntas e discussões sobre o QISKit e computação quântica em geral. Se você quiser contribuir ao QISKit, dê uma olhada nas nossas [diretrizes de contribuição](CONTRIBUTING.rst).
 
@@ -180,12 +176,11 @@ Visite a [comunidade IBM Q experience](https://quantumexperience.ng.bluemix.net/
 
 * **[Coreano](doc/ko/README.md)**, Guia básico escrito em coreano.
 * **[Chinês](doc/zh/README.md)**, Guia básico escrito em chinês.
+* **[Inglês](README.md)**, Guia básico escrito em inglês.
 
 ## Autores (em ordem alfabética)
 
-Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Stefan Devai, Vincent Dwyer, Mark Everitt, Ismael Faro,
-Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez,
-Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
+Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Stefan Devai, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
 
 Em lançamentos futuros, qualquer um que contribua com código para o projeto é bem-vindo a incluir seu nome na lista.
 
