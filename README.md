@@ -217,10 +217,11 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 
 * **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
 * **[Chinese Translation](doc/zh/README.md)**, Basic guide line written in Chinese.
+* **[Portuguese Translation](doc/pt/README.md)**, Basic guide line written in Portuguese.
 
 ## Authors (alphabetical)
 
-Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
+Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Stefan Devai, Vincent Dwyer, Mark Everitt, Ismael Faro,
 Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez,
 Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
 
