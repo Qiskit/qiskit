@@ -23,6 +23,7 @@
 #
 # Examples:
 #   $ python run_qasm.py -b              # show backend information
+#   $ python run_qasm.py -c              # show remaining credits
 #   $ python run_qasm.py -l 10           # show job list (10 jobs)
 #   $ python run_qasm.py -j (job id)     # show the result of a job
 #   $ python run_qasm.py -q (qasm file)  # submit a qasm file
@@ -52,6 +53,7 @@ def options():
                         help='Number of jobs to show')
     parser.add_argument('-j', '--jobid', action='store', type=str, help='Get job information')
     parser.add_argument('-b', '--backends', action='store_true', help='Show backends information')
+    parser.add_argument('-c', '--credits', action='store_true', help='Show my credits')
     parser.add_argument('--verbose', action='store_true', help='verbose')
     args = parser.parse_args()
     if args.verbose:
@@ -109,13 +111,17 @@ class JobManager:
         result = self._api.get_job(job_id)
         print(json.dumps(result, sort_keys=True, indent=2))
 
+    def get_credits(self):
+        print('credits :', self._api.get_my_credits())
+
     def available_backends(self):
         tab = {}
         for e in self._api.available_backends() + self._api.available_backend_simulators():
+            status = self._api.backend_status(e['name'])
             try:
-                tab[e['name']] = (e['status'], ':', str(e['nQubits']) + ' qubits,', e['description'])
+                tab[e['name']] = (':', str(e['nQubits']) + ' qubits,', e['description'], status)
             except KeyError:
-                tab[e['name']] = (e['status'],)
+                tab[e['name']] = (':', status)
         for k, v in sorted(tab.items()):
             print(k, *v)
 
@@ -125,6 +131,8 @@ def main():
     args = options()
     if args.backends:
         jm.available_backends()
+    if args.credits:
+        jm.get_credits()
     if args.qasm:
         qasm = jm.read_asm(args.qasm)
         interval = max(1, args.interval)
