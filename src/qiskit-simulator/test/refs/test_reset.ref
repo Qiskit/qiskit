@@ -1,0 +1,69 @@
+[(0,0), (0,0)]
+[(0,0), (0,0)]
+[(0,0), (0,0)]
+[(0,0), (0,0)]
+{
+    "backend": "local_qasm_simulator_cpp",
+    "cpp_simulator_kernel": "qasm_simulator_cpp",
+    "id": "test_reset",
+    "result": [{
+        "data": {
+            "snapshots": {
+                "0": {
+                    "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
+                }
+            },
+            "time_taken": 0.0017970000000000002
+        },
+        "name": "reset",
+        "seed": 1,
+        "shots": 1,
+        "status": "DONE",
+        "success": true
+    }, {
+        "data": {
+            "snapshots": {
+                "0": {
+                    "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
+                }
+            },
+            "time_taken": 5e-05
+        },
+        "name": "x reset",
+        "seed": 1,
+        "shots": 1,
+        "status": "DONE",
+        "success": true
+    }, {
+        "data": {
+            "snapshots": {
+                "0": {
+                    "quantum_state": [[[0.0, 1.0], [0.0, 0.0]]]
+                }
+            },
+            "time_taken": 3.7000000000000005e-05
+        },
+        "name": "y reset",
+        "seed": 1,
+        "shots": 1,
+        "status": "DONE",
+        "success": true
+    }, {
+        "data": {
+            "snapshots": {
+                "0": {
+                    "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
+                }
+            },
+            "time_taken": 4.1e-05
+        },
+        "name": "h reset",
+        "seed": 1,
+        "shots": 1,
+        "status": "DONE",
+        "success": true
+    }],
+    "status": "COMPLETED",
+    "success": true,
+    "time_taken": 0.001977
+}

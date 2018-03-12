@@ -1,0 +1,539 @@
+{
+    "id": "test_qasm_single_qubit_gates",
+    "config": {
+        "shots": 1,
+        "seed": 1,
+        "backend": "local_qasm_simulator_cpp"
+    },
+    "circuits": [
+        {
+            "name": "#snapshot",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "id(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "U", "params": [0.0, 0.0, 0.0], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "id(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u3", "params": [0.0, 0.0, 0.0], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "id(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u1", "params": [0.0], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "x(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "U", "params": [3.14159265358979, 0.0, 3.14159265358979], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "x(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u3", "params": [3.14159265358979, 0.0, 3.14159265358979], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "x(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "x", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "y(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "U", "params": [3.14159265358979, 1.5707963267948966, 1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "y(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u3", "params": [3.14159265358979, 1.5707963267948966, 1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "y(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "y", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "U", "params": [1.5707963267948966, 0.0, 3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u3", "params": [1.5707963267948966, 0.0, 3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(u2)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "u2", "params": [0.0, 3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) z(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "U", "params": [0.0, 0.0, 3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) z(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u3", "params": [0.0, 0.0, 3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) z(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u1", "params": [3.141592653589793], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) z(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "z", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) s(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "U", "params": [0.0, 0.0, 1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) s(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u3", "params": [0.0, 0.0, 1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) s(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u1", "params": [1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) s(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "s", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) sdg(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "U", "params": [0.0, 0.0, -1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) sdg(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u3", "params": [0.0, 0.0, -1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) sdg(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u1", "params": [-1.5707963267948966], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) sdg(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "sdg", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) t(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "U", "params": [0.0, 0.0, 0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) t(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u3", "params": [0.0, 0.0, 0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) t(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u1", "params": [0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) t(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "t", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) tdg(U)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "U", "params": [0.0, 0.0, -0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) tdg(u3)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u3", "params": [0.0, 0.0, -0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) tdg(u1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "u1", "params": [-0.7853981633974483], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "h(direct) tdg(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "tdg", "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        }
+    ]
+}
