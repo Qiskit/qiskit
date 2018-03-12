@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=invalid-name, missing-super-argument
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,53 +40,16 @@ from sympy.physics.quantum import TensorProduct
 from sympy import Matrix, pi, E, I, cos, sin, N
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
+from qiskit.backends._simulatortools import index2
 
 logger = logging.getLogger(__name__)
-
-
-def index1(barg, iarg, karg):
-    """ index1 function.
-
-    Takes a bitstring k and inserts bit b as the ith bit,
-    shifting bits >= i over to make room.
-    """
-    retval = karg
-    lowbits = karg & ((1 << iarg) - 1)  # get the low i bits
-
-    retval >>= iarg
-    retval <<= 1
-
-    retval |= barg
-
-    retval <<= iarg
-    retval |= lowbits
-
-    return retval
-
-
-def index2(barg1, iarg1, barg2, iarg2, k):  # assert(i1 != i2)
-    """ index1 function.
-
-    Takes a bitstring k and inserts bits b1 as the i1th bit
-    and b2 as the i2th bit
-    """
-    if iarg1 > iarg2:
-        # insert as (i1-1)th bit, will be shifted left 1 by next line
-        retval = index1(barg1, iarg1 - 1, k)
-        retval = index1(barg2, iarg2, retval)
-    else:  # i2>i1
-        # insert as (i2-1)th bit, will be shifted left 1 by next line
-        retval = index1(barg2, iarg2 - 1, k)
-        retval = index1(barg1, iarg1, retval)
-    return retval
-
 
 class SympyUnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        super(SympyUnitarySimulator, self).__init__()
+        super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_sympy_unitary_simulator',
                                    'url': 'https://github.com/QISKit/qiskit-sdk-py',
@@ -100,10 +63,17 @@ class SympyUnitarySimulator(BaseBackend):
         self._unitary_state = None
         self._number_of_qubits = None
 
-    # the following is the sympy implementations of various gates, including basic gates and ugates.
     @staticmethod
     def regulate(theta):
-        """Find the most close symbolic form"""
+        """helper for U gate. find the symbolic values for
+                    the floating parameters in U gates, e.g., 3.14 -> pi
+        Args:
+            theta (float or the sympy form): it may be the float value (e.g., 3.14)
+                                                or the symbolic value (e.g., pi)
+        Returns:
+            object: the regulated theta or the original theta if it cannot be regulated.
+            bool:  whether theta is in the symbolic form
+        """
         error_margin = 0.01
 
         if abs(N(theta - pi)) < error_margin:
@@ -121,9 +91,14 @@ class SympyUnitarySimulator(BaseBackend):
     def compute_ugate_matrix(parafloatlist):
         """compute the ugate matrix
             Args:
-                parafloatlist(list): parafloatlist
+                parafloatlist(list): a list of parameters (float or symbolic) used in the U gate,
+                                    e.g., [pi/2, 0, 3.14159]
             Returns:
-                Matrix: the matrix that represents the U gate
+                Matrix: the matrix that represents the U gate, e.g.,
+                Matrix([
+                    [sqrt(2)/2,  sqrt(2)/2],
+                    [sqrt(2)/2, -sqrt(2)/2]
+                    ])
         """
         theta = parafloatlist[0]
         phi = parafloatlist[1]
@@ -146,9 +121,11 @@ class SympyUnitarySimulator(BaseBackend):
 
     @staticmethod
     def compute_ugate_matrix_wrap(parafloatlist):
-        """preparation needed before computing the ugate matrix
+        """
+            convert the parameter lists used by U1, U2 to the same form as U3.
+            then computes the matrix for the u gate based on the parameter list
             Args:
-                parafloatlist (list): parafloatlist
+                parafloatlist (list): list of parameters, of which the length may be 1, 2, or 3
             Returns:
                 Matrix: matrix that represents the ugate
         """
@@ -167,9 +144,7 @@ class SympyUnitarySimulator(BaseBackend):
 
     def enlarge_single_opt_sympy(self, opt, qubit, number_of_qubits):
         """Enlarge single operator to n qubits.
-
         It is exponential in the number of qubits.
-
         Args:
             opt (object): the single-qubit opt.
             qubit (int): the qubit to apply it on counts from 0 and order
@@ -185,11 +160,13 @@ class SympyUnitarySimulator(BaseBackend):
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
-
-        gate is the single-qubit gate.
-        qubit is the qubit to apply it on counts from 0 and order
-            is q_{n-1} ... otimes q_1 otimes q_0.
-        number_of_qubits is the number of qubits in the system.
+        Args:
+            gate (Matrix): The matrix for a single-qubit gate. It looks like this:
+                        Matrix([
+                            [sqrt(2)/2,  sqrt(2)/2],
+                            [sqrt(2)/2, -sqrt(2)/2]])
+                        Matrix is a type from sympy.
+            qubit (int): the id of the qubit being operated on
         """
         unitaty_add = self.enlarge_single_opt_sympy(gate, qubit, self._number_of_qubits)
         self._unitary_state = unitaty_add*self._unitary_state  # * means "dot product"
@@ -197,14 +174,24 @@ class SympyUnitarySimulator(BaseBackend):
     def enlarge_two_opt_sympy(self, opt, qubit0, qubit1, num):
         """Enlarge two-qubit operator to n qubits.
         It is exponential in the number of qubits.
-        opt is the two-qubit gate
-        q0 is the first qubit (control) counts from 0
-        q1 is the second qubit (target)
-        returns a complex numpy array
-        number_of_qubits is the number of qubits in the system.
+        Args:
+            opt (Matrix): the matrix that represents a two-qubit gate.
+            It looks like this:
+                    Matrix([
+                            [1, 0, 0, 0],
+                            [0, 0, 0, 1],
+                            [0, 0, 1, 0],
+                            [0, 1, 0, 0]])
+            qubit0 (int): id of the control qubit
+            qubit1 (int): id of the target qubit
+            num (int): the number of qubits in the system.
+        Returns:
+            Matrix: the enlarged matrix that operates on all qubits in the system.
+                    It is basically a tensorproduct of the gates applied on each qubit
+                    (Identity gate by default).
         """
-        enlarge_opt = zeros(1 << (num), 1 << (num))  # np.zeros([1 << (num), 1 << (num)])
-        for i in range(1 << (num-2)):
+        enlarge_opt = zeros(2**num, 2**num)  # np.zeros([1 << (num), 1 << (num)])
+        for i in range(2**(num-2)):
             for j in range(2):
                 for k in range(2):
                     for m in range(2):
@@ -215,12 +202,18 @@ class SympyUnitarySimulator(BaseBackend):
         return enlarge_opt
 
     def _add_unitary_two(self, gate, qubit0, qubit1):
-        """Apply the two-qubit gate.
-
-        gate is the two-qubit gate
-        q0 is the first qubit (control) counts from 0
-        q1 is the second qubit (target)
-        returns a complex numpy array
+        """Apply the two-qubit gate
+         It first extends the two-qubit gate to all-qubit gate and then applying it to all qubits.
+         It returns the unitary matrix, which looks like this:
+                    Matrix([
+                        [sqrt(2)/2,  sqrt(2)/2,         0,          0],
+                        [        0,          0, sqrt(2)/2, -sqrt(2)/2],
+                        [        0,          0, sqrt(2)/2,  sqrt(2)/2],
+                        [sqrt(2)/2, -sqrt(2)/2,         0,          0]])
+        Args:
+            gate (Matrix): the matrix that represents a two-qubit gate
+            qubit0 (int): id of the control qubit
+            qubit1 (int): id of the target qubit
         """
         unitaty_add = self.enlarge_two_opt_sympy(gate, qubit0, qubit1, self._number_of_qubits)
         self._unitary_state = unitaty_add*self._unitary_state
@@ -231,7 +224,17 @@ class SympyUnitarySimulator(BaseBackend):
         Args:
             q_job (QuantumJob): job to run
         Returns:
-            object: a dictionary that contains the necessary information is returned
+            Result: Result is a class including the information to be returned to users.
+                   Specifically, result_list in the return looks is important and it like this:
+                   [
+                     {'data': {'unitary':
+                                       array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
+                                              [0, 0, sqrt(2)/2, -sqrt(2)/2],
+                                              [0, 0, sqrt(2)/2, sqrt(2)/2],
+                                              [sqrt(2)/2, -sqrt(2)/2, 0, 0]], dtype=object)},
+                     'status': 'DONE'}
+                    ]
+
         """
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
@@ -242,7 +245,18 @@ class SympyUnitarySimulator(BaseBackend):
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
-        """Apply the single-qubit gate."""
+        """Run a circuit and return object
+        Args:
+            circuit (dict): JSON that describes the circuit
+        Returns:
+            dict: A dictionary of results which looks something like::
+                {'data': {'unitary': array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
+                                            [0, 0, sqrt(2)/2, -sqrt(2)/2],
+                                             [0, 0, sqrt(2)/2, sqrt(2)/2],
+                                             [sqrt(2)/2, -sqrt(2)/2, 0, 0]], dtype=object)
+                           },
+                'status': 'DONE'}
+        """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         result = {}
@@ -257,7 +271,7 @@ class SympyUnitarySimulator(BaseBackend):
                 qubit = operation['qubits'][0]
                 gate = SympyUnitarySimulator.compute_ugate_matrix_wrap(params)
                 self._add_unitary_single(gate, qubit)
-            elif operation['name'] in ['id', 'u0']:
+            elif operation['name'] in ['id']:
                 pass
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
@@ -265,13 +279,14 @@ class SympyUnitarySimulator(BaseBackend):
                 gate = Matrix([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
             elif operation['name'] == 'measure':
-                logger.info('Warning have dropped measure from unitary '
+                logger.info('Warning have dropped measure from sympy-based unitary '
                             'simulator')
             elif operation['name'] == 'reset':
-                logger.info('Warning have dropped reset from unitary '
+                logger.info('Warning have dropped reset from sympy-based unitary '
                             'simulator')
             elif operation['name'] == 'barrier':
-                pass
+                logger.info('Warning have dropped barrier from sympy-based unitary '
+                            'simulator')
             else:
                 result['status'] = 'ERROR'
                 return result
