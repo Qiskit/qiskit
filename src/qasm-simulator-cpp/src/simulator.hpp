@@ -62,7 +62,7 @@ namespace QISKIT {
 class Simulator {
 public:
   std::string id = "";             // simulation id
-  std::string simulator = "qubit"; // simulator backend label
+  std::string simulator = "local_qasm_simulator_cpp";
   std::vector<Circuit> circuits;   // QISKIT program
 
   // Multithreading Params
@@ -93,10 +93,7 @@ json_t Simulator::execute() {
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
   json_t ret;
   ret["id"] = id;
-  if (simulator == "clifford")
-    ret["backend"] = std::string("local_clifford_simulator");
-  else
-    ret["backend"] = std::string("local_qasm_simulator_cpp");
+  ret["backend"] = simulator;
 
   // Choose simulator and execute circuits
   try {
@@ -105,7 +102,7 @@ json_t Simulator::execute() {
       json_t circ_res;
 
       // Choose Simulator Backend
-      if (simulator == "clifford")
+      if (simulator == "local_clifford_simulator_cpp")
         circ_res = run_circuit<BaseEngine<Clifford>, CliffordBackend>(circ);
       else if (circ.noise.ideal)
         circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
@@ -292,17 +289,33 @@ inline void from_json(const json_t &js, Simulator &qobj) {
       JSON::get_value(qobj.max_threads_gate, "max_threads_gate", config);
 
       // Override with user simulator backend specification
-      JSON::get_value(qobj.simulator, "simulator", config);
-      JSON::get_value(qobj.simulator, "simulator_kernel", config);
+      JSON::get_value(qobj.simulator, "backend", config);
+      JSON::get_value(qobj.simulator, "custom_simulator_kernel", config);
       to_lowercase(qobj.simulator);
+
+      // Format simulator internal name string
+      if (qobj.simulator == "local_clifford_simulator_cpp" || 
+          qobj.simulator == "local_clifford_simulator" || 
+          qobj.simulator == "clifford_simulator" || 
+          qobj.simulator == "clifford") {
+        qobj.simulator = "local_clifford_simulator_cpp";
+      }
+      else if (qobj.simulator == "local_statevector_simulator" || 
+          qobj.simulator == "local_statevector_simulator_cpp" || 
+          qobj.simulator == "statevector") {
+        qobj.simulator = "local_statevector_simulator_cpp";
+      }
+      else {
+        qobj.simulator = "local_qasm_simulator_cpp";
+      }
 
       // Set simulator gateset
       gateset_t gateset;
-      if (qobj.simulator == "qubit") {
+      if (qobj.simulator == "local_qasm_simulator_cpp") {
         gateset = QubitBackend::gateset;
-      } else if (qobj.simulator == "ideal") {
+      } else if (qobj.simulator == "local_statevector_simulator_cpp") {
         gateset = IdealBackend::gateset;
-      } else if (qobj.simulator == "clifford") {
+      } else if (qobj.simulator == "local_clifford_simulator_cpp") {
         gateset = CliffordBackend::gateset;
       } else {
         throw std::runtime_error(std::string("invalid simulator."));
