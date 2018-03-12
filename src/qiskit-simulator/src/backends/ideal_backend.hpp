@@ -123,7 +123,7 @@ protected:
 void IdealBackend::set_config(json_t &config) {
   // Set OMP threshold for state update functions
   uint_t num_qubits_omp_threshold = 20; // default threshold
-  JSON::get_value(num_qubits_omp_threshold, "theshold_threads_gates", config);
+  JSON::get_value(num_qubits_omp_threshold, "theshold_omp_gate", config);
   qreg.set_omp_threshold(num_qubits_omp_threshold);
   
   // parse initial state from JSON
@@ -284,7 +284,6 @@ const gateset_t IdealBackend::gateset({// Core gates
                                        {"sdg", gate_t::Sd},
                                        {"t", gate_t::T},
                                        {"tdg", gate_t::Td},
-                                       {"wait", gate_t::Wait},
                                        // Waltz Gates
                                        {"u0", gate_t::U0},
                                        {"u1", gate_t::U1},
@@ -295,9 +294,15 @@ const gateset_t IdealBackend::gateset({// Core gates
                                        {"cz", gate_t::CZ},
                                        {"rzz", gate_t::RZZ},
                                        // Simulator commands
+                                       {"#wait", gate_t::Wait},
+                                       {"#snapshot", gate_t::Snapshot},
+                                       {"#noise", gate_t::Noise},
+                                       {"#save", gate_t::Save},
+                                       {"_load", gate_t::Load},
+                                       {"wait", gate_t::Wait},
                                        {"snapshot", gate_t::Snapshot},
                                        {"noise", gate_t::Noise},
-                                       {"save", gate_t::Save},
+                                       {"save", gate_t::Save},          
                                        {"load", gate_t::Load}});
 
 //------------------------------------------------------------------------------
