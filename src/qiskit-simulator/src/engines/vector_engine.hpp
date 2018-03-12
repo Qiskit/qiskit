@@ -79,12 +79,12 @@ public:
   //============================================================================
 
   // Snapshots output data
-  std::map<uint_t, std::vector<cket_t>> snapshots_ket;
-  std::map<uint_t, cmatrix_t> snapshots_density;
-  std::map<uint_t, rvector_t> snapshots_probs;
-  std::map<uint_t, std::map<std::string, double>> snapshots_probs_ket;
-  std::map<uint_t, std::vector<cvector_t>> snapshots_inprods;
-  std::map<uint_t, rvector_t> snapshots_overlaps;
+  std::map<int, std::vector<cket_t>> snapshots_ket;
+  std::map<int, cmatrix_t> snapshots_density;
+  std::map<int, rvector_t> snapshots_probs;
+  std::map<int, std::map<std::string, double>> snapshots_probs_ket;
+  std::map<int, std::vector<cvector_t>> snapshots_inprods;
+  std::map<int, rvector_t> snapshots_overlaps;
 
   //============================================================================
   // Methods
@@ -102,13 +102,16 @@ public:
 
   // Compute results
   void compute_results(Circuit &circ, BaseBackend<QubitVector> *be);
-
+  template<class T>
+  void sample_counts(Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
+                     const std::vector<T> &probs, const std::vector<operation> &meas,
+                     const std::vector<uint_t> &meas_qubits);
   // Additional snapshot formatting
-  void snapshot_ketform(const std::map<uint_t, QubitVector>& qreg_snapshots,
+  void snapshot_ketform(const std::map<int, QubitVector>& qreg_snapshots,
                         const std::vector<uint_t> &labels);
-  void snapshot_density_matrix(const std::map<uint_t, QubitVector>& qreg_snapshots);
-  void snapshot_probabilities(const std::map<uint_t, QubitVector>& qreg_snapshots);
-  void snapshot_inner_products(const std::map<uint_t, QubitVector>& qreg_snapshots);
+  void snapshot_density_matrix(const std::map<int, QubitVector>& qreg_snapshots);
+  void snapshot_probabilities(const std::map<int, QubitVector>& qreg_snapshots);
+  void snapshot_inner_products(const std::map<int, QubitVector>& qreg_snapshots);
 
   // Convert a complex vector or ket to a real one
   double get_probs(const complex_t &val) const;
@@ -195,35 +198,20 @@ void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
     // sort the qubits and delete duplicates
     sort(meas_qubits.begin(),meas_qubits.end()); 
     meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end() ), meas_qubits.end());
-    const uint_t N = meas_qubits.size(); // number of measured qubits
 
-    // Get vector of outcome probabilities
-    const rvector_t probs = be->access_qreg().probabilities(meas_qubits);
-    // Map to store measured outcome after
-    std::map<uint_t, uint_t> outcomes;
-    for (auto &qubit : meas_qubits)
-      outcomes[qubit] = 0;
-
-    // Sample measurement outcomes
-    auto &rng = be->access_rng();
-    for (uint_t shot = 0; shot < nshots; shot++) {
-      double p = 0.;
-      double r = rng.rand(0, 1);
-      uint_t result;
-      for (result = 0; result < (1ULL << N); result++) {
-        if (r < (p += probs[result]))
-          break;
+    // Allow option to get probabilities in place be overwriting QubitVector
+    bool probs_in_place = true;
+    if (probs_in_place && meas_qubits.size() == prog.nqubits) {
+      cvector_t &cprobs = be->access_qreg().vector();
+      for (uint_t j=0; j < cprobs.size(); j++) {
+        cprobs[j] = std::real(cprobs[j] * std::conj(cprobs[j]));
       }
-      // convert outcome to register
-      auto reg = int2reg(result, 2, N);
-      for (auto it = outcomes.cbegin(); it != outcomes.cend(); it++)
-        outcomes[it->first] = reg[std::distance(outcomes.cbegin(), it)];
-      // update creg
-      auto &creg = be->access_creg();
-      for (const auto &op : meas)
-        creg[op.clbits[0]] = outcomes[op.qubits[0]];
-      // compute count based results
-      compute_counts(prog.clbit_labels, creg);
+      // Sample measurement outcomes
+      sample_counts(prog, be, nshots, cprobs, meas, meas_qubits);
+    } else {
+      // Sample measurement outcomes
+      rvector_t probs = be->access_qreg().probabilities(meas_qubits);
+      sample_counts(prog, be, nshots, probs, meas, meas_qubits);
     }
   } else {
     // Standard execution of every shot
@@ -231,9 +219,43 @@ void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
   }
 }
 
+// Templated so works for real or complex probability vector
+template<class T>
+void VectorEngine::sample_counts(Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
+                                 const std::vector<T> &probs, const std::vector<operation> &meas, 
+                                 const std::vector<uint_t> &meas_qubits) {
+  // Map to store measured outcome after
+  std::map<uint_t, uint_t> outcomes;
+  for (auto &qubit : meas_qubits)
+    outcomes[qubit] = 0;
+  const uint_t N = meas_qubits.size(); // number of measured qubits
+
+  // Sample measurement outcomes
+  auto &rng = be->access_rng();
+  for (uint_t shot = 0; shot < nshots; shot++) {
+    double p = 0.;
+    double r = rng.rand(0, 1);
+    uint_t result;
+    for (result = 0; result < (1ULL << N); result++) {
+      if (r < (p += std::real(probs[result])))
+        break;
+    }
+    // convert outcome to register
+    auto reg = int2reg(result, 2, N);
+    for (auto it = outcomes.cbegin(); it != outcomes.cend(); it++)
+      outcomes[it->first] = reg[std::distance(outcomes.cbegin(), it)];
+    // update creg
+    auto &creg = be->access_creg();
+    for (const auto &op : meas)
+      creg[op.clbits[0]] = outcomes[op.qubits[0]];
+    // compute count based results
+    compute_counts(prog.clbit_labels, creg);
+  }
+}
+
 //------------------------------------------------------------------------------
 
-void VectorEngine::snapshot_ketform(const std::map<uint_t, QubitVector>& qreg_snapshots,
+void VectorEngine::snapshot_ketform(const std::map<int, QubitVector>& qreg_snapshots,
                                     const std::vector<uint_t> &labels) {
   if (show_snapshots_ket || show_snapshots_probs_ket) {
     for (auto const &psi : qreg_snapshots) {
@@ -253,7 +275,7 @@ void VectorEngine::snapshot_ketform(const std::map<uint_t, QubitVector>& qreg_sn
   }
 }
 
-void VectorEngine::snapshot_density_matrix(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_density_matrix(const std::map<int, QubitVector>& qreg_snapshots) {
   if (show_snapshots_density) {
     for (auto const &psi : qreg_snapshots) {
       cmatrix_t &rho = snapshots_density[psi.first];
@@ -265,7 +287,7 @@ void VectorEngine::snapshot_density_matrix(const std::map<uint_t, QubitVector>& 
   }
 }
 
-void VectorEngine::snapshot_probabilities(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_probabilities(const std::map<int, QubitVector>& qreg_snapshots) {
   if (show_snapshots_probs) {
       for (auto const &psi : qreg_snapshots) {
         auto &pr = snapshots_probs[psi.first];
@@ -277,7 +299,7 @@ void VectorEngine::snapshot_probabilities(const std::map<uint_t, QubitVector>& q
     }
 }
 
-void VectorEngine::snapshot_inner_products(const std::map<uint_t, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_inner_products(const std::map<int, QubitVector>& qreg_snapshots) {
   if (target_states.empty() == false &&
         (show_snapshots_inner_product || show_snapshots_overlaps)) {
       for (auto const &psi : qreg_snapshots) {
@@ -310,7 +332,7 @@ void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) 
   // Run BaseEngine Counts
   BaseEngine<QubitVector>::compute_results(qasm, be);
 
-  std::map<uint_t, QubitVector> &qreg_snapshots = be->access_snapshots();
+  std::map<int, QubitVector> &qreg_snapshots = be->access_snapshots();
 
   /* Snapshot quantum state output data */
   if (snapshots.empty() == false) {
@@ -409,7 +431,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
     for (const auto &s : eng.snapshots_inprods) {
       auto val = s.second;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["inner_products"] = val;
+      js["snapshots"][std::to_string(s.first)]["target_states_inner_product"] = val;
     }
   }
 
@@ -419,7 +441,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["overlaps"] = val;
+      js["snapshots"][std::to_string(s.first)]["target_states_inner_overlaps"] = val;
     }
   }
 }
@@ -443,9 +465,9 @@ inline void from_json(const json_t &js, VectorEngine &eng) {
         eng.show_snapshots_probs = true;
       else if (o == "probabilitiesket" || o == "probsket")
         eng.show_snapshots_probs_ket = true;
-      else if (o == "targetstatesinner")
+      else if (o == "targetstatesinnerproduct")
         eng.show_snapshots_inner_product = true;
-      else if (o == "targetstatesprobs")
+      else if (o == "targetstatesoverlaps")
         eng.show_snapshots_overlaps = true;
     }
   }

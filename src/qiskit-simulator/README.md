@@ -34,10 +34,10 @@ Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 
 ## Installation
 
-After installing the required dependencies, build the simulator by running `make` in the root directory. This will build the executable `local_qiskit_simulator` in the repository directory. For detailed OS-specific instructions on installing dependencies see the following sections
+After installing the required dependencies, build the simulator by running `make` in the root directory. This will build the executable `qasm_simulator_cpp` in the repository directory. For detailed OS-specific instructions on installing dependencies see the following sections
 
 ### Dependencies
-Building requires a compiler compatible with the C++14 standard. For example:
+Building requires a compiler compatible with the C++11 standard. For example:
 
 - GCC >= 5.1
 - Clang >= 3.3
@@ -95,7 +95,7 @@ The default GCC compiler on RHEL 6 does not support C++11. To build you must ins
 After building, the simulator may be run as follows:
 
 ```bash
-./local_qiskit_simulator input.json
+./qasm_simulator_cpp input.json
 ```
 
 where `input.json` is the file name of a **Quantum program object (qobj)**. This is a JSON specification of a quantum program which can be produced using the QISKit SDK (link to qobj specification to come...).
@@ -103,7 +103,7 @@ where `input.json` is the file name of a **Quantum program object (qobj)**. This
 It is also possible to pipe the contents of a qobj directly to the simulator by using replacing the file name with a dash `-`. For example:
 
 ```bash
-cat input.json | ./local_qiskit_simulator -
+cat input.json | ./qasm_simulator_cpp -
 ```
 
 
@@ -143,28 +143,34 @@ You can check the backend was successfully added using the `available_backends` 
 
 ### Simulator output
 
-By default the simulator prints a JSON file to the standard output. If called through QISKit this output is loaded and parsed as a Python dictionary. An example simulator output is for a qobj containing a single circuit is:
+By default the simulator prints a JSON file to the standard output. If called through QISKit this output is loaded and parsed as a Python dictionary. An example simulator output is for a qobj called from QISKit containing a single circuit is:
 
 ```python
 {
-    "backend": "lcoal_qiskit_simulator",
-    "data": [{
+	"backend": "local_qasm_simulator",
+	"cpp_simulator_kernel": "qasm_simulator_cpp",
+	"id": "example_qobj",
+	"result": [{
+	    "data": [{
             "counts": {
-                "00": 523,
-                "11": 501
+	            "00": 523,
+	            "11": 501
             },
-            "seed": 3792116984,
-            "shots": 1024,
             "time_taken": 0.004356
-        }],
-    "id": "example_qobj",
-    "simulator_backend": "qubit",
-    "status": "DONE",
-    "time_taken": 0.004366
+        },
+        "name": "example_circuit",
+        "seed": 3792116984,
+        "shots": 1024,
+        "status": "DONE",
+        "success":true
+    }],
+	"status": "DONE",
+	"success":true
+	"time_taken": 0.004366
 }
 ```
 
-The `"data"` key is a list of the output of each circuit in the qobj: If the qobj contains *n* circuits, `"data"` will be a length *n* list. Additional simulation data may be returned by using config settings discussed in the config settings section.
+The `"result"` key is a list of the output of each circuit in the qobj: If the qobj contains *n* circuits, `"result"` will be a length *n* list. The results for each individual circuit are obtained by the `"data"` key in the circuit result object. Be default this will be a dictionary `"counts"` of measurement counts. Additional simulation data may be returned by using config settings discussed in the config settings section.
 
 #### qiskit-sdk-py output
 
@@ -174,7 +180,28 @@ If the simulator is called though the Python QISKit SDK the input qobj will only
 
 In the raw output file, complex numbers are stored as a list of the real and imaginary parts. Eg. for *z = a +ib* the output of *z* will be `[a, b]`. Using this convention complex vectors and matrices are stored as one would expect: as lists of complex numbers, and as lists of lists of complex numbers respectively.
 
-If the simulator is called through the Python qiskit SDK then these are parsed into standard Python complex datatypes.
+If the simulator is called through the Python qiskit SDK then these are parsed into standard Python complex datatypes by using custom JSON encoders and decoders. 
+
+To manually export a qobj JSON from Python:
+
+```python
+import json
+from qiskit.backends._qasm_simulator_cpp import QASMSimulatorEncoder
+
+qobj = {...} // python qobj dictionary
+with open('exported_qobj.json', 'w') as outfile:
+    json.dump(qobj, outfile, cls=QASMSimulatorEncoder)
+```
+
+To manually import a qobj JSON into Python:
+
+```python
+import json
+from qiskit.backends._qasm_simulator_cpp import QASMSimulatorDecoder
+
+with open('results.json', 'r') as infile:
+    qobj = json.load(infile, cls=QASMSimulatorDecoder)
+```
 
 
 #### Runtime errors
@@ -288,25 +315,50 @@ config = {'initial_state': np.array([1, 0, 0, 1j]) / np.sqrt(2)}
 
 ### Output data options
 
-##### Table of config options
+##### Table of classical bit config options
+
 | Key |  Description |
 | --- | --- |
 | `"classical_state"` | Returns a list of the final classical register bitstring after each shot.
-| `"quantum_state"`| Returns a list of the final quantum state vector of the system after each shot.
-| `"quantum_state_ket"`| As above but with the states represented in ket form.
-| `"density_matrix"`| Returns the final quantum state density matrix obtained from averaging the final state vector overall shots.
-| `"probabilities"` | Returns the diagonal of the final state density matrix.
-| `"probabilities_ket"` | As above but with the probabilities represented in ket form.
-| `"target_states_inner"` | Returns a list of the inner products of the final quantum state with the list of target states for each shot. The target states are specified by `"target_states"` config option.
-| `"target_states_probs"` | Returns the expectation value of the final quantum state with the list of target states averaged over all shots. The target states are specified by `"target_states"` config option.
-| `"saved_quantum_states"` | Returns a list of dictionaries of any saved quantum states for each shot. The state of the system can be saved by the custom `save(n)` gate. the integer `n` will be the key for accessing the saved state in the returned dictionary.
-| `"saved_quantum_states_ket"` | As above but with the states represented in ket form.
-| `"saved_density_matrix"` | Returns a dictionary of the saved quantum state density matrix obtained by averaging the saved state vector over all shots.
-| `"saved_probabilities"` | As above but only returns the diagonal of the density matrix.
-| `"probabilities_ket"` | As above but with the probabilities represented in ket form.
-| `"saved_target_states_inner"` | Returns a list of the inner products of the saved quantum states with the list of target states for each shot. The target states are specified by `"target_states"` config option.
-| `"saved_target_states_probs"` | Returns the expectation value of the saved quantum states with the list of target states averaged over all shots. The target states are specified by `"target_states"` config option.
+| `"hide_counts"` | Hides the counts dictionary in the circuit results data.
 
+
+#### Table of quantum state snapshot output options
+
+If the `"snapshot"` gate command is used to obtain a copy of the simulator quantum state then an additional `"snapshot"` field will be added to the circuit results data.
+
+The snapshot gate command is specified as
+`{"name": "snapshot", "params": [j]}` where `j` is an integer specifying the snapshot location. For example, if a circuit contains a single snapshot command with `j=0`, then the results will contain something like:
+
+```
+{
+    "data": {
+        "snapshots": {
+            "0": {
+                "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]
+            }
+        },
+        "time_taken": 0.001188
+    },
+    "name": "snapshot_example",
+    "seed": 1,
+    "shots": 1,
+    "status": "DONE",
+    "success": true
+}
+```
+
+The keys of the `"snapshot"` dictionary are strings of the integers `"j"`, each containing a dictionary of data of the quantum state at the point of the snapshot. By default this dictionary will contain a field `"quantum_state"` containing a list of quantum state vector for each simulation shot. Note that if measurement optimizations are used to sample the outcome for an ideal circuit with all measurements at the end, this list will contain only a single vector. Additional snapshot formats options can be specified using the following config settings in the `"data"` field list:
+
+| Key |  Description |
+| --- | --- |
+| `"hide_quantum_states"` | Removes the `"quantum_state"` field from quantum state snapshot data.
+| `"quantum_state_ket"` | Adds a `"quantum_state_ket"` field to the snapshot data showing a list of the quantum states for each shot in in ket-form.
+| `"density_matrix"` | Adds a `"density_matrix"` field to the snapshot data showing the density matrix obtained by averaging the snapshot over shots.
+| `"probabilities"` | Adds a `"probabilities"` field to the snapshot data showing a list of the Z-basis measurement outcome probabilities obtained by averaging the snapshot over shots.
+| `"probabilities_ket"` | Adds a `"probabilities_ket"` field to the snapshot data showing the Z-basis measurement outcome probabilities in ket-form obtained by averaging the snapshot over shots.
+| `"target_states_inner_product"` | Adds a `"target_states_inner_product"` field to the snapshot data showing a list of the inner products $\langle \phi_j | \psi \rangle$ of the quantum state snapshot $|\ket\rangle$ with target states $|\phi_j\rangle$. The target states are specified by `"target_states"` config option.
+| `"target_states_overlaps"` | Adds a `"target_states_overlaps"` field to the snapshot data showing a list of the expectation value $$|\langle \phi_j | \psi \rangle|^2$ of the quantum state snapshot $|\ket\rangle$ with target states $|\phi_j\rangle$ averaged over all shots. The target states are specified by `"target_states"` config option.
 
 ## Noise Parameters
 
@@ -339,7 +391,7 @@ The following keys specifify the implemented error models for single qubit gates
 | Key | Values | Description |
 | --- | --- | --- |
 | `"p_depol"` | p >= 0 | Depolarizing error channel with depolarizing probability *p* |
-| `"p_pauli"` | list[p >= 0] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector. For 1-qubit operations it is `[pI, pX, pY, pZ]`, for 2-qubit operations it is `[pII, pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
+| `"p_pauli"` | list[3] or list[15] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector. For 1-qubit operations it is `[pX, pY, pZ]`, for 2-qubit operations it is `[pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
 | `"gate_time"` | t >=0  | The length of the gate. This is used for computing the thermal relaxation error probability in combination with the `"relaxation_rate"` parameter for thermal relaxation errors. Thermal relaxation is implemented as *T<sub>1</sub>* and *T<sub>2</sub>* relaxation with *T<sub>2</sub> = T<sub>1</sub>*.
 | `"U_error"` | unitary matrix | This is a coherent error which is applied after the ideal gate operation.
 
@@ -351,7 +403,7 @@ A single qubit gate error with gate time of *1* unit, depolarizing probability *
 ```python
 "U": {
     "p_depol": 0.001,
-    "p_pauli": [0.99, 0, 0, 0.01],
+    "p_pauli": [0, 0, 0.01],
     "gate_time": 1,
     "U_error": [
         [[1, 0], [0, 0]],
@@ -437,14 +489,18 @@ An example of a configuration file for a 2-qubit circuit using all options is gi
 "config": {
     "shots": 4,
     "seed": 0,
-    "shots_threads": 4,[]()
+    "max_memory": 16,
+    "max_threads_shot": 4,
+	 "max_threads_gate": 4,
+	 "threshold_omp_gate": 20,
     "data": [
         "classical_state",
-        "quantum_state",
-        "quantum_state_probs",
-        "target_states_inner",
-        "target_states_probs",
-        "saved_quantum_states"
+        "quantum_state_ket",
+        "density_matrix",
+        "probabilities",
+        "probabilities_ket",
+        "target_states_inner_product"
+        "target_states_overlaps"
     ],
     "initial_state": [1, 0, 0, 1],
     "target_states": [
@@ -462,49 +518,46 @@ An example of a configuration file for a 2-qubit circuit using all options is gi
         "thermal_populations": [p0, p1],
         "measure": {
             "p_depol": p_meas,
-            "p_pauli": [pI_meas, pX_meas, pY_meas, pZ_meas],
+            "p_pauli": [pX_meas, pY_meas, pZ_meas],
             "gate_time": t_meas,
             "U_error": matrix_meas
         },
-        "measure": {
+        "reset": {
             "p_depol": p_res,
-            "p_pauli": [pI_res, pX_res, pY_res, pZ_res],
+            "p_pauli": [pX_res, pY_res, pZ_res],
             "gate_time": t_res,
             "U_error": matrix_res
         },
         "id": {
             "p_depol": p_id,
-            "p_pauli": [pI_id, pX_id, pY_id, pZ_id],
+            "p_pauli": [pX_id, pY_id, pZ_id],
             "gate_time": t_id,
             "U_error": matrix_id
         },
         "U": {
             "p_depol": p_u,
-            "p_pauli": [pI_u, pX_u, pY_u, pZ_u],
+            "p_pauli": [pX_u, pY_u, pZ_u],
             "gate_time": t_u,
             "U_error": matrix_u
         },
         "X90": {
             "p_depol": p_x90,
-            "p_pauli": [pI_x90, pX_x90, pY_x90, pZ_x90],
+            "p_pauli": [pX_x90, pY_x90, pZ_x90],
             "gate_time": t_X90,
-            "U_error": matrix_x90,
-            "amp_error": alpha,
-            "phase_error": omega
+            "U_error": matrix_x90
         },
         "CX": {
             "p_depol": p_cx,
-            "p_pauli": [pII_cx, pIX_cx, pIY_cx, pIZ_cx,
+            "p_pauli": [pIX_cx, pIY_cx, pIZ_cx,
                         pXI_cx, pXX_cx, pXY_cx, pXZ_cx,
                         pYI_cx, pYX_cx, pYY_cx, pYZ_cx,
                         pZI_cx, pZX_cx, pZY_cx, pZZ_cx],
             "gate_time": t_cx,
-            "U_error": matrix_cx,
-            "amp_error": alpha,
-            "zz_error": gamma
+            "U_error": matrix_cx
     }
 }
 ```
+
 
 ## Acknowledgements
 

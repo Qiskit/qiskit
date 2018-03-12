@@ -45,19 +45,22 @@ limitations under the License.
  ******************************************************************************/
 
 // Numeric Types
-using int_t = long long int;
-using uint_t = unsigned long long int;
+using int_t = long long;
+using uint_t = unsigned long long;
 using complex_t = std::complex<double>;
+using cvector_t = std::vector<complex_t>;
+using rvector_t = std::vector<double>;
+using cmatrix_t = matrix<complex_t>;
+using rmatrix_t = matrix<double>;
 
 // Timer
 using myclock_t = std::chrono::system_clock;
 
+// Custom Classes
+using QV::QubitVector;
+
 // Register Types
-using cvector_t = std::vector<complex_t>;
-using rvector_t = std::vector<double>;
 using svector_t = std::vector<std::string>;
-using cmatrix_t = matrix<complex_t>;
-using rmatrix_t = matrix<double>;
 using creg_t = std::vector<uint_t>;
 using cket_t = std::map<std::string, complex_t>;
 using rket_t = std::map<std::string, double>;
@@ -273,6 +276,7 @@ void to_json(json_t &js, const Clifford &clif);
  */
 void from_json(const json_t &js, Clifford &clif);
 
+namespace QV {
 /**
  * Convert a QubitVector to JSON.
  */
@@ -282,6 +286,7 @@ void to_json(json_t &js, const QubitVector &qv);
  * Parse a QubitVector from JSON.
  */
 void from_json(const json_t &js, QubitVector &qv);
+}
 
 /*******************************************************************************
  *
@@ -515,11 +520,11 @@ void from_json(const json_t &js, Clifford &clif) {
   }
 }
 
-void to_json(json_t &js, const QubitVector &qv) {
+void QV::to_json(json_t &js, const QubitVector &qv) {
   to_json(js, qv.vector());
 }
 
-void from_json(const json_t &js, QubitVector &qv) {
+void QV::from_json(const json_t &js, QubitVector &qv) {
   cvector_t tmp;
   from_json(js, tmp);
   qv = tmp;

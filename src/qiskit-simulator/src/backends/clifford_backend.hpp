@@ -225,11 +225,17 @@ const gateset_t CliffordBackend::gateset({// Core gates
                                           {"s", gate_t::S},
                                           {"u0", gate_t::U0},
                                           {"sdg", gate_t::Sd},
-                                          {"wait", gate_t::Wait},
                                           // Two-qubit gates
                                           {"cx", gate_t::CX},
                                           {"cz", gate_t::CZ},
                                           // Simulator commands
+                                          {"#wait", gate_t::Wait},
+                                          {"#snapshot", gate_t::Snapshot},
+                                          {"#noise", gate_t::Noise},
+                                          {"#save", gate_t::Save},
+                                          {"_load", gate_t::Load},
+                                          {"wait", gate_t::Wait},
+                                          {"snapshot", gate_t::Snapshot},
                                           {"noise", gate_t::Noise},
                                           {"save", gate_t::Save},
                                           {"load", gate_t::Load}});

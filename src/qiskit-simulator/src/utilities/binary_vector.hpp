@@ -26,9 +26,12 @@ limitations under the License.
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <cstdint>
 
-using uint_t = unsigned long long;
-using int_t = long long;
+namespace BV {
+  
+  // Types
+  using uint_t = unsigned long long;
 
 /*******************************************************************************
  *
@@ -280,4 +283,5 @@ std::vector<uint_t> BinaryVector::nonzeroIndices() const {
   return result;
 }
 
+} // end namespace BV
 #endif

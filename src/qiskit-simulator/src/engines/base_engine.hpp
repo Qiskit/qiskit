@@ -82,7 +82,7 @@ public:
   counts_t counts;        // Map of observed final creg values
 
   // Quantum state snapshots
-  std::map<uint_t, std::vector<StateType>> snapshots;   // final qreg state for each shot
+  std::map<int, std::vector<StateType>> snapshots;   // final qreg state for each shot
   //std::map<uint_t, std::vector<StateType>> snapshots;   // final qreg state for each shot
   
   // Classical states
@@ -298,7 +298,7 @@ inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
         engine.counts_bits_h2l = false;
       else if (o == "classicalstate" || o == "classicalstates")
         engine.show_final_creg = true;
-      else if (o == "hidesnapshots" || o == "hidesnapshots")
+      else if (o == "hidequantumstate" || o == "hidequantumstates")
         engine.show_snapshots = false;
     }
   }
