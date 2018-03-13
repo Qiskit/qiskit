@@ -34,14 +34,14 @@ if sys.platform == 'darwin':
         path = find_executable(gcc)
         if path is not None:
             # Use most recent GCC compiler
-            print(path)
             os.environ['CC'] = path
             os.environ['CXX'] = path
             compile_args.append('-fopenmp')
             link_args.append('-fopenmp')
             break
 else:
-    link_args += ['-llapack', '-lblas']
+    compile_args.append('-fopenmp')
+    link_args += ['-fopenmp', '-llapack', '-lblas']
     # TODO Check BLAS linkage for Windows and Linux
     # TODO Link to Anaconda MKL if available
 
