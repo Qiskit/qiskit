@@ -1,7 +1,6 @@
 from libcpp.string cimport string
 
 cdef extern from "simulator.hpp" namespace "QISKIT":
-    int addOne(int)
 
     cdef cppclass Simulator:
         Simulator()
