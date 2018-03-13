@@ -18,11 +18,10 @@
 
 
 import unittest
-
 from matplotlib.backends.backend_pdf import PdfPages
+from sympy import sqrt
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends._sympy_qasmsimulator import SympyQasmSimulator
-from sympy import sqrt
 from .common import QiskitTestCase
 
 
