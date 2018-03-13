@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     QISKIT::Simulator sim;
-    sim.load_json(qobj);
+    sim.load_qobj_json(qobj);
 
 // Set qubit limit
 #if defined MAX_QUBITS
