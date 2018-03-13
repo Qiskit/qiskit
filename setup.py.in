@@ -33,7 +33,8 @@ requirements = [
     "numpy>=1.13,<1.15",
     "ply==3.10",
     "scipy>=0.19,<1.1",
-    "sympy>=1.0"
+    "sympy>=1.0",
+    "pillow>=4.2.1"
 ]
 
 
