@@ -79,7 +79,8 @@ int main(int argc, char **argv) {
 #endif
 
     // Execute
-    out << sim.execute().dump(indent) << std::endl;
+    out << sim.execute() << std::endl;
+    //out << sim.execute().dump(indent) << std::endl;
     return 0;
   } catch (std::exception &e) {
     std::stringstream msg;

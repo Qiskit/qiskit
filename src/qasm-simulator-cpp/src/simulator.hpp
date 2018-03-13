@@ -74,7 +74,18 @@ public:
   inline Simulator(){};
 
   // Execute all quantum circuits
-  json_t execute();
+  json_t execute_json();
+  inline std::string execute(int indent=4) {
+    return execute_json().dump(indent);
+  };
+
+  // Initialize a simulator from a qobj
+  void load_json(const json_t &input);
+  inline void load_string(const std::string &input) {
+    json_t js = JSON::load(name);
+    load_json(js);
+  };
+  bool check_qobj(const json_t &qobj);
 
   // Execute a single circuit
   template <class Engine, class Backend>
@@ -87,7 +98,7 @@ public:
  *
  ******************************************************************************/
 
-json_t Simulator::execute() {
+json_t Simulator::execute_json(){
 
   // Initialize ouput JSON
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
@@ -108,7 +119,7 @@ json_t Simulator::execute() {
         circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
       else
         circ_res = run_circuit<VectorEngine, QubitBackend>(circ);
-
+ 
       // Check results
       qobj_success &= circ_res["success"].get<bool>();
       ret["result"].push_back(circ_res);
@@ -250,8 +261,69 @@ json_t Simulator::run_circuit(Circuit &circ) const {
   return ret;
 }
 
+void Simulator::load_json(const json_t &js) {
+  try {
+    if (check_qobj(js)) { // check valid qobj
+
+      JSON::get_value(id, "id", js);
+
+      json_t config;
+      JSON::get_value(config, "config", js);
+
+      // Multithreading Parameters
+      JSON::get_value(max_memory_gb, "max_memory", config);
+      JSON::get_value(max_threads_shot, "max_threads_shot", config);
+      JSON::get_value(max_threads_gate, "max_threads_gate", config);
+
+      // Override with user simulator backend specification
+      JSON::get_value(simulator, "backend", config);
+      JSON::get_value(simulator, "custom_simulator_kernel", config);
+      to_lowercase(simulator);
+
+      // Format simulator internal name string
+      if (simulator == "local_clifford_simulator_cpp" || 
+          simulator == "local_clifford_simulator" || 
+          simulator == "clifford_simulator" || 
+          simulator == "clifford") {
+        simulator = "local_clifford_simulator_cpp";
+      }
+      else if (simulator == "local_statevector_simulator" || 
+          simulator == "local_statevector_simulator_cpp" || 
+          simulator == "statevector") {
+        simulator = "local_statevector_simulator_cpp";
+      }
+      else {
+        simulator = "local_qasm_simulator_cpp";
+      }
+
+      // Set simulator gateset
+      gateset_t gateset;
+      if (simulator == "local_qasm_simulator_cpp") {
+        gateset = QubitBackend::gateset;
+      } else if (simulator == "local_statevector_simulator_cpp") {
+        gateset = IdealBackend::gateset;
+      } else if (simulator == "local_clifford_simulator_cpp") {
+        gateset = CliffordBackend::gateset;
+      } else {
+        throw std::runtime_error(std::string("invalid simulator."));
+      }
+
+      // Load circuit instructions
+      const json_t &circs = js["circuits"];
+      for (auto it = circs.cbegin(); it != circs.cend(); ++it)
+        circuits.push_back(Circuit(*it, config, gateset));
+    } else {
+      throw std::runtime_error(std::string("invalid qobj file."));
+    }
+  } catch (std::exception &e) {
+    std::stringstream msg;
+    msg << "unable to parse qobj, " << e.what();
+    throw std::runtime_error(msg.str());
+  }
+}
+
 //------------------------------------------------------------------------------
-inline bool check_qobj(const json_t &qobj) {
+bool Simulator::check_qobj(const json_t &qobj) {
   std::vector<std::string> qobj_keys{"id", "circuits"}; // optional: "config"
   std::vector<std::string> compiled_keys{"header", "operations"};
   std::vector<std::string> header_keys{"clbit_labels", "number_of_clbits",
@@ -273,66 +345,9 @@ inline bool check_qobj(const json_t &qobj) {
 }
 
 //------------------------------------------------------------------------------
-inline void from_json(const json_t &js, Simulator &qobj) {
-  try {
-    if (check_qobj(js)) { // check valid qobj
-
-      qobj = Simulator();
-      JSON::get_value(qobj.id, "id", js);
-
-      json_t config;
-      JSON::get_value(config, "config", js);
-
-      // Multithreading Parameters
-      JSON::get_value(qobj.max_memory_gb, "max_memory", config);
-      JSON::get_value(qobj.max_threads_shot, "max_threads_shot", config);
-      JSON::get_value(qobj.max_threads_gate, "max_threads_gate", config);
-
-      // Override with user simulator backend specification
-      JSON::get_value(qobj.simulator, "backend", config);
-      JSON::get_value(qobj.simulator, "custom_simulator_kernel", config);
-      to_lowercase(qobj.simulator);
-
-      // Format simulator internal name string
-      if (qobj.simulator == "local_clifford_simulator_cpp" || 
-          qobj.simulator == "local_clifford_simulator" || 
-          qobj.simulator == "clifford_simulator" || 
-          qobj.simulator == "clifford") {
-        qobj.simulator = "local_clifford_simulator_cpp";
-      }
-      else if (qobj.simulator == "local_statevector_simulator" || 
-          qobj.simulator == "local_statevector_simulator_cpp" || 
-          qobj.simulator == "statevector") {
-        qobj.simulator = "local_statevector_simulator_cpp";
-      }
-      else {
-        qobj.simulator = "local_qasm_simulator_cpp";
-      }
-
-      // Set simulator gateset
-      gateset_t gateset;
-      if (qobj.simulator == "local_qasm_simulator_cpp") {
-        gateset = QubitBackend::gateset;
-      } else if (qobj.simulator == "local_statevector_simulator_cpp") {
-        gateset = IdealBackend::gateset;
-      } else if (qobj.simulator == "local_clifford_simulator_cpp") {
-        gateset = CliffordBackend::gateset;
-      } else {
-        throw std::runtime_error(std::string("invalid simulator."));
-      }
-
-      // Load circuit instructions
-      const json_t &circs = js["circuits"];
-      for (auto it = circs.cbegin(); it != circs.cend(); ++it)
-        qobj.circuits.push_back(Circuit(*it, config, gateset));
-    } else {
-      throw std::runtime_error(std::string("invalid qobj file."));
-    }
-  } catch (std::exception &e) {
-    std::stringstream msg;
-    msg << "unable to parse qobj, " << e.what();
-    throw std::runtime_error(msg.str());
-  }
+inline void from_json(const json_t &js, Simulator &sim) {
+  sim = Simulator();
+  sim.load_json(js);
 }
 
 //------------------------------------------------------------------------------
