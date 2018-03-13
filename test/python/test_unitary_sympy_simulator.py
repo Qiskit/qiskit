@@ -16,19 +16,11 @@
 # limitations under the License.
 # =============================================================================
 
-import cProfile
-import io
-import pstats
+
 import unittest
-
-import numpy as np
-
-import qiskit._jobprocessor as jobprocessor
-from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
-                    QuantumRegister, ClassicalRegister)
+from qiskit import (qasm, unroll, QuantumProgram, QuantumJob)
 from qiskit.backends._sympy_unitarysimulator import SympyUnitarySimulator
 from sympy import sqrt
-from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 

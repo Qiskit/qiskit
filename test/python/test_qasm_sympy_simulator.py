@@ -16,19 +16,13 @@
 # limitations under the License.
 # =============================================================================
 
-import cProfile
-import io
-import pstats
-import shutil
-import time
+
 import unittest
 
 from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends._sympy_qasmsimulator import SympyQasmSimulator
 from sympy import sqrt
-from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 
