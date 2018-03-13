@@ -377,11 +377,11 @@ class SympyQasmSimulator(BaseBackend):
         elif name == 'S':
             the_gate = S(*qid_tuple)
         elif name == 'SDG':
-            the_gate = SympyQasmSimulator.SDGGate(*qid_tuple)
+            the_gate = SDGGate(*qid_tuple)
         elif name == 'T':
             the_gate = T(*qid_tuple)
         elif name == 'TDG':
-            the_gate = SympyQasmSimulator.TDGGate(*qid_tuple)
+            the_gate = TDGGate(*qid_tuple)
         elif name == 'CX' or name == 'CNOT':
             the_gate = CNOT(*qid_tuple)
         elif name == 'CY':
