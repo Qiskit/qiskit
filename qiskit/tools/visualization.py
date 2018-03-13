@@ -683,7 +683,9 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
+def plot_circuit(circuit, basis="id,u0,u1,u2,u3,"
+                                "x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -696,7 +698,9 @@ def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
         im.show()
 
 
-def circuit_drawer(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,t,rx,ry,rz"):
+def circuit_drawer(circuit, basis="id,u0,u1,u2,u3,"
+                                  "x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                  "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Obtain the circuit in image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -1133,15 +1137,18 @@ class QCircuitImage(object):
                                 self._latex[pos_1][columns] = "\\gate{T}"
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                            elif nm == "u0":
+                                self._latex[pos_1][columns] = "\\gate{U_0(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                self._latex[pos_1][columns] = "\\gate{U_1(%s)}" % (
                                     op["texparams"][0])
                             elif nm == "u2":
                                 self._latex[pos_1][columns] =\
-                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                    "\\gate{U_2\\left(%s,%s\\right)}" % (
                                         op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
-                                self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                self._latex[pos_1][columns] = "\\gate{U_3(%s,%s,%s)}" \
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
                                 self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
@@ -1188,15 +1195,18 @@ class QCircuitImage(object):
                                 self._latex[pos_1][columns] = "\\gate{T}"
                             elif nm == "tdg":
                                 self._latex[pos_1][columns] = "\\gate{T^\\dag}"
+                            elif nm == "u0":
+                                self._latex[pos_1][columns] = "\\gate{U_0(%s)}" % (
+                                    op["texparams"][0])
                             elif nm == "u1":
-                                self._latex[pos_1][columns] = "\\gate{U(0,0,%s)}" % (
+                                self._latex[pos_1][columns] = "\\gate{U_1(%s)}" % (
                                     op["texparams"][0])
                             elif nm == "u2":
                                 self._latex[pos_1][columns] = \
-                                    "\\gate{U\\left(\\frac{\pi}{2},%s,%s\\right)}" % (
+                                    "\\gate{U_2\\left(%s,%s\\right)}" % (
                                         op["texparams"][0], op["texparams"][1])
                             elif nm == "u3":
-                                self._latex[pos_1][columns] = "\\gate{U(%s,%s,%s)}" \
+                                self._latex[pos_1][columns] = "\\gate{U_3(%s,%s,%s)}" \
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
                             elif nm == "rx":
                                 self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
@@ -1244,7 +1254,8 @@ class QCircuitImage(object):
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
-                                    self._latex[pos_2][columns] = "\\qwx"
+                                    self._latex[pos_2][columns] = \
+                                        "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -1302,7 +1313,8 @@ class QCircuitImage(object):
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
-                                    self._latex[pos_2][columns] = "\\qwx"
+                                    self._latex[pos_2][columns] = \
+                                        "\\qswap \\qwx[" + str(pos_2 - pos_1) + "]"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_1 - pos_2) + "}"
@@ -1361,7 +1373,8 @@ class QCircuitImage(object):
                                 self._latex[pos_2][columns] = "\\gate{H}"
                             elif nm == "swap":
                                 self._latex[pos_1][columns] = "\\qswap"
-                                self._latex[pos_2][columns] = "\\qwx"
+                                self._latex[pos_2][columns] = \
+                                    "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                             elif nm == "crz":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][columns] = \
@@ -1463,7 +1476,7 @@ class QCircuitImage(object):
                     try:
                         self._latex[pos_1][columns] = "\\meter"
                         self._latex[pos_2][columns] = \
-                            "\\ctarg \\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                            "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                     except Exception as e:
                         raise QISKitError('Error during Latex building: %s' %
                                           str(e))
