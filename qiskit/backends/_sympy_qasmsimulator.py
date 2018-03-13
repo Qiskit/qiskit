@@ -73,6 +73,12 @@ class SDGGate(OneQubitGate):
     gate_name = 'SDG'
 
     def get_target_matrix(self, format='sympy'):
+        """return the Matrix that corresponds to the gate
+        Returns:
+            Matrix: the matrix that corresponds to the gate.
+                    Matrix is a type from sympy.
+                    Each entry in it can be in the symbolic form.
+        """
         return Matrix([[1, 0], [0, -I]])
 
 class TDGGate(OneQubitGate):
@@ -80,6 +86,10 @@ class TDGGate(OneQubitGate):
     gate_name = 'TDG'
 
     def get_target_matrix(self, format='sympy'):
+        """return the Matrix that corresponds to the gate
+        Returns:
+            Matrix: the matrix that corresponds to the gate
+        """
         return Matrix([[1, 0], [0, exp(-I*pi/4)]])
 
 
@@ -90,9 +100,15 @@ class UGateGeneric(OneQubitGate):
     def set_target_matrix(self, uMatrix):
         """this API sets the raw matrix that corresponds to the U gate
             the client should use this API whenever she creates a UGateGeneric object!
+            Args:
+                uMatrix (Matrix): set the matrix that corresponds to the gate
         """
         self._uMat = uMatrix
     def get_target_matrix(self, format='sympy'):
+        """return the Matrix that corresponds to the gate
+        Returns:
+            Matrix: the matrix that corresponds to the gate
+        """
         return self._uMat
 
 
@@ -124,11 +140,11 @@ class SympyQasmSimulator(BaseBackend):
 
     @staticmethod
     def _conjugate_square(com):
-        """simpler helper for computing A*conjugate(A), where A is a complex number
+        """simpler helper for returning com*conjugate(com), where com is a complex number
             Args:
                 com (object): a complex number
             Returns:
-                object: result
+                object: com*conjugate(com)
         """
         return im(com)**2 + re(com)**2
 
@@ -287,9 +303,9 @@ class SympyQasmSimulator(BaseBackend):
     @staticmethod
     def regulate(theta):
         """helper for U gate. find the symbolic values for
-                    the floating parameters in U gates, e.g., 3.14 -> pi
+                    the float parameters in U gates, e.g., 3.14 -> pi
         Args:
-            theta (float or the sympy form): it may be the float value (e.g., 3.14)
+            theta (float or the symbolic form): it may be the float value (e.g., 3.14)
                                                 or the symbolic value (e.g., pi)
         Returns:
             object: the regulated theta or the original theta if it cannot be regulated.
@@ -312,11 +328,11 @@ class SympyQasmSimulator(BaseBackend):
 
     @staticmethod
     def compute_ugate_matrix(parafloatlist):
-        """compute the ugate matrix
+        """compute the matrix associated with a parameterized U gate
         Args:
-            parafloatlist (list): parameters carried by the parameters
+            parafloatlist (list): parameters carried by the U gate
         Returns:
-            Matrix: Matrix is a type from sympy. Each entry in it can be in the symbolic form.
+            Matrix: the matrix associated with a parameterized U gate
         """
         theta = parafloatlist[0]
         phi = parafloatlist[1]
@@ -343,7 +359,7 @@ class SympyQasmSimulator(BaseBackend):
             qid_tuple (tuple): the ids of the qubits being operated on
             params (list): optional parameter lists, which may be needed by the U gates.
         Returns:
-            object: the sympy representation of the gate being applied to the qubits
+            object: (the sympy representation of) the gate being applied to the qubits
         Raises:
             Exception: if an unsupported operation is seen
         """
@@ -378,7 +394,7 @@ class SympyQasmSimulator(BaseBackend):
         if the_gate is not None:
             return the_gate
 
-        # U gate or CU gate
+        # U gate, CU gate or measure gate handled below
         if name.startswith('U') or name.startswith('CU'):
             parafloatlist = params
 
