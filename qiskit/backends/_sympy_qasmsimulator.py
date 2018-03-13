@@ -239,7 +239,10 @@ class SympyQasmSimulator(BaseBackend):
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
                 opname = operation['name'].upper()
-                opparas = operation['params']
+                if 'params' in operation:
+                    opparas = operation['params']
+                else:
+                    opparas = None
                 q0q1tuple = tuple([qubit0, qubit1])
                 _sym_op = SympyQasmSimulator.get_sym_op(opname, q0q1tuple, opparas)
                 self._quantum_state = qapply(_sym_op * self._quantum_state)
