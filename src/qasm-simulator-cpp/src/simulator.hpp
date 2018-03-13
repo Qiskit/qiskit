@@ -81,8 +81,13 @@ public:
 
   // Initialize a simulator from a qobj
   void load_json(const json_t &input);
+  inline void load_file(const std::string file) {
+    json_t js = JSON::load(file);
+    load_json(js);
+  };
+  
   inline void load_string(const std::string &input) {
-    json_t js = JSON::load(name);
+    json_t js = json_t::parse(input);
     load_json(js);
   };
   bool check_qobj(const json_t &qobj);

@@ -21,7 +21,6 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import json
 import logging
-import numbers
 import os
 import subprocess
 from subprocess import PIPE
@@ -156,6 +155,7 @@ class QASMSimulatorDecoder(json.JSONDecoder):
     """
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
     def object_hook(self, obj):
         for key in ['U_error', 'density_matrix']:
             # JSON is a complex matrix
