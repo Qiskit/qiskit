@@ -756,7 +756,7 @@ class DAGCircuit:
                 out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
         if not decls_only:
-            for n in nx.topological_sort(self.multi_graph):
+            for n in nx.lexicographical_topological_sort(self.multi_graph):
                 nd = self.multi_graph.node[n]
                 if nd["type"] == "op":
                     if nd["condition"] is not None:
@@ -1121,7 +1121,8 @@ class DAGCircuit:
         node_map = copy.deepcopy(self.input_map)
         # wires_with_ops_remaining is a set of wire names that have
         # operations we still need to assign to layers
-        wires_with_ops_remaining = set(self.input_map.keys())
+        wires_with_ops_remaining = sorted(set(self.input_map.keys()))
+
         while wires_with_ops_remaining:
             # Create a new circuit graph and populate with regs and basis
             new_layer = DAGCircuit()
