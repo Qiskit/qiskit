@@ -87,9 +87,9 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
         # saving
         if k % save_steps == 0:
             print('objective function at theta+ for step # ' + str(k))
-            print(cost_plus)
+            print("%.7f" % cost_plus)
             print(('objective function at theta- for step # ' + str(k)))
-            print(cost_minus)
+            print("%.7f" % cost_minus)
             theta_plus_save.append(theta_plus)
             theta_minus_save.append(theta_minus)
             cost_plus_save.append(cost_plus)
@@ -100,7 +100,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
 
     # final cost update
     cost_final = obj_fun(theta_best)
-    print('Final objective function is: ' + str(cost_final))
+    print('Final objective function is: %.7f' % cost_final)
     return [cost_final, theta_best, cost_plus_save, cost_minus_save,
             theta_plus_save, theta_minus_save]
 
@@ -139,7 +139,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
     SPSA_parameters[0] = target_update * 2 / delta_obj \
         * SPSA_parameters[1] * (SPSA_parameters[4] + 1)
 
-    print('calibrated SPSA_parameters[0] is ' + str(SPSA_parameters[0]))
+    print('calibrated SPSA_parameters[0] is %.7f' % SPSA_parameters[0])
 
     return SPSA_parameters
 
@@ -264,7 +264,7 @@ def print_pauli_list_grouped(pauli_list_grouped):
         print(str(pauli_list_grouped[i][0][0]) + '\n')
         for j in range((len(pauli_list_grouped[i]) - 1)):
             print(pauli_list_grouped[i][j + 1][1].to_label())
-            print(pauli_list_grouped[i][j + 1][0])
+            print("%.7f" % pauli_list_grouped[i][j + 1][0])
 
         print('\n')
 

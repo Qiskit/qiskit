@@ -27,13 +27,14 @@ from setuptools.dist import Distribution
 
 
 requirements = [
-    "IBMQuantumExperience>=1.8.26",
+    "IBMQuantumExperience>=1.8.28",
     "matplotlib>=2.1,<2.2",
-    "networkx>=1.11,<2.1",
+    "networkx>=2.0,<2.1",
     "numpy>=1.13,<1.15",
     "ply==3.10",
     "scipy>=0.19,<1.1",
-    "sympy>=1.0"
+    "sympy>=1.0",
+    "pillow>=4.2.1"
 ]
 
 
