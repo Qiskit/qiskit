@@ -683,7 +683,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"):
+def plot_circuit(circuit, basis="u1,u2,u3,id,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,cx,cy,cz,swap,ch,ccx,crz,cu1,cu3"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -696,7 +696,7 @@ def plot_circuit(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"):
         im.show()
 
 
-def circuit_drawer(circuit, basis="u1,u2,u3,id,cx,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"):
+def circuit_drawer(circuit, basis="u1,u2,u3,id,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,cx,cy,cz,swap,ch,ccx,crz,cu1,cu3"):
     """Obtain the circuit in image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -1244,7 +1244,7 @@ class QCircuitImage(object):
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
-                                    self._latex[pos_2][columns] = "\\qwx"
+                                    self._latex[pos_2][columns] = "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -1302,7 +1302,7 @@ class QCircuitImage(object):
                                     self._latex[pos_2][columns] = "\\gate{H}"
                                 elif nm == "swap":
                                     self._latex[pos_1][columns] = "\\qswap"
-                                    self._latex[pos_2][columns] = "\\qwx"
+                                    self._latex[pos_2][columns] = "\\qswap \\qwx[" + str(pos_2 - pos_1) + "]"
                                 elif nm == "crz":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_1 - pos_2) + "}"
@@ -1361,7 +1361,7 @@ class QCircuitImage(object):
                                 self._latex[pos_2][columns] = "\\gate{H}"
                             elif nm == "swap":
                                 self._latex[pos_1][columns] = "\\qswap"
-                                self._latex[pos_2][columns] = "\\qwx"
+                                self._latex[pos_2][columns] = "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                             elif nm == "crz":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][columns] = \
