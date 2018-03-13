@@ -1265,14 +1265,14 @@ class QCircuitImage(object):
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = \
-                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                        "\\gate{U_1(%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                     self._latex[pos_2][columns] = \
-                                        "\\gate{U(%s,%s,%s)}" % (op["texparams"][0],
-                                                                 op["texparams"][1],
-                                                                 op["texparams"][2])
+                                        "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
+                                                                   op["texparams"][1],
+                                                                   op["texparams"][2])
 
                                 gap = pos_3 - pos_1
                                 for i in range(self.cregs[if_reg]):
@@ -1324,11 +1324,11 @@ class QCircuitImage(object):
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_1 - pos_2) + "}"
                                     self._latex[pos_2][columns] = \
-                                        "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                        "\\gate{U_1(%s)}" % (op["texparams"][0])
                                 elif nm == "cu3":
                                     self._latex[pos_1][columns] = \
                                         "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                    self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                    self._latex[pos_2][columns] = "\\gate{U_3(%s,%s,%s)}" \
                                         % (op["texparams"][0], op["texparams"][1],
                                            op["texparams"][2])
 
@@ -1382,10 +1382,10 @@ class QCircuitImage(object):
                             elif nm == "cu1":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][columns] = \
-                                    "\\gate{U(0,0,%s)}" % (op["texparams"][0])
+                                    "\\gate{U_1(%s)}" % (op["texparams"][0])
                             elif nm == "cu3":
                                 self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{U(%s,%s,%s)}" \
+                                self._latex[pos_2][columns] = "\\gate{U_3(%s,%s,%s)}" \
                                     % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
 
                     elif len(qarglist) == 3:
