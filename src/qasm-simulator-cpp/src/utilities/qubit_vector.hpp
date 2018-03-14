@@ -36,11 +36,14 @@ limitations under the License.
 
 #include "tensor_index.hpp" // multipartite qubit indexing
 
+namespace QV {
+
 // Types
-using uint_t = unsigned long long int;
+using uint_t = uint64_t;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
+using TI::TensorIndex;
 
 // OpenMP reduction for complex type
 #pragma omp declare reduction(+:complex_t:omp_out += omp_in) 
@@ -1606,6 +1609,6 @@ double QubitVector::probability(const std::vector<uint_t> &qs,
   }
   return p;
 }
-
 //------------------------------------------------------------------------------
+} // end namespace QV
 #endif // end module

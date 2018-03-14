@@ -30,8 +30,9 @@ limitations under the License.
 #include <vector>
 #include <cstdint>
 
+namespace TI {
 // Types
-using uint_t = uint64_t;
+  using uint_t = uint64_t;
 
 // TODO -- add support for qudit indexing
 
@@ -197,4 +198,5 @@ TensorIndex::indexes_dynamic(const std::vector<uint_t> &qs,
 }
 
 //------------------------------------------------------------------------------
+} // end namespace TI
 #endif // end module
