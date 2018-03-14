@@ -89,6 +89,29 @@ qobj = {
                     {"name": "measure", "qubits": [1], "clbits": [1]}
                 ]
             }
+        },
+        {
+            "name": "bell measure",
+            "config": {
+                "noise_params": {
+                    "CX": {"p_pauli": [0.1 / 16 for _ in range(15)]},
+                    "X90": {"p_pauli": [0.01 / 4 for _ in range(3)]}
+                }
+            },
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "cx", "qubits": [0, 1]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [1], "clbits": [1]}
+                ]
+            }
         }
     ]
 }

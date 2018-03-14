@@ -26,9 +26,6 @@ if sys.platform == 'darwin':
     compile_args.append(min_macos_version)
     link_args.append(min_macos_version)
 
-    # Link to Apple Accelerate framework for BLAS
-    link_args += ['-Wl,-framework', '-Wl,Accelerate']
-
     # Check for OpenMP compatible GCC compiler
     for gcc in ['g++-7', 'g++-6', 'g++-5']:
         path = find_executable(gcc)
@@ -41,9 +38,6 @@ if sys.platform == 'darwin':
             break
 else:
     compile_args.append('-fopenmp')
-    link_args += ['-fopenmp', '-llapack', '-lblas']
-    # TODO Check BLAS linkage for Windows and Linux
-    # TODO Link to Anaconda MKL if available
 
 # Simulator extension
 qasm_simulator = Extension('qasm_simulator',
