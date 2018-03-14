@@ -27,7 +27,6 @@ limitations under the License.
 #include <bitset>
 #include <chrono>
 #include <complex>
-#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -46,8 +45,8 @@ limitations under the License.
  ******************************************************************************/
 
 // Numeric Types
-using int_t = int64_t;
-using uint_t = uint64_t;
+using int_t = long long;
+using uint_t = unsigned long long;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;

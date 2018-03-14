@@ -27,6 +27,9 @@ limitations under the License.
 
 #include "binary_vector.hpp"
 
+// Types
+using BV::BinaryVector;
+using BV::uint_t;
 
 /*******************************************************************************
  *
