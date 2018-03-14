@@ -42,7 +42,7 @@ class TestAnonymousIds(QiskitTestCase):
     # Tests to initiate an build a quantum program with anonymous ids
     ###############################################################
 
-    def test_create_program_with_specsnonames(self):
+    def test_create_program_with_specs_nonames(self):
         """Test Quantum Object Factory creation using Specs definition
         object with no names for circuit nor records.
         """

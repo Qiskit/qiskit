@@ -190,7 +190,7 @@ class QuantumProgram(object):
 
         Args:
             name (hashable or None): the name of the quantum register. If None, an
-            identifier will be assigned.
+                automatically generated identifier will be assigned.
             size (int): the size of the quantum register
 
         Returns:
@@ -208,7 +208,7 @@ class QuantumProgram(object):
             return self.__quantum_registers[name]
 
         if name is None:
-            name = self._create_id('q%i', self.__quantum_registers)
+            name = self._create_id('q', self.__quantum_registers)
 
         self.__quantum_registers[name] = QuantumRegister(name, size)
         logger.info(">> new quantum_register created: %s %s", name, size)
@@ -218,7 +218,7 @@ class QuantumProgram(object):
         """Destroy an existing Quantum Register.
 
         Args:
-            name (str): the name of the quantum register
+            name (hashable): the name of the quantum register
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -270,7 +270,7 @@ class QuantumProgram(object):
 
         Args:
             name (hashable or None): the name of the classical register. If None, an
-             identifier will be assigned.
+                automatically generated identifier will be assigned.
             size (int): the size of the classical register
         Returns:
             ClassicalRegister: internal reference to a classical register
@@ -287,7 +287,7 @@ class QuantumProgram(object):
             return self.__classical_registers[name]
 
         if name is None:
-            name = self._create_id('c%i', self.__classical_registers)
+            name = self._create_id('c', self.__classical_registers)
 
         self.__classical_registers[name] = ClassicalRegister(name, size)
         logger.info(">> new classical register created: %s %s", name, size)
@@ -318,7 +318,7 @@ class QuantumProgram(object):
         """Destroy an existing Classical Register.
 
         Args:
-            name (str): the name of the classical register
+            name (hashable): the name of the classical register
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -348,7 +348,7 @@ class QuantumProgram(object):
 
         Args:
             name (hashable or None): the name of the circuit. If None, an
-                identifier will be assigned.
+                automatically generated identifier will be assigned.
             qregisters (list(QuantumRegister)): is an Array of Quantum
                 Registers by object reference
             cregisters (list(ClassicalRegister)): is an Array of Classical
@@ -359,7 +359,7 @@ class QuantumProgram(object):
                 Quantum Program
         """
         if name is None:
-            name = self._create_id('qc%i', self.__quantum_program.keys())
+            name = self._create_id('qc', self.__quantum_program.keys())
         if not qregisters:
             qregisters = []
         if not cregisters:
@@ -379,7 +379,7 @@ class QuantumProgram(object):
         destroy any registers associated with the circuit.
 
         Args:
-            name (str): the name of the circuit
+            name (hashable): the name of the circuit
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -393,15 +393,24 @@ class QuantumProgram(object):
 
         Args:
             name (hashable or None): the name of the circuit to add. If None, an
-                identifier will be assigned.
+                automatically generated identifier will be assigned to the
+                circuit.
             quantum_circuit (QuantumCircuit): a quantum circuit to add to the
                 program-name
+        Raises:
+            QISKitError: if `quantum_circuit` is None, as the attribute is
+                optional only for not breaking backwards compatibility (as
+                it is placed after an optional argument).
         """
+        if quantum_circuit is None:
+            raise QISKitError('quantum_circuit is required when invoking '
+                              'add_circuit')
         if name is None:
             if quantum_circuit.name:
                 name = quantum_circuit.name
             else:
-                name = quantum_circuit.name = self._create_id('qc%i', self.__quantum_program.keys())
+                name = self._create_id('qc', self.__quantum_program.keys())
+                quantum_circuit.name = name
         for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
         for cname, creg in quantum_circuit.get_cregs().items():
@@ -484,7 +493,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_quantum_register_names(), "a quantum register")
+            name = self._get_single_item(self.get_quantum_register_names(), "a quantum register")
         try:
             return self.__quantum_registers[name]
         except KeyError:
@@ -504,21 +513,12 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_classical_register_names(), "a classical register")
+            name = self._get_single_item(self.get_classical_register_names(),
+                                         "a classical register")
         try:
             return self.__classical_registers[name]
         except KeyError:
             raise KeyError('No classical register "{0}"'.format(name))
-
-    @staticmethod
-    def get_single_name(list_of_names, str_what="from the list"):
-        '''Selects the only element of the list list_of_names or raise if there is more than one
-        (or None)'''
-        if len(list_of_names) == 1:
-            return list_of_names[0]
-        else:
-            raise QISKitError("You have to select %s to get when there is more"
-                              "than one available" % str_what)
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
@@ -542,7 +542,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         try:
             return self.__quantum_program[name]
         except KeyError:
@@ -566,7 +566,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         quantum_circuit = self.get_circuit(name)
         return quantum_circuit.qasm()
 
@@ -574,8 +574,8 @@ class QuantumProgram(object):
         """Get qasm format of circuit by list of names.
 
         Args:
-            list_circuit_name (list[str] or None): names of the circuit. If None, it gets all the
-                circuits in the program.
+            list_circuit_name (list[hashable] or None): names of the circuit.
+                If None, it gets all the circuits in the program.
 
         Returns:
             list(QuantumCircuit): List of quantum circuit in qasm format
@@ -1385,13 +1385,6 @@ class QuantumProgram(object):
                                      callback=callback)
         job_processor.submit()
 
-    def _create_id(self, formatstring, existing):
-        i = next(self.__counter)
-        formatstring = "autoid_" + formatstring
-        if formatstring % i not in existing:
-            return formatstring % i
-        raise QISKitError("Anonymous identifier was not possible to be created")
-
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
@@ -1403,8 +1396,8 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[str] or None): circuit names to be executed.
-                If None, all the circuits will be executed.
+            name_of_circuits (list[hashable] or None): circuit names to be
+                executed. If None, all the circuits will be executed.
             backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
                 compiler.
@@ -1465,3 +1458,54 @@ class QuantumProgram(object):
                             hpc=hpc)
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result
+
+    ###############################################################
+    # utility methods
+    ###############################################################
+
+    @staticmethod
+    def _get_single_item(items, item_description="an item"):
+        """
+        Return the first and only element of `items`, raising an error
+        otherwise.
+
+        Args:
+            items (list): list of items.
+            item_description (string): text description of the item type.
+
+        Returns:
+            object: the first and only element of `items`.
+
+        Raises:
+            QISKitError: if the list does not have exactly one item.
+        """
+        if len(items) == 1:
+            return items[0]
+        else:
+            raise QISKitError(
+                "The name of %s needs to be explicitly indicated, as there is "
+                "more than one available" % item_description)
+
+    def _create_id(self, infix, existing_ids):
+        """
+        Return an automatically generated identifier, increased sequentially
+        based on the internal `_counter` generator, with the form
+        "autoid_[infix][numeric_id]" (ie. "autoid_q2").
+
+        Args:
+            infix (str): string to be prepended to the numeric id.
+            existing_ids (iterable): list of ids that should be checked for
+                duplicates.
+
+        Returns:
+            str: the new identifier.
+
+        Raises:
+            QISKitError: if the identifier is already in `existing_ids`.
+        """
+        i = next(self.__counter)
+        identifier = "autoid_%s%i" % (infix, i)
+        if identifier not in existing_ids:
+            return identifier
+        raise QISKitError("The automatically generated identifier '%s' already "
+                          "exists" % identifier)
