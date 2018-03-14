@@ -44,9 +44,9 @@ class SGate(CompositeGate):
         qubit = self.data[0].arg[0]
         phi = self.data[0].param[0]
         if phi > 0:
-            return self.data[0]._qasmif("s %s[%d];" % (qubit[0].name, qubit[1]))
+            return self.data[0]._qasmif("s %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
 
-        return self.data[0]._qasmif("sdg %s[%d];" % (qubit[0].name, qubit[1]))
+        return self.data[0]._qasmif("sdg %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
 
 
 def s(self, q):

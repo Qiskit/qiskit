@@ -41,7 +41,7 @@ class U2Gate(Gate):
         phi = self.param[0]
         lam = self.param[1]
         return self._qasmif("u2(%s,%s) %s[%d];" % (phi, lam,
-                                                   qubit[0].name,
+                                                   qubit[0].openqasm_name,
                                                    qubit[1]))
 
     def inverse(self):

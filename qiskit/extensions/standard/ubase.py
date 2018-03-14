@@ -38,7 +38,7 @@ class UBase(Gate):
         lamb = self.param[2]
         qubit = self.arg[0]
         return self._qasmif("U(%s,%s,%s) %s[%d];" % (
-            theta, phi, lamb, qubit[0].name, qubit[1]))
+            theta, phi, lamb, qubit[0].openqasm_name, qubit[1]))
 
     def inverse(self):
         """Invert this gate.

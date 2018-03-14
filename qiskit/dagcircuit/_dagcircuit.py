@@ -472,13 +472,12 @@ class DAGCircuit:
             if k[0] in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
-            rname = ",".join(map(str, k))
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("wire_map fragments reg %s" % rname)
+                raise DAGCircuitError("wire_map fragments reg %s" % k)
             elif s == set([False]):
                 if k in self.qregs or k in self.cregs:
-                    raise DAGCircuitError("unmapped duplicate reg %s" % rname)
+                    raise DAGCircuitError("unmapped duplicate reg %s" % k)
                 else:
                     # Add registers that appear only in keyregs
                     add_regs.add((k, keyregs[k]))

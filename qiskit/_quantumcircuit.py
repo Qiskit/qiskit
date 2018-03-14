@@ -35,8 +35,9 @@ class QuantumCircuit(object):
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
 
-    def __init__(self, *regs):
+    def __init__(self, *regs, name=None):
         """Create a new circuit."""
+        self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
@@ -81,11 +82,15 @@ class QuantumCircuit(object):
 
         Return self + rhs as a new object.
         """
+        if self.name is not None and rhs.name is not None:
+            circuit_name = "c%sN%s" % (self.name, rhs.name)
+        else:
+            circuit_name = None
         for register in rhs.regs.values():
             if not self.has_register(register):
                 raise QISKitError("circuits are not compatible")
         circuit = QuantumCircuit(
-            *[register for register in self.regs.values()])
+            *[register for register in self.regs.values()], name=circuit_name)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
