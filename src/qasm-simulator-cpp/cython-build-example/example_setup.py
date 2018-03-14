@@ -38,6 +38,8 @@ if sys.platform == 'darwin':
             break
 else:
     compile_args.append('-fopenmp')
+    link_args.append('-fopenmp')
+    link_args += ['-lblas', '-llapack']
 
 # Simulator extension
 qasm_simulator = Extension('qasm_simulator',
