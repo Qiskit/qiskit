@@ -1273,7 +1273,6 @@ class QCircuitImage(object):
                                         "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
                                                                    op["texparams"][1],
                                                                    op["texparams"][2])
-
                                 gap = pos_3 - pos_1
                                 for i in range(self.cregs[if_reg]):
                                     if if_value[i] == '1':
