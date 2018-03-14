@@ -49,17 +49,19 @@ limitations under the License.
 using int_t = int64_t;
 using uint_t = uint64_t;
 using complex_t = std::complex<double>;
+using cvector_t = std::vector<complex_t>;
+using rvector_t = std::vector<double>;
+using cmatrix_t = matrix<complex_t>;
+using rmatrix_t = matrix<double>;
 
 // Timer
 using myclock_t = std::chrono::system_clock;
 
-// Register Types
+// Custom Classes
 using QV::QubitVector;
-using cvector_t = std::vector<complex_t>;
-using rvector_t = std::vector<double>;
+
+// Register Types
 using svector_t = std::vector<std::string>;
-using cmatrix_t = matrix<complex_t>;
-using rmatrix_t = matrix<double>;
 using creg_t = std::vector<uint_t>;
 using cket_t = std::map<std::string, complex_t>;
 using rket_t = std::map<std::string, double>;

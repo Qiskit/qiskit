@@ -26,9 +26,8 @@ limitations under the License.
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <cstdint>
 
-using uint_t = unsigned long long;
-using int_t = long long;
 
 /*******************************************************************************
  *
@@ -37,39 +36,39 @@ using int_t = long long;
  ******************************************************************************/
 class BinaryVector {
 private:
-  uint_t m_length;
-  std::vector<uint_t> m_data;
+  uint64_t m_length;
+  std::vector<uint64_t> m_data;
 
 public:
   const static size_t blockSize = 64; // 64-bit blocks
 
   BinaryVector() : m_length(0), m_data(0){};
 
-  BinaryVector(uint_t length)
+  BinaryVector(uint64_t length)
       : m_length(length), m_data((length - 1) / blockSize + 1, 0){};
 
-  BinaryVector(std::vector<uint_t> mdata)
+  BinaryVector(std::vector<uint64_t> mdata)
       : m_length(mdata.size()), m_data(mdata){};
 
   BinaryVector(std::string);
 
-  bool setLength(uint_t length);
+  bool setLength(uint64_t length);
 
   void setVector(std::string);
-  void setValue(bool value, uint_t pos);
+  void setValue(bool value, uint64_t pos);
 
-  void set0(uint_t pos) { setValue(0, pos); };
-  void set1(uint_t pos) { setValue(1, pos); };
+  void set0(uint64_t pos) { setValue(0, pos); };
+  void set1(uint64_t pos) { setValue(1, pos); };
 
-  void flipAt(uint_t pos);
+  void flipAt(uint64_t pos);
 
   BinaryVector &operator+=(const BinaryVector &rhs);
 
-  bool operator[](const uint_t pos) const;
+  bool operator[](const uint64_t pos) const;
 
   void swap(BinaryVector &rhs);
 
-  uint_t getLength() const { return m_length; };
+  uint64_t getLength() const { return m_length; };
 
   inline void makeZero() { m_data.assign((m_length - 1) / blockSize + 1, 0ul); }
 
@@ -78,8 +77,8 @@ public:
   bool isSame(const BinaryVector &rhs) const;
   bool isSame(const BinaryVector &rhs, bool pad) const;
 
-  std::vector<uint_t> nonzeroIndices() const;
-  inline std::vector<uint_t> getData() const { return m_data; };
+  std::vector<uint64_t> nonzeroIndices() const;
+  inline std::vector<uint64_t> getData() const { return m_data; };
 };
 
 /*******************************************************************************
@@ -121,9 +120,9 @@ inline long gauss_eliminate(std::vector<BinaryVector> &M,
   return rank;
 }
 
-inline std::vector<uint_t> string_to_bignum(std::string val, uint_t blockSize,
-                                            uint_t base) {
-  std::vector<uint_t> ret;
+inline std::vector<uint64_t> string_to_bignum(std::string val, uint64_t blockSize,
+                                            uint64_t base) {
+  std::vector<uint64_t> ret;
   if (blockSize * log2(base) > 64) {
     throw std::runtime_error(
         std::string("block size is greater than 64-bits for current case"));
@@ -131,7 +130,7 @@ inline std::vector<uint_t> string_to_bignum(std::string val, uint_t blockSize,
   auto n = val.size();
   auto blocks = n / blockSize;
   auto tail = n % blockSize;
-  for (uint_t j = 0; j != blocks; ++j)
+  for (uint64_t j = 0; j != blocks; ++j)
     ret.push_back(
         stoull(val.substr(n - (j + 1) * blockSize, blockSize), 0, blockSize));
   if (tail > 0)
@@ -139,7 +138,7 @@ inline std::vector<uint_t> string_to_bignum(std::string val, uint_t blockSize,
   return ret;
 }
 
-inline std::vector<uint_t> string_to_bignum(std::string val) {
+inline std::vector<uint64_t> string_to_bignum(std::string val) {
   std::string type = val.substr(0, 2);
   if (type == "0b" || type == "0B")
     // Binary string
@@ -165,7 +164,7 @@ BinaryVector::BinaryVector(std::string val) {
   m_length = m_data.size();
 }
 
-bool BinaryVector::setLength(uint_t length) {
+bool BinaryVector::setLength(uint64_t length) {
   if (length == 0)
     return false;
   if (m_length > 0)
@@ -175,7 +174,7 @@ bool BinaryVector::setLength(uint_t length) {
   return true;
 }
 
-void BinaryVector::setValue(bool value, uint_t pos) {
+void BinaryVector::setValue(bool value, uint64_t pos) {
   auto q = pos / blockSize;
   auto r = pos % blockSize;
   if (value)
@@ -184,7 +183,7 @@ void BinaryVector::setValue(bool value, uint_t pos) {
     m_data[q] &= ~(1 << r);
 }
 
-void BinaryVector::flipAt(const uint_t pos) {
+void BinaryVector::flipAt(const uint64_t pos) {
   auto q = pos / blockSize;
   auto r = pos % blockSize;
   m_data[q] ^= (1 << r);
@@ -197,14 +196,14 @@ BinaryVector &BinaryVector::operator+=(const BinaryVector &rhs) {
   return (*this);
 }
 
-bool BinaryVector::operator[](const uint_t pos) const {
+bool BinaryVector::operator[](const uint64_t pos) const {
   auto q = pos / blockSize;
   auto r = pos % blockSize;
   return ((m_data[q] & (1 << r)) != 0);
 }
 
 void BinaryVector::swap(BinaryVector &rhs) {
-  uint_t tmp;
+  uint64_t tmp;
   tmp = rhs.m_length;
   rhs.m_length = m_length;
   m_length = tmp;
@@ -255,8 +254,8 @@ bool BinaryVector::isSame(const BinaryVector &rhs, bool pad) const {
   }
 }
 
-std::vector<uint_t> BinaryVector::nonzeroIndices() const {
-  std::vector<uint_t> result;
+std::vector<uint64_t> BinaryVector::nonzeroIndices() const {
+  std::vector<uint64_t> result;
   size_t i = 0;
   while (i < m_data.size()) {
     while (m_data[i] == 0) {
@@ -272,12 +271,11 @@ std::vector<uint_t> BinaryVector::nonzeroIndices() const {
       }
       if (r >= blockSize)
         break;
-      result.push_back((uint_t)(i)*blockSize + r);
+      result.push_back((uint64_t)(i)*blockSize + r);
       r++;
     }
     i++;
   }
   return result;
 }
-
 #endif

@@ -30,10 +30,6 @@ limitations under the License.
 #include <vector>
 #include <cstdint>
 
-namespace TI {
-// Types
-  using uint_t = uint64_t;
-
 // TODO -- add support for qudit indexing
 
 /*******************************************************************************
@@ -60,33 +56,33 @@ public:
   /***************************
    * Dynamic Indexing (slower)
    ***************************/
-  uint_t index0_dynamic(const std::vector<uint_t> &qubits_sorted, const size_t N,
-                        const uint_t k) const;
-  std::vector<uint_t> indexes_dynamic(const std::vector<uint_t> &qubitss,
-                                      const std::vector<uint_t> &qubits_sorted,
-                                      const size_t N, const uint_t k) const;
+  uint64_t index0_dynamic(const std::vector<uint64_t> &qubits_sorted, const size_t N,
+                        const uint64_t k) const;
+  std::vector<uint64_t> indexes_dynamic(const std::vector<uint64_t> &qubitss,
+                                      const std::vector<uint64_t> &qubits_sorted,
+                                      const size_t N, const uint64_t k) const;
 
   /***************************
    * Static Indexing (faster)
    ***************************/
   template <size_t N>
-  uint_t index0_static(const std::array<uint_t, N> &qubits_sorted, const uint_t k) const;
+  uint64_t index0_static(const std::array<uint64_t, N> &qubits_sorted, const uint64_t k) const;
 
   template <size_t N>
-  std::array<uint_t, 1ULL << N> indexes_static(const std::array<uint_t, N> &qubitss,
-                                               const std::array<uint_t, N> &qubits_sorted,
-                                               const uint_t k) const;
-  std::array<uint_t, 4> indexes_static(const std::array<uint_t, 2> &qubits,
-                                       const std::array<uint_t, 2> &qubits_sorted,
-                                       const uint_t k) const;
+  std::array<uint64_t, 1ULL << N> indexes_static(const std::array<uint64_t, N> &qubitss,
+                                               const std::array<uint64_t, N> &qubits_sorted,
+                                               const uint64_t k) const;
+  std::array<uint64_t, 4> indexes_static(const std::array<uint64_t, 2> &qubits,
+                                       const std::array<uint64_t, 2> &qubits_sorted,
+                                       const uint64_t k) const;
 
-  std::array<uint_t, 2> indexes_static(const std::array<uint_t, 1> &qubits,
-                                const std::array<uint_t, 1> &qubits_sorted,
-                                const uint_t k) const;
+  std::array<uint64_t, 2> indexes_static(const std::array<uint64_t, 1> &qubits,
+                                const std::array<uint64_t, 1> &qubits_sorted,
+                                const uint64_t k) const;
 
 protected:
-  std::array<uint_t, 64> masks;
-  std::array<uint_t, 64> bits;
+  std::array<uint64_t, 64> masks;
+  std::array<uint64_t, 64> bits;
 };
 
 
@@ -103,9 +99,9 @@ protected:
 
 TensorIndex::TensorIndex() {
   // initialize masks
-  for (uint_t i = 0; i < 64; i++)
+  for (uint64_t i = 0; i < 64; i++)
     masks[i] = (1ULL << i) - 1;
-  for (uint_t i = 0; i < 64; i++)
+  for (uint64_t i = 0; i < 64; i++)
     bits[i] = (1ULL << i);
 }
 
@@ -114,25 +110,25 @@ TensorIndex::TensorIndex() {
 //------------------------------------------------------------------------------
 
 template <size_t N>
-uint_t TensorIndex::index0_static(const std::array<uint_t, N> &qubits_sorted,
-                                 const uint_t k) const {
-  uint_t lowbits = 0, mask = 0;
+uint64_t TensorIndex::index0_static(const std::array<uint64_t, N> &qubits_sorted,
+                                 const uint64_t k) const {
+  uint64_t lowbits = 0, mask = 0;
   for (size_t j = 0; j < N; j++) {
     mask ^= masks[qubits_sorted[j] - j];
     lowbits |= (k & mask) << j;
   }
-  uint_t retval = k >> (qubits_sorted[N - 1] - N + 1);
+  uint64_t retval = k >> (qubits_sorted[N - 1] - N + 1);
   retval <<= (qubits_sorted[N - 1] + 1);
   retval |= lowbits;
   return retval;
 }
 
 template <size_t N>
-std::array<uint_t, 1ULL << N>
-TensorIndex::indexes_static(const std::array<uint_t, N> &qs,
-                            const std::array<uint_t, N> &qubits_sorted,
-                            const uint_t k) const {
-  std::array<uint_t, 1ULL << N> ret;
+std::array<uint64_t, 1ULL << N>
+TensorIndex::indexes_static(const std::array<uint64_t, N> &qs,
+                            const std::array<uint64_t, N> &qubits_sorted,
+                            const uint64_t k) const {
+  std::array<uint64_t, 1ULL << N> ret;
   ret[0] = index0_static<N>(qubits_sorted, k);
   for (size_t i = 0; i < N; i++) {
     const auto n = 1ULL << i;
@@ -143,21 +139,21 @@ TensorIndex::indexes_static(const std::array<uint_t, N> &qs,
   return ret;
 }
 
-std::array<uint_t, 2>
-TensorIndex::indexes_static(const std::array<uint_t, 1> &qs,
-                           const std::array<uint_t, 1> &qubits_sorted,
-                           const uint_t k) const {
-  std::array<uint_t, 2> ret;
+std::array<uint64_t, 2>
+TensorIndex::indexes_static(const std::array<uint64_t, 1> &qs,
+                           const std::array<uint64_t, 1> &qubits_sorted,
+                           const uint64_t k) const {
+  std::array<uint64_t, 2> ret;
   ret[0] = index0_static(qubits_sorted, k);
   ret[1] = ret[0] | bits[qs[0]];
   return ret;
 }
 
-std::array<uint_t, 4>
-TensorIndex::indexes_static(const std::array<uint_t, 2> &qs,
-                           const std::array<uint_t, 2> &qubits_sorted,
-                           const uint_t k) const {
-  std::array<uint_t, 4> ret;
+std::array<uint64_t, 4>
+TensorIndex::indexes_static(const std::array<uint64_t, 2> &qs,
+                           const std::array<uint64_t, 2> &qubits_sorted,
+                           const uint64_t k) const {
+  std::array<uint64_t, 4> ret;
   ret[0] = index0_static(qubits_sorted, k);
   ret[1] = ret[0] | bits[qs[0]];
   ret[2] = ret[0] | bits[qs[1]];
@@ -169,24 +165,24 @@ TensorIndex::indexes_static(const std::array<uint_t, 2> &qs,
 // Dynamic Indexing
 //------------------------------------------------------------------------------
 
-uint_t TensorIndex::index0_dynamic(const std::vector<uint_t> &qubits_sorted, const size_t N,
-                                   const uint_t k) const {
-  uint_t lowbits = 0, mask = 0;
+uint64_t TensorIndex::index0_dynamic(const std::vector<uint64_t> &qubits_sorted, const size_t N,
+                                   const uint64_t k) const {
+  uint64_t lowbits = 0, mask = 0;
   for (size_t j = 0; j < N; j++) {
     mask ^= masks[qubits_sorted[j] - j];
     lowbits |= (k & mask) << j;
   }
-  uint_t retval = k >> (qubits_sorted[N - 1] - N + 1);
+  uint64_t retval = k >> (qubits_sorted[N - 1] - N + 1);
   retval <<= (qubits_sorted[N - 1] + 1);
   retval |= lowbits;
   return retval;
 }
 
-std::vector<uint_t>
-TensorIndex::indexes_dynamic(const std::vector<uint_t> &qs,
-                             const std::vector<uint_t> &qubits_sorted, const size_t N,
-                           const uint_t k) const {
-  std::vector<uint_t> ret(1ULL << N);
+std::vector<uint64_t>
+TensorIndex::indexes_dynamic(const std::vector<uint64_t> &qs,
+                             const std::vector<uint64_t> &qubits_sorted, const size_t N,
+                           const uint64_t k) const {
+  std::vector<uint64_t> ret(1ULL << N);
   ret[0] = index0_dynamic(qubits_sorted, N, k);
   for (size_t i = 0; i < N; i++) {
     const auto n = 1ULL << i;
@@ -198,5 +194,4 @@ TensorIndex::indexes_dynamic(const std::vector<uint_t> &qs,
 }
 
 //------------------------------------------------------------------------------
-} // end namespace TI
 #endif // end module
