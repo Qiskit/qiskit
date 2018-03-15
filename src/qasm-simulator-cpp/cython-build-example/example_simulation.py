@@ -116,7 +116,40 @@ qobj = {
     ]
 }
 
+qobj_bad = {
+    "id": "cython_test",
+    "config": {
+        "shots": 1000,
+        "seed": 1,
+        "backend": "local_qasm_simulator_cpp"
+    },
+    "circuits": [
+        {
+            "name": "bell measure",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                    {"name": "h", "qubits": [0]},
+                    {"name": "cx", "qubits": [0, 2]},
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [1], "clbits": [1]}
+                ]
+            }
+        }
+    ]
+}
 
 # Execute and print result
+print('TESTING CORRECT QOBJ:\n')
 result = cpp_run(qobj)
 print(result)
+
+print('\nTESTING QOBJ WHICH SHOULD RAISE AN EXCEPTION:\n')
+result_bad = cpp_run(qobj_bad)
+print(result_bad)

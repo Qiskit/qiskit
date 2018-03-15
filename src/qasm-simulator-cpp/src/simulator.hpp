@@ -80,16 +80,18 @@ public:
   };
 
   // Initialize a simulator from a qobj
-  void load_json(const json_t &input);
-  inline void load_file(const std::string file) {
+  void load_qobj_json(const json_t &input);
+  
+  inline void load_qobj_file(const std::string file) {
     json_t js = JSON::load(file);
-    load_json(js);
+    load_qobj_json(js);
   };
   
-  inline void load_string(const std::string &input) {
+  inline void load_qobj_string(const std::string &input) {
     json_t js = json_t::parse(input);
-    load_json(js);
+    load_qobj_json(js);
   };
+
   bool check_qobj(const json_t &qobj);
 
   // Execute a single circuit
@@ -266,7 +268,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
   return ret;
 }
 
-void Simulator::load_json(const json_t &js) {
+void Simulator::load_qobj_json(const json_t &js) {
   try {
     if (check_qobj(js)) { // check valid qobj
 
@@ -352,7 +354,7 @@ bool Simulator::check_qobj(const json_t &qobj) {
 //------------------------------------------------------------------------------
 inline void from_json(const json_t &js, Simulator &sim) {
   sim = Simulator();
-  sim.load_json(js);
+  sim.load_qobj_json(js);
 }
 
 //------------------------------------------------------------------------------

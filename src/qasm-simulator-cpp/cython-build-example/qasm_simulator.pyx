@@ -8,9 +8,9 @@ from scipy.linalg.cython_blas cimport sgemm, dgemm, cgemm, zgemm
 cdef extern from "simulator.hpp" namespace "QISKIT":
 
     cdef cppclass Simulator:
-        Simulator()
-        string execute(int indent)
-        void load_string(string qobj)
+        Simulator() except +
+        string execute(int indent) except +
+        void load_qobj_string(string qobj) except +
 
 
 cdef class SimulatorWrapper:
@@ -39,5 +39,5 @@ cdef class SimulatorWrapper:
             result JSON serialized as a python string.
         """
         # serialize qobj as json byte string
-        self.thisptr.load_string(qobj_str.encode())
+        self.thisptr.load_qobj_string(qobj_str.encode())
         return self.thisptr.execute(-1).decode()
