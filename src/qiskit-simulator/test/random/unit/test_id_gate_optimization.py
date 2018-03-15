@@ -18,7 +18,7 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     nqubits = random.randint(10, 20)
-    ngates = random.randint(200, 500)
+    ngates = random.randint(200, 500)  # total number of gates, spread across the qubits
 
     qobj = {'id': 'test_optimization',
             'config': {

@@ -66,7 +66,7 @@ def run_simulator(qobj, executable):
     Prints 'Successful execution' and run time for successful executions.
     """
 
-    # FIXME: add a parameter 'seed' to 'run_simulator'
+    # TODO: add a parameter 'seed' to 'run_simulator'
     # If seed is not None: qobj['config']['seed'] = seed
     # This way, the user will not have to remember to attach the seed to qobj.
     

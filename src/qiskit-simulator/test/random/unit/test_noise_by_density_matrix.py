@@ -6,6 +6,8 @@ and one id gate on one of the qubits.
 The test attaches random noise to the id gate, and calculates the expected density matrix at the end of execution.
 It then invokes the simulator, and compares the result with the expected density matrix.
 This process repeats for several types of noise.
+
+In the future, we will perform the same checks for additional gates types.
 '''
 
 

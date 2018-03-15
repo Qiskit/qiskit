@@ -7,7 +7,7 @@ Its purpose is:
 2) Test performance.
 
 This test generates a random circuit.
-It then applies hard-coded noise on the gates, and runs the simulator on the obtained circuit.
+It then applies noise on the gates (partly random, partly hard-coded), and runs the simulator on the obtained circuit.
 Finally, it verifies that throughout the simulator's execution, the state vector's norm is always equal to 1.
 
 Currently the test does not check correctness.
@@ -43,7 +43,7 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     nqubits = random.randint(8, 15)
-    ngates = random.randint(100, 200)
+    ngates = random.randint(100, 200)  # total number of gates, spread across the qubits
 
     qobj = {'id': 'system_test_3',
             'config': {
@@ -71,6 +71,9 @@ if __name__=='__main__':
                             [0, -1]
                             ],
                         'gate_time': 2
+                        },
+                    'CX': {
+                        'U_error': qs.UnitaryOperation(n=2).mat
                         }
                     }
                 },

@@ -10,6 +10,18 @@ import math
 import numpy as np
 
 
+# ** is_square_matrix **
+def is_square_matrix(mat):
+    '''
+    Checks if a numpy array represnts a square matrix
+    '''
+    s = np.shape(mat)
+    if len(s)!=2:
+        return False
+    
+    return s[0]==s[1]
+
+
 # ** phase **
 def phase(angle):
     '''
@@ -56,7 +68,9 @@ def is_close_to_id(mat):
     """
     Checks if a matrix of complex numbers is equal (up to numerical fluctuations) to the identity matrix
     """
-    # FIXME: verify that mat is a square matrix
+    if is_square_matrix(mat) == False:
+        return false
+        
     return is_close(mat, np.identity(len(mat)))
 
 
@@ -336,42 +350,56 @@ class DensityMatrix:
 # ** UnitaryOperation **
 class UnitaryOperation:
 
-    def __init__(self, mat = None, beta = None, gamma = None, delta = None):
+    def __init__(self, mat = None, angles = None, n = None):
         """        
-        Initialized either by a matrix mat,
-        which is required to be unitary,
-        or by the angles beta, gamma, and delta,
-        in which case a 2x2 unitary matrix is generated.
+        Initialized in one of the following ways:
+        - By a matrix mat, which is required to be unitary.
+        - By the angles beta, gamma, and delta, in which case a 2x2 unitary matrix is generated,
+          tensored by itself n-1 times, resulting in a (2^n)x(2^n) matrix.
 
-        Generates random angles for None angles.
-        I.e., generates a random 2x2 unitary matrix
-        if the user does not specify any arguments to the constructor.
+        If 'mat' and 'angles' are both None,
+        generates a (2^n)x(2^n) random unitary matrix,
+        which is a tensor product of n 2x2 random unitary matrices.
         """
 
+        assert n is None or n>=1
+
         if mat is not None:
-            assert beta is None and gamma is None and delta is None, \
+            assert angles is None, \
                    "Constructor of UnitaryOperation: " \
                    "If argument 'mat' is not None " \
-                   "then arguments 'beta', 'gamma', and 'delta' must be set to None"
+                   "then argument 'angles' must be set to None"
 
             self.mat = np.array(mat, dtype=complex)
-
+            assert is_square_matrix(self.mat), \
+                   "Constructor of UnitaryOperation: " \
+                   "Parameter 'mat' must be a square matrix"
+                   
+            if n is not None:
+                assert all(x==2**n for x in np.shape(self.mat))
+                                                    
         else:
+            self.mat = np.array([1])
 
-            if beta is None:
-                beta = np.random.rand(1)[0]*math.pi
+            if n is None:
+                n = 1
 
-            if gamma is None:
-                gamma = np.random.rand(1)[0]*math.pi
+            for i in range(n):
 
-            if delta is None:
-                delta = np.random.rand(1)[0]*math.pi
+                if angles is None:
+                    angles = np.random.rand(3)*math.pi
+                else:
+                    angles = np.array(angles)
+                    assert len(angles)==3
 
-            mat_beta = np.array([[phase(-beta/2), 0], [0, phase(beta/2)]])
-            mat_gamma = np.array([[math.cos(gamma/2), -math.sin(gamma/2)], [math.sin(gamma/2), math.cos(gamma/2)]])
-            mat_delta = np.array([[phase(-delta/2), 0], [0, phase(delta/2)]])
+                [beta, gamma, delta] = angles
 
-            self.mat = np.dot(mat_beta, np.dot(mat_gamma, mat_delta))
+                mat_beta = np.array([[phase(-beta/2), 0], [0, phase(beta/2)]])
+                mat_gamma = np.array([[math.cos(gamma/2), -math.sin(gamma/2)], [math.sin(gamma/2), math.cos(gamma/2)]])
+                mat_delta = np.array([[phase(-delta/2), 0], [0, phase(delta/2)]])
+
+                mat = np.dot(mat_beta, np.dot(mat_gamma, mat_delta))
+                self.mat = np.kron(mat, self.mat)
 
         assert is_close_to_id(np.dot(np.matrix(self.mat).H, self.mat)), \
                'Constructor of UnitaryOperation: matrix is not unitary'
