@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name, missing-super-argument
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+
+# Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,17 +32,20 @@ Example output:
 
 Warning: it is slow.
 """
-import uuid
 import logging
+import uuid
+
 import numpy as np
+from sympy import Matrix, pi, E, I, cos, sin, N
 from sympy.matrices import eye, zeros
 from sympy.physics.quantum import TensorProduct
-from sympy import Matrix, pi, E, I, cos, sin, N
+
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
 from qiskit.backends._simulatortools import index2
 
 logger = logging.getLogger(__name__)
+
 
 class SympyUnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""

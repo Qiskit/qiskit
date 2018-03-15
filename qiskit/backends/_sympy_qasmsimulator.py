@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name, no-name-in-module, too-many-ancestors, abstract-method, redefined-builtin, missing-super-argument, superfluous-parens
+# pylint: disable=abstract-method,too-many-ancestors
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,65 +51,76 @@ Therefore we do not need multiple shots.
 If you specify multiple shots, it will automatically set shots=1.
 """
 
-import uuid
 import logging
 import random
+import uuid
 from collections import Counter
+
 import numpy as np
-from sympy.physics.quantum.qubit import Qubit
-from sympy.physics.quantum.qapply import qapply
+from sympy import Matrix, pi, E, I, cos, sin, N, exp
 from sympy import re, im
 from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
+from sympy.physics.quantum.qapply import qapply
+from sympy.physics.quantum.qubit import Qubit
 from sympy.physics.quantum.represent import represent
-from sympy import Matrix, pi, E, I, cos, sin, N, exp
+
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
 
+
 class SDGGate(OneQubitGate):
     """implements the SDG gate"""
     gate_name = 'SDG'
 
     def get_target_matrix(self, format='sympy'):
-        """return the Matrix that corresponds to the gate
+        """Return the Matrix that corresponds to the gate.
+
         Returns:
             Matrix: the matrix that corresponds to the gate.
                     Matrix is a type from sympy.
                     Each entry in it can be in the symbolic form.
         """
+        # pylint: disable=redefined-builtin
         return Matrix([[1, 0], [0, -I]])
+
 
 class TDGGate(OneQubitGate):
     """implements the TDG gate"""
     gate_name = 'TDG'
 
     def get_target_matrix(self, format='sympy'):
-        """return the Matrix that corresponds to the gate
+        """Return the Matrix that corresponds to the gate.
+
         Returns:
             Matrix: the matrix that corresponds to the gate
         """
+        # pylint: disable=redefined-builtin
         return Matrix([[1, 0], [0, exp(-I*pi/4)]])
 
 
 class UGateGeneric(OneQubitGate):
     """implements the general U gate"""
-    _uMat = None
+    _u_mat = None
     gate_name = 'U'
-    def set_target_matrix(self, uMatrix):
+
+    def set_target_matrix(self, u_matrix):
         """this API sets the raw matrix that corresponds to the U gate
             the client should use this API whenever she creates a UGateGeneric object!
             Args:
-                uMatrix (Matrix): set the matrix that corresponds to the gate
+                u_matrix (Matrix): set the matrix that corresponds to the gate
         """
-        self._uMat = uMatrix
+        self._u_mat = u_matrix
+
     def get_target_matrix(self, format='sympy'):
         """return the Matrix that corresponds to the gate
         Returns:
             Matrix: the matrix that corresponds to the gate
         """
-        return self._uMat
+        # pylint: disable=redefined-builtin
+        return self._u_mat
 
 
 class SympyQasmSimulator(BaseBackend):
@@ -148,16 +159,15 @@ class SympyQasmSimulator(BaseBackend):
         """
         return im(com)**2 + re(com)**2
 
-
     def run(self, q_job):
         """Run circuits in q_job and return the result
             Args:
-                q_job (object): all the information necessary
-                                    (e.g., circuit, backend and resources) for running a circuit
+                q_job (QuantumJob): all the information necessary
+                    (e.g., circuit, backend and resources) for running a circuit
             Returns:
                 Result: Result is a class including the information to be returned to users.
-                       Specifically, result_list in the return contains the essential information,
-                        which looks like this:
+                    Specifically, result_list in the return contains the essential information,
+                    which looks like this::
                         [{'data':
                         {
                           'counts': {'00': 1},
@@ -176,7 +186,6 @@ class SympyQasmSimulator(BaseBackend):
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
-
 
     def run_circuit(self, circuit):
         """Run a circuit and return object
@@ -263,23 +272,26 @@ class SympyQasmSimulator(BaseBackend):
 
         outcomes = []
         matrix_form = represent(self._quantum_state)
-        shapeN = matrix_form.shape[0]
-        list_form = [matrix_form[i, 0] for i in range(shapeN)]
+        shape_n = matrix_form.shape[0]
+        list_form = [matrix_form[i, 0] for i in range(shape_n)]
 
-        pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shapeN)]
+        pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shape_n)]
         norm_pdist = [float(i)/sum(pdist) for i in pdist]
 
-        for i in range(actual_shots):  # pylint: disable=unused-variable
-            _classical_state_observed = np.random.choice(np.arange(0, shapeN), p=norm_pdist)
+        for _ in range(actual_shots):
+            _classical_state_observed = np.random.choice(np.arange(0, shape_n), p=norm_pdist)
             outcomes.append(bin(_classical_state_observed)[2:].zfill(
                 self._number_of_cbits))
 
         # Return the results
         counts = dict(Counter(outcomes))
-        data = {'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits)}
+        # data['quantum_state']: consistent with other backends.
+        data = {
+            'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits),
+            'quantum_state': np.asarray(list_form),
+            'classical_state': self._classical_state
+        }
 
-        data['quantum_state'] = np.asarray(list_form)  # consistent with other backends
-        data['classical_state'] = self._classical_state
         return {'data': data, 'status': 'DONE'}
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
@@ -327,32 +339,30 @@ class SympyQasmSimulator(BaseBackend):
 
         return theta, theta == 0  # if theta ==0, it is also regular
 
-
-
     @staticmethod
-    def compute_ugate_matrix(parafloatlist):
+    def compute_ugate_matrix(parameters):
         """compute the matrix associated with a parameterized U gate
         Args:
-            parafloatlist (list): parameters carried by the U gate
+            parameters (list[float]): parameters carried by the U gate
         Returns:
             Matrix: the matrix associated with a parameterized U gate
         """
-        theta = parafloatlist[0]
-        phi = parafloatlist[1]
-        lamb = parafloatlist[2]
+        theta = parameters[0]
+        phi = parameters[1]
+        lamb = parameters[2]
 
         theta, theta_is_regular = SympyQasmSimulator.regulate(theta)
         phi, phi_is_regular = SympyQasmSimulator.regulate(phi)
         lamb, lamb_is_regular = SympyQasmSimulator.regulate(lamb)
 
-        uMat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
-                       [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
+        u_mat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
+                        [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
 
         if theta_is_regular and phi_is_regular and lamb_is_regular:
-            uMatNumeric = uMat
+            u_mat_numeric = u_mat
         else:
-            uMatNumeric = uMat.evalf()
-        return uMatNumeric
+            u_mat_numeric = u_mat.evalf()
+        return u_mat_numeric
 
     @staticmethod
     def get_sym_op(name, qid_tuple, params=None):
@@ -399,28 +409,28 @@ class SympyQasmSimulator(BaseBackend):
 
         # U gate, CU gate or measure gate handled below
         if name.startswith('U') or name.startswith('CU'):
-            parafloatlist = params
+            parameters = params
 
-            if len(parafloatlist) == 1:  # [theta=0, phi=0, lambda]
-                parafloatlist.insert(0, 0.0)
-                parafloatlist.insert(0, 0.0)
-            elif len(parafloatlist) == 2:  # [theta=pi/2, phi, lambda]
-                parafloatlist.insert(0, pi/2)
-            elif len(parafloatlist) == 3:  # [theta, phi, lambda]
+            if len(parameters) == 1:  # [theta=0, phi=0, lambda]
+                parameters.insert(0, 0.0)
+                parameters.insert(0, 0.0)
+            elif len(parameters) == 2:  # [theta=pi/2, phi, lambda]
+                parameters.insert(0, pi/2)
+            elif len(parameters) == 3:  # [theta, phi, lambda]
                 pass
             else:
                 raise Exception('U gate must carry 1, 2 or 3 parameters!')
 
             if name.startswith('U'):
                 ugate = UGateGeneric(*qid_tuple)
-                uMat = SympyQasmSimulator.compute_ugate_matrix(parafloatlist)
-                ugate.set_target_matrix(uMatrix=uMat)
+                u_mat = SympyQasmSimulator.compute_ugate_matrix(parameters)
+                ugate.set_target_matrix(u_matrix=u_mat)
                 return ugate
 
             elif name.startswith('CU'):  # additional treatment for CU1, CU2, CU3
                 ugate = UGateGeneric(*qid_tuple)
-                uMat = SympyQasmSimulator.compute_ugate_matrix(parafloatlist)
-                ugate.set_target_matrix(uMatrix=uMat)
+                u_mat = SympyQasmSimulator.compute_ugate_matrix(parameters)
+                ugate.set_target_matrix(u_matrix=u_mat)
                 return CGate(qid_tuple[0], ugate)
         elif name == "MEASURE":
             return None

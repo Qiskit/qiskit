@@ -18,8 +18,9 @@
 
 
 import unittest
-from matplotlib.backends.backend_pdf import PdfPages
+
 from sympy import sqrt
+
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends._sympy_qasmsimulator import SympyQasmSimulator
 from .common import QiskitTestCase
@@ -27,15 +28,6 @@ from .common import QiskitTestCase
 
 class LocalQasmSimulatorTest(QiskitTestCase):
     """Test local qasm simulator."""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.pdf.close()
 
     def setUp(self):
         self.seed = 88
@@ -75,9 +67,6 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                                 resources=resources,
                                 preformatted=True)
 
-    def tearDown(self):
-        pass
-
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
@@ -93,11 +82,6 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         self.assertEqual(actual[1], 0)
         self.assertEqual(actual[2], 0)
         self.assertEqual(actual[3], sqrt(2)/2)
-
-
-
-
-
 
 
 if __name__ == '__main__':

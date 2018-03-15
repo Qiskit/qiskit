@@ -18,7 +18,9 @@
 
 
 import unittest
+
 from sympy import sqrt
+
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob)
 from qiskit.backends._sympy_unitarysimulator import SympyUnitarySimulator
 from .common import QiskitTestCase
@@ -31,9 +33,6 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.qp = QuantumProgram()
-
-    def tearDown(self):
-        pass
 
     def test_unitary_simulator(self):
         """test generation of circuit unitary"""
@@ -93,13 +92,6 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.assertEqual(actual[3][1], -sqrt(2)/2)
         self.assertEqual(actual[3][2], 0)
         self.assertEqual(actual[3][3], 0)
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
