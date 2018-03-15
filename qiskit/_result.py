@@ -159,7 +159,7 @@ class Result(object):
             pass
         raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
-    def get_data(self, name):
+    def get_data(self, name=None):
         """Get the data of circuit name.
 
         The data format will depend on the backend. For a real device it
@@ -205,6 +205,14 @@ class Result(object):
             else:
                 raise QISKitError(str(exception))
 
+        if name is None:
+            circuits = list([i['name'] for i in self._qobj['circuits']])
+            if len(circuits) == 1:
+                name = circuits[0]
+            else:
+                raise QISKitError("You have to select a circuit when there is more than"
+                                  "one available")
+
         try:
             qobj = self._qobj
             for index in range(len(qobj['circuits'])):
@@ -214,14 +222,16 @@ class Result(object):
             pass
         raise QISKitError('No data for circuit "{0}"'.format(name))
 
-    def get_counts(self, name):
+    def get_counts(self, name=None):
         """Get the histogram data of circuit name.
 
         The data from the a qasm circuit is dictionary of the format
         {'00000': XXXX, '00001': XXXXX}.
 
         Args:
-            name (str): the name of the quantum circuit.
+            name (hashable or None): the name of the quantum circuit.
+                If None and there is only one circuit available, returns
+                that one.
 
         Returns:
             Dictionary: Counts {'00000': XXXX, '00001': XXXXX}.
