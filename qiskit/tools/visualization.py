@@ -865,7 +865,7 @@ class QCircuitImage(object):
         self._build_latex_array(aliases)
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
-\documentclass[final]{beamer}
+\documentclass[draft]{beamer}
 """
         beamer_line = "\\usepackage[size=custom,width=%d,height=%d]{beamerposter}\n"
         header_2 = r"""% instead and customize the height and width (in cm) to fit.
