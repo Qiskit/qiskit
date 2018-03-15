@@ -929,8 +929,8 @@ class QCircuitImage(object):
                                     "_" + str(self.ordered_regs[i][1]) + "}"
             else:
                 self._latex[i][0] = "\\lstick{\\ket{" + \
-                                    self.ordered_regs[i][0] + "_" + \
-                                    str(self.ordered_regs[i][1]) + "}}"
+                                    self.ordered_regs[i][0] + "_{" + \
+                                    str(self.ordered_regs[i][1]) + "}}}"
 
     def _get_image_depth(self, aliases=None):
         columns = 2
