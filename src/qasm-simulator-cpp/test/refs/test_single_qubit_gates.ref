@@ -1,5 +1,6 @@
 {
     "backend": "local_qasm_simulator_cpp",
+    "cpp_simulator_kernel": "qasm_simulator_cpp",
     "id": "test_qasm_single_qubit_gates",
     "result": [{
         "data": {
@@ -8,7 +9,7 @@
                     "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
                 }
             },
-            "time_taken": 0.00022300000000000003
+            "time_taken": 0.00021
         },
         "name": "#snapshot",
         "seed": 1,
@@ -22,7 +23,7 @@
                     "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
                 }
             },
-            "time_taken": 2.9e-05
+            "time_taken": 2.8000000000000003e-05
         },
         "name": "id(U)",
         "seed": 1,
@@ -36,7 +37,7 @@
                     "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
                 }
             },
-            "time_taken": 2.3e-05
+            "time_taken": 2.1000000000000002e-05
         },
         "name": "id(u3)",
         "seed": 1,
@@ -50,7 +51,7 @@
                     "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "id(u1)",
         "seed": 1,
@@ -64,7 +65,7 @@
                     "quantum_state": [[[1.6155445744325867e-15, 0.0], [1.0, 0.0]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.8e-05
         },
         "name": "x(U)",
         "seed": 1,
@@ -92,7 +93,7 @@
                     "quantum_state": [[[0.0, 0.0], [1.0, 0.0]]]
                 }
             },
-            "time_taken": 1.6000000000000003e-05
+            "time_taken": 1.9e-05
         },
         "name": "x(direct)",
         "seed": 1,
@@ -120,7 +121,7 @@
                     "quantum_state": [[[1.6155445744325867e-15, 0.0], [6.123233995736766e-17, 1.0]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.6000000000000003e-05
         },
         "name": "y(u3)",
         "seed": 1,
@@ -134,7 +135,7 @@
                     "quantum_state": [[[0.0, 0.0], [0.0, 1.0]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.6000000000000003e-05
         },
         "name": "y(direct)",
         "seed": 1,
@@ -162,7 +163,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.7071067811865475, 0.0]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.6000000000000003e-05
         },
         "name": "h(u3)",
         "seed": 1,
@@ -176,7 +177,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.7071067811865475, 0.0]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.6000000000000003e-05
         },
         "name": "h(u2)",
         "seed": 1,
@@ -218,7 +219,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [-0.7071067811865475, 8.659560562354932e-17]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) z(u3)",
         "seed": 1,
@@ -232,7 +233,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [-0.7071067811865475, 8.659560562354932e-17]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.8e-05
         },
         "name": "h(direct) z(u1)",
         "seed": 1,
@@ -260,7 +261,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, 0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) s(U)",
         "seed": 1,
@@ -274,7 +275,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, 0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) s(u3)",
         "seed": 1,
@@ -288,7 +289,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, 0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) s(u1)",
         "seed": 1,
@@ -316,7 +317,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, -0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.7e-05
+            "time_taken": 1.9e-05
         },
         "name": "h(direct) sdg(U)",
         "seed": 1,
@@ -330,7 +331,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, -0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) sdg(u3)",
         "seed": 1,
@@ -344,7 +345,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [4.329780281177466e-17, -0.7071067811865475]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) sdg(u1)",
         "seed": 1,
@@ -386,7 +387,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.5, 0.4999999999999999]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) t(u3)",
         "seed": 1,
@@ -414,7 +415,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.4999999999999999, 0.4999999999999999]]]
                 }
             },
-            "time_taken": 2.1000000000000002e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) t(direct)",
         "seed": 1,
@@ -442,7 +443,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.5, -0.4999999999999999]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) tdg(u3)",
         "seed": 1,
@@ -456,7 +457,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.5, -0.4999999999999999]]]
                 }
             },
-            "time_taken": 2.1000000000000002e-05
+            "time_taken": 1.7e-05
         },
         "name": "h(direct) tdg(u1)",
         "seed": 1,
@@ -470,7 +471,7 @@
                     "quantum_state": [[[0.7071067811865476, 0.0], [0.4999999999999999, -0.4999999999999999]]]
                 }
             },
-            "time_taken": 1.8e-05
+            "time_taken": 0.000184
         },
         "name": "h(direct) tdg(direct)",
         "seed": 1,
@@ -480,5 +481,5 @@
     }],
     "status": "COMPLETED",
     "success": true,
-    "time_taken": 0.0010500000000000002
+    "time_taken": 0.001206
 }

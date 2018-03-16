@@ -123,7 +123,7 @@ protected:
 void IdealBackend::set_config(json_t &config) {
   // Set OMP threshold for state update functions
   uint_t num_qubits_omp_threshold = 20; // default threshold
-  JSON::get_value(num_qubits_omp_threshold, "theshold_threads_gates", config);
+  JSON::get_value(num_qubits_omp_threshold, "theshold_omp_gate", config);
   qreg.set_omp_threshold(num_qubits_omp_threshold);
   
   // parse initial state from JSON

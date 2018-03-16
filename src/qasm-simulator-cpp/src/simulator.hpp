@@ -61,9 +61,10 @@ namespace QISKIT {
 
 class Simulator {
 public:
-  std::string id = "";             // simulation id
-  std::string simulator = "local_qasm_simulator_cpp";
-  std::vector<Circuit> circuits;   // QISKIT program
+  std::string id = "";                              // simulation id
+  std::string qobj_backend = "qasm_simulator_cpp"; // qobj backend specification
+  std::string simulator = "qasm_simulator_cpp";    // internally used simulator backend
+  std::vector<Circuit> circuits;                   // QISKIT program
 
   // Multithreading Params
   uint_t max_memory_gb = 16;   // max memory to use
@@ -111,7 +112,8 @@ json_t Simulator::execute_json(){
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
   json_t ret;
   ret["id"] = id;
-  ret["backend"] = simulator;
+  ret["backend"] = qobj_backend;
+  ret["cpp_simulator_kernel"] = simulator;
 
   // Choose simulator and execute circuits
   try {
@@ -120,7 +122,7 @@ json_t Simulator::execute_json(){
       json_t circ_res;
 
       // Choose Simulator Backend
-      if (simulator == "local_clifford_simulator_cpp")
+      if (simulator == "clifford_simulator_cpp")
         circ_res = run_circuit<BaseEngine<Clifford>, CliffordBackend>(circ);
       else if (circ.noise.ideal)
         circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
@@ -283,33 +285,25 @@ void Simulator::load_qobj_json(const json_t &js) {
       JSON::get_value(max_threads_gate, "max_threads_gate", config);
 
       // Override with user simulator backend specification
-      JSON::get_value(simulator, "backend", config);
+      JSON::get_value(qobj_backend, "backend", config);
+      simulator = qobj_backend; // copy backend info;
+      // look for custom override
       JSON::get_value(simulator, "custom_simulator_kernel", config);
-      to_lowercase(simulator);
+      to_lowercase(simulator); // convert to lowercase
+      string_trim(simulator); // trim whitespace, '-', '_' characters
 
-      // Format simulator internal name string
-      if (simulator == "local_clifford_simulator_cpp" || 
-          simulator == "local_clifford_simulator" || 
-          simulator == "clifford_simulator" || 
-          simulator == "clifford") {
-        simulator = "local_clifford_simulator_cpp";
-      }
-      else if (simulator == "local_statevector_simulator" || 
-          simulator == "local_statevector_simulator_cpp" || 
-          simulator == "statevector") {
-        simulator = "local_statevector_simulator_cpp";
+      if (simulator.find("clifford") != std::string::npos) {
+        simulator = "clifford_simulator_cpp";
       }
       else {
-        simulator = "local_qasm_simulator_cpp";
+        simulator = "qasm_simulator_cpp";
       }
 
       // Set simulator gateset
       gateset_t gateset;
-      if (simulator == "local_qasm_simulator_cpp") {
+      if (simulator == "qasm_simulator_cpp") {
         gateset = QubitBackend::gateset;
-      } else if (simulator == "local_statevector_simulator_cpp") {
-        gateset = IdealBackend::gateset;
-      } else if (simulator == "local_clifford_simulator_cpp") {
+      } else if (simulator == "clifford_simulator_cpp") {
         gateset = CliffordBackend::gateset;
       } else {
         throw std::runtime_error(std::string("invalid simulator."));

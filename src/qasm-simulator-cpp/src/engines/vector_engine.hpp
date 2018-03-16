@@ -409,7 +409,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
     for (const auto &s : eng.snapshots_inprods) {
       auto val = s.second;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["inner_products"] = val;
+      js["snapshots"][std::to_string(s.first)]["target_states_inner_product"] = val;
     }
   }
 
@@ -419,7 +419,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["overlaps"] = val;
+      js["snapshots"][std::to_string(s.first)]["target_states_inner_overlaps"] = val;
     }
   }
 }
@@ -443,9 +443,9 @@ inline void from_json(const json_t &js, VectorEngine &eng) {
         eng.show_snapshots_probs = true;
       else if (o == "probabilitiesket" || o == "probsket")
         eng.show_snapshots_probs_ket = true;
-      else if (o == "targetstatesinner")
+      else if (o == "targetstatesinnerproduct")
         eng.show_snapshots_inner_product = true;
-      else if (o == "targetstatesprobs")
+      else if (o == "targetstatesoverlaps")
         eng.show_snapshots_overlaps = true;
     }
   }
