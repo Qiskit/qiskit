@@ -109,8 +109,8 @@ class Coupling:
         return len(self.qubits)
 
     def get_qubits(self):
-        """Return the qubits in this graph as (qreg, index) tuples."""
-        return list(self.qubits.keys())
+        """Return the qubits in this graph as a sorted (qreg, index) tuples."""
+        return sorted(list(self.qubits.keys()))
 
     def get_edges(self):
         """Return a list of edges in the coupling graph.

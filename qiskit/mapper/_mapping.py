@@ -350,7 +350,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         coup_qubits = coupling_graph.get_qubits()
         qubit_subset = []
         for k, v in initial_layout.items():
-            qubit_subset.append(v)
+            qubit_subset.append(v) # AJ: this should not ignore k.
             if k not in circ_qubits:
                 raise MapperError("initial_layout qubit %s[%d] not in input "
                                   "DAGCircuit" % (k[0], k[1]))
