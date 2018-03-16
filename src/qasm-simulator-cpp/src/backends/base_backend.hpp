@@ -137,7 +137,7 @@ public:
    * The keys of the map are the integer arguments j.
    * @return a reference to saved qreg states
    */
-  inline std::map<uint_t, StateType> &access_saved() { return qreg_saved; };
+  inline std::map<int, StateType> &access_saved() { return qreg_saved; };
 
   /**
    * Returns a reference to the map of qreg state snapshots. These states are
@@ -145,7 +145,7 @@ public:
    * The keys of the map are the integer arguments j.
    * @return a reference to qreg state snapshots
    */
-  inline std::map<uint_t, StateType> &access_snapshots() { return qreg_snapshots; };
+  inline std::map<int, StateType> &access_snapshots() { return qreg_snapshots; };
 
   /**
    * Saves a copy of the current state of the qreg register to a map indexed by
@@ -153,35 +153,35 @@ public:
    * value will be overwritten.
    * @param key the map key to save the state to
    */
-  void save_state(uint_t key);
-  inline void save_state(std::complex<double> key) {save_state(static_cast<uint_t>(std::real(key)));};
+  void save_state(int key);
+  inline void save_state(std::complex<double> key) {save_state(static_cast<int>(std::real(key)));};
   /**
    * Saves a snapshot of the current state of the qreg register to a map indexed by
    * the argument. If a saved state already exists for this key, the previous
    * value will be overwritten.
    * @param key the map key to save the state to
    */
-  void snapshot_state(uint_t key);
-  inline void snapshot_state(std::complex<double> key) {snapshot_state(static_cast<uint_t>(std::real(key)));};
+  void snapshot_state(int key);
+  inline void snapshot_state(std::complex<double> key) {snapshot_state(static_cast<int>(std::real(key)));};
   /**
    * Loads a previously saved state of the system into qreg. If a saved state
    * does not exist for the argument key it will raise an error and terminate
    * the program.
    * @param key the map key to save the state to
    */
-  void load_state(uint_t key);
-  inline void load_state(std::complex<double> key) {load_state(static_cast<uint_t>(std::real(key)));};
+  void load_state(int key);
+  inline void load_state(std::complex<double> key) {load_state(static_cast<int>(std::real(key)));};
 
   /**
    * Config Settings
    */
 
   virtual inline void set_config(json_t &config) = 0; // raises unused param warning
-  inline void set_omp_threads(int_t n) {
+  inline void set_omp_threads(int n) {
     if (n > 0)
       omp_threads = n;
   };
-  inline void set_omp_threshold(int_t n) {
+  inline void set_omp_threshold(int n) {
     if (n > 0)
       omp_threshold = n;
   };
@@ -227,13 +227,13 @@ protected:
    * Stores the saved qreg states from the 'save_state' method. These saved
    * states can then be loaded as into qreg using the 'load_qreg' method.
    */
-  std::map<uint_t, StateType> qreg_saved;
+  std::map<int, StateType> qreg_saved;
 
   /**
    * Stores the saved qreg states from the 'save_state' method. These saved
    * states can then be loaded as into qreg using the 'load_qreg' method.
    */
-  std::map<uint_t, StateType> qreg_snapshots;
+  std::map<int, StateType> qreg_snapshots;
 
   /**
    * When set to 'true' this signals to the backend that when executing a QISKIT
@@ -324,7 +324,7 @@ void BaseBackend<StateType>::set_initial_state(const StateType &init) {
   qreg_init_flag = true;
 }
 
-template <class StateType> void BaseBackend<StateType>::save_state(uint_t key) {
+template <class StateType> void BaseBackend<StateType>::save_state(int key) {
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG BaseBackend::save_state(" << key << ")";
@@ -333,7 +333,7 @@ template <class StateType> void BaseBackend<StateType>::save_state(uint_t key) {
   qreg_saved[key] = qreg;
 }
 
-template <class StateType> void BaseBackend<StateType>::snapshot_state(uint_t key) {
+template <class StateType> void BaseBackend<StateType>::snapshot_state(int key) {
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG BaseBackend::snapshot_state(" << key << ")";
@@ -342,7 +342,7 @@ template <class StateType> void BaseBackend<StateType>::snapshot_state(uint_t ke
   qreg_snapshots[key] = qreg;
 }
 
-template <class StateType> void BaseBackend<StateType>::load_state(uint_t key) {
+template <class StateType> void BaseBackend<StateType>::load_state(int key) {
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG BaseBackend::load_state(" << key << ")";
