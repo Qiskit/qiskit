@@ -57,6 +57,7 @@ import uuid
 from collections import Counter
 
 import numpy as np
+from sympy import sympify
 from sympy import Matrix, pi, E, I, cos, sin, N, exp
 from sympy import re, im
 from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
@@ -337,7 +338,7 @@ class SympyQasmSimulator(BaseBackend):
         if abs(N(theta - 2*pi)) < error_margin:
             return 2*pi, True
 
-        return theta, theta == 0  # if theta ==0, it is also regular
+        return sympify(theta), sympify(theta) == 0  # if theta ==0, it is also regular
 
     @staticmethod
     def compute_ugate_matrix(parameters):
