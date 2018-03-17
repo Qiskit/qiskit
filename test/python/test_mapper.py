@@ -55,7 +55,7 @@ class MapperTest(QiskitTestCase):
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
 
-        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
+        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -74,7 +74,9 @@ class MapperTest(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
-        qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
+        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
+        qobj = self.qp.compile(["Bell"], backend=backend,
+                               initial_layout=initial_layout, coupling_map=cmap)
 
         self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
 
@@ -141,6 +143,44 @@ class MapperTest(QiskitTestCase):
         unr.execute()
         circ = mapper.optimize_1q_gates(unr.backend.circuit)
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_POWER)
+
+    def test_gate_after_measure(self):
+        """Test whether a qubit gets measured twice, which is not supported by real devices.
+
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/342
+        """
+        self.qp = QuantumProgram()
+        qr = self.qp.create_quantum_register('qr', 16)
+        cr = self.qp.create_classical_register('cr', 16)
+        qc = self.qp.create_circuit('emoticon', [qr], [cr])
+        qc.x(qr[0])
+        qc.x(qr[3])
+        qc.x(qr[5])
+        qc.h(qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.x(qr[11])
+        qc.x(qr[12])
+        qc.x(qr[13])
+        for j in range(16):
+            qc.measure(qr[j], cr[j])
+        backend = 'local_qasm_simulator'
+        cmap = {1: [0, 2], 2: [3], 3: [4, 14], 5: [4], 6: [5, 7, 11], 7: [10], 8: [7],
+                9: [8, 10], 11: [10], 12: [5, 11, 13], 13: [4, 14], 15: [0, 2, 14]}
+        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0),
+                  ('qr', 2): ('q', 2), ('qr', 3): ('q', 3),
+                  ('qr', 4): ('q', 4), ('qr', 5): ('q', 14),
+                  ('qr', 6): ('q', 5), ('qr', 7): ('q', 6),
+                  ('qr', 8): ('q', 7), ('qr', 9): ('q', 11),
+                  ('qr', 10): ('q', 10), ('qr', 11): ('q', 8),
+                  ('qr', 12): ('q', 9), ('qr', 13): ('q', 12),
+                  ('qr', 14): ('q', 13), ('qr', 15): ('q', 15)}
+        qobj = self.qp.compile(["emoticon"], backend=backend, 
+                               initial_layout=initial_layout, coupling_map=cmap)
+        measured_qubits = [x["qubits"][0]
+                           for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
+                           if x["name"] is "measure"]
+
+        self.assertEqual(len(measured_qubits), len(set(measured_qubits)))
 
 
 # QASMs expected by the tests.
