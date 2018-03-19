@@ -41,6 +41,9 @@ from . import QuantumCircuit
 from . import QISKitError
 from . import JobProcessor
 from . import QuantumJob
+from . import Measure
+from . import Gate
+from .extensions.standard.barrier import Barrier
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 
 # Beta Modules
@@ -1053,13 +1056,27 @@ class QuantumProgram(object):
         for name in name_of_circuits:
             if name not in self.__quantum_program:
                 raise QISKitError('circuit "{0}" not found in program'.format(name))
-            circuit = self.__quantum_program[name]                
+            circuit = self.__quantum_program[name]
             num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
             # TODO: A better solution is to have options to enable/disable optimizations
             if num_qubits == 1:
                 coupling_map = None
             if coupling_map == 'all-to-all':
                 coupling_map = None
+            # if the backend is a real chip, insert barrier before measurements
+            if not backend_conf['simulator']:
+                measured_qubits = []
+                qasm_idx = []
+                for i, instruction in enumerate(circuit.data):
+                    if isinstance(instruction, Measure):
+                        measured_qubits.append(instruction.arg[0])
+                        qasm_idx.append(i)
+                    elif isinstance(instruction, Gate) and bool(set(instruction.arg) &
+                                                                set(measured_qubits)):
+                        raise QISKitError('backend "{0}" rejects gate after '
+                                          'measurement in circuit "{1}"'.format(backend, name))
+                for i, qubit in zip(qasm_idx, measured_qubits):
+                    circuit.data.insert(i, Barrier([qubit], circuit))
             dag_circuit, final_layout = openquantumcompiler.compile(
                 circuit.qasm(),
                 basis_gates=basis_gates,
