@@ -15,8 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+import sys
+# Check for Python version 3.5+
+if sys.version_info < (3,5):
+    raise Exception('QISKit requires Python version 3.5 or greater.')
 
 """Main QISKit public functionality."""
+
 from IBMQuantumExperience import RegisterSizeError
 
 from ._qiskiterror import QISKitError
