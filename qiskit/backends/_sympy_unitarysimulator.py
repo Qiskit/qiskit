@@ -275,7 +275,8 @@ class SympyUnitarySimulator(BaseBackend):
                 gate = SympyUnitarySimulator.compute_ugate_matrix_wrap(params)
                 self._add_unitary_single(gate, qubit)
             elif operation['name'] in ['id']:
-                pass
+                logger.info('Warning have dropped identity gate from sympy-based unitary '
+                            'simulator')
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]

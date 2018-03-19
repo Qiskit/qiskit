@@ -243,8 +243,9 @@ class SympyQasmSimulator(BaseBackend):
                 _applied_quantum_state = _sym_op * self._quantum_state
                 self._quantum_state = qapply(_applied_quantum_state)
             # Check if CX gate
-            elif operation['name'] in ['id', 'u0']:
-                pass
+            elif operation['name'] in ['id']:
+                logger.info('Warning have dropped identity gate from sympy-based qasm '
+                            'simulator')
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
