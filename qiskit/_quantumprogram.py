@@ -1488,12 +1488,15 @@ class QuantumProgram(object):
 
     def _create_id(self, infix, existing_ids):
         """
-        Return an automatically generated identifier, increased sequentially
-        based on the internal `_counter` generator, with the form
-        "autoid_[infix][numeric_id]" (ie. "autoid_q2").
+        Return an automatically generated identifier. First, check if infix
+        exists as in existings_ids and returns it if not. If infix exists in
+        existing_ids, creates an identifier "autoid_[infix][counter]", where
+        counter is a sequncial value (using the internal `__counter` generator)
+        (ie. "autoid_q2").
 
         Args:
-            infix (str): string to be prepended to the numeric id.
+            infix (str): string to use if possible or to be prepended to the
+                numeric id.
             existing_ids (iterable): list of ids that should be checked for
                 duplicates.
 
@@ -1503,6 +1506,8 @@ class QuantumProgram(object):
         Raises:
             QISKitError: if the identifier is already in `existing_ids`.
         """
+        if infix not in existing_ids:
+            return infix
         i = next(self.__counter)
         identifier = "autoid_%s%i" % (infix, i)
         if identifier not in existing_ids:
