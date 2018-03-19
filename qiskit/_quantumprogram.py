@@ -1495,10 +1495,10 @@ class QuantumProgram(object):
             prefix (str): string to be prepended to the numeric id.
             existing_ids (iterable): list of ids that should be checked for
                 duplicates.
-        
+
         Returns:
             str: the new identifier.
-        
+
         Raises:
             QISKitError: if the identifier is already in `existing_ids`.
         """
