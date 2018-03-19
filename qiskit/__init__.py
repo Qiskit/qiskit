@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=wrong-import-order
+# pylint: disable=wrong-import-position
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -17,7 +18,7 @@
 # =============================================================================
 import sys
 # Check for Python version 3.5+
-if sys.version_info < (3,5):
+if sys.version_info < (3, 5):
     raise Exception('QISKit requires Python version 3.5 or greater.')
 
 """Main QISKit public functionality."""
