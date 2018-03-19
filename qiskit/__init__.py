@@ -16,12 +16,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+
+"""Main QISKit public functionality."""
+
 import sys
 # Check for Python version 3.5+
 if sys.version_info < (3, 5):
     raise Exception('QISKit requires Python version 3.5 or greater.')
 
-"""Main QISKit public functionality."""
+# Check for required ibmqe version
+from ._util import _check_ibmqe_version
+_check_ibmqe_version()
 
 from IBMQuantumExperience import RegisterSizeError
 
@@ -45,8 +50,5 @@ from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-from ._util import _check_ibmqe_version
 
 __version__ = '0.5.0'
-
-_check_ibmqe_version()
