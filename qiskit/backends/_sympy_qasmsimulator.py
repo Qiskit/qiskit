@@ -183,7 +183,7 @@ class SympyQasmSimulator(BaseBackend):
         result_list = []
         self._shots = qobj['config']['shots']
         if self._shots > 1:
-            print("Warning: no need for multiple shots! set shot=1 automatically!")
+            logger.info("No need for multiple shots. A single execution will be performed.")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
