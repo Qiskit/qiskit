@@ -683,9 +683,9 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, basis="id,u0,u1,u2,u3,"
-                                "x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+def plot_circuit(circuit, image_format="png",
+                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -693,15 +693,15 @@ def plot_circuit(circuit, basis="id,u0,u1,u2,u3,"
     Requires poppler installed (to convert pdf to png)
     Requires pillow python package to handle images
     """
-    im = circuit_drawer(circuit, basis)
+    im = circuit_drawer(circuit, image_format, basis)
     if im:
         im.show()
 
 
-def circuit_drawer(circuit, basis="id,u0,u1,u2,u3,"
-                                  "x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                  "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
-    """Obtain the circuit in image format (output can be inlined in Jupyter)
+def circuit_drawer(circuit, image_format="png",
+                   basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+    """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
     Requires Qcircuit latex package (to compile latex)
@@ -713,32 +713,40 @@ def circuit_drawer(circuit, basis="id,u0,u1,u2,u3,"
         latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
         im = None
         try:
-            subprocess.run(["pdflatex", "-interaction=batchmode",
+            subprocess.run(["pdflatex", #"-interaction=batchmode",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(filename + '.tex')],
-                           stdout=subprocess.DEVNULL, check=True)
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                logger.warning('WARNING: Unable to compile latex; `pdflatex` not installed. '
+                logger.warning('WARNING: Unable to compile latex. '
+                               'Is `pdflatex` installed? '
                                'Skipping circuit drawing...')
         except subprocess.CalledProcessError as e:
-            logger.warning('WARNING: Unable to compile latex; `Qcircuit` package not installed. '
+            if "capacity exceeded" in str(e.stdout):
+                logger.warning('WARNING: Unable to compile latex. '
+                               'Circuit too large for memory. '
+                               'Skipping circuit drawing...')
+            else:
+                logger.warning('WARNING: Unable to compile latex. '
+                           'Is the `Qcircuit` latex package installed? '
                            'Skipping circuit drawing...')
         else:
             try:
-                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
+                subprocess.run(["pdftocairo", "-singlefile", "-{}".format(image_format), "-q",
                                 "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                im = Image.open(filename + ".png")
+                im = Image.open("{0}.{1}".format(filename, image_format))
                 im = trim(im)
-                os.remove(filename + ".png")
+                os.remove("{0}.{1}".format(filename, image_format))
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
-                    logger.warning('WARNING: Unable to convert pdf; `poppler` not installed. '
+                    logger.warning('WARNING: Unable to convert pdf to image. '
+                                   'Is `poppler` installed? '
                                    'Skipping circuit drawing...')
                 else:
                     raise
             except AttributeError:
-                logger.warning('WARNING: `pillow` package not installed. '
+                logger.warning('WARNING: `pillow` Python package not installed. '
                                'Skipping circuit drawing...')
     return im
 
@@ -755,7 +763,9 @@ def trim(im):
     return im
 
 
-def latex_drawer(circuit, filename=None, basis="u1,u2,u3,cx"):
+def latex_drawer(circuit, filename=None,
+                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -820,6 +830,12 @@ class QCircuitImage(object):
         # Variable to hold image width (height)
         self.img_width = 0
 
+        # em points of separation between circuit columns
+        self.column_separation = 0.5
+
+        # em points of separation between circuit row
+        self.row_separation = 0
+
         #################################
         self.header = self.circuit['header']
         self.qregs = OrderedDict(_get_register_specs(
@@ -828,20 +844,20 @@ class QCircuitImage(object):
         for qr in self.qregs:
             for i in range(self.qregs[qr]):
                 self.qubit_list.append((qr, i))
-        # TODO: clbit_labels has different format than qubit_labels
-        # in qobj?
         self.cregs = OrderedDict()
-        for item in self.header['clbit_labels']:
-            self.cregs[item[0]] = item[1]
+        if 'clbit_labels' in self.header:
+            for item in self.header['clbit_labels']:
+                self.cregs[item[0]] = item[1]
         self.clbit_list = []
         for cr in self.cregs:
             for i in range(self.cregs[cr]):
                 self.clbit_list.append((cr, i))
         self.ordered_regs = [(item[0], item[1]) for
                              item in self.header['qubit_labels']]
-        for clabel in self.header['clbit_labels']:
-            for cind in range(clabel[1]):
-                self.ordered_regs.append((clabel[0], cind))
+        if 'clbit_labels' in self.header:
+            for clabel in self.header['clbit_labels']:
+                for cind in range(clabel[1]):
+                    self.ordered_regs.append((clabel[0], cind))
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         self.img_width = len(self.img_regs)
@@ -867,7 +883,7 @@ class QCircuitImage(object):
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
 """
-        beamer_line = "\\usepackage[size=custom,width=%d,height=%d]{beamerposter}\n"
+        beamer_line = "\\usepackage[size=custom,width=%d,height=%d,scale=.3]{beamerposter}\n"
         header_2 = r"""% instead and customize the height and width (in cm) to fit.
 % Large images may run out of memory quickly.
 % To fix this use the LuaLaTeX compiler, which dynamically
@@ -876,23 +892,20 @@ class QCircuitImage(object):
 \usepackage{amsmath}
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
-% Defines a measurement target symbol
-\newcommand{\ctarg}{*+<.02em,.02em>{
-\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-},
-"i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy}}
 \begin{document}
-\begin{equation*}
-    \Qcircuit @C=.5em @R=0em @!R {
+\begin{equation*}"""
+        qcircuit_line = r"""
+    \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = StringIO()
         output.write(header_1)
         output.write('%% img_depth = %d, img_width = %d\n'
                      % (self.img_depth, self.img_width))
-        # TODO: the scaling in the next line is arbitrary
-        # TODO: and should be computed based on the column width
         output.write(beamer_line %
-                     (3*self.img_depth, 1.7*self.img_width))
+                     (2.5*self.img_depth, 2.5*self.img_width))
         output.write(header_2)
+        output.write(qcircuit_line %
+                     (self.column_separation, self.row_separation))
         for i in range(self.img_width):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
@@ -904,10 +917,8 @@ class QCircuitImage(object):
                 output.write(cell_str)
                 if j != self.img_depth:
                     output.write(" & ")
-                elif j == self.img_depth:
-                    output.write(r'\\'+'\n')
                 else:
-                    output.write('\n')
+                    output.write(r'\\'+'\n')
         output.write('\t }\n')
         output.write('\end{equation*}\n\n')
         output.write('\end{document}')
@@ -917,7 +928,7 @@ class QCircuitImage(object):
 
     def _initialize_latex_array(self, aliases=None):
         # pylint: disable=unused-argument
-        self.img_depth = len(self.circuit['operations'])
+        self.img_depth = self._get_image_depth(aliases)#len(self.circuit['operations'])
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
              else "\\qw" for i in range(self.img_depth + 1)]
@@ -926,7 +937,7 @@ class QCircuitImage(object):
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
                 self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + \
-                                    "_" + str(self.ordered_regs[i][1]) + "}"
+                                    "_{" + str(self.ordered_regs[i][1]) + "}}"
             else:
                 self._latex[i][0] = "\\lstick{\\ket{" + \
                                     self.ordered_regs[i][0] + "_{" + \
