@@ -55,7 +55,7 @@ class MapperTest(QiskitTestCase):
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
 
-        self.assertEqual(result1.get_counts("test"), {'0001': 517, '0101': 507})
+        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
