@@ -483,13 +483,12 @@ class DAGCircuit:
             if k[0] in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
-            rname = ",".join(map(str, k))
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("wire_map fragments reg %s" % rname)
+                raise DAGCircuitError("wire_map fragments reg %s" % k)
             elif s == set([False]):
                 if k in self.qregs or k in self.cregs:
-                    raise DAGCircuitError("unmapped duplicate reg %s" % rname)
+                    raise DAGCircuitError("unmapped duplicate reg %s" % k)
                 else:
                     # Add registers that appear only in keyregs
                     add_regs.add((k, keyregs[k]))
@@ -776,7 +775,7 @@ class DAGCircuit:
                 out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
         if not decls_only:
-            for n in nx.topological_sort(self.multi_graph):
+            for n in nx.lexicographical_topological_sort(self.multi_graph):
                 nd = self.multi_graph.node[n]
                 if nd["type"] == "op":
                     if nd["condition"] is not None:
@@ -1160,7 +1159,8 @@ class DAGCircuit:
         node_map = copy.deepcopy(self.input_map)
         # wires_with_ops_remaining is a set of wire names that have
         # operations we still need to assign to layers
-        wires_with_ops_remaining = set(self.input_map.keys())
+        wires_with_ops_remaining = sorted(set(self.input_map.keys()))
+
         while wires_with_ops_remaining:
             # Create a new circuit graph and populate with regs and basis
             new_layer = DAGCircuit()

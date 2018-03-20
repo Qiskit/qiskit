@@ -42,7 +42,8 @@ class Qasm(object):
     def get_tokens(self):
         """Returns a generator of the tokens."""
         if self._filename:
-            self._data = open(self._filename).read()
+            with open(self._filename) as ifile:
+                self._data = ifile.read()
 
         with QasmParser(self._filename) as qasm_p:
             return qasm_p.get_tokens()

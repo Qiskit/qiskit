@@ -29,6 +29,7 @@ from threading import Event
 import copy
 
 # use the external IBMQuantumExperience Library
+import itertools
 from IBMQuantumExperience import IBMQuantumExperience
 
 # Local Simulator Modules
@@ -109,14 +110,10 @@ class QuantumProgram(object):
         self.__init_circuit = None  # stores the intial quantum circuit of the program
         self.__ONLINE_BACKENDS = []  # pylint: disable=invalid-name
         self.__LOCAL_BACKENDS = qiskit.backends.local_backends()  # pylint: disable=invalid-name
+        self.__counter = itertools.count()
         self.mapper = mapper
         if specs:
             self.__init_specs(specs)
-
-        self.callback = None
-        self.jobs_results = []
-        self.jobs_results_ready_event = Event()
-        self.are_multiple_results = False  # are we expecting multiple results?
 
     def enable_logs(self, level=logging.INFO):
         """Enable the console output of the logging messages.
@@ -182,17 +179,18 @@ class QuantumProgram(object):
                     circuit["quantum_registers"])
                 classicalr = self.create_classical_registers(
                     circuit["classical_registers"])
-                self.create_circuit(name=circuit["name"], qregisters=quantumr,
+                self.create_circuit(name=circuit.get("name"), qregisters=quantumr,
                                     cregisters=classicalr)
-        # TODO: Jay: I think we should return function handles for the
-        # registers and circuit. So that we dont need to get them after we
-        # create them with get_quantum_register etc
+                # TODO: Jay: I think we should return function handles for the
+                # registers and circuit. So that we dont need to get them after we
+                # create them with get_quantum_register etc
 
-    def create_quantum_register(self, name, size):
+    def create_quantum_register(self, name=None, size=1):
         """Create a new Quantum Register.
 
         Args:
-            name (str): the name of the quantum register
+            name (hashable or None): the name of the quantum register. If None, an
+                automatically generated identifier will be assigned.
             size (int): the size of the quantum register
 
         Returns:
@@ -202,21 +200,25 @@ class QuantumProgram(object):
         Raises:
             QISKitError: if the register already exists in the program.
         """
-        if name in self.__quantum_registers:
+        if name is not None and name in self.__quantum_registers:
             if size != len(self.__quantum_registers[name]):
                 raise QISKitError("Can't make this register: Already in"
                                   " program with different size")
             logger.info(">> quantum_register exists: %s %s", name, size)
-        else:
-            self.__quantum_registers[name] = QuantumRegister(name, size)
-            logger.info(">> new quantum_register created: %s %s", name, size)
+            return self.__quantum_registers[name]
+
+        if name is None:
+            name = self._create_id('q', self.__quantum_registers)
+
+        self.__quantum_registers[name] = QuantumRegister(name, size)
+        logger.info(">> new quantum_register created: %s %s", name, size)
         return self.__quantum_registers[name]
 
     def destroy_quantum_register(self, name):
         """Destroy an existing Quantum Register.
 
         Args:
-            name (str): the name of the quantum register
+            name (hashable): the name of the quantum register
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -232,22 +234,20 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionary format::
-
-                    "quantum_registers": [
-                        {
-                        "name": "qr",
-                        "size": 4
-                        },
+                dictionary format. For example:
+                    [{"name": "qr", "size": 4},
                         ...
                     ]
+                Any other key in the dictionary will be ignored. If "name"
+                is not defined (or None) a random name wil be assigned.
+
         Returns:
             list(QuantumRegister): Array of quantum registers objects
         """
         new_registers = []
         for register in register_array:
             register = self.create_quantum_register(
-                register["name"], register["size"])
+                register.get('name'), register["size"])
             new_registers.append(register)
         return new_registers
 
@@ -256,25 +256,21 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionary format::
-
-                    "quantum_registers": [
-                        {
-                        "name": "qr",
-                        },
+                dictionary format. For example:
+                    [{"name": "qr"},
                         ...
                     ]
-
-                "size" may be a key for compatibility, but is ignored.
+                Any other key in the dictionary will be ignored.
         """
         for register in register_array:
             self.destroy_quantum_register(register["name"])
 
-    def create_classical_register(self, name, size):
+    def create_classical_register(self, name=None, size=1):
         """Create a new Classical Register.
 
         Args:
-            name (str): the name of the classical register
+            name (hashable or None): the name of the classical register. If None, an
+                automatically generated identifier will be assigned.
             size (int): the size of the classical register
         Returns:
             ClassicalRegister: internal reference to a classical register
@@ -283,14 +279,18 @@ class QuantumProgram(object):
         Raises:
             QISKitError: if the register already exists in the program.
         """
-        if name in self.__classical_registers:
+        if name is not None and name in self.__classical_registers:
             if size != len(self.__classical_registers[name]):
                 raise QISKitError("Can't make this register: Already in"
                                   " program with different size")
             logger.info(">> classical register exists: %s %s", name, size)
-        else:
-            logger.info(">> new classical register created: %s %s", name, size)
-            self.__classical_registers[name] = ClassicalRegister(name, size)
+            return self.__classical_registers[name]
+
+        if name is None:
+            name = self._create_id('c', self.__classical_registers)
+
+        self.__classical_registers[name] = ClassicalRegister(name, size)
+        logger.info(">> new classical register created: %s %s", name, size)
         return self.__classical_registers[name]
 
     def create_classical_registers(self, registers_array):
@@ -298,29 +298,27 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionary format::
-
-                    "classical_registers": [
-                        {
-                        "name": "qr",
-                        "size": 4
-                        },
+                dictionary format. For example:
+                    [{"name": "cr", "size": 4},
                         ...
                     ]
+                Any other key in the dictionary will be ignored. If "name"
+                is not defined (or None) a random name wil be assigned.
+
         Returns:
             list(ClassicalRegister): Array of clasical registers objects
         """
         new_registers = []
         for register in registers_array:
             new_registers.append(self.create_classical_register(
-                register["name"], register["size"]))
+                register.get("name"), register["size"]))
         return new_registers
 
     def destroy_classical_register(self, name):
         """Destroy an existing Classical Register.
 
         Args:
-            name (str): the name of the classical register
+            name (hashable): the name of the classical register
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -336,25 +334,21 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionary format::
-
-                    "classical_registers": [
-                        {
-                        "name": "qr",
-                        },
+                dictionary format. For example:
+                    [{"name": "cr"},
                         ...
                     ]
-
-                "size" may be a key for compatibility, but is ignored.
+                Any other key in the dictionary will be ignored.
         """
         for register in registers_array:
             self.destroy_classical_register(register["name"])
 
-    def create_circuit(self, name, qregisters=None, cregisters=None):
+    def create_circuit(self, name=None, qregisters=None, cregisters=None):
         """Create a empty Quantum Circuit in the Quantum Program.
 
         Args:
-            name (str): the name of the circuit.
+            name (hashable or None): the name of the circuit. If None, an
+                automatically generated identifier will be assigned.
             qregisters (list(QuantumRegister)): is an Array of Quantum
                 Registers by object reference
             cregisters (list(ClassicalRegister)): is an Array of Classical
@@ -364,11 +358,13 @@ class QuantumProgram(object):
             QuantumCircuit: A quantum circuit is created and added to the
                 Quantum Program
         """
+        if name is None:
+            name = self._create_id('qc', self.__quantum_program.keys())
         if not qregisters:
             qregisters = []
         if not cregisters:
             cregisters = []
-        quantum_circuit = QuantumCircuit()
+        quantum_circuit = QuantumCircuit(name=name)
         if not self.__init_circuit:
             self.__init_circuit = quantum_circuit
         for register in qregisters:
@@ -383,7 +379,7 @@ class QuantumProgram(object):
         destroy any registers associated with the circuit.
 
         Args:
-            name (str): the name of the circuit
+            name (hashable): the name of the circuit
 
         Raises:
             QISKitError: if the register does not exist in the program.
@@ -392,14 +388,29 @@ class QuantumProgram(object):
             raise QISKitError("Can't destroy this circuit: Not present")
         del self.__quantum_program[name]
 
-    def add_circuit(self, name, quantum_circuit):
+    def add_circuit(self, name=None, quantum_circuit=None):
         """Add a new circuit based on an Object representation.
 
         Args:
-            name (str): the name of the circuit to add.
+            name (hashable or None): the name of the circuit to add. If None, an
+                automatically generated identifier will be assigned to the
+                circuit.
             quantum_circuit (QuantumCircuit): a quantum circuit to add to the
                 program-name
+        Raises:
+            QISKitError: if `quantum_circuit` is None, as the attribute is
+                optional only for not breaking backwards compatibility (as
+                it is placed after an optional argument).
         """
+        if quantum_circuit is None:
+            raise QISKitError('quantum_circuit is required when invoking '
+                              'add_circuit')
+        if name is None:
+            if quantum_circuit.name:
+                name = quantum_circuit.name
+            else:
+                name = self._create_id('qc', self.__quantum_program.keys())
+                quantum_circuit.name = name
         for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
         for cname, creg in quantum_circuit.get_cregs().items():
@@ -453,7 +464,7 @@ class QuantumProgram(object):
         node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
             # Get a random name if none is given
-            name = "".join([random.choice(string.ascii_letters+string.digits)
+            name = "".join([random.choice(string.ascii_letters + string.digits)
                             for n in range(10)])
         logger.info("circuit name: %s", name)
         logger.info("******************************")
@@ -469,31 +480,41 @@ class QuantumProgram(object):
     # methods to get elements from a QuantumProgram
     ###############################################################
 
-    def get_quantum_register(self, name):
+    def get_quantum_register(self, name=None):
         """Return a Quantum Register by name.
 
         Args:
-            name (str): the name of the quantum register
+            name (hashable or None): the name of the quantum register. If None and there is only
+                one quantum register available, returns that one.
         Returns:
-            QuantumRegister: The quantum register with this name
+            QuantumRegister: The quantum register with this name.
         Raises:
             KeyError: if the quantum register is not on the quantum program.
+            QISKitError: if the register does not exist in the program.
         """
+        if name is None:
+            name = self._get_single_item(self.get_quantum_register_names(), "a quantum register")
         try:
             return self.__quantum_registers[name]
         except KeyError:
             raise KeyError('No quantum register "{0}"'.format(name))
 
-    def get_classical_register(self, name):
+    def get_classical_register(self, name=None):
         """Return a Classical Register by name.
 
         Args:
-            name (str): the name of the classical register
+            name (hashable or None): the name of the classical register. If None and there is only
+                one classical register available, returns that one.
         Returns:
-            ClassicalRegister: The classical register with this name
+            ClassicalRegister: The classical register with this name.
+
         Raises:
             KeyError: if the classical register is not on the quantum program.
+            QISKitError: if the register does not exist in the program.
         """
+        if name is None:
+            name = self._get_single_item(self.get_classical_register_names(),
+                                         "a classical register")
         try:
             return self.__classical_registers[name]
         except KeyError:
@@ -501,21 +522,27 @@ class QuantumProgram(object):
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
-        return self.__quantum_registers.keys()
+        return list(self.__quantum_registers.keys())
 
     def get_classical_register_names(self):
         """Return all the names of the classical Registers."""
-        return self.__classical_registers.keys()
+        return list(self.__classical_registers.keys())
 
-    def get_circuit(self, name):
+    def get_circuit(self, name=None):
         """Return a Circuit Object by name
         Args:
-            name (str): the name of the quantum circuit
+            name (hashable or None): the name of the quantum circuit.
+                If None and there is only one circuit available, returns
+                that one.
         Returns:
             QuantumCircuit: The quantum circuit with this name
+
         Raises:
             KeyError: if the circuit is not on the quantum program.
+            QISKitError: if the register does not exist in the program.
         """
+        if name is None:
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         try:
             return self.__quantum_program[name]
         except KeyError:
@@ -523,30 +550,42 @@ class QuantumProgram(object):
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
-        return self.__quantum_program.keys()
+        return list(self.__quantum_program.keys())
 
-    def get_qasm(self, name):
+    def get_qasm(self, name=None):
         """Get qasm format of circuit by name.
 
         Args:
-            name (str): name of the circuit
+            name (hashable or None): name of the circuit. If None and only one circuit is
+                available, that one is selected.
 
         Returns:
             str: The quantum circuit in qasm format
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
         """
+        if name is None:
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         quantum_circuit = self.get_circuit(name)
         return quantum_circuit.qasm()
 
-    def get_qasms(self, list_circuit_name):
+    def get_qasms(self, list_circuit_name=None):
         """Get qasm format of circuit by list of names.
 
         Args:
-            list_circuit_name (list[str]): names of the circuit
+            list_circuit_name (list[hashable] or None): names of the circuit.
+                If None, it gets all the circuits in the program.
 
         Returns:
             list(QuantumCircuit): List of quantum circuit in qasm format
+
+        Raises:
+            QISKitError: if the register does not exist in the program.
         """
         qasm_source = []
+        if list_circuit_name is None:
+            list_circuit_name = self.get_circuit_names()
         for name in list_circuit_name:
             qasm_source.append(self.get_qasm(name))
         return qasm_source
@@ -913,7 +952,7 @@ class QuantumProgram(object):
     # methods to compile quantum programs into qobj
     ###############################################################
 
-    def compile(self, name_of_circuits, backend="local_qasm_simulator",
+    def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
                 qobj_id=None, hpc=None):
@@ -923,12 +962,13 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[str]): circuit names to be compiled.
+            name_of_circuits (list[hashable] or None): circuit names to be compiled. If None, all
+                the circuits will be compiled.
             backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
                 compiler.
             basis_gates (str): a comma separated string and are the base gates,
-                               which by default are provided by the backend.
+                which by default are provided by the backend.
             coupling_map (dict): A directed graph of coupling::
 
                 {
@@ -1013,7 +1053,7 @@ class QuantumProgram(object):
         # them to go into the config.
         qobj = {}
         if not qobj_id:
-            qobj_id = "".join([random.choice(string.ascii_letters+string.digits)
+            qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                                for n in range(30)])
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
@@ -1052,7 +1092,8 @@ class QuantumProgram(object):
         if not coupling_map:
             coupling_map = backend_conf['coupling_map']
         if not name_of_circuits:
-            raise ValueError('"name_of_circuits" must be specified')
+            logger.info('Since not circuits was specified, all the circuits will be compiled.')
+            name_of_circuits = self.get_circuit_names()
         if isinstance(name_of_circuits, str):
             name_of_circuits = [name_of_circuits]
         for name in name_of_circuits:
@@ -1149,7 +1190,7 @@ class QuantumProgram(object):
             instead of the stdout.
 
         Returns:
-            list(str): names of the circuits in `qobj`
+            list(hashable): names of the circuits in `qobj`
         """
         if not qobj:
             print_func("no executions to run")
@@ -1163,7 +1204,7 @@ class QuantumProgram(object):
                 print_func(' ' + key + ': ' + str(qobj['config'][key]))
         for circuit in qobj['circuits']:
             execution_list.append(circuit["name"])
-            print_func('  circuit name: ' + circuit["name"])
+            print_func('  circuit name: ' + str(circuit["name"]))
             print_func('  circuit config:')
             for key in circuit['config']:
                 print_func('   ' + key + ': ' + str(circuit['config'][key]))
@@ -1229,12 +1270,27 @@ class QuantumProgram(object):
         Returns:
             Result: A Result (class).
         """
-        self.callback = None
+        job_blocker_event = Event()
+        job_result = None
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread
+            """
+            nonlocal job_result
+            job_result = results[0]
+            job_blocker_event.set()
+
         self._run_internal([qobj],
                            wait=wait,
-                           timeout=timeout)
-        self.wait_for_results(timeout)
-        return self.jobs_results[0]
+                           timeout=timeout,
+                           callback=job_done_callback)
+
+        # Do not set a timeout, as the timeout is being managed by the job
+        job_blocker_event.wait()
+
+        return job_result
 
     def run_batch(self, qobj_list, wait=5, timeout=120):
         """Run various programs (a list of pre-compiled quantum programs). This
@@ -1251,12 +1307,25 @@ class QuantumProgram(object):
             list(Result): A list of Result (class). The list will contain one Result object
             per qobj in the input list.
         """
+        job_blocker_event = Event()
+        job_results = []
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
+            nonlocal job_results
+            job_results = results
+            job_blocker_event.set()
+
         self._run_internal(qobj_list,
                            wait=wait,
                            timeout=timeout,
-                           are_multiple_results=True)
-        self.wait_for_results(timeout)
-        return self.jobs_results
+                           callback=job_done_callback)
+
+        job_blocker_event.wait()
+        return job_results
 
     def run_async(self, qobj, wait=5, timeout=60, callback=None):
         """Run a program (a pre-compiled quantum program) asynchronously. This
@@ -1273,10 +1342,18 @@ class QuantumProgram(object):
                     fn(result):
                     The result param will be a Result object.
         """
+
+        def job_done_callback(results):
+            """Callback called when the job is done. It basically
+            transforms the results to what the user expects and pass it
+            to the main thread.
+            """
+            callback(results[0])  # The user is expecting a single Result
+
         self._run_internal([qobj],
                            wait=wait,
                            timeout=timeout,
-                           callback=callback)
+                           callback=job_done_callback)
 
     def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None):
         """Run various programs (a list of pre-compiled quantum program)
@@ -1297,15 +1374,9 @@ class QuantumProgram(object):
         self._run_internal(qobj_list,
                            wait=wait,
                            timeout=timeout,
-                           callback=callback,
-                           are_multiple_results=True)
+                           callback=callback)
 
-    def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None,
-                      are_multiple_results=False):
-
-        self.callback = callback
-        self.are_multiple_results = are_multiple_results
-
+    def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
         q_job_list = []
         for qobj in qobj_list:
             q_job = QuantumJob(qobj, preformatted=True, resources={
@@ -1314,36 +1385,10 @@ class QuantumProgram(object):
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,
-                                     callback=self._jobs_done_callback)
+                                     callback=callback)
         job_processor.submit()
 
-    def _jobs_done_callback(self, jobs_results):
-        """ This internal callback will be called once all Jobs submitted have
-            finished. NOT every time a job has finished.
-
-        Args:
-            jobs_results (list): list of Result objects
-        """
-        if self.callback is None:
-            # We are calling from blocking functions (run, run_batch...)
-            self.jobs_results = jobs_results
-            self.jobs_results_ready_event.set()
-            return
-
-        if self.are_multiple_results:
-            self.callback(jobs_results)  # for run_batch_async() callback
-        else:
-            self.callback(jobs_results[0])  # for run_async() callback
-
-    def wait_for_results(self, timeout):
-        """Wait for all the results to be ready during an execution."""
-        is_ok = self.jobs_results_ready_event.wait(timeout)
-        self.jobs_results_ready_event.clear()
-        if not is_ok:
-            raise QISKitError('Error waiting for Job results: Timeout after {0} '
-                              'seconds.'.format(timeout))
-
-    def execute(self, name_of_circuits, backend="local_qasm_simulator",
+    def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
                 max_credits=3, seed=None, hpc=None):
@@ -1354,14 +1399,15 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[str]): circuit names to be compiled.
-            backend (str): a string representing the backend to compile to
+            name_of_circuits (list[hashable] or None): circuit names to be
+                executed. If None, all the circuits will be executed.
+            backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
-                compiler
+                compiler.
             wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             basis_gates (str): a comma separated string and are the base gates,
-                               which by default are: u1,u2,u3,cx,id
+                               which by default are: u1,u2,u3,cx,id.
             coupling_map (dict): A directed graph of coupling::
 
                                 {
@@ -1408,10 +1454,61 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
-        qobj = self.compile(name_of_circuits, backend=backend, config=config,
+        qobj = self.compile(name_of_circuits=name_of_circuits, backend=backend, config=config,
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,
                             hpc=hpc)
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result
+
+    ###############################################################
+    # utility methods
+    ###############################################################
+
+    @staticmethod
+    def _get_single_item(items, item_description="an item"):
+        """
+        Return the first and only element of `items`, raising an error
+        otherwise.
+
+        Args:
+            items (list): list of items.
+            item_description (string): text description of the item type.
+
+        Returns:
+            object: the first and only element of `items`.
+
+        Raises:
+            QISKitError: if the list does not have exactly one item.
+        """
+        if len(items) == 1:
+            return items[0]
+        else:
+            raise QISKitError(
+                "The name of %s needs to be explicitly indicated, as there is "
+                "more than one available" % item_description)
+
+    def _create_id(self, infix, existing_ids):
+        """
+        Return an automatically generated identifier, increased sequentially
+        based on the internal `_counter` generator, with the form
+        "autoid_[infix][numeric_id]" (ie. "autoid_q2").
+
+        Args:
+            infix (str): string to be prepended to the numeric id.
+            existing_ids (iterable): list of ids that should be checked for
+                duplicates.
+
+        Returns:
+            str: the new identifier.
+
+        Raises:
+            QISKitError: if the identifier is already in `existing_ids`.
+        """
+        i = next(self.__counter)
+        identifier = "autoid_%s%i" % (infix, i)
+        if identifier not in existing_ids:
+            return identifier
+        raise QISKitError("The automatically generated identifier '%s' already "
+                          "exists" % identifier)

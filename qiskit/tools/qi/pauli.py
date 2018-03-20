@@ -22,6 +22,7 @@ A simple pauli class and some tools.
 """
 import random
 import numpy as np
+from scipy import sparse
 
 
 class Pauli:
@@ -83,7 +84,11 @@ class Pauli:
         return pauli_new
 
     def to_label(self):
-        """Print out the labels in X, Y, Z format."""
+        """Print out the labels in X, Y, Z format.
+
+        Returns:
+            str: pauli label
+        """
         p_label = ''
         for j_index in range(self.numberofqubits):
             if self.v[j_index] == 0 and self.w[j_index] == 0:
@@ -100,28 +105,58 @@ class Pauli:
         """Convert Pauli to a matrix representation.
 
         Order is q_n x q_{n-1} .... q_0
+
+        Returns:
+            numpy.array: a matrix that represnets the pauli.
         """
         x = np.array([[0, 1], [1, 0]], dtype=complex)
+        y = np.array([[0, -1j], [1j, 0]], dtype=complex)
         z = np.array([[1, 0], [0, -1]], dtype=complex)
         id_ = np.array([[1, 0], [0, 1]], dtype=complex)
-        x_temp = 1
+        matrix = 1
         for k in range(self.numberofqubits):
-            if self.v[k] == 0:
-                temp_z = id_
-            elif self.v[k] == 1:
-                temp_z = z
+            if self.v[k] == 0 and self.w[k] == 0:
+                new = id_
+            elif self.v[k] == 1 and self.w[k] == 0:
+                new = z
+            elif self.v[k] == 0 and self.w[k] == 1:
+                new = x
+            elif self.v[k] == 1 and self.w[k] == 1:
+                new = y
             else:
-                print('the z string is not of the form 0 and 1')
-            if self.w[k] == 0:
-                temp_x = id_
-            elif self.w[k] == 1:
-                temp_x = x
+                print('the string is not of the form 0 and 1')
+            matrix = np.kron(new, matrix)
+
+        return matrix
+
+    def to_spmatrix(self):
+        """Convert Pauli to a sparse matrix representation (CSR format).
+
+        Order is q_n x q_{n-1} .... q_0
+
+        Returns:
+            scipy.sparse.csr_matrix: a sparse matrix with CSR format that
+            represnets the pauli.
+        """
+        x = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
+        y = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))
+        z = sparse.csr_matrix(np.array([[1, 0], [0, -1]], dtype=complex))
+        id_ = sparse.csr_matrix(np.array([[1, 0], [0, 1]], dtype=complex))
+        matrix = 1
+        for k in range(self.numberofqubits):
+            if self.v[k] == 0 and self.w[k] == 0:
+                new = id_
+            elif self.v[k] == 1 and self.w[k] == 0:
+                new = z
+            elif self.v[k] == 0 and self.w[k] == 1:
+                new = x
+            elif self.v[k] == 1 and self.w[k] == 1:
+                new = y
             else:
-                print('the x string is not of the form 0 and 1')
-            ope = np.dot(temp_z, temp_x)
-            x_temp = np.kron(ope, x_temp)
-        pauli_mat = (-1j) ** np.dot(self.v, self.w) * x_temp
-        return pauli_mat
+                print('the string is not of the form 0 and 1')
+            matrix = sparse.kron(new, matrix, 'csr')
+
+        return matrix
 
 
 def random_pauli(number_qubits):

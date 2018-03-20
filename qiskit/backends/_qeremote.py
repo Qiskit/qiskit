@@ -99,10 +99,12 @@ class QeRemote(BaseBackend):
         if 'error' in output:
             raise ResultError(output['error'])
 
-        logger.debug('Running on remote backend %s with job id: %s',
-                     qobj['config']['backend'], output['id'])
+        logger.info('Running qobj: %s on remote backend %s with job id: %s',
+                    qobj["id"], qobj['config']['backend'], output['id'])
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
                                    timeout=timeout)
+        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
+                    qobj["id"], qobj['config']['backend'], output['id'])
         job_result['name'] = qobj['id']
         job_result['backend'] = qobj['config']['backend']
         this_result = Result(job_result, qobj)
