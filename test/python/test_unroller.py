@@ -49,11 +49,11 @@ CX q[1],r[1];
 measure r[1] -> d[1];
 U(0.5*pi,0,pi) q[0];
 CX q[0],r[0];
-barrier q[0],q[1],q[2];
-measure q[0] -> c[0];
-measure q[1] -> c[1];
-measure q[2] -> c[2];
 measure r[0] -> d[0];
+barrier q[0],q[1],q[2];
+measure q[2] -> c[2];
+measure q[1] -> c[1];
+measure q[0] -> c[0];
 """
         self.assertEqual(unroller_dag_circuit.qasm(), expected_result)
 
@@ -85,11 +85,11 @@ cx q[1],r[1];
 measure r[1] -> d[1];
 u2(0,pi) q[0];
 cx q[0],r[0];
-barrier q[0],q[1],q[2];
-measure q[0] -> c[0];
-measure q[1] -> c[1];
-measure q[2] -> c[2];
 measure r[0] -> d[0];
+barrier q[0],q[1],q[2];
+measure q[2] -> c[2];
+measure q[1] -> c[1];
+measure q[0] -> c[0];
 """
         self.assertEqual(unroller_dag_circuit.qasm(), expected_result)
 
@@ -104,19 +104,19 @@ qreg q[3];
 qreg r[3];
 creg c[3];
 creg d[3];
-U(0.5*pi,0,pi) q[2];
-CX q[2],r[2];
-measure r[2] -> d[2];
-U(0.5*pi,0,pi) q[1];
-CX q[1],r[1];
-measure r[1] -> d[1];
 U(0.5*pi,0,pi) q[0];
+U(0.5*pi,0,pi) q[1];
+U(0.5*pi,0,pi) q[2];
 CX q[0],r[0];
-measure r[0] -> d[0];
+CX q[1],r[1];
+CX q[2],r[2];
 barrier q[0],q[1],q[2];
-measure q[2] -> c[2];
-measure q[1] -> c[1];
 measure q[0] -> c[0];
+measure q[1] -> c[1];
+measure q[2] -> c[2];
+measure r[0] -> d[0];
+measure r[1] -> d[1];
+measure r[2] -> d[2];
 """
         self.assertEqual(expanded_dag_circuit.qasm(), expected_result)
 
@@ -139,19 +139,19 @@ gate cx c,t
 {
   CX c,t;
 }
-u2(0,pi) q[2];
-cx q[2],r[2];
-measure r[2] -> d[2];
-u2(0,pi) q[1];
-cx q[1],r[1];
-measure r[1] -> d[1];
 u2(0,pi) q[0];
+u2(0,pi) q[1];
+u2(0,pi) q[2];
 cx q[0],r[0];
-measure r[0] -> d[0];
+cx q[1],r[1];
+cx q[2],r[2];
 barrier q[0],q[1],q[2];
-measure q[2] -> c[2];
-measure q[1] -> c[1];
 measure q[0] -> c[0];
+measure q[1] -> c[1];
+measure q[2] -> c[2];
+measure r[0] -> d[0];
+measure r[1] -> d[1];
+measure r[2] -> d[2];
 """
         self.assertEqual(expanded_dag_circuit.qasm(), expected_result)
 

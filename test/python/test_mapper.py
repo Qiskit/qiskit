@@ -55,7 +55,7 @@ class MapperTest(QiskitTestCase):
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
 
-        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
+        self.assertEqual(result1.get_counts("test"), {'0001': 517, '0101': 507})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -183,10 +183,10 @@ u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];
 u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];\n"""
+measure q[1] -> cr[0];
+u2(0,3.14159265358979) q[0];
+measure q[0] -> cr[1];\n"""
 
 # This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
 # swapped.
@@ -198,10 +198,10 @@ u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];
 u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];\n"""
+measure q[0] -> cr[1];
+u2(0,3.14159265358979) q[1];
+measure q[1] -> cr[0];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
 include "qelib1.inc";

@@ -299,7 +299,7 @@ class TestAnonymousIds(QiskitTestCase):
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(backend=backend, shots=shots, seed=78)
-        self.assertEqual(result.get_counts(new_circuit.name), {'01': 544, '00': 480})
+        self.assertEqual(result.get_counts(new_circuit.name), {'01': 519, '00': 505})
         self.assertRaises(QISKitError, result.get_counts)
 
 
@@ -645,7 +645,7 @@ class TestZeroIds(QiskitTestCase):
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots, seed=78)
-        self.assertEqual(result.get_counts(1001), {'01': 544, '00': 480})
+        self.assertEqual(result.get_counts(1001), {'01': 519, '00': 505})
 
 
 class TestIntegerIds(QiskitTestCase):
@@ -992,7 +992,7 @@ class TestIntegerIds(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
-        self.assertEqual(result.get_counts(1001), {'01': 544, '00': 480})
+        self.assertEqual(result.get_counts(1001), {'01': 519, '00': 505})
 
 
 class TestTupleIds(QiskitTestCase):
@@ -1334,7 +1334,7 @@ class TestTupleIds(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
-        self.assertEqual(result.get_counts((1001.1, 1001j)), {'00': 480, '01': 544})
+        self.assertEqual(result.get_counts((1001.1, 1001j)), {'00': 505, '01': 519})
 
 
 if __name__ == '__main__':
