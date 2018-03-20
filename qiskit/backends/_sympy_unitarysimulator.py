@@ -36,13 +36,13 @@ import logging
 import uuid
 
 import numpy as np
-from sympy import Matrix, pi, E, I, cos, sin, N
+from sympy import Matrix, pi
 from sympy.matrices import eye, zeros
 from sympy.physics.quantum import TensorProduct
 
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
-from qiskit.backends._simulatortools import index2
+from ._basebackend import BaseBackend
+from ._simulatortools import compute_ugate_matrix, index2
 
 logger = logging.getLogger(__name__)
 
@@ -67,82 +67,26 @@ class SympyUnitarySimulator(BaseBackend):
         self._number_of_qubits = None
 
     @staticmethod
-    def regulate(theta):
-        """helper for U gate. find the symbolic values for
-                    the floating parameters in U gates, e.g., 3.14 -> pi
-        Args:
-            theta (float or the symbolic form): it may be the float value (e.g., 3.14)
-                                                or the symbolic value (e.g., pi)
-        Returns:
-            object: the regulated theta or the original theta if it cannot be regulated.
-            bool:  whether theta is in the symbolic form
-        """
-        error_margin = 0.01
-
-        if abs(N(theta - pi)) < error_margin:
-            return pi, True
-        if abs(N(theta - pi/2)) < error_margin:
-            return pi/2, True
-        if abs(N(theta - pi/4)) < error_margin:
-            return pi/4, True
-        if abs(N(theta - 2*pi)) < error_margin:
-            return 2*pi, True
-
-        return theta, theta == 0  # if theta ==0, we also think it is regular
-
-    @staticmethod
-    def compute_ugate_matrix(parafloatlist):
-        """compute the ugate matrix
-            Args:
-                parafloatlist(list): a list of parameters (float or symbolic) used in the U gate,
-                                    e.g., [pi/2, 0, 3.14159]
-            Returns:
-                Matrix: the matrix that represents the U gate, e.g.,
-                Matrix([
-                    [sqrt(2)/2,  sqrt(2)/2],
-                    [sqrt(2)/2, -sqrt(2)/2]
-                    ])
-        """
-        theta = parafloatlist[0]
-        phi = parafloatlist[1]
-        lamb = parafloatlist[2]
-
-        theta, theta_is_regular = SympyUnitarySimulator.regulate(theta)
-        phi, phi_is_regular = SympyUnitarySimulator.regulate(phi)
-        lamb, lamb_is_regular = SympyUnitarySimulator.regulate(lamb)
-        left_up = cos(theta/2)
-        right_up = (-E**(I*lamb)) * sin(theta/2)
-        left_down = (E**(I*phi)) * sin(theta/2)
-        right_down = (E**(I*(phi+lamb))) * cos(theta/2)
-        u_mat = Matrix([[left_up, right_up], [left_down, right_down]])
-
-        if theta_is_regular and phi_is_regular and lamb_is_regular:
-            u_mat_numeric = u_mat
-        else:
-            u_mat_numeric = u_mat.evalf()
-        return u_mat_numeric
-
-    @staticmethod
-    def compute_ugate_matrix_wrap(parafloatlist):
+    def compute_ugate_matrix_wrap(parameters):
         """
             convert the parameter lists used by U1, U2 to the same form as U3.
             then computes the matrix for the u gate based on the parameter list
             Args:
-                parafloatlist (list): list of parameters, of which the length may be 1, 2, or 3
+                parameters (list): list of parameters, of which the length may be 1, 2, or 3
             Returns:
                 Matrix: the matrix that represents the ugate
         """
-        if len(parafloatlist) == 1:  # [theta=0, phi=0, lambda]
-            parafloatlist.insert(0, 0.0)
-            parafloatlist.insert(0, 0.0)
-        elif len(parafloatlist) == 2:  # [theta=pi/2, phi, lambda]
-            parafloatlist.insert(0, pi/2)
-        elif len(parafloatlist) == 3:  # [theta, phi, lambda]
+        if len(parameters) == 1:  # [theta=0, phi=0, lambda]
+            parameters.insert(0, 0.0)
+            parameters.insert(0, 0.0)
+        elif len(parameters) == 2:  # [theta=pi/2, phi, lambda]
+            parameters.insert(0, pi / 2)
+        elif len(parameters) == 3:  # [theta, phi, lambda]
             pass
         else:
             return NotImplemented
 
-        u_mat = SympyUnitarySimulator.compute_ugate_matrix(parafloatlist)
+        u_mat = compute_ugate_matrix(parameters)
         return u_mat
 
     def enlarge_single_opt_sympy(self, opt, qubit, number_of_qubits):
@@ -264,7 +208,7 @@ class SympyUnitarySimulator(BaseBackend):
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         result = {}
         result['data'] = {}
-        self._unitary_state = eye(2**(self._number_of_qubits))
+        self._unitary_state = eye(2 ** self._number_of_qubits)
         for operation in ccircuit['operations']:
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 if 'params' in operation:

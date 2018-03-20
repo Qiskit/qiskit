@@ -57,8 +57,7 @@ import uuid
 from collections import Counter
 
 import numpy as np
-from sympy import sympify
-from sympy import Matrix, pi, E, I, cos, sin, N, exp
+from sympy import Matrix, pi, I, exp
 from sympy import re, im
 from sympy.physics.quantum.gate import H, X, Y, Z, S, T, CNOT, IdentityGate, OneQubitGate, CGate
 from sympy.physics.quantum.qapply import qapply
@@ -66,8 +65,9 @@ from sympy.physics.quantum.qubit import Qubit
 from sympy.physics.quantum.represent import represent
 
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
+from ._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
+from ._simulatortools import compute_ugate_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -318,55 +318,6 @@ class SympyQasmSimulator(BaseBackend):
         return fcounts
 
     @staticmethod
-    def regulate(theta):
-        """helper for U gate. find the symbolic values for
-                    the float parameters in U gates, e.g., 3.14 -> pi
-        Args:
-            theta (float or the symbolic form): it may be the float value (e.g., 3.14)
-                                                or the symbolic value (e.g., pi)
-        Returns:
-            object: the regulated theta or the original theta if it cannot be regulated.
-            bool:  whether theta is in the symbolic form
-        """
-        error_margin = 0.01
-
-        if abs(N(theta - pi)) < error_margin:
-            return pi, True
-        if abs(N(theta - pi/2)) < error_margin:
-            return pi/2, True
-        if abs(N(theta - pi/4)) < error_margin:
-            return pi/4, True
-        if abs(N(theta - 2*pi)) < error_margin:
-            return 2*pi, True
-
-        return sympify(theta), sympify(theta) == 0  # if theta ==0, it is also regular
-
-    @staticmethod
-    def compute_ugate_matrix(parameters):
-        """compute the matrix associated with a parameterized U gate
-        Args:
-            parameters (list[float]): parameters carried by the U gate
-        Returns:
-            Matrix: the matrix associated with a parameterized U gate
-        """
-        theta = parameters[0]
-        phi = parameters[1]
-        lamb = parameters[2]
-
-        theta, theta_is_regular = SympyQasmSimulator.regulate(theta)
-        phi, phi_is_regular = SympyQasmSimulator.regulate(phi)
-        lamb, lamb_is_regular = SympyQasmSimulator.regulate(lamb)
-
-        u_mat = Matrix([[cos(theta/2), (-E**(I*lamb)) * sin(theta/2)],
-                        [(E**(I*phi)) * sin(theta/2), (E**(I*(phi+lamb))) * cos(theta/2)]])
-
-        if theta_is_regular and phi_is_regular and lamb_is_regular:
-            u_mat_numeric = u_mat
-        else:
-            u_mat_numeric = u_mat.evalf()
-        return u_mat_numeric
-
-    @staticmethod
     def get_sym_op(name, qid_tuple, params=None):
         """ return the sympy version for the gate
         Args:
@@ -425,13 +376,13 @@ class SympyQasmSimulator(BaseBackend):
 
             if name.startswith('U'):
                 ugate = UGateGeneric(*qid_tuple)
-                u_mat = SympyQasmSimulator.compute_ugate_matrix(parameters)
+                u_mat = compute_ugate_matrix(parameters)
                 ugate.set_target_matrix(u_matrix=u_mat)
                 return ugate
 
             elif name.startswith('CU'):  # additional treatment for CU1, CU2, CU3
                 ugate = UGateGeneric(*qid_tuple)
-                u_mat = SympyQasmSimulator.compute_ugate_matrix(parameters)
+                u_mat = compute_ugate_matrix(parameters)
                 ugate.set_target_matrix(u_matrix=u_mat)
                 return CGate(qid_tuple[0], ugate)
         elif name == "MEASURE":
