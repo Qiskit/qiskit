@@ -220,7 +220,7 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 
 ## Authors (alphabetical)
 
-Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
+Ismail Yunus Akhalwaya, Luciano Bello, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
 Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez,
 Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
 
