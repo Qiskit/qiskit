@@ -55,7 +55,7 @@ class MapperTest(QiskitTestCase):
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
 
-        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
+        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -74,7 +74,9 @@ class MapperTest(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
         cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
-        qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
+        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
+        qobj = self.qp.compile(["Bell"], backend=backend,
+                               initial_layout=initial_layout, coupling_map=cmap)
 
         self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
 
@@ -141,6 +143,35 @@ class MapperTest(QiskitTestCase):
         unr.execute()
         circ = mapper.optimize_1q_gates(unr.backend.circuit)
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_POWER)
+
+    def test_already_mapped(self):
+        """Test that if the circuit already matches the backend topology, it is not remapped.
+
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/342
+        """
+        self.qp = QuantumProgram()
+        qr = self.qp.create_quantum_register('qr', 16)
+        cr = self.qp.create_classical_register('cr', 16)
+        qc = self.qp.create_circuit('native_cx', [qr], [cr])
+        qc.cx(qr[3], qr[14])
+        qc.cx(qr[5], qr[4])
+        qc.h(qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.x(qr[11])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[12], qr[11])
+        qc.cx(qr[13], qr[4])
+        for j in range(16):
+            qc.measure(qr[j], cr[j])
+        backend = 'local_qasm_simulator'
+        cmap = {1: [0, 2], 2: [3], 3: [4, 14], 5: [4], 6: [5, 7, 11], 7: [10], 8: [7],
+                9: [8, 10], 11: [10], 12: [5, 11, 13], 13: [4, 14], 15: [0, 2, 14]}
+        qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=cmap)
+        cx_qubits = [x["qubits"]
+                     for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
+                     if x["name"] == "cx"]
+
+        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
 
 # QASMs expected by the tests.
