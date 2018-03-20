@@ -244,8 +244,7 @@ class SympyQasmSimulator(BaseBackend):
                 self._quantum_state = qapply(_applied_quantum_state)
             # Check if CX gate
             elif operation['name'] in ['id']:
-                logger.info('Warning have dropped identity gate from sympy-based qasm '
-                            'simulator')
+                logger.info('Identity gate is ignored by sympy-based qasm simulator.')
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
@@ -259,14 +258,11 @@ class SympyQasmSimulator(BaseBackend):
                 self._quantum_state = qapply(_sym_op * self._quantum_state)
             # Check if measure
             elif operation['name'] == 'measure':
-                logger.info('Warning have dropped measure from sympy-based qasm '
-                            'simulator')
+                logger.info('The statement measure is ignored by sympy-based qasm simulator.')
             elif operation['name'] == 'reset':
-                logger.info('Warning have dropped reset from sympy-based qasm '
-                            'simulator')
+                logger.info('The statement reset is ignored by sympy-based qasm simulator.')
             elif operation['name'] == 'barrier':
-                logger.info('Warning have dropped barrier from sympy-based qasm '
-                            'simulator')
+                logger.info('The statement barrier is ignored by sympy-based qasm simulator.')
             else:
                 backend = globals()['__configuration']['name']
                 err_msg = '{0} encountered unrecognized operation "{1}"'
