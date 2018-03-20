@@ -30,6 +30,7 @@ Functions
 
 """
 import numpy as np
+from sympy import Matrix, pi, E, I, cos, sin, N, sympify
 
 from qiskit import QISKitError
 
@@ -155,3 +156,50 @@ def single_gate_matrix(gate, params=None):
                       -np.exp(1j*lam)*np.sin(theta/2)],
                      [np.exp(1j*phi)*np.sin(theta/2),
                       np.exp(1j*phi+1j*lam)*np.cos(theta/2)]])
+
+
+# Functions used by the sympy simulators.
+
+def regulate(theta):
+    """
+    Return the regulated symbolic representation of `theta`::
+        * if it has a representation close enough to `pi` transformations,
+            return that representation (for example, `3.14` -> `sympy.pi`).
+        * otherwise, return a sympified representation of theta (for example,
+            `1.23` ->  `sympy.Float(1.23)`).
+    See also `UGateGeneric`.
+
+    Args:
+        theta (float or sympy.Basic): the float value (e.g., 3.14) or the
+            symbolic value (e.g., pi)
+    Returns:
+        sympy.Basic: the sympy-regulated representation of `theta`
+    """
+    error_margin = 0.01
+    targets = [pi, pi/2, pi * 2, pi / 4]
+
+    for t in targets:
+        if abs(N(theta - t)) < error_margin:
+            return t
+
+    return sympify(theta)
+
+
+def compute_ugate_matrix(parameters):
+    """Compute the matrix associated with a parameterized U gate.
+
+    Args:
+        parameters (list[float]): parameters carried by the U gate
+    Returns:
+        sympy.Matrix: the matrix associated with a parameterized U gate
+    """
+    theta = regulate(parameters[0])
+    phi = regulate(parameters[1])
+    lamb = regulate(parameters[2])
+
+    left_up = cos(theta/2)
+    right_up = (-E**(I*lamb)) * sin(theta/2)
+    left_down = (E**(I*phi)) * sin(theta/2)
+    right_down = (E**(I*(phi + lamb))) * cos(theta/2)
+
+    return Matrix([[left_up, right_up], [left_down, right_down]])
