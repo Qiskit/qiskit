@@ -67,17 +67,11 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                                 resources=resources,
                                 preformatted=True)
 
-    def test_qasm_simulator_single_shot(self):
-        """Test single shot run."""
-        shots = 1
-        self.qobj['config']['shots'] = shots
-        result = SympyQasmSimulator().run(self.q_job)
-        self.assertEqual(result.get_status(), 'COMPLETED')
-
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
         result = SympyQasmSimulator().run(self.q_job)
         actual = result.get_data('test')['quantum_state']
+        self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertEqual(actual[0], sqrt(2)/2)
         self.assertEqual(actual[1], 0)
         self.assertEqual(actual[2], 0)
