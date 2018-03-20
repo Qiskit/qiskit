@@ -1094,7 +1094,9 @@ class QuantumProgram(object):
             # the compiled circuit to be run saved as a dag
             # we assume that openquantumcompiler has already expanded gates
             # to the target basis, so we just need to generate json
-            job["compiled_circuit"] = dag_circuit.json()
+            json_circuit = unroll.DagUnroller(dag_circuit,
+                                              unroll.JsonBackend(dag_circuit.basis)).execute()
+            job["compiled_circuit"] = json_circuit
             # set eval_symbols=True to evaluate each symbolic expression
             # TODO after transition to qobj, we can drop this
             job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,

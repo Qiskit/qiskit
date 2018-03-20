@@ -32,9 +32,9 @@ import copy
 import networkx as nx
 import sympy
 
-from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import QISKitError
+from qiskit import CompositeGate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -804,7 +804,7 @@ class DAGCircuit:
                         if nd["name"] == "measure":
                             if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
                                or nd["params"]:
-                               raise QISKitError("bad node data")
+                                raise QISKitError("bad node data")
 
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
@@ -1358,23 +1358,31 @@ class DAGCircuit:
             "reset": ["reset", 1, 0, 0],
             "barrier": ["barrier", -1, 0, 0]
         }
-        for instruction in circuit.data:
-            # Add OpenQASM built-in gates on demand
-            if instruction.name in builtins:
-                dagcircuit.add_basis_element(*builtins[instruction.name])
-            # Separate classical arguments to measurements
-            if instruction.name == "measure":
-                qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
-                cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+        for main_instruction in circuit.data:
+            # TODO: generate definitions and nodes for CompositeGates,
+            # for now simply drop their instructions into the DAG
+            instruction_list = []
+            if isinstance(main_instruction, CompositeGate):
+                instruction_list = main_instruction.instruction_list()
             else:
-                qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
-                cargs = []
-            # Get arguments for classical control (if any)
-            if instruction.control is None:
-                control = None
-            else:
-                control = (instruction.control[0].name, instruction.control[1])
-            dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
-                                            instruction.param,
-                                            control)
+                instruction_list.append(main_instruction)
+            for instruction in instruction_list:
+                # Add OpenQASM built-in gates on demand
+                if instruction.name in builtins:
+                    dagcircuit.add_basis_element(*builtins[instruction.name])
+                # Separate classical arguments to measurements
+                if instruction.name == "measure":
+                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
+                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+                else:
+                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
+                    cargs = []
+                # Get arguments for classical control (if any)
+                if instruction.control is None:
+                    control = None
+                else:
+                    control = (instruction.control[0].name, instruction.control[1])
+                dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
+                                                instruction.param,
+                                                control)
         return dagcircuit

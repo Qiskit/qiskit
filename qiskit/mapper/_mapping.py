@@ -29,7 +29,6 @@ import numpy as np
 import sympy
 from sympy import Number as N
 
-from qiskit.qasm import Qasm
 from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
@@ -387,8 +386,7 @@ def direction_mapper(circuit_graph, coupling_graph):
 
 
 def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
-                             best_circ, layer_list,
-                             coupling):
+                             best_circ, layer_list):
     """Update the QASM string for an iteration of swap_mapper.
 
     i = layer number
@@ -397,7 +395,6 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     best_d = depth returned from swap algorithm
     best_circ = swap circuit returned from swap algorithm
     layer_list = list of circuit objects for each layer
-    coupling = underlying CouplingGraph
 
     Return DAGCircuit object to append to the output DAGCircuit.
     """
@@ -562,8 +559,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                                              best_layout,
                                              best_d,
                                              best_circ,
-                                             serial_layerlist,
-                                             coupling_graph),
+                                             serial_layerlist),
                     identity_wire_map)
                 # Update initial layout
                 if first_layer:
@@ -581,8 +577,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                                          best_layout,
                                          best_d,
                                          best_circ,
-                                         layerlist,
-                                         coupling_graph),
+                                         layerlist),
                 identity_wire_map)
             # Update initial layout
             if first_layer:
@@ -598,7 +593,7 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Parse openqasm_output into DAGCircuit object
     dag_unrrolled = DagUnroller(dagcircuit_output,
-                                    DAGBackend(basis.split(",")))
+                                DAGBackend(basis.split(",")))
     dagcircuit_output = dag_unrrolled.expand_gates()
     return dagcircuit_output, initial_layout
 
@@ -778,7 +773,7 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    dag_unroller = unroll.DagUnroller(circuit, unroll.DAGBackend(qx_basis))
+    dag_unroller = DagUnroller(circuit, DAGBackend(qx_basis))
     unrolled = dag_unroller.expand_gates()
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
@@ -786,8 +781,8 @@ def optimize_1q_gates(circuit):
         qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
         right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
-        for node in run:
-            nd = unrolled.multi_graph.node[node]
+        for current_node in run:
+            nd = unrolled.multi_graph.node[current_node]
             assert nd["condition"] is None, "internal error"
             assert len(nd["qargs"]) == 1, "internal error"
             assert nd["qargs"][0] == qname, "internal error"
@@ -921,8 +916,8 @@ def optimize_1q_gates(circuit):
         nx.set_node_attributes(unrolled.multi_graph, name='params',
                                values={run[0]: new_params})
         # Delete the other nodes in the run
-        for node in run[1:]:
-            unrolled._remove_op_node(node)
+        for current_node in run[1:]:
+            unrolled._remove_op_node(current_node)
         if right_name == "nop":
             unrolled._remove_op_node(run[0])
     return unrolled

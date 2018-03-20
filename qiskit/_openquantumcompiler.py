@@ -79,7 +79,7 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     """
     compiled_dag_circuit = DAGCircuit.fromQuantumCircuit(quantum_circuit)
     basis = basis_gates.split(',') if basis_gates else []
-    
+
     dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
     compiled_dag_circuit = dag_unroller.expand_gates()
     final_layout = None

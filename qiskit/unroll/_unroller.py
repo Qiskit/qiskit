@@ -18,7 +18,6 @@
 """
 OPENQASM interpreter.
 """
-import copy
 from ._unrollererror import UnrollerError
 
 

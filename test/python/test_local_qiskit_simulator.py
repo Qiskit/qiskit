@@ -42,7 +42,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
         with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
             self.qasm_ast = qiskit.qasm.Qasm(data=self.qasm_text).parse()
-            self.qasm_be = qiskit.unroll.CircuitBackend(['u1','u2','u3','id','cx'])
+            self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
             self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
         qr = QuantumRegister('q', 2)
         cr = ClassicalRegister('c', 2)

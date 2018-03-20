@@ -65,7 +65,7 @@ class TestJobProcessor(QiskitTestCase):
         with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
             self.qasm_ast = qiskit.qasm.Qasm(data=self.qasm_text).parse()
-            self.qasm_be = qiskit.unroll.CircuitBackend(['u1','u2','u3','id','cx'])
+            self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
             self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
         # create QuantumCircuit
         qr = QuantumRegister('q', 2)
@@ -137,8 +137,8 @@ class TestJobProcessor(QiskitTestCase):
         _ = jobprocessor.JobProcessor(job_list, callback=None)
 
     def test_run_local_backend_qasm(self):
-        compiled_circuit = openquantumcompiler.compile(self.qc)
-        quantum_job = QuantumJob(compiled_circuit, do_compile=False,
+        dag_circuit = openquantumcompiler.compile(self.qc)
+        quantum_job = QuantumJob(dag_circuit, do_compile=False,
                                  backend='local_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
 

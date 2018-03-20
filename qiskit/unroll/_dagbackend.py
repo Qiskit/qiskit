@@ -18,10 +18,10 @@
 """
 Backend for the unroller that creates a DAGCircuit object.
 """
+
+from qiskit.dagcircuit import DAGCircuit
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
-from qiskit.dagcircuit import DAGCircuit
-
 
 class DAGBackend(UnrollerBackend):
     """Backend for the unroller that creates a DAGCircuit object."""
