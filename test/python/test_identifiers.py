@@ -87,8 +87,8 @@ class TestAnonymousIds(QiskitTestCase):
         """Test create_circuit with no name
         """
         q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("qr", 3)
-        cr = q_program.create_classical_register("cr", 3)
+        qr = q_program.create_quantum_register(size=3)
+        cr = q_program.create_classical_register(size=3)
         qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
@@ -96,10 +96,10 @@ class TestAnonymousIds(QiskitTestCase):
         """Test create_circuit with several inputs and without names.
         """
         q_program = QuantumProgram()
-        qr1 = q_program.create_quantum_register("qr1", 3)
-        cr1 = q_program.create_classical_register("cr1", 3)
-        qr2 = q_program.create_quantum_register("qr2", 3)
-        cr2 = q_program.create_classical_register("cr2", 3)
+        qr1 = q_program.create_quantum_register(size=3)
+        cr1 = q_program.create_classical_register(size=3)
+        qr2 = q_program.create_quantum_register(size=3)
+        cr2 = q_program.create_classical_register(size=3)
         qc1 = q_program.create_circuit(qregisters=[qr1], cregisters=[cr1])
         qc2 = q_program.create_circuit(qregisters=[qr2], cregisters=[cr2])
         qc3 = q_program.create_circuit(qregisters=[qr1, qr2], cregisters=[cr1, cr2])
