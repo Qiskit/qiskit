@@ -1,14 +1,15 @@
 """
-Example used in the readme. In this example a Bell state is made
+Example used in the readme. In this example a Bell state is made.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
+
 import sys
 import os
 from pprint import pprint
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qiskit import QuantumProgram, QISKitError, RegisterSizeError
+from qiskit import QuantumProgram, 
+from qiskit import QISKitError, RegisterSizeError
 
 # Create a QuantumProgram object instance.
 Q_program = QuantumProgram()
