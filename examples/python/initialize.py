@@ -23,8 +23,6 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-import os
-import sys
 from qiskit import QuantumProgram
 from qiskit.tools.visualization import plot_circuit
 import Qconfig

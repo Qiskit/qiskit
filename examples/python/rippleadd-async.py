@@ -22,8 +22,6 @@ Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-import sys
-import os
 import time
 from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
