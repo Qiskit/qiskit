@@ -25,44 +25,29 @@ logger = logging.getLogger(__name__)
 def _check_ibmqe_version():
     """Check if the available IBMQuantumExperience version is the required one.
 
-    Check that the version of the available "IBMQuantumExperience" package
-    matches the version required by the package, emitting a warning if it is
-    not present.
+    Check that the installed "IBMQuantumExperience" package version matches the
+    version required by the package, emitting a warning if it is not present.
+
+    Note:
+        The check is only performed when `qiskit` is installed via `pip`
+        (available under `pkg_resources.working_set`). For other configurations
+        (such as local development, etc), the check is skipped silently.
     """
     try:
         # Use a local import, as in very specific environments setuptools
         # might not be available or updated (conda with specific setup).
         import pkg_resources
-    except ImportError:
+        working_set = pkg_resources.working_set
+        qiskit_pkg = working_set.by_key['qiskit']
+    except (ImportError, KeyError):
+        # If 'qiskit' was not found among the installed packages, silently
+        # return.
         return
 
-    working_set = pkg_resources.working_set
-    # Find if qiskit is installed and the current execution is using the
-    # installed package; or if it is a local environment.
-    qiskit_local = True
-    try:
-        qiskit_pkg = working_set.by_key['qiskit']
-        if __file__.startswith(qiskit_pkg.location):
-            qiskit_local = False
-    except KeyError:
-        pass
-
-    # Find the IBMQuantumExperience version specified in qiskit.
-    if qiskit_local:
-        try:
-            with open('requirements.txt') as reqfile:
-                ibmqe_require_line = next(line for line in reqfile if
-                                          line.startswith(API_NAME))
-                ibmqe_require = pkg_resources.Requirement(ibmqe_require_line)
-        except (FileNotFoundError, StopIteration, pkg_resources.RequirementParseError):
-            logger.warning(
-                'Could not find %s in requirements.txt or the requirements.txt \
-                file was not found or unparsable', API_NAME)
-            return
-    else:
-        # Retrieve the requirement line from pkg_resources
-        ibmqe_require = next(r for r in qiskit_pkg.requires() if
-                             r.name == API_NAME)
+    # Find the IBMQuantumExperience version specified in this release of qiskit
+    # based on pkg_resources (in turn, based on setup.py::install_requires).
+    ibmqe_require = next(r for r in qiskit_pkg.requires() if
+                         r.name == API_NAME)
 
     # Finally, compare the versions.
     try:
@@ -81,7 +66,7 @@ def _check_ibmqe_version():
         except pkg_resources.DistributionNotFound:
             # IBMQuantumExperience was not found among the installed libraries.
             # The warning is not printed, assuming the user is using a local
-            # version and takes responsability of handling the versions.
+            # version and takes responsibility of handling the versions.
             return
         except pkg_resources.VersionConflict:
             pass
