@@ -322,15 +322,31 @@ class TestStandard(QiskitTestCase):
         qasm_txt_: qasm representation of inverse
         """
         c = self.circuit
+        self.assertStmtTypeAndQasm(c[0], t, qasm_txt)
+        c[0].reapply(c)
+        self.assertReapply(qasm_txt)
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertInverse(qasm_txt, qasm_txt_)
+
+    def assertStmtTypeAndQasm(self, stmt, t, qasm_txt):
+        c = self.circuit
+        c_header = 58
+        c_txt = len(qasm_txt)
+        self.assertEqual(type(stmt), t)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(c_header + c_txt + 1, len(c.qasm()))
+
+    def assertReapply(self,qasm_txt):
+        c = self.circuit
+        c_header = 58
+        c_txt = len(qasm_txt)
+        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
+
+    def assertInverse(self, qasm_txt, qasm_txt_):
+        c = self.circuit
         c_header = 58
         c_txt = len(qasm_txt)
         c_txt_ = len(qasm_txt_)
-        self.assertEqual(type(c[0]), t)
-        self.assertIn(qasm_txt, c.qasm())
-        self.assertEqual(c_header + c_txt + 1, len(c.qasm()))
-        c[0].reapply(c)
-        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
-        self.assertEqual(c[0].inverse(), c[0])
         self.assertIn(qasm_txt_ + '\n' + qasm_txt, c.qasm())
         self.assertEqual(c_header + c_txt + c_txt_ + 2, len(c.qasm()))
 
