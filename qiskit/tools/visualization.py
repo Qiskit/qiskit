@@ -713,8 +713,7 @@ def circuit_drawer(circuit, image_format="png",
         latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
         im = None
         try:
-            subprocess.run(["pdflatex", #"-interaction=batchmode",
-                            "-output-directory={}".format(tmpdirname),
+            subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
                             "{}".format(filename + '.tex')],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
         except OSError as e:
@@ -726,6 +725,10 @@ def circuit_drawer(circuit, image_format="png",
             if "capacity exceeded" in str(e.stdout):
                 logger.warning('WARNING: Unable to compile latex. '
                                'Circuit too large for memory. '
+                               'Skipping circuit drawing...')
+            elif "Dimension too large." in str(e.stdout):
+                logger.warning('WARNING: Unable to compile latex. '
+                               'Dimension too large for the beamer template. '
                                'Skipping circuit drawing...')
             else:
                 logger.warning('WARNING: Unable to compile latex. '
@@ -883,13 +886,14 @@ class QCircuitImage(object):
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
 """
-        beamer_line = "\\usepackage[size=custom,width=%d,height=%d,scale=.3]{beamerposter}\n"
+        beamer_line = "\\usepackage[size=custom,height=%d,width=%d,scale=%.1f]{beamerposter}\n"
         header_2 = r"""% instead and customize the height and width (in cm) to fit.
 % Large images may run out of memory quickly.
 % To fix this use the LuaLaTeX compiler, which dynamically
 % allocates memory.
 \usepackage[braket, qm]{qcircuit}
 \usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
@@ -899,10 +903,13 @@ class QCircuitImage(object):
 """
         output = StringIO()
         output.write(header_1)
-        output.write('%% img_depth = %d, img_width = %d\n'
-                     % (self.img_depth, self.img_width))
-        output.write(beamer_line %
-                     (2.5*self.img_depth, 2.5*self.img_width))
+        print("width * depth: ", self.img_width, self.img_depth)
+        output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
+        output.write(beamer_line % self._get_beamer_page(self.img_width, self.img_depth))
+                #(min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio)), # page height
+                #     min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio)), # page width
+                #     0.8))                                                 # page scaling
+                     #(2.5*self.img_depth, 2.5*self.img_width))
         output.write(header_2)
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
@@ -1052,6 +1059,32 @@ class QCircuitImage(object):
                 else:
                     assert False, "bad node data"
         return columns+1
+
+    def _get_beamer_page(self, img_width, img_depth):
+        """Get height, width and scaling attributes for the beamer page.
+
+        Args: 
+            img_width (int): number of rows in the circuit
+            img_depth (int): number of columns in the circuit
+
+        Returns:
+            (heigh, width, scaling) (tuple): desirable page attributes
+        """
+        # PIL python package limits image size to around a quarter gigabyte
+        # this means the beamer image should be limited to < 50000
+        # if you want to avoid a "warning" too, set it to < 25000
+        PIL_limit = 50000
+
+        # the beamer latex template limits each dimension to < 19 feet (i.e. 575cm)
+        beamer_limit = 550
+
+        # columns are roughly twice as big as rows (TODO: get actual column & row size)
+        aspect_ratio = self.img_width / (2 * self.img_depth)        
+        height = min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio))
+        width = min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio))
+        scaling = 0.5
+
+        return (height, width, scaling)
 
     def total_2_register_index(self, index, registers):
         """Get register name for qubit index.
