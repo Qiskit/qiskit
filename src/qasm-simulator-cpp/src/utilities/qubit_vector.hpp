@@ -41,12 +41,10 @@ namespace QV {
 // Types
 using TI::TensorIndex;
 using TI::uint_t;
+using omp_int_t = long long int; // signed int for OpenMP 2.0 on msvc
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
-
-// OpenMP reduction for complex type
-#pragma omp declare reduction(+:complex_t:omp_out += omp_in) 
 
 /*******************************************************************************
  *
@@ -371,12 +369,12 @@ QubitVector &QubitVector::operator=(const rvector_t &vec) {
 }
 
 // Scalar multiplication
-
 QubitVector &QubitVector::operator*=(const complex_t &lambda) {
+const omp_int_t end = num_states;    // end for k loop
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
+    for (omp_int_t k = 0; k < end; k++)
       state_vector[k] *= lambda;
   } // end omp parallel
   return *this;
@@ -412,10 +410,11 @@ QubitVector &QubitVector::operator+=(const QubitVector &qv) {
 #ifdef DEBUG
   check_dimension(qv);
 #endif
+  const omp_int_t end = num_states;    // end for k loop
   #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
+    for (omp_int_t k = 0; k < end; k++)
       state_vector[k] += qv.state_vector[k];
   } // end omp parallel
   return *this;
@@ -434,10 +433,11 @@ QubitVector &QubitVector::operator-=(const QubitVector &qv) {
 #ifdef DEBUG
   check_dimension(qv);
 #endif
+  const omp_int_t end = num_states;    // end for k loop
   #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
+    for (omp_int_t k = 0; k < end; k++)
       state_vector[k] -= qv.state_vector[k];
   } // end omp parallel
   return *this;
@@ -465,10 +465,11 @@ void QubitVector::initialize_plus() {
 }
 
 void QubitVector::conj() {
+  const omp_int_t end = num_states;    // end for k loop
   #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++) {
+    for (omp_int_t k = 0; k < end; k++) {
       state_vector[k] = std::conj(state_vector[k]);
     }
   } // end omp parallel
@@ -480,14 +481,19 @@ complex_t QubitVector::dot(const QubitVector &qv) const {
   check_dimension(qv);
 #endif
 
-complex_t z = 0.;
-#pragma omp parallel reduction(+:z) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+// split variable for OpenMP 2.0 compatible reduction
+double z_re = 0., z_im = 0.;
+const omp_int_t end = num_states;    // end for k loop
+#pragma omp parallel reduction(+:z_re, z_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
-      z += state_vector[k] * qv.state_vector[k];
+    for (omp_int_t k = 0; k < end; k++) {
+      const complex_t z = state_vector[k] * qv.state_vector[k];
+      z_re += std::real(z);
+      z_im += std::imag(z);
+    }
   } // end omp parallel
-  return z;
+  return complex_t(z_re, z_im);
 }
 
 complex_t QubitVector::inner_product(const QubitVector &qv) const {
@@ -496,14 +502,18 @@ complex_t QubitVector::inner_product(const QubitVector &qv) const {
   check_dimension(qv);
 #endif
 
-complex_t z = 0.;
-#pragma omp parallel reduction(+:z) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+double z_re = 0., z_im = 0.;
+const omp_int_t end = num_states;    // end for k loop
+#pragma omp parallel reduction(+:z_re, z_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
-      z += state_vector[k] * std::conj(qv.state_vector[k]);
+    for (omp_int_t k = 0; k < end; k++) {
+      const complex_t z = state_vector[k] * std::conj(qv.state_vector[k]);
+      z_re += std::real(z);
+      z_im += std::imag(z);
+    }
   } // end omp parallel
-  return z;
+  return complex_t(z_re, z_im);
 }
 
 void QubitVector::renormalize() {
@@ -556,14 +566,15 @@ void QubitVector::apply_matrix_col_major(const uint_t qubit, const cvector_t &ma
   check_vector(mat, 2);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
 
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         const auto cache0 = state_vector[k];
         const auto cache1 = state_vector[k | end2];
@@ -581,14 +592,15 @@ void QubitVector::apply_matrix_diagonal(const uint_t qubit, const cvector_t &dia
   check_qubit(qubit);
   #endif
   
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
 
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         state_vector[k] *= diag[0];
         state_vector[k | end2] *= diag[1];
@@ -604,13 +616,14 @@ void QubitVector::apply_x(const uint_t qubit) {
   #endif
 
   // Optimized ideal Pauli-X gate
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto i0 = k1 | k2;
         const auto i1 = i0 | end2;
         const complex_t cache = state_vector[i0];
@@ -627,14 +640,15 @@ void QubitVector::apply_y(const uint_t qubit) {
   #endif
 
   // Optimized ideal Pauli-Y gate
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   const complex_t I(0., 1.);
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto i0 = k1 | k2;
         const auto i1 = i0 | end2;
         const complex_t cache = state_vector[i0];
@@ -652,14 +666,15 @@ void QubitVector::apply_z(const uint_t qubit) {
   #endif
   
   // Optimized ideal Pauli-Z gate
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   const complex_t minus_one(-1.0, 0.0);
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         state_vector[k1 | k2 | end2] *= minus_one;
       }
   }
@@ -673,10 +688,11 @@ void QubitVector::apply_z(const uint_t qubit) {
 
 double QubitVector::norm() const {
   double val = 0;
+  const omp_int_t end = num_states;    // end for k loop
   #pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
-    for (uint_t k = 0; k < num_states; k++)
+    for (omp_int_t k = 0; k < end; k++)
       val += std::real(state_vector[k] * std::conj(state_vector[k]));
   } // end omp parallel
   return val;
@@ -697,15 +713,16 @@ double QubitVector::norm_matrix(const uint_t qubit, const cvector_t &mat) const 
   check_vector(mat, 2);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   double val = 0.;
 #pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         const auto cache0 = state_vector[k];
         const auto cache1 = state_vector[k | end2];
@@ -725,15 +742,16 @@ double QubitVector::norm_matrix_diagonal(const uint_t qubit, const cvector_t &ma
   check_vector(mat, 1);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   double val = 0.;
 #pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         const auto v0 = mat[0] * state_vector[k];
         const auto v1 = mat[1] * state_vector[k | end2];
@@ -763,24 +781,28 @@ complex_t QubitVector::expectation_value_matrix(const uint_t qubit, const cvecto
   check_vector(mat, 2);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1)         \
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
+  double val_re = 0.;
+  double val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         const auto cache0 = state_vector[k];
         const auto cache1 = state_vector[k | end2];
         const auto v0 = mat[0] * cache0 + mat[2] * cache1;
         const auto v1 = mat[1] * cache0 + mat[3] * cache1;
-        val += v0 * std::conj(cache0) + v1 * std::conj(cache1);
+        const complex_t val = v0 * std::conj(cache0) + v1 * std::conj(cache1);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 complex_t QubitVector::expectation_value_matrix_diagonal(const uint_t qubit, const cvector_t &mat) const {
@@ -791,23 +813,25 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const uint_t qubit, con
   check_vector(mat, 1);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1)         \
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
+  double val_re = 0., val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         const auto cache0 = state_vector[k];
         const auto cache1 = state_vector[k | end2];
-        val += mat[0] * cache0 * std::conj(cache0);
-        val += mat[1] * cache1 * std::conj(cache1);
+        const complex_t val = mat[0] * cache0 * std::conj(cache0) + mat[1] * cache1 * std::conj(cache1);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 
@@ -937,7 +961,7 @@ void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   check_qubit(qubit_trgt);
   #endif
 
-  const uint_t end = num_states >> 2;
+  const omp_int_t end = num_states >> 2;
   const auto qubits_sorted = (qubit_ctrl < qubit_trgt)
                           ? std::array<uint_t, 2>{{qubit_ctrl, qubit_trgt}}
                           : std::array<uint_t, 2>{{qubit_trgt, qubit_ctrl}};
@@ -945,7 +969,7 @@ void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
 #pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
-    for (uint_t k = 0; k < end; k++) {
+    for (omp_int_t k = 0; k < end; k++) {
       const auto ii = idx.indexes_static<2>({{qubit_ctrl, qubit_trgt}},
                                             qubits_sorted, k);
       state_vector[ii[3]] *= -1.;
@@ -1059,8 +1083,8 @@ complex_t QubitVector::expectation_value_matrix(const std::array<uint_t, N> &qs,
   auto qss = qs;
   std::sort(qss.begin(), qss.end());
   const auto &qubits_sorted = qss;
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+  double val_re = 0., val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
     for (size_t k = 0; k < end; k++) {
@@ -1068,13 +1092,16 @@ complex_t QubitVector::expectation_value_matrix(const std::array<uint_t, N> &qs,
       const auto inds = idx.indexes_static(qs, qubits_sorted, k);
       for (size_t i = 0; i < dim; i++) {
         complex_t vi = 0;
-        for (size_t j = 0; j < dim; j++)
+        for (size_t j = 0; j < dim; j++) {
           vi += mat[i + dim * j] * state_vector[inds[j]];
-        val += vi * std::conj(state_vector[inds[i]]);
+        }
+        const complex_t val = vi * std::conj(state_vector[inds[i]]);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
     }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 
@@ -1093,8 +1120,8 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const std::array<uint_t
   auto qss = qs;
   std::sort(qss.begin(), qss.end());
   const auto &qubits_sorted = qss;
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+  double val_re = 0., val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
     for (size_t k = 0; k < end; k++) {
@@ -1102,11 +1129,13 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const std::array<uint_t
       const auto inds = idx.indexes_static(qs, qubits_sorted, k);
       for (size_t i = 0; i < dim; i++) {
         const auto cache = state_vector[inds[i]];
-        val += mat[i] * cache * std::conj(cache);
+        const complex_t val = mat[i] * cache * std::conj(cache);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
     }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 
@@ -1343,8 +1372,8 @@ complex_t QubitVector::expectation_value_matrix(const std::vector<uint_t> &qs, c
   auto qss = qs;
   std::sort(qss.begin(), qss.end());
   const auto &qubits_sorted = qss;
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+  double val_re = 0., val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
     for (size_t k = 0; k < end; k++) {
@@ -1352,13 +1381,16 @@ complex_t QubitVector::expectation_value_matrix(const std::vector<uint_t> &qs, c
       const auto inds = idx.indexes_dynamic(qs, qubits_sorted, N, k);
       for (size_t i = 0; i < dim; i++) {
         complex_t vi = 0;
-        for (size_t j = 0; j < dim; j++)
+        for (size_t j = 0; j < dim; j++) {
           vi += mat[i + dim * j] * state_vector[inds[j]];
-        val += vi * std::conj(state_vector[inds[i]]);
+        }
+        const complex_t val = vi * std::conj(state_vector[inds[i]]);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
     }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 complex_t QubitVector::expectation_value_matrix_diagonal(const std::vector<uint_t> &qs, const cvector_t &mat) const {
@@ -1376,8 +1408,8 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const std::vector<uint_
   auto qss = qs;
   std::sort(qss.begin(), qss.end());
   const auto &qubits_sorted = qss;
-  complex_t val = 0.;
-#pragma omp parallel reduction(+:val) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+  double val_re = 0., val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
   {
   #pragma omp for
     for (size_t k = 0; k < end; k++) {
@@ -1385,11 +1417,13 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const std::vector<uint_
       const auto inds = idx.indexes_dynamic(qs, qubits_sorted, N, k);
       for (size_t i = 0; i < dim; i++) {
         const auto cache = state_vector[inds[i]];
-        val += mat[i] * cache * std::conj(cache);
+        const complex_t val = mat[i] * cache * std::conj(cache);
+        val_re += std::real(val);
+        val_im += std::imag(val);
       }
     }
   } // end omp parallel
-  return val;
+  return complex_t(val_re, val_im);
 }
 
 
@@ -1406,7 +1440,8 @@ complex_t QubitVector::expectation_value_matrix_diagonal(const std::vector<uint_
 rvector_t QubitVector::probabilities() const {
   rvector_t probs;
   probs.reserve(num_states);
-  for (uint_t j=0; j < state_vector.size(); j++) {
+  const omp_int_t end = state_vector.size();
+  for (omp_int_t j=0; j < end; j++) {
     probs.push_back(probability(j));
   }
   return probs;
@@ -1419,15 +1454,16 @@ rvector_t QubitVector::probabilities(const uint_t qubit) const {
   check_qubit(qubit);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   double p0 = 0., p1 = 0.;
 #pragma omp parallel reduction(+:p0, p1) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++) {
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++) {
         const auto k = k1 | k2;
         p0 += probability(k);
         p1 += probability(k | end2);
@@ -1523,21 +1559,22 @@ double QubitVector::probability(const uint_t qubit, const uint_t outcome) const 
   check_qubit(qubit);
   #endif
 
-  const uint_t end2 = 1ULL << qubit; // end for k2 loop
-  const uint_t step1 = end2 << 1;    // step for k1 loop
+  const omp_int_t end1 = num_states;    // end for k1 loop
+  const omp_int_t end2 = 1LL << qubit; // end for k2 loop
+  const omp_int_t step1 = end2 << 1;    // step for k1 loop
   double p = 0.;
 #pragma omp parallel reduction(+:p) if (num_qubits > omp_threshold && omp_threads > 1)         \
                                                num_threads(omp_threads)
   {
   if (outcome == 0) {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++)
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++)
         p += probability(k1 | k2);
   } else if (outcome == 1) {
   #pragma omp for collapse(2)
-    for (uint_t k1 = 0; k1 < num_states; k1 += step1)
-      for (uint_t k2 = 0; k2 < end2; k2++)
+    for (omp_int_t k1 = 0; k1 < end1; k1 += step1)
+      for (omp_int_t k2 = 0; k2 < end2; k2++)
         p += probability(k1 | k2 | end2);
   }
   } // end omp parallel
