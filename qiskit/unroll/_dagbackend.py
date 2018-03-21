@@ -24,7 +24,14 @@ from ..dagcircuit import DAGCircuit
 
 
 class DAGBackend(UnrollerBackend):
-    """Backend for the unroller that creates a DAGCircuit object."""
+    """Backend for the unroller that creates a DAGCircuit object.
+
+    Example::
+
+        qasm = Qasm(filename = "teleport.qasm").parse()
+        dagcircuit = Unroller(qasm, DAGBackend()).execute()
+        print(dagcircuit.qasm())
+    """
 
     def __init__(self, basis=None):
         """Setup this backend.

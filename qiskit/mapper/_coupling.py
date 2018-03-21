@@ -109,8 +109,8 @@ class Coupling:
         return len(self.qubits)
 
     def get_qubits(self):
-        """Return the qubits in this graph as (qreg, index) tuples."""
-        return list(self.qubits.keys())
+        """Return the qubits in this graph as a sorted (qreg, index) tuples."""
+        return sorted(list(self.qubits.keys()))
 
     def get_edges(self):
         """Return a list of edges in the coupling graph.
@@ -158,7 +158,7 @@ class Coupling:
 
     def compute_distance(self):
         """
-        Compute the distance function on pairs of nodes.
+        Compute the undirected distance function on pairs of nodes.
 
         The distance map self.dist is computed from the graph using
         all_pairs_shortest_path_length.
@@ -173,7 +173,7 @@ class Coupling:
                 self.dist[i][j] = lengths[self.qubits[i]][self.qubits[j]]
 
     def distance(self, q1, q2):
-        """Return the distance between qubit q1 to qubit q2."""
+        """Return the undirected distance between qubit q1 to qubit q2."""
         if self.dist is None:
             raise CouplingError("distance has not been computed")
         if q1 not in self.qubits:
