@@ -53,6 +53,8 @@ limitations under the License.
 
 namespace QISKIT {
 
+using QV::omp_int_t;  // signed int for OpenMP 2.0 on msvc
+
 /***************************************************************************/ /**
    *
    * Simulator class
@@ -216,7 +218,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
 #ifdef _OPENMP
       std::vector<Engine> futures(threads);
 #pragma omp parallel for if (threads > 1) num_threads(threads)
-      for (uint_t j = 0; j < threads; j++) {
+      for (omp_int_t j = 0; j < omp_int_t(threads); j++) {
         const auto &ss = shotseed[j];
         Backend be(backend);
         be.set_rng_seed(ss.second);
