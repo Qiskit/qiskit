@@ -55,7 +55,6 @@ def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.crz(theta, (ctl, i), (tgt, i)))

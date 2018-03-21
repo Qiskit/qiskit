@@ -54,7 +54,6 @@ def cx(self, ctl, tgt):
     """Apply CNOT from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cx((ctl, i), (tgt, i)))
