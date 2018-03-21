@@ -46,8 +46,9 @@ QISKit. If you're new to quantum, start with our
 We encourage to install QISKit via the PIP tool (a python package manager):
 
 ```
-    pip install qiskit
+pip install qiskit
 ```
+
 PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
 PIP package comes with prebuilt binaries for these platforms:
@@ -87,8 +88,7 @@ try:
     classical_reg = q_program.create_classical_register("cr", 2)
     # Create a Quantum Circuit called "qc" involving the Quantum Register "qr"
     # and the Classical Register "cr".
-    quantum_circuit =
-        q_program.create_circuit("bell", [quantum_reg],[classical_reg])
+    quantum_circuit = q_program.create_circuit("bell", [quantum_reg],[classical_reg])
 
     # Add the H gate in the Qubit 0, putting this qubit in superposition.
     quantum_circuit.h(quantum_reg[0])
@@ -119,7 +119,7 @@ COMPLETED
 {'counts': {'00': 512, '11': 512}}
 ```
 
-This script is avaiable [here](examples/python/hello_quantum.py).
+This script is available [here](examples/python/hello_quantum.py).
 
 ### Executing your code on a real Quantum chip
 
@@ -132,25 +132,23 @@ your Quantum Experience Account:
 #### Configure your API token and QE credentials
 
 
-1. Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net)>
-   account if you haven't already done so
-2. Get an API token from the IBM Q experience website under "`My Account`" >
-   "`Personal Access Token`". This API token allows you to execute your
-   programs with the IBM Q experience backends.
-   [Example](doc/example_real_backend.rst).
+1. Create an _[IBM Q experience](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
+2. Get an API token from the IBM Q experience website under _My Account > Personal Access Token_. This API token allows you to execute your programs with the IBM Q experience backends. See: [Example](doc/example_real_backend.rst).
 3. We are going to create a new file called `Qconfig.py` and insert the API token into it. This file must have these contents:
-```python
-APItoken = 'MY_API_TOKEN'
 
-config = {
-    'url': 'https://quantumexperience.ng.bluemix.net/api',
-    # The following should only be needed for IBM Q users.
-    'hub': 'MY_HUB',
-    'group': 'MY_GROUP',
-    'project': 'MY_PROJECT'
-}
-```
-4. Substitute `'MY_API_TOKEN'` with your real API Token extracted in step 2.
+  ```python
+  APItoken = 'MY_API_TOKEN'
+
+  config = {
+      'url': 'https://quantumexperience.ng.bluemix.net/api',
+      # The following should only be needed for IBM Q users.
+      'hub': 'MY_HUB',
+      'group': 'MY_GROUP',
+      'project': 'MY_PROJECT'
+  }
+  ```
+
+4. Substitute `MY_API_TOKEN` with your real API Token extracted in step 2.
 
 5. If you have access to the IBM Q features, you also need to setup the
    values for your hub, group, and project. You can do so by filling the
@@ -215,8 +213,8 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 
 ## Multilanguage guide
 
-* **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
-* **[Chinese Translation](doc/zh/README.md)**, Basic guide line written in Chinese.
+* **[Korean Translation](doc/ko/README.md)** - basic guide line written in Korean.
+* **[Chinese Translation](doc/zh/README.md)** - basic guide line written in Chinese.
 
 ## Authors (alphabetical)
 
