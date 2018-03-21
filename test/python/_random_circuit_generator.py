@@ -62,6 +62,7 @@ class RandomCircuitGenerator(object):
         self.circuit_name_list = []
         if seed is not None:
             random.seed(a=seed)
+            numpy.random.seed(seed)
         # specify number of parameters and args for each op
         # in the standard extension. If type hints (PEP484) are followed
         # maybe we can guess this. "nregs" are the number of qubits the

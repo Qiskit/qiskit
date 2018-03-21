@@ -34,7 +34,7 @@ Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 
 ## Installation
 
-After installing the required dependencies, build the simulator by running `make` in the root directory. This will build the executable `local_qiskit_simulator` in the repository directory. For detailed OS-specific instructions on installing dependencies see the following sections
+After installing the required dependencies, build the simulator by running `make` in the root directory. This will build the executable `qiskit_simulator` in a folder `../../out`, relative to the repository directory. Run `make OPT=-gdwarf-2` to suppress optimization and to include debug information in the build. Run `make DEFINES=-DDEBUG` to display debug messages during execution. For detailed OS-specific instructions on installing dependencies see the following sections.
 
 ### Dependencies
 Building requires a compiler compatible with the C++14 standard. For example:
@@ -95,7 +95,7 @@ The default GCC compiler on RHEL 6 does not support C++11. To build you must ins
 After building, the simulator may be run as follows:
 
 ```bash
-./local_qiskit_simulator input.json
+../../out/qiskit_simulator input.json
 ```
 
 where `input.json` is the file name of a **Quantum program object (qobj)**. This is a JSON specification of a quantum program which can be produced using the QISKit SDK (link to qobj specification to come...).
@@ -120,7 +120,7 @@ import qiskit.backends._qiskit_cpp_simulator as qs
 
 # Run a qobj on the simulator
 qobj = {...}  # qobj as a Python dictionary
-result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
+result = qs.run(qobj, executable=SIM_EXECUTABLE)  # result json as a Python dictionary
 ```
 
 
@@ -147,7 +147,7 @@ By default the simulator prints a JSON file to the standard output. If called th
 
 ```python
 {
-    "backend": "lcoal_qiskit_simulator",
+    "backend": "local_qiskit_simulator",
     "data": [{
             "counts": {
                 "00": 523,
@@ -299,7 +299,7 @@ config = {'initial_state': np.array([1, 0, 0, 1j]) / np.sqrt(2)}
 | `"probabilities_ket"` | As above but with the probabilities represented in ket form.
 | `"target_states_inner"` | Returns a list of the inner products of the final quantum state with the list of target states for each shot. The target states are specified by `"target_states"` config option.
 | `"target_states_probs"` | Returns the expectation value of the final quantum state with the list of target states averaged over all shots. The target states are specified by `"target_states"` config option.
-| `"saved_quantum_states"` | Returns a list of dictionaries of any saved quantum states for each shot. The state of the system can be saved by the custom `save(n)` gate. the integer `n` will be the key for accessing the saved state in the returned dictionary.
+| `"saved_quantum_states"` | Returns a list of dictionaries of any saved quantum states for each shot. The state of the system can be saved by the custom `save(n)` gate. The integer `n` will be the key for accessing the saved state in the returned dictionary.
 | `"saved_quantum_states_ket"` | As above but with the states represented in ket form.
 | `"saved_density_matrix"` | Returns a dictionary of the saved quantum state density matrix obtained by averaging the saved state vector over all shots.
 | `"saved_probabilities"` | As above but only returns the diagonal of the density matrix.
@@ -325,7 +325,7 @@ Gate errors are specified by the error name and a dictionary of error parameters
 | `"U"` | `U, u0, u1, u2, u3, x, y, z, h, s, sdg, t, tdg` |
 | `"X90"` | `U, u0, u1, u2, u3, x, y, z, h, s, sdg, t, tdg` |
 
-Note that `"U"` and `"X90"` implement different error models. `"U"` specifies a single qubit error model for all single qubit gates, while `"X90"` specifies an error model for 90-degree X rotation pulses, and single qubit gates are implemented in terms of noisy X-90 pulses and ideal Z-rotations. If both `"U"` and `"X90"` are set, then `"U"` will *only* effect `U` operations, while `"X90"` will affect all other operations (`u0, u1, u2, u3, x, y, z, h, s, sdg, t, tdg`).
+Note that `"U"` and `"X90"` implement different error models. `"U"` specifies a single qubit error model for all single qubit gates, while `"X90"` specifies an error model for 90-degree X rotation pulses, and single qubit gates are implemented in terms of noisy X-90 pulses and ideal Z-rotations. If both `"U"` and `"X90"` are set, then `"U"` will *only* affect `U` operations, while `"X90"` will affect all other operations (`u0, u1, u2, u3, x, y, z, h, s, sdg, t, tdg`).
 
 In terms of X90 pulses single qubit gates are affected as:
 
@@ -334,12 +334,12 @@ In terms of X90 pulses single qubit gates are affected as:
 - `U, u3, x, y` have double gate error (two X-90 pulses)
 - `u0`: has multiples of X-90 pulse relaxation error only
 
-The following keys specifify the implemented error models for single qubit gates:
+The following keys specify the implemented error models for single qubit gates:
 
 | Key | Values | Description |
 | --- | --- | --- |
 | `"p_depol"` | p >= 0 | Depolarizing error channel with depolarizing probability *p* |
-| `"p_pauli"` | list[p >= 0] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector. For 1-qubit operations it is `[pI, pX, pY, pZ]`, for 2-qubit operations it is `[pII, pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
+| `"p_pauli"` | list[p >= 0] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector, and padded with zeros if it is shorter than the number of Pauli operators. For 1-qubit operations it is `[pI, pX, pY, pZ]`, for 2-qubit operations it is `[pII, pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
 | `"gate_time"` | t >=0  | The length of the gate. This is used for computing the thermal relaxation error probability in combination with the `"relaxation_rate"` parameter for thermal relaxation errors. Thermal relaxation is implemented as *T<sub>1</sub>* and *T<sub>2</sub>* relaxation with *T<sub>2</sub> = T<sub>1</sub>*.
 | `"U_error"` | unitary matrix | This is a coherent error which is applied after the ideal gate operation.
 
@@ -396,7 +396,7 @@ If a `"U_error"` keyword is specified this additional coherent error will then b
 "thermal_populations": [p0, p1]
 ```
 
-Specifies the parameters for the *T<sub>1</sub>* relaxation error of a system (with *T<sub>2</sub>=T<sub>1</sub>*). The probability of a relaxation error for a get of length *t* is given by $p_{err} = 1-exp(-t r) $. If a relaxation error occurs the system be reset to the 0 or 1 state with probability *p0* and *p1 = 1-p0* respectively.
+Specifies the parameters for the *T<sub>1</sub>* relaxation error of a system (with *T<sub>2</sub>=T<sub>1</sub>*). The probability of a relaxation error for a gate of length *t* is given by $p_{err} = 1-exp(-t r) $. If a relaxation error occurs the system be reset to the 0 or 1 state with probability *p0* and *p1 = 1-p0* respectively.
 
 Note that for single qubit gates the relaxation error occurs the noisy (or ideal) gate is not applied to the state.
 

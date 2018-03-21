@@ -205,17 +205,14 @@ public:
 class PauliChannel {
 public:
   uint_t n = 0;
-  bool ideal = true;
   std::discrete_distribution<> p;
 
   // Constructors
   PauliChannel(){};
-  PauliChannel(uint_t nq) : n(nq){};
-  PauliChannel(uint_t nq, rvector_t p_pauli);
+  PauliChannel(uint_t nq, const rvector_t &p_pauli, double p_depol);
 
-  // Get vector of error probabilities eg {pX, pY, pZ}
+  // Get vector of error probabilities, e.g., {pI, pX, pY, pZ} for a single qubit
   rvector_t p_errors() const;
-  void set_p(rvector_t p_pauli);
 };
 
 /*******************************************************************************
@@ -235,7 +232,8 @@ public:
   /***
    * Incoherent Error Channel parameters
    ***/
-  PauliChannel pauli;
+  bool pauli_error = false;   // flag if Pauli gate error is set
+  PauliChannel pauli;         // Pauli error to be applied after gate
   double gate_time = 0.;
 
   /***
@@ -248,17 +246,6 @@ public:
    * Default constructor: no gate error
    ***/
   GateError(){};
-
-  /***
-   * Verify that the set noise parameters are valid for the simulation by
-   * checking that all probabilities are non-negative, the length of pauli
-   *error
-   * probabiltity vectors are the correct for the size of the gate, and the
-   * coherent error matrices are the correct dimension for the subsystem size
-   * @param dim: dimension of each subsystem (typically 2 for a qubit)
-   * @returns: true if noise parameters are valid
-   ***/
-  bool verify(uint_t dim) const;
 };
 
 /*******************************************************************************
@@ -505,33 +492,26 @@ inline void from_json(const json_t &noise, ReadoutError &error) {
  *
  ******************************************************************************/
 
-PauliChannel::PauliChannel(uint_t nq, rvector_t p_pauli) : n(nq) {
-  set_p(p_pauli);
-}
+PauliChannel::PauliChannel(uint_t nq, const rvector_t &p_pauli, double p_depol) : n(nq) {
 
-void PauliChannel::set_p(rvector_t p_pauli) {
-  // Get pI error prob
-  uint_t N = 1ULL << (2 * n);
-  double tot = 0;
-  for (auto &pj : p_pauli)
-    tot += pj;
-  p_pauli.insert(p_pauli.begin(), std::max(0., 1. - tot));
-  // Check vector
-  if (p_pauli.size() > N || tot > 1. || tot < 0.)
-    throw std::runtime_error("invalid Pauli vector");
-  if (p_pauli[0] < 1.) {
-    p = std::discrete_distribution<>(p_pauli.begin(), p_pauli.end());
-    ideal = false;
+  // The constructor of std::discrete_distribution normalizes the weights in p_pauli
+  p = std::discrete_distribution<>(p_pauli.begin(), p_pauli.end());
+
+  uint_t N = 1ULL << (2*nq);
+
+  if(!is_equal(p_depol, 0)) {
+    auto probs = p.probabilities();
+    for (auto &q : probs)
+      q += (p_depol / double(N)) - (p_depol * q);
+
+    p = std::discrete_distribution<>(probs.begin(), probs.end());
   }
 }
 
 rvector_t PauliChannel::p_errors() const {
-  const auto d = (1ULL << n);
-  rvector_t ret = p.probabilities();
-  ret.erase(ret.begin()); // remove pI element
-  ret.resize(d * d - 1);  // resize
-  return ret;
+  return p.probabilities();
 }
+
 
 /*******************************************************************************
  *
@@ -539,23 +519,12 @@ rvector_t PauliChannel::p_errors() const {
  *
  ******************************************************************************/
 
-bool GateError::verify(uint_t dim) const {
-  if (pauli.p.probabilities().size() > dim * dim) {
-    std::cerr << "error: pauli error vector is wrong length." << std::endl;
-    return false;
-  } else if (gate_time < 0.) {
-    std::cerr << "error: gate_time must be non-negative" << std::endl;
-    return false;
-  } else
-    return true;
-}
-
 inline void to_json(json_t &js, const GateError &error) {
   if (!error.ideal) {
     json_t node;
     if (error.gate_time > 0.)
       node["gate_time"] = error.gate_time;
-    if (error.pauli.ideal == false)
+    if (error.pauli_error)
       node["p_pauli"] = error.pauli.p_errors();
     if (error.coherent_error && error.Uerr.size() > 0)
       node["U_error"] = error.Uerr;
@@ -575,28 +544,68 @@ inline GateError load_gate_error(std::string key, uint_t nq, const json_t &js) {
 
   // Load Gate Time
   JSON::get_value(error.gate_time, "gate_time", noise);
-  if (error.gate_time > 0.)
+  if (!is_equal(error.gate_time, 0)) {
+    if(error.gate_time < 0)
+      throw std::runtime_error("gate_time must be non-negative");
     error.ideal = false;
+  }
 
   // Load Coherent Error
   if (JSON::check_key("U_error", noise)) {
-    error.ideal = false;
-    error.coherent_error = true;
-    error.Uerr = noise["U_error"];
+    cmatrix_t Uerr = noise["U_error"];
+
+    uint_t num_rows_and_cols = 1ULL << nq;
+    if(Uerr.GetRows() !=  num_rows_and_cols || Uerr.GetColumns() != num_rows_and_cols)
+      throw std::runtime_error("U_error: invalid dimensions");
+
+    if(!MOs::is_matrix_id(MOs::Dagger(Uerr) * Uerr))
+      throw std::runtime_error(key + " U_error is not unitary");
+
+    if(!MOs::is_matrix_id(Uerr)) {
+      error.ideal = false;
+      error.coherent_error = true;
+      error.Uerr = Uerr;
+    }
   }
 
   // Load Pauli Error
-  double p_depol = 0.;
+
   rvector_t p_pauli;
-  uint_t N = 1ULL << (2 * nq);
-  JSON::get_value(p_pauli, "p_pauli", noise);
-  if (JSON::get_value(p_depol, "p_depol", noise) && p_depol > 0.) {
-    p_pauli.resize(N - 1);
-    for (auto &p : p_pauli)
-      p = p + (p_depol / double(N)) - (p_depol * p);
+  uint_t N = 1ULL << (2*nq);
+  if (JSON::check_key("p_pauli", noise)) {
+    JSON::get_value(p_pauli, "p_pauli", noise);
+    if(p_pauli.size() > N)
+      throw std::runtime_error("Vector of Pauli error has invalid length");
+    if(p_pauli.size() < N)
+      p_pauli.resize(N);
+
+    bool at_least_one_positive = false;
+    for(auto &q : p_pauli) {
+      if(!is_equal(q, 0)) {
+        if(q < 0)
+          throw std::runtime_error("Vector of Pauli error contains a negative weight");
+        at_least_one_positive = true;
+        break;
+      }
+    }
+    if(!at_least_one_positive)
+      throw std::runtime_error("Vector of Pauli error contains only zeros");
   }
-  error.pauli = PauliChannel(nq, p_pauli);
-  error.ideal &= error.pauli.ideal;
+  else {
+    p_pauli.resize(N);
+    p_pauli[0] = 1;
+  }
+
+  double p_depol = 0;
+  JSON::get_value(p_depol, "p_depol", noise);
+
+  PauliChannel pauli = PauliChannel(nq, p_pauli, p_depol);
+  if(!is_equal(pauli.p_errors()[0], 1)) {
+    error.ideal = false;
+    error.pauli_error = true;
+    error.pauli = pauli;
+  }
+
   return error;
 }
 
@@ -607,13 +616,7 @@ inline GateError load_gate_error(std::string key, uint_t nq, const json_t &js) {
  ******************************************************************************/
 
 bool QubitNoise::verify(uint_t dim) {
-  bool pass = reset.verify(dim) && readout.verify(dim) && relax.verify(dim);
-
-  for (const auto &g : gate) {
-    uint_t dim2 = (g.first == "CX" || g.first == "CZ") ? dim * dim : dim;
-    pass = pass && g.second.verify(dim2);
-  }
-  return pass;
+  return reset.verify(dim) && readout.verify(dim) && relax.verify(dim);
 }
 
 const std::vector<std::string>
@@ -648,21 +651,6 @@ inline void from_json(const json_t &js, QubitNoise &noise) {
           g = load_gate_error(n, 2, js);
         else
           g = load_gate_error(n, 1, js);
-
-        // Check coherent error
-        if (g.coherent_error) {
-          cmatrix_t check = MOs::Dagger(g.Uerr) * g.Uerr;
-          double threshold = 1e-10;
-          double delta = 0.;
-          for (size_t i=0; i < check.GetRows(); i++)
-            for (size_t j=0; j < check.GetColumns(); j++) {
-              complex_t val = (i==j) ? 1. : 0.;
-              delta += std::real(std::abs(check(i, j) - val));
-            }
-          if (delta > threshold) {
-            throw std::runtime_error(std::string(g.label + " U_error is not unitary"));
-          }
-        }
 
         // Add gate to noise model
         noise.gate.insert(std::make_pair(n, g));

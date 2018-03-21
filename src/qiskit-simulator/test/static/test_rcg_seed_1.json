@@ -1,0 +1,455 @@
+{
+    "config": {
+        "max_threads_gate": 2,
+        "seed": 1,
+        "noise_params": {
+            "U": {
+                "p_pauli": [
+                    4,
+                    3,
+                    2,
+                    1
+                ],
+                "p_depol": 0.2,
+                "U_error": [
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        -1
+                    ]
+                ],
+                "gate_time": 2
+            },
+            "thermal_populations": [
+                0.2,
+                0.8
+            ],
+            "id": {
+                "p_pauli": [
+                    1,
+                    2,
+                    3
+                ],
+                "p_depol": 0.1,
+                "U_error": [
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        0
+                    ]
+                ],
+                "gate_time": 0.3
+            },
+            "relaxation_rate": 0.1
+        },
+        "max_threads_shot": 2,
+        "shots": 10
+    },
+    "circuits": [
+        {
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [
+                        [
+                            "cr0",
+                            6
+                        ],
+                        [
+                            "cr1",
+                            1
+                        ],
+                        [
+                            "cr2",
+                            1
+                        ],
+                        [
+                            "cr3",
+                            1
+                        ],
+                        [
+                            "cr4",
+                            3
+                        ],
+                        [
+                            "cr5",
+                            2
+                        ],
+                        [
+                            "cr6",
+                            1
+                        ],
+                        [
+                            "cr7",
+                            1
+                        ],
+                        [
+                            "cr8",
+                            1
+                        ],
+                        [
+                            "cr9",
+                            2
+                        ],
+                        [
+                            "cr10",
+                            1
+                        ]
+                    ],
+                    "qubit_labels": [
+                        [
+                            "qr0",
+                            0
+                        ],
+                        [
+                            "qr0",
+                            1
+                        ],
+                        [
+                            "qr0",
+                            2
+                        ],
+                        [
+                            "qr0",
+                            3
+                        ],
+                        [
+                            "qr0",
+                            4
+                        ],
+                        [
+                            "qr0",
+                            5
+                        ],
+                        [
+                            "qr1",
+                            0
+                        ],
+                        [
+                            "qr2",
+                            0
+                        ],
+                        [
+                            "qr3",
+                            0
+                        ],
+                        [
+                            "qr4",
+                            0
+                        ],
+                        [
+                            "qr4",
+                            1
+                        ],
+                        [
+                            "qr4",
+                            2
+                        ],
+                        [
+                            "qr5",
+                            0
+                        ],
+                        [
+                            "qr5",
+                            1
+                        ],
+                        [
+                            "qr6",
+                            0
+                        ],
+                        [
+                            "qr7",
+                            0
+                        ],
+                        [
+                            "qr8",
+                            0
+                        ],
+                        [
+                            "qr9",
+                            0
+                        ],
+                        [
+                            "qr9",
+                            1
+                        ],
+                        [
+                            "qr10",
+                            0
+                        ]
+                    ],
+                    "number_of_qubits": 20,
+                    "number_of_clbits": 20
+                },
+                "operations": [
+                    {
+                        "qubits": [
+                            7
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "x"
+                    },
+                    {
+                        "qubits": [
+                            15
+                        ],
+                        "params": [
+                            0.255069025739422
+                        ],
+                        "texparams": [
+                            "0.255069025739422"
+                        ],
+                        "name": "u1"
+                    },
+                    {
+                        "qubits": [
+                            15
+                        ],
+                        "name": "reset"
+                    },
+                    {
+                        "qubits": [
+                            8
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "t"
+                    },
+                    {
+                        "qubits": [
+                            17
+                        ],
+                        "params": [
+                            0.487856656524148,
+                            0.893317042557635,
+                            0.389808807021134
+                        ],
+                        "texparams": [
+                            "0.487856656524148",
+                            "0.893317042557635",
+                            "0.389808807021134"
+                        ],
+                        "name": "u3"
+                    },
+                    {
+                        "qubits": [
+                            17
+                        ],
+                        "params": [
+                            0.695832866768443,
+                            0.26633056045726,
+                            0.801826366996484
+                        ],
+                        "texparams": [
+                            "0.695832866768443",
+                            "0.26633056045726",
+                            "0.801826366996484"
+                        ],
+                        "name": "u3"
+                    },
+                    {
+                        "qubits": [
+                            0
+                        ],
+                        "params": [
+                            0.901427457611484
+                        ],
+                        "texparams": [
+                            "0.901427457611484"
+                        ],
+                        "name": "u1"
+                    },
+                    {
+                        "qubits": [
+                            5
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "t"
+                    },
+                    {
+                        "qubits": [
+                            8
+                        ],
+                        "params": [
+                            0.541412472793497,
+                            0.939149162778511,
+                            0.381204237688212
+                        ],
+                        "texparams": [
+                            "0.541412472793497",
+                            "0.939149162778511",
+                            "0.381204237688212"
+                        ],
+                        "name": "u3"
+                    },
+                    {
+                        "qubits": [
+                            4
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "x"
+                    },
+                    {
+                        "qubits": [
+                            8
+                        ],
+                        "name": "reset"
+                    },
+                    {
+                        "qubits": [
+                            15
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "x"
+                    },
+                    {
+                        "qubits": [
+                            15
+                        ],
+                        "params": [
+                            0.345700414708752,
+                            0.676848539849974
+                        ],
+                        "texparams": [
+                            "0.345700414708752",
+                            "0.676848539849974"
+                        ],
+                        "name": "u2"
+                    },
+                    {
+                        "qubits": [
+                            16
+                        ],
+                        "params": [
+                            0.926506623785866,
+                            0.416179938894346
+                        ],
+                        "texparams": [
+                            "0.926506623785866",
+                            "0.416179938894346"
+                        ],
+                        "name": "u2"
+                    },
+                    {
+                        "qubits": [
+                            7
+                        ],
+                        "params": [],
+                        "texparams": [],
+                        "name": "z"
+                    },
+                    {
+                        "clbits": [
+                            8
+                        ],
+                        "qubits": [
+                            8
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            6
+                        ],
+                        "qubits": [
+                            6
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            10
+                        ],
+                        "qubits": [
+                            10
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            3
+                        ],
+                        "qubits": [
+                            3
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            2
+                        ],
+                        "qubits": [
+                            2
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            9
+                        ],
+                        "qubits": [
+                            9
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            4
+                        ],
+                        "qubits": [
+                            4
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            7
+                        ],
+                        "qubits": [
+                            7
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            5
+                        ],
+                        "qubits": [
+                            5
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            1
+                        ],
+                        "qubits": [
+                            1
+                        ],
+                        "name": "measure"
+                    },
+                    {
+                        "clbits": [
+                            0
+                        ],
+                        "qubits": [
+                            0
+                        ],
+                        "name": "measure"
+                    }
+                ]
+            },
+            "name": "circuit_1"
+        }
+    ],
+    "id": "test_rcg"
+}

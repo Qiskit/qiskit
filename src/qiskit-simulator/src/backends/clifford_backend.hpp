@@ -132,7 +132,7 @@ void CliffordBackend::initialize(const Circuit &prog) {
     if (qreg_init.size() == prog.nqubits)
       qreg = qreg_init;
     else {
-      std::string msg = "initial state is wong size for the circuit";
+      std::string msg = "initial state is wrong size for the circuit";
       throw std::runtime_error(msg);
     }
   } else {
@@ -494,7 +494,7 @@ void CliffordBackend::qc_pauli(const uint_t qubit, const uint_t p) {
 //------------------------------------------------------------------------------
 
 /**
- * Suppse we assume gates are implmented as Waltz gates (ie QubitEngine)
+ * We assume gates are implemented as Waltz gates (ie QubitEngine)
  * then our error model is that errors occur on the non X90 gates.
  * To get this we rewrite H = S*X90*S.
  * Now the 3 pauli errors that can occur pass through S gate giving

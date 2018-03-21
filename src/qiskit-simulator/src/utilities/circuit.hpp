@@ -148,7 +148,7 @@ private:
   bool set_gateid(operation &op, std::string name, const gateset_t &gs);
 
   /**
-   *  Return true if tail of circuit operaitons are all measurements
+   *  Return true if tail of circuit operations are all measurements
    */
   bool check_opt_meas();
 };
@@ -340,7 +340,7 @@ reglist Circuit::parse_reglist(const json_t &node) {
 bool Circuit::check_opt_meas() {
   // find first instance of a measurement
   uint_t pos = 0;
-  while (operations[pos].id != gate_t::Measure && pos < operations.size()) {
+  while (pos < operations.size() && operations[pos].id != gate_t::Measure) {
     pos++;
   }
   // Check all remaining operations are also measurements

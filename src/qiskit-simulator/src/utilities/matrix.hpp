@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 /*
-Dependences: BLAS
+Dependencies: BLAS
 Brief Discription: This is my Matrix class. It works only with real/complex
 matrices and stores the entries in  column-major-order. In column-major storage
 the columns are stored one after the other. The linear offset p from the
@@ -29,7 +29,7 @@ beginning of the array to any given element A(i,j) can then be computed as:
    p = j*Nrows+i
 where Nrows is the number of rows in the matrix. Hence, one scrolls down
 rows and moves to a new column once the last row is reached. More precisely, if
-i wanted to know the i and j associtated with a given p then i would use
+I wanted to know the i and j associated with a given p then I would use
   i=p %Nrows
   j= floor(p/Nrows)
 
@@ -214,6 +214,7 @@ public:
   matrix(size_t size); // Makes a square matrix and rows = sqrt(size) columns =
                        // sqrt(dims)
   matrix(const matrix<T> &m);
+  matrix(matrix<T> &&m);
   matrix(const matrix<T> &m, const char uplo);
 
   // Initialize an empty matrix() to matrix(size_t  rows, size_t cols)
@@ -285,7 +286,7 @@ void Pauli(matrix<std::complex<double>> &sx, matrix<std::complex<double>> &sy,
 void Pauli(matrix<std::complex<float>> &sx, matrix<std::complex<float>> &sy,
            matrix<std::complex<float>> &sz);
 
-// operations on Matrics
+// operations on matrices
 template <class T> matrix<T> Transpose(const matrix<T> &A);
 template <class T>
 matrix<std::complex<T>> Dagger(const matrix<std::complex<T>> &A);
@@ -296,6 +297,10 @@ template <class T> matrix<T> TraceOutA(const matrix<T> &, size_t);
 template <class T> matrix<T> TraceOutB(const matrix<T> &, size_t);
 template <class T>
 matrix<T> TensorProduct(const matrix<T> &A, const matrix<T> &B);
+
+// queries on matrices
+bool is_matrices_equal(const matrix<std::complex<double>> &mat1, const matrix<std::complex<double>> &mat2);
+bool is_matrix_id(const matrix<std::complex<double>> &mat);
 }
 
 template <class T> inline void MOs::Null(matrix<T> &A) {
@@ -504,6 +509,62 @@ inline matrix<T> MOs::TensorProduct(const matrix<T> &A, const matrix<T> &B) {
   return temp;
 }
 
+
+// TODO: move this function to misc.hpp.
+// This can be done only after the creation of cpp files.
+// Otherwise this causes circular hpp inclusions.
+template<class T1, class T2>
+bool is_equal(const T1 a, const T2 b,
+    const double rel_tol = 1e-8,
+    const double abs_tol = 1e-8);
+
+template<class T1, class T2>
+bool is_equal(const T1 a, const T2 b, const double rel_tol, const double abs_tol) {
+  std::complex<double> a_complex(a);
+  std::complex<double> b_complex(b);
+
+  std::vector<std::pair<double, double>> to_compare;
+  to_compare.push_back(std::pair<double, double>(real(a_complex), real(b_complex)));
+  to_compare.push_back(std::pair<double, double>(imag(a_complex), imag(b_complex)));
+
+  for(uint_t i=0; i<2; ++i) {
+    double x = to_compare[i].first;
+    double y = to_compare[i].second;
+    if(std::fabs(x-y) > std::fmax(rel_tol*std::fmax(std::fabs(x), std::fabs(y)), abs_tol))
+      return false;
+  }
+
+  return true;
+}
+
+
+bool MOs::is_matrices_equal(const matrix<std::complex<double>> &mat1,
+    const matrix<std::complex<double>> &mat2) {
+  size_t rows = mat1.GetRows();
+  size_t cols = mat1.GetColumns();
+
+  if(rows != mat2.GetRows() || cols != mat2.GetColumns())
+    return false;
+
+  for(uint_t i=0; i<rows; ++i)
+    for(uint_t j=0; j<cols; ++j)
+      if(!is_equal(mat1(i,j), mat2(i,j)))
+        return false;
+
+  return true;
+}
+
+bool MOs::is_matrix_id(const matrix<std::complex<double>> &mat) {
+  size_t rows = mat.GetRows();
+  if(rows != mat.GetColumns())
+    return false;
+
+  matrix<std::complex<double>> id_mat(rows, rows);
+  MOs::Identity(id_mat);
+  return is_matrices_equal(mat, id_mat);
+}
+
+
 /*******************************************************************************
  *
  * Matrix class: methods
@@ -552,7 +613,6 @@ inline matrix<T>::matrix(size_t dim2)
   cols_ = rows_;
   LD_ = rows_;
 }
-// constructs an empty matrix of size rows, cols and sets outputstyle to zero
 template <class T>
 inline matrix<T>::matrix(const matrix<T> &rhs)
     : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
@@ -562,6 +622,14 @@ inline matrix<T>::matrix(const matrix<T> &rhs)
     mat_[p] = rhs.mat_[p];
   }
 }
+
+template <class T>
+inline matrix<T>::matrix(matrix<T> &&rhs)
+    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
+      outputstyle_(rhs.outputstyle_), mat_(rhs.mat_) {
+  rhs.mat_ = nullptr;
+}
+
 template <class T>
 inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
     : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
@@ -586,7 +654,7 @@ inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
 template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
   if (rows_ != rows || cols_ != cols) { // if the rows are different size delete
     // re-construct the matrix
-    if (mat_ != 0)
+    if (mat_ != nullptr)
       delete[](mat_);
     rows_ = rows;
     cols_ = cols;
@@ -624,7 +692,7 @@ template <class T> inline void matrix<T>::resize(size_t rows, size_t cols) {
 
 template <class T> inline matrix<T>::~matrix() {
   // destructor, deletes the matrix from memory when we leave the scope
-  if (mat_ != 0)
+  if (mat_ != nullptr)
     delete[](mat_);
 }
 template <class T>
@@ -637,7 +705,7 @@ inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
   if (rows_ != rhs.rows_ || cols_ != rhs.cols_) { // if the rows are different
     // size delete re-construct
     // the matrix
-    if (mat_ != 0)
+    if (mat_ != nullptr)
       delete[](mat_);
     rows_ = rhs.rows_;
     cols_ = rhs.cols_;
@@ -663,7 +731,7 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
   if (rows_ != rhs.GetRows() ||
       cols_ != rhs.GetColumns()) { // if the rows are different size delete
     // re-construct the matrix
-    if (mat_ != 0)
+    if (mat_ != nullptr)
       delete[](mat_);
     rows_ = rhs.GetRows();
     cols_ = rhs.GetColumns();

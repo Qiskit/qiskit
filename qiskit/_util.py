@@ -55,9 +55,9 @@ def _check_ibmqe_version():
                                           line.startswith(API_NAME))
                 ibmqe_require = pkg_resources.Requirement(ibmqe_require_line)
         except (FileNotFoundError, StopIteration, pkg_resources.RequirementParseError):
-            logger.warning(
-                'Could not find %s in requirements.txt or the requirements.txt \
-                file was not found or unparsable', API_NAME)
+    #        logger.warning(
+    #            'Could not find %s in requirements.txt or the requirements.txt \
+    #            file was not found or unparsable', API_NAME)
             return
     else:
         # Retrieve the requirement line from pkg_resources
