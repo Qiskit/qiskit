@@ -87,8 +87,6 @@ class QiskitTestCase(unittest.TestCase):
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     """A context manager used to implement TestCase.assertNoLogs()."""
 
-    LOGGING_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-
     # pylint: disable=inconsistent-return-statements
     def __exit__(self, exc_type, exc_value, tb):
         """
@@ -100,10 +98,16 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
         if exc_type is not None:
             # let unexpected exceptions pass through
             return False
-        for record in self.watcher.records:
-            self._raiseFailure(
-                "Something was logged in the logger %s by %s:%i" %
-                (record.name, record.pathname, record.lineno))
+
+        if self.watcher.records:
+            msg = 'logs of level {} or higher triggered on {}:\n'.format(
+                logging.getLevelName(self.level), self.logger.name)
+            for record in self.watcher.records:
+                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
+                                                  record.lineno,
+                                                  record.getMessage())
+
+            self._raiseFailure(msg)
 
 
 def requires_qe_access(func):
