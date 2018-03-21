@@ -29,7 +29,7 @@ if __name__=='__main__':
     nqubits = random.randint(15, 25)
     ngates = random.randint(200, 500)  # total number of gates, spread across the qubits
 
-    qobj = {'id': 'system_test_1',
+    qobj = {'id': 'test_tailored_circuit',
             'config': {
                 'shots': 10,
                 'max_threads_shot': 2,

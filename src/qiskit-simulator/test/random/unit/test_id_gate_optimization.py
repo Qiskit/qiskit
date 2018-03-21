@@ -20,7 +20,7 @@ if __name__=='__main__':
     nqubits = random.randint(10, 20)
     ngates = random.randint(200, 500)  # total number of gates, spread across the qubits
 
-    qobj = {'id': 'test_optimization',
+    qobj = {'id': 'test_id_gate_optimization',
             'config': {
                 'shots': 10,
                 'max_threads_shot': 2,

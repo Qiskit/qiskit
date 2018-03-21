@@ -29,13 +29,13 @@ def create_qobj(seed = None):
     
     b = a.get_circuits('qobj')
 
-    qobj = {'id': 'system_test_2',
+    qobj = {'id': 'test_rcg',
             'config': {
                 'shots': 10,
                 'max_threads_shot': 2,
                 'max_threads_gate': 2,
                 'noise_params': {
-                    'relaxation rate': 0.1,
+                    'relaxation_rate': 0.1,
                     'thermal_populations': [0.2, 0.8],
                     'id': {
                         'p_depol': 0.1,

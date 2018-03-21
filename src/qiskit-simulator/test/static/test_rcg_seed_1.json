@@ -1,19 +1,16 @@
 {
-    "id": "system_test_2",
     "config": {
-        "max_threads_shot": 2,
-        "seed": 1,
         "max_threads_gate": 2,
+        "seed": 1,
         "noise_params": {
-            "relaxation rate": 0.1,
             "U": {
-                "gate_time": 2,
                 "p_pauli": [
                     4,
                     3,
                     2,
                     1
                 ],
+                "p_depol": 0.2,
                 "U_error": [
                     [
                         1,
@@ -24,15 +21,19 @@
                         -1
                     ]
                 ],
-                "p_depol": 0.2
+                "gate_time": 2
             },
+            "thermal_populations": [
+                0.2,
+                0.8
+            ],
             "id": {
-                "gate_time": 0.3,
                 "p_pauli": [
                     1,
                     2,
                     3
                 ],
+                "p_depol": 0.1,
                 "U_error": [
                     [
                         0,
@@ -43,19 +44,63 @@
                         0
                     ]
                 ],
-                "p_depol": 0.1
+                "gate_time": 0.3
             },
-            "thermal_populations": [
-                0.2,
-                0.8
-            ]
+            "relaxation_rate": 0.1
         },
+        "max_threads_shot": 2,
         "shots": 10
     },
     "circuits": [
         {
             "compiled_circuit": {
                 "header": {
+                    "clbit_labels": [
+                        [
+                            "cr0",
+                            6
+                        ],
+                        [
+                            "cr1",
+                            1
+                        ],
+                        [
+                            "cr2",
+                            1
+                        ],
+                        [
+                            "cr3",
+                            1
+                        ],
+                        [
+                            "cr4",
+                            3
+                        ],
+                        [
+                            "cr5",
+                            2
+                        ],
+                        [
+                            "cr6",
+                            1
+                        ],
+                        [
+                            "cr7",
+                            1
+                        ],
+                        [
+                            "cr8",
+                            1
+                        ],
+                        [
+                            "cr9",
+                            2
+                        ],
+                        [
+                            "cr10",
+                            1
+                        ]
+                    ],
                     "qubit_labels": [
                         [
                             "qr0",
@@ -138,73 +183,27 @@
                             0
                         ]
                     ],
-                    "number_of_clbits": 20,
                     "number_of_qubits": 20,
-                    "clbit_labels": [
-                        [
-                            "cr0",
-                            6
-                        ],
-                        [
-                            "cr1",
-                            1
-                        ],
-                        [
-                            "cr2",
-                            1
-                        ],
-                        [
-                            "cr3",
-                            1
-                        ],
-                        [
-                            "cr4",
-                            3
-                        ],
-                        [
-                            "cr5",
-                            2
-                        ],
-                        [
-                            "cr6",
-                            1
-                        ],
-                        [
-                            "cr7",
-                            1
-                        ],
-                        [
-                            "cr8",
-                            1
-                        ],
-                        [
-                            "cr9",
-                            2
-                        ],
-                        [
-                            "cr10",
-                            1
-                        ]
-                    ]
+                    "number_of_clbits": 20
                 },
                 "operations": [
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             7
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "x"
                     },
                     {
-                        "texparams": [
-                            "0.255069025739422"
+                        "qubits": [
+                            15
                         ],
                         "params": [
                             0.255069025739422
                         ],
-                        "qubits": [
-                            15
+                        "texparams": [
+                            "0.255069025739422"
                         ],
                         "name": "u1"
                     },
@@ -215,87 +214,87 @@
                         "name": "reset"
                     },
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             8
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "t"
                     },
                     {
-                        "texparams": [
-                            "0.487856656524148",
-                            "0.893317042557635",
-                            "0.389808807021134"
+                        "qubits": [
+                            17
                         ],
                         "params": [
                             0.487856656524148,
                             0.893317042557635,
                             0.389808807021134
                         ],
-                        "qubits": [
-                            17
+                        "texparams": [
+                            "0.487856656524148",
+                            "0.893317042557635",
+                            "0.389808807021134"
                         ],
                         "name": "u3"
                     },
                     {
-                        "texparams": [
-                            "0.695832866768443",
-                            "0.26633056045726",
-                            "0.801826366996484"
+                        "qubits": [
+                            17
                         ],
                         "params": [
                             0.695832866768443,
                             0.26633056045726,
                             0.801826366996484
                         ],
-                        "qubits": [
-                            17
+                        "texparams": [
+                            "0.695832866768443",
+                            "0.26633056045726",
+                            "0.801826366996484"
                         ],
                         "name": "u3"
                     },
                     {
-                        "texparams": [
-                            "0.901427457611484"
+                        "qubits": [
+                            0
                         ],
                         "params": [
                             0.901427457611484
                         ],
-                        "qubits": [
-                            0
+                        "texparams": [
+                            "0.901427457611484"
                         ],
                         "name": "u1"
                     },
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             5
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "t"
                     },
                     {
-                        "texparams": [
-                            "0.541412472793497",
-                            "0.939149162778511",
-                            "0.381204237688212"
+                        "qubits": [
+                            8
                         ],
                         "params": [
                             0.541412472793497,
                             0.939149162778511,
                             0.381204237688212
                         ],
-                        "qubits": [
-                            8
+                        "texparams": [
+                            "0.541412472793497",
+                            "0.939149162778511",
+                            "0.381204237688212"
                         ],
                         "name": "u3"
                     },
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             4
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "x"
                     },
                     {
@@ -305,47 +304,47 @@
                         "name": "reset"
                     },
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             15
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "x"
                     },
                     {
-                        "texparams": [
-                            "0.345700414708752",
-                            "0.676848539849974"
+                        "qubits": [
+                            15
                         ],
                         "params": [
                             0.345700414708752,
                             0.676848539849974
                         ],
-                        "qubits": [
-                            15
+                        "texparams": [
+                            "0.345700414708752",
+                            "0.676848539849974"
                         ],
                         "name": "u2"
                     },
                     {
-                        "texparams": [
-                            "0.926506623785866",
-                            "0.416179938894346"
+                        "qubits": [
+                            16
                         ],
                         "params": [
                             0.926506623785866,
                             0.416179938894346
                         ],
-                        "qubits": [
-                            16
+                        "texparams": [
+                            "0.926506623785866",
+                            "0.416179938894346"
                         ],
                         "name": "u2"
                     },
                     {
-                        "texparams": [],
-                        "params": [],
                         "qubits": [
                             7
                         ],
+                        "params": [],
+                        "texparams": [],
                         "name": "z"
                     },
                     {
@@ -451,5 +450,6 @@
             },
             "name": "circuit_1"
         }
-    ]
+    ],
+    "id": "test_rcg"
 }

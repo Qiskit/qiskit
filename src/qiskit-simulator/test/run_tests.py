@@ -131,9 +131,14 @@ if __name__=='__main__':
             reference_output = sp.check_output([args.reference_executable, f]).decode()
         else:
             ref_file = f[:-5] + '.ref'
-            ref_stream =  open(ref_file, 'r')
-            if ref_stream is not None:
-                reference_output = ref_stream.read()
+
+            try:
+                with open(ref_file, "r") as ref_stream:
+                    reference_output = ref_stream.read()
+            except IOError:
+                print('Cannot compare with ' + ref_file + ': file does not exist')
+                reference_output = None
+                
 
         if reference_output is not None:
             output_lines = output.splitlines(1)

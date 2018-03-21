@@ -45,7 +45,7 @@ if __name__=='__main__':
     nqubits = random.randint(8, 15)
     ngates = random.randint(100, 200)  # total number of gates, spread across the qubits
 
-    qobj = {'id': 'system_test_3',
+    qobj = {'id': 'test_self_check',
             'config': {
                 'shots': 10,
                 'data': ['saved_quantum_states'],
