@@ -180,7 +180,7 @@ class TestStandard(QiskitTestCase):
 
     def test_rx_pi(self):
         c = self.circuit
-        c.rx(pi/2, self.q[1])
+        c.rx(pi / 2, self.q[1])
         self.assertResult(RXGate, 'rx(pi/2) q[1];', 'rx(-pi/2) q[1];')
 
     def test_ry(self):
@@ -192,7 +192,7 @@ class TestStandard(QiskitTestCase):
 
     def test_ry_pi(self):
         c = self.circuit
-        c.ry(pi/2, self.q[1])
+        c.ry(pi / 2, self.q[1])
         self.assertResult(RYGate, 'ry(pi/2) q[1];', 'ry(-pi/2) q[1];')
 
     def test_rz(self):
@@ -204,7 +204,7 @@ class TestStandard(QiskitTestCase):
 
     def test_rz_pi(self):
         c = self.circuit
-        c.rz(pi/2, self.q[1])
+        c.rz(pi / 2, self.q[1])
         self.assertResult(RZGate, 'rz(pi/2) q[1];', 'rz(-pi/2) q[1];')
 
     def test_s(self):
@@ -253,7 +253,7 @@ class TestStandard(QiskitTestCase):
 
     def test_u1_pi(self):
         c = self.circuit
-        c.u1(pi/2, self.q[1])
+        c.u1(pi / 2, self.q[1])
         self.assertResult(U1Gate, 'u1(pi/2) q[1];', 'u1(-pi/2) q[1];')
 
     def test_u2(self):
@@ -265,7 +265,7 @@ class TestStandard(QiskitTestCase):
 
     def test_u2_pi(self):
         c = self.circuit
-        c.u2(pi/2, 0.3*pi, self.q[1])
+        c.u2(pi / 2, 0.3 * pi, self.q[1])
         self.assertResult(U2Gate, 'u2(pi/2,0.3*pi) q[1];', 'u2(-1.3*pi,pi/2) q[1];')
 
     def test_u3(self):
@@ -278,7 +278,7 @@ class TestStandard(QiskitTestCase):
 
     def test_u3_pi(self):
         c = self.circuit
-        c.u3(pi, pi/2, 0.3*pi, self.q[1])
+        c.u3(pi, pi / 2, 0.3 * pi, self.q[1])
         self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', 'u3(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_ubase(self):
@@ -322,34 +322,22 @@ class TestStandard(QiskitTestCase):
         qasm_txt_: qasm representation of inverse
         """
         c = self.circuit
-        self.assertStmtTypeAndQasm(c[0], t, qasm_txt)
+        self.assertStmtTypeAndQasm(c[0], t)
+        self.assertQasm(qasm_txt)
         c[0].reapply(c)
-        self.assertReapply(qasm_txt)
+        self.assertQasm(qasm_txt + '\n' + qasm_txt)
         self.assertEqual(c[0].inverse(), c[0])
-        self.assertInverse(qasm_txt, qasm_txt_)
+        self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
 
-    def assertStmtTypeAndQasm(self, stmt, t, qasm_txt):
-        c = self.circuit
-        c_header = 58
-        c_txt = len(qasm_txt)
+    def assertStmtTypeAndQasm(self, stmt, t):
         self.assertEqual(type(stmt), t)
-        self.assertIn(qasm_txt, c.qasm())
+
+    def assertQasm(self, qasm_txt):
+        c = self.circuit
+        c_header = 58
+        c_txt = len(qasm_txt)
+        self.assertIn(qasm_txt, self.circuit.qasm())
         self.assertEqual(c_header + c_txt + 1, len(c.qasm()))
-
-    def assertReapply(self,qasm_txt):
-        c = self.circuit
-        c_header = 58
-        c_txt = len(qasm_txt)
-        self.assertIn(qasm_txt + '\n' + qasm_txt, c.qasm())
-
-    def assertInverse(self, qasm_txt, qasm_txt_):
-        c = self.circuit
-        c_header = 58
-        c_txt = len(qasm_txt)
-        c_txt_ = len(qasm_txt_)
-        self.assertIn(qasm_txt_ + '\n' + qasm_txt, c.qasm())
-        self.assertEqual(c_header + c_txt + c_txt_ + 2, len(c.qasm()))
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
