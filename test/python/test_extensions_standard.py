@@ -57,8 +57,9 @@ class TestStandard(QiskitTestCase):
 
     def setUp(self):
         self.q = QuantumRegister("q", 3)
+        self.r = QuantumRegister("r", 3)
         self.c = ClassicalRegister("c", 3)
-        self.circuit = QuantumCircuit(self.q, self.c)
+        self.circuit = QuantumCircuit(self.q, self.r, self.c)
 
     def test_barrier(self):
         c = self.circuit
@@ -256,6 +257,38 @@ class TestStandard(QiskitTestCase):
         c.swap(self.q[1], self.q[2])
         self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
 
+    def test_swap_reg_reg(self):
+        c = self.circuit
+        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
+        instruction_set = c.swap(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+        c.swap(self.q, self.r).inverse()
+        self.assertQasm('swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];',
+                        offset=len(qasm_txt) + 2)
+
+    def test_swap_reg_bit(self):
+        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
+        instruction_set = self.circuit.swap(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_reg_bit_inv(self):
+        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
+        self.circuit.swap(self.q, self.r[1]).inverse()
+        self.assertQasm(qasm_txt)
+
+    def test_swap_bit_reg(self):
+        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
+        instruction_set = self.circuit.swap(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_bit_reg_inv(self):
+        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
+        self.circuit.swap(self.q[1], self.r).inverse()
+        self.assertQasm(qasm_txt)
+
     def test_t(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.t, self.c[0])
@@ -362,7 +395,7 @@ class TestStandard(QiskitTestCase):
 
     def assertQasm(self, qasm_txt, offset=1):
         c = self.circuit
-        c_header = 58
+        c_header = 69
         c_txt = len(qasm_txt)
         self.assertIn(qasm_txt, self.circuit.qasm())
         self.assertEqual(c_header + c_txt + offset, len(c.qasm()))

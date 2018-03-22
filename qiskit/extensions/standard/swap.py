@@ -21,7 +21,9 @@ SWAP gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate
+from qiskit import InstructionSet
 from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -50,6 +52,25 @@ class SwapGate(Gate):
 
 def swap(self, ctl, tgt):
     """Apply SWAP from ctl to tgt."""
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+        gs = InstructionSet()
+        for j in range(ctl.size):
+            gs.add(self.swap((ctl, j), (tgt, j)))
+        return gs
+
+    if isinstance(ctl, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(ctl.size):
+            gs.add(self.swap((ctl, j), tgt))
+        return gs
+
+    if isinstance(tgt, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(tgt.size):
+            gs.add(self.swap(ctl, (tgt,j)))
+        return gs
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
