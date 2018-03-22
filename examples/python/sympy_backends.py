@@ -16,12 +16,13 @@
 # limitations under the License.
 # =============================================================================
 """
-This python file shows how to use the symbolic backends: 
-local_sympy_qasm_simulator and local_sympy_unitary_simulator
+Example use of the symbolic simulator backends, which keep precise forms of
+amplitudes.
 
-These backends offer local simulators which apply
-sympy to perform the symbolic evaluation of the circuit.
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
+
 import os
 from qiskit import QuantumProgram
 
