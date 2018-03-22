@@ -6,21 +6,25 @@ from Cython.Build import cythonize
 from numpy.__config__ import get_info as np_config
 
 # Build options
-include = ['-I../src',
-           '-I../src/backends',
-           '-I../src/engines',
-           '-I../src/utilities',
-           '-I../src/third-party',
-           '-I../src/third-party/headers']
+include = [os.path.abspath('../src'),
+           os.path.abspath('../src/backends'),
+           os.path.abspath('../src/engines'),
+           os.path.abspath('../src/utilities'),
+           os.path.abspath('../src/third-party'),
+           os.path.abspath('../src/third-party/headers')]
 warnings = ['-pedantic', '-Wall', '-Wextra', '-Wfloat-equal', '-Wundef',
             '-Wcast-align', '-Wwrite-strings', '-Wmissing-declarations',
             '-Wshadow', '-Woverloaded-virtual']
 opt = ['-ffast-math', '-O3', '-march=native']
-extra_compile_args = ['-g', '-std=c++11'] + opt + include + warnings
+if sys.platform != 'win32':
+    extra_compile_args = ['-g', '-std=c++11'] + opt + warnings
+else:
+    extra_compile_args = ['/W1', '/Ox']
+
 extra_link_args = []
 libraries = []
 library_dirs = []
-include_dirs = []
+include_dirs = include
 
 # Numpy BLAS
 blas_info = np_config('blas_mkl_info')
@@ -34,7 +38,6 @@ include_dirs += blas_info.get('include_dirs', [])
 
 # MacOS Specific build instructions
 if sys.platform == 'darwin':
-
     # Set minimum os version to support C++11 headers
     min_macos_version = '-mmacosx-version-min=10.9'
     extra_compile_args.append(min_macos_version)
@@ -50,8 +53,10 @@ if sys.platform == 'darwin':
             extra_compile_args.append('-fopenmp')
             extra_link_args.append('-fopenmp')
             break
+elif sys.platform == 'win32':
+    extra_compile_args.append('/openmp')
 else:
-    # Linux and Windows
+    # Linux
     extra_compile_args.append('-fopenmp')
     extra_link_args.append('-fopenmp')
 
