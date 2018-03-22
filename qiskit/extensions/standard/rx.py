@@ -58,7 +58,7 @@ def rx(self, theta, q):
     """Apply rx to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.rx(theta, (q, j)))
         return gs
 

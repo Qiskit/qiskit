@@ -58,7 +58,7 @@ def ry(self, theta, q):
     """Apply ry to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
+        for j in range(q.size):
             gs.add(self.ry(theta, (q, j)))
         return gs
 
