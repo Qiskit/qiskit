@@ -136,7 +136,6 @@ class TestStandard(QiskitTestCase):
         self.assertRaises(QISKitError, c.cx_base, self.q[0], self.q[0])
         # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
         c.cx_base(self.q[1], self.q[2])
-        qasm_txt = 'CX q[1],q[2];'
         self.assertResult(CXBase, qasm_txt, qasm_txt)
 
     def test_cy(self):
