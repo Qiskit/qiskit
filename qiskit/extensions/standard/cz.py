@@ -58,6 +58,19 @@ def cz(self, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.cz((ctl, i), (tgt, i)))
         return instructions
+
+    if isinstance(ctl, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(ctl.size):
+            gs.add(self.cz((ctl, j), tgt))
+        return gs
+
+    if isinstance(tgt, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(tgt.size):
+            gs.add(self.cz(ctl, (tgt,j)))
+        return gs
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
