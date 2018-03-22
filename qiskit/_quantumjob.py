@@ -25,7 +25,6 @@ from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
 import jsonschema
 
-
 class QuantumJob():
     """Creates a quantum circuit job
 
@@ -130,6 +129,10 @@ class QuantumJob():
                                                    formatted_circuits,
                                                    self.names,
                                                    circuit_config):
+            # TODO: QuantumCircuit object can't be valid qobj. Need to
+            # clean this handling. Probably eliminate parallel compilation
+            if not do_compile:
+                circuit = None
             record = {
                 'name': name,
                 'compiled_circuit': None if do_compile else fcircuit,
