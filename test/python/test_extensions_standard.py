@@ -258,14 +258,15 @@ class TestStandard(QiskitTestCase):
         self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
 
     def test_swap_reg_reg(self):
-        c = self.circuit
         qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
-        instruction_set = c.swap(self.q, self.r)
+        instruction_set = self.circuit.swap(self.q, self.r)
         self.assertStmtsType(instruction_set.instructions, SwapGate)
         self.assertQasm(qasm_txt)
-        c.swap(self.q, self.r).inverse()
-        self.assertQasm('swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];',
-                        offset=len(qasm_txt) + 2)
+
+    def test_swap_reg_reg_inv(self):
+        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
+        self.circuit.swap(self.q, self.r).inverse()
+        self.assertQasm(qasm_txt)
 
     def test_swap_reg_bit(self):
         qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
