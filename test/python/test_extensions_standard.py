@@ -278,13 +278,15 @@ class TestStandard(QiskitTestCase):
 
     def test_rz_reg(self):
         qasm_txt = 'rz(1) q[0];\nrz(1) q[1];\nrz(1) q[2];'
-        c = self.circuit
-        instruction_set = c.rz(1, self.q)
+        instruction_set = self.circuit.rz(1, self.q)
         self.assertStmtsType(instruction_set.instructions, RZGate)
         self.assertQasm(qasm_txt)
-        instruction_set = c.rz(1, self.q).inverse()
+
+    def test_rz_reg_inv(self):
+        qasm_txt = 'rz(-1) q[0];\nrz(-1) q[1];\nrz(-1) q[2];'
+        instruction_set = self.circuit.rz(1, self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, RZGate)
-        self.assertQasm('rz(-1) q[0];\nrz(-1) q[1];\nrz(-1) q[2];', offset=len(qasm_txt) + 2)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 37)
 
     def test_rz_pi(self):
         c = self.circuit
