@@ -202,6 +202,15 @@ class TestStandard(QiskitTestCase):
         c.rz(1, self.q[1])
         self.assertResult(RZGate, 'rz(1) q[1];', 'rz(-1) q[1];')
 
+    def test_rz_reg(self):
+        qasm_txt = 'rz(1) q[0];\nrz(1) q[1];\nrz(1) q[2];'
+        c = self.circuit
+        instruction_set = c.rz(1, self.q)
+        self.assertStmtsType(instruction_set.instructions, RZGate)
+        self.assertQasm(qasm_txt)
+        c.rz(1, self.q).inverse()
+        self.assertQasm('rz(-1) q[0];\nrz(-1) q[1];\nrz(-1) q[2];', offset=len(qasm_txt) + 2)
+
     def test_rz_pi(self):
         c = self.circuit
         c.rz(pi / 2, self.q[1])
@@ -213,6 +222,15 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.s, 1)
         c.s(self.q[1])
         self.assertResult(SGate, 's q[1];', 'sdg q[1];')
+
+    def test_s_reg(self):
+        qasm_txt = 's q[0];\ns q[1];\ns q[2];'
+        c = self.circuit
+        instruction_set = c.s(self.q)
+        self.assertStmtsType(instruction_set.instructions, SGate)
+        self.assertQasm(qasm_txt)
+        c.s(self.q).inverse()
+        self.assertQasm('sdg q[0];\nsdg q[1];\nsdg q[2];', offset=len(qasm_txt) + 2)
 
     def test_sdg(self):
         c = self.circuit
@@ -322,22 +340,24 @@ class TestStandard(QiskitTestCase):
         qasm_txt_: qasm representation of inverse
         """
         c = self.circuit
-        self.assertStmtTypeAndQasm(c[0], t)
+        self.assertEqual(type(c[0]), t)
         self.assertQasm(qasm_txt)
         c[0].reapply(c)
         self.assertQasm(qasm_txt + '\n' + qasm_txt)
         self.assertEqual(c[0].inverse(), c[0])
         self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
 
-    def assertStmtTypeAndQasm(self, stmt, t):
-        self.assertEqual(type(stmt), t)
+    def assertStmtsType(self, stmts, t):
+        for stmt in stmts:
+            self.assertEqual(type(stmt), t)
 
-    def assertQasm(self, qasm_txt):
+    def assertQasm(self, qasm_txt, offset=1):
         c = self.circuit
         c_header = 58
         c_txt = len(qasm_txt)
         self.assertIn(qasm_txt, self.circuit.qasm())
-        self.assertEqual(c_header + c_txt + 1, len(c.qasm()))
+        self.assertEqual(c_header + c_txt + offset, len(c.qasm()))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -57,8 +57,8 @@ def rz(self, phi, q):
     """Apply rz to q."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.rx(phi, (q, j)))
+        for j in range(q.size):
+            gs.add(self.rz(phi, (q, j)))
         return gs
 
     self._check_qubit(q)
