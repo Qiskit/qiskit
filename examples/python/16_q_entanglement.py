@@ -8,7 +8,7 @@ print("\nconnecting....")
 #import matplotlib.pyplot as plt
 #from qiskit.tools.visualization import plot_histogram
 #You can uncomment the above if you want to try and plot the histogram but I wouldn't if I were you :)
-from pprint import pprint
+
 from qiskit import QuantumProgram
 import Qconfig,time
 
