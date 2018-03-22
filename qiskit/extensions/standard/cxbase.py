@@ -21,6 +21,8 @@ Fundamental controlled-NOT gate.
 from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
+from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -49,6 +51,28 @@ class CXBase(Gate):
 
 def cx_base(self, ctl, tgt):
     """Apply CX ctl, tgt."""
+
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+        # apply CX to qubits between two registers
+        instructions = InstructionSet()
+        for i in range(ctl.size):
+            instructions.add(self.cx_base((ctl, i), (tgt, i)))
+        return instructions
+
+    if isinstance(ctl, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(ctl.size):
+            gs.add(self.cx_base((ctl, j), tgt))
+        return gs
+
+    if isinstance(tgt, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(tgt.size):
+            gs.add(self.cx_base(ctl, (tgt,j)))
+        return gs
+
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
