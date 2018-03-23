@@ -19,6 +19,8 @@
 Backend for the unroller that creates a DAGCircuit object.
 """
 
+from collections import OrderedDict
+
 from qiskit.dagcircuit import DAGCircuit
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
@@ -49,7 +51,7 @@ class DAGBackend(UnrollerBackend):
             self.basis = []
         self.listen = True
         self.in_gate = ""
-        self.gates = {}
+        self.gates = OrderedDict()
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit."""

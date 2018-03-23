@@ -29,6 +29,7 @@ directly from the graph.
 """
 import itertools
 import copy
+from collections import OrderedDict
 import networkx as nx
 import sympy
 
@@ -67,7 +68,7 @@ class DAGCircuit:
         # The signature is an integer tuple (nq,nc,np) specifying the
         # number of input qubits, input bits, and real parameters.
         # The definition is external to the circuit object.
-        self.basis = {}
+        self.basis = OrderedDict()
 
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
