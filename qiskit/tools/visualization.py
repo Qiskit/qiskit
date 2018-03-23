@@ -906,10 +906,6 @@ class QCircuitImage(object):
         print("width * depth: ", self.img_width, self.img_depth)
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
         output.write(beamer_line % self._get_beamer_page(self.img_width, self.img_depth))
-                #(min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio)), # page height
-                #     min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio)), # page width
-                #     0.8))                                                 # page scaling
-                     #(2.5*self.img_depth, 2.5*self.img_width))
         output.write(header_2)
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
@@ -1079,10 +1075,17 @@ class QCircuitImage(object):
         beamer_limit = 550
 
         # columns are roughly twice as big as rows (TODO: get actual column & row size)
-        aspect_ratio = self.img_width / (2 * self.img_depth)        
-        height = min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio))
-        width = min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio))
-        scaling = 0.5
+        aspect_ratio = self.img_width / (2 * self.img_depth)
+
+        # for smallish circuits, just choose a page slightly bigger than circuit
+        margin_factor = 1.5
+        height = img_width * margin_factor
+        width = img_depth * margin_factor
+        if height > beamer_limit or width > beamer_limit or \
+           height * width > PIL_limit:
+            height = min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio))
+            width = min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio))
+        scaling = 1
 
         return (height, width, scaling)
 
