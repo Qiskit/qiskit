@@ -127,7 +127,7 @@ jobs:
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
-      script: make style VERBOSE=""; make lint VERBOSE=""
+      script: make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
@@ -153,7 +153,7 @@ jobs:
     # github pages documentation update (GNU/Linux, Python 3.5)
     - stage: deploy doc and pypi
       <<: *stage_linux_no_compile
-      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      if: branch = stable and repo = QISKit/qiskit-sdk-py and type = push
       script: cd ..
       deploy:
         <<: *deploy_ghpages
@@ -161,7 +161,7 @@ jobs:
     # GNU/Linux, Python 3.5
     - stage: deploy doc and pypi
       <<: *stage_linux
-      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      if: branch = stable and repo = QISKit/qiskit-sdk-py and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:
@@ -170,7 +170,7 @@ jobs:
     # OSX, Python 3.latest (brew does not support versions)
     - stage: deploy doc and pypi
       <<: *stage_osx
-      if: branch = stable and repo = QISKit/qiskit-sdk-py
+      if: branch = stable and repo = QISKit/qiskit-sdk-py and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:
