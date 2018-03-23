@@ -16,15 +16,15 @@
 # =============================================================================
 
 """
-Demo the use of the InitializeGate class to prepare arbitrary pure states.
+Example use of the initialize gate to prepare arbitrary pure states.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 
 import math
-import os
-import sys
-
-from qiskit.tools.visualization import plot_circuit
 from qiskit import QuantumProgram
+from qiskit.tools.visualization import plot_circuit
 import Qconfig
 
 

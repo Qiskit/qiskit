@@ -5,15 +5,15 @@
 
 The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for
 working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the
-[IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/).
+[IBM Q Experience (QX)](https://quantumexperience.ng.bluemix.net/).
 
 Use **QISKit** to create quantum computing programs, compile them, and execute them on one of
 several backends (online Real quantum processors, online simulators, and local simulators). For
 the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py)
-to connect to the IBM Q experience.
+to connect to the IBM Q Experience.
 
 **We use GitHub issues for tracking requests and bugs. Please see the**
-[IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for
+[IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for
 questions and discussion.**
 
 **If you'd like to contribute to QISKit, please take a look at our**
@@ -46,8 +46,9 @@ QISKit. If you're new to quantum, start with our
 We encourage to install QISKit via the PIP tool (a python package manager):
 
 ```
-    pip install qiskit
+pip install qiskit
 ```
+
 PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
 PIP package comes with prebuilt binaries for these platforms:
@@ -63,7 +64,7 @@ If during the installation PIP doesn't succeed to build, don't worry, you will h
 
 #### Setup your environment
 
-We recommend using python virtual environments to improve your experience. Refer to our
+We recommend using python virtual environments to improve your Experience. Refer to our
 [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
 
 ## Creating your first Quantum Program
@@ -75,41 +76,40 @@ We are ready to try out a quantum circuit example, which runs via the local simu
 This is a simple example that makes an entangled state.
 
 ```python
-from qiskit import QuantumProgram, QISKitError, RegisterSizeError
+# Import the QISKit SDK
+import qiskit
 
-# Create a QuantumProgram object instance.
-q_program = QuantumProgram()
-backend = 'local_qasm_simulator'
-try:
-    # Create a Quantum Register called "qr" with 2 qubits.
-    quantum_reg = q_program.create_quantum_register("qr", 2)
-    # Create a Classical Register called "cr" with 2 bits.
-    classical_reg = q_program.create_classical_register("cr", 2)
-    # Create a Quantum Circuit called "qc" involving the Quantum Register "qr"
-    # and the Classical Register "cr".
-    quantum_circuit =
-        q_program.create_circuit("bell", [quantum_reg],[classical_reg])
+# Create a Quantum Register called "qr" with 2 qubits
+qr = qiskit.QuantumRegister("qr", 2)
+# Create a Classical Register called "cr" with 2 bits
+cr = qiskit.ClassicalRegister("cr", 2)
+# Create a Quantum Circuit called involving "qr" and "cr"
+qc = qiskit.QuantumCircuit(qr, cr)
 
-    # Add the H gate in the Qubit 0, putting this qubit in superposition.
-    quantum_circuit.h(quantum_reg[0])
-    # Add the CX gate on control qubit 0 and target qubit 1, putting
-    # the qubits in a Bell state
-    quantum_circuit.cx(quantum_reg[0], quantum_reg[1])
+# Add a H gate on the 0th qubit in "qr", putting this qubit in superposition.
+qc.h(qr[0])
+# Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+# the qubits in a Bell state.
+qc.cx(qr[0], qr[1])
+# Add a Measure gate to see the state.
+# (Ommiting the index applies an operation on all qubits of the register(s))
+qc.measure(qr, cr)
 
-    # Add a Measure gate to see the state.
-    quantum_circuit.measure(quantum_reg, classical_reg)
+# Create a Quantum Program for execution 
+qp = qiskit.QuantumProgram()
+# Add the circuit you created to it, and call it the "bell" circuit.
+# (You can add multiple circuits to the same program, for batch execution)
+qp.add_circuit("bell", qc)
 
-    # Compile and execute the Quantum Program in the local_qasm_simulator.
-    result = q_program.execute(["bell"], backend=backend, shots=1024, seed=1)
+# See a list of available local simulators
+print("Local backends: ", qiskit.backends.discover_local_backends())
 
-    # Show the results.
-    print(result)
-    print(result.get_data("bell"))
+# Compile and run the Quantum Program on a simulator backend
+sim_result = qp.execute("bell", backend='local_qasm_simulator', shots=1024, seed=1)
 
-except QISKitError as ex:
-    print('There was an error in the circuit!. Error = {}'.format(ex))
-except RegisterSizeError as ex:
-    print('Error in the number of registers!. Error = {}'.format(ex))
+# Show the results
+print("simulation: ", sim_result)
+print(sim_result.get_counts("bell"))
 ```
 
 In this case, the output will be:
@@ -119,40 +119,39 @@ COMPLETED
 {'counts': {'00': 512, '11': 512}}
 ```
 
-This script is avaiable [here](examples/python/hello_quantum.py).
+This script is available [here](examples/python/hello_quantum.py), where we also show how to
+run the same program on a real quantum computer.
 
 ### Executing your code on a real Quantum chip
 
 You can also use QISKit to execute your code on a
-[real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
-In order to do so, you need to configure the SDK for using the credentials for
+[real quantum chip](https://github.com/QISKit/ibmqx-backend-information).
+In order to do so, you need to configure the SDK for using the credentials in
 your Quantum Experience Account:
 
 
-#### Configure your API token and QE credentials
+#### Configure your API token and QX credentials
 
 
-1. Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net)>
-   account if you haven't already done so
-2. Get an API token from the IBM Q experience website under "`My Account`" >
-   "`Personal Access Token`". This API token allows you to execute your
-   programs with the IBM Q experience backends.
-   [Example](doc/example_real_backend.rst).
+1. Create an _[IBM Q Experience](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
+2. Get an API token from the IBM Q Experience website under _My Account > Advanced > API Token_. This API token allows you to execute your programs with the IBM Q Experience backends. See: [Example](doc/example_real_backend.rst).
 3. We are going to create a new file called `Qconfig.py` and insert the API token into it. This file must have these contents:
-```python
-APItoken = 'MY_API_TOKEN'
 
-config = {
-    'url': 'https://quantumexperience.ng.bluemix.net/api',
-    # The following should only be needed for IBM Q users.
-    'hub': 'MY_HUB',
-    'group': 'MY_GROUP',
-    'project': 'MY_PROJECT'
-}
-```
-4. Substitute `'MY_API_TOKEN'` with your real API Token extracted in step 2.
+  ```python
+  APItoken = 'MY_API_TOKEN'
 
-5. If you have access to the IBM Q features, you also need to setup the
+  config = {
+      'url': 'https://quantumexperience.ng.bluemix.net/api',
+      # The following should only be needed for IBM Q users.
+      'hub': 'MY_HUB',
+      'group': 'MY_GROUP',
+      'project': 'MY_PROJECT'
+  }
+  ```
+
+4. Substitute `MY_API_TOKEN` with your real API Token extracted in step 2.
+
+5. If you have access to the IBM Q network, you also need to setup the
    values for your hub, group, and project. You can do so by filling the
    `config` variable with the values you can find on your IBM Q account
    page.
@@ -209,20 +208,20 @@ QISKit was originally developed by researchers and developers on the
 [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/),
 with the aim of offering a high level development kit to work with quantum computers.
 
-Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for
+Visit the [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) for
 questions and discussions on QISKit and quantum computing more broadly. If you'd like to
 contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
 
 ## Multilanguage guide
 
-* **[Korean Translation](doc/ko/README.md)**, Basic guide line written in Korean.
-* **[Chinese Translation](doc/zh/README.md)**, Basic guide line written in Chinese.
+* **[Korean Translation](doc/ko/README.md)** - basic guide line written in Korean.
+* **[Chinese Translation](doc/zh/README.md)** - basic guide line written in Chinese.
 
 ## Authors (alphabetical)
 
 Ismail Yunus Akhalwaya, Luciano Bello, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
-Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez,
-Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
+Jay Gambetta, Juan Gomez, Ali Javadi-Abhari, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda,
+Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
 
 In future releases, anyone who contributes with code to this project is welcome to include their
 name here.
