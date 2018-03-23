@@ -27,6 +27,7 @@ from qiskit.unroll import Unroller, CircuitBackend, DagUnroller, DAGBackend, Jso
 
 logger = logging.getLogger(__name__)
 
+
 def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             initial_layout=None, get_layout=False, format='dag'):
     """Compile the circuit.
@@ -135,6 +136,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled
+
 
 class QISKitCompilerError(QISKitError):
     """Exceptions raised during compilation"""

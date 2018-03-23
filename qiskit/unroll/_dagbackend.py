@@ -25,6 +25,7 @@ from qiskit.dagcircuit import DAGCircuit
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
 
+
 class DAGBackend(UnrollerBackend):
     """Backend for the unroller that creates a DAGCircuit object.
 

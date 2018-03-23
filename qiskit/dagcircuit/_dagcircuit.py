@@ -591,8 +591,8 @@ class DAGCircuit:
                     raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
 
                 if nd["name"] not in input_circuit.wire_type:
-                    raise QISKitError("inconsistent wire_type for (%s,%d) in input_circuit" \
-                    % (nd["name"][0], nd["name"][1]))
+                    raise QISKitError("inconsistent wire_type for (%s,%d) in input_circuit"
+                                      % (nd["name"][0], nd["name"][1]))
 
             elif nd["type"] == "out":
                 # ignore output nodes
@@ -652,8 +652,8 @@ class DAGCircuit:
 
                 if nd["name"] not in input_circuit.wire_type:
                     raise QISKitError(
-                        "inconsistent wire_type for (%s,%d) in input_circuit" \
-                         % (nd["name"][0], nd["name"][1]))
+                        "inconsistent wire_type for (%s,%d) in input_circuit"
+                        % (nd["name"][0], nd["name"][1]))
 
             elif nd["type"] == "in":
                 # ignore input nodes
