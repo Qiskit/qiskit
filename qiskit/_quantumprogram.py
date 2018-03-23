@@ -824,19 +824,9 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             ValueError: if the backend is not available.
         """
+        return qiskit.backends.status(backend)
 
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                return self.__api.backend_status(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend status: {0}"
-                                      .format(ex))
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'available': True}
-        else:
-            raise ValueError('the backend "{0}" is not available'.format(backend))
-
-    def get_backend_configuration(self, backend, list_format=False):
+    def configuration(self, backend, list_format=False):
         """Return the configuration of the backend.
 
         The return is via QX API call.
@@ -854,36 +844,7 @@ class QuantumProgram(object):
             LookupError: if a configuration for the named backend can't be
                 found.
         """
-        if self.get_api():
-            configuration_edit = {}
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for configuration in backends:
-                if configuration['name'] == backend:
-                    for key in configuration:
-                        new_key = convert(key)
-                        # TODO: removed these from the API code
-                        if new_key not in ['id', 'serial_number', 'topology_id',
-                                           'status', 'coupling_map']:
-                            configuration_edit[new_key] = configuration[key]
-                        if new_key == 'coupling_map':
-                            if configuration[key] == 'all-to-all':
-                                configuration_edit[new_key] = \
-                                    configuration[key]
-                            else:
-                                if not list_format:
-                                    cmap = mapper.coupling_list2dict(configuration[key])
-                                else:
-                                    cmap = configuration[key]
-                                configuration_edit[new_key] = cmap
-                    return configuration_edit
-            raise LookupError('Configuration for %s could not be found.' %
-                              backend)
-        else:
-            return qiskit.backends.get_backend_configuration(backend)
+        return qiskit.backends.configuration(backend)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
@@ -901,23 +862,9 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                calibrations = self.__api.backend_calibration(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend calibration: {0}"
-                                      .format(ex))
-            calibrations_edit = {}
-            for key, vals in calibrations.items():
-                new_key = convert(key)
-                calibrations_edit[new_key] = vals
-            return calibrations_edit
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'backend': backend, 'calibrations': None}
-        else:
-            raise LookupError(
-                'backend calibration for "{0}" not found'.format(backend))
+        return qiskit.backends.calibration(backend)
 
+    
     def get_backend_parameters(self, backend):
         """Return the online backend parameters.
 
@@ -934,22 +881,7 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                parameters = self.__api.backend_parameters(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend parameters: {0}"
-                                      .format(ex))
-            parameters_edit = {}
-            for key, vals in parameters.items():
-                new_key = convert(key)
-                parameters_edit[new_key] = vals
-            return parameters_edit
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'backend': backend, 'parameters': None}
-        else:
-            raise LookupError(
-                'backend parameters for "{0}" not found'.format(backend))
+        return qiskit.backends.parameters(backend)
 
     ###############################################################
     # methods to compile quantum programs into qobj
@@ -1083,7 +1015,7 @@ class QuantumProgram(object):
             hpc = None
 
         qobj['circuits'] = []
-        backend_conf = qiskit.backends.get_backend_configuration(backend)
+        backend_conf = qiskit.backends.configuration(backend)
         if not basis_gates:
             if 'basis_gates' in backend_conf:
                 basis_gates = backend_conf['basis_gates']

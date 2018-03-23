@@ -25,6 +25,7 @@ import pkgutil
 import re
 from collections import namedtuple
 
+import qiskit
 from qiskit import mapper
 from ._basebackend import BaseBackend
 from .. import QISKitError
@@ -89,10 +90,10 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
 
 
 def discover_remote_backends(api):
-    """Discover backends available on the Quantum Experience
+    """Discover backends available from IBM Q
 
     Args:
-        api (IBMQuantumExperience): Quantum Experience API
+        api (IBMQuantumExperience): IBM Q API
     Returns:
         list: list of discovered backend names
     """
@@ -253,7 +254,7 @@ def get_backend_instance(backend_name):
         configuration=registered_backend.configuration)
 
 
-def get_backend_configuration(backend_name):
+def configuration(backend_name):
     """Return the configuration for the named backend.
 
     Args:
@@ -269,6 +270,68 @@ def get_backend_configuration(backend_name):
         return _REGISTERED_BACKENDS[backend_name].configuration
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
+
+
+def calibration(backend_name):
+    """Return the calibration for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        dict: calibration dict
+
+    Raises:
+        LookupError: if backend is unavailable
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    else:
+        return backend.calibration
+        
+
+def parameters(backend_name):
+    """Return the online backend parameters.
+
+    Args:
+        backend (str):  Name of the backend.
+
+    Returns:
+        dict: The parameters of the named backend.
+
+    Raises:
+        ConnectionError: if the API call failed.
+        LookupError: If parameters for the named backend can't be
+            found.
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    else:
+        return backend.parameters
+
+
+def status(backend_name):
+    """Return the status for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        dict: status dict 
+
+    Raises:
+        LookupError: if backend is unavailable
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    else:
+        return backend.status
 
 
 def local_backends():

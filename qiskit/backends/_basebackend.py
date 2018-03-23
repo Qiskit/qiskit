@@ -20,6 +20,7 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
+import abc
 from abc import ABC, abstractmethod
 
 
@@ -50,3 +51,21 @@ class BaseBackend(ABC):
     def configuration(self):
         """Return backend configuration"""
         return self._configuration
+
+    @property
+    def calibration(self):
+        """Return backend calibration"""
+        backend_name = self.configuration['name']
+        return {'backend': backend_name, 'calibrations': None}
+    
+    @property
+    def parameters(self):
+        """Return backend parameters"""
+        backend_name = self.configuration['name']
+        return {'backend': backend_name, 'parameters': None}
+    
+    @property
+    def status(self):
+        """Return backend status"""
+        backend_name = self.configuration['name']
+        return {'available': True}

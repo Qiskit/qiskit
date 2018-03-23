@@ -637,7 +637,7 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return dictionary with available: True/False.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        out = q_program.get_backend_status("local_qasm_simulator")
+        out = qiskit.backends.status("local_qasm_simulator")
         self.assertIn(out['available'], [True])
 
     def test_backend_status_fail(self):
@@ -646,10 +646,10 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return dictionary with available: True/False.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        self.assertRaises(ValueError, qp.get_backend_status, "fail")
+        self.assertRaises(LookupError, qp.get_backend_status, "fail")
 
-    def test_get_backend_configuration(self):
-        """Test get_backend_configuration.
+    def test_configuration(self):
+        """Test configuration.
 
         If all correct should return configuration for the
         local_qasm_simulator.
@@ -657,17 +657,17 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
-        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        backend_config = qp.configuration("local_qasm_simulator")
         self.assertTrue(config_keys < backend_config.keys())
 
-    def test_get_backend_configuration_fail(self):
-        """Test get_backend_configuration fail.
+    def test_configuration_fail(self):
+        """Test configuration fail.
 
         If all correct should return LookupError.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        # qp.get_backend_configuration("fail")
-        self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
+        # qp.configuration("fail")
+        self.assertRaises(LookupError, qp.configuration, "fail")
 
     @requires_qe_access
     def test_get_backend_calibration(self, QE_TOKEN, QE_URL):
@@ -680,7 +680,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
-        result = q_program.get_backend_calibration(backend)
+        result = qiskit.backends.calibration(backend)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -695,7 +695,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
-        result = q_program.get_backend_parameters(backend)
+        result = qiskit.backends.parameters(backend)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -1391,7 +1391,7 @@ class TestQuantumProgram(QiskitTestCase):
         q_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
-        status = q_program.get_backend_status(backend)
+        status = qiskit.backends.status(backend)
         if not status.get('available', False):
             pass
         else:
