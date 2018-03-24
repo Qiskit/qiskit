@@ -21,15 +21,11 @@ import os
 import random
 from inspect import signature
 import unittest
-
-from qiskit import QuantumProgram
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+import qiskit
 from .common import QiskitTestCase
 
 try:
     from qiskit.tools.visualization import latex_drawer
-    from qiskit.tools.visualization import circuit_drawer
     VALID_MATPLOTLIB = True
 except RuntimeError:
     # Under some combinations (travis osx vms, or headless configurations)
@@ -42,87 +38,6 @@ except RuntimeError:
 @unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestLatexDrawer(QiskitTestCase):
     """QISKit latex drawer tests."""
-
-    def setUp(self):
-        qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr', 2)
-        cr = qp.create_classical_register('cr', 2)
-        qc = qp.create_circuit('latex_test', [qr], [cr])
-        qc.h(qr[0])
-        qc.cx(qr[0], qr[1])
-        qc.measure(qr[1], cr[1])
-        qc.x(qr[1]).c_if(cr, 1)
-        qc.measure(qr, cr)
-        self.qp = qp
-        self.qc = qc
-        self.qobj = qp.compile(['latex_test'])
-
-    def test_latex_drawer(self):
-        filename = self._get_resource_path('test_latex_drawer.tex')
-        try:
-            latex_drawer(self.qc, filename)
-        except Exception:
-            if os.path.exists(filename):
-                os.remove(filename)
-            raise
-
-    def test_teleport(self):
-        filename = self._get_resource_path('test_teleport.tex')
-        QPS_SPECS = {
-            "circuits": [{
-                "name": "teleport",
-                "quantum_registers": [{
-                    "name": "q",
-                    "size": 3
-                }],
-                "classical_registers": [
-                    {"name": "c0",
-                     "size": 1},
-                    {"name": "c1",
-                     "size": 1},
-                    {"name": "c2",
-                     "size": 1},
-                ]}]
-        }
-
-        qp = QuantumProgram(specs=QPS_SPECS)
-        qc = qp.get_circuit("teleport")
-        q = qp.get_quantum_register("q")
-        c0 = qp.get_classical_register("c0")
-        c1 = qp.get_classical_register("c1")
-        c2 = qp.get_classical_register("c2")
-
-        # Prepare an initial state
-        qc.u3(0.3, 0.2, 0.1, q[0])
-
-        # Prepare a Bell pair
-        qc.h(q[1])
-        qc.cx(q[1], q[2])
-
-        # Barrier following state preparation
-        qc.barrier(q)
-
-        # Measure in the Bell basis
-        qc.cx(q[0], q[1])
-        qc.h(q[0])
-        qc.measure(q[0], c0[0])
-        qc.measure(q[1], c1[0])
-
-        # Apply a correction
-        qc.z(q[2]).c_if(c0, 1)
-        qc.x(q[2]).c_if(c1, 1)
-        qc.measure(q[2], c2[0])
-        try:
-            latex_drawer(qc, filename)
-        except Exception:
-            if os.path.exists(filename):
-                os.remove(filename)
-            raise
-
-
-@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
-class TestCircuitDrawer(QiskitTestCase):
-    """QISKit circuit drawer tests."""
 
     def randomCircuit(self, width, depth, max_operands):
         """Generate random circuit of arbitrary size.
@@ -141,8 +56,8 @@ class TestCircuitDrawer(QiskitTestCase):
         depth = 3
         max_operands = 3
 
-        qr = QuantumRegister("q", width)
-        qc = QuantumCircuit(qr)
+        qr = qiskit.QuantumRegister("q", width)
+        qc = qiskit.QuantumCircuit(qr)
 
         one_q_ops = "iden,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"
         two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
@@ -165,7 +80,7 @@ class TestCircuitDrawer(QiskitTestCase):
                     op = random.choice(three_q_ops.split(','))
                 # every gate is defined as a method of the QuantumCircuit class
                 # the code below is so we can call a gate by its name
-                gate = getattr(QuantumCircuit, op)
+                gate = getattr(qiskit.QuantumCircuit, op)
                 op_args = list(signature(gate).parameters.keys())
                 num_angles = len(op_args) - num_operands - 1    # -1 for the 'self' arg
                 angles = [random.uniform(0, 3.14) for x in range(num_angles)]
@@ -175,29 +90,82 @@ class TestCircuitDrawer(QiskitTestCase):
         return qc
 
     def test_tiny_circuit(self):
+        filename = self._get_resource_path('test_tiny.tex')
         qc = self.randomCircuit(1, 1, 1)
-        im = circuit_drawer(qc)
-        self.assertNotEqual(im, None)
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
 
     def test_normal_circuit(self):
+        filename = self._get_resource_path('test_normal.tex')
         qc = self.randomCircuit(5, 5, 3)
-        im = circuit_drawer(qc)
-        self.assertNotEqual(im, None)
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
 
     def test_wide_circuit(self):
+        filename = self._get_resource_path('test_wide.tex')
         qc = self.randomCircuit(100, 1, 1)
-        im = circuit_drawer(qc)
-        self.assertNotEqual(im, None)
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
 
     def test_deep_circuit(self):
+        filename = self._get_resource_path('test_deep.tex')
         qc = self.randomCircuit(1, 100, 1)
-        im = circuit_drawer(qc)
-        self.assertNotEqual(im, None)
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
 
     def test_huge_circuit(self):
+        filename = self._get_resource_path('test_huge.tex')
         qc = self.randomCircuit(40, 15, 1)
-        im = circuit_drawer(qc)
-        self.assertNotEqual(im, None)
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
+
+    def test_teleport(self):
+        filename = self._get_resource_path('test_teleport.tex')
+        q = qiskit.QuantumRegister("q", 3)
+        c = qiskit.ClassicalRegister("c", 3)
+        qc = qiskit.QuantumCircuit(q, c)
+        # Prepare an initial state
+        qc.u3(0.3, 0.2, 0.1, q[0])
+        # Prepare a Bell pair
+        qc.h(q[1])
+        qc.cx(q[1], q[2])
+        # Barrier following state preparation
+        qc.barrier(q)
+        # Measure in the Bell basis
+        qc.cx(q[0], q[1])
+        qc.h(q[0])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        # Apply a correction
+        qc.z(q[2]).c_if(c, 1)
+        qc.x(q[2]).c_if(c, 2)
+        qc.measure(q[2], c[2])
+        try:
+            latex_drawer(qc, filename)
+        except Exception:
+            if os.path.exists(filename):
+                os.remove(filename)
+            raise
 
 
 if __name__ == '__main__':
