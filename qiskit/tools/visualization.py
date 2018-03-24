@@ -26,6 +26,7 @@ import os
 import subprocess
 import tempfile
 import logging
+import math
 from collections import Counter, OrderedDict
 from functools import reduce
 from io import StringIO
@@ -315,7 +316,6 @@ def phase_to_color_wheel(complex_number):
     """
     angles = np.angle(complex_number)
     angle_round = int(((angles + 2 * np.pi) % (2 * np.pi))/np.pi*6)
-    # print(angleround)
     color_map = {
         0: (0, 0, 1),  # blue,
         1: (0.5, 0, 1),  # blue-violet
@@ -683,7 +683,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, image_format="png",
+def plot_circuit(circuit, scale=0.7, image_format="png",
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
@@ -698,7 +698,7 @@ def plot_circuit(circuit, image_format="png",
         im.show()
 
 
-def circuit_drawer(circuit, image_format="png",
+def circuit_drawer(circuit, scale=0.7, image_format="png",
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
@@ -710,7 +710,7 @@ def circuit_drawer(circuit, image_format="png",
     """
     filename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
-        latex_drawer(circuit, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
+        latex_drawer(circuit, scale, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
         im = None
         try:
             subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
@@ -766,7 +766,7 @@ def trim(im):
     return im
 
 
-def latex_drawer(circuit, filename=None,
+def latex_drawer(circuit, scale, filename=None,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Convert QuantumCircuit to LaTeX string.
@@ -786,7 +786,7 @@ def latex_drawer(circuit, filename=None,
     u = unroll.Unroller(ast, unroll.JsonBackend(basis))
     u.execute()
     json_circuit = u.backend.circuit
-    qcimg = QCircuitImage(json_circuit)
+    qcimg = QCircuitImage(json_circuit, scale)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -802,7 +802,7 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
-    def __init__(self, circuit, aliases=None):
+    def __init__(self, circuit, scale, aliases=None):
         """
         Args:
             circuit (dict): compiled_circuit from qobj
@@ -811,6 +811,9 @@ class QCircuitImage(object):
         """
         # compiled qobj circuit
         self.circuit = circuit
+
+        # image scaling
+        self.scale = scale
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -868,9 +871,6 @@ class QCircuitImage(object):
         for key, value in self.ordered_regs:
             self.wire_type[(key, value)] = key in self.cregs.keys()
 
-        self._initialize_latex_array(aliases=aliases)
-        self._build_latex_array(aliases=aliases)
-
     def latex(self, aliases=None):
         """Return LaTeX string representation of circuit.
 
@@ -903,9 +903,8 @@ class QCircuitImage(object):
 """
         output = StringIO()
         output.write(header_1)
-        print("width * depth: ", self.img_width, self.img_depth)
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
-        output.write(beamer_line % self._get_beamer_page(self.img_width, self.img_depth))
+        output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
@@ -931,7 +930,8 @@ class QCircuitImage(object):
 
     def _initialize_latex_array(self, aliases=None):
         # pylint: disable=unused-argument
-        self.img_depth = self._get_image_depth(aliases)#len(self.circuit['operations'])
+        self.img_depth, self.sum_column_widths = self._get_image_depth(aliases)
+        self.sum_row_heights = self.img_width
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
              else "\\qw" for i in range(self.img_depth + 1)]
@@ -947,8 +947,9 @@ class QCircuitImage(object):
                                     str(self.ordered_regs[i][1]) + "}}}"
 
     def _get_image_depth(self, aliases=None):
-        columns = 2
+        columns = 2 # wires in the beginning and end
         is_occupied = [False] * self.img_width
+        max_column_width = {}
         for op in self.circuit['operations']:
             if 'clbits' not in op:
                 if op['name'] != 'barrier':
@@ -1023,6 +1024,16 @@ class QCircuitImage(object):
                                     for j in range(top, bottom + 1):
                                         is_occupied[j] = True
                                     break
+
+                    # update current column width
+                    arg_str_len = 0
+                    for arg in op['texparams']:
+                        arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float, arg)
+                        arg_str_len += len(arg_str)
+                    if columns not in max_column_width:
+                        max_column_width[columns] = 0
+                    max_column_width[columns] = max(arg_str_len,
+                                                    max_column_width[columns])
             else:
                 if op['name'] == "measure":
                     assert len(op['clbits']) == 1 and len(op['qubits']) == 1
@@ -1051,43 +1062,49 @@ class QCircuitImage(object):
                             for j in range(pos_1, pos_2 + 1):
                                 is_occupied[j] = True
                             break
-
+                    # update current column width
+                    if columns not in max_column_width:
+                        max_column_width[columns] = 0
                 else:
                     assert False, "bad node data"
-        return columns+1
+        # every 3 characters is roughly one extra 'unit' of width in the cell
+        # the gate name is one extra 'unit'
+        # the qubit/cbit labels plus the wires poking out at the ends is 3 more
+        sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
+        return columns+1, math.ceil(sum_column_widths) + 2
 
-    def _get_beamer_page(self, img_width, img_depth):
-        """Get height, width and scaling attributes for the beamer page.
-
-        Args: 
-            img_width (int): number of rows in the circuit
-            img_depth (int): number of columns in the circuit
+    def _get_beamer_page(self):
+        """Get height, width & scale attributes for the beamer page.
 
         Returns:
-            (heigh, width, scaling) (tuple): desirable page attributes
+            (height, width, scale) (tuple): desirable page attributes
         """
         # PIL python package limits image size to around a quarter gigabyte
         # this means the beamer image should be limited to < 50000
         # if you want to avoid a "warning" too, set it to < 25000
-        PIL_limit = 50000
+        PIL_limit = 40000
 
         # the beamer latex template limits each dimension to < 19 feet (i.e. 575cm)
         beamer_limit = 550
 
-        # columns are roughly twice as big as rows (TODO: get actual column & row size)
-        aspect_ratio = self.img_width / (2 * self.img_depth)
+        # columns are roughly twice as big as rows
+        aspect_ratio = self.sum_row_heights / self.sum_column_widths
 
-        # for smallish circuits, just choose a page slightly bigger than circuit
+        # choose a page margin so circuit is not cropped
         margin_factor = 1.5
-        height = img_width * margin_factor
-        width = img_depth * margin_factor
-        if height > beamer_limit or width > beamer_limit or \
-           height * width > PIL_limit:
-            height = min(beamer_limit, np.sqrt(PIL_limit * aspect_ratio))
-            width = min(beamer_limit, np.sqrt(PIL_limit / aspect_ratio))
-        scaling = 1
+        height = min(self.sum_row_heights * margin_factor, beamer_limit)
+        width = min(self.sum_column_widths * margin_factor, beamer_limit)
 
-        return (height, width, scaling)
+        # if too large, make it fit
+        if (height * width > PIL_limit):
+            height = min(np.sqrt(PIL_limit * aspect_ratio), beamer_limit)
+            width = min(np.sqrt(PIL_limit / aspect_ratio), beamer_limit)
+
+        # if too small, give it a minimum size
+        height = max(height, 10)
+        width = max(width, 10)
+
+        return (height, width, self.scale)
 
     def total_2_register_index(self, index, registers):
         """Get register name for qubit index.
@@ -1136,7 +1153,6 @@ class QCircuitImage(object):
             qregdata = self.qregs
 
         for _, op in enumerate(self.circuit['operations']):
-            # print(iop, op)
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
                 cl_reg = self.clbit_list[self._ffs(mask)]
