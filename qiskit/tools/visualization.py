@@ -683,9 +683,8 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, scale=0.7, image_format="png",
-                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+def plot_circuit(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -693,14 +692,13 @@ def plot_circuit(circuit, scale=0.7, image_format="png",
     Requires poppler installed (to convert pdf to png)
     Requires pillow python package to handle images
     """
-    im = circuit_drawer(circuit, image_format, basis)
+    im = circuit_drawer(circuit, basis)
     if im:
         im.show()
 
 
-def circuit_drawer(circuit, scale=0.7, image_format="png",
-                   basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+def circuit_drawer(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -736,11 +734,11 @@ def circuit_drawer(circuit, scale=0.7, image_format="png",
                            'Skipping circuit drawing...')
         else:
             try:
-                subprocess.run(["pdftocairo", "-singlefile", "-{}".format(image_format), "-q",
+                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                im = Image.open("{0}.{1}".format(filename, image_format))
+                im = Image.open("{0}.png".format(filename))
                 im = trim(im)
-                os.remove("{0}.{1}".format(filename, image_format))
+                os.remove("{0}.png".format(filename))
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
@@ -1014,6 +1012,54 @@ class QCircuitImage(object):
                             temp.sort(key=int)
                             top = temp[0]
                             bottom = temp[1]
+
+                            for i in range(top, bottom + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, bottom + 1):
+                                        is_occupied[j] = True
+                                    break
+                    elif len(qarglist) == 3:
+                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
+                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
+                        pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
+
+                        if 'conditional' in op:
+                            pos_4 = self.img_regs[(if_reg, 0)]
+
+                            temp = [pos_1, pos_2, pos_3, pos_4]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[2]
+
+                            for i in range(top, pos_4 + 1):
+                                if is_occupied[i] is False:
+                                    is_occupied[i] = True
+                                else:
+                                    columns += 1
+                                    is_occupied = [False] * self.img_width
+                                    for j in range(top, pos_4 + 1):
+                                        is_occupied[j] = True
+                                    break
+
+                            gap = pos_4 - bottom
+                            for i in range(self.cregs[if_reg]):
+                                if if_value[i] == '1':
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                                else:
+                                    self._latex[pos_4 + i][columns] = \
+                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                        else:
+                            temp = [pos_1, pos_2, pos_3]
+                            temp.sort(key=int)
+                            top = temp[0]
+                            bottom = temp[2]
 
                             for i in range(top, bottom + 1):
                                 if is_occupied[i] is False:
