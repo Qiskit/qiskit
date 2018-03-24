@@ -64,7 +64,7 @@ If during the installation PIP doesn't succeed to build, don't worry, you will h
 
 #### Setup your environment
 
-We recommend using python virtual environments to improve your Experience. Refer to our
+We recommend using python virtual environments to improve your experience. Refer to our
 [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
 
 ## Creating your first Quantum Program
@@ -127,7 +127,7 @@ run the same program on a real quantum computer.
 You can also use QISKit to execute your code on a
 [real quantum chip](https://github.com/QISKit/ibmqx-backend-information).
 In order to do so, you need to configure the SDK for using the credentials in
-your Quantum Experience Account:
+your IBM Q Experience account:
 
 
 #### Configure your API token and QX credentials
@@ -142,7 +142,7 @@ your Quantum Experience Account:
 
   config = {
       'url': 'https://quantumexperience.ng.bluemix.net/api',
-      # The following should only be needed for IBM Q users.
+      # The following should only be needed for IBM Q Network users.
       'hub': 'MY_HUB',
       'group': 'MY_GROUP',
       'project': 'MY_PROJECT'
@@ -151,23 +151,23 @@ your Quantum Experience Account:
 
 4. Substitute `MY_API_TOKEN` with your real API Token extracted in step 2.
 
-5. If you have access to the IBM Q network, you also need to setup the
+5. If you have access to the IBM Q Network features, you also need to setup the
    values for your hub, group, and project. You can do so by filling the
    `config` variable with the values you can find on your IBM Q account
    page.
 
-Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with `QuantumProgram.set_api()` function. For example:
+Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with the `set_api()` function. For example:
 
 ```python
 from qiskit import QuantumProgram
 import Qconfig
 
 # Creating Programs create your first QuantumProgram object instance.
-Q_program = QuantumProgram()
-Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
-                  hub=Qconfig.config["hub"],
-                  group=Qconfig.config["group"],
-                  project=Qconfig.config["project"])
+qp = QuantumProgram()
+qp.set_api(Qconfig.APItoken, Qconfig.config["url"],
+           hub=Qconfig.config["hub"],
+           group=Qconfig.config["group"],
+           project=Qconfig.config["project"])
 ```
 
 For more details on this and more information see
