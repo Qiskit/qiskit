@@ -57,7 +57,7 @@ def u0(self, m, q):
         for j in range(q.size):
             instructions.add(self.u0(m, (q, j)))
         return instructions
-    
+
     self._check_qubit(q)
     return self._attach(U0Gate(m, q, self))
 

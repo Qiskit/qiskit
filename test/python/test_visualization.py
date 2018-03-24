@@ -18,13 +18,13 @@
 """Tests for visualization tools."""
 
 import os
+import random
+from inspect import signature
 import unittest
-import numpy
 
 from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
 from .common import QiskitTestCase
 
 try:
@@ -124,22 +124,80 @@ class TestLatexDrawer(QiskitTestCase):
 class TestCircuitDrawer(QiskitTestCase):
     """QISKit circuit drawer tests."""
 
-    def setUp(self):
-        qr = QuantumRegister('qr', 2)
-        cr = ClassicalRegister('cr', 2)
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0])
-        qc.cx(qr[0], qr[1])
-        qc.measure(qr[1], cr[1])
-        qc.x(qr[1]).c_if(cr, 1)
-        qc.measure(qr, cr)
-        self.qc = qc
+    def randomCircuit(self, width, depth, max_operands):
+        """Generate random circuit of arbitrary size.
+        Note: the depth is the layers of independent operation. true depth
+        in the image may be more for visualization purposes, if gates overlap.
 
-    def test_teleport_image(self):
-        im = circuit_drawer(self.qc)
-        if im:
-            pix = numpy.array(im)
-            self.assertEqual(pix.shape, (260, 701, 3))
+        Args:
+            width (int): number of quantum wires
+            depth (int): layers of operations
+            max_operands (int): maximum operands of each gate
+
+        Returns:
+            QuantumCircuit: constructed circuit
+        """
+        width = 3
+        depth = 3
+        max_operands = 3
+
+        qr = QuantumRegister("q", width)
+        qc = QuantumCircuit(qr)
+
+        one_q_ops = "iden,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"
+        two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
+        three_q_ops = "ccx"
+
+        # apply arbitrary random operations at every depth
+        for _ in range(depth):
+            # choose either 1, 2, or 3 qubits for the operation
+            remaining_qubits = list(range(width))
+            while remaining_qubits:
+                max_possible_operands = min(len(remaining_qubits), max_operands)
+                num_operands = random.choice(range(max_possible_operands))+1
+                operands = random.sample(remaining_qubits, num_operands)
+                remaining_qubits = [q for q in remaining_qubits if q not in operands]
+                if num_operands == 1:
+                    op = random.choice(one_q_ops.split(','))
+                elif num_operands == 2:
+                    op = random.choice(two_q_ops.split(','))
+                elif num_operands == 3:
+                    op = random.choice(three_q_ops.split(','))
+                # every gate is defined as a method of the QuantumCircuit class
+                # the code below is so we can call a gate by its name
+                gate = getattr(QuantumCircuit, op)
+                op_args = list(signature(gate).parameters.keys())
+                num_angles = len(op_args) - num_operands - 1    # -1 for the 'self' arg
+                angles = [random.uniform(0, 3.14) for x in range(num_angles)]
+                register_operands = [qr[i] for i in operands]
+                gate(qc, *angles, *register_operands)
+
+        return qc
+
+    def test_tiny_circuit(self):
+        qc = self.randomCircuit(1, 1, 1)
+        im = circuit_drawer(qc)
+        self.assertNotEqual(im, None)
+
+    def test_normal_circuit(self):
+        qc = self.randomCircuit(5, 5, 3)
+        im = circuit_drawer(qc)
+        self.assertNotEqual(im, None)
+
+    def test_wide_circuit(self):
+        qc = self.randomCircuit(100, 1, 1)
+        im = circuit_drawer(qc)
+        self.assertNotEqual(im, None)
+
+    def test_deep_circuit(self):
+        qc = self.randomCircuit(1, 100, 1)
+        im = circuit_drawer(qc)
+        self.assertNotEqual(im, None)
+
+    def test_huge_circuit(self):
+        qc = self.randomCircuit(40, 15, 1)
+        im = circuit_drawer(qc)
+        self.assertNotEqual(im, None)
 
 
 if __name__ == '__main__':

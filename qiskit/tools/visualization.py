@@ -683,8 +683,10 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 ###############################################################
 
 
-def plot_circuit(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+def plot_circuit(circuit,
+                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                 scale=0.7):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -692,13 +694,15 @@ def plot_circuit(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,r
     Requires poppler installed (to convert pdf to png)
     Requires pillow python package to handle images
     """
-    im = circuit_drawer(circuit, basis)
+    im = circuit_drawer(circuit, basis, scale)
     if im:
         im.show()
 
 
-def circuit_drawer(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+def circuit_drawer(circuit,
+                   basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                   scale=0.7):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -708,7 +712,8 @@ def circuit_drawer(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg
     """
     filename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
-        latex_drawer(circuit, scale, os.path.join(tmpdirname, filename + '.tex'), basis=basis)
+        latex_drawer(circuit, filename=os.path.join(tmpdirname, filename + '.tex'),
+                     basis=basis, scale=scale)
         im = None
         try:
             subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
@@ -730,8 +735,8 @@ def circuit_drawer(circuit, scale=0.7, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg
                                'Skipping circuit drawing...')
             else:
                 logger.warning('WARNING: Unable to compile latex. '
-                           'Is the `Qcircuit` latex package installed? '
-                           'Skipping circuit drawing...')
+                               'Is the `Qcircuit` latex package installed? '
+                               'Skipping circuit drawing...')
         else:
             try:
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
@@ -764,13 +769,15 @@ def trim(im):
     return im
 
 
-def latex_drawer(circuit, scale, filename=None,
+def latex_drawer(circuit, filename=None,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx"):
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                 scale=0.7):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
         circuit (QuantumCircuit): input circuit
+        scale (float): image scaling
         filename (str): optional filename to write latex
         basis (str): optional comma-separated list of gate names
 
@@ -800,12 +807,11 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
-    def __init__(self, circuit, scale, aliases=None):
+    def __init__(self, circuit, scale):
         """
         Args:
             circuit (dict): compiled_circuit from qobj
-            aliases (dict): dict mapping the current qubits in the circuit to
-                new qubit names.
+            scale (float): image scaling
         """
         # compiled qobj circuit
         self.circuit = circuit
@@ -833,6 +839,12 @@ class QCircuitImage(object):
 
         # Variable to hold image width (height)
         self.img_width = 0
+
+        # Variable to hold total circuit depth
+        self.sum_column_widths = 0
+
+        # Variable to hold total circuit width
+        self.sum_row_heights = 0
 
         # em points of separation between circuit columns
         self.column_separation = 0.5
@@ -945,7 +957,17 @@ class QCircuitImage(object):
                                     str(self.ordered_regs[i][1]) + "}}}"
 
     def _get_image_depth(self, aliases=None):
-        columns = 2 # wires in the beginning and end
+        """Get depth information for the circuit.
+
+        Args:
+            aliases (dict): dict mapping the current qubits in the circuit to
+                new qubit names.
+
+        Returns:
+            int: number of columns in the circuit
+            int: total size of columns in the circuit
+        """
+        columns = 2     # wires in the beginning and end
         is_occupied = [False] * self.img_width
         max_column_width = {}
         for op in self.circuit['operations']:
@@ -1044,17 +1066,6 @@ class QCircuitImage(object):
                                     for j in range(top, pos_4 + 1):
                                         is_occupied[j] = True
                                     break
-
-                            gap = pos_4 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
-                                    self._latex[pos_4 + i][columns] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_4 + i][columns] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
                         else:
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
@@ -1117,13 +1128,13 @@ class QCircuitImage(object):
         # the gate name is one extra 'unit'
         # the qubit/cbit labels plus the wires poking out at the ends is 3 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
-        return columns+1, math.ceil(sum_column_widths) + 2
+        return columns+1, math.ceil(sum_column_widths)+2
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
 
         Returns:
-            (height, width, scale) (tuple): desirable page attributes
+            tuple: (height, width, scale) desirable page attributes
         """
         # PIL python package limits image size to around a quarter gigabyte
         # this means the beamer image should be limited to < 50000
@@ -1142,7 +1153,7 @@ class QCircuitImage(object):
         width = min(self.sum_column_widths * margin_factor, beamer_limit)
 
         # if too large, make it fit
-        if (height * width > PIL_limit):
+        if height * width > PIL_limit:
             height = min(np.sqrt(PIL_limit * aspect_ratio), beamer_limit)
             width = min(np.sqrt(PIL_limit / aspect_ratio), beamer_limit)
 

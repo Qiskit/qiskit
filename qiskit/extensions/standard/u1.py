@@ -58,7 +58,7 @@ def u1(self, theta, q):
         for j in range(q.size):
             instructions.add(self.u1(theta, (q, j)))
         return instructions
-    
+
     self._check_qubit(q)
     return self._attach(U1Gate(theta, q, self))
 

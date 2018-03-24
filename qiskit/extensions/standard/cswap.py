@@ -50,7 +50,7 @@ def cswap(self, ctl, tgt1, tgt2):
         for i in range(ctl.size):
             instructions.add(self.cswap((ctl, i), (tgt1, i), (tgt2, i)))
         return instructions
-    
+
     self._check_qubit(ctl)
     self._check_qubit(tgt1)
     self._check_qubit(tgt2)
