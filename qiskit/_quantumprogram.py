@@ -1120,6 +1120,9 @@ class QuantumProgram(object):
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
 
+        # Resolve backend name from a possible short alias or a deprecated name
+        backend = qiskit.backends.resolve_name(backend)
+
         # TODO This backend needs HPC parameters to be passed in order to work
         if backend == 'ibmqx_hpc_qasm_simulator':
             if hpc is None:
