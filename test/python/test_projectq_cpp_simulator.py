@@ -20,11 +20,11 @@
 import random
 import unittest
 
-import numpy
-from scipy.stats import chi2_contingency
+# import numpy
+# from scipy.stats import chi2_contingency
 
 import qiskit.backends._projectq_simulator as projectq_simulator
-import qiskit.backends._qasmsimulator as qasm_simulator
+# import qiskit.backends._qasmsimulator as qasm_simulator
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
