@@ -290,7 +290,7 @@ def calibration(backend_name):
         raise LookupError('backend "{}" is not available'.format(backend_name))
     else:
         return backend.calibration
-        
+
 
 def parameters(backend_name):
     """Return the online backend parameters.
