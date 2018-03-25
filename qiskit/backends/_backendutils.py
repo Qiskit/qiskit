@@ -321,7 +321,7 @@ def status(backend_name):
         backend_name (str): the backend name
 
     Returns:
-        dict: status dict 
+        dict: status dict
 
     Raises:
         LookupError: if backend is unavailable
