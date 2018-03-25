@@ -27,6 +27,7 @@ import string
 import re
 from threading import Event
 import copy
+import warnings
 
 # use the external IBMQuantumExperience Library
 import itertools
@@ -479,6 +480,76 @@ class QuantumProgram(object):
         self.add_circuit(name, circuit_unrolled)
         return name
 
+    def save(self, file_name=None, beauty=False):
+        """ Save Quantum Program in a Json file.
+
+        Args:
+            file_name (str): file name and path.
+            beauty (boolean): save the text with indent 4 to make it readable.
+
+        Returns:
+            dict: The dictionary with the status and result of the operation
+
+        Raises:
+            LookupError: if the file_name is not correct, or writing to the
+                file resulted in an error.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+
+        if beauty:
+            indent = 4
+        else:
+            indent = 0
+
+        elemements_to_save = self.__quantum_program
+        elements_saved = {}
+
+        for circuit in elemements_to_save:
+            elements_saved[circuit] = {}
+            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
+
+        try:
+            with open(file_name, 'w') as save_file:
+                json.dump(elements_saved, save_file, indent=indent)
+            return {'status': 'Done', 'result': elemements_to_save}
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
+            raise LookupError(error['result'])
+
+    def load(self, file_name=None):
+        """ Load Quantum Program Json file into the Quantum Program object.
+
+        Args:
+            file_name (str): file name and path.
+
+        Returns:
+            dict: The dictionary with the status and result of the operation
+
+        Raises:
+            LookupError: if the file_name is not correct, or reading from the
+                file resulted in an error.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+
+        try:
+            with open(file_name, 'r') as load_file:
+                elemements_loaded = json.load(load_file)
+
+            for circuit in elemements_loaded:
+                circuit_qasm = elemements_loaded[circuit]["qasm"]
+                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
+            self.__quantum_program = elemements_loaded
+
+            return {"status": 'Done', 'result': self.__quantum_program}
+
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
+            raise LookupError(error['result'])
+
     ###############################################################
     # methods to get elements from a QuantumProgram
     ###############################################################
@@ -623,6 +694,7 @@ class QuantumProgram(object):
             ConnectionError: if the API instantiation failed.
             QISKitError: if no hub, group or project were specified.
         """
+        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
         try:
             config_dict = {
                 'url': url,
@@ -653,6 +725,7 @@ class QuantumProgram(object):
             group (str): The group used for online backend.
             project (str): The project used for online backend.
         """
+        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
         config_dict = {
             'hub': hub,
             'group': group,
@@ -665,85 +738,18 @@ class QuantumProgram(object):
 
     def get_api_config(self):
         """Return the program specs."""
+        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
         return self.__api_config
 
     def get_api(self):
         """Returns a function handle to the API."""
+        warnings.warn("get_api is going to be deprecated. Please use the api object", DeprecationWarning)
         return self.__api
-
-    def save(self, file_name=None, beauty=False):
-        """ Save Quantum Program in a Json file.
-
-        Args:
-            file_name (str): file name and path.
-            beauty (boolean): save the text with indent 4 to make it readable.
-
-        Returns:
-            dict: The dictionary with the status and result of the operation
-
-        Raises:
-            LookupError: if the file_name is not correct, or writing to the
-                file resulted in an error.
-        """
-        if file_name is None:
-            error = {"status": "Error", "result": "Not filename provided"}
-            raise LookupError(error['result'])
-
-        if beauty:
-            indent = 4
-        else:
-            indent = 0
-
-        elemements_to_save = self.__quantum_program
-        elements_saved = {}
-
-        for circuit in elemements_to_save:
-            elements_saved[circuit] = {}
-            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
-
-        try:
-            with open(file_name, 'w') as save_file:
-                json.dump(elements_saved, save_file, indent=indent)
-            return {'status': 'Done', 'result': elemements_to_save}
-        except ValueError:
-            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
-            raise LookupError(error['result'])
-
-    def load(self, file_name=None):
-        """ Load Quantum Program Json file into the Quantum Program object.
-
-        Args:
-            file_name (str): file name and path.
-
-        Returns:
-            dict: The dictionary with the status and result of the operation
-
-        Raises:
-            LookupError: if the file_name is not correct, or reading from the
-                file resulted in an error.
-        """
-        if file_name is None:
-            error = {"status": "Error", "result": "Not filename provided"}
-            raise LookupError(error['result'])
-
-        try:
-            with open(file_name, 'r') as load_file:
-                elemements_loaded = json.load(load_file)
-
-            for circuit in elemements_loaded:
-                circuit_qasm = elemements_loaded[circuit]["qasm"]
-                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
-            self.__quantum_program = elemements_loaded
-
-            return {"status": 'Done', 'result': self.__quantum_program}
-
-        except ValueError:
-            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
-            raise LookupError(error['result'])
 
     def available_backends(self):
         """All the backends that are seen by QISKIT."""
-        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
+        warnings.warn("available_backends is going to be deprecated. Please use qiskit.backends.local_backends() + qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
+        return qiskit.backends.local_backends() + qiskit.backends.discover_remote_backends(self.__api)
 
     def online_backends(self):
         """Get the online backends.
@@ -757,14 +763,8 @@ class QuantumProgram(object):
         Raises:
             ConnectionError: if the API call failed.
         """
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            return [backend['name'] for backend in backends]
-        return []
+        warnings.warn("online_backends is going to be deprecated. Please use qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
+        return qiskit.backends.discover_remote_backends(self.__api)
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -776,15 +776,12 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
         """
         online_simulators_list = []
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for backend in backends:
-                if backend['simulator']:
-                    online_simulators_list.append(backend['name'])
+        online_backends = qiskit.backends.discover_remote_backends(self.__api)
+        warnings.warn("online_simulators is going to be deprecated. Do we actually need this function", DeprecationWarning)
+        for backend in online_backends:
+            config = qiskit.backends.configuration(backend)
+            if config['simulator']:
+                online_simulators_list.append(backend)
         return online_simulators_list
 
     def online_devices(self):
@@ -796,17 +793,14 @@ class QuantumProgram(object):
         Raises:
             ConnectionError: if the API call failed.
         """
-        devices = []
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for backend in backends:
-                if not backend['simulator']:
-                    devices.append(backend['name'])
-        return devices
+        online_device_list = []
+        online_backends = qiskit.backends.discover_remote_backends(self.__api)
+        warnings.warn("online_devices is going to be deprecated. Do we actually need this function", DeprecationWarning)
+        for backend in online_backends:
+            config = qiskit.backends.configuration(backend)
+            if not config['simulator']:
+                online_device_list.append(backend)
+        return online_device_list
 
     def get_backend_status(self, backend):
         """Return the online backend status.
@@ -824,9 +818,10 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             ValueError: if the backend is not available.
         """
+        warnings.warn("get_backend_status('name') is going to be deprecated. Please use qiskit.backends.status('name')", DeprecationWarning)
         return qiskit.backends.status(backend)
 
-    def configuration(self, backend, list_format=False):
+    def get_backend_configuration(self, backend, list_format=True):
         """Return the configuration of the backend.
 
         The return is via QX API call.
@@ -844,7 +839,8 @@ class QuantumProgram(object):
             LookupError: if a configuration for the named backend can't be
                 found.
         """
-        return qiskit.backends.configuration(backend)
+        warnings.warn("get_backend_configuration('name') is going to be deprecated. Please use qiskit.backends.configuration('name')", DeprecationWarning)
+        return qiskit.backends.configuration(backend, list_format)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
@@ -862,6 +858,7 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
+        warnings.warn("get_backend_calibration('name') is going to be deprecated. Please use qiskit.backends.calibration('name')", DeprecationWarning)
         return qiskit.backends.calibration(backend)
 
     def get_backend_parameters(self, backend):
@@ -880,6 +877,7 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
+        warnings.warn("get_backend_parameters('name') is going to be deprecated. Please use qiskit.backends.parameters('name')", DeprecationWarning)
         return qiskit.backends.parameters(backend)
 
     ###############################################################

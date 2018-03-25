@@ -24,6 +24,7 @@ import os
 import pkgutil
 import re
 from collections import namedtuple
+import warnings
 
 import qiskit
 from qiskit import mapper
@@ -254,7 +255,7 @@ def get_backend_instance(backend_name):
         configuration=registered_backend.configuration)
 
 
-def configuration(backend_name):
+def configuration(backend_name, list_format=True):
     """Return the configuration for the named backend.
 
     Args:
@@ -267,7 +268,27 @@ def configuration(backend_name):
         LookupError: if backend is unavailable
     """
     try:
-        return _REGISTERED_BACKENDS[backend_name].configuration
+        config = _REGISTERED_BACKENDS[backend_name].configuration
+        if not config['local']:
+            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE NEW FORMAT AND 
+            ### WILL BE REMOVED WHEN THE API IS UPDATED. IT WILL BE SIMPLY A RETURN CONFIG
+            config_edit = config
+            if config['coupling_map'] == 'all-to-all':
+                config_edit['coupling_map'] = config['coupling_map']
+            else:
+                cmap = config['coupling_map']
+                cmap_new = []
+                for key in cmap:
+                    for i in cmap[key]:
+                        cmap_new.append([key,i])
+                if not list_format:
+                    ### THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE DICTIONARY FORMAT OF THE COUPLING MAP
+                    warnings.warn("dictionary format of coupling_map will be deprecated. Please rewrite code using a list for the coulping_map", DeprecationWarning)
+                    cmap_new = mapper.coupling_list2dict(cmap_new)
+                config_edit['coupling_map'] = cmap_new 
+            return config_edit                
+        else:
+            return config
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
@@ -290,7 +311,7 @@ def calibration(backend_name):
         raise LookupError('backend "{}" is not available'.format(backend_name))
     else:
         return backend.calibration
-
+        
 
 def parameters(backend_name):
     """Return the online backend parameters.
@@ -321,7 +342,7 @@ def status(backend_name):
         backend_name (str): the backend name
 
     Returns:
-        dict: status dict
+        dict: status dict 
 
     Raises:
         LookupError: if backend is unavailable

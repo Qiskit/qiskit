@@ -581,16 +581,8 @@ class TestQuantumProgram(QiskitTestCase):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         available_backends = q_program.available_backends()
+        #print(available_backends)
         self.assertTrue(available_backends)
-
-    def test_local_backends_exist(self):
-        """Test if there are local backends.
-
-        If all correct some should exists (even if ofline).
-        """
-        _ = QuantumProgram(specs=self.QPS_SPECS)
-        local_backends = qiskit.backends.local_backends()
-        self.assertTrue(local_backends)
 
     @requires_qe_access
     def test_online_backends_exist(self, QE_TOKEN, QE_URL):
@@ -598,25 +590,12 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct some should exists.
         """
-        # TODO: Jay should we check if we the QX is online before runing.
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         online_backends = q_program.online_backends()
+        #print(online_backends)
         self.log.info(online_backends)
         self.assertTrue(online_backends)
-
-    @requires_qe_access
-    def test_online_devices(self, QE_TOKEN, QE_URL):
-        """Test if there are online backends (which are devices).
-
-        If all correct some should exists. NEED internet connection for this.
-        """
-        # TODO: Jay should we check if we the QX is online before runing.
-        qp = QuantumProgram(specs=self.QPS_SPECS)
-        qp.set_api(QE_TOKEN, QE_URL)
-        online_devices = qp.online_devices()
-        self.log.info(online_devices)
-        self.assertTrue(isinstance(online_devices, list))
 
     @requires_qe_access
     def test_online_simulators(self, QE_TOKEN, QE_URL):
@@ -624,12 +603,25 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct some should exists. NEED internet connection for this.
         """
-        # TODO: Jay should we check if we the QX is online before runing.
         qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_simulators = qp.online_simulators()
+        #print(online_simulators)
         self.log.info(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
+
+    @requires_qe_access
+    def test_online_devices(self, QE_TOKEN, QE_URL):
+        """Test if there are online backends (which are devices).
+
+        If all correct some should exists. NEED internet connection for this.
+        """
+        qp = QuantumProgram(specs=self.QPS_SPECS)
+        qp.set_api(QE_TOKEN, QE_URL)
+        online_devices = qp.online_devices()
+        #print(online_devices)
+        self.log.info(online_devices)
+        self.assertTrue(isinstance(online_devices, list))
 
     def test_backend_status(self):
         """Test backend_status.
@@ -637,7 +629,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return dictionary with available: True/False.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        out = qiskit.backends.status("local_qasm_simulator")
+        out = q_program.get_backend_status("local_qasm_simulator")
+        #print(out)
         self.assertIn(out['available'], [True])
 
     def test_backend_status_fail(self):
@@ -648,7 +641,7 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         self.assertRaises(LookupError, qp.get_backend_status, "fail")
 
-    def test_configuration(self):
+    def test_get_backend_configuration(self):
         """Test configuration.
 
         If all correct should return configuration for the
@@ -657,17 +650,36 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
-        backend_config = qp.configuration("local_qasm_simulator")
+        backend_config = qp.get_backend_configuration("local_qasm_simulator")
+        #print(backend_config)
+        self.assertTrue(config_keys < backend_config.keys())
+     
+    @requires_qe_access
+    def test_get_backend_configuration_online(self, QE_TOKEN, QE_URL):
+        """Test configuration.
+
+        If all correct should return configuration for the
+        local_qasm_simulator.
+        """
+        qp = QuantumProgram(specs=self.QPS_SPECS)
+        config_keys = {'name', 'simulator', 'local', 'description',
+                       'coupling_map', 'basis_gates'}
+        qp.set_api(QE_TOKEN, QE_URL)
+        backend_list = qp.online_backends()
+        if backend_list:
+            backend = backend_list[0]
+        backend_config = qp.get_backend_configuration(backend)
+        #print(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
-    def test_configuration_fail(self):
+    def test_get_backend_configuration_fail(self):
         """Test configuration fail.
 
         If all correct should return LookupError.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
         # qp.configuration("fail")
-        self.assertRaises(LookupError, qp.configuration, "fail")
+        self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
 
     @requires_qe_access
     def test_get_backend_calibration(self, QE_TOKEN, QE_URL):
@@ -680,7 +692,8 @@ class TestQuantumProgram(QiskitTestCase):
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
-        result = qiskit.backends.calibration(backend)
+        result = q_program.get_backend_calibration(backend)
+        #print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -695,7 +708,8 @@ class TestQuantumProgram(QiskitTestCase):
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
-        result = qiskit.backends.parameters(backend)
+        result = q_program.get_backend_parameters(backend)
+        #print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
