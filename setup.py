@@ -1,16 +1,40 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+import sys
+import os
+import platform
+from distutils.command.build import build
+from multiprocessing import cpu_count
+from subprocess import call
+
 from setuptools import setup
+from setuptools.dist import Distribution
 
 
 requirements = [
-    "IBMQuantumExperience>=1.8.25",
-    "requests>=2.18,<2.19",
-    "networkx>=1.11,<1.12",
+    "IBMQuantumExperience>=1.8.29",
+    "matplotlib>=2.1,<2.2",
+    "networkx>=2.0,<2.1",
+    "numpy>=1.13,<1.15",
     "ply==3.10",
-    "numpy>=1.13,<1.14",
-    "scipy>=0.19,<0.20",
-    "matplotlib>=2.0,<2.1",
-    "sphinx>=1.6,<1.7",
+    "scipy>=0.19,<1.1",
     "sympy>=1.0",
+    "pillow>=4.2.1"
 ]
 
 
@@ -19,6 +43,8 @@ packages = ["qiskit",
             "qiskit.dagcircuit",
             "qiskit.extensions",
             "qiskit.extensions.standard",
+            "qiskit.extensions.qasm_simulator_cpp",
+            "qiskit.extensions.quantum_initializer",
             "qiskit.mapper",
             "qiskit.qasm",
             "qiskit.qasm._node",
@@ -28,9 +54,66 @@ packages = ["qiskit",
             "qiskit.tools.qcvv",
             "qiskit.tools.qi"]
 
+
+# C++ components compilation
+class QasmSimulatorBuild(build):
+    def run(self):
+        super().run()
+        # Store the current working directory, as invoking cmake involves
+        # an out of source build and might interfere with the rest of the steps.
+        current_directory = os.getcwd()
+
+        try:
+            supported_platforms = ['Linux', 'Darwin', 'Windows']
+            current_platform = platform.system()
+            if current_platform not in supported_platforms:
+                # TODO: stdout is silenced by pip if the full setup.py invocation is
+                # successful, unless using '-v' - hence the warnings are not printed.
+                print('WARNING: QISKit cpp simulator is meant to be built with these '
+                      'platforms: {}. We will support other platforms soon!'
+                      .format(supported_platforms))
+                return
+
+            cmd_cmake = ['cmake', '-vvv']
+            if 'USER_LIB_PATH' in os.environ:
+                cmd_cmake.append('-DUSER_LIB_PATH={}'.format(os.environ['USER_LIB_PATH']))
+            if current_platform == 'Windows':
+                # We only support MinGW so far
+                cmd_cmake.append("-GMinGW Makefiles")
+            cmd_cmake.append('..')
+
+            cmd_make = ['make', 'pypi_package_copy_qasm_simulator_cpp']
+
+            try:
+                cmd_make.append('-j%d' % cpu_count())
+            except NotImplementedError:
+                print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
+
+            def compile_simulator():
+                self.mkpath('out')
+                os.chdir('out')
+                call(cmd_cmake)
+                call(cmd_make)
+
+            self.execute(compile_simulator, [], 'Compiling C++ QASM Simulator')
+        except Exception as e:
+            print(str(e))
+            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
+                  "install anyway, but won't have this simulator support.")
+
+        # Restore working directory.
+        os.chdir(current_directory)
+
+
+# This is for creating wheel specific platforms
+class BinaryDistribution(Distribution):
+    def has_ext_modules(self):
+        return True
+
+
 setup(
     name="qiskit",
-    version="0.4.0",
+    version="0.5.0",
     description="Software for developing quantum computing programs",
     long_description="""QISKit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
@@ -56,4 +139,11 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
+    cmdclass={
+        'build': QasmSimulatorBuild,
+    },
+    distclass=BinaryDistribution,
+    extras_require={
+        'ProjectQ':  ["projectq>=0.3.6"],
+    }
 )

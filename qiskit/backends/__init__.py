@@ -28,4 +28,5 @@ from ._backendutils import (get_backend_class,
                             register_backend,
                             discover_local_backends,
                             discover_remote_backends,
-                            update_backends)
+                            update_backends,
+                            resolve_name)
