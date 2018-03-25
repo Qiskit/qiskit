@@ -116,7 +116,6 @@ class QeRemote(BaseBackend):
         """Associate API with class"""
         cls._api = api
 
-
     @property
     def calibration(self):
         """Return the online backend calibrations.
@@ -133,11 +132,11 @@ class QeRemote(BaseBackend):
         """
         if self._api:
             try:
-                backend_name = self.configuration['name']                
+                backend_name = self.configuration['name']
                 calibrations = self._api.backend_calibration(backend_name)
             except Exception as ex:
                 raise ConnectionError("Couldn't get backend calibration: {0}"
-                                    .format(ex))
+                                      .format(ex))
         else:
             raise ConnectionError('API not set')
         calibrations_edit = {}
@@ -145,7 +144,6 @@ class QeRemote(BaseBackend):
             new_key = _snake_case_to_camel_case(key)
             calibrations_edit[new_key] = vals
         return calibrations_edit
-
 
     @property
     def parameters(self):
@@ -174,7 +172,6 @@ class QeRemote(BaseBackend):
         else:
             raise ConnectionError('API not set')        
 
-
     @property
     def status(self):
         """Return the online backend status.
@@ -197,7 +194,8 @@ class QeRemote(BaseBackend):
             else:
                 return status
         else:
-            raise ConnectionError('API not set')        
+            raise ConnectionError('API not set')
+
 
 def _wait_for_job(jobid, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
@@ -244,5 +242,3 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                                   'status': job_result['qasms'][index]['status']})
     return {'job_id': jobid, 'status': job_result['status'],
             'result': job_result_return}
-
-    
