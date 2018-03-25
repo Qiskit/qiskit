@@ -42,10 +42,43 @@ SDK, with the form `'<backend name>': <RegisteredBackend object>`.
 
 Please note that this variable will not contain the full list until runtime,
 as its contents are a combination of:
-* backends that are auto-discovered by :func:`discover_sdk_backend`, as
-  they might have external dependencies or not be part of the SDK standard
-  backends.
+* backends that are auto-discovered by :func:`discover_local_backends` and
+  :func:`discover_remote_backends`, as they might have external dependencies
+  or not be part of the SDK standard backends.
 * backends registered manually by the user by :func:`register_backend`.
+"""
+
+_ALIASED_BACKENDS = {
+        'local_qasm_simulator': ['local_qasm_simulator_cpp',
+                                 'local_qasm_simulator_py'],
+        'local_statevector_simulator' : ['local_statevector_simulator_cpp',
+                                         'local_statevector_simulator_projectq',
+                                         'local_statevector_simulator_py',
+                                         'local_statevector_simulator_sympy'],
+        'local_unitary_simulator' : ['local_unitary_simulator_cpp',
+                                     'local_unitary_simulator_py',
+                                     'local_unitary_simulator_sympy'],
+        'local_clifford_simulator' : ['local_clifford_simulator_cpp']
+        }
+"""
+dict (alias_name: backend_names(list))
+
+Dict that defines alias names, usually shorter names for referring to
+the backends.
+
+If an alias key is used, the corresponding backend will be chosen in order
+of priority from the value list, depending on availability.
+"""
+
+_DEPRECATED_BACKENDS = {
+        'local_qiskit_simulator': 'local_qasm_simulator_cpp',
+        'wood_simulator': 'local_qasm_simulator_cpp'
+        }
+"""
+dict (deprecated_name: backend_name)
+
+Dict that stores the current name for all deprecated backends.
+These will be removed in future releases.
 """
 
 FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
@@ -331,10 +364,43 @@ def local_backends():
             if backend.configuration.get('local') is True]
 
 
-def remote_backends():
+def remote_backends(extended=False):
     """Get the remote backends."""
     return [backend.name for backend in _REGISTERED_BACKENDS.values()
             if backend.configuration.get('local') is False]
 
+
+def resolve_name(backend):
+    """Resolve backend name from a possible short alias or a deprecated name.
+
+    The alias will be chosen in order of priority, depending on availability.
+
+    Args:
+        backend (str): name of backend to resolve
+
+    Returns:
+        str: name of resolved backend, which exists in _REGISTERED_BACKENDS
+
+    Raises:
+        LookupError: if backend cannot be resolved through registered names,
+        nor aliases, nor deprecated names
+    """
+    resolved_backend = ""
+    if backend in _REGISTERED_BACKENDS:
+        resolved_backend = backend
+    elif backend in _ALIASED_BACKENDS:
+        available_aliases = [b for b in _ALIASED_BACKENDS[backend]
+                             if b in _REGISTERED_BACKENDS]
+        if available_aliases:
+            resolved_backend = available_aliases[0]
+    elif backend in _DEPRECATED_BACKENDS:
+            resolved_backend = _DEPRECATED_BACKENDS[backend]
+            logger.warning('WARNING: {0} is deprecated. Use {1}',
+                            backend, resolved_backend)
+
+    if resolved_backend not in _REGISTERED_BACKENDS:
+        raise LookupError('backend "{}" is not available'.format(backend))
+
+    return resolved_backend
 
 discover_local_backends()
