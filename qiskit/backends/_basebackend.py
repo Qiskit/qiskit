@@ -20,7 +20,6 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
-import abc
 from abc import ABC, abstractmethod
 
 
