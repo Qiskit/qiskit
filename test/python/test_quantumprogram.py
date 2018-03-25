@@ -670,6 +670,7 @@ class TestQuantumProgram(QiskitTestCase):
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
         #print(backend_config)
+        self.log.info(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
     def test_get_backend_configuration_fail(self):

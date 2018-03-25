@@ -111,10 +111,6 @@ def discover_remote_backends(api):
             new_key = _snake_case_to_camel_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
                 configuration_edit[new_key] = configuration[key]
-            if new_key == 'coupling_map':
-                if isinstance(configuration[key], list):
-                    coupling_map = mapper.coupling_list2dict(configuration[key])
-                    configuration_edit[new_key] = coupling_map
         # online_qasm_simulator uses different name for basis_gates
         if 'gateSet' in configuration:
             configuration_edit['basis_gates'] = configuration['gateSet']
@@ -271,24 +267,20 @@ def configuration(backend_name, list_format=True):
     try:
         config = _REGISTERED_BACKENDS[backend_name].configuration
         if not config['local']:
-            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE NEW FORMAT AND
-            ### WILL BE REMOVED WHEN THE API IS UPDATED. IT WILL BE SIMPLY A RETURN CONFIG
+            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE OLD LIST FORMAT IF THE USER NEEDS IT
             config_edit = config
             if config['coupling_map'] == 'all-to-all':
                 config_edit['coupling_map'] = config['coupling_map']
             else:
                 coupling_map = config['coupling_map']
-                coupling_map_new = []
-                for key in coupling_map:
-                    for i in coupling_map[key]:
-                        coupling_map_new.append([key, i])
                 if not list_format:
                     ### THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
                     ### DICTIONARY FORMAT OF THE COUPLING MAP
                     warnings.warn("dictionary format of coupling_map will be deprecated. \
-                    Please rewrite code using a list for the coupling_map", DeprecationWarning)
-                    coupling_map_new = mapper.coupling_list2dict(coupling_map_new)
-                config_edit['coupling_map'] = coupling_map_new
+                    Please rewrite code using a list format for the coupling_map", \
+                    DeprecationWarning)
+                    coupling_map = mapper.coupling_list2dict(coupling_map)
+                config_edit['coupling_map'] = coupling_map
             return config_edit
         else:
             return config
