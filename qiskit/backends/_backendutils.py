@@ -266,18 +266,17 @@ def configuration(backend_name, list_format=True):
     try:
         config = _REGISTERED_BACKENDS[backend_name].configuration
         if not config['local']:
-            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE OLD LIST FORMAT IF THE USER NEEDS IT
+            # THIS IS A HACK TO CONVERT THE BACKEND TO THE OLD LIST FORMAT IF THE USER NEEDS IT
             config_edit = config
             if config['coupling_map'] == 'all-to-all':
                 config_edit['coupling_map'] = config['coupling_map']
             else:
                 coupling_map = config['coupling_map']
                 if not list_format:
-                    ### THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
-                    ### DICTIONARY FORMAT OF THE COUPLING MAP
-                    warnings.warn("dictionary format of coupling_map will be deprecated. \
-                    Please rewrite code using a list format for the coupling_map", \
-                    DeprecationWarning)
+                    # THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
+                    # DICTIONARY FORMAT OF THE COUPLING MAP
+                    warnings.warn("dictionary format of coupling_map will be deprecated. Please \
+                    rewrite code using a list format for the coupling_map", DeprecationWarning)
                     coupling_map = mapper.coupling_list2dict(coupling_map)
                 config_edit['coupling_map'] = coupling_map
             return config_edit
@@ -305,6 +304,7 @@ def calibration(backend_name):
         raise LookupError('backend "{}" is not available'.format(backend_name))
     else:
         return backend.calibration
+
 
 def parameters(backend_name):
     """Return the online backend parameters.
