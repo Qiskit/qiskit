@@ -828,7 +828,7 @@ class QuantumProgram(object):
 
         Args:
             backend (str):  Name of the backend.
-            list_format (bool): Struct used for the configuration coupling
+            list_format (bool): structure used for the configuration coupling
                 map: dict (if False) or list (if True).
 
         Returns:
@@ -918,7 +918,7 @@ class QuantumProgram(object):
             initial_layout (dict): A mapping of qubit to qubit::
 
                 {
-                ("q", strart(int)): ("q", final(int)),
+                ("q", start(int)): ("q", final(int)),
                 ...
                 }
                 eg.
