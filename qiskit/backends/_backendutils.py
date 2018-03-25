@@ -113,8 +113,8 @@ def discover_remote_backends(api):
                 configuration_edit[new_key] = configuration[key]
             if new_key == 'coupling_map':
                 if isinstance(configuration[key], list):
-                    cmap = mapper.coupling_list2dict(configuration[key])
-                    configuration_edit[new_key] = cmap
+                    coupling_map = mapper.coupling_list2dict(configuration[key])
+                    configuration_edit[new_key] = coupling_map
         # online_qasm_simulator uses different name for basis_gates
         if 'gateSet' in configuration:
             configuration_edit['basis_gates'] = configuration['gateSet']
@@ -209,7 +209,7 @@ def deregister_backend(backend_name):
     """Remove backend from list of available backens
 
     Args:
-        backend_name (str): name of backend to unregister
+        backend_name (str): name of backend to deregister
 
     Raises:
         KeyError if backend_name is not registered.
@@ -260,6 +260,7 @@ def configuration(backend_name, list_format=True):
 
     Args:
         backend_name (str): the backend name
+        list_format (bool): to use the old format or new format for coupling map
 
     Returns:
         dict: configuration dict
@@ -270,23 +271,25 @@ def configuration(backend_name, list_format=True):
     try:
         config = _REGISTERED_BACKENDS[backend_name].configuration
         if not config['local']:
-            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE NEW FORMAT AND 
+            ### THIS IS A HACK TO CONVERT THE BACKEND TO THE NEW FORMAT AND
             ### WILL BE REMOVED WHEN THE API IS UPDATED. IT WILL BE SIMPLY A RETURN CONFIG
             config_edit = config
             if config['coupling_map'] == 'all-to-all':
                 config_edit['coupling_map'] = config['coupling_map']
             else:
-                cmap = config['coupling_map']
-                cmap_new = []
-                for key in cmap:
-                    for i in cmap[key]:
-                        cmap_new.append([key,i])
+                coupling_map = config['coupling_map']
+                coupling_map_new = []
+                for key in coupling_map:
+                    for i in coupling_map[key]:
+                        coupling_map_new.append([key, i])
                 if not list_format:
-                    ### THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE DICTIONARY FORMAT OF THE COUPLING MAP
-                    warnings.warn("dictionary format of coupling_map will be deprecated. Please rewrite code using a list for the coulping_map", DeprecationWarning)
-                    cmap_new = mapper.coupling_list2dict(cmap_new)
-                config_edit['coupling_map'] = cmap_new 
-            return config_edit                
+                    ### THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
+                    ### DICTIONARY FORMAT OF THE COUPLING MAP
+                    warnings.warn("dictionary format of coupling_map will be deprecated. \
+                    Please rewrite code using a list for the coupling_map", DeprecationWarning)
+                    coupling_map_new = mapper.coupling_list2dict(coupling_map_new)
+                config_edit['coupling_map'] = coupling_map_new
+            return config_edit
         else:
             return config
     except KeyError:
@@ -311,13 +314,12 @@ def calibration(backend_name):
         raise LookupError('backend "{}" is not available'.format(backend_name))
     else:
         return backend.calibration
-        
 
 def parameters(backend_name):
     """Return the online backend parameters.
 
     Args:
-        backend (str):  Name of the backend.
+        backend_name (str):  Name of the backend.
 
     Returns:
         dict: The parameters of the named backend.
@@ -342,7 +344,7 @@ def status(backend_name):
         backend_name (str): the backend name
 
     Returns:
-        dict: status dict 
+        dict: status dict
 
     Raises:
         LookupError: if backend is unavailable
