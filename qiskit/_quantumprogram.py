@@ -694,7 +694,8 @@ class QuantumProgram(object):
             ConnectionError: if the API instantiation failed.
             QISKitError: if no hub, group or project were specified.
         """
-        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
+        warnings.warn("get_api_config is going to be deprecated. \
+        Please use the api object", DeprecationWarning)
         try:
             config_dict = {
                 'url': url,
@@ -725,7 +726,8 @@ class QuantumProgram(object):
             group (str): The group used for online backend.
             project (str): The project used for online backend.
         """
-        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
+        warnings.warn("get_api_config is going to be deprecated. \
+        Please use the api object", DeprecationWarning)
         config_dict = {
             'hub': hub,
             'group': group,
@@ -738,18 +740,23 @@ class QuantumProgram(object):
 
     def get_api_config(self):
         """Return the program specs."""
-        warnings.warn("get_api_config is going to be deprecated. Please use the api object", DeprecationWarning)
+        warnings.warn("get_api_config is going to be deprecated. \
+        Please use the api object", DeprecationWarning)
         return self.__api_config
 
     def get_api(self):
         """Returns a function handle to the API."""
-        warnings.warn("get_api is going to be deprecated. Please use the api object", DeprecationWarning)
+        warnings.warn("get_api is going to be deprecated. \
+        Please use the api object", DeprecationWarning)
         return self.__api
 
     def available_backends(self):
         """All the backends that are seen by QISKIT."""
-        warnings.warn("available_backends is going to be deprecated. Please use qiskit.backends.local_backends() + qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
-        return qiskit.backends.local_backends() + qiskit.backends.discover_remote_backends(self.__api)
+        warnings.warn("available_backends is going to be deprecated. \
+        Please use qiskit.backends.local_backends() + \
+        qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
+        return qiskit.backends.local_backends() + \
+               qiskit.backends.discover_remote_backends(self.__api)
 
     def online_backends(self):
         """Get the online backends.
@@ -763,7 +770,8 @@ class QuantumProgram(object):
         Raises:
             ConnectionError: if the API call failed.
         """
-        warnings.warn("online_backends is going to be deprecated. Please use qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
+        warnings.warn("online_backends is going to be deprecated. \
+        Please use qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
         return qiskit.backends.discover_remote_backends(self.__api)
 
     def online_simulators(self):
@@ -777,7 +785,8 @@ class QuantumProgram(object):
         """
         online_simulators_list = []
         online_backends = qiskit.backends.discover_remote_backends(self.__api)
-        warnings.warn("online_simulators is going to be deprecated. Do we actually need this function", DeprecationWarning)
+        warnings.warn("online_simulators is going to be deprecated. \
+        Do we actually need this function", DeprecationWarning)
         for backend in online_backends:
             config = qiskit.backends.configuration(backend)
             if config['simulator']:
@@ -795,7 +804,8 @@ class QuantumProgram(object):
         """
         online_device_list = []
         online_backends = qiskit.backends.discover_remote_backends(self.__api)
-        warnings.warn("online_devices is going to be deprecated. Do we actually need this function", DeprecationWarning)
+        warnings.warn("online_devices is going to be deprecated. \
+        Do we actually need this function", DeprecationWarning)
         for backend in online_backends:
             config = qiskit.backends.configuration(backend)
             if not config['simulator']:
@@ -818,7 +828,8 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             ValueError: if the backend is not available.
         """
-        warnings.warn("get_backend_status('name') is going to be deprecated. Please use qiskit.backends.status('name')", DeprecationWarning)
+        warnings.warn("get_backend_status('name') is going to be deprecated. \
+        Please use qiskit.backends.status('name')", DeprecationWarning)
         return qiskit.backends.status(backend)
 
     def get_backend_configuration(self, backend, list_format=True):
@@ -839,7 +850,8 @@ class QuantumProgram(object):
             LookupError: if a configuration for the named backend can't be
                 found.
         """
-        warnings.warn("get_backend_configuration('name') is going to be deprecated. Please use qiskit.backends.configuration('name')", DeprecationWarning)
+        warnings.warn("get_backend_configuration('name') is going to be deprecated. \
+        Please use qiskit.backends.configuration('name')", DeprecationWarning)
         return qiskit.backends.configuration(backend, list_format)
 
     def get_backend_calibration(self, backend):
@@ -858,7 +870,8 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
-        warnings.warn("get_backend_calibration('name') is going to be deprecated. Please use qiskit.backends.calibration('name')", DeprecationWarning)
+        warnings.warn("get_backend_calibration('name') is going to be deprecated. \
+        Please use qiskit.backends.calibration('name')", DeprecationWarning)
         return qiskit.backends.calibration(backend)
 
     def get_backend_parameters(self, backend):
@@ -877,7 +890,8 @@ class QuantumProgram(object):
             LookupError: If a configuration for the named backend can't be
                 found.
         """
-        warnings.warn("get_backend_parameters('name') is going to be deprecated. Please use qiskit.backends.parameters('name')", DeprecationWarning)
+        warnings.warn("get_backend_parameters('name') is going to be deprecated. \
+        Please use qiskit.backends.parameters('name')", DeprecationWarning)
         return qiskit.backends.parameters(backend)
 
     ###############################################################
@@ -1174,7 +1188,7 @@ class QuantumProgram(object):
         raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
     def get_compiled_qasm(self, qobj, name):
-        """Return the compiled cricuit in qasm format.
+        """Return the compiled circuit in qasm format.
 
         Args:
             qobj (dict): the qobj
@@ -1393,7 +1407,7 @@ class QuantumProgram(object):
             Result: status done and populates the internal __quantum_program with the
             data
         """
-        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
         qobj = self.compile(name_of_circuits=name_of_circuits, backend=backend, config=config,
