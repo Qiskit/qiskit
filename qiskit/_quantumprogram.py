@@ -755,8 +755,9 @@ class QuantumProgram(object):
         warnings.warn("available_backends is going to be deprecated. \
         Please use qiskit.backends.local_backends() + \
         qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
-        return qiskit.backends.local_backends() + \
-               qiskit.backends.discover_remote_backends(self.__api)
+        local = qiskit.backends.local_backends()
+        remote = qiskit.backends.discover_remote_backends(self.__api)
+        return local + remote
 
     def online_backends(self):
         """Get the online backends.
