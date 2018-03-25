@@ -864,7 +864,7 @@ class QuantumProgram(object):
         """
         return qiskit.backends.calibration(backend)
 
-    
+
     def get_backend_parameters(self, backend):
         """Return the online backend parameters.
 
