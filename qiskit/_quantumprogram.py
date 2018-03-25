@@ -111,7 +111,7 @@ class QuantumProgram(object):
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__quantum_program = {}  # stores all the quantum programs
-        self.__init_circuit = None  # stores the intial quantum circuit of the program
+        self.__init_circuit = None  # stores the initial quantum circuit of the program
         self.__ONLINE_BACKENDS = []  # pylint: disable=invalid-name
         self.__LOCAL_BACKENDS = qiskit.backends.local_backends()  # pylint: disable=invalid-name
         self.__counter = itertools.count()
@@ -175,16 +175,16 @@ class QuantumProgram(object):
                             }]
                         }],
         """
-        quantumr = []
-        classicalr = []
+        quantum_r = []
+        classical_r = []
         if "circuits" in specs:
             for circuit in specs["circuits"]:
-                quantumr = self.create_quantum_registers(
+                quantum_r = self.create_quantum_registers(
                     circuit["quantum_registers"])
-                classicalr = self.create_classical_registers(
+                classical_r = self.create_classical_registers(
                     circuit["classical_registers"])
-                self.create_circuit(name=circuit.get("name"), qregisters=quantumr,
-                                    cregisters=classicalr)
+                self.create_circuit(name=circuit.get("name"), qregisters=quantum_r,
+                                    cregisters=classical_r)
                 # TODO: Jay: I think we should return function handles for the
                 # registers and circuit. So that we dont need to get them after we
                 # create them with get_quantum_register etc
@@ -310,7 +310,7 @@ class QuantumProgram(object):
                 is not defined (or None) a random name wil be assigned.
 
         Returns:
-            list(ClassicalRegister): Array of clasical registers objects
+            list(ClassicalRegister): Array of classical registers objects
         """
         new_registers = []
         for register in registers_array:
@@ -503,17 +503,17 @@ class QuantumProgram(object):
         else:
             indent = 0
 
-        elemements_to_save = self.__quantum_program
+        elements_to_save = self.__quantum_program
         elements_saved = {}
 
-        for circuit in elemements_to_save:
+        for circuit in elements_to_save:
             elements_saved[circuit] = {}
-            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
+            elements_saved[circuit]["qasm"] = elements_to_save[circuit].qasm()
 
         try:
             with open(file_name, 'w') as save_file:
                 json.dump(elements_saved, save_file, indent=indent)
-            return {'status': 'Done', 'result': elemements_to_save}
+            return {'status': 'Done', 'result': elements_to_save}
         except ValueError:
             error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
             raise LookupError(error['result'])
@@ -537,12 +537,12 @@ class QuantumProgram(object):
 
         try:
             with open(file_name, 'r') as load_file:
-                elemements_loaded = json.load(load_file)
+                elements_loaded = json.load(load_file)
 
-            for circuit in elemements_loaded:
-                circuit_qasm = elemements_loaded[circuit]["qasm"]
-                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
-            self.__quantum_program = elemements_loaded
+            for circuit in elements_loaded:
+                circuit_qasm = elements_loaded[circuit]["qasm"]
+                elements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
+            self.__quantum_program = elements_loaded
 
             return {"status": 'Done', 'result': self.__quantum_program}
 
