@@ -51,7 +51,7 @@ class NoiseGate(Gate):
 
 
 def noise(self, m, q):
-    """Cache the quantum state of locla_qiskit_simulator."""
+    """Cache the quantum state of local_qiskit_simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):
