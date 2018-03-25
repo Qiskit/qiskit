@@ -170,7 +170,7 @@ class QeRemote(BaseBackend):
                 parameters_edit[new_key] = vals
             return parameters_edit
         else:
-            raise ConnectionError('API not set')        
+            raise ConnectionError('API not set')
 
     @property
     def status(self):
