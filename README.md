@@ -220,10 +220,10 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 ## Authors (alphabetical)
 
 QISKit was originally authored by
-Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin,
-Ali Javadi-Abhari, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
+Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
+Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-And continues to grow with the help and work of [many people](CONTRIBUTORS.md) who contributes
+And continues to grow with the help and work of [many people](CONTRIBUTORS.md) who contribute
 to the project at different levels.
 
 ## License
