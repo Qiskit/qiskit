@@ -653,7 +653,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend_config = qp.get_backend_configuration("local_qasm_simulator")
         # print(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
-    
+
     @requires_qe_access
     def test_get_backend_configuration_online(self, QE_TOKEN, QE_URL):
         """Test configuration.
