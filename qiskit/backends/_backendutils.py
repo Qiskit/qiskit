@@ -100,28 +100,27 @@ def discover_remote_backends(api):
     """
     from ._qeremote import QeRemote
     QeRemote.set_api(api)
-    configuration_list = api.available_backends()
+    config_list = api.available_backends()
     backend_name_list = []
-    for configuration in configuration_list:
-        configuration_edit = {}
-        backend_name = configuration['name']
+    for config in config_list:
+        config_edit = {}
+        backend_name = config['name']
         backend_name_list.append(backend_name)
-        configuration_edit['local'] = False
-        for key in configuration.keys():
+        config_edit['local'] = False
+        for key in config.keys():
             new_key = _snake_case_to_camel_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
-                configuration_edit[new_key] = configuration[key]
+                config_edit[new_key] = config[key]
         # online_qasm_simulator uses different name for basis_gates
-        if 'gateSet' in configuration:
-            configuration_edit['basis_gates'] = configuration['gateSet']
-            del configuration_edit['gate_set']
+        if 'gateSet' in config:
+            config_edit['basis_gates'] = config['gateSet']
+            del config_edit['gate_set']
         # ibmqx_qasm_simulator doesn't report coupling_map
-        if ('coupling_map' not in configuration_edit.keys() and
-                configuration['simulator']):
-            configuration_edit['coupling_map'] = 'all-to-all'
+        if ('coupling_map' not in config_edit.keys() and config['simulator']):
+            config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
-                                               configuration_edit)
+                                               config_edit)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
