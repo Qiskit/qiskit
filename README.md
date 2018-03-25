@@ -219,12 +219,12 @@ contribute to QISKit, please take a look at our [contribution guidelines](CONTRI
 
 ## Authors (alphabetical)
 
-Ismail Yunus Akhalwaya, Luciano Bello, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
-Jay Gambetta, Juan Gomez, Ali Javadi-Abhari, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda,
-Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
+QISKit was originally authored by
+Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
+Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-In future releases, anyone who contributes with code to this project is welcome to include their
-name here.
+And continues to grow with the help and work of [many people](CONTRIBUTORS.md) who contribute
+to the project at different levels.
 
 ## License
 
