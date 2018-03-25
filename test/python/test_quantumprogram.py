@@ -581,7 +581,7 @@ class TestQuantumProgram(QiskitTestCase):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         available_backends = q_program.available_backends()
-        #print(available_backends)
+        # print(available_backends)
         self.assertTrue(available_backends)
 
     @requires_qe_access
@@ -593,7 +593,7 @@ class TestQuantumProgram(QiskitTestCase):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         online_backends = q_program.online_backends()
-        #print(online_backends)
+        # print(online_backends)
         self.log.info(online_backends)
         self.assertTrue(online_backends)
 
@@ -606,7 +606,7 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_simulators = qp.online_simulators()
-        #print(online_simulators)
+        # print(online_simulators)
         self.log.info(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
 
@@ -619,7 +619,7 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL)
         online_devices = qp.online_devices()
-        #print(online_devices)
+        # print(online_devices)
         self.log.info(online_devices)
         self.assertTrue(isinstance(online_devices, list))
 
@@ -630,7 +630,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         out = q_program.get_backend_status("local_qasm_simulator")
-        #print(out)
+        # print(out)
         self.assertIn(out['available'], [True])
 
     def test_backend_status_fail(self):
@@ -651,7 +651,7 @@ class TestQuantumProgram(QiskitTestCase):
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
         backend_config = qp.get_backend_configuration("local_qasm_simulator")
-        #print(backend_config)
+        # print(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
      
     @requires_qe_access
@@ -669,7 +669,7 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
-        #print(backend_config)
+        # print(backend_config)
         self.log.info(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
@@ -694,7 +694,7 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_calibration(backend)
-        #print(result)
+        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -710,7 +710,7 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_parameters(backend)
-        #print(result)
+        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
