@@ -830,8 +830,9 @@ class QuantumProgram(object):
             ValueError: if the backend is not available.
         """
         warnings.warn("get_backend_status('name') is going to be deprecated. \
-        Please use qiskit.backends.status('name')", DeprecationWarning)
-        return qiskit.backends.status(backend)
+        Please use qiskit.backends.get_backend_instance('name')", DeprecationWarning)
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        return my_backend.status
 
     def get_backend_configuration(self, backend, list_format=True):
         """Return the configuration of the backend.
@@ -872,8 +873,9 @@ class QuantumProgram(object):
                 found.
         """
         warnings.warn("get_backend_calibration('name') is going to be deprecated. \
-        Please use qiskit.backends.calibration('name')", DeprecationWarning)
-        return qiskit.backends.calibration(backend)
+        Please use qiskit.backends.get_backend_instance('name')", DeprecationWarning)
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        return my_backend.calibration
 
     def get_backend_parameters(self, backend):
         """Return the online backend parameters.
@@ -892,8 +894,9 @@ class QuantumProgram(object):
                 found.
         """
         warnings.warn("get_backend_parameters('name') is going to be deprecated. \
-        Please use qiskit.backends.parameters('name')", DeprecationWarning)
-        return qiskit.backends.parameters(backend)
+        Please use qiskit.backends.get_backend_instance('name')", DeprecationWarning)
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        return my_backend.parameters
 
     ###############################################################
     # methods to compile quantum programs into qobj
