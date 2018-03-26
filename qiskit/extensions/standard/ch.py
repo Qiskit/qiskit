@@ -69,7 +69,7 @@ def ch(self, ctl, tgt):
     if isinstance(tgt, QuantumRegister):
         gs = InstructionSet()
         for j in range(tgt.size):
-            gs.add(self.ch(ctl, (tgt,j)))
+            gs.add(self.ch(ctl, (tgt, j)))
         return gs
 
     self._check_qubit(ctl)

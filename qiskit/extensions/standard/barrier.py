@@ -22,7 +22,6 @@ from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
-from qiskit import InstructionSet
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -63,7 +62,7 @@ def barrier(self, *args):
 
     qubits = []
 
-    if len(args) == 0 : #None
+    if not args: #None
         for qreg in self.get_qregs().values():
             for j in range(qreg.size):
                 qubits.append((qreg, j))

@@ -75,7 +75,7 @@ class StandardExtensionTest(QiskitTestCase):
         c = self.circuit
         c_txt = len(qasm_txt)
         self.assertIn(qasm_txt, c.qasm())
-        self.assertEqual(self.c_header + c_txt + offset, len(c.qasm()))
+        self.assertEqual(self.c_header + c_txt + offset, len(c.qasm())) #pylint: disable=no-member
 
 
 class TestStandard1Q(StandardExtensionTest):
@@ -559,6 +559,11 @@ class TestStandard2Q(StandardExtensionTest):
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
+    def test_barrier_reg_bit(self):
+        self.circuit.barrier(self.q,self.r[0])
+        qasm_txt = 'barrier q[0],q[1],q[2],r[0];'
+        self.assertResult(Barrier, qasm_txt, qasm_txt)
+
     def test_ch_reg_reg(self):
         qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
         instruction_set = self.circuit.ch(self.q, self.r)
@@ -882,6 +887,22 @@ class TestStandard2Q(StandardExtensionTest):
         instruction_set = self.circuit.swap(self.q[1], self.r).inverse()
         self.assertStmtsType(instruction_set.instructions, SwapGate)
         self.assertQasm(qasm_txt)
+
+class TestStandard3Q(StandardExtensionTest):
+    """Standard Extension Test. Gates with three Qubits"""
+
+    def setUp(self):
+        self.q = QuantumRegister("q", 3)
+        self.r = QuantumRegister("r", 3)
+        self.s = QuantumRegister("s", 3)
+        self.c = ClassicalRegister("c", 3)
+        self.circuit = QuantumCircuit(self.q, self.r, self.s, self.c)
+        self.c_header = 80  # lenght of the header
+
+    def test_barrier_None(self):
+        self.circuit.barrier()
+        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2],s[0],s[1],s[2];'
+        self.assertResult(Barrier, qasm_txt, qasm_txt)
 
 
 if __name__ == '__main__':

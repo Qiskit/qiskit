@@ -71,7 +71,7 @@ def cu3(self, theta, phi, lam, ctl, tgt):
     if isinstance(ctl, QuantumRegister):
         instructions = InstructionSet()
         for j in range(ctl.size):
-            instructions.add(self.cu3(theta, phi, lam, (ctl,j), tgt))
+            instructions.add(self.cu3(theta, phi, lam, (ctl, j), tgt))
         return instructions
 
     if isinstance(tgt, QuantumRegister):
