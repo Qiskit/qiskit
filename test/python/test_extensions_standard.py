@@ -70,14 +70,12 @@ class TestStandard(QiskitTestCase):
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_barrier_reg(self):
-        c = self.circuit
-        c.barrier(self.q)
+        self.circuit.barrier(self.q)
         qasm_txt = 'barrier q[0],q[1],q[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_barrier_None(self):
-        c = self.circuit
-        c.barrier()
+        self.circuit.barrier()
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
