@@ -62,7 +62,7 @@ def barrier(self, *args):
 
     qubits = []
 
-    if not args: #None
+    if not args:  # None
         for qreg in self.get_qregs().values():
             for j in range(qreg.size):
                 qubits.append((qreg, j))

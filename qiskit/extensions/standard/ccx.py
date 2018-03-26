@@ -65,7 +65,6 @@ def ccx(self, ctl1, ctl2, tgt):
             instructions.add(self.ccx((ctl1, i), (ctl2, i), (tgt, i)))
         return instructions
 
-
     self._check_qubit(ctl1)
     self._check_qubit(ctl2)
     self._check_qubit(tgt)
