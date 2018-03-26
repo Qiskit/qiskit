@@ -483,6 +483,18 @@ class TestStandard(QiskitTestCase):
         c.iden(self.q[1])
         self.assertResult(IdGate, 'id q[1];', 'id q[1];')
 
+    def test_iden_reg(self):
+        qasm_txt = 'id q[0];\nid q[1];\nid q[2];'
+        instruction_set = self.circuit.iden(self.q)
+        self.assertStmtsType(instruction_set.instructions, IdGate)
+        self.assertQasm(qasm_txt)
+
+    def test_iden_reg_inv(self):
+        qasm_txt = 'id q[0];\nid q[1];\nid q[2];'
+        instruction_set = self.circuit.iden(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, IdGate)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 25)
+
     def test_rx(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.rx, 1, self.c[0])
