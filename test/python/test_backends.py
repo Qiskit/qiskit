@@ -18,17 +18,11 @@
 
 """Quantum Program QISKit Test."""
 
-import os
 import unittest
-from threading import Lock
-
-import numpy as np
 
 import qiskit.backends
-from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, RegisterSizeError)
 from IBMQuantumExperience import IBMQuantumExperience
-from .common import requires_qe_access, QiskitTestCase, Path
+from .common import requires_qe_access, QiskitTestCase
 
 
 class TestBackends(QiskitTestCase):
@@ -47,7 +41,7 @@ class TestBackends(QiskitTestCase):
         # print(local)
         self.log.info(local)
         self.assertTrue(local)
-    
+
     def test_local_backends_exist(self):
         """Test if there are local backends.
 
@@ -69,7 +63,7 @@ class TestBackends(QiskitTestCase):
         # print(remote)
         self.log.info(remote)
         self.assertTrue(remote)
-    
+
     @requires_qe_access
     def test_remote_backends_exist(self, QE_TOKEN, QE_URL):
         """Test if there are remote backends.
@@ -82,14 +76,6 @@ class TestBackends(QiskitTestCase):
         # print(remote)
         self.log.info(remote)
         self.assertTrue(remote)
-
-    def test_get_backend_instance(self):
-        """Test backend object.
-
-        If all correct some should exists.
-        """
-        my_backend = qiskit.backends.get_backend_instance('local_qasm_simulator')
-        # print(my_backend) 
 
     def test_backend_status(self):
         """Test backend_status.
@@ -137,7 +123,7 @@ class TestBackends(QiskitTestCase):
     def test_get_backend_calibration(self, QE_TOKEN, QE_URL):
         """Test calibration.
 
-        If all correct should return dictionay on length 4.
+        If all correct should return dictionary on length 4.
         """
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         backend_list = qiskit.backends.discover_remote_backends(api)
@@ -153,7 +139,7 @@ class TestBackends(QiskitTestCase):
     def test_get_backend_parameters(self, QE_TOKEN, QE_URL):
         """Test parameters.
 
-        If all correct should return dictionay on length 4.
+        If all correct should return dictionary on length 4.
         """
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         backend_list = qiskit.backends.discover_remote_backends(api)
