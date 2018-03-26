@@ -670,8 +670,7 @@ class TestQuantumProgram(QiskitTestCase):
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
-        qiskit.backends.discover_remote_backends(api)
-        backend_list = qp.online_backends()
+        backend_list = qiskit.backends.discover_remote_backends(api)
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
@@ -696,8 +695,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
-        qiskit.backends.discover_remote_backends(api)
-        backend_list = q_program.online_backends()
+        backend_list = qiskit.backends.discover_remote_backends(api)
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_calibration(backend)
@@ -713,8 +711,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
-        qiskit.backends.discover_remote_backends(api)
-        backend_list = q_program.online_backends()
+        backend_list = qiskit.backends.discover_remote_backends(api)
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_parameters(backend)
