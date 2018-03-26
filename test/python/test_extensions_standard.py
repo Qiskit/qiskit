@@ -52,14 +52,40 @@ from qiskit.extensions.standard.z import ZGate
 from .common import QiskitTestCase
 
 
-class TestStandard(QiskitTestCase):
-    """Standard Extension Test."""
+class StandardExtensionTest(QiskitTestCase):
+    def assertResult(self, t, qasm_txt, qasm_txt_):
+        """
+        t: type
+        qasm_txt: qasm representation
+        qasm_txt_: qasm representation of inverse
+        """
+        c = self.circuit
+        self.assertEqual(type(c[0]), t)
+        self.assertQasm(qasm_txt)
+        c[0].reapply(c)
+        self.assertQasm(qasm_txt + '\n' + qasm_txt)
+        self.assertEqual(c[0].inverse(), c[0])
+        self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
+
+    def assertStmtsType(self, stmts, t):
+        for stmt in stmts:
+            self.assertEqual(type(stmt), t)
+
+    def assertQasm(self, qasm_txt, offset=1):
+        c = self.circuit
+        c_txt = len(qasm_txt)
+        self.assertIn(qasm_txt, c.qasm())
+        self.assertEqual(self.c_header + c_txt + offset, len(c.qasm()))
+
+
+class TestStandard1Q(StandardExtensionTest):
+    """Standard Extension Test. Gates with a single Qubit"""
 
     def setUp(self):
         self.q = QuantumRegister("q", 3)
-        self.r = QuantumRegister("r", 3)
         self.c = ClassicalRegister("c", 3)
-        self.circuit = QuantumCircuit(self.q, self.r, self.c)
+        self.circuit = QuantumCircuit(self.q, self.c)
+        self.c_header = 58 # lenght of the header
 
     def test_barrier(self):
         c = self.circuit
@@ -76,7 +102,7 @@ class TestStandard(QiskitTestCase):
 
     def test_barrier_None(self):
         self.circuit.barrier()
-        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
+        qasm_txt = 'barrier q[0],q[1],q[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_ccx(self):
@@ -97,42 +123,6 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'ch q[0],q[1];'
         self.assertResult(CHGate, qasm_txt, qasm_txt)
 
-    def test_ch_reg_reg(self):
-        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
-        instruction_set = self.circuit.ch(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
-    def test_ch_reg_reg_inv(self):
-        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
-        instruction_set = self.circuit.ch(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
-    def test_ch_reg_bit(self):
-        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
-        instruction_set = self.circuit.ch(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
-    def test_ch_reg_bit_inv(self):
-        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
-        instruction_set = self.circuit.ch(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
-    def test_ch_bit_reg(self):
-        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
-        instruction_set = self.circuit.ch(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
-    def test_ch_bit_reg_inv(self):
-        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
-        instruction_set = self.circuit.ch(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CHGate)
-        self.assertQasm(qasm_txt)
-
     def test_crz(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.crz, 0, self.c[0], self.c[1])
@@ -140,42 +130,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.crz, 0, 0, self.q[0])
         c.crz(1, self.q[0], self.q[1])
         self.assertResult(CrzGate, 'crz(1) q[0],q[1];', 'crz(-1) q[0],q[1];')
-
-    def test_crz_reg_reg(self):
-        qasm_txt = 'crz(1) q[0],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[2];'
-        instruction_set = self.circuit.crz(1, self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_crz_reg_reg_inv(self):
-        qasm_txt = 'crz(-1) q[0],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[2];'
-        instruction_set = self.circuit.crz(1, self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_crz_reg_bit(self):
-        qasm_txt = 'crz(1) q[0],r[1];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[1];'
-        instruction_set = self.circuit.crz(1, self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_crz_reg_bit_inv(self):
-        qasm_txt = 'crz(-1) q[0],r[1];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[1];'
-        instruction_set = self.circuit.crz(1, self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_crz_bit_reg(self):
-        qasm_txt = 'crz(1) q[1],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[1],r[2];'
-        instruction_set = self.circuit.crz(1, self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_crz_bit_reg_inv(self):
-        qasm_txt = 'crz(-1) q[1],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[1],r[2];'
-        instruction_set = self.circuit.crz(1, self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CrzGate)
-        self.assertQasm(qasm_txt)
 
     def test_cswap(self):
         c = self.circuit
@@ -194,42 +148,6 @@ class TestStandard(QiskitTestCase):
         c.cu1(1, self.q[1], self.q[2])
         self.assertResult(Cu1Gate, 'cu1(1) q[1],q[2];', 'cu1(-1) q[1],q[2];')
 
-    def test_cu1_reg_reg(self):
-        qasm_txt = 'cu1(1) q[0],r[0];\ncu1(1) q[1],r[1];\ncu1(1) q[2],r[2];'
-        instruction_set = self.circuit.cu1(1, self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu1_reg_reg_inv(self):
-        qasm_txt = 'cu1(-1) q[0],r[0];\ncu1(-1) q[1],r[1];\ncu1(-1) q[2],r[2];'
-        instruction_set = self.circuit.cu1(1, self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu1_reg_bit(self):
-        qasm_txt = 'cu1(1) q[0],r[1];\ncu1(1) q[1],r[1];\ncu1(1) q[2],r[1];'
-        instruction_set = self.circuit.cu1(1, self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu1_reg_bit_inv(self):
-        qasm_txt = 'cu1(-1) q[0],r[1];\ncu1(-1) q[1],r[1];\ncu1(-1) q[2],r[1];'
-        instruction_set = self.circuit.cu1(1, self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu1_bit_reg(self):
-        qasm_txt = 'cu1(1) q[1],r[0];\ncu1(1) q[1],r[1];\ncu1(1) q[1],r[2];'
-        instruction_set = self.circuit.cu1(1, self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu1_bit_reg_inv(self):
-        qasm_txt = 'cu1(-1) q[1],r[0];\ncu1(-1) q[1],r[1];\ncu1(-1) q[1],r[2];'
-        instruction_set = self.circuit.cu1(1, self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
-        self.assertQasm(qasm_txt)
-
     def test_cu3(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cu3, 0, 0, self.c[0], self.c[1], self.c[2])
@@ -237,42 +155,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
         c.cu3(1, 2, 3, self.q[1], self.q[2])
         self.assertResult(Cu3Gate, 'cu3(1,2,3) q[1],q[2];', 'cu3(-1,-3,-2) q[1],q[2];')
-
-    def test_cu3_reg_reg(self):
-        qasm_txt = 'cu3(1,2,3) q[0],r[0];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[2],r[2];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu3_reg_reg_inv(self):
-        qasm_txt = 'cu3(-1,-3,-2) q[0],r[0];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[2],r[2];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu3_reg_bit(self):
-        qasm_txt = 'cu3(1,2,3) q[0],r[1];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[2],r[1];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu3_reg_bit_inv(self):
-        qasm_txt = 'cu3(-1,-3,-2) q[0],r[1];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[2],r[1];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu3_bit_reg(self):
-        qasm_txt = 'cu3(1,2,3) q[1],r[0];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[1],r[2];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
-
-    def test_cu3_bit_reg_inv(self):
-        qasm_txt = 'cu3(-1,-3,-2) q[1],r[0];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[1],r[2];'
-        instruction_set = self.circuit.cu3(1, 2, 3, self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
-        self.assertQasm(qasm_txt)
 
     def test_cx(self):
         c = self.circuit
@@ -283,42 +165,6 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'cx q[1],q[2];'
         self.assertResult(CnotGate, qasm_txt, qasm_txt)
 
-    def test_cx_reg_reg(self):
-        qasm_txt = 'cx q[0],r[0];\ncx q[1],r[1];\ncx q[2],r[2];'
-        instruction_set = self.circuit.cx(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cx_reg_reg_inv(self):
-        qasm_txt = 'cx q[0],r[0];\ncx q[1],r[1];\ncx q[2],r[2];'
-        instruction_set = self.circuit.cx(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cx_reg_bit(self):
-        qasm_txt = 'cx q[0],r[1];\ncx q[1],r[1];\ncx q[2],r[1];'
-        instruction_set = self.circuit.cx(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cx_reg_bit_inv(self):
-        qasm_txt = 'cx q[0],r[1];\ncx q[1],r[1];\ncx q[2],r[1];'
-        instruction_set = self.circuit.cx(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cx_bit_reg(self):
-        qasm_txt = 'cx q[1],r[0];\ncx q[1],r[1];\ncx q[1],r[2];'
-        instruction_set = self.circuit.cx(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cx_bit_reg_inv(self):
-        qasm_txt = 'cx q[1],r[0];\ncx q[1],r[1];\ncx q[1],r[2];'
-        instruction_set = self.circuit.cx(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CnotGate)
-        self.assertQasm(qasm_txt)
-
     def test_cxbase(self):
         qasm_txt = 'CX q[1],q[2];'
         c = self.circuit
@@ -327,42 +173,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
         c.cx_base(self.q[1], self.q[2])
         self.assertResult(CXBase, qasm_txt, qasm_txt)
-
-    def test_cxbase_reg_reg(self):
-        qasm_txt = 'CX q[0],r[0];\nCX q[1],r[1];\nCX q[2],r[2];'
-        instruction_set = self.circuit.cx_base(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
-
-    def test_cxbase_reg_reg_inv(self):
-        qasm_txt = 'CX q[0],r[0];\nCX q[1],r[1];\nCX q[2],r[2];'
-        instruction_set = self.circuit.cx_base(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
-
-    def test_cxbase_reg_bit(self):
-        qasm_txt = 'CX q[0],r[1];\nCX q[1],r[1];\nCX q[2],r[1];'
-        instruction_set = self.circuit.cx_base(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
-
-    def test_cxbase_reg_bit_inv(self):
-        qasm_txt = 'CX q[0],r[1];\nCX q[1],r[1];\nCX q[2],r[1];'
-        instruction_set = self.circuit.cx_base(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
-
-    def test_cxbase_bit_reg(self):
-        qasm_txt = 'CX q[1],r[0];\nCX q[1],r[1];\nCX q[1],r[2];'
-        instruction_set = self.circuit.cx_base(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
-
-    def test_cxbase_bit_reg_inv(self):
-        qasm_txt = 'CX q[1],r[0];\nCX q[1],r[1];\nCX q[1],r[2];'
-        instruction_set = self.circuit.cx_base(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CXBase)
-        self.assertQasm(qasm_txt)
 
     def test_cy(self):
         c = self.circuit
@@ -373,42 +183,6 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'cy q[1],q[2];'
         self.assertResult(CyGate, qasm_txt, qasm_txt)
 
-    def test_cy_reg_reg(self):
-        qasm_txt = 'cy q[0],r[0];\ncy q[1],r[1];\ncy q[2],r[2];'
-        instruction_set = self.circuit.cy(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cy_reg_reg_inv(self):
-        qasm_txt = 'cy q[0],r[0];\ncy q[1],r[1];\ncy q[2],r[2];'
-        instruction_set = self.circuit.cy(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cy_reg_bit(self):
-        qasm_txt = 'cy q[0],r[1];\ncy q[1],r[1];\ncy q[2],r[1];'
-        instruction_set = self.circuit.cy(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cy_reg_bit_inv(self):
-        qasm_txt = 'cy q[0],r[1];\ncy q[1],r[1];\ncy q[2],r[1];'
-        instruction_set = self.circuit.cy(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cy_bit_reg(self):
-        qasm_txt = 'cy q[1],r[0];\ncy q[1],r[1];\ncy q[1],r[2];'
-        instruction_set = self.circuit.cy(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cy_bit_reg_inv(self):
-        qasm_txt = 'cy q[1],r[0];\ncy q[1],r[1];\ncy q[1],r[2];'
-        instruction_set = self.circuit.cy(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CyGate)
-        self.assertQasm(qasm_txt)
-
     def test_cz(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cz, self.c[1], self.c[2])
@@ -417,42 +191,6 @@ class TestStandard(QiskitTestCase):
         c.cz(self.q[1], self.q[2])
         qasm_txt = 'cz q[1],q[2];'
         self.assertResult(CzGate, qasm_txt, qasm_txt)
-
-    def test_cz_reg_reg(self):
-        qasm_txt = 'cz q[0],r[0];\ncz q[1],r[1];\ncz q[2],r[2];'
-        instruction_set = self.circuit.cz(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cz_reg_reg_inv(self):
-        qasm_txt = 'cz q[0],r[0];\ncz q[1],r[1];\ncz q[2],r[2];'
-        instruction_set = self.circuit.cz(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cz_reg_bit(self):
-        qasm_txt = 'cz q[0],r[1];\ncz q[1],r[1];\ncz q[2],r[1];'
-        instruction_set = self.circuit.cz(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cz_reg_bit_inv(self):
-        qasm_txt = 'cz q[0],r[1];\ncz q[1],r[1];\ncz q[2],r[1];'
-        instruction_set = self.circuit.cz(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cz_bit_reg(self):
-        qasm_txt = 'cz q[1],r[0];\ncz q[1],r[1];\ncz q[1],r[2];'
-        instruction_set = self.circuit.cz(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
-
-    def test_cz_bit_reg_inv(self):
-        qasm_txt = 'cz q[1],r[0];\ncz q[1],r[1];\ncz q[1],r[2];'
-        instruction_set = self.circuit.cz(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, CzGate)
-        self.assertQasm(qasm_txt)
 
     def test_h(self):
         c = self.circuit
@@ -610,42 +348,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.swap, 0, self.q[0])
         c.swap(self.q[1], self.q[2])
         self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
-
-    def test_swap_reg_reg(self):
-        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
-        instruction_set = self.circuit.swap(self.q, self.r)
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_reg_reg_inv(self):
-        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
-        instruction_set = self.circuit.swap(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_reg_bit(self):
-        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
-        instruction_set = self.circuit.swap(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_reg_bit_inv(self):
-        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
-        instruction_set = self.circuit.swap(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_bit_reg(self):
-        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
-        instruction_set = self.circuit.swap(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_bit_reg_inv(self):
-        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
-        instruction_set = self.circuit.swap(self.q[1], self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
 
     def test_t(self):
         c = self.circuit
@@ -828,7 +530,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.z, 0)
         c.z(self.q[1])
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
-    
 
     def test_z_reg(self):
         qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
@@ -843,30 +544,344 @@ class TestStandard(QiskitTestCase):
         self.assertQasm(qasm_txt)
 
 
-    def assertResult(self, t, qasm_txt, qasm_txt_):
-        """
-        t: type
-        qasm_txt: qasm representation
-        qasm_txt_: qasm representation of inverse
-        """
-        c = self.circuit
-        self.assertEqual(type(c[0]), t)
+class TestStandard2Q(StandardExtensionTest):
+    """Standard Extension Test. Gates with two Qubits"""
+
+    def setUp(self):
+        self.q = QuantumRegister("q", 3)
+        self.r = QuantumRegister("r", 3)
+        self.c = ClassicalRegister("c", 3)
+        self.circuit = QuantumCircuit(self.q, self.r, self.c)
+        self.c_header = 69  # lenght of the header
+
+    def test_barrier_None(self):
+        self.circuit.barrier()
+        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
+        self.assertResult(Barrier, qasm_txt, qasm_txt)
+
+    def test_ch_reg_reg(self):
+        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
+        instruction_set = self.circuit.ch(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CHGate)
         self.assertQasm(qasm_txt)
-        c[0].reapply(c)
-        self.assertQasm(qasm_txt + '\n' + qasm_txt)
-        self.assertEqual(c[0].inverse(), c[0])
-        self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
 
-    def assertStmtsType(self, stmts, t):
-        for stmt in stmts:
-            self.assertEqual(type(stmt), t)
+    def test_ch_reg_reg_inv(self):
+        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
+        instruction_set = self.circuit.ch(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
 
-    def assertQasm(self, qasm_txt, offset=1):
-        c = self.circuit
-        c_header = 69
-        c_txt = len(qasm_txt)
-        self.assertIn(qasm_txt, self.circuit.qasm())
-        self.assertEqual(c_header + c_txt + offset, len(c.qasm()))
+    def test_ch_reg_bit(self):
+        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
+        instruction_set = self.circuit.ch(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_reg_bit_inv(self):
+        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
+        instruction_set = self.circuit.ch(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_bit_reg(self):
+        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
+        instruction_set = self.circuit.ch(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_bit_reg_inv(self):
+        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
+        instruction_set = self.circuit.ch(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_reg(self):
+        qasm_txt = 'crz(1) q[0],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[2];'
+        instruction_set = self.circuit.crz(1, self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_reg_inv(self):
+        qasm_txt = 'crz(-1) q[0],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[2];'
+        instruction_set = self.circuit.crz(1, self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_bit(self):
+        qasm_txt = 'crz(1) q[0],r[1];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[1];'
+        instruction_set = self.circuit.crz(1, self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_bit_inv(self):
+        qasm_txt = 'crz(-1) q[0],r[1];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[1];'
+        instruction_set = self.circuit.crz(1, self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_bit_reg(self):
+        qasm_txt = 'crz(1) q[1],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[1],r[2];'
+        instruction_set = self.circuit.crz(1, self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_bit_reg_inv(self):
+        qasm_txt = 'crz(-1) q[1],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[1],r[2];'
+        instruction_set = self.circuit.crz(1, self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_reg_reg(self):
+        qasm_txt = 'cu1(1) q[0],r[0];\ncu1(1) q[1],r[1];\ncu1(1) q[2],r[2];'
+        instruction_set = self.circuit.cu1(1, self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_reg_reg_inv(self):
+        qasm_txt = 'cu1(-1) q[0],r[0];\ncu1(-1) q[1],r[1];\ncu1(-1) q[2],r[2];'
+        instruction_set = self.circuit.cu1(1, self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_reg_bit(self):
+        qasm_txt = 'cu1(1) q[0],r[1];\ncu1(1) q[1],r[1];\ncu1(1) q[2],r[1];'
+        instruction_set = self.circuit.cu1(1, self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_reg_bit_inv(self):
+        qasm_txt = 'cu1(-1) q[0],r[1];\ncu1(-1) q[1],r[1];\ncu1(-1) q[2],r[1];'
+        instruction_set = self.circuit.cu1(1, self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_bit_reg(self):
+        qasm_txt = 'cu1(1) q[1],r[0];\ncu1(1) q[1],r[1];\ncu1(1) q[1],r[2];'
+        instruction_set = self.circuit.cu1(1, self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu1_bit_reg_inv(self):
+        qasm_txt = 'cu1(-1) q[1],r[0];\ncu1(-1) q[1],r[1];\ncu1(-1) q[1],r[2];'
+        instruction_set = self.circuit.cu1(1, self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu1Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_reg_reg(self):
+        qasm_txt = 'cu3(1,2,3) q[0],r[0];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[2],r[2];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_reg_reg_inv(self):
+        qasm_txt = 'cu3(-1,-3,-2) q[0],r[0];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[2],r[2];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_reg_bit(self):
+        qasm_txt = 'cu3(1,2,3) q[0],r[1];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[2],r[1];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_reg_bit_inv(self):
+        qasm_txt = 'cu3(-1,-3,-2) q[0],r[1];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[2],r[1];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_bit_reg(self):
+        qasm_txt = 'cu3(1,2,3) q[1],r[0];\ncu3(1,2,3) q[1],r[1];\ncu3(1,2,3) q[1],r[2];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cu3_bit_reg_inv(self):
+        qasm_txt = 'cu3(-1,-3,-2) q[1],r[0];\ncu3(-1,-3,-2) q[1],r[1];\ncu3(-1,-3,-2) q[1],r[2];'
+        instruction_set = self.circuit.cu3(1, 2, 3, self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, Cu3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_reg_reg(self):
+        qasm_txt = 'cx q[0],r[0];\ncx q[1],r[1];\ncx q[2],r[2];'
+        instruction_set = self.circuit.cx(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_reg_reg_inv(self):
+        qasm_txt = 'cx q[0],r[0];\ncx q[1],r[1];\ncx q[2],r[2];'
+        instruction_set = self.circuit.cx(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_reg_bit(self):
+        qasm_txt = 'cx q[0],r[1];\ncx q[1],r[1];\ncx q[2],r[1];'
+        instruction_set = self.circuit.cx(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_reg_bit_inv(self):
+        qasm_txt = 'cx q[0],r[1];\ncx q[1],r[1];\ncx q[2],r[1];'
+        instruction_set = self.circuit.cx(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_bit_reg(self):
+        qasm_txt = 'cx q[1],r[0];\ncx q[1],r[1];\ncx q[1],r[2];'
+        instruction_set = self.circuit.cx(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cx_bit_reg_inv(self):
+        qasm_txt = 'cx q[1],r[0];\ncx q[1],r[1];\ncx q[1],r[2];'
+        instruction_set = self.circuit.cx(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CnotGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_reg_reg(self):
+        qasm_txt = 'CX q[0],r[0];\nCX q[1],r[1];\nCX q[2],r[2];'
+        instruction_set = self.circuit.cx_base(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_reg_reg_inv(self):
+        qasm_txt = 'CX q[0],r[0];\nCX q[1],r[1];\nCX q[2],r[2];'
+        instruction_set = self.circuit.cx_base(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_reg_bit(self):
+        qasm_txt = 'CX q[0],r[1];\nCX q[1],r[1];\nCX q[2],r[1];'
+        instruction_set = self.circuit.cx_base(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_reg_bit_inv(self):
+        qasm_txt = 'CX q[0],r[1];\nCX q[1],r[1];\nCX q[2],r[1];'
+        instruction_set = self.circuit.cx_base(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_bit_reg(self):
+        qasm_txt = 'CX q[1],r[0];\nCX q[1],r[1];\nCX q[1],r[2];'
+        instruction_set = self.circuit.cx_base(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cxbase_bit_reg_inv(self):
+        qasm_txt = 'CX q[1],r[0];\nCX q[1],r[1];\nCX q[1],r[2];'
+        instruction_set = self.circuit.cx_base(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CXBase)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_reg_reg(self):
+        qasm_txt = 'cy q[0],r[0];\ncy q[1],r[1];\ncy q[2],r[2];'
+        instruction_set = self.circuit.cy(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_reg_reg_inv(self):
+        qasm_txt = 'cy q[0],r[0];\ncy q[1],r[1];\ncy q[2],r[2];'
+        instruction_set = self.circuit.cy(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_reg_bit(self):
+        qasm_txt = 'cy q[0],r[1];\ncy q[1],r[1];\ncy q[2],r[1];'
+        instruction_set = self.circuit.cy(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_reg_bit_inv(self):
+        qasm_txt = 'cy q[0],r[1];\ncy q[1],r[1];\ncy q[2],r[1];'
+        instruction_set = self.circuit.cy(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_bit_reg(self):
+        qasm_txt = 'cy q[1],r[0];\ncy q[1],r[1];\ncy q[1],r[2];'
+        instruction_set = self.circuit.cy(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cy_bit_reg_inv(self):
+        qasm_txt = 'cy q[1],r[0];\ncy q[1],r[1];\ncy q[1],r[2];'
+        instruction_set = self.circuit.cy(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CyGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_reg_reg(self):
+        qasm_txt = 'cz q[0],r[0];\ncz q[1],r[1];\ncz q[2],r[2];'
+        instruction_set = self.circuit.cz(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_reg_reg_inv(self):
+        qasm_txt = 'cz q[0],r[0];\ncz q[1],r[1];\ncz q[2],r[2];'
+        instruction_set = self.circuit.cz(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_reg_bit(self):
+        qasm_txt = 'cz q[0],r[1];\ncz q[1],r[1];\ncz q[2],r[1];'
+        instruction_set = self.circuit.cz(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_reg_bit_inv(self):
+        qasm_txt = 'cz q[0],r[1];\ncz q[1],r[1];\ncz q[2],r[1];'
+        instruction_set = self.circuit.cz(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_bit_reg(self):
+        qasm_txt = 'cz q[1],r[0];\ncz q[1],r[1];\ncz q[1],r[2];'
+        instruction_set = self.circuit.cz(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cz_bit_reg_inv(self):
+        qasm_txt = 'cz q[1],r[0];\ncz q[1],r[1];\ncz q[1],r[2];'
+        instruction_set = self.circuit.cz(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_reg_reg(self):
+        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
+        instruction_set = self.circuit.swap(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_reg_reg_inv(self):
+        qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
+        instruction_set = self.circuit.swap(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_reg_bit(self):
+        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
+        instruction_set = self.circuit.swap(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_reg_bit_inv(self):
+        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
+        instruction_set = self.circuit.swap(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_bit_reg(self):
+        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
+        instruction_set = self.circuit.swap(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
+
+    def test_swap_bit_reg_inv(self):
+        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
+        instruction_set = self.circuit.swap(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, SwapGate)
+        self.assertQasm(qasm_txt)
 
 
 if __name__ == '__main__':
