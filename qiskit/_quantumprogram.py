@@ -783,7 +783,7 @@ class QuantumProgram(object):
 
         return self.__api
 
-    def available_backends(self):
+    def available_backends(self, compact=True):
         """All the backends that are seen by QISKIT.
 
         .. deprecated:: 0.5
@@ -796,11 +796,8 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        local = qiskit.backends.local_backends()
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        remote = qiskit.backends.remote_backends()
-        return local + remote
+        return qiskit.backends.local_backends(compact) + \
+               qiskit.backends.remote_backends(compact)
 
     def online_backends(self):
         """Get the online backends.
@@ -1117,11 +1114,12 @@ class QuantumProgram(object):
             qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                                for n in range(30)])
         qobj['id'] = qobj_id
-        qobj["config"] = {"max_credits": max_credits, 'backend': backend,
-                          "shots": shots}
 
         # Resolve backend name from a possible short alias or a deprecated name
         backend = qiskit.backends.resolve_name(backend)
+
+        qobj["config"] = {"max_credits": max_credits, 'backend': backend,
+                          "shots": shots}
 
         # TODO This backend needs HPC parameters to be passed in order to work
         if backend == 'ibmqx_hpc_qasm_simulator':

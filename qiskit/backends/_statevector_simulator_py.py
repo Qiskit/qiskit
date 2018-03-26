@@ -133,7 +133,7 @@ class QasmSimulatorPy(BaseBackend):
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {
-                'name': 'local_qasm_simulator_py',
+                'name': 'local_statevector_simulator_py',
                 'url': 'https://github.com/QISKit/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
