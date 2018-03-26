@@ -69,6 +69,32 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'barrier q[1];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
+    def test_barrier_reg(self):
+        qasm_txt = 'barrier q[0];\nbarrier q[1];\nbarrier q[2];'
+        instruction_set = self.circuit.barrier(self.q)
+        self.assertStmtsType(instruction_set.instructions, Barrier)
+        self.assertQasm(qasm_txt)
+
+    def test_barrier_reg_inv(self):
+        qasm_txt = 'barrier q[0];\nbarrier q[1];\nbarrier q[2];'
+        instruction_set = self.circuit.barrier(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, Barrier)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 40)
+
+    def test_barrier_none(self):
+        qasm_txt = 'barrier q[0];\nbarrier q[1];\nbarrier q[2];\n' \
+                   'barrier r[0];\nbarrier r[1];\nbarrier r[2];'
+        instruction_set = self.circuit.barrier()
+        self.assertStmtsType(instruction_set.instructions, Barrier)
+        self.assertQasm(qasm_txt)
+
+    def test_barrier_none_inv(self):
+        qasm_txt = 'barrier q[0];\nbarrier q[1];\nbarrier q[2];\n' \
+                   'barrier r[0];\nbarrier r[1];\nbarrier r[2];'
+        instruction_set = self.circuit.barrier().inverse()
+        self.assertStmtsType(instruction_set.instructions, Barrier)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 82)
+
     def test_ccx(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.ccx, self.c[0], self.c[1], self.c[2])
@@ -173,7 +199,6 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
         c.cx_base(self.q[1], self.q[2])
         self.assertResult(CXBase, qasm_txt, qasm_txt)
-
 
     def test_cxbase_reg_reg(self):
         qasm_txt = 'CX q[0],r[0];\nCX q[1],r[1];\nCX q[2],r[2];'

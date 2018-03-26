@@ -22,16 +22,16 @@ from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
-from qiskit.extensions._extensionerror import ExtensionError
+from qiskit import InstructionSet
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, arg, circ):
+    def __init__(self, qbit, circ):
         """Create new barrier instruction."""
-        super().__init__("barrier", [], list(arg), circ)
+        super().__init__("barrier", [], [qbit], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -55,27 +55,22 @@ class Barrier(Instruction):
         self._modifiers(circ.barrier(*self.arg))
 
 
-def barrier(self, *tuples):
-    """Apply barrier to tuples (reg, idx)."""
-    tuples = list(tuples)
-    if not tuples:  # TODO: implement this for all single qubit gates
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no arguments passed")
-    qubits = []
-    for tuple_element in tuples:
-        if isinstance(tuple_element, QuantumRegister):
-            for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
-                qubits.append((tuple_element, j))
-        else:
-            self._check_qubit(tuple_element)
-            qubits.append(tuple_element)
-    self._check_dups(qubits)
-    return self._attach(Barrier(qubits, self))
+def barrier(self, q=None):
+    """Apply barrier to q. If q is None, applies to all the """
+    if q is None:
+        gs = InstructionSet()
+        for qreg in self.get_qregs().values():
+            gs.add(self.barrier(qreg))
+        return gs
+
+    if isinstance(q, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(q.size):
+            gs.add(self.barrier((q, j)))
+        return gs
+
+    self._check_qubit(q)
+    return self._attach(Barrier(q, self))
 
 
 QuantumCircuit.barrier = barrier

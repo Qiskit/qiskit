@@ -31,6 +31,10 @@ class InstructionSet(object):
 
     def add(self, gate):
         """Add instruction to set."""
+        if isinstance(gate, InstructionSet):
+            for instruction in gate.instructions:
+                self.instructions.add(instruction)
+            return
         if not isinstance(gate, Instruction):
             raise QISKitError("attempt to add non-Instruction" +
                               " to InstructionSet")
