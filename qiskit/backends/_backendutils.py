@@ -261,11 +261,9 @@ def configuration(backend_name):
         LookupError: if backend is unavailable
     """
     try:
-        config = _REGISTERED_BACKENDS[backend_name].configuration
+        return _REGISTERED_BACKENDS[backend_name].configuration
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    else:
-        return config
 
 
 def calibration(backend_name):
