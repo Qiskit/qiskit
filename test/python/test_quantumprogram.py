@@ -425,7 +425,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         result = q_program.get_qasm("circuitName")
-        self.assertEqual(len(result), 212)
+        self.assertEqual(len(result), 225)
 
     def test_get_qasms(self):
         """Test the get_qasms.
@@ -486,7 +486,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         result = q_program.get_qasm('circuitName')
-        self.assertEqual(len(result), 535)
+        self.assertEqual(len(result), 565)
 
     def test_get_initial_circuit(self):
         """Test get_initial_circuit.
@@ -783,7 +783,7 @@ class TestQuantumProgram(QiskitTestCase):
                                  coupling_map=coupling_map)
         result = q_program.get_compiled_qasm(qobj, 'circuitName',)
         self.log.info(result)
-        self.assertEqual(len(result), 181)
+        self.assertEqual(len(result), 190)
 
     def test_get_execution_list(self):
         """Test get_execution_list.
