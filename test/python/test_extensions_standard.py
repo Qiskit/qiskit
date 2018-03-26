@@ -179,7 +179,6 @@ class TestStandard(QiskitTestCase):
         self.assertStmtsType(instruction_set.instructions, CrzGate)
         self.assertQasm(qasm_txt)
 
-
     def test_cswap(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1], self.c[2])
@@ -465,6 +464,18 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'h q[1];'
         self.assertResult(HGate, qasm_txt, qasm_txt)
 
+    def test_h_reg(self):
+        qasm_txt = 'h q[0];\nh q[1];\nh q[2];'
+        instruction_set = self.circuit.h(self.q)
+        self.assertStmtsType(instruction_set.instructions, HGate)
+        self.assertQasm(qasm_txt)
+
+    def test_h_reg_inv(self):
+        qasm_txt = 'h q[0];\nh q[1];\nh q[2];'
+        instruction_set = self.circuit.h(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, HGate)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
+
     def test_iden(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.iden, self.c[0])
@@ -485,7 +496,7 @@ class TestStandard(QiskitTestCase):
         self.assertStmtsType(instruction_set.instructions, RXGate)
         self.assertQasm(qasm_txt)
 
-    def test_ry_reg_inv(self):
+    def test_rx_reg_inv(self):
         qasm_txt = 'rx(-1) q[0];\nrx(-1) q[1];\nrx(-1) q[2];'
         instruction_set = self.circuit.rx(1, self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, RXGate)

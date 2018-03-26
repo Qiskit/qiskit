@@ -51,10 +51,16 @@ class HGate(Gate):
 def h(self, q):
     """Apply H to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.h((q, j)))
-        return gs
+            instructions.add(self.h((q, j)))
+        return instructions
+
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.h(q))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(HGate(q, self))
