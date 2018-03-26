@@ -828,6 +828,20 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.z, 0)
         c.z(self.q[1])
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
+    
+
+    def test_z_reg(self):
+        qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
+        instruction_set = self.circuit.z(self.q)
+        self.assertStmtsType(instruction_set.instructions, ZGate)
+        self.assertQasm(qasm_txt)
+
+    def test_z_reg_inv(self):
+        qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
+        instruction_set = self.circuit.z(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, ZGate)
+        self.assertQasm(qasm_txt)
+
 
     def assertResult(self, t, qasm_txt, qasm_txt_):
         """
