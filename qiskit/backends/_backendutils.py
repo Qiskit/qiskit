@@ -267,6 +267,7 @@ def configuration(backend_name):
     else:
         return config
 
+
 def calibration(backend_name):
     """Return the calibration for the named backend.
 
