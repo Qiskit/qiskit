@@ -904,6 +904,33 @@ class TestStandard3Q(StandardExtensionTest):
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2],s[0],s[1],s[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
+    def test_ccx_reg_reg_reg(self):
+        qasm_txt = 'ccx q[0],r[0],s[0];\nccx q[1],r[1],s[1];\nccx q[2],r[2],s[2];'
+        instruction_set = self.circuit.ccx(self.q, self.r, self.s)
+        self.assertStmtsType(instruction_set.instructions, ToffoliGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ccx_reg_reg_inv(self):
+        qasm_txt = 'ccx q[0],r[0],s[0];\nccx q[1],r[1],s[1];\nccx q[2],r[2],s[2];'
+        instruction_set = self.circuit.ccx(self.q, self.r, self.s).inverse()
+        self.assertStmtsType(instruction_set.instructions, ToffoliGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cswap_reg_reg_reg(self):
+        qasm_txt = 'cx s[0],r[0];\n' \
+                   'ccx q[0],r[0],s[0];\ncx s[0],r[0];\ncx s[1],r[1];\nccx q[1],r[1],s[1];\n' \
+                   'cx s[1],r[1];\ncx s[2],r[2];\nccx q[2],r[2],s[2];\ncx s[2],r[2];'
+        instruction_set = self.circuit.cswap(self.q, self.r, self.s)
+        self.assertStmtsType(instruction_set.instructions, FredkinGate)
+        self.assertQasm(qasm_txt)
+
+    def test_cswap_reg_reg_inv(self):
+        qasm_txt = 'cx s[0],r[0];\n' \
+                   'ccx q[0],r[0],s[0];\ncx s[0],r[0];\ncx s[1],r[1];\nccx q[1],r[1],s[1];\n' \
+                   'cx s[1],r[1];\ncx s[2],r[2];\nccx q[2],r[2],s[2];\ncx s[2],r[2];'
+        instruction_set = self.circuit.cswap(self.q, self.r, self.s).inverse()
+        self.assertStmtsType(instruction_set.instructions, FredkinGate)
+        self.assertQasm(qasm_txt)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
