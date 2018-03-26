@@ -151,5 +151,6 @@ class TestBackends(QiskitTestCase):
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

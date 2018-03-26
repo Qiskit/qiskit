@@ -880,7 +880,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         See: https://github.com/QISKit/qiskit-sdk-py/issues/342
 
-        TODO: (JAY) THIS IS VERY SYSTEM DEPENDENT AND NOT A GOOD TEST. I WOULD LIKE 
+        TODO: (JAY) THIS IS VERY SYSTEM DEPENDENT AND NOT A GOOD TEST. I WOULD LIKE
         TO DELETE THIS
         """
         q_program = QuantumProgram()
