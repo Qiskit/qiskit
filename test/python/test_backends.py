@@ -19,9 +19,9 @@
 """Quantum Program QISKit Test."""
 
 import unittest
+from IBMQuantumExperience import IBMQuantumExperience
 
 import qiskit.backends
-from IBMQuantumExperience import IBMQuantumExperience
 from .common import requires_qe_access, QiskitTestCase
 
 

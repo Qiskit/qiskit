@@ -23,6 +23,7 @@ import unittest
 from threading import Lock
 
 import numpy as np
+from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
@@ -30,7 +31,6 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
 from qiskit.tools import file_io
 import qiskit.backends
 from .common import requires_qe_access, QiskitTestCase, Path
-from IBMQuantumExperience import IBMQuantumExperience
 
 
 class TestQuantumProgram(QiskitTestCase):
