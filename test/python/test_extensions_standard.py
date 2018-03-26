@@ -600,10 +600,10 @@ class TestStandard(QiskitTestCase):
         self.assertQasm(qasm_txt)
 
     def test_sdg_reg_inv(self):
-        qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
+        qasm_txt = 's q[0];\ns q[1];\ns q[2];'
         instruction_set = self.circuit.sdg(self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, SGate)
-        self.assertQasm('s q[0];\ns q[1];\ns q[2];', offset=len(qasm_txt) - 28)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
 
     def test_swap(self):
         c = self.circuit
@@ -674,6 +674,19 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.tdg, 1)
         c.tdg(self.q[1])
         self.assertResult(TGate, 'tdg q[1];', 't q[1];')
+
+
+    def test_tdg_reg(self):
+        qasm_txt = 'tdg q[0];\ntdg q[1];\ntdg q[2];'
+        instruction_set = self.circuit.tdg(self.q)
+        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertQasm(qasm_txt)
+
+    def test_tdg_reg_inv(self):
+        qasm_txt = 't q[0];\nt q[1];\nt q[2];'
+        instruction_set = self.circuit.tdg(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
 
     def test_u1(self):
         c = self.circuit
