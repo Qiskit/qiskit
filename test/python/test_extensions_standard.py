@@ -717,7 +717,6 @@ class TestStandard(QiskitTestCase):
         c.u2(1, 2, self.q[1])
         self.assertResult(U2Gate, 'u2(1,2) q[1];', 'u2(-pi - 2,-1 + pi) q[1];')
 
-
     def test_u2_reg(self):
         qasm_txt = 'u2(1,2) q[0];\nu2(1,2) q[1];\nu2(1,2) q[2];'
         instruction_set = self.circuit.u2(1, 2, self.q)
@@ -767,6 +766,18 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
         c.u_base(1, 2, 3, self.q[1])
         self.assertResult(UBase, 'U(1,2,3) q[1];', 'U(-1,-3,-2) q[1];')
+
+    def test_ubase_reg(self):
+        qasm_txt = 'U(1,2,3) q[0];\nU(1,2,3) q[1];\nU(1,2,3) q[2];'
+        instruction_set = self.circuit.u_base(1, 2, 3, self.q)
+        self.assertStmtsType(instruction_set.instructions, UBase)
+        self.assertQasm(qasm_txt)
+
+    def test_ubase_reg_inv(self):
+        qasm_txt = 'U(-1,-3,-2) q[0];\nU(-1,-3,-2) q[1];\nU(-1,-3,-2) q[2];'
+        instruction_set = self.circuit.u_base(1, 2, 3, self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, UBase)
+        self.assertQasm(qasm_txt)
 
     def test_ubase_pi(self):
         c = self.circuit
