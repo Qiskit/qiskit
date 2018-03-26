@@ -24,10 +24,8 @@ import os
 import pkgutil
 import re
 from collections import namedtuple
-import warnings
 
 import qiskit
-from qiskit import mapper
 from ._basebackend import BaseBackend
 from .. import QISKitError
 
@@ -250,47 +248,24 @@ def get_backend_instance(backend_name):
         configuration=registered_backend.configuration)
 
 
-def configuration(backend_name, list_format=True):
+def configuration(backend_name):
     """Return the configuration for the named backend.
 
     Args:
         backend_name (str): the backend name
-        list_format (bool): to use the old format or new format for coupling map
 
     Returns:
         dict: configuration dict
 
     Raises:
         LookupError: if backend is unavailable
-
-    .. versionchanged:: 0.5
-        Since version 0.5, the dictionary format of coupling_map is deprecated.
-        Please use a list format for the coupling_map.
     """
     try:
         config = _REGISTERED_BACKENDS[backend_name].configuration
-        if not config['local']:
-            # THIS IS A HACK TO CONVERT THE BACKEND TO THE OLD LIST FORMAT IF THE USER NEEDS IT
-            config_edit = config
-            if config['coupling_map'] == 'all-to-all':
-                config_edit['coupling_map'] = config['coupling_map']
-            else:
-                coupling_map = config['coupling_map']
-                if not list_format:
-                    # THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
-                    # DICTIONARY FORMAT OF THE COUPLING MAP
-                    warnings.warn(
-                        "The dictionary format of coupling_map will be deprecated in upcoming "
-                        "versions (>0.5.0). Please use a list format for the coupling_map",
-                        DeprecationWarning)
-                    coupling_map = mapper.coupling_list2dict(coupling_map)
-                config_edit['coupling_map'] = coupling_map
-            return config_edit
-        else:
-            return config
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-
+    else:
+        return config
 
 def calibration(backend_name):
     """Return the calibration for the named backend.

@@ -900,15 +900,13 @@ class QuantumProgram(object):
         my_backend = qiskit.backends.get_backend_instance(backend)
         return my_backend.status
 
-    def get_backend_configuration(self, backend, list_format=True):
+    def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
 
         The return is via QX API call.
 
         Args:
             backend (str):  Name of the backend.
-            list_format (bool): structure used for the configuration coupling
-                map: dict (if False) or list (if True).
 
         Returns:
             dict: The configuration of the named backend.
@@ -929,7 +927,7 @@ class QuantumProgram(object):
 
         if self.__api:
             qiskit.backends.discover_remote_backends(self.__api)
-        return qiskit.backends.configuration(backend, list_format)
+        return qiskit.backends.configuration(backend)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
