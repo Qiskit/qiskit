@@ -24,7 +24,6 @@ from threading import Lock
 
 import numpy as np
 
-import qiskit.backends
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result,
                     RegisterSizeError)
@@ -1406,7 +1405,7 @@ class TestQuantumProgram(QiskitTestCase):
         q_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmqx_qasm_simulator'
         shots = 1  # the number of shots in the experiment.
-        status = qiskit.backends.status(backend)
+        status = q_program.get_backend_status(backend)
         if not status.get('available', False):
             pass
         else:
