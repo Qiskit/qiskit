@@ -55,28 +55,25 @@ class Barrier(Instruction):
         self._modifiers(circ._attach(Barrier(self.arg, self)))
 
 
-def barrier(self, q=None):
-    """Apply barrier to circuit in q.
-    If q is None, applies to all the qbits.
-    If q is a QuantumRegister, applies to all the qbits in that register.
-    If q is a list of QuantumRegister, applies to all of them."""
-    qregs = self.get_qregs().values() if q is None else []
+def barrier(self, *args):
+    """Apply barrier to circuit.
+    If args is None, applies to all the qbits.
+    If args is a QuantumRegister, applies to all the qbits in that register.
+    If args is a list of QuantumRegister, applies to all of them."""
+
     qubits = []
-    if isinstance(q, tuple):
-        qubits.append(q)
 
-    if isinstance(q, list):
-        qubits += q
+    if len(args) == 0 : #None
+        for qreg in self.get_qregs().values():
+            for j in range(qreg.size):
+                qubits.append((qreg, j))
 
-    if isinstance(q, QuantumRegister):
-        qregs.append(q)
-
-    for qreg in qregs:
-        for j in range(qreg.size):
-            qubits.append((qreg, j))
-
-    if len(qubits) == 0:
-        self._check_qubit(q)
+    for arg in args:
+        if isinstance(arg, QuantumRegister):
+            for j in range(arg.size):
+                qubits.append((arg, j))
+        else:
+            qubits.append(arg)
 
     self._check_dups(qubits)
     for qubit in qubits:

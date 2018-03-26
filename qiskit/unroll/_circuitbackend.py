@@ -167,11 +167,9 @@ class CircuitBackend(UnrollerBackend):
         if self.listen:
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
-            print(qubitlists)
             flatlist = map(self._map_qubit,
                            [qubit for qubitlist in qubitlists
                             for qubit in qubitlist])
-            print(list(flatlist))
             self.circuit.barrier(*list(flatlist))
 
     def reset(self, qubit):
