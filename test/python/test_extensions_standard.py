@@ -791,6 +791,18 @@ class TestStandard(QiskitTestCase):
         c.x(self.q[1])
         self.assertResult(XGate, 'x q[1];', 'x q[1];')
 
+    def test_x_reg(self):
+        qasm_txt = 'x q[0];\nx q[1];\nx q[2];'
+        instruction_set = self.circuit.x(self.q)
+        self.assertStmtsType(instruction_set.instructions, XGate)
+        self.assertQasm(qasm_txt)
+
+    def test_x_reg_inv(self):
+        qasm_txt = 'x q[0];\nx q[1];\nx q[2];'
+        instruction_set = self.circuit.x(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, XGate)
+        self.assertQasm(qasm_txt)
+
     def test_y(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.y, self.c[0])
