@@ -85,7 +85,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.q = QuantumRegister("q", 3)
         self.c = ClassicalRegister("c", 3)
         self.circuit = QuantumCircuit(self.q, self.c)
-        self.c_header = 58 # lenght of the header
+        self.c_header = 58  # lenght of the header
 
     def test_barrier(self):
         c = self.circuit

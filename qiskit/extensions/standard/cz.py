@@ -60,16 +60,16 @@ def cz(self, ctl, tgt):
         return instructions
 
     if isinstance(ctl, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(ctl.size):
-            gs.add(self.cz((ctl, j), tgt))
-        return gs
+            instructions.add(self.cz((ctl, j), tgt))
+        return instructions
 
     if isinstance(tgt, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(tgt.size):
-            gs.add(self.cz(ctl, (tgt,j)))
-        return gs
+            instructions.add(self.cz(ctl, (tgt, j)))
+        return instructions
 
     self._check_qubit(ctl)
     self._check_qubit(tgt)

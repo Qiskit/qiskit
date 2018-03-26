@@ -64,7 +64,7 @@ def cu1(self, theta, ctl, tgt):
     if isinstance(ctl, QuantumRegister):
         instructions = InstructionSet()
         for j in range(ctl.size):
-            instructions.add(self.cu1(theta, (ctl,j), tgt))
+            instructions.add(self.cu1(theta, (ctl, j), tgt))
         return instructions
 
     if isinstance(tgt, QuantumRegister):
