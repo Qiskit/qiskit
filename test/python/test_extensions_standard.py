@@ -717,6 +717,19 @@ class TestStandard(QiskitTestCase):
         c.u2(1, 2, self.q[1])
         self.assertResult(U2Gate, 'u2(1,2) q[1];', 'u2(-pi - 2,-1 + pi) q[1];')
 
+
+    def test_u2_reg(self):
+        qasm_txt = 'u2(1,2) q[0];\nu2(1,2) q[1];\nu2(1,2) q[2];'
+        instruction_set = self.circuit.u2(1, 2, self.q)
+        self.assertStmtsType(instruction_set.instructions, U2Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_u2_reg_inv(self):
+        qasm_txt = 'u2(-pi - 2,-1 + pi) q[0];\nu2(-pi - 2,-1 + pi) q[1];\nu2(-pi - 2,-1 + pi) q[2];'
+        instruction_set = self.circuit.u2(1, 2, self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, U2Gate)
+        self.assertQasm(qasm_txt, offset=1)
+
     def test_u2_pi(self):
         c = self.circuit
         c.u2(pi / 2, 0.3 * pi, self.q[1])
