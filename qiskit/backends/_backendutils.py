@@ -116,7 +116,7 @@ def discover_remote_backends(api):
             config_edit['basis_gates'] = config['gateSet']
             del config_edit['gate_set']
         # ibmqx_qasm_simulator doesn't report coupling_map
-        if ('coupling_map' not in config_edit.keys() and config['simulator']):
+        if 'coupling_map' not in config_edit.keys() and config['simulator']:
             config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
@@ -150,7 +150,7 @@ def update_backends(api=None):
     return backend_name_list
 
 
-def register_backend(cls, configuration=None):
+def register_backend(cls, configuration_=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -161,7 +161,7 @@ def register_backend(cls, configuration=None):
 
     Args:
         cls (class): a subclass of BaseBackend that contains a backend
-        configuration (dict): backend configuration to use instead of class'
+        configuration_ (dict): backend configuration to use instead of class'
             default.
 
     Returns:
@@ -181,7 +181,7 @@ def register_backend(cls, configuration=None):
         raise QISKitError('Could not register backend: %s is not a subclass '
                           'of BaseBackend' % cls)
     try:
-        backend_instance = cls(configuration=configuration)
+        backend_instance = cls(configuration=configuration_)
     except Exception as err:
         raise QISKitError('Could not register backend: %s could not be '
                           'instantiated: %s' % (cls, err))

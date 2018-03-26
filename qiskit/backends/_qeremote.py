@@ -21,14 +21,17 @@ This module is used for connecting to the Quantum Experience.
 import time
 import logging
 import pprint
+import re
 from qiskit.backends._basebackend import BaseBackend
-from qiskit.backends._backendutils import _snake_case_to_camel_case
 from qiskit import _openquantumcompiler as openquantumcompiler
 from qiskit import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
+
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
 class QeRemote(BaseBackend):
@@ -242,3 +245,9 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                                   'status': job_result['qasms'][index]['status']})
     return {'job_id': jobid, 'status': job_result['status'],
             'result': job_result_return}
+
+# this is also in _backendutils but using that was creating cyclic import.
+def _snake_case_to_camel_case(name):
+    """Return a snake case string from a camelcase string."""
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
