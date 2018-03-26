@@ -595,13 +595,15 @@ class TestStandard(QiskitTestCase):
 
     def test_sdg_reg(self):
         qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
-        c = self.circuit
-        instruction_set = c.sdg(self.q)
+        instruction_set = self.circuit.sdg(self.q)
         self.assertStmtsType(instruction_set.instructions, SGate)
         self.assertQasm(qasm_txt)
-        instruction_set = c.sdg(self.q).inverse()
+
+    def test_sdg_reg_inv(self):
+        qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
+        instruction_set = self.circuit.sdg(self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, SGate)
-        self.assertQasm('s q[0];\ns q[1];\ns q[2];', offset=len(qasm_txt) + 2)
+        self.assertQasm('s q[0];\ns q[1];\ns q[2];', offset=len(qasm_txt) - 28)
 
     def test_swap(self):
         c = self.circuit
