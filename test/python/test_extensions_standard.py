@@ -143,6 +143,43 @@ class TestStandard(QiskitTestCase):
         c.crz(1, self.q[0], self.q[1])
         self.assertResult(CrzGate, 'crz(1) q[0],q[1];', 'crz(-1) q[0],q[1];')
 
+    def test_crz_reg_reg(self):
+        qasm_txt = 'crz(1) q[0],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[2];'
+        instruction_set = self.circuit.crz(1, self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_reg_inv(self):
+        qasm_txt = 'crz(-1) q[0],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[2];'
+        instruction_set = self.circuit.crz(1, self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_bit(self):
+        qasm_txt = 'crz(1) q[0],r[1];\ncrz(1) q[1],r[1];\ncrz(1) q[2],r[1];'
+        instruction_set = self.circuit.crz(1, self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_reg_bit_inv(self):
+        qasm_txt = 'crz(-1) q[0],r[1];\ncrz(-1) q[1],r[1];\ncrz(-1) q[2],r[1];'
+        instruction_set = self.circuit.crz(1, self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_bit_reg(self):
+        qasm_txt = 'crz(1) q[1],r[0];\ncrz(1) q[1],r[1];\ncrz(1) q[1],r[2];'
+        instruction_set = self.circuit.crz(1, self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+    def test_crz_bit_reg_inv(self):
+        qasm_txt = 'crz(-1) q[1],r[0];\ncrz(-1) q[1],r[1];\ncrz(-1) q[1],r[2];'
+        instruction_set = self.circuit.crz(1, self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CrzGate)
+        self.assertQasm(qasm_txt)
+
+
     def test_cswap(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1], self.c[2])
