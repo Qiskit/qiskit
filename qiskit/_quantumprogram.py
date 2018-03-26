@@ -756,7 +756,7 @@ class QuantumProgram(object):
         Please use qiskit.backends.local_backends() + \
         qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
         local = qiskit.backends.local_backends()
-        remote = qiskit.backends.discover_remote_backends(self.__api)
+        remote = qiskit.backends.remote_backends()
         return local + remote
 
     def online_backends(self):
@@ -773,7 +773,7 @@ class QuantumProgram(object):
         """
         warnings.warn("online_backends is going to be deprecated. \
         Please use qiskit.backends.discover_remote_backends(api)", DeprecationWarning)
-        return qiskit.backends.discover_remote_backends(self.__api)
+        return qiskit.backends.remote_backends()
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -785,7 +785,7 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
         """
         online_simulators_list = []
-        online_backends = qiskit.backends.discover_remote_backends(self.__api)
+        online_backends = qiskit.backends.remote_backends()
         warnings.warn("online_simulators is going to be deprecated. \
         Do we actually need this function", DeprecationWarning)
         for backend in online_backends:
@@ -804,7 +804,7 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
         """
         online_device_list = []
-        online_backends = qiskit.backends.discover_remote_backends(self.__api)
+        online_backends = qiskit.backends.remote_backends()
         warnings.warn("online_devices is going to be deprecated. \
         Do we actually need this function", DeprecationWarning)
         for backend in online_backends:

@@ -580,7 +580,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists (even if offline).
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        q_program.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         available_backends = q_program.available_backends()
         # print(available_backends)
         self.assertTrue(available_backends)
@@ -592,7 +593,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        q_program.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         online_backends = q_program.online_backends()
         # print(online_backends)
         self.log.info(online_backends)
@@ -605,7 +607,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists. NEED internet connection for this.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        qp.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         online_simulators = qp.online_simulators()
         # print(online_simulators)
         self.log.info(online_simulators)
@@ -618,7 +621,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct some should exists. NEED internet connection for this.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        qp.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         online_devices = qp.online_devices()
         # print(online_devices)
         self.log.info(online_devices)
@@ -665,7 +669,8 @@ class TestQuantumProgram(QiskitTestCase):
         qp = QuantumProgram(specs=self.QPS_SPECS)
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
-        qp.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         backend_list = qp.online_backends()
         if backend_list:
             backend = backend_list[0]
@@ -690,7 +695,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return dictionary on length 4.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        q_program.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
@@ -706,7 +712,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return dictionary on length 4.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
-        q_program.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         backend_list = q_program.online_backends()
         if backend_list:
             backend = backend_list[0]
