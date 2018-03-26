@@ -584,7 +584,6 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         available_backends = q_program.available_backends()
-        # print(available_backends)
         self.assertTrue(available_backends)
 
     @requires_qe_access
@@ -597,7 +596,6 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         online_backends = q_program.online_backends()
-        # print(online_backends)
         self.log.info(online_backends)
         self.assertTrue(online_backends)
 
@@ -611,7 +609,6 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         online_simulators = qp.online_simulators()
-        # print(online_simulators)
         self.log.info(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
 
@@ -625,7 +622,6 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         online_devices = qp.online_devices()
-        # print(online_devices)
         self.log.info(online_devices)
         self.assertTrue(isinstance(online_devices, list))
 
@@ -636,7 +632,6 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         out = q_program.get_backend_status("local_qasm_simulator")
-        # print(out)
         self.assertIn(out['available'], [True])
 
     def test_backend_status_fail(self):
@@ -657,7 +652,6 @@ class TestQuantumProgram(QiskitTestCase):
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
         backend_config = qp.get_backend_configuration("local_qasm_simulator")
-        # print(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
     @requires_qe_access
@@ -675,7 +669,6 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
-        # print(backend_config)
         self.log.info(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
@@ -685,7 +678,6 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return LookupError.
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
-        # qp.configuration("fail")
         self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
 
     @requires_qe_access
@@ -700,7 +692,6 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_calibration(backend)
-        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -716,7 +707,6 @@ class TestQuantumProgram(QiskitTestCase):
         if backend_list:
             backend = backend_list[0]
         result = q_program.get_backend_parameters(backend)
-        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -1378,7 +1368,6 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         backend = 'ibmqx_qasm_simulator'
-        # print(backend)
         result = q_program.execute(['qc'], backend=backend,
                                    shots=shots, max_credits=3,
                                    seed=73846087)
@@ -1560,7 +1549,6 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
-        # print(q_program.get_qasm('new_circuit'))
         self.assertEqual(result.get_counts('new_circuit'),
                          {'00': 505, '01': 519})
 

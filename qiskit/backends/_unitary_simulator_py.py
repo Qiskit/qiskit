@@ -113,7 +113,7 @@ class UnitarySimulator(BaseBackend):
         """Initial the UnitarySimulator object."""
         super().__init__(configuration)
         if configuration is None:
-            self._configuration = {'name': 'local_unitary_simulator',
+            self._configuration = {'name': 'local_unitary_simulator_py',
                                    'url': 'https://github.com/QISKit/qiskit-sdk-py',
                                    'simulator': True,
                                    'local': True,

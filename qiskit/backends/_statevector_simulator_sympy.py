@@ -134,7 +134,7 @@ class SympyQasmSimulator(BaseBackend):
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {
-                'name': 'local_sympy_qasm_simulator',
+                'name': 'local_statevector_simulator_sympy',
                 'url': 'https://github.com/QISKit/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
