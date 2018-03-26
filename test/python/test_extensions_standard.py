@@ -78,7 +78,7 @@ class TestStandard(QiskitTestCase):
     def test_barrier_None(self):
         c = self.circuit
         c.barrier()
-        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];\n'
+        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_ccx(self):
@@ -98,6 +98,42 @@ class TestStandard(QiskitTestCase):
         c.ch(self.q[0], self.q[1])
         qasm_txt = 'ch q[0],q[1];'
         self.assertResult(CHGate, qasm_txt, qasm_txt)
+
+    def test_ch_reg_reg(self):
+        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
+        instruction_set = self.circuit.ch(self.q, self.r)
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_reg_reg_inv(self):
+        qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
+        instruction_set = self.circuit.ch(self.q, self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_reg_bit(self):
+        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
+        instruction_set = self.circuit.ch(self.q, self.r[1])
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_reg_bit_inv(self):
+        qasm_txt = 'ch q[0],r[1];\nch q[1],r[1];\nch q[2],r[1];'
+        instruction_set = self.circuit.ch(self.q, self.r[1]).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_bit_reg(self):
+        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
+        instruction_set = self.circuit.ch(self.q[1], self.r)
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
+
+    def test_ch_bit_reg_inv(self):
+        qasm_txt = 'ch q[1],r[0];\nch q[1],r[1];\nch q[1],r[2];'
+        instruction_set = self.circuit.ch(self.q[1], self.r).inverse()
+        self.assertStmtsType(instruction_set.instructions, CHGate)
+        self.assertQasm(qasm_txt)
 
     def test_crz(self):
         c = self.circuit
