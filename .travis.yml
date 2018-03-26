@@ -51,7 +51,9 @@ stage_linux: &stage_linux
   dist: trusty
   language: python
   python: 3.5
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False"
+  env:
+    CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False"
+    LOG_LEVEL=10
   addons:
     apt:
       sources:
