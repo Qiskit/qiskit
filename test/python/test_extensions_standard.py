@@ -810,6 +810,18 @@ class TestStandard(QiskitTestCase):
         c.y(self.q[1])
         self.assertResult(YGate, 'y q[1];', 'y q[1];')
 
+    def test_y_reg(self):
+        qasm_txt = 'y q[0];\ny q[1];\ny q[2];'
+        instruction_set = self.circuit.y(self.q)
+        self.assertStmtsType(instruction_set.instructions, YGate)
+        self.assertQasm(qasm_txt)
+
+    def test_y_reg_inv(self):
+        qasm_txt = 'y q[0];\ny q[1];\ny q[2];'
+        instruction_set = self.circuit.y(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, YGate)
+        self.assertQasm(qasm_txt)
+
     def test_z(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.z, self.c[0])
