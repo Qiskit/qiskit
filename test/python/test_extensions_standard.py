@@ -703,7 +703,7 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'u1(-1) q[0];\nu1(-1) q[1];\nu1(-1) q[2];'
         instruction_set = self.circuit.u1(1, self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, U1Gate)
-        self.assertQasm(qasm_txt, offset=1)
+        self.assertQasm(qasm_txt)
 
     def test_u1_pi(self):
         c = self.circuit
@@ -728,7 +728,7 @@ class TestStandard(QiskitTestCase):
         qasm_txt = 'u2(-pi - 2,-1 + pi) q[0];\nu2(-pi - 2,-1 + pi) q[1];\nu2(-pi - 2,-1 + pi) q[2];'
         instruction_set = self.circuit.u2(1, 2, self.q).inverse()
         self.assertStmtsType(instruction_set.instructions, U2Gate)
-        self.assertQasm(qasm_txt, offset=1)
+        self.assertQasm(qasm_txt)
 
     def test_u2_pi(self):
         c = self.circuit
@@ -742,6 +742,18 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
         c.u3(1, 2, 3, self.q[1])
         self.assertResult(U3Gate, 'u3(1,2,3) q[1];', 'u3(-1,-3,-2) q[1];')
+
+    def test_u3_reg(self):
+        qasm_txt = 'u3(1,2,3) q[0];\nu3(1,2,3) q[1];\nu3(1,2,3) q[2];'
+        instruction_set = self.circuit.u3(1, 2, 3, self.q)
+        self.assertStmtsType(instruction_set.instructions, U3Gate)
+        self.assertQasm(qasm_txt)
+
+    def test_u3_reg_inv(self):
+        qasm_txt = 'u3(-1,-3,-2) q[0];\nu3(-1,-3,-2) q[1];\nu3(-1,-3,-2) q[2];'
+        instruction_set = self.circuit.u3(1, 2, 3, self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, U3Gate)
+        self.assertQasm(qasm_txt)
 
     def test_u3_pi(self):
         c = self.circuit
