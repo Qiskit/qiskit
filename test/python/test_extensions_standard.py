@@ -75,7 +75,7 @@ class StandardExtensionTest(QiskitTestCase):
         c = self.circuit
         c_txt = len(qasm_txt)
         self.assertIn(qasm_txt, c.qasm())
-        self.assertEqual(self.c_header + c_txt + offset, len(c.qasm())) #pylint: disable=no-member
+        self.assertEqual(self.c_header + c_txt + offset, len(c.qasm()))  # pylint: disable=no-member
 
 
 class TestStandard1Q(StandardExtensionTest):
@@ -560,7 +560,7 @@ class TestStandard2Q(StandardExtensionTest):
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_barrier_reg_bit(self):
-        self.circuit.barrier(self.q,self.r[0])
+        self.circuit.barrier(self.q, self.r[0])
         qasm_txt = 'barrier q[0],q[1],q[2],r[0];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
@@ -888,6 +888,7 @@ class TestStandard2Q(StandardExtensionTest):
         self.assertStmtsType(instruction_set.instructions, SwapGate)
         self.assertQasm(qasm_txt)
 
+
 class TestStandard3Q(StandardExtensionTest):
     """Standard Extension Test. Gates with three Qubits"""
 
@@ -931,6 +932,7 @@ class TestStandard3Q(StandardExtensionTest):
         instruction_set = self.circuit.cswap(self.q, self.r, self.s).inverse()
         self.assertStmtsType(instruction_set.instructions, FredkinGate)
         self.assertQasm(qasm_txt)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
