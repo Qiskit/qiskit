@@ -656,6 +656,18 @@ class TestStandard(QiskitTestCase):
         c.t(self.q[1])
         self.assertResult(TGate, 't q[1];', 'tdg q[1];')
 
+    def test_t_reg(self):
+        qasm_txt = 't q[0];\nt q[1];\nt q[2];'
+        instruction_set = self.circuit.t(self.q)
+        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertQasm(qasm_txt)
+
+    def test_t_reg_inv(self):
+        qasm_txt = 'tdg q[0];\ntdg q[1];\ntdg q[2];'
+        instruction_set = self.circuit.t(self.q).inverse()
+        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertQasm(qasm_txt, offset=len(qasm_txt) - 28)
+
     def test_tdg(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.tdg, self.c[0])
