@@ -64,10 +64,10 @@ class U3Gate(Gate):
 def u3(self, theta, phi, lam, q):
     """Apply u3 to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u3(theta, phi, lam, (q, j)))
-        return gs
+            instructions.add(self.u3(theta, phi, lam, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(U3Gate(theta, phi, lam, q, self))

@@ -54,10 +54,10 @@ class U1Gate(Gate):
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u1(theta, (q, j)))
-        return gs
+            instructions.add(self.u1(theta, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(U1Gate(theta, q, self))

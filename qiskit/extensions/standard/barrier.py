@@ -29,9 +29,9 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, arg, circ):
+    def __init__(self, args, circ):
         """Create new barrier instruction."""
-        super().__init__("barrier", [], list(arg), circ)
+        super().__init__("barrier", [], list(args), circ)
 
     def inverse(self):
         """Special case. Return self."""
