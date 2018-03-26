@@ -72,7 +72,7 @@ class ProjectQSimulator(BaseBackend):
             raise ImportError('Project Q C++ simulator unavailable.')
         if configuration is None:
             self._configuration = {
-                'name': 'local_projectq_simulator',
+                'name': 'local_qasm_simulator_projectq',
                 'url': 'https://projectq.ch',
                 'simulator': True,
                 'local': True,

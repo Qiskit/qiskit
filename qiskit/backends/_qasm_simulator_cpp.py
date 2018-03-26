@@ -95,7 +95,7 @@ class CliffordSimulatorCpp(BaseBackend):
 
         if not configuration:
             self._configuration = {
-                'name': 'local_clifford_simulator',
+                'name': 'local_clifford_simulator_cpp',
                 'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
                 'simulator': True,
                 'local': True,

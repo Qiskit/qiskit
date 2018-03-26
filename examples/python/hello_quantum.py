@@ -15,7 +15,7 @@ try:
     import Qconfig
     api = IBMQuantumExperience(token=Qconfig.APItoken,
                                config={'url': Qconfig.config['url']})
-    remote_backends = qiskit.backends.discover_remote_backends(api)
+    remote_backends = qiskit.backends.remote_backends(api)
 except:
     print("""WARNING: There's no connection with IBMQuantumExperience servers.
              Have you initialized a Qconfig.py file with your personal token?
