@@ -52,10 +52,10 @@ class SGate(CompositeGate):
 def s(self, q):
     """Apply S to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.s((q, j)))
-        return gs
+            instructions.add(self.s((q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(SGate(q, self))
