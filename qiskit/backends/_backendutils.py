@@ -28,6 +28,7 @@ import warnings
 
 import qiskit
 from qiskit import mapper
+from qiskit._util import show_deprecation_warnings
 from ._basebackend import BaseBackend
 from .. import QISKitError
 
@@ -262,6 +263,10 @@ def configuration(backend_name, list_format=True):
 
     Raises:
         LookupError: if backend is unavailable
+
+    .. versionchanged:: 0.5
+        Since version 0.5, the dictionary format of coupling_map is deprecated.
+        Please use a list format for the coupling_map.
     """
     try:
         config = _REGISTERED_BACKENDS[backend_name].configuration
@@ -275,8 +280,11 @@ def configuration(backend_name, list_format=True):
                 if not list_format:
                     # THIS IS KEEP AROUND FOR CODE THAT IS STILL USING THE
                     # DICTIONARY FORMAT OF THE COUPLING MAP
-                    warnings.warn("dictionary format of coupling_map will be deprecated. Please \
-                    rewrite code using a list format for the coupling_map", DeprecationWarning)
+                    with show_deprecation_warnings:
+                        warnings.warn(
+                            "The dictionary format of coupling_map will be deprecated in upcoming "
+                            "versions (>0.5.0). Please use a list format for the coupling_map",
+                            DeprecationWarning)
                     coupling_map = mapper.coupling_list2dict(coupling_map)
                 config_edit['coupling_map'] = coupling_map
             return config_edit
