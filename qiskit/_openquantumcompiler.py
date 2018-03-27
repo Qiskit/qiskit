@@ -83,6 +83,8 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     final_layout = None
     # if a coupling map is given compile to the map
     if coupling_map:
+        coupling_map = mapper.coupling_list2dict(coupling_map)
+    if coupling_map:
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
         # Insert swap gates

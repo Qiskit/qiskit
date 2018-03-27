@@ -1176,7 +1176,7 @@ class QuantumProgram(object):
             if config is None:
                 config = {}  # default to empty config dict
             job["config"] = copy.deepcopy(config)
-            job["config"]["coupling_map"] = mapper.coupling_dict2list(coupling_map)
+            job["config"]["coupling_map"] = coupling_map
             # TODO: Jay: make config options optional for different backends
             # Map the layout to a format that can be json encoded
             list_layout = None
