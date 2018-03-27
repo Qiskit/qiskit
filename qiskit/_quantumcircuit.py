@@ -62,7 +62,7 @@ class QuantumCircuit(object):
 
     def get_qregs(self):
         """Get the qregs from the registers."""
-        qregs = {}
+        qregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, QuantumRegister):
                 qregs[name] = register
@@ -70,7 +70,7 @@ class QuantumCircuit(object):
 
     def get_cregs(self):
         """Get the cregs from the registers."""
-        cregs = {}
+        cregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, ClassicalRegister):
                 cregs[name] = register
