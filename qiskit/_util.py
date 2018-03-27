@@ -16,8 +16,10 @@
 # =============================================================================
 """Common utilities for QISKit."""
 
-import sys
 import logging
+import re
+import sys
+import warnings
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
@@ -85,5 +87,27 @@ def _check_ibmqx_version():
                    str(ibmqx_require))
 
 
+def _enable_deprecation_warnings():
+    """
+    Force the `DeprecationWarning` warnings to be displayed for the qiskit
+    module, overriding the system configuration as they are ignored by default
+    [1] for end-users.
+
+    TODO: on Python 3.7, this might not be needed due to PEP-0565 [2].
+
+    [1] https://docs.python.org/3/library/warnings.html#default-warning-filters
+    [2] https://www.python.org/dev/peps/pep-0565/
+    """
+    # pylint: disable=invalid-name
+    deprecation_filter = ('always', None, DeprecationWarning,
+                          re.compile(r'^qiskit\.*', re.UNICODE), 0)
+
+    # Instead of using warnings.simple_filter() directly, the internal
+    # _add_filter() function is used for being able to match against the
+    # module.
+    warnings._add_filter(*deprecation_filter, append=False)
+
+
 _check_python_version()
 _check_ibmqx_version()
+_enable_deprecation_warnings()
