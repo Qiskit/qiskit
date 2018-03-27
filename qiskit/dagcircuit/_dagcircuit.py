@@ -1140,7 +1140,7 @@ class DAGCircuit:
                 self._remove_op_node(n)
 
     def layers(self):
-        """Return a list of layers for all d layers of this circuit.
+        """Yield a layer for all d layers of this circuit.
 
         A layer is a circuit whose gates act on disjoint qubits, i.e.
         a layer has depth 1. The total number of layers equals the
@@ -1154,7 +1154,6 @@ class DAGCircuit:
         layers as this is currently implemented. This may not be
         the desired behavior.
         """
-        layers_list = []
         # node_map contains an input node or previous layer node for
         # each wire in the circuit.
         node_map = copy.deepcopy(self.input_map)
@@ -1227,21 +1226,18 @@ class DAGCircuit:
                         emit = True
             if emit:
                 l_dict = {"graph": new_layer, "partition": support_list}
-                layers_list.append(l_dict)
+                yield l_dict
                 emit = False
             else:
                 if wires_with_ops_remaining:
                     raise QISKitError("not finished but empty?")
 
-        return layers_list
-
     def serial_layers(self):
-        """Return a list of layers for all gates of this circuit.
+        """Yield a layer for all gates of this circuit.
 
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
         """
-        layers_list = []
         for n in nx.topological_sort(self.multi_graph):
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
@@ -1268,8 +1264,7 @@ class DAGCircuit:
                     # support_list.append(list(set(qa) | set(ca) | set(cob)))
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
-                layers_list.append(l_dict)
-        return layers_list
+                yield l_dict
 
     def collect_runs(self, namelist):
         """Return a set of runs of "op" nodes with the given names.
