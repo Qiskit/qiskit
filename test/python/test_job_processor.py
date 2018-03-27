@@ -212,7 +212,8 @@ class TestJobProcessor(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         backend = 'ibmqx_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
-        qp.set_api(QE_TOKEN, QE_URL)
+        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
+        qiskit.backends.discover_remote_backends(api)
         _ = qp.execute(['qc'], backend=backend, shots=shots, seed=78)
 
     def test_run_job_processor_local_parallel(self):

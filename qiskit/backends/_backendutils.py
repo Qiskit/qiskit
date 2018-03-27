@@ -25,7 +25,7 @@ import pkgutil
 import re
 from collections import namedtuple
 
-from qiskit import mapper
+import qiskit
 from ._basebackend import BaseBackend
 from .. import QISKitError
 
@@ -89,41 +89,36 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
 
 
 def discover_remote_backends(api):
-    """Discover backends available on the Quantum Experience
+    """Discover backends available from IBM Q
 
     Args:
-        api (IBMQuantumExperience): Quantum Experience API
+        api (IBMQuantumExperience): IBM Q API
     Returns:
         list: list of discovered backend names
     """
     from ._qeremote import QeRemote
     QeRemote.set_api(api)
-    configuration_list = api.available_backends()
+    config_list = api.available_backends()
     backend_name_list = []
-    for configuration in configuration_list:
-        configuration_edit = {}
-        backend_name = configuration['name']
+    for config in config_list:
+        config_edit = {}
+        backend_name = config['name']
         backend_name_list.append(backend_name)
-        configuration_edit['local'] = False
-        for key in configuration.keys():
+        config_edit['local'] = False
+        for key in config.keys():
             new_key = _snake_case_to_camel_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
-                configuration_edit[new_key] = configuration[key]
-            if new_key == 'coupling_map':
-                if isinstance(configuration[key], list):
-                    cmap = mapper.coupling_list2dict(configuration[key])
-                    configuration_edit[new_key] = cmap
+                config_edit[new_key] = config[key]
         # online_qasm_simulator uses different name for basis_gates
-        if 'gateSet' in configuration:
-            configuration_edit['basis_gates'] = configuration['gateSet']
-            del configuration_edit['gate_set']
+        if 'gateSet' in config:
+            config_edit['basis_gates'] = config['gateSet']
+            del config_edit['gate_set']
         # ibmqx_qasm_simulator doesn't report coupling_map
-        if ('coupling_map' not in configuration_edit.keys() and
-                configuration['simulator']):
-            configuration_edit['coupling_map'] = 'all-to-all'
+        if 'coupling_map' not in config_edit.keys() and config['simulator']:
+            config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
-                                               configuration_edit)
+                                               config_edit)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
@@ -153,7 +148,7 @@ def update_backends(api=None):
     return backend_name_list
 
 
-def register_backend(cls, configuration=None):
+def register_backend(cls, configuration_=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -164,7 +159,7 @@ def register_backend(cls, configuration=None):
 
     Args:
         cls (class): a subclass of BaseBackend that contains a backend
-        configuration (dict): backend configuration to use instead of class'
+        configuration_ (dict): backend configuration to use instead of class'
             default.
 
     Returns:
@@ -184,7 +179,7 @@ def register_backend(cls, configuration=None):
         raise QISKitError('Could not register backend: %s is not a subclass '
                           'of BaseBackend' % cls)
     try:
-        backend_instance = cls(configuration=configuration)
+        backend_instance = cls(configuration=configuration_)
     except Exception as err:
         raise QISKitError('Could not register backend: %s could not be '
                           'instantiated: %s' % (cls, err))
@@ -207,7 +202,7 @@ def deregister_backend(backend_name):
     """Remove backend from list of available backens
 
     Args:
-        backend_name (str): name of backend to unregister
+        backend_name (str): name of backend to deregister
 
     Raises:
         KeyError if backend_name is not registered.
@@ -247,13 +242,13 @@ def get_backend_instance(backend_name):
     """
     try:
         registered_backend = _REGISTERED_BACKENDS[backend_name]
+        return registered_backend.cls(
+            configuration=registered_backend.configuration)
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    return registered_backend.cls(
-        configuration=registered_backend.configuration)
 
 
-def get_backend_configuration(backend_name):
+def configuration(backend_name):
     """Return the configuration for the named backend.
 
     Args:
@@ -267,6 +262,65 @@ def get_backend_configuration(backend_name):
     """
     try:
         return _REGISTERED_BACKENDS[backend_name].configuration
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+
+
+def calibration(backend_name):
+    """Return the calibration for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        dict: calibration dict
+
+    Raises:
+        LookupError: if backend is unavailable
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.calibration
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+
+
+def parameters(backend_name):
+    """Return the online backend parameters.
+
+    Args:
+        backend_name (str):  Name of the backend.
+
+    Returns:
+        dict: The parameters of the named backend.
+
+    Raises:
+        ConnectionError: if the API call failed.
+        LookupError: If parameters for the named backend can't be
+            found.
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.parameters
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+
+
+def status(backend_name):
+    """Return the status for the named backend.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        dict: status dict
+
+    Raises:
+        LookupError: if backend is unavailable
+    """
+    try:
+        backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.status
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
