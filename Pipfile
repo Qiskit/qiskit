@@ -19,7 +19,3 @@ better-apidoc = "==0.1.2"
 sphinxcontrib-fulltoc = "==1.2.0"
 coverage = ">=4.4.0"
 
-
-[requires]
-
-python_version = "3.6"
