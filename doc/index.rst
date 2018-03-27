@@ -42,9 +42,7 @@ Main Modules
 Authors (alphabetical)
 ======================
 
-Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
-Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez, and John Smolin,
-Erick Winston, Chris Wood.
-
-In future releases, anyone who contributes code to this project can include
-their name here.
+Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
+Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
+Erick Winston and Chris Wood,
+along with `many contributors <https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTORS.md>`_.
