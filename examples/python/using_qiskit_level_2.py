@@ -1,7 +1,11 @@
 """
+<<<<<<< HEAD
 Example showing how to use qiskit at level 2.
 
 See level 1 if you would like to understand how to compile
+=======
+Example showing how to use qiskit.
+>>>>>>> Adding execute
 
 Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.

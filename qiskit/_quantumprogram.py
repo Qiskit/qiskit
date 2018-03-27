@@ -1021,7 +1021,7 @@ class QuantumProgram(object):
                 "Using the coupling_map as a list recommended.", DeprecationWarning)
 
         list_of_circuits = []
-        if isinstance(name_of_circuits, str):
+        if isinstance(name_of_circuits, qiskit.QuantumCircuit):
             name_of_circuits = [name_of_circuits]
         if name_of_circuits:
             for name in name_of_circuits:

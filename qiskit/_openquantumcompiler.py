@@ -74,13 +74,12 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         QISKitCompilerError: if the format is not valid.
     """
     warnings.warn(
-        "openquantumcompuler will be deprecated in upcoming versions (>0.5.0). "
+        "openquantumcompiler will be deprecated in upcoming versions (>0.5.0). "
         "Using qiskit.compile instead is recommended.", DeprecationWarning)
 
     compiled_circuit = compile_circuit(quantum_circuit, basis_gates, coupling_map,
                                        initial_layout, get_layout, format)
     return compiled_circuit
-
 
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
