@@ -27,6 +27,7 @@ import string
 import re
 from threading import Event
 import copy
+import warnings
 
 # use the external IBMQuantumExperience Library
 import itertools
@@ -96,8 +97,6 @@ class QuantumProgram(object):
                 }
         __init_circuit (obj): A quantum circuit object for the initial quantum
             circuit
-        __ONLINE_BACKENDS (list[str]): A list of online backends
-        __LOCAL_BACKENDS (list[str]): A list of local backends
      """
     # -- FUTURE IMPROVEMENTS --
     # TODO: for status results make ALL_CAPS (check) or some unified method
@@ -110,9 +109,7 @@ class QuantumProgram(object):
         self.__quantum_registers = {}
         self.__classical_registers = {}
         self.__quantum_program = {}  # stores all the quantum programs
-        self.__init_circuit = None  # stores the intial quantum circuit of the program
-        self.__ONLINE_BACKENDS = []  # pylint: disable=invalid-name
-        self.__LOCAL_BACKENDS = qiskit.backends.local_backends()  # pylint: disable=invalid-name
+        self.__init_circuit = None  # stores the initial quantum circuit of the program
         self.__counter = itertools.count()
         self.mapper = mapper
         if specs:
@@ -174,16 +171,16 @@ class QuantumProgram(object):
                             }]
                         }],
         """
-        quantumr = []
-        classicalr = []
+        quantum_r = []
+        classical_r = []
         if "circuits" in specs:
             for circuit in specs["circuits"]:
-                quantumr = self.create_quantum_registers(
+                quantum_r = self.create_quantum_registers(
                     circuit["quantum_registers"])
-                classicalr = self.create_classical_registers(
+                classical_r = self.create_classical_registers(
                     circuit["classical_registers"])
-                self.create_circuit(name=circuit.get("name"), qregisters=quantumr,
-                                    cregisters=classicalr)
+                self.create_circuit(name=circuit.get("name"), qregisters=quantum_r,
+                                    cregisters=classical_r)
                 # TODO: Jay: I think we should return function handles for the
                 # registers and circuit. So that we dont need to get them after we
                 # create them with get_quantum_register etc
@@ -309,7 +306,7 @@ class QuantumProgram(object):
                 is not defined (or None) a random name wil be assigned.
 
         Returns:
-            list(ClassicalRegister): Array of clasical registers objects
+            list(ClassicalRegister): Array of classical registers objects
         """
         new_registers = []
         for register in registers_array:
@@ -479,6 +476,76 @@ class QuantumProgram(object):
         self.add_circuit(name, circuit_unrolled)
         return name
 
+    def save(self, file_name=None, beauty=False):
+        """ Save Quantum Program in a Json file.
+
+        Args:
+            file_name (str): file name and path.
+            beauty (boolean): save the text with indent 4 to make it readable.
+
+        Returns:
+            dict: The dictionary with the status and result of the operation
+
+        Raises:
+            LookupError: if the file_name is not correct, or writing to the
+                file resulted in an error.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+
+        if beauty:
+            indent = 4
+        else:
+            indent = 0
+
+        elements_to_save = self.__quantum_program
+        elements_saved = {}
+
+        for circuit in elements_to_save:
+            elements_saved[circuit] = {}
+            elements_saved[circuit]["qasm"] = elements_to_save[circuit].qasm()
+
+        try:
+            with open(file_name, 'w') as save_file:
+                json.dump(elements_saved, save_file, indent=indent)
+            return {'status': 'Done', 'result': elements_to_save}
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
+            raise LookupError(error['result'])
+
+    def load(self, file_name=None):
+        """ Load Quantum Program Json file into the Quantum Program object.
+
+        Args:
+            file_name (str): file name and path.
+
+        Returns:
+            dict: The dictionary with the status and result of the operation
+
+        Raises:
+            LookupError: if the file_name is not correct, or reading from the
+                file resulted in an error.
+        """
+        if file_name is None:
+            error = {"status": "Error", "result": "Not filename provided"}
+            raise LookupError(error['result'])
+
+        try:
+            with open(file_name, 'r') as load_file:
+                elements_loaded = json.load(load_file)
+
+            for circuit in elements_loaded:
+                circuit_qasm = elements_loaded[circuit]["qasm"]
+                elements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
+            self.__quantum_program = elements_loaded
+
+            return {"status": 'Done', 'result': self.__quantum_program}
+
+        except ValueError:
+            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
+            raise LookupError(error['result'])
+
     ###############################################################
     # methods to get elements from a QuantumProgram
     ###############################################################
@@ -605,7 +672,7 @@ class QuantumProgram(object):
                 proxies=None, verify=True):
         """ Setup the API.
 
-        Fills the __ONLINE_BACKENDS, __api, and __api_config variables.
+        Fills the __api, and __api_config variables.
         Does not catch exceptions from IBMQuantumExperience.
 
         Args:
@@ -622,7 +689,16 @@ class QuantumProgram(object):
         Raises:
             ConnectionError: if the API instantiation failed.
             QISKitError: if no hub, group or project were specified.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            API object instead is recommended.
         """
+        # TODO: remove the tests as well when the deprecation is completed
+
+        warnings.warn(
+            "set_api() will be deprecated in upcoming versions (>0.5.0). "
+            "Using the API object instead is recommended.", DeprecationWarning)
         try:
             config_dict = {
                 'url': url,
@@ -641,8 +717,6 @@ class QuantumProgram(object):
                 root_exception = None
             raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
                                   .format(ex)) from root_exception
-        qiskit.backends.discover_remote_backends(self.__api)
-        self.__ONLINE_BACKENDS = self.online_backends()
         self.__api_config["token"] = token
         self.__api_config["config"] = config_dict.copy()
 
@@ -652,7 +726,14 @@ class QuantumProgram(object):
             hub (str): The hub used for online backend.
             group (str): The group used for online backend.
             project (str): The project used for online backend.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            API object instead is recommended.
         """
+        warnings.warn(
+            "set_api_hubs_config() will be deprecated in upcoming versions (>0.5.0). "
+            "Using the API object instead is recommended.", DeprecationWarning)
         config_dict = {
             'hub': hub,
             'group': group,
@@ -664,86 +745,49 @@ class QuantumProgram(object):
             self.__api_config['config'][key] = value
 
     def get_api_config(self):
-        """Return the program specs."""
+        """Return the program specs.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            API object instead is recommended.
+        """
+        warnings.warn(
+            "get_api_config() will be deprecated in upcoming versions (>0.5.0). "
+            "Using the API object instead is recommended.", DeprecationWarning)
+
         return self.__api_config
 
     def get_api(self):
-        """Returns a function handle to the API."""
+        """Returns a function handle to the API.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            API object instead is recommended.
+        """
+        warnings.warn(
+            "get_api() will be deprecated in upcoming versions (>0.5.0). "
+            "Using the API object instead is recommended.", DeprecationWarning)
+
         return self.__api
 
-    def save(self, file_name=None, beauty=False):
-        """ Save Quantum Program in a Json file.
-
-        Args:
-            file_name (str): file name and path.
-            beauty (boolean): save the text with indent 4 to make it readable.
-
-        Returns:
-            dict: The dictionary with the status and result of the operation
-
-        Raises:
-            LookupError: if the file_name is not correct, or writing to the
-                file resulted in an error.
-        """
-        if file_name is None:
-            error = {"status": "Error", "result": "Not filename provided"}
-            raise LookupError(error['result'])
-
-        if beauty:
-            indent = 4
-        else:
-            indent = 0
-
-        elemements_to_save = self.__quantum_program
-        elements_saved = {}
-
-        for circuit in elemements_to_save:
-            elements_saved[circuit] = {}
-            elements_saved[circuit]["qasm"] = elemements_to_save[circuit].qasm()
-
-        try:
-            with open(file_name, 'w') as save_file:
-                json.dump(elements_saved, save_file, indent=indent)
-            return {'status': 'Done', 'result': elemements_to_save}
-        except ValueError:
-            error = {'status': 'Error', 'result': 'Some Problem happened to save the file'}
-            raise LookupError(error['result'])
-
-    def load(self, file_name=None):
-        """ Load Quantum Program Json file into the Quantum Program object.
-
-        Args:
-            file_name (str): file name and path.
-
-        Returns:
-            dict: The dictionary with the status and result of the operation
-
-        Raises:
-            LookupError: if the file_name is not correct, or reading from the
-                file resulted in an error.
-        """
-        if file_name is None:
-            error = {"status": "Error", "result": "Not filename provided"}
-            raise LookupError(error['result'])
-
-        try:
-            with open(file_name, 'r') as load_file:
-                elemements_loaded = json.load(load_file)
-
-            for circuit in elemements_loaded:
-                circuit_qasm = elemements_loaded[circuit]["qasm"]
-                elemements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
-            self.__quantum_program = elemements_loaded
-
-            return {"status": 'Done', 'result': self.__quantum_program}
-
-        except ValueError:
-            error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
-            raise LookupError(error['result'])
-
     def available_backends(self):
-        """All the backends that are seen by QISKIT."""
-        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
+        """All the backends that are seen by QISKIT.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
+        """
+        warnings.warn(
+            "available_backends() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.local_backends() and "
+            "qiskit.backends.remote_backends() instead is recommended.",
+            DeprecationWarning)
+
+        local = qiskit.backends.local_backends()
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        remote = qiskit.backends.remote_backends()
+        return local + remote
 
     def online_backends(self):
         """Get the online backends.
@@ -756,15 +800,19 @@ class QuantumProgram(object):
 
         Raises:
             ConnectionError: if the API call failed.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            return [backend['name'] for backend in backends]
-        return []
+        warnings.warn(
+            "online_backends() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.remote_backends() object instead is recommended.",
+            DeprecationWarning)
+
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        return qiskit.backends.remote_backends()
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -774,17 +822,25 @@ class QuantumProgram(object):
 
         Raises:
             ConnectionError: if the API call failed.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
+        warnings.warn(
+            "online_simulators() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.remote_backends() instead is recommended.",
+            DeprecationWarning)
+
         online_simulators_list = []
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for backend in backends:
-                if backend['simulator']:
-                    online_simulators_list.append(backend['name'])
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        online_backends = qiskit.backends.remote_backends()
+
+        for backend in online_backends:
+            config = qiskit.backends.configuration(backend)
+            if config['simulator']:
+                online_simulators_list.append(backend)
         return online_simulators_list
 
     def online_devices(self):
@@ -795,18 +851,26 @@ class QuantumProgram(object):
 
         Raises:
             ConnectionError: if the API call failed.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
-        devices = []
-        if self.get_api():
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for backend in backends:
-                if not backend['simulator']:
-                    devices.append(backend['name'])
-        return devices
+        warnings.warn(
+            "online_devices() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.remote_backends() instead is recommended.",
+            DeprecationWarning)
+
+        online_device_list = []
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        online_backends = qiskit.backends.remote_backends()
+
+        for backend in online_backends:
+            config = qiskit.backends.configuration(backend)
+            if not config['simulator']:
+                online_device_list.append(backend)
+        return online_device_list
 
     def get_backend_status(self, backend):
         """Return the online backend status.
@@ -823,28 +887,28 @@ class QuantumProgram(object):
         Raises:
             ConnectionError: if the API call failed.
             ValueError: if the backend is not available.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
+        warnings.warn(
+            "get_backend_status() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.get_backend_instance('name').status "
+            "instead is recommended.", DeprecationWarning)
 
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                return self.__api.backend_status(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend status: {0}"
-                                      .format(ex))
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'available': True}
-        else:
-            raise ValueError('the backend "{0}" is not available'.format(backend))
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        return my_backend.status
 
-    def get_backend_configuration(self, backend, list_format=False):
+    def get_backend_configuration(self, backend):
         """Return the configuration of the backend.
 
         The return is via QX API call.
 
         Args:
             backend (str):  Name of the backend.
-            list_format (bool): Struct used for the configuration coupling
-                map: dict (if False) or list (if True).
 
         Returns:
             dict: The configuration of the named backend.
@@ -853,37 +917,19 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             LookupError: if a configuration for the named backend can't be
                 found.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
-        if self.get_api():
-            configuration_edit = {}
-            try:
-                backends = self.__api.available_backends()
-            except Exception as ex:
-                raise ConnectionError("Couldn't get available backend list: {0}"
-                                      .format(ex))
-            for configuration in backends:
-                if configuration['name'] == backend:
-                    for key in configuration:
-                        new_key = convert(key)
-                        # TODO: removed these from the API code
-                        if new_key not in ['id', 'serial_number', 'topology_id',
-                                           'status', 'coupling_map']:
-                            configuration_edit[new_key] = configuration[key]
-                        if new_key == 'coupling_map':
-                            if configuration[key] == 'all-to-all':
-                                configuration_edit[new_key] = \
-                                    configuration[key]
-                            else:
-                                if not list_format:
-                                    cmap = mapper.coupling_list2dict(configuration[key])
-                                else:
-                                    cmap = configuration[key]
-                                configuration_edit[new_key] = cmap
-                    return configuration_edit
-            raise LookupError('Configuration for %s could not be found.' %
-                              backend)
-        else:
-            return qiskit.backends.get_backend_configuration(backend)
+        warnings.warn(
+            "get_backend_configuration() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.get_backend_instance('name').configuration "
+            "instead is recommended.", DeprecationWarning)
+
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        return qiskit.backends.configuration(backend)
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
@@ -900,23 +946,20 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             LookupError: If a configuration for the named backend can't be
                 found.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                calibrations = self.__api.backend_calibration(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend calibration: {0}"
-                                      .format(ex))
-            calibrations_edit = {}
-            for key, vals in calibrations.items():
-                new_key = convert(key)
-                calibrations_edit[new_key] = vals
-            return calibrations_edit
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'backend': backend, 'calibrations': None}
-        else:
-            raise LookupError(
-                'backend calibration for "{0}" not found'.format(backend))
+        warnings.warn(
+            "get_backend_calibration() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.get_backend_instance('name').calibration "
+            "instead is recommended.", DeprecationWarning)
+
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        return my_backend.calibration
 
     def get_backend_parameters(self, backend):
         """Return the online backend parameters.
@@ -933,23 +976,20 @@ class QuantumProgram(object):
             ConnectionError: if the API call failed.
             LookupError: If a configuration for the named backend can't be
                 found.
+
+        .. deprecated:: 0.5
+            This method will be deprecated in upcoming versions. Using the
+            qiskit.backends family of functions instead is recommended.
         """
-        if backend in self.__ONLINE_BACKENDS:
-            try:
-                parameters = self.__api.backend_parameters(backend)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend parameters: {0}"
-                                      .format(ex))
-            parameters_edit = {}
-            for key, vals in parameters.items():
-                new_key = convert(key)
-                parameters_edit[new_key] = vals
-            return parameters_edit
-        elif backend in self.__LOCAL_BACKENDS:
-            return {'backend': backend, 'parameters': None}
-        else:
-            raise LookupError(
-                'backend parameters for "{0}" not found'.format(backend))
+        warnings.warn(
+            "get_backend_parameters() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.backends.get_backend_instance('name').parameters"
+            "instead is recommended.", DeprecationWarning)
+
+        my_backend = qiskit.backends.get_backend_instance(backend)
+        if self.__api:
+            qiskit.backends.discover_remote_backends(self.__api)
+        return my_backend.parameters
 
     ###############################################################
     # methods to compile quantum programs into qobj
@@ -989,7 +1029,7 @@ class QuantumProgram(object):
             initial_layout (dict): A mapping of qubit to qubit::
 
                 {
-                ("q", strart(int)): ("q", final(int)),
+                ("q", start(int)): ("q", final(int)),
                 ...
                 }
                 eg.
@@ -1083,7 +1123,7 @@ class QuantumProgram(object):
             hpc = None
 
         qobj['circuits'] = []
-        backend_conf = qiskit.backends.get_backend_configuration(backend)
+        backend_conf = qiskit.backends.configuration(backend)
         if not basis_gates:
             if 'basis_gates' in backend_conf:
                 basis_gates = backend_conf['basis_gates']
@@ -1245,7 +1285,7 @@ class QuantumProgram(object):
         raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
 
     def get_compiled_qasm(self, qobj, name):
-        """Return the compiled cricuit in qasm format.
+        """Return the compiled circuit in qasm format.
 
         Args:
             qobj (dict): the qobj
@@ -1464,7 +1504,7 @@ class QuantumProgram(object):
             Result: status done and populates the internal __quantum_program with the
             data
         """
-        # TODO: Jay: currently basis_gates, coupling_map, intial_layout, shots,
+        # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
         qobj = self.compile(name_of_circuits=name_of_circuits, backend=backend, config=config,
