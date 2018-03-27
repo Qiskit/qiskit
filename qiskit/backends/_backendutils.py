@@ -242,10 +242,10 @@ def get_backend_instance(backend_name):
     """
     try:
         registered_backend = _REGISTERED_BACKENDS[backend_name]
+        return registered_backend.cls(
+            configuration=registered_backend.configuration)
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    return registered_backend.cls(
-        configuration=registered_backend.configuration)
 
 
 def configuration(backend_name):
@@ -280,10 +280,9 @@ def calibration(backend_name):
     """
     try:
         backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.calibration
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    else:
-        return backend.calibration
 
 
 def parameters(backend_name):
@@ -302,10 +301,9 @@ def parameters(backend_name):
     """
     try:
         backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.parameters
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    else:
-        return backend.parameters
 
 
 def status(backend_name):
@@ -322,10 +320,9 @@ def status(backend_name):
     """
     try:
         backend = qiskit.backends.get_backend_instance(backend_name)
+        return backend.status
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    else:
-        return backend.status
 
 
 def local_backends():

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,broad-except
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -28,17 +28,12 @@ from .common import requires_qe_access, QiskitTestCase
 class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
 
-    def setUp(self):
-        # pylint: disable=redefined-outer-name,unused-variable
-        QiskitTestCase.setUp(self)
-
     def test_local_backends_discover(self):
         """Test if there are local backends.
 
         If all correct some should exists.
         """
         local = qiskit.backends.discover_local_backends()
-        # print(local)
         self.log.info(local)
         self.assertTrue(local)
 
@@ -48,7 +43,6 @@ class TestBackends(QiskitTestCase):
         If all correct some should exists.
         """
         local = qiskit.backends.local_backends()
-        # print(local)
         self.log.info(local)
         self.assertTrue(local)
 
@@ -60,7 +54,6 @@ class TestBackends(QiskitTestCase):
         """
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         remote = qiskit.backends.discover_remote_backends(api)
-        # print(remote)
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -73,7 +66,6 @@ class TestBackends(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         remote = qiskit.backends.remote_backends()
-        # print(remote)
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -84,7 +76,6 @@ class TestBackends(QiskitTestCase):
         """
         my_backend = qiskit.backends.get_backend_instance('local_qasm_simulator')
         out = my_backend.status
-        # print(out)
         self.assertIn(out['available'], [True])
 
     def test_get_backend_configuration(self):
@@ -97,7 +88,6 @@ class TestBackends(QiskitTestCase):
         backend_config = my_backend.configuration
         config_keys = {'name', 'simulator', 'local', 'description',
                        'coupling_map', 'basis_gates'}
-        # print(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
     @requires_qe_access
@@ -115,7 +105,6 @@ class TestBackends(QiskitTestCase):
             backend = backend_list[0]
         my_backend = qiskit.backends.get_backend_instance(backend)
         backend_config = my_backend.configuration
-        # print(backend_config)
         self.log.info(backend_config)
         self.assertTrue(config_keys < backend_config.keys())
 
@@ -131,7 +120,6 @@ class TestBackends(QiskitTestCase):
             backend = backend_list[0]
         my_backend = qiskit.backends.get_backend_instance(backend)
         result = my_backend.calibration
-        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 
@@ -147,7 +135,6 @@ class TestBackends(QiskitTestCase):
             backend = backend_list[0]
         my_backend = qiskit.backends.get_backend_instance(backend)
         result = my_backend.parameters
-        # print(result)
         self.log.info(result)
         self.assertEqual(len(result), 4)
 

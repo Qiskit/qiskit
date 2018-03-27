@@ -694,6 +694,8 @@ class QuantumProgram(object):
             This method will be deprecated in upcoming versions. Using the
             API object instead is recommended.
         """
+        # TODO: remove the tests as well when the deprecation is completed
+
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using the API object instead is recommended.", DeprecationWarning)

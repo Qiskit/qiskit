@@ -130,22 +130,23 @@ class QeRemote(BaseBackend):
 
         Raises:
             ConnectionError: if the API call failed.
-            LookupError: If a configuration for the backend can't be
-                found.
+            LookupError: If a configuration for the backend can't be found.
         """
-        if self._api:
-            try:
-                backend_name = self.configuration['name']
-                calibrations = self._api.backend_calibration(backend_name)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend calibration: {0}"
-                                      .format(ex))
-        else:
+        if not self._api:
             raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            calibrations = self._api.backend_calibration(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend calibration: {0}".format(ex))
+
         calibrations_edit = {}
         for key, vals in calibrations.items():
             new_key = _snake_case_to_camel_case(key)
             calibrations_edit[new_key] = vals
+
         return calibrations_edit
 
     @property
@@ -157,23 +158,24 @@ class QeRemote(BaseBackend):
 
         Raises:
             ConnectionError: if the API call faled.
-            LookupError: If parameters for the backend can't be
-                found.
+            LookupError: If parameters for the backend can't be found.
         """
-        if self._api:
-            try:
-                backend_name = self.configuration['name']
-                parameters = self._api.backend_parameters(backend_name)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend parameters: {0}"
-                                      .format(ex))
-            parameters_edit = {}
-            for key, vals in parameters.items():
-                new_key = _snake_case_to_camel_case(key)
-                parameters_edit[new_key] = vals
-            return parameters_edit
-        else:
+        if not self._api:
             raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            parameters = self._api.backend_parameters(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend parameters: {0}".format(ex))
+
+        parameters_edit = {}
+        for key, vals in parameters.items():
+            new_key = _snake_case_to_camel_case(key)
+            parameters_edit[new_key] = vals
+
+        return parameters_edit
 
     @property
     def status(self):
@@ -184,20 +186,19 @@ class QeRemote(BaseBackend):
 
         Raises:
             ConnectionError: if the API call failed.
-            LookupError: If status for the backend can't be
-                found.
+            LookupError: If status for the backend can't be found.
         """
-        if self._api:
-            try:
-                backend_name = self.configuration['name']
-                status = self._api.backend_status(backend_name)
-            except Exception as ex:
-                raise ConnectionError("Couldn't get backend status: {0}"
-                                      .format(ex))
-            else:
-                return status
-        else:
+        if not self._api:
             raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            status = self._api.backend_status(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend status: {0}".format(ex))
+
+        return status
 
 
 def _wait_for_job(jobid, api, wait=5, timeout=60):
