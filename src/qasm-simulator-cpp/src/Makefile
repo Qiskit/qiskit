@@ -6,11 +6,16 @@ OUTPUT_DIR = ../../../out/src/qasm-simulator-cpp
 CC = g++
 
 # Use Homebrew GNU g++ for enabling OpenMP on macOS
-
 OS:=$(shell uname)
 GCC7:=$(shell g++-7 --version | grep ^'command not found')
 ifeq ($(OS)$(GCC7),Darwin)
 	CC = g++-7
+endif
+
+# -march not supported on ppc64le (Power). Use -mcpu instead
+ARCH:=$(shell uname -m)
+ifeq ($(ARCH),ppc64le)
+	OPT = -O3 -mcpu=native -ffast-math
 endif
 
 # Check if compiler is Apple LLVM and doesn't support OpenMP
@@ -49,6 +54,9 @@ sim: main.o
 
 sim_debug: main.o
 	$(CC) -g $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp_debug ${OUTPUT_DIR}/main.o $(LIBS)
+
+depend: 
+	../build_dependencies.sh
 
 clean:
 	rm -rf ${OUTPUT_DIR}

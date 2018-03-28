@@ -57,6 +57,10 @@ sim:
 	make -C src/qasm-simulator-cpp/src clean
 	make -C src/qasm-simulator-cpp/src
 
+# Build dependencies for the simulator target
+depend:
+	make -C src/qasm-simulator-cpp depend
+
 coverage_erase:
 	coverage erase
 
