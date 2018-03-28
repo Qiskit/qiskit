@@ -52,10 +52,10 @@ class TGate(CompositeGate):
 def t(self, q):
     """Apply T to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.t((q, j)))
-        return gs
+            instructions.add(self.t((q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(TGate(q, self))
