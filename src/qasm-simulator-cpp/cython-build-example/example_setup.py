@@ -60,6 +60,12 @@ else:
     extra_compile_args.append('-fopenmp')
     extra_link_args.append('-fopenmp')
 
+# Remove -Wstrict-prototypes from cflags
+import distutils.sysconfig
+cfg_vars = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in cfg_vars:
+    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
 # Simulator extension
 qasm_simulator = Extension('qasm_simulator',
                            sources=['qasm_simulator.pyx'],
