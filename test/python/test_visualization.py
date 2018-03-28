@@ -39,7 +39,7 @@ except RuntimeError:
 class TestLatexDrawer(QiskitTestCase):
     """QISKit latex drawer tests."""
 
-    def randomCircuit(self, width, depth, max_operands):
+    def randomCircuit(self, width=3, depth=3, max_operands=3):
         """Generate random circuit of arbitrary size.
         Note: the depth is the layers of independent operation. true depth
         in the image may be more for visualization purposes, if gates overlap.
@@ -52,10 +52,6 @@ class TestLatexDrawer(QiskitTestCase):
         Returns:
             QuantumCircuit: constructed circuit
         """
-        width = 3
-        depth = 3
-        max_operands = 3
-
         qr = qiskit.QuantumRegister("q", width)
         qc = qiskit.QuantumCircuit(qr)
 
@@ -94,50 +90,50 @@ class TestLatexDrawer(QiskitTestCase):
         qc = self.randomCircuit(1, 1, 1)
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
     def test_normal_circuit(self):
         filename = self._get_resource_path('test_normal.tex')
         qc = self.randomCircuit(5, 5, 3)
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
     def test_wide_circuit(self):
         filename = self._get_resource_path('test_wide.tex')
         qc = self.randomCircuit(100, 1, 1)
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
     def test_deep_circuit(self):
         filename = self._get_resource_path('test_deep.tex')
         qc = self.randomCircuit(1, 100, 1)
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
     def test_huge_circuit(self):
         filename = self._get_resource_path('test_huge.tex')
-        qc = self.randomCircuit(40, 15, 1)
+        qc = self.randomCircuit(40, 40, 1)
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
     def test_teleport(self):
         filename = self._get_resource_path('test_teleport.tex')
@@ -162,10 +158,10 @@ class TestLatexDrawer(QiskitTestCase):
         qc.measure(q[2], c[2])
         try:
             latex_drawer(qc, filename)
-        except Exception:
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            raise
 
 
 if __name__ == '__main__':
