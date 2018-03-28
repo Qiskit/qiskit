@@ -39,19 +39,14 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         quantum_circuit (QuantumCircuit): circuit to compile
         basis_gates (str): a comma seperated string and are the base gates,
                            which by default are: u1,u2,u3,cx,id
-        coupling_map (dict): A directed graph of coupling::
+        coupling_map (list): A graph of coupling::
 
-            {
-             control(int):
-                 [
-                     target1(int),
-                     target2(int),
-                     , ...
-                 ],
-                 ...
-            }
+            [
+             [control0(int), target0(int)],
+             [control1(int), target1(int)],
+            ]
 
-            eg. {0: [2], 1: [2], 3: [2]}
+            eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
         initial_layout (dict): A mapping of qubit to qubit::
 
@@ -89,7 +84,7 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
         # Insert swap gates
-        coupling = mapper.Coupling(coupling_map)
+        coupling = mapper.Coupling(mapper.coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = mapper.swap_mapper(
             compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)

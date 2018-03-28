@@ -825,13 +825,45 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(q[2], c[2])
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
-        coupling_map = {0: [1], 1: [2]}
+        coupling_map = [[0, 1], [1, 2]]
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2)}
         circuits = ["circuitName"]
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  coupling_map=coupling_map,
                                  initial_layout=initial_layout, seed=88)
+        result = q_program.run(qobj)
+        to_check = q_program.get_qasm("circuitName")
+        self.assertEqual(len(to_check), 160)
+        self.assertEqual(result.get_counts("circuitName"),
+                         {'000': 518, '111': 506})
+
+    def test_compile_coupling_map_as_dict(self):
+        """Test compile_coupling_map in dict format (to be deprecated).
+
+        TODO: This test is very specific, and should be removed when the only
+        format allowed for the coupling map is a `list`.
+        """
+        q_program = QuantumProgram()
+        q = q_program.create_quantum_register("q", 3)
+        c = q_program.create_classical_register("c", 3)
+        qc = q_program.create_circuit("circuitName", [q], [c])
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.cx(q[0], q[2])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        backend = 'local_qasm_simulator'  # the backend to run on
+        shots = 1024  # the number of shots in the experiment.
+        coupling_map = {0: [1], 1: [2]}  # as dict
+        initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
+                          ("q", 2): ("q", 2)}
+        circuits = ["circuitName"]
+        with self.assertWarns(DeprecationWarning):
+            qobj = q_program.compile(circuits, backend=backend, shots=shots,
+                                     coupling_map=coupling_map,
+                                     initial_layout=initial_layout, seed=88)
         result = q_program.run(qobj)
         to_check = q_program.get_qasm("circuitName")
         self.assertEqual(len(to_check), 160)
@@ -901,8 +933,11 @@ class TestQuantumProgram(QiskitTestCase):
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
         backend = 'ibmqx5'
-        coupling_map = {1: [0, 2], 2: [3], 3: [4, 14], 5: [4], 6: [5, 7, 11], 7: [10], 8: [7],
-                        9: [8, 10], 11: [10], 12: [5, 11, 13], 13: [4, 14], 15: [0, 2, 14]}
+        coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
+                        [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
+                        [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
+                        [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+
         initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0),
                           ('qr', 2): ('q', 2), ('qr', 3): ('q', 3),
                           ('qr', 4): ('q', 4), ('qr', 5): ('q', 14),
@@ -1266,7 +1301,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 100  # the number of shots in the experiment.
         max_credits = 3
-        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
@@ -1288,7 +1323,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_qasm_simulator'  # the backend to run on
         shots = 100  # the number of shots in the experiment.
         max_credits = 3
-        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
                           ("q", 2): ("q", 2), ("q", 3): ("q", 3),
                           ("q", 4): ("q", 4)}
@@ -1552,11 +1587,10 @@ class TestQuantumProgram(QiskitTestCase):
 
         Pass if the results are correct.
         """
-        coupling_map = {0: [1, 2],
-                        1: [2],
-                        2: [],
-                        3: [2, 4],
-                        4: [2]}
+        coupling_map = [[0, 1], [0, 2],
+                        [1, 2],
+                        [3, 2], [3, 4],
+                        [4, 2]]
         QPS_SPECS = {
             "circuits": [
                 {
@@ -1620,11 +1654,10 @@ class TestQuantumProgram(QiskitTestCase):
 
         Uses the mapper. Pass if results are correct.
         """
-        backend = "ibmqx_qasm_simulator"
-        coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11],
-                        4: [5, 12], 5: [6, 13], 6: [7, 14], 7: [15], 8: [9],
-                        9: [10], 10: [11], 11: [12], 12: [13], 13: [14],
-                        14: [15]}
+        coupling_map = [[0, 1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10],
+                        [3, 4], [3, 11], [4, 5], [4, 12], [5, 6], [5, 13],
+                        [6, 7], [6, 14], [7, 15], [8, 9], [9, 10], [10, 11],
+                        [11, 12], [12, 13], [13, 14], [14, 15]]
 
         def swap(qc, q0, q1):
             """Swap gate."""
