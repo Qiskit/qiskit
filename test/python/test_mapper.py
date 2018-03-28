@@ -36,7 +36,7 @@ class MapperTest(QiskitTestCase):
         the issue #81: https://github.com/QISKit/qiskit-sdk-py/issues/81
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'), name='test')
-        coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
+        coupling_map = [[0, 2], [1, 2], [2, 3]]
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map)
         count1 = result1.get_counts("test")
@@ -51,7 +51,7 @@ class MapperTest(QiskitTestCase):
         See: https://github.com/QISKit/qiskit-sdk-py/issues/111
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
-        coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
+        coupling_map = [[0, 2], [1, 2], [2, 3]]
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
 
@@ -73,17 +73,17 @@ class MapperTest(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
-        cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
+        coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
         initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
         qobj = self.qp.compile(["Bell"], backend=backend,
-                               initial_layout=initial_layout, coupling_map=cmap)
+                               initial_layout=initial_layout, coupling_map=coupling_map)
 
         self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
         self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
-        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map, seed=self.seed)
         res = result1.get_counts("rand")
@@ -180,9 +180,11 @@ class MapperTest(QiskitTestCase):
         for j in range(16):
             qc.measure(qr[j], cr[j])
         backend = 'local_qasm_simulator'
-        cmap = {1: [0, 2], 2: [3], 3: [4, 14], 5: [4], 6: [5, 7, 11], 7: [10], 8: [7],
-                9: [8, 10], 11: [10], 12: [5, 11, 13], 13: [4, 14], 15: [0, 2, 14]}
-        qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=cmap)
+        coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
+                        [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
+                        [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
+                        [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+        qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
         cx_qubits = [x["qubits"]
                      for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
                      if x["name"] == "cx"]
