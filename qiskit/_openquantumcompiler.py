@@ -76,7 +76,7 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     compiled_dag_circuit = _unroller_code(qasm_circuit,
                                           basis_gates=basis_gates)
     final_layout = None
-    # if a coupling map is given compile to the map      
+    # if a coupling map is given compile to the map
     if coupling_map:
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
