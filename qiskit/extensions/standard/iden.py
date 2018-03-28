@@ -51,10 +51,10 @@ class IdGate(Gate):
 def iden(self, q):
     """Apply Identity to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.iden((q, j)))
-        return gs
+            instructions.add(self.iden((q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(IdGate(q, self))

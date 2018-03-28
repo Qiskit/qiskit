@@ -48,16 +48,16 @@ class YGate(Gate):
         self._modifiers(circuit.y(self.arg[0]))
 
 
-def y(self, quantum_register):
+def y(self, q):
     """Apply Y to q."""
-    if isinstance(quantum_register, QuantumRegister):
-        intructions = InstructionSet()
-        for register in range(quantum_register.size):
-            intructions.add(self.y((quantum_register, register)))
-        return intructions
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.y((q, j)))
+        return instructions
 
-    self._check_qubit(quantum_register)
-    return self._attach(YGate(quantum_register, self))
+    self._check_qubit(q)
+    return self._attach(YGate(q, self))
 
 
 QuantumCircuit.y = y

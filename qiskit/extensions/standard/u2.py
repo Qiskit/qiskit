@@ -62,10 +62,10 @@ class U2Gate(Gate):
 def u2(self, phi, lam, q):
     """Apply u2 to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u2(phi, lam, (q, j)))
-        return gs
+            instructions.add(self.u2(phi, lam, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(U2Gate(phi, lam, q, self))

@@ -20,6 +20,8 @@ Fredkin gate. Controlled-SWAP.
 """
 from qiskit import CompositeGate
 from qiskit import QuantumCircuit
+from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -40,6 +42,15 @@ class FredkinGate(CompositeGate):
 
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt1, QuantumRegister) and \
+       isinstance(tgt2, QuantumRegister) and \
+       len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
+        instructions = InstructionSet()
+        for i in range(ctl.size):
+            instructions.add(self.cswap((ctl, i), (tgt1, i), (tgt2, i)))
+        return instructions
+
     self._check_qubit(ctl)
     self._check_qubit(tgt1)
     self._check_qubit(tgt2)

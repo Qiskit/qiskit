@@ -53,14 +53,14 @@ class U0Gate(Gate):
 def u0(self, m, q):
     """Apply u0 with length m to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u0(m, (q, j)))
-        return gs
+            instructions.add(self.u0(m, (q, j)))
+        return instructions
+
     self._check_qubit(q)
     return self._attach(U0Gate(m, q, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.u0 = u0
 CompositeGate.u0 = u0
