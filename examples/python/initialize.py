@@ -67,7 +67,7 @@ desired_vector = [
     1 / math.sqrt(4) * complex(1, 0),
     1 / math.sqrt(8) * complex(1, 0)]
 
-circuit.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2], qr[3]])
+circuit.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
 
 circuit.measure(qr[0], cr[0])
 circuit.measure(qr[1], cr[1])
