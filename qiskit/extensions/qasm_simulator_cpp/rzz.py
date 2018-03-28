@@ -93,7 +93,7 @@ QuantumCircuit.definitions["rzz"] = {
         node.CustomUnitary([
             node.Id("u1", 0, ""),
             node.ExpressionList([
-                node.Id("phi", 0, "")
+                node.Id("theta", 0, "")
             ]),
             node.PrimaryList([
                 node.Id("b", 0, "")
