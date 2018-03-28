@@ -46,7 +46,7 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
              [control1(int), target1(int)],
             ]
 
-            eg. {0: [2], 1: [2], 3: [2]}
+            eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
         initial_layout (dict): A mapping of qubit to qubit::
 

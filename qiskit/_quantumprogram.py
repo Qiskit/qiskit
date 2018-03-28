@@ -1005,8 +1005,8 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[hashable] or None): circuit names to be compiled. If None, all
-                the circuits will be compiled.
+            name_of_circuits (list[hashable] or hashable or None): circuit
+                names to be compiled. If None, all the circuits will be compiled.
             backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
                 compiler.
@@ -1019,7 +1019,7 @@ class QuantumProgram(object):
                     [control1(int), target1(int)],
                 ]
 
-                eg. [[0, 2], [1, 2], [3, 2]}
+                eg. [[0, 2], [1, 2], [3, 2]]
 
             initial_layout (dict): A mapping of qubit to qubit::
 
@@ -1085,6 +1085,10 @@ class QuantumProgram(object):
             ValueError: if no names of the circuits have been specified.
             QISKitError: if any of the circuit names cannot be found on the
                 Quantum Program.
+
+        .. deprecated:: 0.5
+            The `coupling_map` parameter as a dictionary will be deprecated in
+            upcoming versions. Using the coupling_map as a list is recommended.
         """
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
@@ -1456,8 +1460,9 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[hashable] or None): circuit names to be
-                executed. If None, all the circuits will be executed.
+            name_of_circuits (list[hashable] or hashable or None): circuit
+                names to be executed. If None, all the circuits will be
+                executed.
             backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
                 compiler.
@@ -1465,18 +1470,15 @@ class QuantumProgram(object):
             timeout (int): Total time to wait until the execution stops
             basis_gates (str): a comma separated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id.
-            coupling_map (dict): A directed graph of coupling::
+            coupling_map (list): A graph of coupling::
 
-                                {
-                                control(int):
-                                    [
-                                        target1(int),
-                                        target2(int),
-                                        , ...
-                                    ],
-                                    ...
-                                }
-                                eg. {0: [2], 1: [2], 3: [2]}
+                [
+                    [control0(int), target0(int)],
+                    [control1(int), target1(int)],
+                ]
+
+                eg. [[0, 2], [1, 2], [3, 2]]
+
             initial_layout (dict): A mapping of qubit to qubit
                                   {
                                   ("q", start(int)): ("q", final(int)),
@@ -1507,6 +1509,10 @@ class QuantumProgram(object):
         Returns:
             Result: status done and populates the internal __quantum_program with the
             data
+
+        .. deprecated:: 0.5
+            The `coupling_map` parameter as a dictionary will be deprecated in
+            upcoming versions. Using the coupling_map as a list is recommended.
         """
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
