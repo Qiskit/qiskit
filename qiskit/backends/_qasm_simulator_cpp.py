@@ -159,15 +159,16 @@ class QASMSimulatorDecoder(json.JSONDecoder):
     def object_hook(self, obj):
         for key in ['U_error', 'density_matrix']:
             # JSON is a complex matrix
-            if key in obj:
+            if key in obj and isinstance(obj[key], list):
                 tmp = np.array(obj[key])
                 obj[key] = tmp[::, ::, 0] + 1j * tmp[::, ::, 1]
         for key in ['quantum_state', 'inner_products']:
             # JSON is a list of complex vectors
             if key in obj:
                 for j in range(len(obj[key])):
-                    tmp = np.array(obj[key][j])
-                    obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
+                    if isinstance(obj[key][j], list):
+                        tmp = np.array(obj[key][j])
+                        obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
         return obj
 
 
