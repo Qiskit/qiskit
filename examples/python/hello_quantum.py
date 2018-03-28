@@ -20,6 +20,7 @@ except:
     print("""WARNING: There's no connection with IBMQuantumExperience servers.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
+    remote_backends = {}
 local_backends = qiskit.backends.discover_local_backends()
 
 try:
