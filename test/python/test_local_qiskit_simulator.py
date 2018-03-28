@@ -44,6 +44,9 @@ class TestLocalQiskitSimulator(QiskitTestCase):
                                           '../test/python/qasm/example.qasm')
         with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
+            self.qasm_ast = qiskit.qasm.Qasm(data=self.qasm_text).parse()
+            self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
+            self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
         qr = QuantumRegister('q', 2)
         cr = ClassicalRegister('c', 2)
         qc = QuantumCircuit(qr, cr)
@@ -51,9 +54,9 @@ class TestLocalQiskitSimulator(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = openquantumcompiler.compile(self.qc.qasm(),
+        compiled_circuit1 = openquantumcompiler.compile(self.qc,
                                                         format='json')
-        compiled_circuit2 = openquantumcompiler.compile(self.qasm_text,
+        compiled_circuit2 = openquantumcompiler.compile(self.qasm_circ,
                                                         format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {

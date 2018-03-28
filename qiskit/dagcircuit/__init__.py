@@ -17,3 +17,4 @@
 
 """Module for DAG Circuits."""
 from ._dagcircuit import DAGCircuit
+from ._dagcircuiterror import DAGCircuitError
