@@ -786,12 +786,6 @@ class QuantumProgram(object):
         return qiskit.backends.local_backends(compact) + \
                qiskit.backends.remote_backends(compact)
 
-
-    def available_backends(self, compact=True):
-        """All the backends that are seen by QISKIT."""
-        return qiskit.backends.local_backends(compact) + \
-               qiskit.backends.remote_backends(compact)
-
     def online_backends(self):
         """Get the online backends.
 
