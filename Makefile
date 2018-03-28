@@ -54,8 +54,8 @@ doc:
 	done
 
 sim:
-	make -C src/cpp-simulator/src clean
-	make -C src/cpp-simulator/src
+	make -C src/qiskit-simulator/src clean
+	make -C src/qiskit-simulator/src
 
 coverage_erase:
 	coverage erase

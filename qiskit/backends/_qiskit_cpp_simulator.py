@@ -55,12 +55,13 @@ class QISKitCppSimulator(BaseBackend):
         if not configuration:
             self._configuration = {
                 'name': 'local_qiskit_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qiskit-simulator',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ realistic noise simulator for qobj files',
                 'coupling_map': 'all-to-all',
-                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot,wait,noise,save,load',
+                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz' +
+                               'snapshot,wait,noise,save,load'
             }
 
         # Try to use the default executable if not specified.
@@ -94,7 +95,7 @@ class CliffordCppSimulator(BaseBackend):
         if not configuration:
             self._configuration = {
                 'name': 'local_clifford_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qiskit-simulator',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ Clifford simulator with approximate noise',
@@ -159,15 +160,16 @@ class QASMSimulatorDecoder(json.JSONDecoder):
     def object_hook(self, obj):
         for key in ['U_error', 'density_matrix']:
             # JSON is a complex matrix
-            if key in obj:
+            if key in obj and isinstance(obj[key], list):
                 tmp = np.array(obj[key])
                 obj[key] = tmp[::, ::, 0] + 1j * tmp[::, ::, 1]
         for key in ['quantum_state', 'inner_products']:
             # JSON is a list of complex vectors
             if key in obj:
                 for j in range(len(obj[key])):
-                    tmp = np.array(obj[key][j])
-                    obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
+                    if isinstance(obj[key][j], list):
+                        tmp = np.array(obj[key][j])
+                        obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
         return obj
 
 
