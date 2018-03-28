@@ -39,17 +39,12 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         qasm_circuit (str): qasm text to compile
         basis_gates (str): a comma seperated string and are the base gates,
                            which by default are: u1,u2,u3,cx,id
-        coupling_map (dict): A directed graph of coupling::
+        coupling_map (list): A graph of coupling::
 
-            {
-             control(int):
-                 [
-                     target1(int),
-                     target2(int),
-                     , ...
-                 ],
-                 ...
-            }
+            [
+             [control0(int), target0(int)],
+             [control1(int), target1(int)],
+            ]
 
             eg. {0: [2], 1: [2], 3: [2]}
 

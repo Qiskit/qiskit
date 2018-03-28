@@ -1012,17 +1012,12 @@ class QuantumProgram(object):
                 compiler.
             basis_gates (str): a comma separated string and are the base gates,
                 which by default are provided by the backend.
-            coupling_map (dict): A directed graph of coupling::
+            coupling_map (list): A graph of coupling::
 
-                {
-                 control(int):
-                     [
-                         target1(int),
-                         target2(int),
-                         , ...
-                     ],
-                     ...
-                }
+                [
+                    [control0(int), target0(int)],
+                    [control1(int), target1(int)],
+                ]
 
                 eg. {0: [2], 1: [2], 3: [2]}
 
@@ -1076,7 +1071,7 @@ class QuantumProgram(object):
                             "compiled_circuit_qasm": --compiled quantum circuit (QASM format)--,
                             "config": --dictionary of additional config settings (dict)--,
                                 {
-                                "coupling_map": --adjacency list (dict)--,
+                                "coupling_map": --adjacency list (list)--,
                                 "basis_gates": --comma separated gate names (string)--,
                                 "layout": --layout computed by mapper (dict)--,
                                 "seed": (simulator only)--initial seed for the simulator (int)--,
@@ -1094,6 +1089,12 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout,
         # shots, max_credits and seed are extra inputs but I would like
         # them to go into the config.
+        if isinstance(coupling_map, dict):
+            coupling_map = qiskit.mapper.coupling_dict2list(coupling_map)
+            warnings.warn(
+                "coupling_map as a dictionary will be deprecated in upcoming versions (>0.5.0). "
+                "Using the coupling_map as a list recommended.", DeprecationWarning)
+
         qobj = {}
         if not qobj_id:
             qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
