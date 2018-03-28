@@ -76,14 +76,12 @@ def compile(qasm_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     compiled_dag_circuit = _unroller_code(qasm_circuit,
                                           basis_gates=basis_gates)
     final_layout = None
-    # if a coupling map is given compile to the map
-    if coupling_map:
-        coupling_map = mapper.coupling_list2dict(coupling_map)
+    # if a coupling map is given compile to the map      
     if coupling_map:
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
         # Insert swap gates
-        coupling = mapper.Coupling(coupling_map)
+        coupling = mapper.Coupling(mapper.coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = mapper.swap_mapper(
             compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)

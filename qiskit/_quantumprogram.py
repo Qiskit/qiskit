@@ -1019,7 +1019,7 @@ class QuantumProgram(object):
                     [control1(int), target1(int)],
                 ]
 
-                eg. {0: [2], 1: [2], 3: [2]}
+                eg. [[0, 2], [1, 2], [3, 2]}
 
             initial_layout (dict): A mapping of qubit to qubit::
 
