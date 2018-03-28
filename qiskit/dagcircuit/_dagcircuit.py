@@ -29,8 +29,13 @@ directly from the graph.
 """
 import itertools
 import copy
+from collections import OrderedDict
 import networkx as nx
 import sympy
+
+from qiskit import QuantumRegister
+from qiskit import QISKitError
+from qiskit import CompositeGate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -63,7 +68,7 @@ class DAGCircuit:
         # The signature is an integer tuple (nq,nc,np) specifying the
         # number of input qubits, input bits, and real parameters.
         # The definition is external to the circuit object.
-        self.basis = {}
+        self.basis = OrderedDict()
 
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
@@ -227,6 +232,7 @@ class DAGCircuit:
         """Add the definition of a gate.
 
         gatedata is dict with fields:
+        "print" = True or False
         "opaque" = True or False
         "n_args" = number of real parameters
         "n_bits" = number of qubits
@@ -364,7 +370,9 @@ class DAGCircuit:
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
             ie = list(self.multi_graph.predecessors(self.output_map[q]))
-            assert len(ie) == 1, "output node has multiple in-edges"
+            if len(ie) != 1:
+                raise QISKitError("output node has multiple in-edges")
+
             self.multi_graph.add_edge(ie[0], self.node_counter, name=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(
@@ -398,7 +406,9 @@ class DAGCircuit:
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
             ie = self.multi_graph.successors(self.input_map[q])
-            assert len(ie) == 1, "input node has multiple out-edges"
+            if len(ie) != 1:
+                raise QISKitError("input node has multiple out-edges")
+
             self.multi_graph.add_edge(self.node_counter, ie[0], name=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(
@@ -429,7 +439,9 @@ class DAGCircuit:
         NOTE: gates in input_circuit that are also in self must
         be *identical* to the gates in self
         """
-        union_gates = copy.deepcopy(self.gates)
+        union_gates = {}
+        for k, v in self.gates.items():
+            union_gates[k] = v
         for k, v in input_circuit.gates.items():
             if k not in union_gates:
                 union_gates[k] = v
@@ -575,11 +587,13 @@ class DAGCircuit:
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
-                assert m_name in self.output_map, \
-                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
-                assert nd["name"] in input_circuit.wire_type, \
-                    "inconsistent wire_type for (%s,%d) in input_circuit" \
-                    % (nd["name"][0], nd["name"][1])
+                if m_name not in self.output_map:
+                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+
+                if nd["name"] not in input_circuit.wire_type:
+                    raise QISKitError("inconsistent wire_type for (%s,%d) in input_circuit"
+                                      % (nd["name"][0], nd["name"][1]))
+
             elif nd["type"] == "out":
                 # ignore output nodes
                 pass
@@ -591,7 +605,7 @@ class DAGCircuit:
                 self.apply_operation_back(nd["name"], m_qargs, m_cargs,
                                           nd["params"], condition)
             else:
-                assert False, "bad node type %s" % nd["type"]
+                raise QISKitError("bad node type %s" % nd["type"])
 
     def compose_front(self, input_circuit, wire_map=None):
         """Apply the input circuit to the input of this circuit.
@@ -633,11 +647,14 @@ class DAGCircuit:
                 # if in wire_map, get new name, else use existing name
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
-                assert m_name in self.input_map, \
-                    "wire (%s,%d) not in self" % (m_name[0], m_name[1])
-                assert nd["name"] in input_circuit.wire_type, \
-                    "inconsistent wire_type for (%s,%d) in input_circuit" \
-                    % (nd["name"][0], nd["name"][1])
+                if m_name not in self.input_map:
+                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+
+                if nd["name"] not in input_circuit.wire_type:
+                    raise QISKitError(
+                        "inconsistent wire_type for (%s,%d) in input_circuit"
+                        % (nd["name"][0], nd["name"][1]))
+
             elif nd["type"] == "in":
                 # ignore input nodes
                 pass
@@ -649,7 +666,7 @@ class DAGCircuit:
                 self.apply_operation_front(nd["name"], m_qargs, m_cargs,
                                            nd["params"], condition)
             else:
-                assert False, "bad node type %s" % nd["type"]
+                raise QISKitError("bad node type %s" % nd["type"])
 
     def size(self):
         """Return the number of operations."""
@@ -657,7 +674,9 @@ class DAGCircuit:
 
     def depth(self):
         """Return the circuit depth."""
-        assert nx.is_directed_acyclic_graph(self.multi_graph), "not a DAG"
+        if not nx.is_directed_acyclic_graph(self.multi_graph):
+            raise QISKitError("not a DAG")
+
         return nx.dag_longest_path_length(self.multi_graph) - 1
 
     def width(self):
@@ -709,6 +728,7 @@ class DAGCircuit:
         if add_swap is True, add the definition of swap in terms of
         cx if necessary.
         """
+        # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
             qregdata = {}
@@ -732,10 +752,11 @@ class DAGCircuit:
             for k, v in sorted(self.cregs.items()):
                 out += "creg %s[%d];\n" % (k, v)
             omit = ["U", "CX", "measure", "reset", "barrier"]
+            # TODO: dagcircuit shouldn't know about extensions
             if qeflag:
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap"]
+                         "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             for k in self.basis.keys():
@@ -781,9 +802,10 @@ class DAGCircuit:
                             out += "%s %s;\n" % (nm, qarg)
                     else:
                         if nd["name"] == "measure":
-                            assert len(nd["cargs"]) == 1 and \
-                                len(nd["qargs"]) == 1 and \
-                                not nd["params"], "bad node data"
+                            if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
+                               or nd["params"]:
+                                raise QISKitError("bad node data")
+
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
                             if aliases:
@@ -796,11 +818,18 @@ class DAGCircuit:
                                       nd["cargs"][0][0],
                                       nd["cargs"][0][1])
                         else:
-                            assert False, "bad node data"
+                            raise QISKitError("bad node data")
+
         return out
 
-    def _check_wires_list(self, wires, name, input_circuit):
+    def _check_wires_list(self, wires, name, input_circuit, condition=None):
         """Check that a list of wires satisfies some conditions.
+
+        wires = list of (register_name, index) tuples
+        name = name of operation
+        input_circuit = replacement circuit for operation
+        condition = None or (creg_name, value) if this instance of the
+          operation is classically controlled
 
         The wires give an order for (qu)bits in the input circuit
         that is replacing the named operation.
@@ -813,6 +842,8 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate wires")
 
         wire_tot = self.basis[name][0] + self.basis[name][1]
+        if condition is not None:
+            wire_tot += self.cregs[condition[0]]
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
                                   % (wire_tot, len(wires)))
@@ -860,13 +891,16 @@ class DAGCircuit:
                 full_succ_map[w] = self.output_map[w]
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
-                assert len(list(self.multi_graph.predecessors(self.output_map[w]))) == 1,\
-                    "too many predecessors for (%s,%d) output node" % (
-                        w[0], w[1])
+                if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
+                    raise QISKitError(
+                        "too many predecessors for (%s,%d) output node" % (w[0], w[1])
+                    )
+
         return full_pred_map, full_succ_map
 
     def substitute_circuit_all(self, name, input_circuit, wires=None):
         """Replace every occurrence of named operation with input_circuit."""
+        # TODO: rewrite this method to call substitute_circuit_one
         wires = wires or None
         if name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations"
@@ -942,11 +976,13 @@ class DAGCircuit:
                         o_pred = list(self.multi_graph.predecessors(
                             self.output_map[w]))
                         if len(o_pred) > 1:
-                            assert len(o_pred) == 2, \
-                                "expected 2 predecessors here"
+                            if len(o_pred) != 2:
+                                raise QISKitError("expected 2 predecessors here")
+
                             p = [x for x in o_pred if x != full_pred_map[w]]
-                            assert len(p) == 1, \
-                                "expected 1 predecessor to pass filter"
+                            if len(p) != 1:
+                                raise QISKitError("expected 1 predecessor to pass filter")
+
                             self.multi_graph.remove_edge(
                                 p[0], self.output_map[w])
 
@@ -959,10 +995,8 @@ class DAGCircuit:
         wires = wires or None
         nd = self.multi_graph.node[node]
 
-        # TODO: reuse common code in substitute_circuit_one and _all
-
         name = nd["name"]
-        self._check_wires_list(wires, name, input_circuit)
+        self._check_wires_list(wires, name, input_circuit, nd["condition"])
         union_basis = self._make_union_basis(input_circuit)
         union_gates = self._make_union_gates(input_circuit)
 
@@ -983,9 +1017,8 @@ class DAGCircuit:
 
         # Replace the node by iterating through the input_circuit.
         # Constructing and checking the validity of the wire_map.
-        # NOTE: We do not replace conditioned gates. One way to implement
-        #       later is to add or update the conditions of each gate we add
-        #       from the input_circuit.
+        # If a gate is conditioned, we expect the replacement subcircuit
+        # to depend on those control bits as well.
         self.basis = union_basis
         self.gates = union_gates
 
@@ -993,51 +1026,58 @@ class DAGCircuit:
             raise DAGCircuitError("expected node type \"op\", got %s"
                                   % nd["type"])
 
-        if nd["condition"] is None:
-            wire_map = {k: v for k, v in zip(wires,
-                                             [i for s in [nd["qargs"],
-                                                          nd["cargs"]]
-                                              for i in s])}
-            self._check_wiremap_validity(wire_map, wires,
-                                         self.input_map, input_circuit)
-            pred_map, succ_map = self._make_pred_succ_maps(node)
-            full_pred_map, full_succ_map = \
-                self._full_pred_succ_maps(pred_map, succ_map,
-                                          input_circuit, wire_map)
-            # Now that we know the connections, delete node
-            self.multi_graph.remove_node(node)
-            # Iterate over nodes of input_circuit
-            for m in nx.topological_sort(input_circuit.multi_graph):
-                md = input_circuit.multi_graph.node[m]
-                if md["type"] == "op":
-                    # Insert a new node
-                    condition = self._map_condition(wire_map, md["condition"])
-                    m_qargs = list(map(lambda x: wire_map.get(x, x),
-                                       md["qargs"]))
-                    m_cargs = list(map(lambda x: wire_map.get(x, x),
-                                       md["cargs"]))
-                    self._add_op_node(md["name"], m_qargs, m_cargs,
-                                      md["params"], condition)
-                    # Add edges from predecessor nodes to new node
-                    # and update predecessor nodes that change
-                    all_cbits = self._bits_in_condition(condition)
-                    all_cbits.extend(m_cargs)
-                    al = [m_qargs, all_cbits]
-                    for q in itertools.chain(*al):
-                        self.multi_graph.add_edge(full_pred_map[q], self.node_counter,
-                                                  name=q)
-                        full_pred_map[q] = copy.copy(self.node_counter)
-            # Connect all predecessors and successors, and remove
-            # residual edges between input and output nodes
-            for w in full_pred_map:
-                self.multi_graph.add_edge(
-                    full_pred_map[w], full_succ_map[w], name=w)
-                o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
-                if len(o_pred) > 1:
-                    assert len(o_pred) == 2, "expected 2 predecessors here"
-                    p = [x for x in o_pred if x != full_pred_map[w]]
-                    assert len(p) == 1, "expected 1 predecessor to pass filter"
-                    self.multi_graph.remove_edge(p[0], self.output_map[w])
+        condition_bit_list = self._bits_in_condition(nd["condition"])
+
+        wire_map = {k: v for k, v in zip(wires,
+                                         [i for s in [nd["qargs"],
+                                                      nd["cargs"],
+                                                      condition_bit_list]
+                                          for i in s])}
+        self._check_wiremap_validity(wire_map, wires,
+                                     self.input_map, input_circuit)
+        pred_map, succ_map = self._make_pred_succ_maps(node)
+        full_pred_map, full_succ_map = \
+            self._full_pred_succ_maps(pred_map, succ_map,
+                                      input_circuit, wire_map)
+        # Now that we know the connections, delete node
+        self.multi_graph.remove_node(node)
+        # Iterate over nodes of input_circuit
+        for m in nx.topological_sort(input_circuit.multi_graph):
+            md = input_circuit.multi_graph.node[m]
+            if md["type"] == "op":
+                # Insert a new node
+                condition = self._map_condition(wire_map, md["condition"])
+                m_qargs = list(map(lambda x: wire_map.get(x, x),
+                                   md["qargs"]))
+                m_cargs = list(map(lambda x: wire_map.get(x, x),
+                                   md["cargs"]))
+                self._add_op_node(md["name"], m_qargs, m_cargs,
+                                  md["params"], condition)
+                # Add edges from predecessor nodes to new node
+                # and update predecessor nodes that change
+                all_cbits = self._bits_in_condition(condition)
+                all_cbits.extend(m_cargs)
+                al = [m_qargs, all_cbits]
+                for q in itertools.chain(*al):
+                    self.multi_graph.add_edge(full_pred_map[q],
+                                              self.node_counter,
+                                              name=q)
+                    full_pred_map[q] = copy.copy(self.node_counter)
+        # Connect all predecessors and successors, and remove
+        # residual edges between input and output nodes
+        for w in full_pred_map:
+            self.multi_graph.add_edge(
+                full_pred_map[w], full_succ_map[w], name=w)
+            o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
+            if len(o_pred) > 1:
+                if len(o_pred) != 2:
+                    raise QISKitError("expected 2 predecessors here")
+
+                p = [x for x in o_pred if x != full_pred_map[w]]
+                if len(p) != 1:
+                    raise QISKitError("expected 1 predecessor to pass filter")
+
+                self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_named_nodes(self, name):
         """Return a list of "op" nodes with the given name."""
@@ -1145,7 +1185,9 @@ class DAGCircuit:
                 oe = [x for x in self.multi_graph.out_edges(nbunch=[node_map[w]],
                                                             data=True) if
                       x[2]["name"] == w]
-                assert len(oe) == 1, "should only be one out-edge per (qu)bit"
+                if len(oe) != 1:
+                    raise QISKitError("should only be one out-edge per (qu)bit")
+
                 nxt_nd_idx = oe[0][1]
                 nxt_nd = self.multi_graph.node[nxt_nd_idx]
                 # If we reach an output node, we are done with this wire.
@@ -1164,7 +1206,9 @@ class DAGCircuit:
                         ops_touched[nxt_nd_idx] = set(qa) | set(ca) | set(cob)
                     # Mark inputs visited by deleting from set
                     # NOTE: expect trouble with if(c==1) measure q -> c;
-                    assert w in ops_touched[nxt_nd_idx], "expected wire"
+                    if w not in ops_touched[nxt_nd_idx]:
+                        raise QISKitError("expected wire")
+
                     ops_touched[nxt_nd_idx].remove(w)
                     # Node becomes "foreground" if set becomes empty,
                     # i.e. every input is available for this operation
@@ -1186,7 +1230,9 @@ class DAGCircuit:
                 layers_list.append(l_dict)
                 emit = False
             else:
-                assert not wires_with_ops_remaining, "not finished but empty?"
+                if wires_with_ops_remaining:
+                    raise QISKitError("not finished but empty?")
+
         return layers_list
 
     def serial_layers(self):
@@ -1286,3 +1332,58 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    @staticmethod
+    def fromQuantumCircuit(circuit):
+        """Returns a DAGCircuit object from a QuantumCircuit
+
+        None of the gates are expanded, i.e. the gates that are defined in the
+        circuit are included in the gate basis.
+        """
+        dagcircuit = DAGCircuit()
+        for register in circuit.regs.values():
+            if isinstance(register, QuantumRegister):
+                dagcircuit.add_qreg(register.name, len(register))
+            else:
+                dagcircuit.add_creg(register.name, len(register))
+        # Add user gate definitions
+        for name, data in circuit.definitions.items():
+            dagcircuit.add_basis_element(name, data["n_bits"], 0,
+                                         data["n_args"])
+            dagcircuit.add_gate_data(name, data)
+        # Add instructions
+        builtins = {
+            "U": ["U", 1, 0, 3],
+            "CX": ["CX", 2, 0, 0],
+            "measure": ["measure", 1, 1, 0],
+            "reset": ["reset", 1, 0, 0],
+            "barrier": ["barrier", -1, 0, 0]
+        }
+        for main_instruction in circuit.data:
+            # TODO: generate definitions and nodes for CompositeGates,
+            # for now simply drop their instructions into the DAG
+            instruction_list = []
+            if isinstance(main_instruction, CompositeGate):
+                instruction_list = main_instruction.instruction_list()
+            else:
+                instruction_list.append(main_instruction)
+            for instruction in instruction_list:
+                # Add OpenQASM built-in gates on demand
+                if instruction.name in builtins:
+                    dagcircuit.add_basis_element(*builtins[instruction.name])
+                # Separate classical arguments to measurements
+                if instruction.name == "measure":
+                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
+                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+                else:
+                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
+                    cargs = []
+                # Get arguments for classical control (if any)
+                if instruction.control is None:
+                    control = None
+                else:
+                    control = (instruction.control[0].name, instruction.control[1])
+                dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
+                                                instruction.param,
+                                                control)
+        return dagcircuit

@@ -39,7 +39,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 2)
         cr = qp.create_classical_register("cr", 2)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1]])
+        qc.initialize(desired_vector, [qr[0], qr[1]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -53,7 +53,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 2)
         cr = qp.create_classical_register("cr", 2)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1]])
+        qc.initialize(desired_vector, [qr[0], qr[1]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -67,7 +67,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 2)
         cr = qp.create_classical_register("cr", 2)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1]])
+        qc.initialize(desired_vector, [qr[0], qr[1]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -81,7 +81,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 3)
         cr = qp.create_classical_register("cr", 3)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2]])
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -95,7 +95,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 1)
         cr = qp.create_classical_register("cr", 1)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0]])
+        qc.initialize(desired_vector, [qr[0]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -117,7 +117,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 3)
         cr = qp.create_classical_register("cr", 1)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2]])
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -147,7 +147,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 4)
         cr = qp.create_classical_register("cr", 4)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2], qr[3]])
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -163,7 +163,7 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr], [cr])
         self.assertRaises(
             QISKitError,
-            qc.initialize, "QInit", desired_vector, [qr[0], qr[1]])
+            qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_non_unit_probability(self):
         desired_vector = [1, 1]
@@ -173,7 +173,7 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr], [cr])
         self.assertRaises(
             QISKitError,
-            qc.initialize, "QInit", desired_vector, [qr[0], qr[1]])
+            qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_initialize_middle_circuit(self):
         desired_vector = [0.5, 0.5, 0.5, 0.5]
@@ -183,7 +183,9 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr], [cr])
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1]])
+        qc.reset(qr[0])
+        qc.reset(qr[1])
+        qc.initialize(desired_vector, [qr[0], qr[1]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
@@ -213,7 +215,7 @@ class TestInitialize(QiskitTestCase):
         qr = qp.create_quantum_register("qr", 4)
         cr = qp.create_classical_register("cr", 4)
         qc = qp.create_circuit("qc", [qr], [cr])
-        qc.initialize("QInit", desired_vector, [qr[0], qr[1], qr[2], qr[3]])
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         result = qp.execute(["qc"], backend='local_qasm_simulator', shots=1)
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)

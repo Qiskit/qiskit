@@ -73,7 +73,7 @@ class QeRemote(BaseBackend):
             if (('compiled_circuit_qasm' not in circuit) or
                     (circuit['compiled_circuit_qasm'] is None)):
                 compiled_circuit = openquantumcompiler.compile(
-                    circuit['circuit'].qasm())
+                    circuit['circuit'])
                 circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
             if isinstance(circuit['compiled_circuit_qasm'], bytes):
                 api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
