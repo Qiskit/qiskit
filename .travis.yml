@@ -145,8 +145,8 @@ jobs:
       python: 3.6
 
     # OSX, Python 3.latest (brew does not support versioning)
-    - stage: test
-      <<: *stage_osx
+    # - stage: test
+    #   <<: *stage_osx
 
     # "deploy" stage.
     ###########################################################################
@@ -168,11 +168,11 @@ jobs:
         <<: *deploy_pypi
 
     # OSX, Python 3.latest (brew does not support versions)
-    - stage: deploy doc and pypi
-      <<: *stage_osx
-      if: branch = stable and repo = QISKit/qiskit-sdk-py and type = push
-      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
-      script: cd ..
-      deploy:
-        <<: *deploy_pypi
-        distributions: "bdist_wheel"
+    # - stage: deploy doc and pypi
+    #   <<: *stage_osx
+    #   if: branch = stable and repo = QISKit/qiskit-sdk-py and type = push
+    #   install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
+    #   script: cd ..
+    #   deploy:
+    #     <<: *deploy_pypi
+    #     distributions: "bdist_wheel"
