@@ -234,10 +234,12 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionary format. For example:
+                dictionary format. For example::
+
                     [{"name": "qr", "size": 4},
                         ...
                     ]
+
                 Any other key in the dictionary will be ignored. If "name"
                 is not defined (or None) a random name wil be assigned.
 
@@ -256,10 +258,12 @@ class QuantumProgram(object):
 
         Args:
             register_array (list[dict]): An array of quantum registers in
-                dictionary format. For example:
+                dictionary format. For example::
+
                     [{"name": "qr"},
                         ...
                     ]
+
                 Any other key in the dictionary will be ignored.
         """
         for register in register_array:
@@ -298,10 +302,12 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionary format. For example:
+                dictionary format. For example::
+
                     [{"name": "cr", "size": 4},
                         ...
                     ]
+
                 Any other key in the dictionary will be ignored. If "name"
                 is not defined (or None) a random name wil be assigned.
 
@@ -334,10 +340,12 @@ class QuantumProgram(object):
 
         Args:
             registers_array (list[dict]): An array of classical registers in
-                dictionary format. For example:
+                dictionary format. For example::
+
                     [{"name": "cr"},
                         ...
                     ]
+
                 Any other key in the dictionary will be ignored.
         """
         for register in registers_array:
@@ -599,7 +607,8 @@ class QuantumProgram(object):
         return list(self.__classical_registers.keys())
 
     def get_circuit(self, name=None):
-        """Return a Circuit Object by name
+        """Return a Circuit Object by name.
+
         Args:
             name (hashable or None): the name of the quantum circuit.
                 If None and there is only one circuit available, returns
