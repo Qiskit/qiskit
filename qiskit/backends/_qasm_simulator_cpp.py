@@ -50,8 +50,6 @@ class QasmSimulatorCpp(BaseBackend):
 
     def __init__(self, configuration=None):
         super().__init__(configuration)
-        self._configuration = configuration
-
         if not configuration:
             self._configuration = {
                 'name': 'local_qasm_simulator_cpp',
@@ -63,6 +61,8 @@ class QasmSimulatorCpp(BaseBackend):
                 "basis_gates": 'u0,u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz' +
                                'snapshot,wait,noise,save,load'
             }
+        else:
+            self._configuration = configuration
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
