@@ -43,15 +43,16 @@ from sympy.physics.quantum import TensorProduct
 from qiskit._result import Result
 from ._basebackend import BaseBackend
 from ._simulatortools import compute_ugate_matrix, index2
+from qiskit import QISKitError
 
 logger = logging.getLogger(__name__)
 
 
-class SympyUnitarySimulator(BaseBackend):
+class UnitarySimulatorSympy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     def __init__(self, configuration=None):
-        """Initial the UnitarySimulator object."""
+        """Initialize the UnitarySimulatorSympy object."""
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {'name': 'local_unitary_simulator_sympy',
@@ -210,31 +211,28 @@ class SympyUnitarySimulator(BaseBackend):
         result['data'] = {}
         self._unitary_state = eye(2 ** self._number_of_qubits)
         for operation in ccircuit['operations']:
+            if 'conditional' in operation:
+                raise SimulatorError('conditional operations not supported in unitary simulator')
+            if operation['name'] == 'measure' or operation['name'] == 'reset':
+                raise SimulatorError('operation {} not supported by '
+                                     'sympy unitary simulator.'.format(operation['name']))            
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 if 'params' in operation:
                     params = operation['params']
                 else:
                     params = None
                 qubit = operation['qubits'][0]
-                gate = SympyUnitarySimulator.compute_ugate_matrix_wrap(params)
+                gate = UnitarySimulatorSympy.compute_ugate_matrix_wrap(params)
                 self._add_unitary_single(gate, qubit)
             elif operation['name'] in ['id']:
-                logger.info('Warning have dropped identity gate from sympy-based unitary '
-                            'simulator')
+                logger.info('Identity gate is ignored by sympy-based unitary simulator.')
+            elif operation['name'] in ['barrier']:
+                logger.info('Barrier is ignored by sympy-based unitary simulator.')                
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
                 gate = Matrix([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
-            elif operation['name'] == 'measure':
-                logger.info('Warning have dropped measure from sympy-based unitary '
-                            'simulator')
-            elif operation['name'] == 'reset':
-                logger.info('Warning have dropped reset from sympy-based unitary '
-                            'simulator')
-            elif operation['name'] == 'barrier':
-                logger.info('Warning have dropped barrier from sympy-based unitary '
-                            'simulator')
             else:
                 result['status'] = 'ERROR'
                 return result

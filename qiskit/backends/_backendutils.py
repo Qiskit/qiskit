@@ -286,6 +286,7 @@ def get_backend_instance(backend_name):
         LookupError: if backend is unavailable
     """
     try:
+        backend_name = resolve_name(backend_name)
         registered_backend = _REGISTERED_BACKENDS[backend_name]
         return registered_backend.cls(
             configuration=registered_backend.configuration)
@@ -306,7 +307,8 @@ def configuration(backend_name):
         LookupError: if backend is unavailable
     """
     try:
-        return _REGISTERED_BACKENDS[backend_name].configuration
+        backend = qiskit.backends.get_backend_instance(backend_name)        
+        return backend.configuration
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
