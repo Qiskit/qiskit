@@ -1255,8 +1255,8 @@ class DAGCircuit:
                         del predecessor_count[successor]
 
             yield next_layer
-            next_layer = []
             cur_layer = next_layer
+            next_layer = []
 
     def collect_runs(self, namelist):
         """Return a set of runs of "op" nodes with the given names.
