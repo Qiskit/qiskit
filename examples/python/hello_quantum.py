@@ -7,21 +7,18 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit SDK
 import qiskit
-# Import the IBMQ Experience API
-from IBMQuantumExperience import IBMQuantumExperience
 
 # Authenticate for access to remote backends
 try:
     import Qconfig
-    api = IBMQuantumExperience(token=Qconfig.APItoken,
-                               config={'url': Qconfig.config['url']})
-    remote_backends = qiskit.backends.discover_remote_backends(api)
+    qiskit.api.register(token=Qconfig.APItoken)
 except:
-    print("""WARNING: There's no connection with IBMQuantumExperience servers.
+    print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
-    remote_backends = {}
-local_backends = qiskit.backends.discover_local_backends()
+
+local_backends = qiskit.backends.local_backends()
+remote_backends = qiskit.backends.remote_backends()
 
 try:
     # Create a Quantum Register called "qr" with 2 qubits.
@@ -60,16 +57,19 @@ try:
         # see a list of available remote backends
         print("\n(Remote Backends)")
         for backend in remote_backends:
-            backend_status = api.backend_status(backend)
+            backend_status = qiskit.backends.status(backend)
             print(backend, backend_status)
 
         # select least busy available device and execute
-        device_status = [api.backend_status(backend)
+        device_status = [qiskit.backends.status(backend)
                          for backend in remote_backends if "simulator" not in backend]
-        best_device = min([x for x in device_status if x['available']==True],
-                          key=lambda x:x['pending_jobs'])
-        print("Running on current least busy device: ", best_device['backend'])
-        exp_result = qp.execute("bell", backend=best_device['backend'], shots=1024, timeout=300)
+        try:
+            best_device = min([x for x in device_status if x['available']==True],
+                              key=lambda x:x['pending_jobs'])
+            print("Running on current least busy device: ", best_device['backend'])
+            exp_result = qp.execute("bell", backend=best_device['backend'], shots=1024, timeout=300)
+        except:
+            print("All devices are currently unavailable.")
 
         # Show the results
         print("experiment: ", exp_result)
