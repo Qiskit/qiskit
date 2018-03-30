@@ -1199,7 +1199,7 @@ class DAGCircuit:
 
             # Add wiring to/from the operations and between unused inputs & outputs.
             new_layer.multi_graph.add_edges_from(wires.items())
-            yield {"graph": new_layer, "support": support_list}
+            yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
         """Yield a layer for all gates of this circuit.
