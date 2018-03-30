@@ -80,6 +80,7 @@ class QISKitCppSimulator(BaseBackend):
                                     self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
+        """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
@@ -119,6 +120,7 @@ class CliffordCppSimulator(BaseBackend):
                                     self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
+        """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
         # set backend to Clifford simulator
         if 'config' in qobj:
