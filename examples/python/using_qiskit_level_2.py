@@ -1,5 +1,7 @@
 """
-Example used in the README. In this example a Bell state is made.
+Example showing how to use qiskit at level 2.
+
+See level 1 if you would like to understand how to compile
 
 Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.
@@ -8,10 +10,10 @@ used `pip install`, the examples only work from the root directory.
 # Import the QISKit
 import qiskit
 
-# Authenticate for access to remote backends
+# Registering the backends from the IBM Q Experience
 try:
     import Qconfig
-    qiskit.api.register(token=Qconfig.APItoken)
+    qiskit.api.register(Qconfig.APItoken)
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -21,60 +23,67 @@ local_backends = qiskit.backends.local_backends()
 remote_backends = qiskit.backends.remote_backends()
 
 try:
-    # Create a Quantum Register with 2 qubits.
-    q = qiskit.QuantumRegister(2)
-    # Create a Classical Register with 2 bits.
-    c = qiskit.ClassicalRegister(2)
-    # Create a Quantum Circuit
-    qc = qiskit.QuantumCircuit(q, c)
+    # Create a Quantum and Classical Register.
+    qubit_reg = qiskit.QuantumRegister(2)
+    clbit_reg = qiskit.ClassicalRegister(2)
 
-    # Add a H gate on qubit 0, putting this qubit in superposition.
-    qc.h(q[0])
-    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
-    # the qubits in a Bell state.
-    qc.cx(q[0], q[1])
-    # Add a Measure gate to see the state.
-    qc.measure(q, c)
+    # making first circuit: bell state
+    qc1 = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+    qc1.h(qubit_reg[0])
+    qc1.cx(qubit_reg[0], qubit_reg[1])
+    qc1.measure(qubit_reg, clbit_reg)
 
-    # See a list of available local simulators
-    print("Local backends: ", qiskit.backends.local_backends())
+    # making another circuit: superpositions
+    qc2 = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+    qc2.h(qubit_reg)
+    qc2.measure(qubit_reg, clbit_reg)
 
-    # Compile and run the Quantum circuit on a simulator backend
-    sim_result = qiskit.execute(qc)
+    # setting up the backend
+    print("(Local Backends)")
+    for backend in local_backends:
+        print(backend)
+
+    # runing the job
+    sim_result = qiskit.execute([qc1, qc2])
 
     # Show the results
     print("simulation: ", sim_result)
-    print(sim_result.get_counts(qc))
+    print(sim_result.get_counts(qc1))
+    print(sim_result.get_counts(qc2))
 
     # Compile and run the Quantum Program on a real device backend
     if remote_backends:
+
         # see a list of available remote backends
-        print("Remote backends: ", qiskit.backends.remote_backends())
+        print("\n(Remote Backends)")
+        for backend in remote_backends:
+            print(backend)
 
         try:
-            # select least busy available device and execute
+            # select least busy available device and execute. This should become a function
             # this we should make a method to get the best backend
             device_status = [qiskit.backends.status(backend)
                              for backend in remote_backends if "simulator" not in backend]
+
             best_device = min([x for x in device_status if x['available'] is True],
                               key=lambda x: x['pending_jobs'])
-            print("Running on current least busy device: ", best_device['backend'])
 
             my_backend = qiskit.backends.get_backend_instance(best_device['backend'])
+            print("Running on current least busy device: ", best_device['backend'])
 
-            #runing the job
+            # running the job
             compile_config = {
                 'backend': best_device['backend'],
                 'shots': 1024,
                 'max_credits': 10
                 }
-            exp_result = qiskit.execute(qc, compile_config, wait=5, timeout=300)
+            exp_result = qiskit.execute([qc1, qc2], compile_config, wait=5, timeout=300)
 
             # Show the results
             print("experiment: ", exp_result)
-            print(exp_result.get_counts(qc))
+            print(exp_result.get_counts(qc1))
+            print(exp_result.get_counts(qc2))
         except:
             print("All devices are currently unavailable.")
-
 except qiskit.QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

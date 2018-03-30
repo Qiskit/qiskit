@@ -67,4 +67,4 @@ class BaseBackend(ABC):
     def status(self):
         """Return backend status"""
         backend_name = self.configuration['name']
-        return {'name': backend_name, 'available': True} 
+        return {'name': backend_name, 'available': True}

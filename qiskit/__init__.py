@@ -45,7 +45,8 @@ from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 
-from . import backends
+from ._compiler import compile
+from ._compiler import execute
 from . import api
 
 __version__ = '0.5.0'

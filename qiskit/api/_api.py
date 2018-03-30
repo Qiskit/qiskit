@@ -18,7 +18,6 @@
 
 """API class"""
 import qiskit.backends
-from IBMQuantumExperience import IBMQuantumExperience
 
 
 def register(token, url='https://quantumexperience.ng.bluemix.net/api',
@@ -26,11 +25,11 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
     """
     Register a user with an API. By calling this method, all available
     backends from this API are registered into QISKit.
-    Defualt API is the IBM Q Experience.
+    Default API is the IBM Q Experience.
 
     Args:
         token (str): user authentication token
-        url (str): API's url
+        url (str): the url to the API
         hub (str): optional user hub
         group (str): optional user group
         project (str): optional user project
@@ -44,15 +43,19 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
         'group': group,
         'project': project
     }
+    from IBMQuantumExperience import IBMQuantumExperience
     api_temp = IBMQuantumExperience(token, config)
     api = API(api_temp)
     qiskit.backends.discover_remote_backends(api_temp)
+    # the input to the discover_remote_backends should be the api not api_temp
 
     # Ideally this would make an API object based on url and the user token
     # and register all the backends of this API to qiskit.backends.remote()
     # I am worried that there is not checks to see if the backends have the same name
     # this should be verified in the future.
+
     return api
+
 
 class API(object):
     """Creates an API object."""
@@ -69,4 +72,8 @@ class API(object):
 
         # Ideally we should give this a url, but while we import the IBMQuantumExperience object
         # I think this the best until we bring functions from IBMQuantumExperience into this object
-        self.api = api
+        self._api = api
+
+    def available_backends(self):
+        """Returns the backends on the api"""
+        return self._api.available_backends()

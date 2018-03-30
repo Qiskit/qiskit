@@ -19,16 +19,15 @@
 """Quantum Job class"""
 import random
 import string
-import qiskit.backends as backends
 from qiskit.unroll import Unroller, DagUnroller, JsonBackend
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumCircuit
 from qiskit.qasm import Qasm
+from . import backends
 
 
 class QuantumJob():
-    """Creates a quantum circuit job
-    """
+    """Creates a quantum circuit job."""
 
     # TODO We need to create more tests for checking all possible inputs.
     # TODO Make this interface clearer -- circuits could be many things!
