@@ -21,23 +21,31 @@ import qiskit.backends
 from IBMQuantumExperience import IBMQuantumExperience
 
 
-def register(token, url='https://quantumexperience.ng.bluemix.net/api'):
-    """Return the filename.
+def register(token, url='https://quantumexperience.ng.bluemix.net/api', hub=None,
+             group=None, project=None):
+    """Return a API object.
     """
-    api_temp = IBMQuantumExperience(token, config={'url': url})
+    config = {
+        'url': url,
+        'hub': hub,
+        'group': group,
+        'project': project
+    }
+    api_temp = IBMQuantumExperience(token, config)
     api = API(api_temp)
     qiskit.backends.discover_remote_backends(api_temp)
 
     # Ideally this would make a API object based on url and the user token
     # and register all the backends of this API to qiskit.backends.remote()
-    # I am worried that there is not checks is the backends have the same name
+    # I am worried that there is not checks to see if the backends have the same name
     # this should be verified in the future.
     return api
 
 class API(object):
     """Creates a API object."""
 
-    # Functions to add status -- gives the status of the api
+    # Functions to add
+    #   status -- gives the status of the api
     # A use case is the user would do
     # ibmqx = qiskit.api.register(token,url)
     # ibmqx.status and it prints the current status of the API
@@ -46,5 +54,5 @@ class API(object):
         """Create an API object."""
 
         # Ideally we should give this a url, but while we import the IBMQuantumExperience object
-        # i think this the best until we bring functions for IBMQuantumExperience into this object
+        # I think this the best until we bring functions from IBMQuantumExperience into this object
         self.api = api

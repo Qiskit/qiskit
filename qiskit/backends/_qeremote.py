@@ -197,7 +197,6 @@ class QeRemote(BaseBackend):
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-
         return status
 
 
