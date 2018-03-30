@@ -263,7 +263,7 @@ class DAGCircuit:
                                   % name)
 
         # Check the number of arguments matches the signature
-        if name != "barrier":
+        if name not in ["barrier", "snapshot", "noise", "save", "load", "wait"]:
             if len(qargs) != self.basis[name][0]:
                 raise DAGCircuitError("incorrect number of qubits for %s"
                                       % name)
@@ -274,14 +274,17 @@ class DAGCircuit:
                 raise DAGCircuitError("incorrect number of parameters for %s"
                                       % name)
         else:
-            # "barrier" is a special case
+            # special case instruction
             if not qargs:
                 raise DAGCircuitError("incorrect number of qubits for %s"
                                       % name)
             if cargs:
                 raise DAGCircuitError("incorrect number of bits for %s"
                                       % name)
-            if params:
+            if name == "barrier" and params:
+                raise DAGCircuitError("incorrect number of parameters for %s"
+                                      % name)
+            elif not params:
                 raise DAGCircuitError("incorrect number of parameters for %s"
                                       % name)
 
