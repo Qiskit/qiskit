@@ -32,13 +32,16 @@ from .. import QISKitError
 logger = logging.getLogger(__name__)
 
 RegisteredBackend = namedtuple('RegisteredBackend',
-                               ['name', 'cls', 'configuration'])
+                               ['name', 'cls', 'configuration', 'api'])
 
 _REGISTERED_BACKENDS = {}
 """dict (backend_name: RegisteredBackend) with the available backends.
 
 Dict that contains the available backends during the current invocation of the
 SDK, with the form `'<backend name>': <RegisteredBackend object>`.
+
+As part of the backend registration process, a record of the backend's
+name, class, configuration, and api is kept.
 
 Please note that this variable will not contain the full list until runtime,
 as its contents are a combination of:
@@ -118,7 +121,8 @@ def discover_remote_backends(api):
             config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
-                                               config_edit)
+                                               config_edit,
+                                               api)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
@@ -148,7 +152,7 @@ def update_backends(api=None):
     return backend_name_list
 
 
-def register_backend(cls, configuration_=None):
+def register_backend(cls, configuration_=None, api=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -192,7 +196,7 @@ def register_backend(cls, configuration_=None):
 
     # Append the backend to the `_backend_classes` dict.
     registered_backend = RegisteredBackend(
-        backend_name, cls, backend_instance.configuration)
+        backend_name, cls, backend_instance.configuration, api)
     _REGISTERED_BACKENDS[backend_name] = registered_backend
 
     return backend_name
@@ -324,6 +328,28 @@ def status(backend_name):
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
+def api(backend_name):
+    """Return the api that the named backend belongs to.
+
+    Args:
+        backend_name (str): the backend name
+
+    Returns:
+        API: the api that the backend belongs to
+
+    Raises:
+        LookupError: if backend is unavailable
+        RuntimeError: if a local backend has api other than None
+    """
+    try:
+        backend = _REGISTERED_BACKENDS[backend_name]
+        if backend.configuration.get('local') is True and backend.api is not None:
+            raise RuntimeError('backend "{}" registered as local, '
+                               'but points to a remote API')
+        return backend.api
+    except KeyError:
+        raise LookupError('backend "{}" is not available'.format(backend_name))
+    
 
 def local_backends():
     """Get the local backends."""

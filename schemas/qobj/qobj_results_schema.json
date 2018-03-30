@@ -2,9 +2,9 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://qiskit.org/qobj/results-01/schema#",
     "title": "qobj results",
-    "description": "The results of executing a ",
+    "description": "The results of executing a qobj",
     "type": "object",
-    "required": ["backend", "id", "status", "success"],
+    "required": ["backend", "id", "status"],
     "properties": {
         "backend": {
             "type": "string",
@@ -25,19 +25,31 @@
         },
         "result": {
             "type": "array",
-            "description": "Corresponding results for array of circuits of the input qobj",
+            "description": "Corresponding results for array of experiments of the input qobj",
             "items": {
                 "type": "object",
                 "required": ["status", "success"],
                 "properties": {
                     "success": {
                         "type": "boolean",
-                        "description": "If true, we can trust results for this circuit."
+                        "description": "If true, we can trust results for this experiment."
                     },
                     "status": {
                         "type": "string",
-                        "description": "Human-readable description of status of this circuit"
+                        "description": "Human-readable description of status of this experiment"
                     },
+                    "name": {
+                        "type": "string",
+                        "description": "Experiment name"
+                    },
+                    "seed": {
+                        "type": "string",
+                        "description": "Experiment-level random seed"
+                    },
+                     "shots": {
+                        "type": "string",
+                        "description": "Experiment-level number of shots"
+                    },                   
                     "data": {
                         "type": "object",
                         "properties": {
@@ -50,7 +62,7 @@
                                     "minimum": 0 
                                 }
                             }, 
-                            "snapshot": {
+                            "snapshots": {
                                 "type": "object",
                                 "description": "Snapshot of simulator internal representation",
                                 "example": {
@@ -65,19 +77,18 @@
                                     }
                                 }
                             }
-                            }
                         }
                     }
                 }
             }
-        },
-        "success": {
-            "type": "boolean",
-            "description": "True if complete input qobj executed correctly. (Implies each circuit success)"
-        },
-        "status": {
-            "type": "string",
-            "description": "Human-readable status of complete qobj execution"
         }
+    },
+    "success": {
+        "type": "boolean",
+        "description": "True if complete input qobj executed correctly. (Implies each experiment success)"
+    },
+    "status": {
+        "type": "string",
+        "description": "Human-readable status of complete qobj execution"
     }
 }

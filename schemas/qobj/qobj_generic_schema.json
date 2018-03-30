@@ -2,131 +2,131 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://qiskit.org/qobj/generic-01/schema#",
     "properties": {
-	"circuits": {
-		"properties": {
-		    "compiled-circuit": {
-			"properties": {
-			    "operations": {
-				"$ref": "#/definitions/generic_operations"
-			    }
-			}
-		    }
-		}
-	    }
+        "experiments": {
+            "properties": {
+                "instructions": {
+                    "$ref": "#/definitions/generic_instructions"
+                }
+            }
+        }
     },
     "definitions": {
-	"generic_operations": {
-	    "anyOf": [{		
-		"title": "3-param 1Q op",
-		"required": ["qubits", "params"],
-		"properties": {
-		    "name": {"enum": ["u3", "U"]},
-		    "qubits": {"maxItems": 1},
-		    "clbits": {"maxItems": 0},
-		    "params": {"minItems": 3, "maxItems": 3},
-		    "texparams": {"minItems": 3, "maxItems": 3}
-		}
-	    }, {
-		"title": "fixed 1Q op",
-		"required": ["qubits"],
-		"properties": {
-		    "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
-		    "qubits": {"maxItems": 1},
-		    "clbits": {"maxItems": 0},
-		    "params": {"maxItems": 0},
-		    "texparams": {"maxItems": 0}
-		}
-	    }, {
-		"title": "1-param 1Q op",
-		"required": ["qubits", "params"],
-		"properties": {
-		    "name": {"enum": ["u1", "rx", "ry", "rz"]},
-		    "qubits": {"maxItems": 1},
-		    "clbits": {"maxItems": 0},
-		    "params": {"minItems": 1, "maxItems": 1},
-		    "texparams": {"minItems": 1, "maxItems": 1}
-		}			
-	    }, {
-		"title": "2-param 1Q op",
-		"required": ["qubits", "params"],				
-		"properties": {
-		    "name": {"enum": ["u2"]},
-		    "qubits": {"maxItems": 1},
-		    "clbits": {"maxItems": 0},
-		    "params": {"minItems": 2, "maxItems": 2},
-		    "texparams": {"minItems": 2, "maxItems": 2}
-		}			
-	    }, {
-		"title": "fixed 2Q gate",
-		"required": ["qubits"],
-		"properties": {
-		    "name": {"enum": ["cx", "CX", "cy", "cz", "ch", "swap"]},
-		    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-		    "clbits": {"maxItems": 0},
-		    "params": {"maxItems": 0},
-		    "texparams": {"maxItems": 0}
-		}
-	    }, {
-		"title": "1-param 2Q controlled gate",
-		"required": ["qubits", "params"],
-		"properties": {
-		    "name": {"enum": ["cu1", "crz"]},
-		    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-		    "clbits": {"maxItems": 0},
-		    "params": {"minItems": 1, "maxItems": 1},
-		    "texparams": {"minItems": 1, "maxItems": 1}
-		}
-	    }, {
-		"title": "3-parameter 2Q controlled gate",
-		"required": ["qubits", "params"],
-		"properties": {
-		    "name": {"enum": ["cu3"]},
-		    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-		    "clbits": {"maxItems": 0},
-		    "params": {"minItems":3, "maxItems": 3},
-		    "texparams": {"minItems":3, "maxItems": 3}
-		}
-	    }, {
-		"title": "fixed 3Q doubly controlled gate",
-		"required": ["qubits"],
-		"properties": {
-		    "name": {"enum": ["ccx"]},
-		    "qubits": {"description": "[control, control, target]", "minItems": 3, "maxItems": 3},
-		    "clbits": {"maxItems": 0},
-		    "params": {"maxItems": 0},
-		    "texparams": {"maxItems": 0}
-		}
-	    }, {
-		"title": "measurement",
-		"required": ["qubits", "clbits"],
-		"properties": {
-		    "name": {"enum": ["measure"]},
-		    "qubits": {"maxItems": 1},
-		    "clbits": {"minItems": 1, "maxItems": 1},
-		    "params": {"maxItems": 0},
-		    "texparams": {"maxItems": 0}
-		}
-	    }, {
-		"title": "barrier",
-		"required": ["qubits"],
-		"properties": {
-		    "name": {"enum": ["barrier"]},
-		    "clbits": {"maxItems": 0},
-		    "params": {"maxItems": 0},
-		    "texparams": {"maxItems": 0}
-		}
-	    }, {
-		"description": "Operations named with leading # are pragma-like (safe to ignore by backends that don't understand them).",
-		"properties": {
-		    "name": {
-			"pattern": "^#.+"
-		    }
-		}
-	    }, {
-		"description": "Operations named with leading _ are non-generic (specific to certain backends) and not specified here. Not safe to ignore.",
-		"properties": {"name": {"pattern": "^_.+"}}
-	    }]
-	}
+        "generic_instructions": {
+            "anyOf": [{		
+                "title": "3-param 1Q op",
+                "required": ["qubits", "params"],
+                "properties": {
+                    "name": {"enum": ["u3", "U"]},
+                    "qubits": {"maxItems": 1},
+                    "clbits": {"maxItems": 0},
+                    "params": {"minItems": 3, "maxItems": 3},
+                    "texparams": {"minItems": 3, "maxItems": 3}
+                }
+            }, {
+            "title": "fixed 1Q op",
+            "required": ["qubits"],
+            "properties": {
+                "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
+                "qubits": {"maxItems": 1},
+                "clbits": {"maxItems": 0},
+                "params": {"maxItems": 0},
+                "texparams": {"maxItems": 0}
+            }
+            }, {
+            "title": "1-param 1Q op",
+            "required": ["qubits", "params"],
+            "properties": {
+                "name": {"enum": ["u1", "rx", "ry", "rz"]},
+                "qubits": {"maxItems": 1},
+                "clbits": {"maxItems": 0},
+                "params": {"minItems": 1, "maxItems": 1},
+                "texparams": {"minItems": 1, "maxItems": 1}
+            }			
+            }, {
+            "title": "2-param 1Q op",
+            "required": ["qubits", "params"],				
+            "properties": {
+                "name": {"enum": ["u2"]},
+                "qubits": {"maxItems": 1},
+                "clbits": {"maxItems": 0},
+                "params": {"minItems": 2, "maxItems": 2},
+                "texparams": {"minItems": 2, "maxItems": 2}
+            }			
+            }, {
+            "title": "fixed 2Q gate",
+            "required": ["qubits"],
+            "properties": {
+                "name": {"enum": ["cx", "CX", "cy", "cz", "ch", "swap"]},
+                "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                "clbits": {"maxItems": 0},
+                "params": {"maxItems": 0},
+                "texparams": {"maxItems": 0}
+            }
+            }, {
+            "title": "1-param 2Q controlled gate",
+            "required": ["qubits", "params"],
+            "properties": {
+                "name": {"enum": ["cu1", "crz"]},
+                "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                "clbits": {"maxItems": 0},
+                "params": {"minItems": 1, "maxItems": 1},
+                "texparams": {"minItems": 1, "maxItems": 1}
+            }
+            }, {
+            "title": "3-param 2Q controlled gate",
+            "required": ["qubits", "params"],
+            "properties": {
+                "name": {"enum": ["cu3"]},
+                "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                "clbits": {"maxItems": 0},
+                "params": {"minItems":3, "maxItems": 3},
+                "texparams": {"minItems":3, "maxItems": 3}
+            }
+            }, {
+            "title": "fixed 3Q doubly controlled gate",
+            "required": ["qubits"],
+            "properties": {
+                "name": {"enum": ["ccx"]},
+                "qubits": {"description": "[control, control, target]", "minItems": 3, "maxItems": 3},
+                "clbits": {"maxItems": 0},
+                "params": {"maxItems": 0},
+                "texparams": {"maxItems": 0}
+            }
+            }, {
+            "title": "measurement",
+            "required": ["qubits", "clbits"],
+            "properties": {
+                "name": {"enum": ["measure"]},
+                "qubits": {"maxItems": 1},
+                "clbits": {"minItems": 1, "maxItems": 1},
+                "params": {"maxItems": 0},
+                "texparams": {"maxItems": 0}
+            }
+            }, {
+            "title": "barrier",
+            "required": ["qubits"],
+            "properties": {
+                "name": {"enum": ["barrier"]},
+                "clbits": {"maxItems": 0},
+                "params": {"maxItems": 0},
+                "texparams": {"maxItems": 0}
+            }
+            }, {
+            "description": "Operations named with leading # are pragma-like (safe to ignore by backends that don't understand them).",
+            "properties": {
+                "name": {
+                    "pattern": "^#.+"
+                }
+            }
+            }, {
+            "description": "Operations named with leading _ are non-generic (specific to certain backends) and not specified here. Not safe to ignore.",
+            "properties": {
+                "name": {
+                    "pattern": "^_.+"
+                }
+            }
+            }]
+        }
     }
 }
 
