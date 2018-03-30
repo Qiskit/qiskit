@@ -60,7 +60,8 @@ class QasmSimulatorCpp(BaseBackend):
                 'local': True,
                 'description': 'A C++ realistic noise simulator for qobj files',
                 'coupling_map': 'all-to-all',
-                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot,wait,noise,save,load',
+                "basis_gates": 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg' +
+                               'rzz,snapshot,wait,noise,save,load'
             }
 
         # Try to use the default executable if not specified.
@@ -79,6 +80,7 @@ class QasmSimulatorCpp(BaseBackend):
                                     self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
+        """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
@@ -118,6 +120,7 @@ class CliffordSimulatorCpp(BaseBackend):
                                     self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
+        """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
         # set backend to Clifford simulator
         if 'config' in qobj:
