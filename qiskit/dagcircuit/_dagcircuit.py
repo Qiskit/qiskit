@@ -1179,10 +1179,10 @@ class DAGCircuit:
             new_layer.multi_graph.add_nodes_from(nodes_data(self.output_map.values()))
 
             # The quantum registers that have an operation in this layer.
-            support_list = [qarg
-                            for op_node in op_nodes if op_node[1]["name"] != "barrier"
-                            for qarg in op_node[1]["qargs"]
-                            ]
+            support_list = [
+                op_node[1]["qargs"]
+                for op_node in op_nodes if op_node[1]["name"] != "barrier"
+                ]
             new_layer.multi_graph.add_nodes_from(op_nodes)
 
             # Now add the edges to the multi_graph
