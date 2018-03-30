@@ -1244,11 +1244,13 @@ class DAGCircuit:
         next_layer = []
         while cur_layer:
             for node in cur_layer:
+                # Count multiedges with multiplicity.
                 for successor in self.multi_graph.successors(node):
+                    multiplicity = self.multi_graph.number_of_edges(node, successor)
                     if successor in predecessor_count:
-                        predecessor_count[successor] -= 1
+                        predecessor_count[successor] -= multiplicity
                     else:
-                        predecessor_count[successor] = self.multi_graph.in_degree(successor) - 1
+                        predecessor_count[successor] = self.multi_graph.in_degree(successor) - multiplicity
 
                     if predecessor_count[successor] == 0:
                         next_layer.append(successor)
