@@ -20,6 +20,9 @@ Base register reference object.
 """
 import re
 import logging
+import warnings
+import random
+import string
 
 from ._qiskiterror import QISKitError
 
@@ -29,8 +32,20 @@ logger = logging.getLogger(__name__)
 class Register(object):
     """Implement a generic register."""
 
-    def __init__(self, name, size):
+    def __init__(self, size, name=None):
         """Create a new generic register."""
+        if isinstance(size, str):
+            warnings.warn(
+                "name will be optional in upcoming versions (>0.5.0). and order will be size "
+                "name.", DeprecationWarning)
+            name_temp = size
+            size = name
+            name = name_temp
+        if name is None:
+            name1 = "reg_"
+            name2 = "".join([random.choice(string.ascii_letters + string.digits)
+                             for n in range(5)])
+            name = name1+name2
         self.name = name
         self.size = size
         self._openqasm_name = None

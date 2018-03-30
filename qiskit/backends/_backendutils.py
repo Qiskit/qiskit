@@ -95,7 +95,7 @@ def discover_remote_backends(api):
     """Discover backends available from IBM Q
 
     Args:
-        api (IBMQuantumExperience): IBM Q API
+        api (obj): An API object
     Returns:
         list: list of discovered backend names
     """
@@ -165,6 +165,7 @@ def register_backend(cls, configuration_=None, api=None):
         cls (class): a subclass of BaseBackend that contains a backend
         configuration_ (dict): backend configuration to use instead of class'
             default.
+        api (obj): an API object
 
     Returns:
         string: the identifier of the backend
@@ -328,6 +329,7 @@ def status(backend_name):
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
 
+
 def api(backend_name):
     """Return the api that the named backend belongs to.
 
@@ -349,7 +351,7 @@ def api(backend_name):
         return backend.api
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
-    
+
 
 def local_backends():
     """Get the local backends."""

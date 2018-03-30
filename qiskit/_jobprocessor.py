@@ -22,7 +22,7 @@ import logging
 import pprint
 from threading import Lock
 
-import qiskit.backends
+import qiskit.backends as backends
 from qiskit.backends import (local_backends, remote_backends)
 from qiskit._result import Result
 
@@ -50,7 +50,7 @@ def run_backend(q_job):
                 compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                                format='json')
                 circuit['compiled_circuit'] = compiled_circuit
-    backend = qiskit.backends.get_backend_instance(backend_name)
+    backend = backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 
 

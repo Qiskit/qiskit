@@ -15,9 +15,7 @@
 # limitations under the License.
 # =============================================================================
 
-"""Tools for API.
-
-"""
+"""Tools for API."""
 
 from ._api import API
 from ._api import register

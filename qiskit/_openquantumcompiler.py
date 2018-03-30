@@ -18,12 +18,12 @@
 
 """Tools for compiling Quantum Programs."""
 import logging
+import warnings
 
 import qiskit.qasm as qasm
-import qiskit.mapper as mapper
 from qiskit._qiskiterror import QISKitError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.unroll import Unroller, CircuitBackend, DagUnroller, DAGBackend, JsonBackend
+from qiskit._compiler import compile_circuit
+from qiskit.unroll import Unroller, CircuitBackend
 
 logger = logging.getLogger(__name__)
 
@@ -73,47 +73,12 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         QISKitCompilerError: if the format is not valid.
     """
-    compiled_dag_circuit = DAGCircuit.fromQuantumCircuit(quantum_circuit)
-    basis = basis_gates.split(',') if basis_gates else []
+    warnings.warn(
+        "openquantumcompuler will be deprecated in upcoming versions (>0.5.0). "
+        "Using qiskit.compile instead is recommended.", DeprecationWarning)
 
-    dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
-    compiled_dag_circuit = dag_unroller.expand_gates()
-    final_layout = None
-    # if a coupling map is given compile to the map
-    if coupling_map:
-        logger.info("pre-mapping properties: %s",
-                    compiled_dag_circuit.property_summary())
-        # Insert swap gates
-        coupling = mapper.Coupling(mapper.coupling_list2dict(coupling_map))
-        logger.info("initial layout: %s", initial_layout)
-        compiled_dag_circuit, final_layout = mapper.swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
-        logger.info("final layout: %s", final_layout)
-        # Expand swaps
-        dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
-        compiled_dag_circuit = dag_unroller.expand_gates()
-        # Change cx directions
-        compiled_dag_circuit = mapper.direction_mapper(compiled_dag_circuit, coupling)
-        # Simplify cx gates
-        mapper.cx_cancellation(compiled_dag_circuit)
-        # Simplify single qubit gates
-        compiled_dag_circuit = mapper.optimize_1q_gates(compiled_dag_circuit)
-        logger.info("post-mapping properties: %s",
-                    compiled_dag_circuit.property_summary())
-    # choose output format
-    if format == 'dag':
-        compiled_circuit = compiled_dag_circuit
-    elif format == 'json':
-        dag_unroller = DagUnroller(compiled_dag_circuit,
-                                   JsonBackend(list(compiled_dag_circuit.basis.keys())))
-        compiled_circuit = dag_unroller.execute()
-    elif format == 'qasm':
-        compiled_circuit = compiled_dag_circuit.qasm()
-    else:
-        raise QISKitCompilerError('unrecognized circuit format')
-
-    if get_layout:
-        return compiled_circuit, final_layout
+    compiled_circuit = compile_circuit(quantum_circuit, basis_gates, coupling_map,
+                                       initial_layout, get_layout, format)
     return compiled_circuit
 
 
