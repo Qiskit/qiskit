@@ -1,0 +1,155 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/qobj/core-01/schema#",
+    "type": "object",
+    "required": ["id", "circuits"],
+    "properties": {
+        "id": {"type": "string"},
+        "config": {
+            "title": "Qobj-level configuration",
+            "description": "Configuration options that apply to all circuits in this qobj. For options that may be set on a per-circuit basis, these are the defaults.",
+            "type": "object",
+            "properties": {
+                "backend": {
+                    "type": "string",
+                    "description": "The backend this qobj was generated for. It may also be able to execute on other backends."
+                },
+                "max_credits": {"type": "integer", "default": 3},
+                "seed": {"type": "integer"},
+                "shots": {"type": "integer", "minimum": 1}
+            }
+        }, 
+        "circuits": {
+            "title": "Circuits to execute",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": ["compiled_circuit"],
+                "properties": {
+                    "name": {"type": "string"},
+                    "config": {
+                        "title": "Circuit-level configuration",
+                        "description": "Configuration options that apply to only this circuit. Overrides settings from the qobj-level config",
+                        "type": "object",
+                        "properties": {
+                            "seed": {"type": "integer"},
+                            "shots": {"type": "integer", "minimum": 1}
+                        }
+                    },
+                    "compiled_circuit": {
+                        "$ref": "#/definitions/circuit"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "circuit": {
+            "type": "object",
+            "required": ["header", "operations"],
+            "properties": {
+                "header": {
+                    "description": "Header information about the circuit. Defines the classical and quantum bits",
+                    "required": ["number_of_qubits", "number_of_clbits", "qubit_labels", "clbit_labels"],
+                    "properties": {
+                        "number_of_qubits": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "number_of_clbits": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "qubit_labels": {
+                            "title": "Map physical qubits to qregs",
+                            "description": "A list of length number_of_qubits, where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
+                            "examples": [
+                                [["q", 0], ["q", 1], ["r", 0], ["r", 1], ["r", 2]],
+                                [["q", 2], null, ["q", 1], null, ["q", 0]]
+                            ],
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": ["array", "null"],
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": [
+                                    {
+                                        "title": "qreg",
+                                        "type": "string",
+                                        "minLength": 1
+                                    }, 
+                                    {
+                                        "title": "qubit number",
+                                        "description": "The qubit number within the qreg",
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }]
+                            }
+                        },
+                        "clbit_labels": {
+                            "title": "Map physical clbits to clregs",
+                            "description": "A list of pairs [clreg_name, size], to allocate the next size contiguous clbits to clreg clreg_name. The sum of the size-s should equal number_of_clbits",
+                            "examples": [
+                                [["c", 2], ["d", 3]]
+                            ],
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": [{
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": [{
+                                    "title": "clreg",
+                                    "type": "string",
+                                    "minLength": 1
+                                }, {
+                                "title": "size",
+                                "description": "Size of the clreg",
+                                "type": "integer",
+                                "minimum": 1
+                                }]
+                            }]
+                        }
+                    },
+                    "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits"
+                },
+                "operations": {
+                    "description": "The operations that describe the quantum circuit",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "qubits": {
+                                "type": "array",
+                                "uniqueItems": true,
+                                "items": {"type": "integer", "minimum": 0}
+                            },
+                            "params": {"type": "array", "items": {"type": "number"}},
+                            "texparams": {"type": "array", "items": {"type": "string"}},
+                            "clbits": {
+                                "type": "array",
+                                "uniqueItems": true,
+                                "items": {"type": "integer", "minimum": 0}},
+                                "key": {"type": "string"},
+                                "conditional": {
+                                    "type": "object",
+                                    "required": ["type", "mask", "val"],
+                                    "properties": {
+                                        "type": {"type": "string"},
+                                        "mask": {"$ref": "#/definitions/hexstring"},
+                                        "val": {"$ref": "#/definitions/hexstring"}
+                                    }
+                                }
+                        }
+                    }
+                }   
+            }
+        },
+        "hexstring": {"type": "string", "pattern": "^0x[0-9a-fA-F]+$"}
+    }
+}

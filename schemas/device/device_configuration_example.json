@@ -1,0 +1,17 @@
+{
+    "name": "ibmqx2",
+    "version": "1",
+    "url": "https://ibm.biz/qiskit-ibmqx2",
+    "simulator": false,
+    "local": false,
+    "description": "5 qubit transmon bowtie chip 2",
+    "nQubits": 5,
+    "couplingMap": [ [0, 1], [0, 2],
+                     [1, 2],
+                     [3, 2], [3, 4],
+                     [4, 2] ],
+    "gateset": "SU2+CNOT",
+    "basisGates": ["u1","u2","u3","cx","id"],
+    "onlineDate": "2017-01-10",
+    "chipName": "Sparrow"
+}

@@ -1,0 +1,94 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/device-file/calibration-01/schema#",
+    "description": "QISKit device backend calibration",
+    "definitions": {
+        "errorParameter": {
+            "description": "recorded error value",
+            "type": "object",
+            "required": [
+                "date",
+                "value"
+            ],
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        }
+    },
+    "type": "object",
+    "required": [
+        "lastUpdateDate",
+        "multiQubitGates",
+        "qubits"
+    ],
+    "properties": {
+        "lastUpdateData": {
+            "description": "date of last calibration routine",
+            "type": "string",
+            "format": "date-time"
+        },
+        "multiQubitGates": {
+            "title": "Multi-qubit gate error parameters",
+            "type": "array",
+            "minLength": 0,
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "gateError",
+                    "qubits",
+                    "type"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "gateError": {
+                        "$ref": "#/definitions/errorParameter"
+                    },
+                    "qubits": {
+                        "type": "array",
+                        "minLength": 2,
+                        "items": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "qubits": {
+            "title": "Single-qubit gate error parameters",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "gateError",
+                    "readoutError"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "gateError": {
+                        "$ref": "#/definitions/errorParameter"
+                    },
+                    "readoutError": {
+                        "$ref": "#/definitions/errorParameter"
+                    }
+                }
+            }
+        }
+    }
+}
