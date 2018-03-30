@@ -87,11 +87,9 @@ class TestDagCircuit(QiskitTestCase):
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [
-                node[1]["name"]
-                for node in layer["graph"].multi_graph.nodes(data=True)
-                if node[1]["type"] == "op"
-            ] for layer in layers ]
+            [node[1]["name"]
+             for node in layer["graph"].multi_graph.nodes(data=True)
+             if node[1]["type"] == "op"] for layer in layers]
 
         self.assertEqual([
             ['h'],

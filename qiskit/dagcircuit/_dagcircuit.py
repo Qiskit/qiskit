@@ -1153,19 +1153,21 @@ class DAGCircuit:
         the desired behavior.
         """
         graph_layers = self.multigraph_layers()
-        next(graph_layers)  # Remove input nodes
+        try:
+            next(graph_layers)  # Remove input nodes
+        except StopIteration:
+            return
 
         def nodes_data(nodes):
             """Construct full nodes from just node ids."""
             return (
-                (node_id, self.multi_graph.node[node_id]) for node_id in nodes
+                (node_id, self.multi_graph.nodes[node_id]) for node_id in nodes
                 )
 
         for graph_layer in graph_layers:
             # Get the op nodes from the layer, removing any input and ouput nodes.
             op_nodes = list(filter(lambda node: node[1]["type"] == "op",
-                                   nodes_data(graph_layer)
-                                   ))
+                                   nodes_data(graph_layer)))
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
@@ -1250,7 +1252,8 @@ class DAGCircuit:
                     if successor in predecessor_count:
                         predecessor_count[successor] -= multiplicity
                     else:
-                        predecessor_count[successor] = self.multi_graph.in_degree(successor) - multiplicity
+                        predecessor_count[successor] =\
+                            self.multi_graph.in_degree(successor) - multiplicity
 
                     if predecessor_count[successor] == 0:
                         next_layer.append(successor)
