@@ -23,9 +23,11 @@ from ._backendutils import (get_backend_class,
                             calibration,
                             parameters,
                             status,
+                            api,
                             local_backends,
                             remote_backends,
                             register_backend,
+                            deregister_backend,
+                            update_backends,
                             discover_local_backends,
-                            discover_remote_backends,
-                            update_backends)
+                            discover_remote_backends)
