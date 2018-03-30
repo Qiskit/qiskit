@@ -194,7 +194,7 @@ class QuantumCircuit(object):
         if self.definitions[name]["opaque"]:
             out += ";"
         else:
-            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}"
+            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}\n"
         return out
 
     def qasm(self):
