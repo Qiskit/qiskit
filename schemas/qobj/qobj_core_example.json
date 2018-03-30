@@ -1,0 +1,46 @@
+{
+  "type": "QASM",
+  "id": "S4cmORrEe5OtQXwecLQSCLmDpw13NC",
+  "config": {
+      "shots": 1024,
+      "max_credits": 3,
+      "backend": "ibmqx4"
+  },
+  "experiments": [
+    {
+      "name": "test",
+      "config": {
+          "layout": [
+              [["qr", 2], ["q", 2]],
+              [["qr", 4], ["q", 4]],
+              [["qr", 1], ["q", 1]],
+              [["qr", 3], ["q", 3]],
+              [["qr", 0], ["q", 0]]
+          ],
+          "seed": null,
+          "basis_gates": "SU2+CNOT",
+          "gate_set": "SU2+CNOT",
+          "coupling_map": [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
+      },
+      "header": {
+          "number_of_qubits": 5,
+          "qubit_labels": [["qr",0], ["qr",1], ["qr",2],["qr",3],["qr",4]],
+          "number_of_clbits": 5,
+          "clbit_labels": [["cr",5]]
+      },
+      "instructions": [
+          {
+              "name": "u2",
+              "params": [0.0, 3.141592653589793],
+              "texparams": ["0","\\pi"],
+              "qubits": [1]
+          },
+          {
+              "name": "measure",
+              "qubits": [1],
+              "clbits": [1]
+          }
+      ]
+    }
+  ]
+}

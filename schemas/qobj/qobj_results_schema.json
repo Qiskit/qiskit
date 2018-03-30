@@ -1,0 +1,83 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/qobj/results-01/schema#",
+    "title": "qobj results",
+    "description": "The results of executing a ",
+    "type": "object",
+    "required": ["backend", "id", "status", "success"],
+    "properties": {
+        "backend": {
+            "type": "string",
+            "description": "Backend who produced this result"
+        },
+        "id": {
+            "type": "string",
+            "description": "Job id passed back from the input qobj"
+        },
+        "execution_id": {
+            "type": "string",
+            "description": "Unique execution id. May be useful for matching with backend logfiles, etc"
+        },
+        "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date/time of job execution"
+        },
+        "result": {
+            "type": "array",
+            "description": "Corresponding results for array of circuits of the input qobj",
+            "items": {
+                "type": "object",
+                "required": ["status", "success"],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "If true, we can trust results for this circuit."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Human-readable description of status of this circuit"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "counts": {
+                                "type": "object",
+                                "description": "Histogram of results",
+                                "example": {"01011": 10, "10001": 102},
+                                "additionalProperties": {
+                                    "type": "integer",
+                                    "minimum": 0 
+                                }
+                            }, 
+                            "snapshot": {
+                                "type": "object",
+                                "description": "Snapshot of simulator internal representation",
+                                "example": {
+                                    "0": {
+                                        "statevector": [[0,0.707], [0,0], [0,0], [0.707,0]],
+                                        "probabilities": [0.5, 0, 0, 0.5]
+                                    }
+                                },
+                                "properties": {
+                                    "type": "object",
+                                    "properties": {
+                                    }
+                                }
+                            }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "success": {
+            "type": "boolean",
+            "description": "True if complete input qobj executed correctly. (Implies each circuit success)"
+        },
+        "status": {
+            "type": "string",
+            "description": "Human-readable status of complete qobj execution"
+        }
+    }
+}
