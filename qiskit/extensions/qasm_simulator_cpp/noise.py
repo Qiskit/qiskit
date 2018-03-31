@@ -19,10 +19,11 @@
 """
 local_qasm_simulator command to toggle noise off or on.
 """
+from qiskit import Instruction
 from qiskit import CompositeGate
 from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
 from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 
 

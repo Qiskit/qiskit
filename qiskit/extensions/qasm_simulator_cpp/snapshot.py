@@ -19,8 +19,8 @@
 Simulator command to snapshot internal simulator representation.
 """
 from qiskit import Instruction
-from qiskit import QuantumCircuit
 from qiskit import CompositeGate
+from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
