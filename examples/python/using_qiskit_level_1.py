@@ -32,18 +32,18 @@ try:
     qubit_reg = qiskit.QuantumRegister(2, name='q')
     clbit_reg = qiskit.ClassicalRegister(2, name='c')
 
-    # making first circuit: bell state
+    # Making first circuit: bell state
     qc1 = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
     qc1.h(qubit_reg[0])
     qc1.cx(qubit_reg[0], qubit_reg[1])
     qc1.measure(qubit_reg, clbit_reg)
 
-    # making another circuit: superpositions
+    # Making another circuit: superpositions
     qc2 = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
     qc2.h(qubit_reg)
     qc2.measure(qubit_reg, clbit_reg)
 
-    #setting up the backend
+    # Setting up the backend
     print("(Local Backends)")
     for backend in local_backends:
         backend_status = qiskit.backends.status(backend)
@@ -51,7 +51,7 @@ try:
     my_backend = qiskit.backends.get_backend_instance('local_qasm_simulator')
     # ideally this should be a filter
     # my_backend = qiskit.backends.get_backend_instance(filter on local and qasm simulator)
-    print("(Local QASM Simulator Configuration) ")
+    print("(Local QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration)
     print("(Local QASM Simulator calibration) ")
     pprint.pprint(my_backend.calibration)
@@ -59,20 +59,20 @@ try:
     pprint.pprint(my_backend.parameters)
 
 
-    #compiling the job
+    # Compiling the job
     qobj = qiskit.compile([qc1,qc2])
     # I think we need to make a qobj into a class
 
-    #runing the job
+    # Runing the job
     sim_result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
-    # ideally 
+    # ideally
     #   1. we need to make the run take as the input a qobj
     #   2. we need to make the run return a job object
-    # 
+    #
     # job = my_backend.run(qobj)
     # sim_result=job.retrieve
     # the job is a new object that runs when it does and i dont wait for it to finish and can get results later
-    # other job methods 
+    # other job methods
     # job.abort -- use to abort the job
     # job.status   -- the status of the job
 
@@ -84,7 +84,7 @@ try:
     # Compile and run the Quantum Program on a real device backend
     if remote_backends:
 
-        # see a list of available remote backends
+        # See a list of available remote backends
         print("\n(Remote Backends)")
         for backend in remote_backends:
             backend_status = qiskit.backends.status(backend)
@@ -109,7 +109,7 @@ try:
             print("(with parameters) ")
             pprint.pprint(my_backend.parameters)
 
-            #compiling the job
+            # Compiling the job
             compile_config = {
                 'backend': best_device['backend'],
                 'shots': 1024,
@@ -117,20 +117,20 @@ try:
                 }
             qobj = qiskit.compile([qc1,qc2],compile_config)
             # I think we need to make a qobj into a class
-        
-            #runing the job
+
+            # Runing the job
             q_job = qiskit.QuantumJob(qobj, preformatted=True, resources={
                         'max_credits': qobj['config']['max_credits'], 'wait': 5,
                         'timeout': 300})
             exp_result = my_backend.run(q_job)
-            # ideally 
+            # ideally
             #   1. we need to make the run take as the input a qobj
             #   2. we need to make the run return a job object
-            # 
+            #
             # job = my_backend.run(qobj, run_config)
             # sim_result=job.retrieve
             # the job is a new object that runs when it does and i dont wait for it to finish and can get results later
-            # other job methods 
+            # other job methods
             # job.abort -- use to abort the job
             # job.status   -- the status of the job
 
