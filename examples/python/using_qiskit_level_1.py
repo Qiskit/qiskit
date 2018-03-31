@@ -27,9 +27,9 @@ local_backends = qiskit.backends.local_backends()
 remote_backends = qiskit.backends.remote_backends()
 
 try:
-    # Create a Quantum and Classical Register.
-    qubit_reg = qiskit.QuantumRegister("q", 2)
-    clbit_reg = qiskit.ClassicalRegister("c", 2)
+    # Create a Quantum and Classical Register and giving a name.
+    qubit_reg = qiskit.QuantumRegister(2, name='q')
+    clbit_reg = qiskit.ClassicalRegister(2, name='c')
 
     # making first circuit: bell state
     qc1 = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -79,8 +79,8 @@ try:
 
     # Show the results
     print("simulation: ", sim_result)
-    print(sim_result.get_counts("bell"))
-    print(sim_result.get_counts("superposition"))
+    print(sim_result.get_counts(qc1))
+    print(sim_result.get_counts(qc2))
 
     # Compile and run the Quantum Program on a real device backend
     if remote_backends:
