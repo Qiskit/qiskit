@@ -702,10 +702,14 @@ class QuantumProgram(object):
         try:
             config_dict = {
                 'url': url,
-                'hub': hub,
-                'group': group,
-                'project': project
             }
+            # Only append hub/group/project if they are different than None.
+            if all([hub, group, project]):
+                config_dict.update({
+                    'hub': hub,
+                    'group': group,
+                    'project': project
+                })
             if proxies:
                 config_dict['proxies'] = proxies
             self.__api = IBMQuantumExperience(token, config_dict, verify)
