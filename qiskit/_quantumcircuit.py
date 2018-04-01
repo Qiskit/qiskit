@@ -34,6 +34,11 @@ from ._instructionset import InstructionSet
 class QuantumCircuit(object):
     """Quantum circuit."""
 
+    # Class variable keeping track of number of instances, useful for auto naming.
+    # Auto naming prefix
+    instances = 0
+    prefix = 'circuit'
+
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
 
@@ -51,18 +56,27 @@ class QuantumCircuit(object):
 
     def __init__(self, *regs, name=None):
         """Create a new circuit."""
+        self._increment_instances()
         if name is None:
-            name1 = "circuit_random_name_"
-            name2 = "".join([random.choice(string.ascii_letters + string.digits)
-                             for n in range(30)])
-            name = name1+name2
-        # print(name)
+            name = self.cls_prefix() + str(self.cls_instances())
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
         self.regs = OrderedDict()
         self.add(*regs)
+
+    @classmethod
+    def _increment_instances(cls):
+        cls.instances += 1
+
+    @classmethod
+    def cls_instances(cls):
+        return cls.instances
+
+    @classmethod
+    def cls_prefix(cls):
+        return cls.prefix
 
     def has_register(self, register):
         """
