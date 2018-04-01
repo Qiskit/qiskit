@@ -31,26 +31,40 @@ logger = logging.getLogger(__name__)
 
 class Register(object):
     """Implement a generic register."""
+    # Class variable keeping track of number of instances, useful for auto naming.
+    # Auto naming prefix
+    instances = 0
+    prefix = 'reg'
 
     def __init__(self, size, name=None):
         """Create a new generic register."""
+        self._increment_instances()
         if isinstance(size, str):
             warnings.warn(
-                "name will be optional in upcoming versions (>0.5.0). and order will be size "
-                "name.", DeprecationWarning)
+                "name will be optional in upcoming versions (>0.5.0). "
+                "and order will be size, name.", DeprecationWarning)
             name_temp = size
             size = name
             name = name_temp
         if name is None:
-            name1 = "reg_"
-            name2 = "".join([random.choice(string.ascii_letters + string.digits)
-                             for n in range(5)])
-            name = name1+name2
+            name = self.cls_prefix() + str(self.cls_instances())
         self.name = name
         self.size = size
         self._openqasm_name = None
         if size <= 0:
             raise QISKitError("register size must be positive")
+
+    @classmethod
+    def _increment_instances(cls):
+        cls.instances += 1
+
+    @classmethod
+    def cls_instances(cls):
+        return cls.instances
+
+    @classmethod
+    def cls_prefix(cls):
+        return cls.prefix
 
     def __str__(self):
         """Return a string representing the register."""
