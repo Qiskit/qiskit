@@ -45,12 +45,14 @@ else:
 @unittest.skipIf(_skip_class, 'Project Q C++ simulator unavailable')
 class TestProjectQCppSimulator(QiskitTestCase):
     """
-    Test job_pocessor module.
+    Test projectq simulator.
     """
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+
+        # Set up random circuits
         n_circuits = 20
         min_depth = 1
         max_depth = 10
@@ -68,47 +70,6 @@ class TestProjectQCppSimulator(QiskitTestCase):
                 basis.remove('reset')
             random_circuits.add_circuits(1, basis=basis)
         cls.rqg = random_circuits
-        cls.seed = 88
-        cls.qasm_filename = cls._get_resource_path('qasm/example.qasm')
-        with open(cls.qasm_filename, 'r') as qasm_file:
-            cls.qasm_text = qasm_file.read()
-            qr1 = QuantumRegister('q1', 2)
-            qr2 = QuantumRegister('q2', 3)
-            cr = ClassicalRegister('c', 2)
-            qcs = QuantumCircuit(qr1, qr2, cr)
-            qcs.h(qr1[0])
-            qcs.h(qr2[2])
-            qcs.measure(qr1[0], cr[0])
-            cls.qcs = qcs
-            # create qobj
-        compiled_circuit1 = openquantumcompiler.compile(cls.qcs.qasm(),
-                                                        format='json')
-        compiled_circuit2 = openquantumcompiler.compile(cls.qasm_text,
-                                                        format='json')
-        cls.qobj = {'id': 'test_qobj',
-                    'config': {
-                        'max_credits': 3,
-                        'shots': 100,
-                        'backend': 'local_projectq_simulator',
-                        'seed': 1111
-                    },
-                    'circuits': [
-                        {
-                            'name': 'test_circuit1',
-                            'compiled_circuit': compiled_circuit1,
-                            'basis_gates': 'u1,u2,u3,cx,id',
-                            'layout': None,
-                        },
-                        {
-                            'name': 'test_circuit2',
-                            'compiled_circuit': compiled_circuit2,
-                            'basis_gates': 'u1,u2,u3,cx,id',
-                            'layout': None,
-                        }
-                    ]}
-        cls.q_job = QuantumJob(cls.qobj,
-                               backend='local_projectq_simulator',
-                               preformatted=True)
 
     def test_gate_x(self):
         shots = 100
@@ -147,7 +108,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         local_simulator = qasm_simulator.QasmSimulator()
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
-            compiled_circuit = openquantumcompiler.compile(circuit.qasm())
+            compiled_circuit = openquantumcompiler.compile(circuit)
             shots = 100
             min_cnts = int(shots / 10)
             job_pq = QuantumJob(compiled_circuit,
