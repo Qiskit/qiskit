@@ -25,11 +25,8 @@ from scipy.stats import chi2_contingency
 
 import qiskit.backends._projectq_simulator as projectq_simulator
 import qiskit.backends._qasmsimulator as qasm_simulator
-from qiskit import ClassicalRegister
-from qiskit import QuantumCircuit
 from qiskit import QuantumJob
 from qiskit import QuantumProgram
-from qiskit import QuantumRegister
 from qiskit import _openquantumcompiler as openquantumcompiler
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
