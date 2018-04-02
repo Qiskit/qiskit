@@ -91,17 +91,17 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
     return backend_name_list
 
 
-def discover_remote_backends(api):
+def discover_remote_backends(api_):
     """Discover backends available from IBM Q
 
     Args:
-        api (obj): An API object
+        api_ (obj): An API object
     Returns:
         list: list of discovered backend names
     """
     from ._qeremote import QeRemote
-    QeRemote.set_api(api)
-    config_list = api.available_backends()
+    QeRemote.set_api(api_)
+    config_list = api_.available_backends()
     backend_name_list = []
     for config in config_list:
         config_edit = {}
@@ -122,7 +122,7 @@ def discover_remote_backends(api):
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
                                                config_edit,
-                                               api)
+                                               api_)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
@@ -133,13 +133,13 @@ def _snake_case_to_camel_case(name):
     return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 
-def update_backends(api=None):
+def update_backends(api_=None):
     """Update registered backends.
 
     This function deletes refreshes list of available backends
 
     Args:
-        api (IBMQuantumExperience): api to use to check for backends.
+        api_ (API): api to use to check for backends.
 
     Returns:
         list: list of discovered backend names
@@ -147,12 +147,12 @@ def update_backends(api=None):
     _REGISTERED_BACKENDS.clear()
     backend_name_list = []
     backend_name_list += discover_local_backends()
-    if api is not None:
-        backend_name_list += discover_remote_backends(api)
+    if api_ is not None:
+        backend_name_list += discover_remote_backends(api_)
     return backend_name_list
 
 
-def register_backend(cls, configuration_=None, api=None):
+def register_backend(cls, configuration_=None, api_=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -165,7 +165,7 @@ def register_backend(cls, configuration_=None, api=None):
         cls (class): a subclass of BaseBackend that contains a backend
         configuration_ (dict): backend configuration to use instead of class'
             default.
-        api (obj): an API object
+        api_ (obj): an API object
 
     Returns:
         string: the identifier of the backend
@@ -197,7 +197,7 @@ def register_backend(cls, configuration_=None, api=None):
 
     # Append the backend to the `_backend_classes` dict.
     registered_backend = RegisteredBackend(
-        backend_name, cls, backend_instance.configuration, api)
+        backend_name, cls, backend_instance.configuration, api_)
     _REGISTERED_BACKENDS[backend_name] = registered_backend
 
     return backend_name

@@ -21,8 +21,6 @@ Base register reference object.
 import re
 import logging
 import warnings
-import random
-import string
 
 from ._qiskiterror import QISKitError
 
@@ -31,8 +29,6 @@ logger = logging.getLogger(__name__)
 
 class Register(object):
     """Implement a generic register."""
-    # Class variable keeping track of number of instances, useful for auto naming.
-    # Auto naming prefix
     instances = 0
     prefix = 'reg'
 
@@ -60,10 +56,13 @@ class Register(object):
 
     @classmethod
     def cls_instances(cls):
+        """Return the current number of instances of this class,
+        useful for auto naming."""
         return cls.instances
 
     @classmethod
     def cls_prefix(cls):
+        """Return the prefix to use for auto naming."""
         return cls.prefix
 
     def __str__(self):

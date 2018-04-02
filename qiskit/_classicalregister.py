@@ -23,8 +23,6 @@ from ._register import Register
 
 class ClassicalRegister(Register):
     """Implement a classical register."""
-    # Class variable keeping track of number of instances, useful for auto naming.
-    # Auto naming prefix
     instances = 0
     prefix = 'c'
 

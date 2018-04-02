@@ -81,6 +81,7 @@ def compile(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                        initial_layout, get_layout, format)
     return compiled_circuit
 
+
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
 
