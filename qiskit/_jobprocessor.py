@@ -44,7 +44,7 @@ def run_backend(q_job):
     """
     backend_name = q_job.backend
     qobj = q_job.qobj
-    if backend_name in local_backends():  # remove condition when api gets qobj
+    if backend_name in local_backends(compact=False):  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
@@ -74,7 +74,7 @@ class JobProcessor:
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self.online = any(qj.backend not in local_backends() for qj in q_jobs)
+        self.online = any(qj.backend not in local_backends(compact=False) for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
@@ -85,7 +85,8 @@ class JobProcessor:
         if self.online:
             # verify backends across all jobs
             for q_job in q_jobs:
-                if q_job.backend not in remote_backends() + local_backends():
+                if q_job.backend not in (remote_backends(compact=False) +
+                                         local_backends(compact=False)):
                     raise QISKitError("Backend %s not found!" % q_job.backend)
         if self.online:
             # I/O intensive -> use ThreadedPoolExecutor

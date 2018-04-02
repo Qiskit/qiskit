@@ -77,7 +77,7 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     print('The exact ground state energy is: {}'.format(exact))
 
     # Optimization
-    device = 'local_qiskit_simulator'
+    device = 'local_qasm_simulator'
     qp = QuantumProgram()
 
     if shots != 1:
