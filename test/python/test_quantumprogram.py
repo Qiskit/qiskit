@@ -31,7 +31,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     RegisterSizeError)
 from qiskit.tools import file_io
 import qiskit.backends
-from .common import requires_qe_access, QiskitTestCase, Path
+from .common import requires_qe_access, QiskitTestCase, Path, compare_dicts
 
 
 class TestQuantumProgram(QiskitTestCase):
@@ -835,8 +835,11 @@ class TestQuantumProgram(QiskitTestCase):
         result = q_program.run(qobj)
         to_check = q_program.get_qasm("circuitName")
         self.assertEqual(len(to_check), 160)
-        self.assertEqual(result.get_counts("circuitName"),
-                         {'000': 518, '111': 506})
+
+        counts = result.get_counts("circuitName")
+        target = {'000': shots / 2, '111': shots / 2}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts, target, threshold))
 
     def test_compile_coupling_map_as_dict(self):
         """Test compile_coupling_map in dict format (to be deprecated).
@@ -867,8 +870,10 @@ class TestQuantumProgram(QiskitTestCase):
         result = q_program.run(qobj)
         to_check = q_program.get_qasm("circuitName")
         self.assertEqual(len(to_check), 160)
-        self.assertEqual(result.get_counts("circuitName"),
-                         {'000': 518, '111': 506})
+        counts = result.get_counts("circuitName")
+        target = {'000': shots / 2, '111': shots / 2}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts, target, threshold))
 
     def test_change_circuit_qobj_after_compile(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
@@ -982,13 +987,16 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_qasm_simulator'
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88)
-        out = q_program.run(qobj)
-        results2 = out.get_counts('qc2')
-        results3 = out.get_counts('qc3')
-        self.assertEqual(results2, {'000': 518, '111': 506})
-        self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                    '100': 117, '000': 129, '101': 126,
-                                    '010': 145, '011': 125})
+        result = q_program.run(qobj)
+        counts2 = result.get_counts("qc2")
+        counts3 = result.get_counts("qc3")
+        target2 = {'000': shots / 2, '111': shots / 2}
+        target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                   '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                   '110': shots / 8, '111': shots / 8}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts2, target2, threshold))
+        self.assertTrue(compare_dicts(counts3, target3, threshold))
 
     def test_run_async_program(self):
         """Test run_async.
@@ -997,12 +1005,16 @@ class TestQuantumProgram(QiskitTestCase):
         """
         def _job_done_callback(result):
             try:
-                results2 = result.get_counts('qc2')
-                results3 = result.get_counts('qc3')
-                self.assertEqual(results2, {'000': 518, '111': 506})
-                self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                            '100': 117, '000': 129, '101': 126,
-                                            '010': 145, '011': 125})
+                shots = 1024
+                counts2 = result.get_counts("qc2")
+                counts3 = result.get_counts("qc3")
+                target2 = {'000': shots / 2, '111': shots / 2}
+                target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                           '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                           '110': shots / 8, '111': shots / 8}
+                threshold = 0.025 * shots
+                self.assertTrue(compare_dicts(counts2, target2, threshold))
+                self.assertTrue(compare_dicts(counts3, target3, threshold))
             except Exception as e:
                 self.qp_program_exception = e
             finally:
@@ -1049,12 +1061,16 @@ class TestQuantumProgram(QiskitTestCase):
             nonlocal qp_programs_finished
             nonlocal qp_programs_exception
             try:
-                results2 = result.get_counts('qc2')
-                results3 = result.get_counts('qc3')
-                self.assertEqual(results2, {'000': 518, '111': 506})
-                self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                            '100': 117, '000': 129, '101': 126,
-                                            '010': 145, '011': 125})
+                shots = 1024
+                counts2 = result.get_counts("qc2")
+                counts3 = result.get_counts("qc3")
+                target2 = {'000': shots / 2, '111': shots / 2}
+                target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                           '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                           '110': shots / 8, '111': shots / 8}
+                threshold = 0.025 * shots
+                self.assertTrue(compare_dicts(counts2, target2, threshold))
+                self.assertTrue(compare_dicts(counts3, target3, threshold))
             except Exception as e:
                 with lock:
                     qp_programs_exception.append(e)
@@ -1118,12 +1134,15 @@ class TestQuantumProgram(QiskitTestCase):
 
         results = q_program.run_batch(qobj_list)
         for result in results:
-            counts2 = result.get_counts('qc2')
-            counts3 = result.get_counts('qc3')
-            self.assertEqual(counts2, {'000': 518, '111': 506})
-            self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
-                                       '100': 117, '000': 129, '101': 126,
-                                       '010': 145, '011': 125})
+            counts2 = result.get_counts("qc2")
+            counts3 = result.get_counts("qc3")
+            target2 = {'000': shots / 2, '111': shots / 2}
+            target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                       '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                       '110': shots / 8, '111': shots / 8}
+            threshold = 0.025 * shots
+            self.assertTrue(compare_dicts(counts2, target2, threshold))
+            self.assertTrue(compare_dicts(counts3, target3, threshold))
 
     def test_run_batch_async(self):
         """Test run_batch_async
@@ -1133,12 +1152,16 @@ class TestQuantumProgram(QiskitTestCase):
         def _jobs_done_callback(results):
             try:
                 for result in results:
-                    counts2 = result.get_counts('qc2')
-                    counts3 = result.get_counts('qc3')
-                    self.assertEqual(counts2, {'000': 518, '111': 506})
-                    self.assertEqual(counts3, {'001': 119, '111': 129, '110': 134,
-                                               '100': 117, '000': 129, '101': 126,
-                                               '010': 145, '011': 125})
+                    shots = 1024
+                    counts2 = result.get_counts("qc2")
+                    counts3 = result.get_counts("qc3")
+                    target2 = {'000': shots / 2, '111': shots / 2}
+                    target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                               '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                               '110': shots / 8, '111': shots / 8}
+                    threshold = 0.025 * shots
+                    self.assertTrue(compare_dicts(counts2, target2, threshold))
+                    self.assertTrue(compare_dicts(counts3, target3, threshold))
             except Exception as e:
                 self.qp_program_exception = e
             finally:
@@ -1221,15 +1244,17 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc2', 'qc3']
         shots = 1024  # the number of shots in the experiment.
         backend = 'local_qasm_simulator'
-        out = q_program.execute(circuits, backend=backend, shots=shots,
-                                seed=88)
-        results2 = out.get_counts('qc2')
-        results3 = out.get_counts('qc3')
-        self.log.info(results3)
-        self.assertEqual(results2, {'000': 518, '111': 506})
-        self.assertEqual(results3, {'001': 119, '111': 129, '110': 134,
-                                    '100': 117, '000': 129, '101': 126,
-                                    '010': 145, '011': 125})
+        result = q_program.execute(circuits, backend=backend, shots=shots,
+                                   seed=88)
+        counts2 = result.get_counts("qc2")
+        counts3 = result.get_counts("qc3")
+        target2 = {'000': shots / 2, '111': shots / 2}
+        target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
+                   '011': shots / 8, '100': shots / 8, '101': shots / 8,
+                   '110': shots / 8, '111': shots / 8}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts2, target2, threshold))
+        self.assertTrue(compare_dicts(counts3, target3, threshold))
 
     def test_local_qasm_simulator_one_shot(self):
         """Test single shot of local simulator .
@@ -1383,7 +1408,9 @@ class TestQuantumProgram(QiskitTestCase):
                                    shots=shots, max_credits=3,
                                    seed=73846087)
         counts = result.get_counts('qc')
-        self.assertEqual(counts, {'0': 498, '1': 526})
+        target = {'0': shots / 2, '1': shots / 2}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts, target, threshold))
 
     @requires_qe_access
     def test_simulator_online_size(self, QE_TOKEN, QE_URL):
@@ -1435,9 +1462,12 @@ class TestQuantumProgram(QiskitTestCase):
                                    max_credits=3, seed=1287126141)
         counts1 = result.get_counts('qc1')
         counts2 = result.get_counts('qc2')
-        self.assertEqual(counts1, {'10': 277, '11': 238, '01': 258,
-                                   '00': 251})
-        self.assertEqual(counts2, {'11': 515, '00': 509})
+        target1 = {'00': shots / 4, '01': shots / 4,
+                   '10': shots / 4, '11': shots / 4}
+        target2 = {'00': shots / 2, '11': shots / 2}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts1, target1, threshold))
+        self.assertTrue(compare_dicts(counts2, target2, threshold))
 
     @requires_qe_access
     def test_execute_one_circuit_real_online(self, QE_TOKEN, QE_URL):
@@ -1560,9 +1590,10 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
-        # print(q_program.get_qasm('new_circuit'))
-        self.assertEqual(result.get_counts('new_circuit'),
-                         {'00': 505, '01': 519})
+        counts = result.get_counts('new_circuit')
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.025 * shots
+        self.assertTrue(compare_dicts(counts, target, threshold))
 
     def test_add_circuit_fail(self):
         """Test add two circuits fail.
@@ -1635,19 +1666,25 @@ class TestQuantumProgram(QiskitTestCase):
         bell.barrier()
         bell.measure(q[0], c[0])
         bell.measure(q[1], c[1])
+        shots = 2048
         bellobj = qp.compile(["bell"], backend='local_qasm_simulator',
-                             shots=2048, seed=10)
+                             shots=shots, seed=10)
         ghzobj = qp.compile(["ghz"], backend='local_qasm_simulator',
-                            shots=2048, coupling_map=coupling_map,
+                            shots=shots, coupling_map=coupling_map,
                             seed=10)
         bellresult = qp.run(bellobj)
         ghzresult = qp.run(ghzobj)
         self.log.info(bellresult.get_counts("bell"))
         self.log.info(ghzresult.get_counts("ghz"))
-        self.assertEqual(bellresult.get_counts("bell"),
-                         {'00000': 1034, '00011': 1014})
-        self.assertEqual(ghzresult.get_counts("ghz"),
-                         {'00000': 1047, '11111': 1001})
+
+        threshold = 0.025 * shots
+        counts_bell = bellresult.get_counts('bell')
+        target_bell = {'00000': shots / 2, '00011': shots / 2}
+        self.assertTrue(compare_dicts(counts_bell, target_bell, threshold))
+
+        counts_ghz = ghzresult.get_counts('ghz')
+        target_ghz = {'00000': shots / 2, '11111': shots / 2}
+        self.assertTrue(compare_dicts(counts_ghz, target_ghz, threshold))
 
     def test_example_swap_bits(self):
         """Test a toy example swapping a set bit around.

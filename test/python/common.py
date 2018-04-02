@@ -174,4 +174,31 @@ def _is_ci_fork_pull_request():
     return False
 
 
+def compare_dicts(dict1, dict2, threshold, default=0):
+    """
+    Compare two dictionaries with numeric values.
+
+    Args:
+        dict1 (dict): a dictionary.
+        dict2 (dict): a dictionary.
+        threshold (number): threshold for comparison.
+        default (number): default value for missing keys.
+
+    Returns:
+        bool: True if for all keys abs(dict1[key] - dict2[key]) < threshold.
+    """
+    success = True
+    # check value for keys in target
+    keys1 = set(dict1.keys())
+    for key in keys1:
+        diff = abs(dict1.get(key, default) - dict2.get(key, default))
+        success &= diff < threshold
+    # check values for keys in counts, not in target
+    keys2 = set(dict2.keys()) - keys1
+    for key in keys2:
+        diff = abs(dict1.get(key, default) - dict2.get(key, default))
+        success &= diff < threshold
+    return success
+
+
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
