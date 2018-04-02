@@ -52,14 +52,15 @@ COMPILE_CONFIG_DEFAULT = {
 }
 
 
-def compile(list_of_circuits=None, compile_config=COMPILE_CONFIG_DEFAULT):
+def compile(list_of_circuits=None, compile_config=None):
     """Compile a list of circuits into a qobj.
 
     XXX THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6
 
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
-        compile_config (dict): a dictionary of compile configurations.
+        compile_config (dict or None): a dictionary of compile configurations.
+            If `None`, the default compile configuration will be used.
 
     Returns:
         obj: the qobj to be run on the backends
@@ -70,7 +71,8 @@ def compile(list_of_circuits=None, compile_config=COMPILE_CONFIG_DEFAULT):
     """
     if isinstance(list_of_circuits, QuantumCircuit):
         list_of_circuits = [list_of_circuits]
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
+
+    compile_config = compile_config or COMPILE_CONFIG_DEFAULT
     backend = compile_config['backend']
     config = compile_config['config']
     basis_gates = compile_config['basis_gates']
@@ -272,7 +274,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
     return compiled_circuit
 
 
-def execute(list_of_circuits, compile_config=COMPILE_CONFIG_DEFAULT, wait=5, timeout=60):
+def execute(list_of_circuits, compile_config=None, wait=5, timeout=60):
     """Executes a set of circuits.
 
     Args:
@@ -280,11 +282,12 @@ def execute(list_of_circuits, compile_config=COMPILE_CONFIG_DEFAULT, wait=5, tim
 
         wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
         timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
-        compile_config (dict): a dictionary of compile configurations.
+        compile_config (dict or None): a dictionary of compile configurations.
 
     Returns:
         obj: The results object
     """
+    compile_config = compile_config or COMPILE_CONFIG_DEFAULT
 
     backend = compile_config['backend']
     my_backend = backends.get_backend_instance(backend)

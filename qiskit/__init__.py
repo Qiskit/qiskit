@@ -45,7 +45,7 @@ from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 
-from ._compiler import compile
+from ._compiler import compile  # pylint: disable=redefined-builtin
 from ._compiler import execute
 from . import api
 
