@@ -20,7 +20,7 @@ import unittest
 
 from qiskit import QuantumProgram
 from qiskit import qasm, unroll, mapper
-from .common import QiskitTestCase, compare_dicts
+from .common import QiskitTestCase
 
 
 class MapperTest(QiskitTestCase):
@@ -124,7 +124,7 @@ class MapperTest(QiskitTestCase):
         }
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.025 * shots
-        self.assertTrue(compare_dicts(counts, target, threshold))
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
