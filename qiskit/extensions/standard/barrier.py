@@ -51,7 +51,7 @@ class Barrier(Instruction):
         return string  # no c_if on barrier instructions
 
     def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
+        """Reapply this instruction to corresponding qubits in circ."""
         self._modifiers(circ.barrier(*self.arg))
 
 

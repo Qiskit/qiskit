@@ -20,18 +20,17 @@
 local_qasm_simulator command to toggle noise off or on.
 """
 from qiskit import CompositeGate
-from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 
 
-class NoiseGate(Gate):
-    """Simulator save operation."""
+class Noise(Instruction):
+    """Simulator noise operation."""
 
     def __init__(self, m, qubit, circ=None):
-        """Create new save gate."""
+        """Create new noise instruction."""
         super().__init__("noise", [m], [qubit], circ)
 
     def qasm(self):
@@ -47,12 +46,12 @@ class NoiseGate(Gate):
         return self  # self-inverse
 
     def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
+        """Reapply this instruction to corresponding qubits in circ."""
         self._modifiers(circ.noise(self.param[0], self.arg[0]))
 
 
 def noise(self, m, q):
-    """Cache the quantum state of local_qasm_simulator."""
+    """Turn on noise in simulator."""
     if isinstance(q, QuantumRegister):
         gs = InstructionSet()
         for j in range(q.size):

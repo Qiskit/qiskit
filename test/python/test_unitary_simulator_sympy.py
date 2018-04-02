@@ -22,11 +22,11 @@ import unittest
 from sympy import sqrt
 
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob)
-from qiskit.backends._sympy_unitarysimulator import SympyUnitarySimulator
+from qiskit.backends._unitary_simulator_sympy import UnitarySimulatorSympy
 from .common import QiskitTestCase
 
 
-class LocalUnitarySimulatorTest(QiskitTestCase):
+class UnitarySimulatorSympyTest(QiskitTestCase):
     """Test local unitary simulator."""
 
     def setUp(self):
@@ -73,7 +73,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                            backend='local_sympy_unitary_simulator',
                            preformatted=True)
 
-        result = SympyUnitarySimulator().run(q_job)
+        result = UnitarySimulatorSympy().run(q_job)
         actual = result.get_data('test')['unitary']
 
         self.assertEqual(actual[0][0], sqrt(2)/2)
