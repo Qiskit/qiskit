@@ -30,7 +30,7 @@ from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends._qasmsimulator import QasmSimulator
 
 from ._random_qasm_generator import RandomQasmGenerator
-from .common import QiskitTestCase, compare_dicts
+from .common import QiskitTestCase
 
 
 class LocalQasmSimulatorTest(QiskitTestCase):
@@ -103,7 +103,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                   '101 101': shots / 8, '111 111': shots / 8,
                   '000 000': shots / 8, '010 010': shots / 8,
                   '110 110': shots / 8, '001 001': shots / 8}
-        self.assertTrue(compare_dicts(counts, target, threshold))
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
         self.log.info('test_if_statement_x')
