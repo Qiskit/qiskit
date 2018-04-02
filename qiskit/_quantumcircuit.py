@@ -19,8 +19,6 @@
 Quantum circuit object.
 """
 import itertools
-import random
-import string
 from collections import OrderedDict
 from ._qiskiterror import QISKitError
 from ._register import Register
@@ -33,9 +31,6 @@ from ._instructionset import InstructionSet
 
 class QuantumCircuit(object):
     """Quantum circuit."""
-
-    # Class variable keeping track of number of instances, useful for auto naming.
-    # Auto naming prefix
     instances = 0
     prefix = 'circuit'
 
@@ -72,10 +67,13 @@ class QuantumCircuit(object):
 
     @classmethod
     def cls_instances(cls):
+        """Return the current number of instances of this class,
+        useful for auto naming."""
         return cls.instances
 
     @classmethod
     def cls_prefix(cls):
+        """Return the prefix to use for auto naming."""
         return cls.prefix
 
     def has_register(self, register):

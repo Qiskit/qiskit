@@ -28,15 +28,9 @@ from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
 
 from . import backends
 from . import QISKitError
-<<<<<<< HEAD
 from ._measure import Measure
 from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
-=======
-from . import Measure
-from . import Gate
-from . import QuantumCircuit
->>>>>>> Adding execute
 from .extensions.standard.barrier import Barrier
 from . import unroll
 from . import mapper
@@ -58,27 +52,17 @@ COMPILE_CONFIG_DEFAULT = {
 }
 
 
-<<<<<<< HEAD
 def compile(list_of_circuits=None, compile_config=COMPILE_CONFIG_DEFAULT):
     """Compile a list of circuits into a qobj.
 
     XXX THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6
 
-=======
-def compile(list_of_circuits, compile_config=COMPILE_CONFIG_DEFAULT):
-    """Compile a list of circuits into a qobj.
-
->>>>>>> Adding execute
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
         compile_config (dict): a dictionary of compile configurations.
 
     Returns:
-<<<<<<< HEAD
         obj: the qobj to be run on the backends
-=======
-        obj: the qobj
->>>>>>> Adding execute
 
     Raises:
         QISKitError: if any of the circuit names cannot be found on the
@@ -286,29 +270,6 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
     if get_layout:
         return compiled_circuit, final_layout
     return compiled_circuit
-
-def execute(list_of_circuits, compile_config=COMPILE_CONFIG_DEFAULT, wait=5, timeout=60):
-    """Executes a set of circuits.
-
-    Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-
-        wait (int): XXX
-        timeout (int): XXX
-        compile_config (dict): a dictionary of compile configurations.
-
-    Returns:
-        obj: The results object
-    """
-
-    backend = compile_config['backend']
-    my_backend = backends.get_backend_instance(backend)
-    qobj = compile(list_of_circuits, compile_config)
-
-    q_job = QuantumJob(qobj, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = my_backend.run(q_job)
-    return result
 
 
 def execute(list_of_circuits, compile_config=COMPILE_CONFIG_DEFAULT, wait=5, timeout=60):

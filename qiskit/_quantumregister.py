@@ -23,8 +23,6 @@ from ._register import Register
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
-    # Class variable keeping track of number of instances, useful for auto naming.
-    # Auto naming prefix
     instances = 0
     prefix = 'q'
 
