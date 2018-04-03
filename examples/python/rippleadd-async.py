@@ -16,19 +16,15 @@
 # =============================================================================
 
 """
-Ripple adder example based on Cuccaro et al, quant-ph/0410184.
+Ripple adder example based on Cuccaro et al., quant-ph/0410184.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 
-import sys
-import os
 import time
-
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qiskit import QuantumProgram, QuantumCircuit
+from qiskit import QuantumProgram
+from qiskit import QuantumCircuit
 
 import Qconfig
 

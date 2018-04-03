@@ -54,7 +54,6 @@ def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.ch((ctl, i), (tgt, i)))

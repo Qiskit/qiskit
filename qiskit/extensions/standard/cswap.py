@@ -42,10 +42,10 @@ class FredkinGate(CompositeGate):
 
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-
-    if isinstance(ctl, QuantumRegister) and isinstance(tgt1, QuantumRegister) and \
-            isinstance(tgt2, QuantumRegister) and len(ctl) == len(tgt1) == len(tgt2):
-        # apply cx to qubits between two registers
+    if isinstance(ctl, QuantumRegister) and \
+       isinstance(tgt1, QuantumRegister) and \
+       isinstance(tgt2, QuantumRegister) and \
+       len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cswap((ctl, i), (tgt1, i), (tgt2, i)))

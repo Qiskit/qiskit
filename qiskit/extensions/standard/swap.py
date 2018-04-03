@@ -23,7 +23,8 @@ from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit._instructionset import InstructionSet
+from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -53,7 +54,7 @@ class SwapGate(Gate):
 def swap(self, ctl, tgt):
     """Apply SWAP from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
-            isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
         instructions = InstructionSet()
         for j in range(ctl.size):
             instructions.add(self.swap((ctl, j), (tgt, j)))

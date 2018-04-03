@@ -21,6 +21,7 @@ This module is used for connecting to the Quantum Experience.
 import time
 import logging
 import pprint
+import re
 from qiskit.backends._basebackend import BaseBackend
 from qiskit import _openquantumcompiler as openquantumcompiler
 from qiskit import QISKitError
@@ -28,6 +29,9 @@ from qiskit._result import Result
 from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
+
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
 class QeRemote(BaseBackend):
@@ -69,7 +73,7 @@ class QeRemote(BaseBackend):
             if (('compiled_circuit_qasm' not in circuit) or
                     (circuit['compiled_circuit_qasm'] is None)):
                 compiled_circuit = openquantumcompiler.compile(
-                    circuit['circuit'].qasm())
+                    circuit['circuit'])
                 circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
             if isinstance(circuit['compiled_circuit_qasm'], bytes):
                 api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
@@ -114,6 +118,87 @@ class QeRemote(BaseBackend):
     def set_api(cls, api):
         """Associate API with class"""
         cls._api = api
+
+    @property
+    def calibration(self):
+        """Return the online backend calibrations.
+
+        The return is via QX API call.
+
+        Returns:
+            dict: The calibration of the backend.
+
+        Raises:
+            ConnectionError: if the API call failed.
+            LookupError: If a configuration for the backend can't be found.
+        """
+        if not self._api:
+            raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            calibrations = self._api.backend_calibration(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend calibration: {0}".format(ex))
+
+        calibrations_edit = {}
+        for key, vals in calibrations.items():
+            new_key = _snake_case_to_camel_case(key)
+            calibrations_edit[new_key] = vals
+
+        return calibrations_edit
+
+    @property
+    def parameters(self):
+        """Return the online backend parameters.
+
+        Returns:
+            dict: The parameters of the backend.
+
+        Raises:
+            ConnectionError: if the API call faled.
+            LookupError: If parameters for the backend can't be found.
+        """
+        if not self._api:
+            raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            parameters = self._api.backend_parameters(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend parameters: {0}".format(ex))
+
+        parameters_edit = {}
+        for key, vals in parameters.items():
+            new_key = _snake_case_to_camel_case(key)
+            parameters_edit[new_key] = vals
+
+        return parameters_edit
+
+    @property
+    def status(self):
+        """Return the online backend status.
+
+        Returns:
+            dict: The status of the backend.
+
+        Raises:
+            ConnectionError: if the API call failed.
+            LookupError: If status for the backend can't be found.
+        """
+        if not self._api:
+            raise ConnectionError('API not set')
+
+        try:
+            backend_name = self.configuration['name']
+            status = self._api.backend_status(backend_name)
+        except Exception as ex:
+            raise LookupError(
+                "Couldn't get backend status: {0}".format(ex))
+
+        return status
 
 
 def _wait_for_job(jobid, api, wait=5, timeout=60):
@@ -161,3 +246,10 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                                   'status': job_result['qasms'][index]['status']})
     return {'job_id': jobid, 'status': job_result['status'],
             'result': job_result_return}
+
+
+# this is also in _backendutils but using that was creating cyclic import.
+def _snake_case_to_camel_case(name):
+    """Return a snake case string from a camelcase string."""
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()

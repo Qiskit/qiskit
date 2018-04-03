@@ -55,11 +55,11 @@ class ToffoliGate(Gate):
 
 
 def ccx(self, ctl1, ctl2, tgt):
-    """Apply Toffoli to circuit."""
-
-    if isinstance(ctl1, QuantumRegister) and isinstance(ctl2, QuantumRegister) and \
-            isinstance(tgt, QuantumRegister) and len(ctl1) == len(ctl2) == len(tgt):
-        # apply cx to qubits between two registers
+    """Apply Toffoli to from ctl1 and ctl2 to tgt."""
+    if isinstance(ctl1, QuantumRegister) and \
+       isinstance(ctl2, QuantumRegister) and \
+       isinstance(tgt, QuantumRegister) and \
+       len(ctl1) == len(tgt) and len(ctl2) == len(tgt):
         instructions = InstructionSet()
         for i in range(ctl1.size):
             instructions.add(self.ccx((ctl1, i), (ctl2, i), (tgt, i)))

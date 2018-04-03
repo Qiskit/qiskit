@@ -53,8 +53,7 @@ class CnotGate(Gate):
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
-            isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
+       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cx((ctl, i), (tgt, i)))
