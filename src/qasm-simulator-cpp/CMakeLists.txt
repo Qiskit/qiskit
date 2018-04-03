@@ -20,7 +20,7 @@
 # on GNU g++ comipler, CLang doesn't include it so if you are building with CLang
 # you won't get all the performance.
 
-project(qiskit_simulator VERSION 1.0 LANGUAGES CXX)
+project(qasm_simulator_cpp VERSION 1.0 LANGUAGES CXX)
 
 set(QISKIT_SIMULATOR_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(QISKIT_SIMULATOR_SRC
@@ -31,13 +31,13 @@ set(QISKIT_SIMULATOR_EXTERNAL_LIBS
 	"${USER_LIB_PATH}")
 
 # Target definition
-add_executable(qiskit_simulator ${QISKIT_SIMULATOR_SRC})
+add_executable(qasm_simulator_cpp ${QISKIT_SIMULATOR_SRC})
 
 # Target properties: C++ program
-set_target_properties(qiskit_simulator PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(qasm_simulator_cpp PROPERTIES LINKER_LANGUAGE CXX)
 
 # Toolchain options
-set_property(TARGET qiskit_simulator PROPERTY CXX_STANDARD 14)
+set_property(TARGET qasm_simulator_cpp PROPERTY CXX_STANDARD 14)
 
 # Compiler flags
 enable_cxx_compiler_flag_if_supported("-O3")
@@ -69,11 +69,11 @@ enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 enable_cxx_compiler_flag_if_supported("-Wshadow")
 enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR})
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/backends)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/engines)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/utilities)
-target_include_directories(qiskit_simulator PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/third-party/headers)
+target_include_directories(qasm_simulator_cpp PRIVATE ${QISKIT_SIMULATOR_SRC_DIR})
+target_include_directories(qasm_simulator_cpp PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/backends)
+target_include_directories(qasm_simulator_cpp PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/engines)
+target_include_directories(qasm_simulator_cpp PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/utilities)
+target_include_directories(qasm_simulator_cpp PRIVATE ${QISKIT_SIMULATOR_SRC_DIR}/third-party/headers)
 
 # For header only libraries
 SET(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "")
@@ -120,9 +120,9 @@ set(LIBRARIES PRIVATE ${LIB_BLAS}
 					  ${LIB_THREADS})
 
 # Linking
-target_link_libraries(qiskit_simulator ${LIBRARIES})
+target_link_libraries(qasm_simulator_cpp ${LIBRARIES})
 
-set(QISKIT_SIMULATOR_OUTPUT_DIR $<TARGET_FILE_DIR:qiskit_simulator>
+set(QISKIT_SIMULATOR_OUTPUT_DIR $<TARGET_FILE_DIR:qasm_simulator_cpp>
 	CACHE INTERNAL "Output directory for building QISKit C++ Simulator")
 
 if(MINGW)
@@ -134,7 +134,7 @@ if(MINGW)
 
 	foreach(dll_file ${QISKIT_SIMULATOR_THIRD_PARTY_DLLS})
 		add_custom_command(
-			TARGET qiskit_simulator
+			TARGET qasm_simulator_cpp
 			POST_BUILD
 			COMMAND ${CMAKE_COMMAND}
 			ARGS -E copy ${dll_file} ${QISKIT_SIMULATOR_OUTPUT_DIR}/
