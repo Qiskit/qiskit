@@ -54,8 +54,8 @@ doc:
 	done
 
 sim:
-	make -C src/qiskit-simulator/src clean
-	make -C src/qiskit-simulator/src
+	make -C src/qasm-simulator-cpp/src clean
+	make -C src/qasm-simulator-cpp/src
 
 coverage_erase:
 	coverage erase
@@ -63,6 +63,6 @@ coverage_erase:
 clean: coverage_erase
 	make -C doc clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
-	make -C src/cpp-simulator/src clean
+	make -C src/qasm-simulator-cpp/src clean
 	rm -f test/python/test_latex_drawer.tex test/python/test_qasm_python_simulator.pdf \
 		test/python/test_save.json test/python/test_teleport.tex

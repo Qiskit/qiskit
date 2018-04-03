@@ -298,7 +298,7 @@ inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
         engine.counts_bits_h2l = false;
       else if (o == "classicalstate" || o == "classicalstates")
         engine.show_final_creg = true;
-      else if (o == "hidequantumstate" || o == "hidequantumstates")
+      else if (o == "hidesnapshots" || o == "hidesnapshots")
         engine.show_snapshots = false;
     }
   }
