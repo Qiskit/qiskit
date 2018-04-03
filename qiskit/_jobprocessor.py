@@ -23,11 +23,11 @@ import pprint
 from threading import Lock
 
 import qiskit.backends as backends
-from qiskit.backends import (local_backends, remote_backends)
-from qiskit._result import Result
+from .backends import (local_backends, remote_backends)
+from ._result import Result
 
-from qiskit import QISKitError
-from qiskit import _openquantumcompiler as openquantumcompiler
+from ._qiskiterror import QISKitError
+from ._compiler import compile_circuit
 
 
 logger = logging.getLogger(__name__)
@@ -47,8 +47,7 @@ def run_backend(q_job):
     if backend_name in local_backends():  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
-                compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
-                                                               format='json')
+                compiled_circuit = compile_circuit(circuit['circuit'], format='json')
                 circuit['compiled_circuit'] = compiled_circuit
     backend = backends.get_backend_instance(backend_name)
     return backend.run(q_job)

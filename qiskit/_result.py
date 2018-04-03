@@ -19,8 +19,8 @@
 
 import copy
 import numpy
-from qiskit import QISKitError
-from qiskit import QuantumCircuit
+from ._qiskiterror import QISKitError
+from ._quantumcircuit import QuantumCircuit
 
 
 class Result(object):

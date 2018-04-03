@@ -36,16 +36,16 @@ from IBMQuantumExperience import IBMQuantumExperience
 import qiskit.backends
 
 # Stable Modules
-from . import QuantumRegister
-from . import ClassicalRegister
-from . import QuantumCircuit
-from . import QISKitError
-from . import JobProcessor
-from . import QuantumJob
+from ._quantumregister import QuantumRegister
+from ._classicalregister import ClassicalRegister
+from ._quantumcircuit import QuantumCircuit
+from ._qiskiterror import QISKitError
+from ._jobprocessor import JobProcessor
+from ._quantumjob import QuantumJob
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 
 # Beta Modules
-from . import unroll
+from .unroll import CircuitBackend, Unroller
 from . import qasm
 from . import mapper
 
@@ -445,8 +445,7 @@ class QuantumProgram(object):
         logger.info("******************************")
         logger.info(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
-        unrolled_circuit = unroll.Unroller(node_circuit,
-                                           unroll.CircuitBackend(basis_gates.split(",")))
+        unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         self.add_circuit(name, circuit_unrolled)
         return name
@@ -473,8 +472,7 @@ class QuantumProgram(object):
         logger.info("******************************")
         logger.info(node_circuit.qasm())
         # current method to turn it a DAG quantum circuit.
-        unrolled_circuit = unroll.Unroller(node_circuit,
-                                           unroll.CircuitBackend(basis_gates.split(",")))
+        unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
         circuit_unrolled = unrolled_circuit.execute()
         self.add_circuit(name, circuit_unrolled)
         return name

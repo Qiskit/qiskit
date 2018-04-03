@@ -14,7 +14,7 @@ import qiskit
 
 # registering the backends from the IBM Q Experience
 import Qconfig
-qiskit.api.register(Qconfig.APItoken)
+qiskit.register(Qconfig.APItoken)
 try:
     import Qconfig
     qiskit.api.register(Qconfig.APItoken)

@@ -23,18 +23,21 @@ import random
 import string
 import copy
 
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
+from .dagcircuit import DAGCircuit
+from .unroll import DagUnroller, DAGBackend, JsonBackend
 
 from . import backends
-from . import QISKitError
+from ._qiskiterror import QISKitError
 from ._measure import Measure
 from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
+from .unroll import Unroller, CircuitBackend
 from .extensions.standard.barrier import Barrier
-from . import unroll
-from . import mapper
+from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper, 
+                     cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
+from .qasm import Qasm
+
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +176,7 @@ def compile(list_of_circuits=None, compile_config=None):
         # the compiled circuit to be run saved as a dag
         # we assume that compile_circuit has already expanded gates
         # to the target basis, so we just need to generate json
-        json_circuit = unroll.DagUnroller(dag_circuit,
-                                          unroll.JsonBackend(dag_circuit.basis)).execute()
+        json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
         job["compiled_circuit"] = json_circuit
         # set eval_symbols=True to evaluate each symbolic expression
         # TODO after transition to qobj, we can drop this
@@ -241,20 +243,20 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         logger.info("pre-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
         # Insert swap gates
-        coupling = mapper.Coupling(mapper.coupling_list2dict(coupling_map))
+        coupling = Coupling(coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
-        compiled_dag_circuit, final_layout = mapper.swap_mapper(
+        compiled_dag_circuit, final_layout = swap_mapper(
             compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
         compiled_dag_circuit = dag_unroller.expand_gates()
         # Change cx directions
-        compiled_dag_circuit = mapper.direction_mapper(compiled_dag_circuit, coupling)
+        compiled_dag_circuit = direction_mapper(compiled_dag_circuit, coupling)
         # Simplify cx gates
-        mapper.cx_cancellation(compiled_dag_circuit)
+        cx_cancellation(compiled_dag_circuit)
         # Simplify single qubit gates
-        compiled_dag_circuit = mapper.optimize_1q_gates(compiled_dag_circuit)
+        compiled_dag_circuit = optimize_1q_gates(compiled_dag_circuit)
         logger.info("post-mapping properties: %s",
                     compiled_dag_circuit.property_summary())
     # choose output format
@@ -298,6 +300,20 @@ def execute(list_of_circuits, compile_config=None, wait=5, timeout=60):
     result = my_backend.run(q_job)
     return result
 
+def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
+    """Load qasm file and return unrolled circuit
+
+    Args:
+        filename (str): a string for the filename including its location.
+        basis_gates (str): basis to unroll circuit to.
+    Returns:
+        object: Returns a unrolled QuantumCircuit object
+    """
+    # create Program object Node (AST)
+    node_circuit = Qasm(filename=filename).parse()
+    node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
+    circuit_unrolled = node_unroller.execute()
+    return circuit_unrolled
 
 class QISKitCompilerError(QISKitError):
     """Exceptions raised during compilation"""
