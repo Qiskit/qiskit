@@ -7,7 +7,7 @@
     },
     "circuits": [
         {
-            "name": "#snapshot",
+            "name": "snapshot",
             "compiled_circuit": {
                 "header": {
                     "clbit_labels": [],
@@ -16,7 +16,7 @@
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
-                    {"name": "#snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]}
                 ]
             }
         },
@@ -61,6 +61,21 @@
                 },
                 "operations": [
                     {"name": "u1", "params": [0.0], "qubits": [0]},
+                    {"name": "#snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "id(direct)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "id", "qubits": [0]},
                     {"name": "#snapshot", "params": [0]}
                 ]
             }
