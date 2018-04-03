@@ -16,7 +16,6 @@
 # limitations under the License.
 # =============================================================================
 
-"""API class"""
 import qiskit.backends
 
 
@@ -35,7 +34,7 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
         project (str): optional user project
 
     Returns:
-        API: an api object
+        : an api object
     """
     config = {
         'url': url,
@@ -47,12 +46,13 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
     api_temp = IBMQuantumExperience(token, config)
     api = API(api_temp)
     qiskit.backends.discover_remote_backends(api_temp)
-    # the input to the discover_remote_backends should be the api not api_temp
-
-    # Ideally this would make an API object based on url and the user token
+    # ally this would make an API object based on url and the user token
     # and register all the backends of this API to qiskit.backends.remote()
     # I am worried that there is not checks to see if the backends have the same name
-    # this should be verified in the future.
+    # this should be verified in the future.the input to the discover_remote_backends 
+    # should be the api not api_temp
+
+    # Ide
 
     return api
 

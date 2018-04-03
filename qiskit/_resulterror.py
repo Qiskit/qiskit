@@ -22,6 +22,7 @@ in the result
 
 from ._qiskiterror import QISKitError
 
+
 class ResultError(QISKitError):
     """Exceptions raised due to errors in result output.
 

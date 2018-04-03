@@ -23,7 +23,7 @@ import logging
 import pprint
 import re
 from qiskit.backends._basebackend import BaseBackend
-from qiskit import _openquantumcompiler as openquantumcompiler
+from qiskit._compiler import compile_circuit
 from qiskit import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
@@ -72,8 +72,7 @@ class QeRemote(BaseBackend):
         for circuit in qobj['circuits']:
             if (('compiled_circuit_qasm' not in circuit) or
                     (circuit['compiled_circuit_qasm'] is None)):
-                compiled_circuit = openquantumcompiler.compile(
-                    circuit['circuit'])
+                compiled_circuit = compile_circuit(circuit['circuit'])
                 circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
             if isinstance(circuit['compiled_circuit_qasm'], bytes):
                 api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})

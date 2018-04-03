@@ -27,7 +27,7 @@ import qiskit.backends._projectq_simulator as projectq_simulator
 import qiskit.backends._qasmsimulator as qasm_simulator
 from qiskit import QuantumJob
 from qiskit import QuantumProgram
-from qiskit import _openquantumcompiler as openquantumcompiler
+from qiskit._compiler import compile_circuit
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
@@ -105,7 +105,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         local_simulator = qasm_simulator.QasmSimulator()
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
-            compiled_circuit = openquantumcompiler.compile(circuit)
+            compiled_circuit = compile_circuit(circuit)
             shots = 1000
             min_cnts = int(shots / 10)
             job_pq = QuantumJob(compiled_circuit,
