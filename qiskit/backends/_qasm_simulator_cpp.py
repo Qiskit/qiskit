@@ -45,7 +45,7 @@ DEFAULT_SIMULATOR_PATHS = [
 ]
 
 
-class QISKitCppSimulator(BaseBackend):
+class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
