@@ -88,12 +88,17 @@ class TestStandard1Q(StandardExtensionTest):
         self.c_header = 58  # lenght of the header
 
     def test_barrier(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.barrier, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.barrier, 0)
-        c.barrier(self.q[1])
+        self.circuit.barrier(self.q[1])
         qasm_txt = 'barrier q[1];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
+
+    def test_barrier_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.barrier, self.c[0])
+        self.assertRaises(QISKitError, c.barrier, self.c)
+        self.assertRaises(QISKitError, c.barrier, (self.q, 3))
+        self.assertRaises(QISKitError, c.barrier, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.barrier, 0)
 
     def test_barrier_reg(self):
         self.circuit.barrier(self.q)
@@ -106,99 +111,166 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_ccx(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.ccx, self.c[0], self.c[1], self.c[2])
-        self.assertRaises(QISKitError, c.ccx, self.q[0], self.q[0], self.q[2])
-        # TODO self.assertRaises(QISKitError, c.ccx, 0, self.q[0], self.q[2])
-        c.ccx(self.q[0], self.q[1], self.q[2])
+        self.circuit.ccx(self.q[0], self.q[1], self.q[2])
         qasm_txt = 'ccx q[0],q[1],q[2];'
         self.assertResult(ToffoliGate, qasm_txt, qasm_txt)
 
-    def test_ch(self):
+    def test_ccx_invalid(self):
         c = self.circuit
-        self.assertRaises(QISKitError, c.ch, self.c[0], self.c[1])
-        self.assertRaises(QISKitError, c.ch, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.ch, 0, self.q[0])
-        c.ch(self.q[0], self.q[1])
+        self.assertRaises(QISKitError, c.ccx, self.c[0], self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.ccx, self.q[0], self.q[0], self.q[2])
+        self.assertRaises(QISKitError, c.ccx, 0, self.q[0], self.q[2])
+        self.assertRaises(QISKitError, c.ccx, (self.q, 3), self.q[1], self.q[2])
+        self.assertRaises(QISKitError, c.ccx, self.c, self.q, self.q)
+        self.assertRaises(QISKitError, c.ccx, 'a', self.q[1], self.q[2])
+
+    def test_ch(self):
+        self.circuit.ch(self.q[0], self.q[1])
         qasm_txt = 'ch q[0],q[1];'
         self.assertResult(CHGate, qasm_txt, qasm_txt)
 
+    def test_ch_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.ch, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.ch, self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.ch, 0, self.q[0])
+        self.assertRaises(QISKitError, c.ch, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.ch, self.c, self.q)
+        self.assertRaises(QISKitError, c.ch, 'a', self.q[1])
+
     def test_crz(self):
+        self.circuit.crz(1, self.q[0], self.q[1])
+        self.assertResult(CrzGate, 'crz(1) q[0],q[1];', 'crz(-1) q[0],q[1];')
+
+    def test_crz_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.crz, 0, self.c[0], self.c[1])
         self.assertRaises(QISKitError, c.crz, 0, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.crz, 0, 0, self.q[0])
-        c.crz(1, self.q[0], self.q[1])
-        self.assertResult(CrzGate, 'crz(1) q[0],q[1];', 'crz(-1) q[0],q[1];')
+        self.assertRaises(QISKitError, c.crz, 0, 0, self.q[0])
+        # TODO self.assertRaises(QISKitError, c.crz, self.q[2], self.q[1], self.q[0])
+        self.assertRaises(QISKitError, c.crz, 0, self.q[1], self.c[2])
+        self.assertRaises(QISKitError, c.crz, 0, (self.q, 3), self.q[1])
+        self.assertRaises(QISKitError, c.crz, 0, self.c, self.q)
+        # TODO self.assertRaises(QISKitError, c.crz, 'a', self.q[1], self.q[2])
 
     def test_cswap(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1], self.c[2])
-        self.assertRaises(QISKitError, c.cswap, self.q[1], self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cswap, self.q[1], 0, self.q[0])
-        c.cswap(self.q[0], self.q[1], self.q[2])
+        self.circuit.cswap(self.q[0], self.q[1], self.q[2])
         qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
         self.assertResult(FredkinGate, qasm_txt, qasm_txt)
 
+    def test_cswap_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.cswap, self.q[1], self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.cswap, self.q[1], 0, self.q[0])
+        self.assertRaises(QISKitError, c.cswap, self.c[0], self.c[1], self.q[0])
+        self.assertRaises(QISKitError, c.cswap, self.q[0], self.q[0], self.q[1])
+        self.assertRaises(QISKitError, c.cswap, 0, self.q[0], self.q[1])
+        self.assertRaises(QISKitError, c.cswap, (self.q, 3), self.q[0], self.q[1])
+        self.assertRaises(QISKitError, c.cswap, self.c, self.q[0], self.q[1])
+        self.assertRaises(QISKitError, c.cswap, 'a', self.q[1], self.q[2])
+
     def test_cu1(self):
+        self.circuit.cu1(1, self.q[1], self.q[2])
+        self.assertResult(Cu1Gate, 'cu1(1) q[1],q[2];', 'cu1(-1) q[1],q[2];')
+
+    def test_cu1_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cu1, self.c[0], self.c[1], self.c[2])
         self.assertRaises(QISKitError, c.cu1, 1, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cu1, self.q[1], 0, self.q[0])
-        c.cu1(1, self.q[1], self.q[2])
-        self.assertResult(Cu1Gate, 'cu1(1) q[1],q[2];', 'cu1(-1) q[1],q[2];')
+        self.assertRaises(QISKitError, c.cu1, self.q[1], 0, self.q[0])
+        self.assertRaises(QISKitError, c.cu1, 0, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.cu1, 0, self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.cu1, 0, 0, self.q[0])
+        # TODO self.assertRaises(QISKitError, c.cu1, self.q[2], self.q[1], self.q[0])
+        self.assertRaises(QISKitError, c.cu1, 0, self.q[1], self.c[2])
+        self.assertRaises(QISKitError, c.cu1, 0, (self.q, 3), self.q[1])
+        self.assertRaises(QISKitError, c.cu1, 0, self.c, self.q)
+        # TODO self.assertRaises(QISKitError, c.cu1, 'a', self.q[1], self.q[2])
 
     def test_cu3(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.cu3, 0, 0, self.c[0], self.c[1], self.c[2])
-        self.assertRaises(QISKitError, c.cu3, 0, 0, 1, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
-        c.cu3(1, 2, 3, self.q[1], self.q[2])
+        self.circuit.cu3(1, 2, 3, self.q[1], self.q[2])
         self.assertResult(Cu3Gate, 'cu3(1,2,3) q[1],q[2];', 'cu3(-1,-3,-2) q[1],q[2];')
 
-    def test_cx(self):
+    def test_cu3_invalid(self):
         c = self.circuit
-        self.assertRaises(QISKitError, c.cx, self.c[1], self.c[2])
-        self.assertRaises(QISKitError, c.cx, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cx, 0, self.q[0])
-        c.cx(self.q[1], self.q[2])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, self.q[0], self.q[1], self.c[2])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, self.q[1], 0, self.q[0])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, 0, 0, self.q[0])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, 0, (self.q, 3), self.q[1])
+        self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.c, self.q)
+        # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 'a', self.q[1], self.q[2])
+
+    def test_cx(self):
+        self.circuit.cx(self.q[1], self.q[2])
         qasm_txt = 'cx q[1],q[2];'
         self.assertResult(CnotGate, qasm_txt, qasm_txt)
 
+    def test_cx_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.cx, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.cx, self.q[0], self.q[0])
+        self.assertRaises(QISKitError, c.cx, 0, self.q[0])
+        self.assertRaises(QISKitError, c.cx, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.cx, self.c, self.q)
+        self.assertRaises(QISKitError, c.cx, 'a', self.q[1])
+
     def test_cxbase(self):
         qasm_txt = 'CX q[1],q[2];'
+        self.circuit.cx_base(self.q[1], self.q[2])
+        self.assertResult(CXBase, qasm_txt, qasm_txt)
+
+    def test_cxbase_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cx_base, self.c[1], self.c[2])
         self.assertRaises(QISKitError, c.cx_base, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
-        c.cx_base(self.q[1], self.q[2])
-        self.assertResult(CXBase, qasm_txt, qasm_txt)
+        self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
+        self.assertRaises(QISKitError, c.cx_base, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.cx_base, self.c, self.q)
+        self.assertRaises(QISKitError, c.cx_base, 'a', self.q[1])
 
     def test_cy(self):
+        qasm_txt = 'cy q[1],q[2];'
+        self.circuit.cy(self.q[1], self.q[2])
+        self.assertResult(CyGate, qasm_txt, qasm_txt)
+
+    def test_cy_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cy, self.c[1], self.c[2])
         self.assertRaises(QISKitError, c.cy, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cy, 0, self.q[0])
-        c.cy(self.q[1], self.q[2])
-        qasm_txt = 'cy q[1],q[2];'
-        self.assertResult(CyGate, qasm_txt, qasm_txt)
+        self.assertRaises(QISKitError, c.cy, 0, self.q[0])
+        self.assertRaises(QISKitError, c.cy, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.cy, self.c, self.q)
+        self.assertRaises(QISKitError, c.cy, 'a', self.q[1])
 
     def test_cz(self):
+        qasm_txt = 'cz q[1],q[2];'
+        self.circuit.cz(self.q[1], self.q[2])
+        self.assertResult(CzGate, qasm_txt, qasm_txt)
+
+    def test_cz_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.cz, self.c[1], self.c[2])
         self.assertRaises(QISKitError, c.cz, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cy, 0, self.q[0])
-        c.cz(self.q[1], self.q[2])
-        qasm_txt = 'cz q[1],q[2];'
-        self.assertResult(CzGate, qasm_txt, qasm_txt)
+        self.assertRaises(QISKitError, c.cz, 0, self.q[0])
+        self.assertRaises(QISKitError, c.cz, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.cz, self.c, self.q)
+        self.assertRaises(QISKitError, c.cz, 'a', self.q[1])
 
     def test_h(self):
+        qasm_txt = 'h q[1];'
+        self.circuit.h(self.q[1])
+        self.assertResult(HGate, qasm_txt, qasm_txt)
+
+    def test_h_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.h, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.h, 0)
-        c.h(self.q[1])
-        qasm_txt = 'h q[1];'
-        self.assertResult(HGate, qasm_txt, qasm_txt)
+        self.assertRaises(QISKitError, c.h, self.c)
+        self.assertRaises(QISKitError, c.h, (self.q, 3))
+        self.assertRaises(QISKitError, c.h, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.h, 0)
 
     def test_h_reg(self):
         qasm_txt = 'h q[0];\nh q[1];\nh q[2];'
@@ -213,11 +285,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
 
     def test_iden(self):
+        self.circuit.iden(self.q[1])
+        self.assertResult(IdGate, 'id q[1];', 'id q[1];')
+
+    def test_iden_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.iden, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.iden, 0)
-        c.iden(self.q[1])
-        self.assertResult(IdGate, 'id q[1];', 'id q[1];')
+        self.assertRaises(QISKitError, c.iden, self.c)
+        self.assertRaises(QISKitError, c.iden, (self.q, 3))
+        self.assertRaises(QISKitError, c.iden, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.iden, 0)
 
     def test_iden_reg(self):
         qasm_txt = 'id q[0];\nid q[1];\nid q[2];'
@@ -232,11 +309,20 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 25)
 
     def test_rx(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.rx, 1, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.rx, 1, 1)
-        c.rx(1, self.q[1])
+        self.circuit.rx(1, self.q[1])
         self.assertResult(RXGate, 'rx(1) q[1];', 'rx(-1) q[1];')
+
+    def test_rx_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.rx, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.rx, self.q[1], 0)
+        self.assertRaises(QISKitError, c.rx, 0, self.c[0])
+        self.assertRaises(QISKitError, c.rx, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.rx, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.rx, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.rx, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.rx, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.rx, 0, 'a')
 
     def test_rx_reg(self):
         qasm_txt = 'rx(1) q[0];\nrx(1) q[1];\nrx(1) q[2];'
@@ -256,11 +342,20 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(RXGate, 'rx(pi/2) q[1];', 'rx(-pi/2) q[1];')
 
     def test_ry(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.ry, 1, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.ry, 1, 1)
-        c.ry(1, self.q[1])
+        self.circuit.ry(1, self.q[1])
         self.assertResult(RYGate, 'ry(1) q[1];', 'ry(-1) q[1];')
+
+    def test_ry_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.ry, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.ry, self.q[1], 0)
+        self.assertRaises(QISKitError, c.ry, 0, self.c[0])
+        self.assertRaises(QISKitError, c.ry, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.ry, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.ry, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.ry, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.ry, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.ry, 0, 'a')
 
     def test_ry_reg(self):
         qasm_txt = 'ry(1) q[0];\nry(1) q[1];\nry(1) q[2];'
@@ -280,11 +375,20 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(RYGate, 'ry(pi/2) q[1];', 'ry(-pi/2) q[1];')
 
     def test_rz(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.rz, 1, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.rz, 1, 1)
-        c.rz(1, self.q[1])
+        self.circuit.rz(1, self.q[1])
         self.assertResult(RZGate, 'rz(1) q[1];', 'rz(-1) q[1];')
+
+    def test_rz_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.rz, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.rz, self.q[1], 0)
+        self.assertRaises(QISKitError, c.rz, 0, self.c[0])
+        self.assertRaises(QISKitError, c.rz, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.rz, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.rz, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.rz, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.rz, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.rz, 0, 'a')
 
     def test_rz_reg(self):
         qasm_txt = 'rz(1) q[0];\nrz(1) q[1];\nrz(1) q[2];'
@@ -304,11 +408,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(RZGate, 'rz(pi/2) q[1];', 'rz(-pi/2) q[1];')
 
     def test_s(self):
+        self.circuit.s(self.q[1])
+        self.assertResult(SGate, 's q[1];', 'sdg q[1];')
+
+    def test_s_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.s, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.s, 1)
-        c.s(self.q[1])
-        self.assertResult(SGate, 's q[1];', 'sdg q[1];')
+        self.assertRaises(QISKitError, c.s, self.c)
+        self.assertRaises(QISKitError, c.s, (self.q, 3))
+        self.assertRaises(QISKitError, c.s, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.s, 0)
 
     def test_s_reg(self):
         qasm_txt = 's q[0];\ns q[1];\ns q[2];'
@@ -323,11 +432,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 28)
 
     def test_sdg(self):
+        self.circuit.sdg(self.q[1])
+        self.assertResult(SGate, 'sdg q[1];', 's q[1];')
+
+    def test_sdg_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.sdg, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.sdg, 1)
-        c.sdg(self.q[1])
-        self.assertResult(SGate, 'sdg q[1];', 's q[1];')
+        self.assertRaises(QISKitError, c.sdg, self.c)
+        self.assertRaises(QISKitError, c.sdg, (self.q, 3))
+        self.assertRaises(QISKitError, c.sdg, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.sdg, 0)
 
     def test_sdg_reg(self):
         qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
@@ -342,12 +456,17 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
 
     def test_swap(self):
+        self.circuit.swap(self.q[1], self.q[2])
+        self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
+
+    def test_swap_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.swap, self.c[1], self.c[2])
         self.assertRaises(QISKitError, c.swap, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.swap, 0, self.q[0])
-        c.swap(self.q[1], self.q[2])
-        self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
+        self.assertRaises(QISKitError, c.swap, 0, self.q[0])
+        self.assertRaises(QISKitError, c.swap, (self.q, 3), self.q[0])
+        self.assertRaises(QISKitError, c.swap, self.c, self.q)
+        self.assertRaises(QISKitError, c.swap, 'a', self.q[1])
 
     def test_t(self):
         c = self.circuit
@@ -355,6 +474,14 @@ class TestStandard1Q(StandardExtensionTest):
         # TODO self.assertRaises(QISKitError, c.t, 1)
         c.t(self.q[1])
         self.assertResult(TGate, 't q[1];', 'tdg q[1];')
+
+    def test_t_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.t, self.c[0])
+        self.assertRaises(QISKitError, c.t, self.c)
+        self.assertRaises(QISKitError, c.t, (self.q, 3))
+        self.assertRaises(QISKitError, c.t, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.t, 0)
 
     def test_t_reg(self):
         qasm_txt = 't q[0];\nt q[1];\nt q[2];'
@@ -375,6 +502,14 @@ class TestStandard1Q(StandardExtensionTest):
         c.tdg(self.q[1])
         self.assertResult(TGate, 'tdg q[1];', 't q[1];')
 
+    def test_tdg_invalid(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.tdg, self.c[0])
+        self.assertRaises(QISKitError, c.tdg, self.c)
+        self.assertRaises(QISKitError, c.tdg, (self.q, 3))
+        self.assertRaises(QISKitError, c.tdg, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.tdg, 0)
+
     def test_tdg_reg(self):
         qasm_txt = 'tdg q[0];\ntdg q[1];\ntdg q[2];'
         instruction_set = self.circuit.tdg(self.q)
@@ -388,12 +523,21 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 22)
 
     def test_u1(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.u1, self.c[0], self.c[0])
-        # TODO self.assertRaises(QISKitError, c.u1, self.q[0], 1)
-        # CHECKME? self.assertRaises(QISKitError, c.u1, self.c[0], self.q[0])
-        c.u1(1, self.q[1])
+        self.circuit.u1(1, self.q[1])
         self.assertResult(U1Gate, 'u1(1) q[1];', 'u1(-1) q[1];')
+
+    def test_u1_invalid(self):
+        c = self.circuit
+        # CHECKME? self.assertRaises(QISKitError, c.u1, self.c[0], self.q[0])
+        self.assertRaises(QISKitError, c.u1, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.u1, self.q[1], 0)
+        self.assertRaises(QISKitError, c.u1, 0, self.c[0])
+        self.assertRaises(QISKitError, c.u1, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.u1, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.u1, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.u1, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.u1, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.u1, 0, 'a')
 
     def test_u1_reg(self):
         qasm_txt = 'u1(1) q[0];\nu1(1) q[1];\nu1(1) q[2];'
@@ -413,11 +557,21 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(U1Gate, 'u1(pi/2) q[1];', 'u1(-pi/2) q[1];')
 
     def test_u2(self):
-        c = self.circuit
-        self.assertRaises(QISKitError, c.u2, 0, self.c[0], self.c[1])
-        # TODO self.assertRaises(QISKitError, c.u3, 0, self.q[1],, 0,)
-        c.u2(1, 2, self.q[1])
+        self.circuit.u2(1, 2, self.q[1])
         self.assertResult(U2Gate, 'u2(1,2) q[1];', 'u2(-pi - 2,-1 + pi) q[1];')
+
+    def test_u2_invalid(self):
+        c = self.circuit
+        # CHECKME? self.assertRaises(QISKitError, c.u2, 0, self.c[0], self.q[0])
+        self.assertRaises(QISKitError, c.u2, 0, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.u2, 0, self.q[1], 0)
+        self.assertRaises(QISKitError, c.u2, 0, 0, self.c[0])
+        self.assertRaises(QISKitError, c.u2, 0, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.u2, 0, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.u2, 0, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.u2, 0, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.u2, 0, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.u2, 0, 0, 'a')
 
     def test_u2_reg(self):
         qasm_txt = 'u2(1,2) q[0];\nu2(1,2) q[1];\nu2(1,2) q[2];'
@@ -437,12 +591,21 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(U2Gate, 'u2(pi/2,0.3*pi) q[1];', 'u2(-1.3*pi,pi/2) q[1];')
 
     def test_u3(self):
-        c = self.circuit
-        # CHECKME? self.assertRaises(QISKitError, c.u3, 0, 0, self.c[0], self.q[1])
-        self.assertRaises(QISKitError, c.u3, 0, 0, 1, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.cu3, 0, 0, 0, self.q[1], 0, self.q[0])
-        c.u3(1, 2, 3, self.q[1])
+        self.circuit.u3(1, 2, 3, self.q[1])
         self.assertResult(U3Gate, 'u3(1,2,3) q[1];', 'u3(-1,-3,-2) q[1];')
+
+    def test_u3_invalid(self):
+        c = self.circuit
+        # CHECKME? self.assertRaises(QISKitError, c.u3, 0, self.c[0], self.q[0])
+        self.assertRaises(QISKitError, c.u3, 0, 0, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.u3, 0, 0, self.q[1], 0)
+        self.assertRaises(QISKitError, c.u3, 0, 0, 0, self.c[0])
+        self.assertRaises(QISKitError, c.u3, 0, 0, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.u3, 0, 0, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.u3, 0, 0, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.u3, 0, 0, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.u3, 0, 0, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.u3, 0, 0, 0, 'a')
 
     def test_u3_reg(self):
         qasm_txt = 'u3(1,2,3) q[0];\nu3(1,2,3) q[1];\nu3(1,2,3) q[2];'
@@ -462,12 +625,21 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', 'u3(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_ubase(self):
-        c = self.circuit
-        # self.assertRaises(QISKitError, c.ubase, self.c[1], self.c[2])
-        # self.assertRaises(QISKitError, c.ubase, self.q[0], self.q[0])
-        # TODO self.assertRaises(QISKitError, c.cx_base, 0, self.q[0])
-        c.u_base(1, 2, 3, self.q[1])
+        self.circuit.u_base(1, 2, 3, self.q[1])
         self.assertResult(UBase, 'U(1,2,3) q[1];', 'U(-1,-3,-2) q[1];')
+
+    def test_ubase_invalid(self):
+        c = self.circuit
+        # CHECKME? self.assertRaises(QISKitError, c.u_base, 0, self.c[0], self.q[0])
+        self.assertRaises(QISKitError, c.u_base, 0, 0, self.c[0], self.c[1])
+        self.assertRaises(QISKitError, c.u_base, 0, 0, self.q[1], 0)
+        self.assertRaises(QISKitError, c.u_base, 0, 0, 0, self.c[0])
+        self.assertRaises(QISKitError, c.u_base, 0, 0, 0, 0)
+        # TODO self.assertRaises(QISKitError, c.u_base, 0, 0, self.q[2], self.q[1])
+        self.assertRaises(QISKitError, c.u_base, 0, 0, 0, (self.q, 3))
+        self.assertRaises(QISKitError, c.u_base, 0, 0, 0, self.c)
+        # TODO self.assertRaises(QISKitError, c.u_base, 0, 0, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.u_base, 0, 0, 0, 'a')
 
     def test_ubase_reg(self):
         qasm_txt = 'U(1,2,3) q[0];\nU(1,2,3) q[1];\nU(1,2,3) q[2];'
@@ -487,11 +659,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', 'U(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_x(self):
+        self.circuit.x(self.q[1])
+        self.assertResult(XGate, 'x q[1];', 'x q[1];')
+
+    def test_x_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.x, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.x, 0)
-        c.x(self.q[1])
-        self.assertResult(XGate, 'x q[1];', 'x q[1];')
+        self.assertRaises(QISKitError, c.x, self.c)
+        self.assertRaises(QISKitError, c.x, (self.q, 3))
+        self.assertRaises(QISKitError, c.x, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.x, 0)
 
     def test_x_reg(self):
         qasm_txt = 'x q[0];\nx q[1];\nx q[2];'
@@ -506,11 +683,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt)
 
     def test_y(self):
+        self.circuit.y(self.q[1])
+        self.assertResult(YGate, 'y q[1];', 'y q[1];')
+
+    def test_y_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.y, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.y, 0)
-        c.y(self.q[1])
-        self.assertResult(YGate, 'y q[1];', 'y q[1];')
+        self.assertRaises(QISKitError, c.y, self.c)
+        self.assertRaises(QISKitError, c.y, (self.q, 3))
+        self.assertRaises(QISKitError, c.y, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.y, 0)
 
     def test_y_reg(self):
         qasm_txt = 'y q[0];\ny q[1];\ny q[2];'
@@ -525,11 +707,16 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertQasm(qasm_txt)
 
     def test_z(self):
+        self.circuit.z(self.q[1])
+        self.assertResult(ZGate, 'z q[1];', 'z q[1];')
+
+    def test_z_invalid(self):
         c = self.circuit
         self.assertRaises(QISKitError, c.z, self.c[0])
-        # TODO self.assertRaises(QISKitError, c.z, 0)
-        c.z(self.q[1])
-        self.assertResult(ZGate, 'z q[1];', 'z q[1];')
+        self.assertRaises(QISKitError, c.z, self.c)
+        self.assertRaises(QISKitError, c.z, (self.q, 3))
+        self.assertRaises(QISKitError, c.z, (self.q, 'a'))
+        self.assertRaises(QISKitError, c.z, 0)
 
     def test_z_reg(self):
         qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
