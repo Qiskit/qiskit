@@ -39,9 +39,9 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.dirname(__file__) + \
-                    '../../../out/src/qiskit-simulator/qiskit_simulator' + EXTENSION),
+                    '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp' + EXTENSION),
     # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.dirname(__file__) + '/qiskit_simulator' + EXTENSION),
+    os.path.abspath(os.path.dirname(__file__) + '/qasm_simulator_cpp' + EXTENSION),
 ]
 
 
@@ -55,7 +55,7 @@ class QISKitCppSimulator(BaseBackend):
         if not configuration:
             self._configuration = {
                 'name': 'local_qiskit_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qiskit-simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ realistic noise simulator for qobj files',
@@ -95,7 +95,7 @@ class CliffordCppSimulator(BaseBackend):
         if not configuration:
             self._configuration = {
                 'name': 'local_clifford_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qiskit-simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ Clifford simulator with approximate noise',
