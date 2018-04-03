@@ -20,10 +20,10 @@
 import logging
 import warnings
 
-import qiskit.qasm as qasm
-from qiskit._qiskiterror import QISKitError
-from qiskit._compiler import compile_circuit
-from qiskit.unroll import Unroller, CircuitBackend
+from .qasm import Qasm
+from ._qiskiterror import QISKitError
+from ._compiler import compile_circuit
+from .unroll import Unroller, CircuitBackend
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
         object: Returns a unrolled QuantumCircuit object
     """
     # create Program object Node (AST)
-    node_circuit = qasm.Qasm(filename=filename).parse()
+    node_circuit = Qasm(filename=filename).parse()
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled

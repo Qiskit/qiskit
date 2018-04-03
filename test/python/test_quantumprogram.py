@@ -25,10 +25,10 @@ from sys import version_info
 
 import numpy as np
 from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import RegisterSizeError
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram, Result,
-                    RegisterSizeError)
+                    QuantumRegister, QuantumProgram, Result)
 from qiskit.tools import file_io
 import qiskit.backends
 from .common import requires_qe_access, QiskitTestCase, Path

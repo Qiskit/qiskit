@@ -20,8 +20,7 @@ Exception for errors raised by the JobProcessor when there's an error
 in the result
 """
 
-from qiskit import QISKitError
-
+from ._qiskiterror import QISKitError
 
 class ResultError(QISKitError):
     """Exceptions raised due to errors in result output.
