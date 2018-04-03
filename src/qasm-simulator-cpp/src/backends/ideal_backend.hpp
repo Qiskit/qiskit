@@ -480,7 +480,6 @@ void IdealBackend::qc_reset(const uint_t qubit, const uint_t state) {
   // Simulate unobserved measurement
   const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);                                          
   cvector_t mdiag(2, 0.);
-  std::cout << mdiag << std::endl;
   mdiag[meas.first] = 1. / std::sqrt(meas.second);
   qreg.apply_matrix(qubit, mdiag);
 
