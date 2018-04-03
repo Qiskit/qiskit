@@ -33,7 +33,7 @@ from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
 from .unroll import Unroller, CircuitBackend
 from .extensions.standard.barrier import Barrier
-from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper, 
+from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
 from .qasm import Qasm
@@ -53,6 +53,35 @@ COMPILE_CONFIG_DEFAULT = {
     'qobj_id': None,
     'hpc': None
 }
+
+
+def execute(list_of_circuits, backend, compile_config=None,
+            wait=5, timeout=60):
+    """Executes a set of circuits.
+
+    Args:
+        list_of_circuits (list[QuantumCircuits]): list of circuits
+
+        backend (str): A string for the backend name to use
+
+        wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+        timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+        compile_config (dict or None): a dictionary of compile configurations.
+
+    Returns:
+        obj: The results object
+    """
+    compile_config = compile_config or {}
+    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
+    compile_config['backend'] = backend
+    my_backend = backends.get_backend_instance(backend)
+    qobj = compile(list_of_circuits, compile_config)
+
+    # XXX When qobj is done this should replace q_job
+    q_job = QuantumJob(qobj, preformatted=True, resources={
+        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
+    result = my_backend.run(q_job)
+    return result
 
 
 def compile(list_of_circuits=None, compile_config=None):
@@ -75,7 +104,8 @@ def compile(list_of_circuits=None, compile_config=None):
     if isinstance(list_of_circuits, QuantumCircuit):
         list_of_circuits = [list_of_circuits]
 
-    compile_config = compile_config or COMPILE_CONFIG_DEFAULT
+    compile_config = compile_config or {}
+    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
     backend = compile_config['backend']
     config = compile_config['config']
     basis_gates = compile_config['basis_gates']
@@ -276,32 +306,10 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
     return compiled_circuit
 
 
-def execute(list_of_circuits, compile_config=None, wait=5, timeout=60):
-    """Executes a set of circuits.
-
-    Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-
-        wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
-        timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
-        compile_config (dict or None): a dictionary of compile configurations.
-
-    Returns:
-        obj: The results object
-    """
-    compile_config = compile_config or COMPILE_CONFIG_DEFAULT
-
-    backend = compile_config['backend']
-    my_backend = backends.get_backend_instance(backend)
-    qobj = compile(list_of_circuits, compile_config)
-
-    q_job = QuantumJob(qobj, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = my_backend.run(q_job)
-    return result
-
 def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     """Load qasm file and return unrolled circuit
+
+    XXX HOW IS THIS FUNCTION USED. COPIED FROM OPENQUANTUMCOMPILER
 
     Args:
         filename (str): a string for the filename including its location.
@@ -314,6 +322,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled
+
 
 class QISKitCompilerError(QISKitError):
     """Exceptions raised during compilation"""
