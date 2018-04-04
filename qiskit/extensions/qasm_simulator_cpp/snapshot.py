@@ -19,8 +19,8 @@
 Simulator command to snapshot internal simulator representation.
 """
 from qiskit import Instruction
-from qiskit import CompositeGate
 from qiskit import QuantumCircuit
+from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -29,13 +29,13 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    def __init__(self, slot, args, circ):
+    def __init__(self, slot, qubits, circ):
         """Create new snapshot instruction."""
-        super().__init__("snapshot", [slot], list(args), circ)
+        super().__init__("snapshot", [slot], list(qubits), circ)
 
     def inverse(self):
         """Special case. Return self."""
-        return self  # self-inverse
+        return self
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -48,7 +48,7 @@ class Snapshot(Instruction):
             if j != len(self.arg) - 1:
                 string += ","
         string += ";"
-        return string  # no c_if on snapshot instructions
+        return string
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
@@ -56,16 +56,22 @@ class Snapshot(Instruction):
 
 
 def snapshot(self, slot, *tuples):
-    """Report a snapshot of the internal representation in simulator."""
+    """Take a snapshot of the internal simulator representation (statevector,
+    probability, density matrix, clifford table)
+    
+    Args:
+        slot (int): a snapshot slot to report the result
+        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits. 
+    """
     tuples = list(tuples)
     if not tuples:
         if isinstance(self, QuantumCircuit):
             for register in self.regs.values():
                 if isinstance(register, QuantumRegister):
                     tuples.append(register)
-    if tuples is None:
+    if not tuples:
         raise ExtensionError("no snapshot arguments passed")
-    if slot is None:
+    if not slot:
         raise ExtensionError("no snapshot slot passed")    
     qubits = []
     for tuple_element in tuples:
