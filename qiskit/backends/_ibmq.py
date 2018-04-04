@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
-"""QeRemote module
+"""IbmQ module
 
 This module is used for connecting to the Quantum Experience.
 """
@@ -27,6 +27,7 @@ from qiskit._compiler import compile_circuit
 from qiskit import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
+from IBMQuantumExperience import IBMQuantumExperience
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
 ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
-class QeRemote(BaseBackend):
+class IbmQ(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
 
     Attributes:
@@ -43,15 +44,31 @@ class QeRemote(BaseBackend):
     """
     _api = None
 
-    def __init__(self, configuration=None):
+    def __init__(self, configuration=None, merge=True):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
             configuration (dict, optional): configuration of backend
         """
-        super().__init__(configuration)
-        self._configuration = configuration
-        self._configuration['local'] = False
+        super().__init__(configuration=configuration, merge=merge)
+        if self._configuration:
+            self._configuration['local'] = False
+
+    @classmethod
+    def available_backends(cls, configuration=None):
+        if isinstance(configuration, dict):
+            credentials = configuration.get('credentials', None)
+            if credentials:
+                token = credentials.get('token', None)
+                config = credentials.get('config', None)
+                if config:
+                    url = config.get('url', None)
+                    if token and url:
+                        ibmq_api = IBMQuantumExperience(token=token,
+                                                        config={'url': url})
+                        cls._api = ibmq_api
+                        return ibmq_api.available_backends()
+        return []
 
     def run(self, q_job):
         """Run jobs

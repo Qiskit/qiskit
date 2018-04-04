@@ -25,8 +25,9 @@ from abc import ABC, abstractmethod
 
 class BaseBackend(ABC):
     """Base class for backends."""
+    
     @abstractmethod
-    def __init__(self, configuration=None):
+    def __init__(self, configuration=None, merge=True):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -35,17 +36,36 @@ class BaseBackend(ABC):
 
         Args:
             configuration (dict): configuration dictionary
+            merge (bool): Whether to merge the configuration. If False, 
+                configuration will be replaced.
 
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        self._configuration = configuration
+        if not hasattr(self, '_configuration'):
+            self._configuration = None
+        if merge:
+            if self._configuration == None:
+                self._configuration = {}
+            if configuration == None:
+                configuration = {}
+            self._configuration = {**self._configuration, **configuration}
+        else:
+            self._configuration = configuration
 
     @abstractmethod
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         pass
 
+    @classmethod
+    def available_backends(cls, configuration=None):
+        """
+        Used to git a list of backend configurations for classes of the
+        derived type.
+        """
+        return []
+    
     @property
     def configuration(self):
         """Return backend configuration"""
