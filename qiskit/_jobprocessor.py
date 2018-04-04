@@ -22,8 +22,7 @@ import logging
 import pprint
 from threading import Lock
 
-import qiskit.backends as backends
-from .backends import (local_backends, remote_backends)
+from ._backend_manager import (get_backend, local_backends, remote_backends)
 from ._result import Result
 
 from ._qiskiterror import QISKitError
@@ -49,7 +48,7 @@ def run_backend(q_job):
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = compile_circuit(circuit['circuit'], format='json')
                 circuit['compiled_circuit'] = compiled_circuit
-    backend = backends.get_backend_instance(backend_name)
+    backend = get_backend(backend_name)
     return backend.run(q_job)
 
 

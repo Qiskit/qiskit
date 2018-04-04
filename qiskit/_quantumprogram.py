@@ -31,24 +31,26 @@ import warnings
 # use the external IBMQuantumExperience Library
 import itertools
 from IBMQuantumExperience import IBMQuantumExperience
+import qiskit as qk
 
 # Local Simulator Modules
-import qiskit.backends
+from ._backend_manager import local_backends, remote_backends, get_backend, register
+from ._compiler import compile  # pylint: disable=redefined-builtin
+
 
 # Stable Modules
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 from ._quantumcircuit import QuantumCircuit
 from ._qiskiterror import QISKitError
-from ._jobprocessor import JobProcessor
-from ._quantumjob import QuantumJob
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 
 # Beta Modules
 from .unroll import CircuitBackend, Unroller
-from . import qasm
-from . import mapper
-
+from .qasm import Qasm
+from .mapper import coupling_dict2list
+from ._jobprocessor import JobProcessor
+from ._quantumjob import QuantumJob
 
 FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
 ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
@@ -106,9 +108,9 @@ class QuantumProgram(object):
         self.__quantum_program = {}  # stores all the quantum programs
         self.__init_circuit = None  # stores the initial quantum circuit of the program
         self.__counter = itertools.count()
-        self.mapper = mapper
         if specs:
             self.__init_specs(specs)
+        register(None, package=qk)
 
     def enable_logs(self, level=logging.INFO):
         """Enable the console output of the logging messages.
@@ -241,12 +243,12 @@ class QuantumProgram(object):
         Returns:
             list(QuantumRegister): Array of quantum registers objects
         """
-        new_registers = []
-        for register in register_array:
-            register = self.create_quantum_register(
-                register.get('name'), register["size"])
-            new_registers.append(register)
-        return new_registers
+        new_reg = []
+        for reg in register_array:
+            reg = self.create_quantum_register(
+                reg.get('name'), reg["size"])
+            new_reg.append(reg)
+        return new_reg
 
     def destroy_quantum_registers(self, register_array):
         """Destroy a set of Quantum Registers based on a array of them.
@@ -261,8 +263,8 @@ class QuantumProgram(object):
 
                 Any other key in the dictionary will be ignored.
         """
-        for register in register_array:
-            self.destroy_quantum_register(register["name"])
+        for reg in register_array:
+            self.destroy_quantum_register(reg["name"])
 
     def create_classical_register(self, name=None, size=1):
         """Create a new Classical Register.
@@ -309,11 +311,11 @@ class QuantumProgram(object):
         Returns:
             list(ClassicalRegister): Array of classical registers objects
         """
-        new_registers = []
-        for register in registers_array:
-            new_registers.append(self.create_classical_register(
-                register.get("name"), register["size"]))
-        return new_registers
+        new_reg = []
+        for reg in registers_array:
+            new_reg.append(self.create_classical_register(
+                reg.get("name"), reg["size"]))
+        return new_reg
 
     def destroy_classical_register(self, name):
         """Destroy an existing Classical Register.
@@ -343,8 +345,8 @@ class QuantumProgram(object):
 
                 Any other key in the dictionary will be ignored.
         """
-        for register in registers_array:
-            self.destroy_classical_register(register["name"])
+        for reg in registers_array:
+            self.destroy_classical_register(reg["name"])
 
     def create_circuit(self, name=None, qregisters=None, cregisters=None):
         """Create a empty Quantum Circuit in the Quantum Program.
@@ -370,10 +372,10 @@ class QuantumProgram(object):
         quantum_circuit = QuantumCircuit(name=name)
         if not self.__init_circuit:
             self.__init_circuit = quantum_circuit
-        for register in qregisters:
-            quantum_circuit.add(register)
-        for register in cregisters:
-            quantum_circuit.add(register)
+        for reg in qregisters:
+            quantum_circuit.add(reg)
+        for reg in cregisters:
+            quantum_circuit.add(reg)
         self.add_circuit(name, quantum_circuit)
         return self.__quantum_program[name]
 
@@ -440,7 +442,7 @@ class QuantumProgram(object):
             raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
         if not name:
             name = os.path.splitext(os.path.basename(qasm_file))[0]
-        node_circuit = qasm.Qasm(filename=qasm_file).parse()  # Node (AST)
+        node_circuit = Qasm(filename=qasm_file).parse()  # Node (AST)
         logger.info("circuit name: %s", name)
         logger.info("******************************")
         logger.info(node_circuit.qasm())
@@ -463,7 +465,7 @@ class QuantumProgram(object):
             str: Adds a quantum circuit with the gates given in the qasm string to
             the quantum program.
         """
-        node_circuit = qasm.Qasm(data=qasm_string).parse()  # Node (AST)
+        node_circuit = Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
             # Get a random name if none is given
             name = "".join([random.choice(string.ascii_letters + string.digits)
@@ -538,7 +540,7 @@ class QuantumProgram(object):
 
             for circuit in elements_loaded:
                 circuit_qasm = elements_loaded[circuit]["qasm"]
-                elements_loaded[circuit] = qasm.Qasm(data=circuit_qasm).parse()
+                elements_loaded[circuit] = Qasm(data=circuit_qasm).parse()
             self.__quantum_program = elements_loaded
 
             return {"status": 'Done', 'result': self.__quantum_program}
@@ -725,6 +727,7 @@ class QuantumProgram(object):
                                   .format(ex)) from root_exception
         self.__api_config["token"] = token
         self.__api_config["config"] = config_dict.copy()
+        register(token, url, package=qk)
 
     def set_api_hubs_config(self, hub, group, project):
         """Update the API hubs configuration, replacing the previous one.
@@ -789,10 +792,12 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        local = qiskit.backends.local_backends()
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        remote = qiskit.backends.remote_backends()
+        local = local_backends()
+        # local = qiskit.backends.local_backends()
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        # remote = qiskit.backends.remote_backends()
+        remote = remote_backends()
         return local + remote
 
     def online_backends(self):
@@ -816,9 +821,10 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() object instead is recommended.",
             DeprecationWarning)
 
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        return qiskit.backends.remote_backends()
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        # return qiskit.backends.remote_backends()
+        return remote_backends()
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -839,12 +845,15 @@ class QuantumProgram(object):
             DeprecationWarning)
 
         online_simulators_list = []
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        online_backends = qiskit.backends.remote_backends()
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        # online_backends = qiskit.backends.remote_backends()
+        online_backends = remote_backends()
 
         for backend in online_backends:
-            config = qiskit.backends.configuration(backend)
+            backend_obj = get_backend(backend)
+            config = backend_obj.configuration
+            # config = qiskit.backends.configuration(backend)
             if config['simulator']:
                 online_simulators_list.append(backend)
         return online_simulators_list
@@ -868,12 +877,15 @@ class QuantumProgram(object):
             DeprecationWarning)
 
         online_device_list = []
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        online_backends = qiskit.backends.remote_backends()
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        # online_backends = qiskit.backends.remote_backends()
+        online_backends = remote_backends()
 
         for backend in online_backends:
-            config = qiskit.backends.configuration(backend)
+            backend_obj = get_backend(backend)
+            config = backend_obj.configuration
+            # config = qiskit.backends.configuration(backend)
             if not config['simulator']:
                 online_device_list.append(backend)
         return online_device_list
@@ -903,9 +915,10 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').status "
             "instead is recommended.", DeprecationWarning)
 
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        my_backend = qiskit.backends.get_backend_instance(backend)
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        # my_backend = qiskit.backends.get_backend_instance(backend)
+        my_backend = get_backend(backend)
         return my_backend.status
 
     def get_backend_configuration(self, backend):
@@ -933,9 +946,11 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').configuration "
             "instead is recommended.", DeprecationWarning)
 
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        return qiskit.backends.configuration(backend)
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        my_backend = get_backend(backend)
+        # return qiskit.backends.configuration(backend)
+        return my_backend.configuration
 
     def get_backend_calibration(self, backend):
         """Return the online backend calibrations.
@@ -962,9 +977,10 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').calibration "
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.backends.get_backend_instance(backend)
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
+        # my_backend = qiskit.backends.get_backend_instance(backend)
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        my_backend = get_backend(backend)
         return my_backend.calibration
 
     def get_backend_parameters(self, backend):
@@ -992,9 +1008,10 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').parameters"
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.backends.get_backend_instance(backend)
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
+        # my_backend = qiskit.backends.get_backend_instance(backend)
+        # if self.__api:
+        #    qiskit.backends.discover_remote_backends(self.__api)
+        my_backend = get_backend(backend)
         return my_backend.parameters
 
     ###############################################################
@@ -1013,7 +1030,7 @@ class QuantumProgram(object):
         """
 
         if isinstance(coupling_map, dict):
-            coupling_map = mapper.coupling_dict2list(coupling_map)
+            coupling_map = coupling_dict2list(coupling_map)
             warnings.warn(
                 "coupling_map as a dictionary will be deprecated in upcoming versions (>0.5.0). "
                 "Using the coupling_map as a list recommended.", DeprecationWarning)
@@ -1038,7 +1055,8 @@ class QuantumProgram(object):
             'qobj_id': qobj_id,
             'hpc': hpc
         }
-        qobj = qiskit.compile(list_of_circuits, compile_config)
+        my_backend = get_backend(backend)
+        qobj = compile(list_of_circuits, my_backend, compile_config)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):

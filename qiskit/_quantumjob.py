@@ -19,11 +19,15 @@
 """Quantum Job class"""
 import random
 import string
-from .unroll import Unroller, DagUnroller, JsonBackend
-from .dagcircuit import DAGCircuit
+
+# stable modules
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
-from . import backends
+from ._backend_manager import local_backends
+
+# beta modules
+from .unroll import Unroller, DagUnroller, JsonBackend
+from .dagcircuit import DAGCircuit
 
 
 class QuantumJob():
@@ -91,7 +95,8 @@ class QuantumJob():
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            if backend in backends.local_backends():
+            # if backend in backends.local_backends():
+            if backend in local_backends():
                 for circuit in self.circuits:
                     basis = ['u1', 'u2', 'u3', 'cx', 'id']
                     unroller = Unroller

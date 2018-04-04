@@ -23,26 +23,27 @@ import random
 import string
 import copy
 
-from .dagcircuit import DAGCircuit
-from .unroll import DagUnroller, DAGBackend, JsonBackend
-
-from . import backends
+# Stable Modules
 from ._qiskiterror import QISKitError
 from ._measure import Measure
 from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
-from .unroll import Unroller, CircuitBackend
+from .qasm import Qasm
+
+
+# Beta Modules
+from .dagcircuit import DAGCircuit
+from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
+from ._backend_manager import get_backend
 from .extensions.standard.barrier import Barrier
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
-from .qasm import Qasm
 
 
 logger = logging.getLogger(__name__)
 
 COMPILE_CONFIG_DEFAULT = {
-    'backend': "local_qasm_simulator",
     'config': None,
     'basis_gates': None,
     'coupling_map': None,
@@ -73,24 +74,25 @@ def execute(list_of_circuits, backend, compile_config=None,
     """
     compile_config = compile_config or {}
     compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    compile_config['backend'] = backend
-    my_backend = backends.get_backend_instance(backend)
-    qobj = compile(list_of_circuits, compile_config)
+    backend_obj = get_backend(backend)
+    qobj = compile(list_of_circuits, backend_obj, compile_config)
 
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = my_backend.run(q_job)
+    result = backend_obj.run(q_job)
     return result
 
 
-def compile(list_of_circuits=None, compile_config=None):
+def compile(list_of_circuits, backend, compile_config=None):
     """Compile a list of circuits into a qobj.
 
-    XXX THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6
+    FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
+    of circuit->dag, transpiler (dag -> dag) and dags-> qobj
 
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
+        backend (obj): a backend object to use as the default compiling option
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
 
@@ -106,7 +108,6 @@ def compile(list_of_circuits=None, compile_config=None):
 
     compile_config = compile_config or {}
     compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    backend = compile_config['backend']
     config = compile_config['config']
     basis_gates = compile_config['basis_gates']
     coupling_map = compile_config['coupling_map']
@@ -117,16 +118,19 @@ def compile(list_of_circuits=None, compile_config=None):
     qobj_id = compile_config['qobj_id']
     hpc = compile_config['hpc']
 
+    backend_conf = backend.configuration
+    backend_name = backend_conf['name']
+
     qobj = {}
     if not qobj_id:
         qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                            for n in range(30)])
     qobj['id'] = qobj_id
-    qobj["config"] = {"max_credits": max_credits, 'backend': backend,
+    qobj["config"] = {"max_credits": max_credits, 'backend': backend_name,
                       "shots": shots}
 
     # TODO This backend needs HPC parameters to be passed in order to work
-    if backend == 'ibmqx_hpc_qasm_simulator':
+    if backend_name == 'ibmqx_hpc_qasm_simulator':
         if hpc is None:
             logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
                         'parameter. Setting defaults to hpc.multi_shot_optimization '
@@ -146,7 +150,7 @@ def compile(list_of_circuits=None, compile_config=None):
         hpc = None
 
     qobj['circuits'] = []
-    backend_conf = backends.configuration(backend)
+
     if not basis_gates:
         if 'basis_gates' in backend_conf:
             basis_gates = backend_conf['basis_gates']
@@ -175,7 +179,8 @@ def compile(list_of_circuits=None, compile_config=None):
                 elif isinstance(instruction, Gate) and bool(set(instruction.arg) &
                                                             set(measured_qubits)):
                     raise QISKitError('backend "{0}" rejects gate after '
-                                      'measurement in circuit "{1}"'.format(backend, circuit.name))
+                                      'measurement in circuit "{1}"'.format(backend_name,
+                                                                            circuit.name))
             for i, qubit in zip(qasm_idx, measured_qubits):
                 circuit.data.insert(i, Barrier([qubit], circuit))
         dag_circuit, final_layout = compile_circuit(
