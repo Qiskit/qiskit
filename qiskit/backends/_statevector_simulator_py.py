@@ -47,18 +47,15 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     def __init__(self, configuration=None):
-        """
-        Args:
-            configuration (dict): backend configuration
-        """
         super().__init__(configuration)
-        if configuration is None:
+
+        if not configuration:
             self._configuration = {
                 'name': 'local_statevector_simulator_py',
                 'url': 'https://github.com/QISKit/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
-                'description': 'A python statevector simulator for qobj files',
+                'description': 'A Python statevector simulator for qobj files',
                 'coupling_map': 'all-to-all',
                 'basis_gates': 'u1,u2,u3,cx,id,snapshot'
             }
@@ -66,8 +63,32 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             self._configuration = configuration
 
     def run(self, q_job):
-        """Run circuits in q_job."""
-        return super().run(q_job)
+        print("RUNNING STATEVECTOR")
+        """Run a QuantumJob on the backend."""
+        qobj = q_job.qobj
+        final_state_key = 32767  # Key value for final state snapshot
+        # Add final snapshots to circuits
+        for circuit in qobj['circuits']:
+            circuit['compiled_circuit']['operations'].append(
+                {'name': 'snapshot', 'params': [final_state_key]})
+        result = super().run(q_job)
+        print("DONE RUNNING SUPER")
+        # Extract final state snapshot and move to 'quantum_state' data field
+        print ("SELF.RESULT:", result[0])
+        for res in result['result']:
+            print(res)
+            snapshots = res['data']['snapshots']
+            if str(final_state_key) in snapshots:
+                final_state_key = str(final_state_key)
+            # Pop off final snapshot added above
+            final_state = snapshots.pop(final_state_key, None)
+            final_state = final_state['quantum_state'][0]
+            # Add final state to results data
+            res['data']['quantum_state'] = final_state
+            # Remove snapshot dict if empty
+            if snapshots == {}:
+                res['data'].pop('snapshots', None)
+        return Result(result, qobj)
 
     def validate(self, qobj):
         return True
