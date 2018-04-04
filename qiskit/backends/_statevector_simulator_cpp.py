@@ -55,10 +55,11 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = run(qobj, self._configuration['exe'])
-        print ("SELF.RESULT:", result['result'])        
+        result = super().run(q_job)
         # Extract final state snapshot and move to 'quantum_state' data field
-        for res in result['result']:
+        print(result['result'])
+        for res in result[0]:
+            print(res)
             snapshots = res['data']['snapshots']
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
