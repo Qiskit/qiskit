@@ -41,8 +41,8 @@ from sympy.matrices import eye, zeros
 from sympy.physics.quantum import TensorProduct
 
 from qiskit._result import Result
-from ._basebackend import BaseBackend
-from ._simulatortools import compute_ugate_matrix, index2
+from qiskit.backends._basebackend import BaseBackend
+from qiskit.backends._simulatortools import compute_ugate_matrix, index2
 
 logger = logging.getLogger(__name__)
 

@@ -28,7 +28,7 @@ from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
-from ._simulatorerror import SimulatorError
+from qiskit.backends._simulatorerror import SimulatorError
 try:
     from projectq.backends._sim._cppsim import Simulator as CppSim
 except ImportError:

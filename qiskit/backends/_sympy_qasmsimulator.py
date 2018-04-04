@@ -65,9 +65,9 @@ from sympy.physics.quantum.qubit import Qubit
 from sympy.physics.quantum.represent import represent
 
 from qiskit._result import Result
-from ._basebackend import BaseBackend
-from ._simulatorerror import SimulatorError
-from ._simulatortools import compute_ugate_matrix
+from qiskit.backends._basebackend import BaseBackend
+from qiskit.backends._simulatorerror import SimulatorError
+from qiskit.backends._simulatortools import compute_ugate_matrix
 
 logger = logging.getLogger(__name__)
 

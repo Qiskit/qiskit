@@ -24,15 +24,16 @@ import os
 import pkgutil
 import re
 from collections import namedtuple
+from types import ModuleType
 
 import qiskit
 from ._basebackend import BaseBackend
-from .. import QISKitError
+from qiskit import QISKitError
 
 logger = logging.getLogger(__name__)
 
 RegisteredBackend = namedtuple('RegisteredBackend',
-                               ['name', 'cls', 'configuration', 'api'])
+                               ['name', 'cls', 'configuration'])
 
 _REGISTERED_BACKENDS = {}
 """dict (backend_name: RegisteredBackend) with the available backends.
@@ -84,7 +85,7 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
                         backend_name = register_backend(cls)
                         backend_name_list.append(backend_name)
                         importlib.import_module(fullname)
-                    except QISKitError:
+                    except QISKitError as err:
                         # Ignore backends that could not be initialized.
                         logger.info(
                             'backend %s could not be initialized', fullname)
@@ -99,8 +100,8 @@ def discover_remote_backends(api_):
     Returns:
         list: list of discovered backend names
     """
-    from ._qeremote import QeRemote
-    QeRemote.set_api(api_)
+    from ._ibmq import IbmQ
+    IbmQ.set_api(api_)
     config_list = api_.available_backends()
     backend_name_list = []
     for config in config_list:
@@ -120,9 +121,8 @@ def discover_remote_backends(api_):
         if 'coupling_map' not in config_edit.keys() and config['simulator']:
             config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
-                                               QeRemote,
-                                               config_edit,
-                                               api_)
+                                               IbmQ,
+                                               config_edit)
         _REGISTERED_BACKENDS[backend_name] = registered_backend
     return backend_name_list
 
@@ -152,7 +152,7 @@ def update_backends(api_=None):
     return backend_name_list
 
 
-def register_backend(cls, configuration_=None, api_=None):
+def register_backend(cls, configuration=None):
     """Register a backend in the list of available backends.
 
     Register a `cls` backend in the `_REGISTERED_BACKENDS` dict, validating
@@ -163,9 +163,8 @@ def register_backend(cls, configuration_=None, api_=None):
 
     Args:
         cls (class): a subclass of BaseBackend that contains a backend
-        configuration_ (dict): backend configuration to use instead of class'
+        configuration (dict): backend configuration to use instead of class'
             default.
-        api_ (obj): an API object
 
     Returns:
         string: the identifier of the backend
@@ -183,24 +182,45 @@ def register_backend(cls, configuration_=None, api_=None):
     if not issubclass(cls, BaseBackend):
         raise QISKitError('Could not register backend: %s is not a subclass '
                           'of BaseBackend' % cls)
-    try:
-        backend_instance = cls(configuration=configuration_)
-    except Exception as err:
-        raise QISKitError('Could not register backend: %s could not be '
-                          'instantiated: %s' % (cls, err))
 
-    # Verify that it has a minimal valid configuration.
-    try:
-        backend_name = backend_instance.configuration['name']
-    except (LookupError, TypeError):
-        raise QISKitError('Could not register backend: invalid configuration')
+    # check to see if class provides configurations.
+    available_backends = getattr(cls, 'available_backends', None)
+    if callable(available_backends):
+        available_configurations = available_backends(configuration=configuration)
+    else:
+        available_configurations = [configuration]
+    if available_configurations == []:
+        available_configurations = [None]
+    backend_name_list = []
+    for conf in available_configurations:
+        try:
+            backend_instance = cls(configuration=conf)
+        except Exception as err:
+            raise QISKitError('Could not register backend: %s could not be '
+                              'instantiated: %s' % (cls, err))
 
-    # Append the backend to the `_backend_classes` dict.
-    registered_backend = RegisteredBackend(
-        backend_name, cls, backend_instance.configuration, api_)
-    _REGISTERED_BACKENDS[backend_name] = registered_backend
+        # Verify that it has a minimal valid configuration.
+        try:
+            backend_name = backend_instance.configuration['name']
+        except (LookupError, TypeError):
+            raise QISKitError('Could not register backend: invalid configuration')
 
-    return backend_name
+        # insert backend reference
+        if backend_name in _REGISTERED_BACKENDS:
+
+            raise QISKitError(
+                'backend name "{}" has already been registered'.format(
+                    backend_name))
+        registered_backend = RegisteredBackend(
+            backend_name, cls, backend_instance.configuration)
+        _REGISTERED_BACKENDS[backend_name] = registered_backend
+        backend_name_list.append(backend_name)
+    if len(backend_name_list) == 1:
+        return backend_name_list[0]
+    elif len(backend_name_list) > 1:
+        return backend_name_list
+    else:
+        raise QISKitError('Could not register backend for this class')
 
 
 def deregister_backend(backend_name):
@@ -364,5 +384,8 @@ def remote_backends():
     return [backend.name for backend in _REGISTERED_BACKENDS.values()
             if backend.configuration.get('local') is False]
 
+def available_backends():
+    """Get all available backend names."""
+    return [backend.name for backend in _REGISTERED_BACKENDS.values()]
 
 discover_local_backends()
