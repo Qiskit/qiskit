@@ -17,14 +17,11 @@
 # =============================================================================
 
 import unittest
-
+import qiskit
 from qiskit import QISKitError
-from qiskit.backends import (BaseBackend,
-                             local_backends,
-                             remote_backends,
-                             register_backend)
-from qiskit.backends._backendutils import (_REGISTERED_BACKENDS,
-                                           discover_local_backends)
+from qiskit.backends import BaseBackend
+from qiskit._backend_manager import (register_backend, local_backends, remote_backends,
+                                     discover_backend_classes, _REGISTERED_BACKENDS)
 from .common import QiskitTestCase
 
 
@@ -36,7 +33,7 @@ class TestBaseBackend(QiskitTestCase):
         # Manually clear and populate the list of registered backends, as it is
         # defined at module scope and computed during the initial import.
         _REGISTERED_BACKENDS = {}
-        discover_local_backends()
+        discover_backend_classes(qiskit)
 
     def test_register_valid_class(self):
         """Test backend registration for a custom valid backend."""
@@ -110,7 +107,7 @@ class ValidBackend(NoConfigurationBackend):
     def __init__(self, configuration=None):
         # pylint: disable=super-init-not-called
         if not configuration:
-            self._configuration = {'name': 'valid_backend'}
+            self._configuration = {'name': 'valid_backend', 'local': True}
         else:
             self._configuration = configuration
 

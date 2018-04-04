@@ -1,13 +1,14 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://qiskit.org/device-file/configuration-01/schema#",
+    "id": "http://qiskit.org/backend/configuration-01/schema#",
     "description": "QISKit device backend configuration",
     "type": "object",
     "required": [
         "name",
-        "nQubits",
-        "couplingMap",
-        "basisGates"
+        "coupling_map",
+        "basis_gates",
+        "simulator",
+        "local"
     ],
     "properties": {
         "name": {
@@ -31,11 +32,11 @@
         "description": {
             "type": "string"
         },
-        "nQubits": {
+        "n_qubits": {
             "type": "integer",
             "minimum": 1
         },
-        "couplingMap": {
+        "coupling_map": {
             "oneOf": [
                 {
                     "type": "string",
@@ -56,19 +57,14 @@
                 }
             ]
         },
-        "gateset": {
+        "basis_gates": {
             "type": "string"
         },
-        "basisGates": {
-            "type": "array",
-			"item": "string",
-			"uniqueItems": true
-        },
-        "onlineDate": {
+        "online_date": {
             "type": "string",
             "format": "date"
         },
-        "chipName": {
+        "chip_name": {
             "type": "string"
         }
     }

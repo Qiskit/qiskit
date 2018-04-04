@@ -11,14 +11,20 @@ import qiskit
 # Authenticate for access to remote backends
 try:
     import Qconfig
-    qiskit.api.register(token=Qconfig.APItoken)
+    qiskit.register(Qconfig.APItoken, package=qiskit)
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
 
-local_backends = qiskit.backends.local_backends()
-remote_backends = qiskit.backends.remote_backends()
+
+def lowest_pending_jobs(list_of_backends):
+    """Returns the backend with lowest pending jobs."""
+    device_status = [qiskit.get_backend(backend).status for backend in list_of_backends]
+
+    best = min([x for x in device_status if x['available'] is True],
+               key=lambda x: x['pending_jobs'])
+    return best['name']
 
 try:
     # Create a Quantum Register with 2 qubits.
@@ -37,44 +43,36 @@ try:
     qc.measure(q, c)
 
     # See a list of available local simulators
-    print("Local backends: ", qiskit.backends.local_backends())
+    print("Local backends: ", qiskit.available_backends({'local': True}))
 
     # Compile and run the Quantum circuit on a simulator backend
-    sim_result = qiskit.execute(qc)
+    sim_result = qiskit.execute(qc, "local_qasm_simulator")
 
     # Show the results
     print("simulation: ", sim_result)
     print(sim_result.get_counts(qc))
 
+    # see a list of available remote backends
+    remote_backends = qiskit.available_backends({'local': False, 'simulator': False})
+
+    print("Remote backends: ", remote_backends)
     # Compile and run the Quantum Program on a real device backend
-    if remote_backends:
-        # see a list of available remote backends
-        print("Remote backends: ", qiskit.backends.remote_backends())
+    try:
+        best_device = lowest_pending_jobs(remote_backends)
+        print("Running on current least busy device: ", best_device)
 
-        try:
-            # select least busy available device and execute
-            # this we should make a method to get the best backend
-            device_status = [qiskit.backends.status(backend)
-                             for backend in remote_backends if "simulator" not in backend]
-            best_device = min([x for x in device_status if x['available'] is True],
-                              key=lambda x: x['pending_jobs'])
-            print("Running on current least busy device: ", best_device['backend'])
+        #runing the job
+        compile_config = {
+            'shots': 1024,
+            'max_credits': 10
+            }
+        exp_result = qiskit.execute(qc, best_device, compile_config, wait=5, timeout=300)
 
-            my_backend = qiskit.backends.get_backend_instance(best_device['backend'])
-
-            #runing the job
-            compile_config = {
-                'backend': best_device['backend'],
-                'shots': 1024,
-                'max_credits': 10
-                }
-            exp_result = qiskit.execute(qc, compile_config, wait=5, timeout=300)
-
-            # Show the results
-            print("experiment: ", exp_result)
-            print(exp_result.get_counts(qc))
-        except:
-            print("All devices are currently unavailable.")
+        # Show the results
+        print("experiment: ", exp_result)
+        print(exp_result.get_counts(qc))
+    except:
+        print("All devices are currently unavailable.")
 
 except qiskit.QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

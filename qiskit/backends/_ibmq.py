@@ -22,12 +22,13 @@ import time
 import logging
 import pprint
 import re
+from IBMQuantumExperience import IBMQuantumExperience
+
 from qiskit.backends._basebackend import BaseBackend
 from qiskit._compiler import compile_circuit
 from qiskit import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-from IBMQuantumExperience import IBMQuantumExperience
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,16 @@ class IbmQ(BaseBackend):
         """
         super().__init__(configuration=configuration, merge=merge)
         if self._configuration:
+            configuration_edit = {}
+            for key, vals in self._configuration.items():
+                new_key = _snake_case_to_camel_case(key)
+                configuration_edit[new_key] = vals
+            #  FIXME: This is a hack as the hpc simulator is not correct in api
+            if configuration_edit['name'] == 'ibmqx_hpc_qasm_simulator':
+                configuration_edit['simulator'] = True
+            self._configuration = configuration_edit
+            # FIXME: This is a hack to make sure that the
+            # local : False is added to the online device
             self._configuration['local'] = False
 
     @classmethod
@@ -130,11 +141,6 @@ class IbmQ(BaseBackend):
         this_result = Result(job_result, qobj)
         return this_result
 
-    @classmethod
-    def set_api(cls, api):
-        """Associate API with class"""
-        cls._api = api
-
     @property
     def calibration(self):
         """Return the online backend calibrations.
@@ -154,6 +160,14 @@ class IbmQ(BaseBackend):
         try:
             backend_name = self.configuration['name']
             calibrations = self._api.backend_calibration(backend_name)
+            # FIXME a hack to remove calibration data that is none.
+            # Needs to be fixed in api
+            if backend_name == 'ibmqx_hpc_qasm_simulator':
+                calibrations = {}
+            # FIXME a hack to remove calibration data that is none.
+            # Needs to be fixed in api
+            if backend_name == 'ibmqx_qasm_simulator':
+                calibrations = {}
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend calibration: {0}".format(ex))
@@ -182,6 +196,14 @@ class IbmQ(BaseBackend):
         try:
             backend_name = self.configuration['name']
             parameters = self._api.backend_parameters(backend_name)
+            # FIXME a hack to remove calibration data that is none.
+            # Needs to be fixed in api
+            if backend_name == 'ibmqx_hpc_qasm_simulator':
+                parameters = {}
+            # FIXME a hack to remove calibration data that is none.
+            # Needs to be fixed in api
+            if backend_name == 'ibmqx_qasm_simulator':
+                parameters = {}
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend parameters: {0}".format(ex))
@@ -210,6 +232,17 @@ class IbmQ(BaseBackend):
         try:
             backend_name = self.configuration['name']
             status = self._api.backend_status(backend_name)
+            # FIXME a hack to rename the key. Needs to be fixed in api
+            status['name'] = status['backend']
+            del status['backend']
+            # FIXME a hack to remove the key busy.  Needs to be fixed in api
+            if 'busy' in status:
+                del status['busy']
+            # FIXME a hack to add available to the hpc simulator.  Needs to
+            # be fixed in api
+            if status['name'] == 'ibmqx_hpc_qasm_simulator':
+                status['available'] = True
+
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
@@ -263,7 +296,6 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
             'result': job_result_return}
 
 
-# this is also in _backendutils but using that was creating cyclic import.
 def _snake_case_to_camel_case(name):
     """Return a snake case string from a camelcase string."""
     string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)

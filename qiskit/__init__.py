@@ -46,11 +46,6 @@ from ._result import Result
 from ._compiler import compile  # pylint: disable=redefined-builtin
 from ._compiler import execute
 
-from ._backend_manager import register, available_backends, get_backend
-
-# register local backends which don't need credentials
-#register(None)
-#from ._backend_manager import API
-
+from ._backend_manager import register
 
 __version__ = '0.5.0'

@@ -24,22 +24,22 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
-from qiskit.qasm import _node as node
+# from qiskit.qasm import _node as node
 
 
-class RZZGate(Gate):
-    """Two-qubit ZZ-rotation gate."""
+class UZZGate(Gate):
+    """controlled-Z gate."""
 
     def __init__(self, theta, ctl, tgt, circ=None):
-        """Create new rzz gate."""
-        super().__init__("rzz", [theta], [ctl, tgt], circ)
+        """Create new uzz gate."""
+        super().__init__("uzz", [theta], [ctl, tgt], circ)
 
     def qasm(self):
         """Return OPENQASM string."""
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("rzz(%d) %s[%d],%s[%d];" % (theta,
+        return self._qasmif("uzz(%d) %s[%d],%s[%d];" % (theta,
                                                         ctl[0].name, ctl[1],
                                                         tgt[0].name, tgt[1]))
 
@@ -50,61 +50,40 @@ class RZZGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rzz(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.uzz(self.param[0], self.arg[0], self.arg[1]))
 
 
-def rzz(self, theta, ctl, tgt):
-    """Apply RZZ to circuit."""
+def uzz(self, theta, ctl, tgt):
+    """Apply CZ to circuit."""
     if isinstance(ctl, QuantumRegister) and \
             isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
         # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
-            instructions.add(self.rzz(theta, (ctl, i), (tgt, i)))
+            instructions.add(self.uzz(theta, (ctl, i), (tgt, i)))
         return instructions
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
-    return self._attach(RZZGate(theta, ctl, tgt, self))
+    return self._attach(UZZGate(theta, ctl, tgt, self))
 
 
 # Add to QuantumCircuit and CompositeGate classes
-QuantumCircuit.rzz = rzz
-CompositeGate.rzz = rzz
+QuantumCircuit.uzz = uzz
+CompositeGate.uzz = uzz
 
 
-# Two-qubit ZZ-rotation by angle theta
-QuantumCircuit.definitions["rzz"] = {
+# TODO: add a body for this gate?
+# Uzz rotation by angle theta
+"""
+QuantumCircuit.definitions["uzz"] = {
     "print": True,
     "opaque": False,
     "n_args": 1,
     "n_bits": 2,
     "args": ["theta"],
     "bits": ["a", "b"],
-    # gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-    "body": node.GateBody([
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("u1", 0, ""),
-            node.ExpressionList([
-                node.Id("theta", 0, "")
-            ]),
-            node.PrimaryList([
-                node.Id("b", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ])
-    ])
+    # gate uzz(theta) a, b { }
+    "body": node.GateBody([])
 }
+"""

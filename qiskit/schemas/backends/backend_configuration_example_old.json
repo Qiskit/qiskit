@@ -10,8 +10,7 @@
                      [1, 2],
                      [3, 2], [3, 4],
                      [4, 2] ],
-    "gateset": "SU2+CNOT",
-    "basisGates": ["u1","u2","u3","cx","id"],
+    "basisGates": "u1,u2,u3,cx,id",
     "onlineDate": "2017-01-10",
     "chipName": "Sparrow"
 }

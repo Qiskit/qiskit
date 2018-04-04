@@ -25,7 +25,7 @@ from abc import ABC, abstractmethod
 
 class BaseBackend(ABC):
     """Base class for backends."""
-    
+
     @abstractmethod
     def __init__(self, configuration=None, merge=True):
         """Base class for backends.
@@ -36,7 +36,7 @@ class BaseBackend(ABC):
 
         Args:
             configuration (dict): configuration dictionary
-            merge (bool): Whether to merge the configuration. If False, 
+            merge (bool): Whether to merge the configuration. If False,
                 configuration will be replaced.
 
         Raises:
@@ -45,9 +45,9 @@ class BaseBackend(ABC):
         if not hasattr(self, '_configuration'):
             self._configuration = None
         if merge:
-            if self._configuration == None:
+            if self._configuration is None:
                 self._configuration = {}
-            if configuration == None:
+            if configuration is None:
                 configuration = {}
             self._configuration = {**self._configuration, **configuration}
         else:
@@ -65,7 +65,7 @@ class BaseBackend(ABC):
         derived type.
         """
         return []
-    
+
     @property
     def configuration(self):
         """Return backend configuration"""
@@ -74,14 +74,12 @@ class BaseBackend(ABC):
     @property
     def calibration(self):
         """Return backend calibration"""
-        backend_name = self.configuration['name']
-        return {'name': backend_name, 'calibrations': None}
+        return {}
 
     @property
     def parameters(self):
         """Return backend parameters"""
-        backend_name = self.configuration['name']
-        return {'name': backend_name, 'parameters': None}
+        return {}
 
     @property
     def status(self):
