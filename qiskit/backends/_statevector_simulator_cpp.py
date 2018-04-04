@@ -32,22 +32,23 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
 
     def __init__(self, configuration=None):
         super().__init__(configuration)
-        self._configuration = configuration
 
         if not configuration:
             self._configuration = {
                 'name': 'local_statevector_simulator_cpp',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/cpp-simulator',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
                 'simulator': True,
                 'local': True,
                 'description': 'A C++ statevector simulator for qobj files',
                 'coupling_map': 'all-to-all',
-                "basis_gates": 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg' +
-                               'rzz,snapshot'
+                'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot'
             }
+        else:
+            self._configuration = configuration
+
 
     def run(self, q_job):
-        """Run a QuantumJob on the the backend."""
+        """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
         final_state_key = 32767  # Key value for final state snapshot
         # Add final snapshots to circuits
@@ -55,6 +56,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
         result = run(qobj, self._configuration['exe'])
+        print ("SELF.RESULT:", result['result'])        
         # Extract final state snapshot and move to 'quantum_state' data field
         for res in result['result']:
             snapshots = res['data']['snapshots']
@@ -69,3 +71,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
             if snapshots == {}:
                 res['data'].pop('snapshots', None)
         return Result(result, qobj)
+
+"""
+[{'data': {'counts': {'00': 1}, 'snapshots': {32767: [array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j])]}, 'quantum_state': array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j]), 'classical_state': 0}, 'status': 'DONE'}]
+
+{'data': {'counts': {'00': 1}, 'snapshots': {'32767': {'quantum_state': [array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j])]}}, 'time_taken': 0.000178}, 'name': 'qc', 'seed': 217913415, 'shots': 1, 'status': 'DONE', 'success': True}
+"""

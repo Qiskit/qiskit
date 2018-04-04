@@ -293,10 +293,11 @@ class QasmSimulatorPy(BaseBackend):
 
         slot is an integer indicating a snapshot slot number.
         """
-        self._snapshots[slot].append(self._quantum_state)
+        self._snapshots.setdefault(slot, []).append(self._quantum_state)
         
 
     def run(self, q_job):
+        print("RUNNING QASM")        
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
@@ -305,6 +306,7 @@ class QasmSimulatorPy(BaseBackend):
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
+        print("result_list in super.run():", result_list)
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)
 
@@ -328,6 +330,7 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
+        print("RUNNING QASM CIRCUIT")                
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
