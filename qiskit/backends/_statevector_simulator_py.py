@@ -63,7 +63,6 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             self._configuration = configuration
 
     def run(self, q_job):
-        print("RUNNING STATEVECTOR")
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
         final_state_key = 32767  # Key value for final state snapshot
@@ -72,11 +71,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
         result = super().run(q_job)
-        print("DONE RUNNING SUPER")
         # Extract final state snapshot and move to 'quantum_state' data field
-        print ("SELF.RESULT:", result[0])
-        for res in result['result']:
-            print(res)
+        for res in result[0]:
             snapshots = res['data']['snapshots']
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
