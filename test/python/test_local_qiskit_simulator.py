@@ -61,7 +61,7 @@ class TestLocalQiskitSimulator(QiskitTestCase):
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
-                         'shots': 100,
+                         'shots': 1024,
                          'backend': 'local_qiskit_simulator',
                          'seed': 1111
                      },
@@ -125,21 +125,14 @@ class TestLocalQiskitSimulator(QiskitTestCase):
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))
         result = simulator.run(self.q_job)
-
-        # TODO: reenable the assertEqual with the exact counts once the issue
-        # with the randomness is solved, as different compiler/oses seem to
-        # provide different values even for the same seed.
-        expected2 = {'000 000': 18,
-                     '001 001': 15,
-                     '010 010': 13,
-                     '011 011': 11,
-                     '100 100': 10,
-                     '101 101': 10,
-                     '110 110': 12,
-                     '111 111': 11}
-        # self.assertEqual(result.get_counts('test_circuit2'), expected2)
-        self.assertEqual(set(result.get_counts('test_circuit2').keys()),
-                         set(expected2.keys()))
+        shots = 1024
+        threshold = 0.025 * shots
+        counts = result.get_counts('test_circuit2')
+        target = {'100 100': shots / 8, '011 011': shots / 8,
+                  '101 101': shots / 8, '111 111': shots / 8,
+                  '000 000': shots / 8, '010 010': shots / 8,
+                  '110 110': shots / 8, '001 001': shots / 8}
+        self.assertDictAlmostEqual(counts, target, threshold)
 
 
 if __name__ == '__main__':

@@ -96,9 +96,14 @@ class LocalQasmSimulatorTest(QiskitTestCase):
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
         result = QasmSimulator().run(self.q_job)
-        expected = {'100 100': 137, '011 011': 131, '101 101': 117, '111 111': 127,
-                    '000 000': 131, '010 010': 141, '110 110': 116, '001 001': 124}
-        self.assertEqual(result.get_counts('test'), expected)
+        shots = 1024
+        threshold = 0.025 * shots
+        counts = result.get_counts('test')
+        target = {'100 100': shots / 8, '011 011': shots / 8,
+                  '101 101': shots / 8, '111 111': shots / 8,
+                  '000 000': shots / 8, '010 010': shots / 8,
+                  '110 110': shots / 8, '001 001': shots / 8}
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
         self.log.info('test_if_statement_x')
