@@ -261,9 +261,28 @@ class DAGCircuit:
         if name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations"
                                   % name)
-
-        # Check the number of arguments matches the signature
-        if name not in ["barrier", "snapshot", "noise", "save", "load", "wait"]:
+        # Check the number of arguments matches the signature            
+        if name in ["barrier"]:
+            if not qargs:
+                raise DAGCircuitError("incorrect number of qubits for %s"
+                                      % name)
+            if cargs:
+                raise DAGCircuitError("incorrect number of bits for %s"
+                                      % name)
+            if params:
+                raise DAGCircuitError("incorrect number of parameters for %s"
+                                      % name)
+        elif name in ["snapshot", "noise", "save", "load"]:
+            if not qargs:
+                raise DAGCircuitError("incorrect number of qubits for %s"
+                                      % name)
+            if cargs:
+                raise DAGCircuitError("incorrect number of bits for %s"
+                                      % name)
+            if not params:
+                raise DAGCircuitError("incorrect number of parameters for %s"
+                                      % name)
+        else:
             if len(qargs) != self.basis[name][0]:
                 raise DAGCircuitError("incorrect number of qubits for %s"
                                       % name)
@@ -272,21 +291,7 @@ class DAGCircuit:
                                       % name)
             if len(params) != self.basis[name][2]:
                 raise DAGCircuitError("incorrect number of parameters for %s"
-                                      % name)
-        else:
-            # special case instruction
-            if not qargs:
-                raise DAGCircuitError("incorrect number of qubits for %s"
-                                      % name)
-            if cargs:
-                raise DAGCircuitError("incorrect number of bits for %s"
-                                      % name)
-            if name == "barrier" and params:
-                raise DAGCircuitError("incorrect number of parameters for %s"
-                                      % name)
-            elif not params:
-                raise DAGCircuitError("incorrect number of parameters for %s"
-                                      % name)
+                                      % name)                
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
@@ -762,6 +767,8 @@ class DAGCircuit:
                          "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
+            simulator_instructions = ["snapshot", "save", "load", "noise"]
+            omit.extend(simulator_instructions)                
             for k in self.basis.keys():
                 if k not in omit:
                     if not self.gates[k]["opaque"]:
@@ -1223,7 +1230,8 @@ class DAGCircuit:
                         for v in itertools.chain(qa, ca, cob):
                             node_map[v] = nxt_nd_idx
                         # Add operation to partition
-                        if nxt_nd["name"] != "barrier":
+                        if nxt_nd["name"] not in ["barrier",
+                                                  "snapshot", "save", "load", "noise"]:
                             # support_list.append(list(set(qa) | set(ca) |
                             #                          set(cob)))
                             support_list.append(list(qa))
@@ -1267,7 +1275,8 @@ class DAGCircuit:
                 new_layer.apply_operation_back(nxt_nd["name"],
                                                qa, ca, pa, co)
                 # Add operation to partition
-                if nxt_nd["name"] != "barrier":
+                if nxt_nd["name"] not in ["barrier",
+                                          "snapshot", "save", "load", "noise"]:
                     # support_list.append(list(set(qa) | set(ca) | set(cob)))
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
@@ -1362,6 +1371,13 @@ class DAGCircuit:
             "reset": ["reset", 1, 0, 0],
             "barrier": ["barrier", -1, 0, 0]
         }
+        # Add simulator instructions
+        simulator_instructions = {
+            "snapshot": ["snapshot", -1, 0, 1],
+            "save": ["save", -1, 0, 1],
+            "load": ["load", -1, 0, 1],
+            "noise": ["noise", -1, 0, 1]
+        }
         for main_instruction in circuit.data:
             # TODO: generate definitions and nodes for CompositeGates,
             # for now simply drop their instructions into the DAG
@@ -1374,6 +1390,9 @@ class DAGCircuit:
                 # Add OpenQASM built-in gates on demand
                 if instruction.name in builtins:
                     dagcircuit.add_basis_element(*builtins[instruction.name])
+                # Add simualtor extension instructions
+                if instruction.name in simulator_instructions:
+                    dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
                 # Separate classical arguments to measurements
                 if instruction.name == "measure":
                     qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]

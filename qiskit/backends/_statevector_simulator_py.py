@@ -23,60 +23,9 @@ the number of qubits.
 
 We advise using the c++ simulator or online simulator for larger size systems.
 
-The input is a qobj dictionary
+The input is a qobj dictionary and the output is a Result object.
 
-and the output is a Result object
-
-    result['data']['quantum_state']
-
-where 'quantum_state' is a 2 :sup:`n` complex numpy array representing the
-quantum state vector
-
-The simulator is run using
-
-.. code-block:: python
-
-    StatevectorSimulatorPy(compiled_circuit,shots,seed).run().
-
-.. code-block:: guess
-
-       compiled_circuit =
-       {
-        "header": {
-        "number_of_qubits": 2, // int
-        "number_of_clbits": 2, // int
-        "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
-        "clbit_labels": [["c", 2]], // list[list[string, int]]
-        }
-        "operations": // list[map]
-           [
-               {
-                   "name": , // required -- string
-                   "params": , // optional -- list[double]
-                   "qubits": , // required -- list[int]
-                   "clbits": , // optional -- list[int]
-                   "conditional":  // optional -- map
-                       {
-                           "type": , // string
-                           "mask": , // hex string
-                           "val":  , // bhex string
-                       }
-               },
-           ]
-       }
-
-.. code-block:: python
-
-       result =
-               {
-               'data':
-                   {
-                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
-                   'classical_state': 0
-                   'counts': {'0000': 1}
-                   }
-               'status': 'DONE'
-               }
+The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
 import random
 import uuid
@@ -89,15 +38,13 @@ from qiskit._result import Result
 from qiskit.backends._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
-from qiskit.backends._qasm_simulator_py import QasmSimulatorPy
+from ._qasm_simulator_py import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
 
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
-# does not show up
 
 class StatevectorSimulatorPy(QasmSimulatorPy):
-    """Python implementation of a statevector simulator."""
+    """Python statevector simulator."""
 
     def __init__(self, configuration=None):
         """
@@ -111,22 +58,16 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 'url': 'https://github.com/QISKit/qiskit-sdk-py',
                 'simulator': True,
                 'local': True,
-                'description': 'A statevector simulator implemented in Python',
+                'description': 'A python statevector simulator for qobj files',
                 'coupling_map': 'all-to-all',
                 'basis_gates': 'u1,u2,u3,cx,id,snapshot'
             }
         else:
             self._configuration = configuration
 
-        self._local_random = random.Random()
-
-        # Define attributes in __init__.
-        self._classical_state = 0
-        self._quantum_state = 0
-        self._snapshots = {}
-        self._number_of_cbits = 0
-        self._number_of_qubits = 0
-        self._shots = 0
+    def run(self, q_job):
+        """Run circuits in q_job."""
+        return super().run(q_job)
 
     def validate(self, qobj):
-        return
+        return True
