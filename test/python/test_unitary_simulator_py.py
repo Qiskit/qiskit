@@ -26,7 +26,7 @@ import numpy as np
 import qiskit._jobprocessor as jobprocessor
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
                     QuantumRegister, ClassicalRegister)
-from qiskit.backends._unitarysimulator import UnitarySimulator
+from qiskit.backends._unitary_simulator_py import UnitarySimulator
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
