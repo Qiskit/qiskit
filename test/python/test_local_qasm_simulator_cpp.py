@@ -24,14 +24,13 @@ import numpy as np
 from numpy.linalg import norm
 
 import qiskit
-import qiskit.backends._qasm_simulator_cpp as QasmSimulatorCpp
-import numpy as np
-from numpy.linalg import norm
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
 from qiskit import QuantumRegister
 from qiskit import _openquantumcompiler as openquantumcompiler
+from qiskit.backends import _qasm_simulator_cpp as QasmSimulatorCpp
+
 from .common import QiskitTestCase
 
 
@@ -190,7 +189,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])}
         }
 
-        for name in expected_data.keys():
+        for name in expected_data:
             # Check counts:
             counts = result.get_counts(name)
             expected_counts = expected_data[name]['counts']
@@ -227,7 +226,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             'y reset': {'quantum_state': np.array([1, 0])},
             'h reset': {'quantum_state': np.array([1, 0])}
         }
-        for name in expected_data.keys():
+        for name in expected_data:
             # Check snapshot is |0> state
             snapshots = result.get_data(name).get('snapshots', {})
             self.assertEqual(set(snapshots), {'0'},
@@ -350,7 +349,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 'quantum_state': np.array([1 / np.sqrt(2), 0.5 - 0.5j])}
         }
 
-        for name in expected_data.keys():
+        for name in expected_data:
             # Check snapshot
             snapshots = result.get_data(name).get('snapshots', {})
             self.assertEqual(set(snapshots), {'0'},
@@ -399,9 +398,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             'h0 h1 cz01': {'quantum_state': np.array([0.5, 0.5, 0.5, -0.5])},
             'h0 h1 cz10': {'quantum_state': np.array([0.5, 0.5, 0.5, -0.5])},
             'h0 rzz01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0 , 0])},
+                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
             'h0 rzz10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0 , 0])},
+                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
             'h1 rzz01': {
                 'quantum_state': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
             'h1 rzz10': {
@@ -410,7 +409,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             'h0 h1 rzz10': {'quantum_state': np.array([0.5, 0.5j, 0.5j, 0.5])}
         }
 
-        for name in expected_data.keys():
+        for name in expected_data:
             # Check snapshot
             snapshots = result.get_data(name).get('snapshots', {})
             self.assertEqual(set(snapshots), {'0'},
