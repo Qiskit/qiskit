@@ -394,7 +394,7 @@ class QasmSimulatorPy(BaseBackend):
                 # Check if barrier
                 elif operation['name'] == 'barrier':
                     pass
-                # Check if snapshot pragma
+                # Check if snapshot command
                 elif operation['name'] == 'snapshot':
                     if 'params' in operation:
                         params = operation['params']
@@ -417,8 +417,8 @@ class QasmSimulatorPy(BaseBackend):
         if self._shots == 1:
             logger.warning('WARNING: The behvavior of getting quantum_state '
                            'from simulators by setting shots=1 is deprecated '
-                           'and will be removed. Use the snapshot command of '
-                           'the quantum circuit instead.')
+                           'and will be removed. Add a snapshot to the '
+                           'quantum circuit instead.')
             # TODO: remove
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state
