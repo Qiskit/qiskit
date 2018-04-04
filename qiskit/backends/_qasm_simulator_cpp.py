@@ -141,6 +141,8 @@ class QASMSimulatorEncoder(json.JSONEncoder):
         complex numbers z as lists [z.real, z.imag]
         ndarrays as nested lists.
     """
+
+    # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
@@ -159,7 +161,10 @@ class QASMSimulatorDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
+    # pylint: disable=method-hidden
     def object_hook(self, obj):
+        """Special decoding rules for simulator output."""
+
         for key in ['U_error', 'density_matrix']:
             # JSON is a complex matrix
             if key in obj and isinstance(obj[key], list):
