@@ -92,7 +92,7 @@ qc.h(qr[0])
 # the qubits in a Bell state.
 qc.cx(qr[0], qr[1])
 # Add a Measure gate to see the state.
-# (Ommiting the index applies an operation on all qubits of the register(s))
+# (Omitting the index applies an operation on all qubits of the register(s))
 qc.measure(qr, cr)
 
 # Create a Quantum Program for execution 
