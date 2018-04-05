@@ -58,7 +58,7 @@ class QasmSimulatorCpp(BaseBackend):
                 'local': True,
                 'description': 'A C++ realistic noise simulator for qobj files',
                 'coupling_map': 'all-to-all',
-                "basis_gates": 'u0,u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz' +
+                "basis_gates": 'u0,u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
                                'snapshot,wait,noise,save,load'
             }
         else:
@@ -101,7 +101,8 @@ class CliffordSimulatorCpp(BaseBackend):
                 'local': True,
                 'description': 'A C++ Clifford simulator with approximate noise',
                 'coupling_map': 'all-to-all',
-                'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
+                'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+                               'snapshot,wait,noise,save,load'
             }
 
         # Try to use the default executable if not specified.

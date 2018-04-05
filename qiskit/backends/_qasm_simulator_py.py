@@ -76,38 +76,26 @@ The simulator is run using
            ]
        }
 
-if shots = 1
-
 .. code-block:: python
 
        result =
                {
-               'data':
-                   {
-                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
-                   'classical_state': 0
-                   'counts': {'0000': 1}
+               'data': {
+                        'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
+                        'classical_state': 0
+                        'counts': {'0000': 1}
+                        'snapshots': { '0': {'quantum_state': array([1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j])}}
+                        }
                    }
-               'status': 'DONE'
-               }
-
-if shots > 1
-
-.. code-block:: python
-
-       result =
-               {
-               'data':
-                   {
-                   'counts': {'0000': 50, '1001': 44},
-                   }
+               'time_taken': 0.002
                'status': 'DONE'
                }
 
 """
 import random
-import uuid
+import time
 import logging
+import warnings
 from collections import Counter
 
 import numpy as np
@@ -118,9 +106,6 @@ from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 
 logger = logging.getLogger(__name__)
-
-# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
-# does not show up
 
 class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
@@ -170,7 +155,7 @@ class QasmSimulatorPy(BaseBackend):
         retval |= b
 
         retval <<= i
-        retval |= lowbits
+        retval |= lowbit
 
         return retval
 
@@ -293,22 +278,25 @@ class QasmSimulatorPy(BaseBackend):
 
         slot is an integer indicating a snapshot slot number.
         """
-        self._snapshots.setdefault(slot, []).append(self._quantum_state)
-        
+        self._snapshots.setdefault(slot, {}).setdefault("quantum_state",
+                                                        []).append(self._quantum_state)
 
-    def run(self, q_job):
-        print("RUNNING QASM")        
+    def run(self, q_job):   
         """Run circuits in q_job"""
-        # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         self._shots = qobj['config']['shots']
+        start = time.time()
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        print("result_list in super.run():", result_list)
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)
+        end = time.time()
+        result = {'backend': self._configuration['name'],
+                  'id': qobj['id'],
+                  'result': result_list,
+                  'status': 'COMPLETED',
+                  'success': True,
+                  'time_taken': (end - start)}
+        return Result(result, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
@@ -330,7 +318,7 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
-        print("RUNNING QASM CIRCUIT")                
+        print(circuit)
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
@@ -418,14 +406,18 @@ class QasmSimulatorPy(BaseBackend):
             counts, cl_reg_index, cl_reg_nbits)}
         data['snapshots'] = self._snapshots
         if self._shots == 1:
-            logger.warning('WARNING: The behvavior of getting quantum_state '
-                           'from simulators by setting shots=1 is deprecated '
-                           'and will be removed. Add a snapshot to the '
-                           'quantum circuit instead.')
+            warnings.warn(
+                    'WARNING: The behvavior of getting quantum_state from simulators '
+                    'by setting shots=1 is deprecated and will be removed. Use the '
+                    'local_statevector_simulator instead.',
+                    DeprecationWarning)
             # TODO: remove
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state
-        return {'data': data, 'status': 'DONE'}
+        return {'name': circuit['name'],
+                'data': data,
+                'status': 'DONE',
+                'success': True}
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.

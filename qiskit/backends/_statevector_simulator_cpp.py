@@ -22,7 +22,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import logging
 
 from qiskit._result import Result
-from ._qasm_simulator_cpp import QasmSimulatorCpp, run
+from ._qasm_simulator_cpp import QasmSimulatorCpp
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = super().run(q_job)
+        result = super().run(q_job)._result
         # Extract final state snapshot and move to 'quantum_state' data field
-        print(result['result'])
-        for res in result[0]:
-            print(res)
+        for res in result['result']:
             snapshots = res['data']['snapshots']
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
