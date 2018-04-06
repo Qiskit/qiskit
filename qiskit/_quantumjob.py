@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=missing-param-doc,missing-type-doc
+#
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,18 +19,19 @@
 """Quantum Job class"""
 import random
 import string
-from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit.backends as backends
+from qiskit.unroll import Unroller, DagUnroller, JsonBackend
+from qiskit.dagcircuit import DAGCircuit
+from qiskit import QuantumCircuit
+from qiskit.qasm import Qasm
 
 
 class QuantumJob():
     """Creates a quantum circuit job
-
-    Attributes:
-       qobj (dict): describes circuits and configuration to run them
     """
 
     # TODO We need to create more tests for checking all possible inputs.
+    # TODO Make this interface clearer -- circuits could be many things!
     def __init__(self, circuits, backend='local_qasm_simulator',
                  circuit_config=None, seed=None,
                  resources=None,
@@ -37,9 +39,9 @@ class QuantumJob():
                  do_compile=False, preformatted=False):
         """
         Args:
-            circuits (QuantumCircuit or list(QuantumCircuit)):
-                QuantumCircuit or list of QuantumCircuit. If preformatted=True,
-                this is a raw qobj.
+            circuits (QuantumCircuit|DagCircuit | list(QuantumCircuit|DagCircuit)):
+                QuantumCircuit|DagCircuit or list of QuantumCircuit|DagCircuit.
+                If preformatted=True, this is a raw qobj.
             backend (str): The backend to run the circuit on.
             circuit_config (dict): Circuit configuration.
             seed (int): The intial seed the simulatros use.
@@ -71,7 +73,7 @@ class QuantumJob():
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
-            # circuits is actually a qobj...validate (not ideal but conventient)
+            # circuits is actually a qobj...validate (not ideal but convenient)
             self.qobj = circuits
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
@@ -92,8 +94,18 @@ class QuantumJob():
         else:
             if backend in backends.local_backends():
                 for circuit in self.circuits:
-                    formatted_circuits.append(
-                        openquantumcompiler.dag2json(circuit))
+                    basis = ['u1', 'u2', 'u3', 'cx', 'id']
+                    unroller = Unroller
+                    # TODO: No instanceof here! Refactor this class
+                    if isinstance(circuit, DAGCircuit):
+                        unroller = DagUnroller
+                    elif isinstance(circuit, QuantumCircuit):
+                        # TODO: We should remove this code path (it's redundant and slow)
+                        circuit = Qasm(data=circuit.qasm()).parse()
+                    unroller_instance = unroller(circuit, JsonBackend(basis))
+                    compiled_circuit = unroller_instance.execute()
+                    formatted_circuits.append(compiled_circuit)
+
             else:
                 for circuit in self.circuits:
                     formatted_circuits.append(circuit.qasm(qeflag=True))

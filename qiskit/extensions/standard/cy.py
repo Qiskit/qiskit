@@ -54,7 +54,6 @@ def cy(self, ctl, tgt):
     """Apply CY to circuit."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cy((ctl, i), (tgt, i)))

@@ -48,16 +48,16 @@ class ZGate(Gate):
         self._modifiers(circ.z(self.arg[0]))
 
 
-def z(self, quantum_register):
+def z(self, q):
     """Apply Z to q."""
-    if isinstance(quantum_register, QuantumRegister):
-        intructions = InstructionSet()
-        for register in range(quantum_register.size):
-            intructions.add(self.z((quantum_register, register)))
-        return intructions
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.z((q, j)))
+        return instructions
 
-    self._check_qubit(quantum_register)
-    return self._attach(ZGate(quantum_register, self))
+    self._check_qubit(q)
+    return self._attach(ZGate(q, self))
 
 
 QuantumCircuit.z = z

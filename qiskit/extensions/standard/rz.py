@@ -54,12 +54,12 @@ class RZGate(Gate):
 
 
 def rz(self, phi, q):
-    """Apply rz to q."""
+    """Apply Rz to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.rx(phi, (q, j)))
-        return gs
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.rz(phi, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(RZGate(phi, q, self))
