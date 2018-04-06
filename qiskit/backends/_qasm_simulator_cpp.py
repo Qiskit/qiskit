@@ -30,6 +30,7 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
+        self._error = False
+        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -82,17 +85,22 @@ class QasmSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
+        if not self._validate(qobj):
+            raise SimulatorError        
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
+
+    def _validate(self, qobj):
+        return not self._error
 
 
 class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
+        self._error = False
+        
         super().__init__(configuration)
-        self._configuration = configuration
-
         if not configuration:
             self._configuration = {
                 'name': 'local_clifford_simulator_cpp',
@@ -104,6 +112,8 @@ class CliffordSimulatorCpp(BaseBackend):
                 'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
                                'snapshot,wait,noise,save,load'
             }
+        else:
+            self._configuration = configuration            
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -123,6 +133,8 @@ class CliffordSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
+        if not self._validate(qobj):
+            raise SimulatorError
         # set backend to Clifford simulator
         if 'config' in qobj:
             qobj['config']['simulator'] = 'clifford'
@@ -132,6 +144,8 @@ class CliffordSimulatorCpp(BaseBackend):
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
+    def _validate(self, qobj):
+        return True
 
 class QASMSimulatorEncoder(json.JSONEncoder):
     """

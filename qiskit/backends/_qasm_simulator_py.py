@@ -115,6 +115,8 @@ class QasmSimulatorPy(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
+        self._error = False
+
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {
@@ -284,6 +286,8 @@ class QasmSimulatorPy(BaseBackend):
     def run(self, q_job):   
         """Run circuits in q_job"""
         qobj = q_job.qobj
+        if not self._validate(qobj):
+            raise SimulatorError
         self._error = self._validate(qobj)
         result_list = []
         self._shots = qobj['config']['shots']
@@ -426,7 +430,8 @@ class QasmSimulatorPy(BaseBackend):
                                  op in circ['compiled_circuit']['operations']]:
                 wrn_msg = ("WARNING: no measurements in circuit '{}', "
                            "classical register will remain all zeros.")
-                logger.warning(wrn_msg.format(circ['name']))            
+                logger.warning(wrn_msg.format(circ['name']))        
+        return not self._error
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
