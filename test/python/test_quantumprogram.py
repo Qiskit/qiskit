@@ -1595,23 +1595,45 @@ class TestQuantumProgram(QiskitTestCase):
         threshold = 0.025 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
+    def test_add_circuit_different_registers(self):
+        """Test add two circuits.
+
+        If all correct should return the data
+        """
+
+        qr = QuantumRegister("qr", 2)
+        cr = ClassicalRegister("cr", 2)
+        qc1 = QuantumCircuit(qr)
+        qc1.x(qr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc2.measure(qr, cr)
+
+        qp = QuantumProgram()
+        name = 'test'
+        qp.add_circuit(name, qc1 + qc2)
+        backend = 'local_qasm_simulator'  # the backend to run on
+        shots = 1024  # the number of shots in the experiment.
+        result = qp.execute(name, backend=backend, shots=shots, seed=78)
+        counts = result.get_counts(name)
+        target = {'11': shots}
+        threshold = 0.0
+        self.assertDictAlmostEqual(counts, target, threshold)
+
     def test_add_circuit_fail(self):
         """Test add two circuits fail.
 
-        If the circuits have different registers it should return a QISKitError
+        If two circuits have samed name register of different size or type
+        it should raise a QISKitError.
         """
-        q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("qr", 1)
-        cr = q_program.create_classical_register("cr", 1)
-        q = q_program.create_quantum_register("q", 1)
-        c = q_program.create_classical_register("c", 1)
-        qc1 = q_program.create_circuit("qc1", [qr], [cr])
-        qc2 = q_program.create_circuit("qc2", [q], [c])
-        qc1.h(qr[0])
-        qc1.measure(qr[0], cr[0])
-        qc2.measure(q[0], c[0])
-        # new_circuit = qc1 + qc2
+        q1 = QuantumRegister("q", 1)
+        q2 = QuantumRegister("q", 2)
+        c1 = QuantumRegister("q", 1)
+        qc1 = QuantumCircuit(q1)
+        qc2 = QuantumCircuit(q2)
+        qc3 = QuantumCircuit(c1)
+
         self.assertRaises(QISKitError, qc1.__add__, qc2)
+        self.assertRaises(QISKitError, qc1.__add__, qc3)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
