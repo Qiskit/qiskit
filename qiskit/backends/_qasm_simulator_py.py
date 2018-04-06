@@ -338,6 +338,7 @@ class QasmSimulatorPy(BaseBackend):
         self._local_random.seed(self._seed)
         outcomes = []
 
+        start = time.time()
         for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
@@ -403,17 +404,21 @@ class QasmSimulatorPy(BaseBackend):
         data['snapshots'] = self._snapshots
         if self._shots == 1:
             warnings.warn(
-                    'WARNING: The behvavior of getting quantum_state from simulators '
+                    'The behvavior of getting quantum_state from simulators '
                     'by setting shots=1 is deprecated and will be removed. Use the '
                     'local_statevector_simulator instead.',
                     DeprecationWarning)
             # TODO: remove
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state
+        end = time.time()
         return {'name': circuit['name'],
+                'seed': self._seed,
+                'shots': self._shots,
                 'data': data,
                 'status': 'DONE',
-                'success': True}
+                'success': True,
+                'time_taken': (end-start)}
 
     def _validate(self, qobj):
         for circ in qobj['circuits']:
