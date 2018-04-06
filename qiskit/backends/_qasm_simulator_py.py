@@ -155,7 +155,7 @@ class QasmSimulatorPy(BaseBackend):
         retval |= b
 
         retval <<= i
-        retval |= lowbit
+        retval |= lowbits
 
         return retval
 
@@ -273,7 +273,7 @@ class QasmSimulatorPy(BaseBackend):
             self._quantum_state = temp
 
     def _add_qasm_snapshot(self, slot):
-        """Snapshot pragma to record simulator's internal representation
+        """Snapshot instruction to record simulator's internal representation
         of quantum statevector.
 
         slot is an integer indicating a snapshot slot number.
@@ -284,6 +284,7 @@ class QasmSimulatorPy(BaseBackend):
     def run(self, q_job):   
         """Run circuits in q_job"""
         qobj = q_job.qobj
+        self._error = self._validate(qobj)
         result_list = []
         self._shots = qobj['config']['shots']
         start = time.time()
@@ -318,7 +319,6 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
-        print(circuit)
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
@@ -332,15 +332,11 @@ class QasmSimulatorPy(BaseBackend):
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
         if circuit['config']['seed'] is None:
-            self._local_random.seed(random.getrandbits(32))
+            self._seed = random.getrandbits(32)
         else:
-            self._local_random.seed(circuit['config']['seed'])
+            self._seed = circuit['config']['seed']
+        self._local_random.seed(self._seed)
         outcomes = []
-
-        if 'measure' not in [op['name'] for op in ccircuit['operations']]:
-            wrn_msg = ("WARNING: no measurements in circuit '{}', "
-                       "classical register will remain all zeros.")
-            logger.warning(wrn_msg.format(circuit['name']))
 
         for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
@@ -418,6 +414,14 @@ class QasmSimulatorPy(BaseBackend):
                 'data': data,
                 'status': 'DONE',
                 'success': True}
+
+    def _validate(self, qobj):
+        for circ in qobj['circuits']:
+            if 'measure' not in [op['name'] for 
+                                 op in circ['compiled_circuit']['operations']]:
+                wrn_msg = ("WARNING: no measurements in circuit '{}', "
+                           "classical register will remain all zeros.")
+                logger.warning(wrn_msg.format(circ['name']))            
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
