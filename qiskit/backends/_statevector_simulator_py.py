@@ -67,6 +67,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
         self._validate(qobj)
+        if self._error:
+            raise SimulatorError
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
@@ -92,9 +94,21 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
+        Some of these may later move to backend schemas.
+
+        1. No shots
+        2. No measurements in the middle
         """
+        if qobj['config']['shots'] != 1:
+            logger.warning("WARNING: statevector simulator only supports 1 shot. "
+                           "Setting shots=1.")
+            qobj['config']['shots'] = 1
         for circuit in qobj['circuits']:
-            for op in circuit['compiled_circuit']:
+            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
+                logger.warning("WARNING: statevector simulator only supports 1 shot. "
+                               "Setting shots=1 for circuit ", circuit['name'])
+                circuit['config']['shots'] = 1
+            for op in circuit['compiled_circuit']['operations']:
                 if op['name'] == 'measure':
                     self._error = True
         return not self._error

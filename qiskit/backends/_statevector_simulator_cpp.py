@@ -23,6 +23,7 @@ import logging
 
 from qiskit._result import Result
 from ._qasm_simulator_cpp import QasmSimulatorCpp
+from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     """C++ statevector simulator"""
 
     def __init__(self, configuration=None):
-        super().__init__(configuration)
+        self._error = False
 
+        super().__init__(configuration)
         if not configuration:
             self._configuration = {
                 'name': 'local_statevector_simulator_cpp',
@@ -50,6 +52,8 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
+        if not self._validate(qobj):
+            raise SimulatorError        
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
@@ -71,8 +75,23 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
                 res['data'].pop('snapshots', None)
         return Result(result, qobj)
 
-"""
-[{'data': {'counts': {'00': 1}, 'snapshots': {32767: [array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j])]}, 'quantum_state': array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j]), 'classical_state': 0}, 'status': 'DONE'}]
+    def _validate(self, qobj):
+        """Semantic validations of the qobj which cannot be done via schemas.
+        Some of these may later move to backend schemas.
 
-{'data': {'counts': {'00': 1}, 'snapshots': {'32767': {'quantum_state': [array([0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j])]}}, 'time_taken': 0.000178}, 'name': 'qc', 'seed': 217913415, 'shots': 1, 'status': 'DONE', 'success': True}
-"""
+        1. No shots
+        2. No measurements in the middle
+        """
+        if qobj['config']['shots'] != 1:
+            logger.warning("WARNING: statevector simulator only supports 1 shot. "
+                           "Setting shots=1.")
+            qobj['config']['shots'] = 1
+        for circuit in qobj['circuits']:
+            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
+                logger.warning("WARNING: statevector simulator only supports 1 shot. "
+                               "Setting shots=1 for circuit ", circuit['name'])
+                circuit['config']['shots'] = 1
+            for op in circuit['compiled_circuit']['operations']:
+                if op['name'] == 'measure':
+                    self._error = True
+        return not self._error
