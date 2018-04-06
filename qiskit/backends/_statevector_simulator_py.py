@@ -47,8 +47,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     def __init__(self, configuration=None):
-        super().__init__(configuration)
+        self._error = False
 
+        super().__init__(configuration)
         if not configuration:
             self._configuration = {
                 'name': 'local_statevector_simulator_py',
@@ -65,7 +66,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
-        final_state_key = 32767  # Key value for final state snapshot
+        self._validate(qobj)
+        final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
@@ -88,5 +90,11 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 res['data'].pop('snapshots', None)
         return Result(result, qobj)
 
-    def validate(self, qobj):
-        return True
+    def _validate(self, qobj):
+        """Semantic validations of the qobj which cannot be done via schemas.
+        """
+        for circuit in qobj['circuits']:
+            for op in circuit['compiled_circuit']:
+                if op['name'] == 'measure':
+                    self._error = True
+        return not self._error

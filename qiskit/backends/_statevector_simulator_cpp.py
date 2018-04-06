@@ -50,7 +50,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
-        final_state_key = 32767  # Key value for final state snapshot
+        final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
