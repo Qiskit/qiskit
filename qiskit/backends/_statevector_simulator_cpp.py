@@ -32,8 +32,6 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     """C++ statevector simulator"""
 
     def __init__(self, configuration=None):
-        self._error = False
-
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -52,8 +50,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
-        if not self._validate(qobj):
-            raise SimulatorError        
+        self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
@@ -93,5 +90,6 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
                 circuit['config']['shots'] = 1
             for op in circuit['compiled_circuit']['operations']:
                 if op['name'] == 'measure':
-                    self._error = True
-        return not self._error
+                    raise SimulatorError("In circuit {}: statevector simulator does "
+                                         "not support measure.".format(circuit['name']))                    
+        return

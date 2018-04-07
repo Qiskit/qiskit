@@ -253,7 +253,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     }
 
     // Add time taken and return result
-    ret["data"]["time_taken"] =
+    ret["time_taken"] =
         std::chrono::duration<double>(myclock_t::now() - start).count();
     // Add metadata
     ret["name"] = circ.name;

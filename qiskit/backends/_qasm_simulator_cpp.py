@@ -25,6 +25,7 @@ import os
 import subprocess
 from subprocess import PIPE
 import platform
+import warnings
 
 import numpy as np
 
@@ -50,8 +51,6 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
-        self._error = False
-        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -85,21 +84,23 @@ class QasmSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
-        if not self._validate(qobj):
-            raise SimulatorError        
+        self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
     def _validate(self, qobj):
-        return not self._error
+        if qobj['config']['shots'] == 1:
+            warnings.warn('The behvavior of getting quantum_state from simulators '
+                          'by setting shots=1 is deprecated and will be removed. '
+                          'Use the local_statevector_simulator instead.',
+                          DeprecationWarning)        
+        return
 
 
 class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
-        self._error = False
-        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -133,8 +134,7 @@ class CliffordSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
-        if not self._validate(qobj):
-            raise SimulatorError
+        self._validate(qobj)
         # set backend to Clifford simulator
         if 'config' in qobj:
             qobj['config']['simulator'] = 'clifford'
@@ -215,7 +215,6 @@ def run(qobj, executable):
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
                          cerr.decode())
-        print (cout.decode())
         return json.loads(cout.decode(), cls=QASMSimulatorDecoder)
 
     except FileNotFoundError:
