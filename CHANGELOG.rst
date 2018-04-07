@@ -1,47 +1,6 @@
 Release history
 ###############
 
-QISKit SDK 0.5.0
-================
-
-2018/03/08
-
-Improvements
-------------
-
-- Introduce Quantum Object Code (Qobj)
-  -
-  - 
-  - Generic and core schema validation of compiler output
-  - Backend validation for simulators
-- Improve C++ simulator
-  - Add TensorIndex C++ class (``tensor_index.hpp``) for multi-partite qubit vector indexing
-  - Add QubitVector C++ class (``qubit_vector.hpp``) for multi-partite qubit vector algebra
-  - Reworked C++ simulator backends to use QubitVector class and methods instead of std::vector
-  - Added ``snapshot`` command for simulator for caching a copy of the current simulator state and returning in the output
-  - Removed the ability to return the cached states from the save command (use snapshot instead)
-  - Removed the ability to return the final quantum state of the simulator (use snapshot instead)
-- Improve interface to simulator backends
-  - Introduce ``local_statevector_simulator`` for snapshotting (one-shot, no-noise, no-measure, no-if, no-reset)
-  - 
-- Introduce circuit drawing via ``circuit_drawer()`` (suitable for Jupyter notebooks), ``plot_circuit()`` (suitable for Python scripts)
-- Introduce benchmark suite for performance testing (``test/performance``)
-
-Bug Fixes
----------
-
-- Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
-
-Backward-incompatible changes
------------------------------
-
-- Simulator name changes
-  - ``local_qiskit_simulator`` -> ``local_qasm_simulator_cpp`` (fast c++)
-  - ``local_qasm_simulator`` -> ``local_qasm_simulator_py`` (slow python)
-    (``local_qasm_simulator`` chooses the fast one if it is built, otherwise chooses the slow one.)
-- Simulators no longer return wavefunction by setting shots=1. Instead, explicitly ask for ``snapshot``.
-
-
 QISKit SDK 0.4.0
 ================
 
