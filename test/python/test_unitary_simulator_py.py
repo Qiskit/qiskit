@@ -106,7 +106,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
         quantum_job = QuantumJob(circuits, do_compile=True,
-                                 backend='local_unitary_simulator')
+                                 backend='local_unitary_simulator_py')
         result = jobprocessor.run_backend(quantum_job)
         unitary1 = result[0]['data']['unitary']
         unitary2 = result[1]['data']['unitary']
@@ -141,7 +141,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        backend='local_unitary_simulator')
+                        backend='local_unitary_simulator_py')
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
