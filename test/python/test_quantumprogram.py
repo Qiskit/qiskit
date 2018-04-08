@@ -1246,40 +1246,6 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertDictAlmostEqual(counts2, target2, threshold)
         self.assertDictAlmostEqual(counts3, target3, threshold)
 
-    def test_local_qasm_simulator_one_shot(self):
-        """Test single shot of local simulator .
-
-        If all correct should the quantum state.
-        """
-        q_program = QuantumProgram(specs=self.QPS_SPECS)
-        qr = q_program.get_quantum_register("q_name")
-        cr = q_program.get_classical_register("c_name")
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc3 = q_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc3.h(qr[0])
-        qc3.cx(qr[0], qr[1])
-        qc3.cx(qr[0], qr[2])
-        circuits = ['qc2', 'qc3']
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1  # the number of shots in the experiment.
-        result = q_program.execute(circuits, backend=backend, shots=shots,
-                                   seed=9)
-        quantum_state = np.array([0.70710678+0.j, 0.70710678+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j])
-        norm = np.dot(np.conj(quantum_state),
-                      result.get_data('qc2')['quantum_state'])
-        self.assertAlmostEqual(norm, 1)
-        quantum_state = np.array([0.70710678+0.j, 0+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.70710678+0.j])
-        norm = np.dot(np.conj(quantum_state),
-                      result.get_data('qc3')['quantum_state'])
-        self.assertAlmostEqual(norm, 1)
-
     def test_local_unitary_simulator(self):
         """Test unitary simulator.
 
@@ -1947,14 +1913,16 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         qc2.measure(qr[2], cr[2])
         shots = 1024  # the number of shots in the experiment.
-        backend = 'local_qasm_simulator'
+        backend = 'local_qasm_simulator_py'
         test_config = {'0': 0, '1': 1}
         qobj = q_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
-        out = q_program.run(qobj)
+        from pprint import pprint
+        pprint(qobj)
+        out = q_program.run(qobj)        
         results = out.get_counts('qc2')
 
         # change the number of shots and re-run to test if the reconfig does not break
-        # the ability to run the qobj
+        # the ability to run the qobj        
         qobj = q_program.reconfig(qobj, shots=2048)
         out2 = q_program.run(qobj)
         results2 = out2.get_counts('qc2')
