@@ -18,40 +18,35 @@
 
 This module is used for connecting to the Quantum Experience.
 """
-import time
 import logging
 import pprint
-import re
-from IBMQuantumExperience import IBMQuantumExperience
+import time
 
-from qiskit.backends._basebackend import BaseBackend
-from qiskit._compiler import compile_circuit
 from qiskit import QISKitError
+from qiskit._compiler import compile_circuit
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
+from qiskit._util import _snake_case_to_camel_case
+from qiskit.backends._basebackend import BaseBackend
 
 logger = logging.getLogger(__name__)
-
-FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
-ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
 
 
 class IbmQ(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
-
-    Attributes:
-        _api (IBMQuantumExperience): api for communicating with the Quantum
-            Experience.
     """
-    _api = None
 
-    def __init__(self, configuration=None, merge=True):
+    def __init__(self, configuration=None, merge=True, api=None):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            configuration (dict, optional): configuration of backend
+            configuration (dict): configuration of backend
+            api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+                api for communicating with the Quantum Experience
         """
         super().__init__(configuration=configuration, merge=merge)
+        self._api = api
+
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():
@@ -64,22 +59,6 @@ class IbmQ(BaseBackend):
             # FIXME: This is a hack to make sure that the
             # local : False is added to the online device
             self._configuration['local'] = False
-
-    @classmethod
-    def available_backends(cls, configuration=None):
-        if isinstance(configuration, dict):
-            credentials = configuration.get('credentials', None)
-            if credentials:
-                token = credentials.get('token', None)
-                config = credentials.get('config', None)
-                if config:
-                    url = config.get('url', None)
-                    if token and url:
-                        ibmq_api = IBMQuantumExperience(token=token,
-                                                        config={'url': url})
-                        cls._api = ibmq_api
-                        return ibmq_api.available_backends()
-        return []
 
     def run(self, q_job):
         """Run jobs
@@ -151,12 +130,8 @@ class IbmQ(BaseBackend):
             dict: The calibration of the backend.
 
         Raises:
-            ConnectionError: if the API call failed.
             LookupError: If a configuration for the backend can't be found.
         """
-        if not self._api:
-            raise ConnectionError('API not set')
-
         try:
             backend_name = self.configuration['name']
             calibrations = self._api.backend_calibration(backend_name)
@@ -187,12 +162,8 @@ class IbmQ(BaseBackend):
             dict: The parameters of the backend.
 
         Raises:
-            ConnectionError: if the API call faled.
             LookupError: If parameters for the backend can't be found.
         """
-        if not self._api:
-            raise ConnectionError('API not set')
-
         try:
             backend_name = self.configuration['name']
             parameters = self._api.backend_parameters(backend_name)
@@ -223,12 +194,8 @@ class IbmQ(BaseBackend):
             dict: The status of the backend.
 
         Raises:
-            ConnectionError: if the API call failed.
             LookupError: If status for the backend can't be found.
         """
-        if not self._api:
-            raise ConnectionError('API not set')
-
         try:
             backend_name = self.configuration['name']
             status = self._api.backend_status(backend_name)
@@ -254,7 +221,8 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
 
     Args:
         jobid (list(str)):  is a list of id strings.
-        api (IBMQuantumExperience): IBMQuantumExperience API connection
+        api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            IBMQuantumExperience API connection
         wait (int):  is the time to wait between requests, in seconds
         timeout (int):  is how long we wait before failing, in seconds
 
@@ -294,9 +262,3 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
                                   'status': job_result['qasms'][index]['status']})
     return {'job_id': jobid, 'status': job_result['status'],
             'result': job_result_return}
-
-
-def _snake_case_to_camel_case(name):
-    """Return a snake case string from a camelcase string."""
-    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
-    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
