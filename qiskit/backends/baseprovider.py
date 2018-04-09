@@ -26,7 +26,7 @@ class BaseProvider(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def available_backends(self):
+    def available_backends(self, *args, **kwargs):
         """
         Returns:
             list of str: a list of backend names available from this provider.

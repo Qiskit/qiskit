@@ -40,11 +40,19 @@ class DefaultQISKitProvider(BaseProvider):
                 return provider.get_backend(name)
             except KeyError:
                 pass
+        raise KeyError(name)
 
-    def available_backends(self):
+    def available_backends(self, filters=None):
+        """
+        Args:
+            filters (dict): dictionary of filtering conditions.
+        Returns:
+            list of str: a list of backend names available from all the
+                providers.
+        """
         backends = []
         for provider in self.providers:
-            backends.extend(provider.available_backends())
+            backends.extend(provider.available_backends(filters))
 
         return backends
 
