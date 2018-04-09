@@ -288,7 +288,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     """
     energy = 0
 
-    if shots == 1:
+    if 'statevector' in device:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
             circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
