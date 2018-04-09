@@ -52,8 +52,17 @@ class LocalProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]()
 
-    def available_backends(self):
-        return list(self.backends.keys())
+    def available_backends(self, filters=None):
+        backends = self.backends
+
+        # TODO: this is just an example filter.
+        filters = filters or {}
+        if 'local' in filters and not filters['local']:
+            backends = {}
+        if 'simulator' in filters and not filters['simulator']:
+            backends = {}
+
+        return list(backends.keys())
 
     @classmethod
     def _verify_local_backends(cls):
