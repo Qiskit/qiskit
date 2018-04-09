@@ -52,9 +52,9 @@ if(STATIC_LINKING OR MINGW)
 	# with gcc is failing...
 	if(NOT APPLE)
 		enable_cxx_compiler_flag_if_supported("-static")
+    	enable_cxx_compiler_flag_if_supported("-static-libgcc")        
 	endif()
 	enable_cxx_compiler_flag_if_supported("-static-libstdc++")
-	enable_cxx_compiler_flag_if_supported("-static-libgcc")
 endif()
 
 # Warnings and Errors
