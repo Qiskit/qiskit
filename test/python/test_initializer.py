@@ -190,7 +190,7 @@ class TestInitialize(QiskitTestCase):
         qc.measure(qr, cr)
         qp.add_circuit("qc", qc)
         # statevector simulator does not support reset
-        shots = 1000
+        shots = 2000
         threshold = 0.025 * shots
         result = qp.execute("qc", backend='local_qasm_simulator_py', shots=shots)
         counts = result.get_counts()
