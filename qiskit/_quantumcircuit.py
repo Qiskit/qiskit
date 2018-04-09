@@ -129,10 +129,11 @@ class QuantumCircuit(object):
         """
         # Check compatibility and add new registers
         for name, register in rhs.regs.items():
-            if name in self.regs and register != self.regs[name]:
-                raise QISKitError("circuits are not compatible")
-            else:
+            if name not in self.regs:
                 self.add(register)
+            elif name in self.regs and register != self.regs[name]:
+                raise QISKitError("circuits are not compatible")
+
         # Add new gates
         for gate in rhs.data:
             gate.reapply(self)
