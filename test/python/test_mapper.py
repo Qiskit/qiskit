@@ -52,10 +52,14 @@ class MapperTest(QiskitTestCase):
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, seed=self.seed)
-
-        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
+        shots = 2000
+        result = self.qp.execute("test", backend="local_qasm_simulator",
+                                 coupling_map=coupling_map,
+                                 seed=self.seed, shots=shots)
+        counts = result.get_counts("test")
+        target = {'0001': shots / 2, '0101':  shots / 2}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
