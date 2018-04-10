@@ -90,32 +90,51 @@ class QuantumCircuit(object):
 
     def combine(self, rhs):
         """
-        Append rhs to self if self contains rhs's registers.
+        Append rhs to self if self contains compatible registers.
+
+        Two circuits are compatible if they contain the same registers
+        or if they contain different registers with unique names. The
+        returned circuit will contain all unique registers between both
+        circuits.
 
         Return self + rhs as a new object.
         """
-        if self.name is not None and rhs.name is not None:
-            circuit_name = "c%sN%s" % (self.name, rhs.name)
-        else:
-            circuit_name = None
-        for register in rhs.regs.values():
-            if not self.has_register(register):
+        combined_registers = []
+        # Check registers in LHS are compatible with RHS
+        for name, register in self.regs.items():
+            if name in rhs.regs and register != rhs.regs[name]:
                 raise QISKitError("circuits are not compatible")
-        circuit = QuantumCircuit(
-            *[register for register in self.regs.values()], name=circuit_name)
+            else:
+                combined_registers.append(register)
+        # Add registers in RHS not in LHS
+        complement_registers = set(rhs.regs) - set(self.regs)
+        for name in complement_registers:
+            combined_registers.append(rhs.regs[name])
+        # Make new circuit with combined registers
+        circuit = QuantumCircuit(*combined_registers)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
 
     def extend(self, rhs):
         """
-        Append rhs to self if self contains rhs's registers.
+        Append rhs to self if self if it contains compatible registers.
+
+        Two circuits are compatible if they contain the same registers
+        or if they contain different registers with unique names. The
+        returned circuit will contain all unique registers between both
+        circuits.
 
         Modify and return self.
         """
-        for register in rhs.regs.values():
-            if not self.has_register(register):
+        # Check compatibility and add new registers
+        for name, register in rhs.regs.items():
+            if name not in self.regs:
+                self.add(register)
+            elif name in self.regs and register != self.regs[name]:
                 raise QISKitError("circuits are not compatible")
+
+        # Add new gates
         for gate in rhs.data:
             gate.reapply(self)
         return self
