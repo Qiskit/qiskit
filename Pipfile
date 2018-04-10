@@ -1,0 +1,21 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+"e1839a8" = {path = ".", editable = true}
+
+
+[dev-packages]
+
+pylint = ">=1.8"
+pycodestyle = "*"
+sphinx = ">=1.6,<1.7"
+better-apidoc = "==0.1.2"
+sphinxcontrib-fulltoc = "==1.2.0"
+coverage = ">=4.4.0"
+
