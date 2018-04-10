@@ -20,14 +20,12 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
-from abc import ABC, abstractmethod
 
 
-class BaseBackend(ABC):
+class BaseBackend(object):
     """Base class for backends."""
 
-    @abstractmethod
-    def __init__(self, configuration=None, merge=True):
+    def __init__(self, configuration=None):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -36,27 +34,15 @@ class BaseBackend(ABC):
 
         Args:
             configuration (dict): configuration dictionary
-            merge (bool): Whether to merge the configuration. If False,
-                configuration will be replaced.
 
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        if not hasattr(self, '_configuration'):
-            self._configuration = None
-        if merge:
-            if self._configuration is None:
-                self._configuration = {}
-            if configuration is None:
-                configuration = {}
-            self._configuration = {**self._configuration, **configuration}
-        else:
-            self._configuration = configuration
+        self._configuration = configuration or {}
 
-    @abstractmethod
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
-        pass
+        raise NotImplementedError
 
     @property
     def configuration(self):
@@ -76,5 +62,5 @@ class BaseBackend(ABC):
     @property
     def status(self):
         """Return backend status"""
-        backend_name = self.configuration['name']
+        backend_name = self.configuration.get('name', '')
         return {'name': backend_name, 'available': True}

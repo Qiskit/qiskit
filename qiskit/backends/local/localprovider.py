@@ -19,14 +19,14 @@
 """Provider for local backends."""
 import logging
 
-from qiskit import QISKitError
-from qiskit.backends._projectq_simulator import ProjectQSimulator
-from qiskit.backends._qasmsimulator import QasmSimulator
-from qiskit.backends._qiskit_cpp_simulator import (QISKitCppSimulator,
-                                                   CliffordCppSimulator)
-from qiskit.backends._sympy_qasmsimulator import SympyQasmSimulator
-from qiskit.backends._unitarysimulator import UnitarySimulator
-from qiskit.backends.baseprovider import BaseProvider
+from qiskit._qiskiterror import QISKitError
+from qiskit.backends import BaseProvider
+from .qasmsimulator import QasmSimulator
+from .qiskit_cpp_simulator import CliffordCppSimulator, QISKitCppSimulator
+from .projectq_simulator import ProjectQSimulator
+from .sympy_unitarysimulator import SympyUnitarySimulator
+from .sympy_qasmsimulator import SympyQasmSimulator
+from .unitarysimulator import UnitarySimulator
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ SDK_STANDARD_BACKENDS = [
     QasmSimulator,
     QISKitCppSimulator,
     SympyQasmSimulator,
+    SympyUnitarySimulator,
     UnitarySimulator
 ]
 

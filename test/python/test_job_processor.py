@@ -25,9 +25,8 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister)
 from qiskit import QuantumJob
 from qiskit._compiler import (compile_circuit, load_unroll_qasm_file)
-from qiskit.backends._qasmsimulator import QasmSimulator
-from qiskit.backends._unitarysimulator import UnitarySimulator
-from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.local import QasmSimulator, UnitarySimulator
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import requires_qe_access, QiskitTestCase
 
@@ -68,8 +67,8 @@ class TestJobProcessor(QiskitTestCase):
             self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
             self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
         # create QuantumCircuit
-        qr = QuantumRegister('q', 2)
-        cr = ClassicalRegister('c', 2)
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])

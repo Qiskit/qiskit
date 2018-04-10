@@ -16,6 +16,7 @@
 # =============================================================================
 """Helper for simplified QISKit usage."""
 
+import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wizard.defaultqiskitprovider import DefaultQISKitProvider
@@ -39,6 +40,8 @@ def register(token, url,
         DEFAULT_PROVIDER.add_provider(provider)
     else:
         raise QISKitError('provider name %s is not recognized' % provider_name)
+
+# Functions for inspecting and retrieving backends.
 
 
 def available_backends(filters=None):
@@ -68,3 +71,41 @@ def get_backend(name):
     Return a backend.
     """
     return DEFAULT_PROVIDER.get_backend(name)
+
+
+# Functions for compiling and executing.
+
+
+def compile(list_of_circuits, backend_id, compile_config=None):
+    """Compile a list of circuits into a qobj.
+
+    Args:
+        list_of_circuits (list[QuantumCircuits]): list of circuits
+        backend_id (str): a backend object to use as the default compiling option
+        compile_config (dict or None): a dictionary of compile configurations.
+            If `None`, the default compile configuration will be used.
+    Returns:
+        obj: the qobj to be run on the backends
+    """
+    # pylint: disable=redefined-builtin
+    backend = DEFAULT_PROVIDER.get_backend(backend_id)
+    return qiskit._compiler.compile(list_of_circuits, backend, compile_config)
+
+
+def execute(list_of_circuits, backend_id, compile_config=None,
+            wait=5, timeout=60):
+    """Executes a set of circuits.
+
+    Args:
+        list_of_circuits (list[QuantumCircuits]): list of circuits
+        backend_id (str): A string for the backend name to use
+        compile_config (dict or None): a dictionary of compile configurations.
+        wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+        timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+
+    Returns:
+        obj: The results object
+    """
+    backend = DEFAULT_PROVIDER.get_backend(backend_id)
+    return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
+                                    wait, timeout)

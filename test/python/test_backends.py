@@ -18,18 +18,15 @@
 
 """Backends Test."""
 
+import json
 import unittest
 
-import os
-import json
 import jsonschema
+
 import qiskit.wizard
-from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
-from qiskit.wizard.defaultqiskitprovider import DefaultQISKitProvider
-
-
-from .common import requires_qe_access, QiskitTestCase
-_schema_dir = os.path.dirname(qiskit.__file__) + '/schemas/backends'
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wizard import DefaultQISKitProvider
+from .common import requires_qe_access, QiskitTestCase, Path
 
 
 class TestBackends(QiskitTestCase):
@@ -95,10 +92,10 @@ class TestBackends(QiskitTestCase):
         local_provider = DefaultQISKitProvider()
         backend = local_provider.get_backend(name='local_qasm_simulator')
         status = backend.status
-        schema_path = os.path.join(_schema_dir, 'backend_status_schema_py.json')
-
+        schema_path = self._get_resource_path(
+            'backends/backend_status_schema_py.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
-                schema = json.load(schema_file)
+            schema = json.load(schema_file)
 
         jsonschema.validate(status, schema)
 
@@ -113,7 +110,8 @@ class TestBackends(QiskitTestCase):
         for backend_name in remotes:
             backend = ibmq_provider.get_backend(backend_name)
             status = backend.status
-            schema_path = os.path.join(_schema_dir, 'backend_status_schema_py.json')
+            schema_path = self._get_resource_path(
+                'backends/backend_status_schema_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(status, schema)
@@ -128,7 +126,9 @@ class TestBackends(QiskitTestCase):
         for backend_name in local_backends:
             backend = qiskit_provider.get_backend(backend_name)
             configuration = backend.configuration
-            schema_path = os.path.join(_schema_dir, 'backend_configuration_schema_old_py.json')
+            schema_path = self._get_resource_path(
+                'backends/backend_configuration_schema_old_py.json',
+                path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(configuration, schema)
@@ -144,7 +144,8 @@ class TestBackends(QiskitTestCase):
         for backend_name in remotes:
             backend = ibmq_provider.get_backend(backend_name)
             configuration = backend.configuration
-            schema_path = os.path.join(_schema_dir, 'backend_configuration_schema_old_py.json')
+            schema_path = self._get_resource_path(
+                'backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(configuration, schema)
@@ -215,6 +216,7 @@ class TestBackends(QiskitTestCase):
 
     @requires_qe_access
     def test_wizard_register_ok(self, QE_TOKEN, QE_URL):
+        """Test wizard.register()."""
         qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
         backends = qiskit.wizard.available_backends()
         self.log.info(backends)
@@ -222,15 +224,18 @@ class TestBackends(QiskitTestCase):
 
     @requires_qe_access
     def test_wizard_available_backends_with_filter(self, QE_TOKEN, QE_URL):
+        """Test wizard.available_backends(filter=...)."""
         qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
         backends = qiskit.wizard.available_backends({'local': False, 'simulator': True})
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
     def test_wizard_local_backends(self):
+        """Test wizard.local_backends(filter=...)."""
         local_backends = qiskit.wizard.local_backends()
         self.log.info(local_backends)
         self.assertTrue(len(local_backends) > 0)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

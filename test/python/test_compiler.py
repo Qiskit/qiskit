@@ -20,9 +20,10 @@
 
 import unittest
 import qiskit
+import qiskit._compiler
 from qiskit import Result
-from qiskit.backends._qasmsimulator import QasmSimulator
-from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
+from qiskit.backends.local import QasmSimulator
+from qiskit.backends.ibmq import IBMQProvider
 
 from .common import requires_qe_access, QiskitTestCase
 
@@ -53,7 +54,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit.compile(qc, my_backend)
+        qobj = qiskit._compiler.compile(qc, my_backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -73,7 +74,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit.compile([qc, qc_extra], my_backend)
+        qobj = qiskit._compiler.compile([qc, qc_extra], my_backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -92,7 +93,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit.compile(qc, my_backend)
+        qobj = qiskit._compiler.compile(qc, my_backend)
         result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
         self.assertIsInstance(result, Result)
 
@@ -111,7 +112,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit.compile([qc, qc_extra], my_backend)
+        qobj = qiskit._compiler.compile([qc, qc_extra], my_backend)
         result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
         self.assertIsInstance(result, Result)
 
@@ -129,7 +130,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        results = qiskit.execute(qc, my_backend)
+        results = qiskit._compiler.execute(qc, my_backend)
 
         self.assertIsInstance(results, Result)
 
@@ -148,7 +149,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit.execute([qc, qc_extra], my_backend)
+        results = qiskit._compiler.execute([qc, qc_extra], my_backend)
 
         self.assertIsInstance(results, Result)
 
@@ -170,7 +171,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit.compile(qc, my_backend)
+        qobj = qiskit._compiler.compile(qc, my_backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -194,7 +195,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit.compile([qc, qc_extra], my_backend)
+        qobj = qiskit._compiler.compile([qc, qc_extra], my_backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -214,7 +215,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit.compile(qc, my_backend)
+        qobj = qiskit._compiler.compile(qc, my_backend)
         result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
         self.assertIsInstance(result, Result)
 
@@ -234,7 +235,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit.compile([qc, qc_extra], my_backend)
+        qobj = qiskit._compiler.compile([qc, qc_extra], my_backend)
         result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
         self.assertIsInstance(result, Result)
 
@@ -254,7 +255,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        results = qiskit.execute(qc, my_backend)
+        results = qiskit._compiler.execute(qc, my_backend)
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
@@ -274,7 +275,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit.execute([qc, qc_extra], my_backend)
+        results = qiskit._compiler.execute([qc, qc_extra], my_backend)
 
         self.assertIsInstance(results, Result)
 

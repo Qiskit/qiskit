@@ -41,28 +41,28 @@ from sympy.matrices import eye, zeros
 from sympy.physics.quantum import TensorProduct
 
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
-from qiskit.backends._simulatortools import compute_ugate_matrix, index2
+from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local._simulatortools import compute_ugate_matrix, index2
 
 logger = logging.getLogger(__name__)
 
 
 class SympyUnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_sympy_unitary_simulator',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py',
+        'simulator': True,
+        'local': True,
+        'description': 'A python simulator for unitary matrix',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,id'
+    }
 
     def __init__(self, configuration=None):
         """Initial the UnitarySimulator object."""
-        super().__init__(configuration)
-        if configuration is None:
-            self._configuration = {'name': 'local_sympy_unitary_simulator',
-                                   'url': 'https://github.com/QISKit/qiskit-sdk-py',
-                                   'simulator': True,
-                                   'local': True,
-                                   'description': 'A python simulator for unitary matrix',
-                                   'coupling_map': 'all-to-all',
-                                   'basis_gates': 'u1,u2,u3,cx,id'}
-        else:
-            self._configuration = configuration
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+
         self._unitary_state = None
         self._number_of_qubits = None
 

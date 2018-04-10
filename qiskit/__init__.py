@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=wrong-import-order
-# pylint: disable=wrong-import-position
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -42,8 +41,5 @@ from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-
-from ._compiler import compile  # pylint: disable=redefined-builtin
-from ._compiler import execute
 
 __version__ = '0.5.0'

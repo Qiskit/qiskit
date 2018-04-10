@@ -19,8 +19,8 @@
 from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _snake_case_to_camel_case
-from qiskit.backends._ibmq import IbmQ
 from qiskit.backends.baseprovider import BaseProvider
+from .ibmqbackend import IBMQBackend
 
 
 class IBMQProvider(BaseProvider):
@@ -37,7 +37,7 @@ class IBMQProvider(BaseProvider):
         self.backends = self._discover_remote_backends()
 
     def get_backend(self, name):
-        return IbmQ(configuration=self.backends[name], api=self._api)
+        return IBMQBackend(configuration=self.backends[name], api=self._api)
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ
