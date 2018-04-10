@@ -28,6 +28,7 @@ limitations under the License.
 #include <complex>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -285,18 +286,11 @@ cket_t vec2ket(const cvector_t &psi, double epsilon = 0.);
 //------------------------------------------------------------------------------
 
 /**
- * Convert a hexadecimal character to a binary vector.
- * @param c: char.
- * @returns: a length 4 binary vector.
- */
-creg_t hex_char_to_creg(char c);
-
-/**
  * Convet a hexadecimal string to a binary vector.
  * @param str: a hex string.
  * @returns: a binary vector.
  */
-creg_t hex_to_creg(std::string str);
+std::vector<uint_t> hex2reg(std::string str);
 
 //------------------------------------------------------------------------------
 // Pad unitary matrices to larger dimensions
@@ -713,6 +707,10 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   return s;
 }
 
+//------------------------------------------------------------------------------
+// Convert integers to dit-vectors
+//------------------------------------------------------------------------------
+
 std::vector<uint_t> int2reg(uint_t n, uint_t base) {
   std::vector<uint_t> ret;
   while (n >= base) {
@@ -731,95 +729,27 @@ std::vector<uint_t> int2reg(uint_t n, uint_t base, uint_t minlen) {
 }
 
 //------------------------------------------------------------------------------
-// Convert hex to binary vectors
+// Convert hexadecimal string to binary vector
 //------------------------------------------------------------------------------
-creg_t hex_char_to_creg(char c) {
-  creg_t ret;
-  switch (c) {
-  case '0':
-    return creg_t{0, 0, 0, 0};
-    break;
-  case '1':
-    return creg_t{1, 0, 0, 0};
-    break;
-  case '2':
-    return creg_t{0, 1, 0, 0};
-    break;
-  case '3':
-    return creg_t{1, 1, 0, 0};
-    break;
-  case '4':
-    return creg_t{0, 0, 1, 0};
-    break;
-  case '5':
-    return creg_t{1, 0, 1, 0};
-    break;
-  case '6':
-    return creg_t{0, 1, 1, 0};
-    break;
-  case '7':
-    return creg_t{1, 1, 1, 0};
-    break;
-  case '8':
-    return creg_t{0, 0, 0, 1};
-    break;
-  case '9':
-    return creg_t{1, 0, 0, 1};
-    break;
-  case 'A':
-    return creg_t{0, 1, 0, 1};
-    break;
-  case 'a':
-    return creg_t{0, 1, 0, 1};
-    break;
-  case 'B':
-    return creg_t{1, 1, 0, 1};
-    break;
-  case 'b':
-    return creg_t{1, 1, 0, 1};
-    break;
-  case 'C':
-    return creg_t{0, 0, 1, 1};
-    break;
-  case 'c':
-    return creg_t{0, 0, 1, 1};
-    break;
-  case 'D':
-    return creg_t{1, 0, 1, 1};
-    break;
-  case 'd':
-    return creg_t{1, 0, 1, 1};
-    break;
-  case 'E':
-    return creg_t{0, 1, 1, 1};
-    break;
-  case 'e':
-    return creg_t{0, 1, 1, 1};
-    break;
-  case 'F':
-    return creg_t{1, 1, 1, 1};
-    break;
-  case 'f':
-    return creg_t{1, 1, 1, 1};
-    break;
-  default:
-    std::string msg = "invalid hexadecimal character ";
-    msg += c;
-    throw std::runtime_error(msg);
-  }
-}
 
-/**
- * Convet a hexadecimal string to a binary vector.
- */
-creg_t hex_to_creg(std::string str) {
-  creg_t ret;
-  if (str.substr(0, 2) == "0x") {
-    // Hexadecimal
-    for (uint_t pos = str.size() - 1; pos != 1; --pos)
-      for (auto i : hex_char_to_creg(str[pos]))
-        ret.push_back(i);
-    return ret;
+std::vector<uint_t> hex2reg(std::string str) {
+  std::vector<uint_t> reg;
+  std::string prefix = str.substr(0, 2);
+  if (prefix == "0x" || prefix == "0X") { // Hexadecimal
+    str.erase(0, 2); // remove '0x';
+    size_t length = (str.size() % 8) + 32 * (str.size() / 8);
+    reg.reserve(length);
+    while (str.size() > 8) {
+      unsigned long hex = stoul(str.substr(str.size() - 8), 0, 16);
+      std::vector<uint_t> tmp = int2reg(hex, 2, 32);
+      std::move(tmp.begin(), tmp.end(), back_inserter(reg));
+      str.erase(str.size() - 8);
+    }
+    if (str.size() > 0) {
+      std::vector<uint_t> tmp = int2reg(stoul(str, 0, 16), 2, 0);
+      std::move(tmp.begin(), tmp.end(), back_inserter(reg));
+    }
+    return reg;
   } else {
     throw std::runtime_error(std::string("invalid hexadecimal"));
   }

@@ -311,13 +311,13 @@ operation_if Circuit::parse_conditional(const json_t &jcond) {
   JSON::get_value(valstr, "val", jcond);
 
   // Setup mask
-  cond.mask = hex_to_creg(maskstr); // Get mask
+  cond.mask = hex2reg(maskstr); // Get mask
   auto pos = std::find(cond.mask.rbegin(), cond.mask.rend(), 1);
   auto sz = std::distance(pos, cond.mask.rend());
   cond.mask.resize(sz); // resize to smallest vector
 
   // Get target val
-  cond.val = hex_to_creg(valstr);
+  cond.val = hex2reg(valstr);
   auto sz_val = std::count(cond.mask.cbegin(), cond.mask.cend(), 1);
   cond.val.resize(sz_val, 0);
 

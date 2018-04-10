@@ -422,6 +422,38 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
 
+    def test_conditionals(self):
+        filename = os.path.join(qiskit.__path__[0],
+                                '../test/python/qobj/cpp_conditionals.json')
+        with open(filename, 'r') as file:
+            q_job = QuantumJob(json.load(file),
+                               backend='local_qasm_simulator_cpp',
+                               preformatted=True)
+        result = self.backend.run(q_job)
+        expected_data = {
+            'single creg (c0=0)': {
+                'quantum_state': np.array([1, 0, 0, 0])},
+            'single creg (c0=1)': {
+                'quantum_state': np.array([0, 0, 0, 1])},
+            'two creg (c1=0)': {
+                'quantum_state': np.array([1, 0, 0, 0])},
+            'two creg (c1=1)': {
+                'quantum_state': np.array([0, 0, 0, 1])}
+        }
+
+        for name in expected_data:
+            # Check snapshot
+            snapshots = result.get_data(name).get('snapshots', {})
+            self.assertEqual(set(snapshots), {'0'},
+                             msg=name + ' snapshot keys')
+            self.assertEqual(len(snapshots['0']), 1,
+                             msg=name + ' snapshot length')
+            state = snapshots['0']['quantum_state'][0]
+            expected_state = expected_data[name]['quantum_state']
+            fidelity = np.abs(expected_state.dot(state.conj())) ** 2
+            self.assertAlmostEqual(fidelity, 1.0, places=10,
+                                   msg=name + ' snapshot fidelity')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
