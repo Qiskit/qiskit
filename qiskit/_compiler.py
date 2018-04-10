@@ -34,7 +34,6 @@ from .qasm import Qasm
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
-from ._backend_manager import get_backend
 from .extensions.standard.barrier import Barrier
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
@@ -63,7 +62,7 @@ def execute(list_of_circuits, backend, compile_config=None,
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
 
-        backend (str): A string for the backend name to use
+        backend (BaseBackend): A string for the backend name to use
 
         wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
         timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
@@ -74,13 +73,12 @@ def execute(list_of_circuits, backend, compile_config=None,
     """
     compile_config = compile_config or {}
     compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    backend_obj = get_backend(backend)
-    qobj = compile(list_of_circuits, backend_obj, compile_config)
+    qobj = compile(list_of_circuits, backend, compile_config)
 
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = backend_obj.run(q_job)
+    result = backend.run(q_job)
     return result
 
 
@@ -92,7 +90,8 @@ def compile(list_of_circuits, backend, compile_config=None):
 
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
-        backend (obj): a backend object to use as the default compiling option
+        backend (BaseBackend): a backend object to use as the default compiling
+            option
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
 
@@ -126,7 +125,7 @@ def compile(list_of_circuits, backend, compile_config=None):
         qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                            for n in range(30)])
     qobj['id'] = qobj_id
-    qobj["config"] = {"max_credits": max_credits, 'backend': backend_name,
+    qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                       "shots": shots}
 
     # TODO This backend needs HPC parameters to be passed in order to work

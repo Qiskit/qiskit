@@ -53,6 +53,7 @@ class LocalProvider(BaseProvider):
         return self.backends[name]()
 
     def available_backends(self, filters=None):
+        # pylint: disable=arguments-differ
         backends = self.backends
 
         # TODO: this is just an example filter.

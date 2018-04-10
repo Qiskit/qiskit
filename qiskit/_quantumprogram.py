@@ -19,49 +19,30 @@
 Qasm Program Class
 """
 
-import random
+import itertools
 import json
 import logging
 import os
+import random
 import string
-import re
-from threading import Event
 import warnings
+from threading import Event
 
-# use the external IBMQuantumExperience Library
-import itertools
-from IBMQuantumExperience import IBMQuantumExperience
-import qiskit as qk
+import qiskit._compiler
+import qiskit.wizard
 
-# Local Simulator Modules
-from ._backend_manager import local_backends, remote_backends, get_backend, register
-from ._compiler import compile  # pylint: disable=redefined-builtin
-
-
-# Stable Modules
-from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
-from ._quantumcircuit import QuantumCircuit
-from ._qiskiterror import QISKitError
-from ._logging import set_qiskit_logger, unset_qiskit_logger
-
-# Beta Modules
-from .unroll import CircuitBackend, Unroller
-from .qasm import Qasm
-from .mapper import coupling_dict2list
 from ._jobprocessor import JobProcessor
+from ._logging import set_qiskit_logger, unset_qiskit_logger
+from ._qiskiterror import QISKitError
+from ._quantumcircuit import QuantumCircuit
 from ._quantumjob import QuantumJob
-
-FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
-ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
+from ._quantumregister import QuantumRegister
+from .mapper import coupling_dict2list
+from .qasm import Qasm
+from .unroll import CircuitBackend, Unroller
 
 logger = logging.getLogger(__name__)
-
-
-def convert(name):
-    """Return a snake case string from a camelcase string."""
-    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
-    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 
 class QuantumProgram(object):
@@ -99,7 +80,8 @@ class QuantumProgram(object):
     # TODO: for status results make ALL_CAPS (check) or some unified method
     # TODO: Jay: coupling_map, basis_gates will move into a config object
     # only exists once you set the api to use the online backends
-    __api = {}
+
+    __api = None
     __api_config = {}
 
     def __init__(self, specs=None):
@@ -110,7 +92,6 @@ class QuantumProgram(object):
         self.__counter = itertools.count()
         if specs:
             self.__init_specs(specs)
-        register(None, package=qk)
 
     def enable_logs(self, level=logging.INFO):
         """Enable the console output of the logging messages.
@@ -703,31 +684,28 @@ class QuantumProgram(object):
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using the API object instead is recommended.", DeprecationWarning)
-        try:
-            config_dict = {
-                'url': url,
-            }
-            # Only append hub/group/project if they are different than None.
-            if all([hub, group, project]):
-                config_dict.update({
-                    'hub': hub,
-                    'group': group,
-                    'project': project
-                })
-            if proxies:
-                config_dict['proxies'] = proxies
-            self.__api = IBMQuantumExperience(token, config_dict, verify)
-        except Exception as ex:
-            root_exception = ex
-            if 'License required' in str(ex):
-                # For the 401 License required exception from the API, be
-                # less verbose with the exceptions.
-                root_exception = None
-            raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
-                                  .format(ex)) from root_exception
+        qiskit.wizard.register(token, url,
+                               hub, group, project, proxies, verify,
+                               provider_name='qiskit')
+
+        # TODO: the setting of self._api and self.__api_config is left for
+        # backwards-compatibility.
+        # pylint: disable=no-member
+        self.__api = qiskit.wizard.DEFAULT_PROVIDER.providers[-1]._api
+        config_dict = {
+            'url': url,
+        }
+        # Only append hub/group/project if they are different than None.
+        if all([hub, group, project]):
+            config_dict.update({
+                'hub': hub,
+                'group': group,
+                'project': project
+            })
+        if proxies:
+            config_dict['proxies'] = proxies
         self.__api_config["token"] = token
         self.__api_config["config"] = config_dict.copy()
-        register(token, url, package=qk)
 
     def set_api_hubs_config(self, hub, group, project):
         """Update the API hubs configuration, replacing the previous one.
@@ -792,13 +770,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        local = local_backends()
-        # local = qiskit.backends.local_backends()
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        # remote = qiskit.backends.remote_backends()
-        remote = remote_backends()
-        return local + remote
+        return qiskit.wizard.available_backends()
 
     def online_backends(self):
         """Get the online backends.
@@ -821,10 +793,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() object instead is recommended.",
             DeprecationWarning)
 
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        # return qiskit.backends.remote_backends()
-        return remote_backends()
+        return qiskit.wizard.remote_backends()
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -844,19 +813,8 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        online_simulators_list = []
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        # online_backends = qiskit.backends.remote_backends()
-        online_backends = remote_backends()
-
-        for backend in online_backends:
-            backend_obj = get_backend(backend)
-            config = backend_obj.configuration
-            # config = qiskit.backends.configuration(backend)
-            if config['simulator']:
-                online_simulators_list.append(backend)
-        return online_simulators_list
+        return qiskit.wizard.available_backends({'local': False,
+                                                 'simulator': True})
 
     def online_devices(self):
         """Gets online devices via QX API calls.
@@ -876,19 +834,8 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        online_device_list = []
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        # online_backends = qiskit.backends.remote_backends()
-        online_backends = remote_backends()
-
-        for backend in online_backends:
-            backend_obj = get_backend(backend)
-            config = backend_obj.configuration
-            # config = qiskit.backends.configuration(backend)
-            if not config['simulator']:
-                online_device_list.append(backend)
-        return online_device_list
+        return qiskit.wizard.available_backends({'local': False,
+                                                 'simulator': False})
 
     def get_backend_status(self, backend):
         """Return the online backend status.
@@ -915,10 +862,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').status "
             "instead is recommended.", DeprecationWarning)
 
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        # my_backend = qiskit.backends.get_backend_instance(backend)
-        my_backend = get_backend(backend)
+        my_backend = qiskit.wizard.get_backend(backend)
         return my_backend.status
 
     def get_backend_configuration(self, backend):
@@ -946,10 +890,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').configuration "
             "instead is recommended.", DeprecationWarning)
 
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        my_backend = get_backend(backend)
-        # return qiskit.backends.configuration(backend)
+        my_backend = qiskit.wizard.get_backend(backend)
         return my_backend.configuration
 
     def get_backend_calibration(self, backend):
@@ -977,10 +918,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').calibration "
             "instead is recommended.", DeprecationWarning)
 
-        # my_backend = qiskit.backends.get_backend_instance(backend)
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        my_backend = get_backend(backend)
+        my_backend = qiskit.wizard.get_backend(backend)
         return my_backend.calibration
 
     def get_backend_parameters(self, backend):
@@ -1008,10 +946,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').parameters"
             "instead is recommended.", DeprecationWarning)
 
-        # my_backend = qiskit.backends.get_backend_instance(backend)
-        # if self.__api:
-        #    qiskit.backends.discover_remote_backends(self.__api)
-        my_backend = get_backend(backend)
+        my_backend = qiskit.wizard.get_backend(backend)
         return my_backend.parameters
 
     ###############################################################
@@ -1055,8 +990,8 @@ class QuantumProgram(object):
             'qobj_id': qobj_id,
             'hpc': hpc
         }
-        my_backend = get_backend(backend)
-        qobj = compile(list_of_circuits, my_backend, compile_config)
+        my_backend = qiskit.wizard.get_backend(backend)
+        qobj = qiskit._compiler.compile(list_of_circuits, my_backend, compile_config)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
@@ -1305,7 +1240,6 @@ class QuantumProgram(object):
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
                 max_credits=3, seed=None, hpc=None):
-
         """Execute, compile, and run an array of quantum circuits).
 
         This builds the internal "to execute" list which is list of quantum

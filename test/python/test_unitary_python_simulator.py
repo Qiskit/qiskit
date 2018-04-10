@@ -105,8 +105,9 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc1.h(qr)
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
+        backend = UnitarySimulator()
         quantum_job = QuantumJob(circuits, do_compile=True,
-                                 backend='local_unitary_simulator')
+                                 backend=backend)
         result = jobprocessor.run_backend(quantum_job)
         unitary1 = result[0]['data']['unitary']
         unitary2 = result[1]['data']['unitary']

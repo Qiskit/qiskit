@@ -21,17 +21,19 @@
 import unittest
 import qiskit
 from qiskit import Result
+from qiskit.backends._qasmsimulator import QasmSimulator
+from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 
 from .common import requires_qe_access, QiskitTestCase
 
 
-def lowest_pending_jobs(list_of_backends):
+def lowest_pending_jobs(list_of_backend_names, provider):
     """Returns the backend with lowest pending jobs."""
-    device_status = [qiskit.get_backend(backend).status for backend in list_of_backends]
-
-    best = min([x for x in device_status if x['available'] is True],
-               key=lambda x: x['pending_jobs'])
-    return best['name']
+    list_of_backends = [provider.get_backend(backend) for backend
+                        in list_of_backend_names]
+    by_pending_jobs = sorted(list_of_backends,
+                             key=lambda x: x.status['pending_jobs'])
+    return by_pending_jobs[0]
 
 
 class TestCompiler(QiskitTestCase):
@@ -42,8 +44,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
-        my_backend = qiskit.get_backend('local_qasm_simulator')
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -52,7 +54,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit.compile(qc, my_backend)
-        # print(qobj)
+
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
 
@@ -61,8 +63,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
-        my_backend = qiskit.get_backend('local_qasm_simulator')
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -72,7 +74,7 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit.compile([qc, qc_extra], my_backend)
-        # print(qobj)
+
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
 
@@ -81,8 +83,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
-        my_backend = qiskit.get_backend('local_qasm_simulator')
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -99,8 +101,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
-        my_backend = qiskit.get_backend('local_qasm_simulator')
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -118,7 +120,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -126,8 +129,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        results = qiskit.execute(qc, 'local_qasm_simulator')
-        # print(results)
+        results = qiskit.execute(qc, my_backend)
+
         self.assertIsInstance(results, Result)
 
     def test_execute_two(self):
@@ -135,7 +138,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
+        my_backend = QasmSimulator()
+
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -144,8 +148,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit.execute([qc, qc_extra], 'local_qasm_simulator')
-        # print(results)
+        results = qiskit.execute([qc, qc_extra], my_backend)
+
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
@@ -154,10 +158,11 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        best_device = lowest_pending_jobs(qiskit.available_backends({'local': False,
-                                                                     'simulator': False}))
-        my_backend = qiskit.get_backend(best_device)
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = lowest_pending_jobs(
+            provider.available_backends({'local': False, 'simulator': False}),
+            provider)
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -166,7 +171,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit.compile(qc, my_backend)
-        # print(qobj)
+
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
 
@@ -176,10 +181,11 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        best_device = lowest_pending_jobs(qiskit.available_backends({'local': False,
-                                                                     'simulator': False}))
-        my_backend = qiskit.get_backend(best_device)
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = lowest_pending_jobs(
+            provider.available_backends({'local': False, 'simulator': False}),
+            provider)
+
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -189,7 +195,7 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit.compile([qc, qc_extra], my_backend)
-        # print(qobj)
+
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
 
@@ -199,8 +205,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        my_backend = qiskit.get_backend('ibmqx_qasm_simulator')
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = provider.get_backend('ibmqx_qasm_simulator')
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -218,8 +224,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        my_backend = qiskit.get_backend('ibmqx_qasm_simulator')
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = provider.get_backend('ibmqx_qasm_simulator')
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -238,7 +244,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = provider.get_backend('ibmqx_qasm_simulator')
+
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -246,8 +254,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        results = qiskit.execute(qc, 'ibmqx_qasm_simulator')
-        # print(results)
+        results = qiskit.execute(qc, my_backend)
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
@@ -256,7 +263,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        my_backend = provider.get_backend('ibmqx_qasm_simulator')
+
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -265,8 +274,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit.execute([qc, qc_extra], 'ibmqx_qasm_simulator')
-        # print(results)
+        results = qiskit.execute([qc, qc_extra], my_backend)
+
         self.assertIsInstance(results, Result)
 
 

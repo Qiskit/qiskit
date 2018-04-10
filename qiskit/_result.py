@@ -81,7 +81,15 @@ class Result(object):
         Raises:
             QISKitError: if the Results cannot be combined.
         """
-        if self._qobj['config'] == other._qobj['config']:
+        # TODO: reevaluate if moving equality to Backend themselves (part of
+        # a bigger problem - backend instances will not persist between
+        # sessions)
+        my_config = copy.deepcopy(self._qobj['config'])
+        other_config = copy.deepcopy(other._qobj['config'])
+        my_backend = my_config.pop('backend').configuration['name']
+        other_backend = other_config.pop('backend').configuration['name']
+
+        if my_config == other_config and my_backend == other_backend:
             if isinstance(self._qobj['id'], str):
                 self._qobj['id'] = [self._qobj['id']]
             self._qobj['id'].append(other._qobj['id'])
