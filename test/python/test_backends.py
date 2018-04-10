@@ -16,21 +16,23 @@
 # limitations under the License.
 # =============================================================================
 
-"""Backend Manager Test."""
+"""Backends Test."""
 
 import unittest
 
 import os
 import json
 import jsonschema
-import qiskit
+import qiskit.wizard
+from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
+from qiskit.wizard.defaultqiskitprovider import DefaultQISKitProvider
 
 
 from .common import requires_qe_access, QiskitTestCase
 _schema_dir = os.path.dirname(qiskit.__file__) + '/schemas/backends'
 
 
-class TestBackendManager(QiskitTestCase):
+class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
 
     def test_local_backends_exist(self):
@@ -38,11 +40,10 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        # print(local)
+        local_provider = DefaultQISKitProvider()
+        local = local_provider.available_backends({'local': True})
         self.log.info(local)
-        self.assertTrue(local)
+        self.assertTrue(len(local) > 0)
 
     @requires_qe_access
     def test_remote_backends_exist(self, QE_TOKEN, QE_URL):
@@ -50,21 +51,19 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False})
-        # print(remote)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remote = ibmq_provider.available_backends({'local': False})
         self.log.info(remote)
-        self.assertTrue(remote)
+        self.assertTrue(len(remote) > 0)
 
     @requires_qe_access
-    def test_remote_backends_exist_device(self, QE_TOKEN, QE_URL):
+    def test_remote_backends_exist_real_device(self, QE_TOKEN, QE_URL):
         """Test if there are remote backends that are devices.
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False, 'simulator': False})
-        # print(remote)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remote = ibmq_provider.available_backends({'local': False, 'simulator': False})
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -74,9 +73,8 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False, 'simulator': True})
-        # print(remote)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remote = ibmq_provider.available_backends({'local': False, 'simulator': True})
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -85,25 +83,24 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should return a name the same as input.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        backend = qiskit.get_backend(local[0])
-        self.assertEqual(local[0], backend.configuration['name'])
+        local_provider = DefaultQISKitProvider()
+        backend = local_provider.get_backend(name='local_qasm_simulator')
+        self.assertEqual(backend.configuration['name'], 'local_qasm_simulator')
 
     def test_local_backend_status(self):
         """Test backend_status.
 
         If all correct should pass the vaildation.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        for backend in local:
-            my_backend = qiskit.get_backend(backend)
-            status = my_backend.status
-            schema_path = os.path.join(_schema_dir, 'backend_status_schema_py.json')
-            with open(schema_path, 'r') as schema_file:
+        local_provider = DefaultQISKitProvider()
+        backend = local_provider.get_backend(name='local_qasm_simulator')
+        status = backend.status
+        schema_path = os.path.join(_schema_dir, 'backend_status_schema_py.json')
+
+        with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
-            jsonschema.validate(status, schema)
+
+        jsonschema.validate(status, schema)
 
     @requires_qe_access
     def test_remote_backend_status(self, QE_TOKEN, QE_URL):
@@ -111,12 +108,11 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False})
-        for backend in remote:
-            my_backend = qiskit.get_backend(backend)
-            status = my_backend.status
-            # print(status)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remotes = ibmq_provider.available_backends({'local': False})
+        for backend_name in remotes:
+            backend = ibmq_provider.get_backend(backend_name)
+            status = backend.status
             schema_path = os.path.join(_schema_dir, 'backend_status_schema_py.json')
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
@@ -127,12 +123,11 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the vaildation.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        for backend in local:
-            my_backend = qiskit.get_backend(backend)
-            configuration = my_backend.configuration
-            # print(configuration)
+        qiskit_provider = DefaultQISKitProvider()
+        local_backends = qiskit_provider.available_backends({'local': True})
+        for backend_name in local_backends:
+            backend = qiskit_provider.get_backend(backend_name)
+            configuration = backend.configuration
             schema_path = os.path.join(_schema_dir, 'backend_configuration_schema_old_py.json')
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
@@ -144,12 +139,11 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False})
-        for backend in remote:
-            my_backend = qiskit.get_backend(backend)
-            configuration = my_backend.configuration
-            # print(configuration)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remotes = ibmq_provider.available_backends({'local': False})
+        for backend_name in remotes:
+            backend = ibmq_provider.get_backend(backend_name)
+            configuration = backend.configuration
             schema_path = os.path.join(_schema_dir, 'backend_configuration_schema_old_py.json')
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
@@ -160,12 +154,11 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the vaildation.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        for backend in local:
-            my_backend = qiskit.get_backend(backend)
-            calibration = my_backend.calibration
-            # print(calibration)
+        qiskit_provider = DefaultQISKitProvider()
+        local_backends = qiskit_provider.available_backends({'local': True})
+        for backend_name in local_backends:
+            backend = qiskit_provider.get_backend(backend_name)
+            calibration = backend.calibration
             # FIXME test against schema and decide what calibration
             # is for a simulator
             self.assertEqual(len(calibration), 0)
@@ -176,16 +169,14 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False})
-        for backend in remote:
-            my_backend = qiskit.get_backend(backend)
-            calibration = my_backend.calibration
-            # print(calibration)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remotes = ibmq_provider.available_backends({'local': False})
+        for backend_name in remotes:
+            backend = ibmq_provider.get_backend(backend_name)
+            calibration = backend.calibration
             # FIXME test against schema and decide what calibration
             # is for a simulator
-            # print(len(calibration))
-            if my_backend.configuration['simulator']:
+            if backend.configuration['simulator']:
                 self.assertEqual(len(calibration), 0)
             else:
                 self.assertEqual(len(calibration), 4)
@@ -195,12 +186,11 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the vaildation.
         """
-        qiskit.register(None, package=qiskit)
-        local = qiskit.available_backends({'local': True})
-        for backend in local:
-            my_backend = qiskit.get_backend(backend)
-            parameters = my_backend.parameters
-            # print(parameters)
+        qiskit_provider = DefaultQISKitProvider()
+        local_backends = qiskit_provider.available_backends({'local': True})
+        for backend_name in local_backends:
+            backend = qiskit_provider.get_backend(backend_name)
+            parameters = backend.parameters
             # FIXME test against schema and decide what parameters
             # is for a simulator
             self.assertEqual(len(parameters), 0)
@@ -211,20 +201,36 @@ class TestBackendManager(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        qiskit.register(QE_TOKEN, QE_URL, package=qiskit)
-        remote = qiskit.available_backends({'local': False})
-        for backend in remote:
-            my_backend = qiskit.get_backend(backend)
-            parameters = my_backend.parameters
-            # print(parameters)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        remotes = ibmq_provider.available_backends({'local': False})
+        for backend_name in remotes:
+            backend = ibmq_provider.get_backend(backend_name)
+            parameters = backend.parameters
             # FIXME test against schema and decide what parameters
             # is for a simulator
-            # print(len(parameters))
-            if my_backend.configuration['simulator']:
+            if backend.configuration['simulator']:
                 self.assertEqual(len(parameters), 0)
             else:
                 self.assertEqual(len(parameters), 4)
 
+    @requires_qe_access
+    def test_wizard_register_ok(self, QE_TOKEN, QE_URL):
+        qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        backends = qiskit.wizard.available_backends()
+        self.log.info(backends)
+        self.assertTrue(len(backends) > 0)
+
+    @requires_qe_access
+    def test_wizard_available_backends_with_filter(self, QE_TOKEN, QE_URL):
+        qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        backends = qiskit.wizard.available_backends({'local': False, 'simulator': True})
+        self.log.info(backends)
+        self.assertTrue(len(backends) > 0)
+
+    def test_wizard_local_backends(self):
+        local_backends = qiskit.wizard.local_backends()
+        self.log.info(local_backends)
+        self.assertTrue(len(local_backends) > 0)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
