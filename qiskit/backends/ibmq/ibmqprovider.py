@@ -26,12 +26,12 @@ from qiskit.backends.baseprovider import BaseProvider
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
     def __init__(self, token, url,
-                 hub=None, group=None, project=None, proxies=None):
+                 hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
         # Get a connection to IBMQuantumExperience.
         self._api = self._authenticate(token, url,
-                                       hub, group, project, proxies)
+                                       hub, group, project, proxies, verify)
 
         # Populate the list of remote backends.
         self.backends = self._discover_remote_backends()
@@ -40,6 +40,7 @@ class IBMQProvider(BaseProvider):
         return IbmQ(configuration=self.backends[name], api=self._api)
 
     def available_backends(self, filters=None):
+        # pylint: disable=arguments-differ
         backends = self.backends
 
         # TODO: this is just an example filter.

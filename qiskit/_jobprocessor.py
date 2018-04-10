@@ -16,18 +16,13 @@
 # =============================================================================
 """Processor for running Quantum Jobs in the different backends."""
 
-
-from concurrent import futures
 import logging
 import pprint
+from concurrent import futures
 from threading import Lock
 
-from ._backend_manager import (get_backend, local_backends, remote_backends)
-from ._result import Result
-
-from ._qiskiterror import QISKitError
 from ._compiler import compile_circuit
-
+from ._result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +36,14 @@ def run_backend(q_job):
     Returns:
         Result: Result object.
     """
-    backend_name = q_job.backend
+    backend = q_job.backend
     qobj = q_job.qobj
-    if backend_name in local_backends():  # remove condition when api gets qobj
+    if backend.configuration.get('local'):  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = compile_circuit(circuit['circuit'], format='json')
                 circuit['compiled_circuit'] = compiled_circuit
-    backend = get_backend(backend_name)
+
     return backend.run(q_job)
 
 
@@ -72,7 +67,8 @@ class JobProcessor:
         self.q_jobs = q_jobs
         self.max_workers = max_workers
         # check whether any jobs are remote
-        self.online = any(qj.backend not in local_backends() for qj in q_jobs)
+        self.online = any(not q_job.backend.configuration.get('local')
+                          for q_job in q_jobs)
         self.futures = {}
         self.lock = Lock()
         # Set a default dummy callback just in case the user doesn't want
@@ -80,11 +76,7 @@ class JobProcessor:
         self.callback = (lambda rs: ()) if callback is None else callback
         self.num_jobs = len(self.q_jobs)
         self.jobs_results = []
-        if self.online:
-            # verify backends across all jobs
-            for q_job in q_jobs:
-                if q_job.backend not in remote_backends() + local_backends():
-                    raise QISKitError("Backend %s not found!" % q_job.backend)
+
         if self.online:
             # I/O intensive -> use ThreadedPoolExecutor
             self.executor_class = futures.ThreadPoolExecutor

@@ -1986,9 +1986,10 @@ class TestQuantumProgram(QiskitTestCase):
         if os.name == 'nt':
             raise unittest.SkipTest('Test not supported in Windows')
 
-        from ._dummybackend import DummySimulator
-        from qiskit._backend_manager import register_backend
-        register_backend(DummySimulator)
+        # TODO: use the backend directly when the deprecation is completed.
+        from ._dummybackend import DummyProvider
+        import qiskit.wizard
+        qiskit.wizard.DEFAULT_PROVIDER.add_provider(DummyProvider())
 
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")

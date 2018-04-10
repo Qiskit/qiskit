@@ -25,14 +25,18 @@ DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
 def register(token, url,
-             hub=None, group=None, project=None, proxies=None,
+             hub=None, group=None, project=None, proxies=None, verify=True,
              provider_name='qiskit'):
     """
     Authenticate against an online provider.
+
+    Raises:
+        QISKitError: if the provider is not recognized.
     """
     if provider_name == 'qiskit':
-        DEFAULT_PROVIDER.add_provider(
-            IBMQProvider(token, url, hub, group, project, proxies))
+        provider = IBMQProvider(token, url,
+                                hub, group, project, proxies, verify)
+        DEFAULT_PROVIDER.add_provider(provider)
     else:
         raise QISKitError('provider name %s is not recognized' % provider_name)
 
@@ -43,6 +47,8 @@ def available_backends(filters=None):
 
     Args:
         filters (dict): dictionary of filtering conditions.
+    Returns:
+        list: (of str): the names of the available backends.
     """
     return DEFAULT_PROVIDER.available_backends(filters)
 
@@ -60,8 +66,5 @@ def remote_backends():
 def get_backend(name):
     """
     Return a backend.
-
-    Returns:
-        BaseBackend: backend instance.
     """
     return DEFAULT_PROVIDER.get_backend(name)

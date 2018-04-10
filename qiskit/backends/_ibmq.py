@@ -40,9 +40,10 @@ class IbmQ(BaseBackend):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            configuration (dict): configuration of backend
+            configuration (dict): configuration of backend.
+            merge (bool): flag for merging the configuration.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
-                api for communicating with the Quantum Experience
+                api for communicating with the Quantum Experience.
         """
         super().__init__(configuration=configuration, merge=merge)
         self._api = api
@@ -101,7 +102,10 @@ class IbmQ(BaseBackend):
             except (KeyError, TypeError):
                 hpc = None
 
-        output = self._api.run_job(api_jobs, qobj['config']['backend'],
+        # TODO: this should be self._configuration['name'] - need to check that
+        # it is always the case.
+        backend_name = qobj['config']['backend'].configuration['name']
+        output = self._api.run_job(api_jobs, backend_name,
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
                                    seed=seed0,
