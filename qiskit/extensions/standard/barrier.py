@@ -57,8 +57,8 @@ class Barrier(Instruction):
 def barrier(self, *args):
     """Apply barrier to circuit.
     If args is None, applies to all the qbits.
-    If args is a QuantumRegister, applies to all the qbits in that register.
-    If args is a list of QuantumRegister, applies to all of them."""
+    Args is a list of QuantumRegister or single qubits.
+    For QuantumRegister, applies barrier to all the qbits in that register."""
 
     qubits = []
 
