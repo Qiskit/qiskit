@@ -236,8 +236,6 @@ class TestAnonymousIds(QiskitTestCase):
 
     def test_get_execution_list_noname(self):
         """Test get_execution_list for circuits without name.
-
-        NO?T SURE WHAT THIS TESTS
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qc = q_program.get_circuit()
@@ -249,7 +247,7 @@ class TestAnonymousIds(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qobj = q_program.compile()
         result = q_program.get_execution_list(qobj, print_func=self.log.info)
-        self.assertEqual(len(result), 0)
+        self.assertEqual(len(result), 1)
 
     def test_change_circuit_qobj_after_compile_noname(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
@@ -285,26 +283,27 @@ class TestAnonymousIds(QiskitTestCase):
         self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
             'only for qobj2', 2, 3, 4])
 
-    # def test_add_circuit_noname(self):
-        # """Test add two circuits without names. Also tests get_counts without circuit name.
-        #
-        # CANT WORK OUT WHAT THIS DOES
-        # """
-        # q_program = QuantumProgram()
-        # qr = q_program.create_quantum_register(size=2)
-        # cr = q_program.create_classical_register(size=2)
-        # qc1 = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
-        # qc2 = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
-        # qc1.h(qr[0])
-        # qc1.measure(qr[0], cr[0])
-        # qc2.measure(qr[1], cr[1])
-        # new_circuit = qc1 + qc2
-        # q_program.add_circuit(quantum_circuit=new_circuit)
-        # backend = 'local_qasm_simulator'  # the backend to run on
-        # shots = 1024  # the number of shots in the experiment.
-        # result = q_program.execute(backend=backend, shots=shots, seed=78)
-        # self.assertEqual(result.get_counts(new_circuit.name), {'01': 519, '00': 505})
-        # self.assertRaises(QISKitError, result.get_counts)
+    def test_add_circuit_noname(self):
+        """Test add two circuits without names. Also tests get_counts without circuit name.
+        """
+        q_program = QuantumProgram()
+        qr = q_program.create_quantum_register(size=2)
+        cr = q_program.create_classical_register(size=2)
+        qc1 = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        qc2 = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+        new_circuit = qc1 + qc2
+        q_program.add_circuit(quantum_circuit=new_circuit)
+        backend = 'local_qasm_simulator'  # the backend to run on
+        shots = 1024  # the number of shots in the experiment.
+        result = q_program.execute(backend=backend, shots=shots, seed=78)
+        counts = result.get_counts(new_circuit.name)
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertRaises(QISKitError, result.get_counts)
 
 
 class TestZeroIds(QiskitTestCase):
@@ -1348,6 +1347,67 @@ class TestTupleIds(QiskitTestCase):
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.025 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
+
+
+class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
+    """Test the anonymous use of registers.
+    TODO: this needs to be expanded, ending up with the rest of the tests
+    in the file not using QuantumProgram when it is deprecated.
+    """
+
+    def test_create_anonymous_classical_register(self):
+        """Test creating a ClassicalRegister with no name.
+        """
+        cr = ClassicalRegister(size=3)
+        self.assertIsInstance(cr, ClassicalRegister)
+
+    def test_create_anonymous_quantum_register(self):
+        """Test creating a QuantumRegister with no name.
+        """
+        qr = QuantumRegister(size=3)
+        self.assertIsInstance(qr, QuantumRegister)
+
+    def test_create_anonymous_classical_registers(self):
+        """Test creating several ClassicalRegister with no name.
+        """
+        cr1 = ClassicalRegister(size=3)
+        cr2 = ClassicalRegister(size=3)
+        self.assertNotEqual(cr1.name, cr2.name)
+
+    def test_create_anonymous_quantum_registers(self):
+        """Test creating several QuantumRegister with no name.
+        """
+        qr1 = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+        self.assertNotEqual(qr1.name, qr2.name)
+
+    def test_create_anonymous_mixed_registers(self):
+        """Test creating several Registers with no name.
+        """
+        cr0 = ClassicalRegister(size=3)
+        qr0 = QuantumRegister(size=3)
+        # Get the current index counte of the registers
+        cr_index = int(cr0.name[1:])
+        qr_index = int(qr0.name[1:])
+
+        cr1 = ClassicalRegister(size=3)
+        _ = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+
+        # Check that the counters for each kind are incremented separately.
+        cr_current = int(cr1.name[1:])
+        qr_current = int(qr2.name[1:])
+        self.assertEqual(cr_current, cr_index + 1)
+        self.assertEqual(qr_current, qr_index + 2)
+
+    def test_create_circuit_noname(self):
+        """Test create_circuit with no name
+        """
+        q_program = QuantumProgram()
+        qr = QuantumRegister(size=3)
+        cr = ClassicalRegister(size=3)
+        qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        self.assertIsInstance(qc, QuantumCircuit)
 
 
 if __name__ == '__main__':

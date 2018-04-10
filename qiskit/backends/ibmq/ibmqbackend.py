@@ -27,25 +27,24 @@ from qiskit._compiler import compile_circuit
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit._util import _snake_case_to_camel_case
-from qiskit.backends._basebackend import BaseBackend
+from qiskit.backends import BaseBackend
 
 logger = logging.getLogger(__name__)
 
 
-class IbmQ(BaseBackend):
+class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
     """
 
-    def __init__(self, configuration=None, merge=True, api=None):
+    def __init__(self, configuration, api=None):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
             configuration (dict): configuration of backend.
-            merge (bool): flag for merging the configuration.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
                 api for communicating with the Quantum Experience.
         """
-        super().__init__(configuration=configuration, merge=merge)
+        super().__init__(configuration=configuration)
         self._api = api
 
         if self._configuration:

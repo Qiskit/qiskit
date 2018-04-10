@@ -34,6 +34,8 @@ class Path(Enum):
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
     EXAMPLES = os.path.join(SDK, '../examples')
+    # Schemas path:     qiskit/schemas
+    SCHEMAS = os.path.join(SDK, 'schemas')
 
 
 class QiskitTestCase(unittest.TestCase):

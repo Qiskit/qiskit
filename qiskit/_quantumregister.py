@@ -18,16 +18,17 @@
 """
 Quantum register reference object.
 """
+import itertools
+
 from ._register import Register
 
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
-    instances = 0
+    # Counter for the number of instances in this class.
+    instances_counter = itertools.count()
+    # Prefix to use for auto naming.
     prefix = 'q'
-
-    def __init__(self, size, name=None):
-        Register.__init__(self, size, name)
 
     def qasm(self):
         """Return OPENQASM string for this register."""

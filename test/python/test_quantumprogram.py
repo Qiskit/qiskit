@@ -581,7 +581,6 @@ class TestQuantumProgram(QiskitTestCase):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         available_backends = q_program.available_backends()
-        # print(available_backends)
         self.assertTrue(available_backends)
 
     @requires_qe_access
@@ -593,7 +592,6 @@ class TestQuantumProgram(QiskitTestCase):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL)
         online_backends = q_program.online_backends()
-        # print(online_backends)
         self.log.info(online_backends)
         self.assertTrue(online_backends)
 

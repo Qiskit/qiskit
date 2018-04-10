@@ -11,9 +11,12 @@ import pprint
 
 # Import the QISKit
 import qiskit
+import qiskit._compiler
+import qiskit.wizard
+
 try:
     import Qconfig
-    qiskit.register(Qconfig.APItoken, package=qiskit)
+    qiskit.wizard.register(Qconfig.APItoken, Qconfig.my_config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -22,7 +25,7 @@ except:
 
 def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
-    device_status = [qiskit.get_backend(backend).status for backend in list_of_backends]
+    device_status = [qiskit.wizard.get_backend(backend).status for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
                key=lambda x: x['pending_jobs'])
@@ -46,10 +49,10 @@ try:
 
     # Setting up the backend
     print("(Local Backends)")
-    for backend_name in qiskit.available_backends({'local': True}):
-        backend = qiskit.get_backend(backend_name)
+    for backend_name in qiskit.wizard.available_backends({'local': True}):
+        backend = qiskit.wizard.get_backend(backend_name)
         print(backend.status)
-    my_backend = qiskit.get_backend('local_qasm_simulator')
+    my_backend = qiskit.wizard.get_backend('local_qasm_simulator')
     print("(Local QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration)
     print("(Local QASM Simulator calibration) ")
@@ -59,7 +62,7 @@ try:
 
 
     # Compiling the job
-    qobj = qiskit.compile([qc1, qc2], my_backend)
+    qobj = qiskit._compiler.compile([qc1, qc2], my_backend)
     # I think we need to make a qobj into a class
 
     # Runing the job
@@ -82,19 +85,22 @@ try:
     print(sim_result.get_counts(qc2))
 
     # Compile and run the Quantum Program on a real device backend
+    # See a list of available remote backends
     try:
-        # See a list of available remote backends
         print("\n(Remote Backends)")
-        for backend_name in qiskit.available_backends({'local': False}):
-            backend = qiskit.get_backend(backend_name)
-            print(backend.status)
+        for backend_name in qiskit.wizard.available_backends({'local': False}):
+            backend = qiskit.wizard.get_backend(backend_name)
+            s = backend.status
+            print(id(s))
+            print(s)
+            print(id(s.get('pending_jobs', None)))
 
         # select least busy available device and execute.
-        best_device = lowest_pending_jobs(qiskit.available_backends({'local': False,
-                                                                     'simulator': False}))
+        best_device = lowest_pending_jobs(
+            qiskit.wizard.available_backends({'local': False, 'simulator': False}))
         print("Running on current least busy device: ", best_device)
 
-        my_backend = qiskit.get_backend(best_device)
+        my_backend = qiskit.wizard.get_backend(best_device)
 
         print("(with Configuration) ")
         pprint.pprint(my_backend.configuration)
@@ -111,7 +117,8 @@ try:
 
         # I want to make it so the compile is only done once and the needing
         # a backend is optional
-        qobj = qiskit.compile([qc1, qc2], my_backend, compile_config)
+        qobj = qiskit.wizard.compile([qc1, qc2], backend_id=best_device,
+                                      compile_config=compile_config)
         # I think we need to make a qobj into a class
 
         # Runing the job
@@ -135,7 +142,6 @@ try:
         print("experiment: ", exp_result)
         print(exp_result.get_counts(qc1))
         print(exp_result.get_counts(qc2))
-
     except:
         print("All devices are currently unavailable.")
 

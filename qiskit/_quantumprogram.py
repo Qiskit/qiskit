@@ -971,6 +971,9 @@ class QuantumProgram(object):
                 "Using the coupling_map as a list recommended.", DeprecationWarning)
 
         list_of_circuits = []
+        if not name_of_circuits:
+            logger.info('Since not circuits was specified, all the circuits will be compiled.')
+            name_of_circuits = self.get_circuit_names()
         if isinstance(name_of_circuits, str):
             name_of_circuits = [name_of_circuits]
         if name_of_circuits:
