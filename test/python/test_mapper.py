@@ -52,10 +52,14 @@ class MapperTest(QiskitTestCase):
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, seed=self.seed)
-
-        self.assertEqual(result1.get_counts("test"), {'0001': 480, '0101': 544})
+        shots = 2000
+        result = self.qp.execute("test", backend="local_qasm_simulator",
+                                 coupling_map=coupling_map,
+                                 seed=self.seed, shots=shots)
+        counts = result.get_counts("test")
+        target = {'0001': shots / 2, '0101':  shots / 2}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -84,33 +88,47 @@ class MapperTest(QiskitTestCase):
         """Run a circuit with randomly generated parameters."""
         self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
+        shots = 1024
         result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, seed=self.seed)
-        res = result1.get_counts("rand")
-
-        print(res)
-
-        expected_result = {'10000': 92, '10100': 27, '01000': 99, '00001': 37,
-                           '11100': 31, '01001': 27, '10111': 79, '00111': 43,
-                           '00000': 88, '00010': 104, '11111': 14, '00110': 52,
-                           '00100': 50, '01111': 21, '10010': 34, '01011': 21,
-                           '00011': 15, '01101': 53, '10110': 32, '10101': 12,
-                           '01100': 8, '01010': 7, '10011': 15, '11010': 26,
-                           '11011': 8, '11110': 4, '01110': 14, '11001': 6,
-                           '11000': 1, '11101': 2, '00101': 2}
-        # TODO It's ugly, I know. But we are getting different results from Python 3.5
-        # and Python 3.6. So let's trick this until we fix all testing
-        if expected_result != res:
-            expected_result = {'00001': 31, '01111': 23, '10010': 24, '01001': 29,
-                               '11000': 4, '10111': 74, '00101': 3, '11010': 21,
-                               '01100': 11, '11110': 2, '11101': 2, '11001': 18,
-                               '01011': 17, '00100': 45, '01010': 1, '11111': 13,
-                               '00011': 20, '00110': 35, '00000': 87, '10101': 12,
-                               '01110': 11, '00010': 122, '10100': 21, '10000': 88,
-                               '10110': 34, '01000': 108, '11011': 8, '10011': 14,
-                               '01101': 58, '00111': 48, '11100': 40}
-
-        self.assertEqual(res, expected_result)
+                                  coupling_map=coupling_map, shots=shots, seed=self.seed)
+        counts = result1.get_counts("rand")
+        expected_probs = {
+            '00000': 0.079239867254200971,
+            '00001': 0.032859032998526903,
+            '00010': 0.10752610993531816,
+            '00011': 0.018818532050952699,
+            '00100': 0.054830807251011054,
+            '00101': 0.0034141983951965164,
+            '00110': 0.041649309748902276,
+            '00111': 0.039967731207338125,
+            '01000': 0.10516937819949743,
+            '01001': 0.026635620063700002,
+            '01010': 0.0053475143548793866,
+            '01011': 0.01940513314416064,
+            '01100': 0.0044028405481225047,
+            '01101': 0.057524760052126644,
+            '01110': 0.010795354134597078,
+            '01111': 0.026491296821535528,
+            '10000': 0.094827455395274859,
+            '10001': 0.0008373965072688836,
+            '10010': 0.029082297894094441,
+            '10011': 0.012386622870598416,
+            '10100': 0.018739140061148799,
+            '10101': 0.01367656456536896,
+            '10110': 0.039184170706009248,
+            '10111': 0.062339335178438288,
+            '11000': 0.00293674365989009,
+            '11001': 0.012848433960739968,
+            '11010': 0.018472497159499782,
+            '11011': 0.0088903691234912003,
+            '11100': 0.031305389080034329,
+            '11101': 0.0004788556283690458,
+            '11110': 0.002232419390471667,
+            '11111': 0.017684822659235985
+        }
+        target = {key: shots * val for key, val in expected_probs.items()}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.

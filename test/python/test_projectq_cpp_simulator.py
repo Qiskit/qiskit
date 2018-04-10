@@ -106,7 +106,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
             compiled_circuit = openquantumcompiler.compile(circuit)
-            shots = 100
+            shots = 1000
             min_cnts = int(shots / 10)
             job_pq = QuantumJob(compiled_circuit,
                                 backend='local_projectq_simulator',
@@ -125,7 +125,8 @@ class TestProjectQCppSimulator(QiskitTestCase):
                          if cnt > min_cnts}
             self.log.info('local_projectq_simulator: %s', str(counts_pq))
             self.log.info('local_qasm_simulator: %s', str(counts_py))
-            self.assertTrue(counts_pq.keys() == counts_py.keys())
+            threshold = 0.05 * shots
+            self.assertDictAlmostEqual(counts_pq, counts_py, threshold)
             states = counts_py.keys()
             # contingency table
             ctable = numpy.array([[counts_pq[key] for key in states],
