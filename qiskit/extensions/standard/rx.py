@@ -38,7 +38,7 @@ class RXGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("rx(%s) %s[%d];" % (theta, qubit[0].name,
+        return self._qasmif("rx(%s) %s[%d];" % (theta, qubit[0].openqasm_name,
                                                 qubit[1]))
 
     def inverse(self):
@@ -55,12 +55,12 @@ class RXGate(Gate):
 
 
 def rx(self, theta, q):
-    """Apply rx to q."""
+    """Apply Rx to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.rx(theta, (q, j)))
-        return gs
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.rx(theta, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(RXGate(theta, q, self))

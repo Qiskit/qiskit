@@ -37,6 +37,20 @@ class CompositeGate(Gate):
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
 
+    def instruction_list(self):
+        """Return a list of instructions for this CompositeGate.
+
+        If the CompositeGate itself contains composites, call
+        this method recursively.
+        """
+        instruction_list = []
+        for instruction in self.data:
+            if isinstance(instruction, CompositeGate):
+                instruction_list.extend(instruction.instruction_list())
+            else:
+                instruction_list.append(instruction)
+        return instruction_list
+
     def has_register(self, register):
         """Test if this gate's circuit has the register r."""
         self.check_circuit()
