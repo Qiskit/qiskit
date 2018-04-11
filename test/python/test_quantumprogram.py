@@ -1916,8 +1916,6 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_qasm_simulator_py'
         test_config = {'0': 0, '1': 1}
         qobj = q_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
-        from pprint import pprint
-        pprint(qobj)
         out = q_program.run(qobj)        
         results = out.get_counts('qc2')
 
