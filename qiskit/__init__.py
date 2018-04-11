@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=wrong-import-order
+# pylint: disable=wrong-import-position
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -17,6 +18,10 @@
 # =============================================================================
 
 """Main QISKit public functionality."""
+
+# First, check for required Python and API version
+from . import _util
+
 from IBMQuantumExperience import RegisterSizeError
 
 from ._qiskiterror import QISKitError
@@ -39,8 +44,7 @@ from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-from ._util import _check_ibmqe_version
+
+from . import backends
 
 __version__ = '0.4.11'
-
-_check_ibmqe_version()

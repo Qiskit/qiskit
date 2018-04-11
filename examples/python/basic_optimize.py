@@ -16,16 +16,11 @@
 # limitations under the License.
 # =============================================================================
 
-"""Demo basic optimization: Remove Zero Rotations and Remove Double CNOTs."""
+"""Demo basic optimization: Remove Zero Rotations and Remove Double CNOTs.
 
-import os
-import sys
-
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
+"""
 
 from qiskit import QuantumProgram
 from qiskit import CompositeGate
