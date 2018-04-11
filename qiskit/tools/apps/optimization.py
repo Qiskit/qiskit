@@ -298,7 +298,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             quantum_state = result.get_data(circuit[0]).get('quantum_state')
             if quantum_state is None:
                 quantum_state = result.get_data(
-                    circuit[0]).get('quantum_states')
+                    circuit[0]).get('quantum_state')
                 if quantum_state:
                     quantum_state = quantum_state[0]
             # Diagonal Hamiltonian represented by 1D array
