@@ -74,7 +74,7 @@ class StandardExtensionTest(QiskitTestCase):
     def assertQasm(self, qasm_txt, offset=1):
         c = self.circuit
         c_txt = len(qasm_txt)
-        self.assertIn(qasm_txt, c.qasm())
+        self.assertIn('\n' + qasm_txt + '\n', c.qasm())
         self.assertEqual(self.c_header + c_txt + offset, len(c.qasm()))  # pylint: disable=no-member
 
 
