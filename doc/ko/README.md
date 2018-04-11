@@ -56,38 +56,40 @@ QISKit SDK 레파지토리를 여러분의 로컬 머신에 Clone하는 다른 �
 SDK 설치가 끝났습니다. 이제 QISKit으로 작업을 해볼 차례입니다. 우리는 이미 QASM예제를 로컬 시뮬레이터 상에서 실행할 준비를 마쳤습니다. 이것은 간단한 중첩 예제 입니다. 
 
 ```python
-from qiskit import QuantumProgram
+# Import the QISKit SDK
+import qiskit
 
-# Creating Programs create your first QuantumProgram object instance.
-Q_program = QuantumProgram()
+# Create a Quantum Register called "qr" with 2 qubits
+qr = qiskit.QuantumRegister("qr", 2)
+# Create a Classical Register called "cr" with 2 bits
+cr = qiskit.ClassicalRegister("cr", 2)
+# Create a Quantum Circuit called involving "qr" and "cr"
+qc = qiskit.QuantumCircuit(qr, cr)
 
-try:
-  # Creating Registers create your first Quantum Register called "qr" with 2 qubits
-  qr = Q_program.create_quantum_register("qr", 2)
-  # create your first Classical Register called "cr" with 2 bits
-  cr = Q_program.create_classical_register("cr", 2)
-  # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
-  # and your Classical Register "cr"
-  qc = Q_program.create_circuit("superposition", [qr], [cr])
+# Add a H gate on the 0th qubit in "qr", putting this qubit in superposition.
+qc.h(qr[0])
+# Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+# the qubits in a Bell state.
+qc.cx(qr[0], qr[1])
+# Add a Measure gate to see the state.
+# (Omitting the index applies an operation on all qubits of the register(s))
+qc.measure(qr, cr)
 
-  # add the H gate in the Qubit 0, we put this Qubit in superposition
-  qc.h(qr[0])
+# Create a Quantum Program for execution 
+qp = qiskit.QuantumProgram()
+# Add the circuit you created to it, and call it the "bell" circuit.
+# (You can add multiple circuits to the same program, for batch execution)
+qp.add_circuit("bell", qc)
 
-  # add measure to see the state
-  qc.measure(qr, cr)
+# See a list of available local simulators
+print("Local backends: ", qiskit.backends.discover_local_backends())
 
-  # Compiled  and execute in the local_qasm_simulator
+# Compile and run the Quantum Program on a simulator backend
+sim_result = qp.execute("bell", backend='local_qasm_simulator', shots=1024, seed=1)
 
-  result = Q_program.execute(["superposition"], backend='local_qasm_simulator', shots=1024)
-
-  # Show the results
-  print(result)
-  print(result.get_data("superposition"))
-
-except QISKitError as ex:
-  print('There was an error in the circuit!. Error = {}'.format(ex))
-except RegisterSizeError as ex:
-  print('Error in the number of registers!. Error = {}'.format(ex))
+# Show the results
+print("simulation: ", sim_result)
+print(sim_result.get_counts("bell"))
 ```
 
 이 경우에 결과물은 다음과 같을 것입니다(불규칙 변동으로 인해):
@@ -136,9 +138,12 @@ QISKit은 본래 [IBM Research](http://www.research.ibm.com/)연구팀과 [IBM-Q
 
 ## Authors (alphabetical)
 
-Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Yunho Maeng, Antonio Mezzacapo, Jesus Perez, Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood
+QISKit was originally authored by
+Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
+Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-앞으로의 릴리즈시, 이 프로젝트의 코드에 기여한 누구라도 이곳에 이름을 적어도 좋습니다. 
+And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-sdk-py/tree/master/CONTRIBUTORS.md) who contribute
+to the project at different levels.
 
 ## License
 

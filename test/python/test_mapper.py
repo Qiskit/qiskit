@@ -36,7 +36,7 @@ class MapperTest(QiskitTestCase):
         the issue #81: https://github.com/QISKit/qiskit-sdk-py/issues/81
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'), name='test')
-        coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
+        coupling_map = [[0, 2], [1, 2], [2, 3]]
         result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
                                   coupling_map=coupling_map)
         count1 = result1.get_counts("test")
@@ -51,11 +51,15 @@ class MapperTest(QiskitTestCase):
         See: https://github.com/QISKit/qiskit-sdk-py/issues/111
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
-        coupling_map = {0: [2], 1: [2], 2: [3], 3: []}
-        result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, seed=self.seed)
-
-        self.assertEqual(result1.get_counts("test"), {'0001': 507, '0101': 517})
+        coupling_map = [[0, 2], [1, 2], [2, 3]]
+        shots = 2000
+        result = self.qp.execute("test", backend="local_qasm_simulator",
+                                 coupling_map=coupling_map,
+                                 seed=self.seed, shots=shots)
+        counts = result.get_counts("test")
+        target = {'0001': shots / 2, '0101':  shots / 2}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -73,26 +77,58 @@ class MapperTest(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         backend = 'local_qasm_simulator'
-        cmap = {1: [0], 2: [0, 1, 4], 3: [2, 4]}
-        qobj = self.qp.compile(["Bell"], backend=backend, coupling_map=cmap)
+        coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
+        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
+        qobj = self.qp.compile(["Bell"], backend=backend,
+                               initial_layout=initial_layout, coupling_map=coupling_map)
 
         self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
         self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
-        coupling_map = {0: [1], 1: [2], 2: [3], 3: [4]}
+        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
+        shots = 1024
         result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, seed=self.seed)
-        res = result1.get_counts("rand")
-        expected_result = {'10000': 97, '00011': 24, '01000': 120, '10111': 59, '01111': 37,
-                           '11010': 14, '00001': 34, '00100': 42, '10110': 41, '00010': 102,
-                           '00110': 48, '10101': 19, '01101': 61, '00111': 46, '11100': 28,
-                           '01100': 1, '00000': 86, '11111': 14, '11011': 9, '10010': 35,
-                           '10100': 20, '01001': 21, '01011': 19, '10011': 10, '11001': 13,
-                           '00101': 4, '01010': 2, '01110': 17, '11000': 1}
-
-        self.assertEqual(res, expected_result)
+                                  coupling_map=coupling_map, shots=shots, seed=self.seed)
+        counts = result1.get_counts("rand")
+        expected_probs = {
+            '00000': 0.079239867254200971,
+            '00001': 0.032859032998526903,
+            '00010': 0.10752610993531816,
+            '00011': 0.018818532050952699,
+            '00100': 0.054830807251011054,
+            '00101': 0.0034141983951965164,
+            '00110': 0.041649309748902276,
+            '00111': 0.039967731207338125,
+            '01000': 0.10516937819949743,
+            '01001': 0.026635620063700002,
+            '01010': 0.0053475143548793866,
+            '01011': 0.01940513314416064,
+            '01100': 0.0044028405481225047,
+            '01101': 0.057524760052126644,
+            '01110': 0.010795354134597078,
+            '01111': 0.026491296821535528,
+            '10000': 0.094827455395274859,
+            '10001': 0.0008373965072688836,
+            '10010': 0.029082297894094441,
+            '10011': 0.012386622870598416,
+            '10100': 0.018739140061148799,
+            '10101': 0.01367656456536896,
+            '10110': 0.039184170706009248,
+            '10111': 0.062339335178438288,
+            '11000': 0.00293674365989009,
+            '11001': 0.012848433960739968,
+            '11010': 0.018472497159499782,
+            '11011': 0.0088903691234912003,
+            '11100': 0.031305389080034329,
+            '11101': 0.0004788556283690458,
+            '11110': 0.002232419390471667,
+            '11111': 0.017684822659235985
+        }
+        target = {key: shots * val for key, val in expected_probs.items()}
+        threshold = 0.025 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
@@ -142,6 +178,37 @@ class MapperTest(QiskitTestCase):
         circ = mapper.optimize_1q_gates(unr.backend.circuit)
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_POWER)
 
+    def test_already_mapped(self):
+        """Test that if the circuit already matches the backend topology, it is not remapped.
+
+        See: https://github.com/QISKit/qiskit-sdk-py/issues/342
+        """
+        self.qp = QuantumProgram()
+        qr = self.qp.create_quantum_register('qr', 16)
+        cr = self.qp.create_classical_register('cr', 16)
+        qc = self.qp.create_circuit('native_cx', [qr], [cr])
+        qc.cx(qr[3], qr[14])
+        qc.cx(qr[5], qr[4])
+        qc.h(qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.x(qr[11])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[12], qr[11])
+        qc.cx(qr[13], qr[4])
+        for j in range(16):
+            qc.measure(qr[j], cr[j])
+        backend = 'local_qasm_simulator'
+        coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
+                        [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
+                        [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
+                        [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+        qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
+        cx_qubits = [x["qubits"]
+                     for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
+                     if x["name"] == "cx"]
+
+        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
+
 
 # QASMs expected by the tests.
 EXPECTED_QASM_SYMBOLIC_BINARY = """OPENQASM 2.0;
@@ -180,10 +247,10 @@ u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];
 u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];\n"""
+measure q[1] -> cr[0];
+u2(0,3.14159265358979) q[0];
+measure q[0] -> cr[1];\n"""
 
 # This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
 # swapped.
@@ -195,10 +262,10 @@ u2(0,3.14159265358979) q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
-u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];
 u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];\n"""
+measure q[0] -> cr[1];
+u2(0,3.14159265358979) q[1];
+measure q[1] -> cr[0];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
 include "qelib1.inc";

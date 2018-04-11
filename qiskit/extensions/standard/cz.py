@@ -37,8 +37,8 @@ class CzGate(Gate):
         """Return OPENQASM string."""
         ctl = self.arg[0]
         tgt = self.arg[1]
-        return self._qasmif("cz %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
+        return self._qasmif("cz %s[%d],%s[%d];" % (ctl[0].openqasm_name, ctl[1],
+                                                   tgt[0].openqasm_name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -53,11 +53,11 @@ def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cz((ctl, i), (tgt, i)))
         return instructions
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])

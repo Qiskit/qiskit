@@ -19,7 +19,11 @@
 Base register reference object.
 """
 import re
+import logging
+
 from ._qiskiterror import QISKitError
+
+logger = logging.getLogger(__name__)
 
 
 class Register(object):
@@ -27,11 +31,9 @@ class Register(object):
 
     def __init__(self, name, size):
         """Create a new generic register."""
-        test = re.compile('[a-z][a-zA-Z0-9_]*')
-        if test.match(name) is None:
-            raise QISKitError("invalid OPENQASM register name")
         self.name = name
         self.size = size
+        self._openqasm_name = None
         if size <= 0:
             raise QISKitError("register size must be positive")
 
@@ -47,6 +49,21 @@ class Register(object):
         """Check that j is a valid index into self."""
         if j < 0 or j >= self.size:
             raise QISKitError("register index out of range")
+
+    @property
+    def openqasm_name(self):
+        """Converts names to strings that are OpenQASM 2.0 complain."""
+        if self._openqasm_name is not None:
+            return self._openqasm_name
+        test = re.compile('[a-z][a-zA-Z0-9_]*')
+        if test.match(str(self.name)) is None:
+            oq_name = "id%i" % id(self.name)
+            logger.info("The name %s is an invalid OpenQASM register name."
+                        "Coverting it to %s", self.name, oq_name)
+            self._openqasm_name = oq_name
+            return oq_name
+        self._openqasm_name = self.name
+        return str(self.name)
 
     def __getitem__(self, key):
         """Return tuple (self, key) if key is valid."""

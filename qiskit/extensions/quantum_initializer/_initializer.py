@@ -26,7 +26,6 @@ from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QISKitError
 from qiskit import QuantumCircuit
-from qiskit import Reset
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -52,12 +51,11 @@ class InitializeGate(CompositeGate):
     gate does. Therefore self.data is the list of gates (in order) that must
     be applied to implement this meta-gate.
 
-    name = instruction name string
     param = list of complex amplitudes
     arg = list of qubits
     circ = QuantumCircuit or CompositeGate containing this gate
     """
-    def __init__(self, name, param, arg, circ=None):
+    def __init__(self, param, arg, circ=None):
         """Create new initialize composite gate."""
         num_qubits = math.log2(len(param))
 
@@ -77,7 +75,7 @@ class InitializeGate(CompositeGate):
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
-        super().__init__(name, param, arg, circ)
+        super().__init__("init", param, arg, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -437,15 +435,15 @@ QuantumCircuit.last_atomic_gate_host = last_atomic_gate_host
 CompositeGate.last_atomic_gate_host = last_atomic_gate_host
 
 
-def initialize(self, name, params, qubits):
+def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     self._check_dups(qubits)
     for i in qubits:
         self._check_qubit(i)
-        self._attach(Reset(i, self))
+        # TODO: make initialize an Instruction, and insert reset
         # TODO: avoid explicit reset if compiler determines a |0> state
 
-    return self._attach(InitializeGate(name, params, qubits, self))
+    return self._attach(InitializeGate(params, qubits, self))
 
 
 QuantumCircuit.initialize = initialize

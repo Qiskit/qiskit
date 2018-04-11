@@ -38,7 +38,7 @@ class U0Gate(Gate):
         qubit = self.arg[0]
         m = self.param[0]
         return self._qasmif("u0(%f) %s[%d];" % (m,
-                                                qubit[0].name,
+                                                qubit[0].openqasm_name,
                                                 qubit[1]))
 
     def inverse(self):
@@ -53,14 +53,14 @@ class U0Gate(Gate):
 def u0(self, m, q):
     """Apply u0 with length m to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u0(m, (q, j)))
-        return gs
+            instructions.add(self.u0(m, (q, j)))
+        return instructions
+
     self._check_qubit(q)
     return self._attach(U0Gate(m, q, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.u0 = u0
 CompositeGate.u0 = u0
