@@ -420,7 +420,7 @@ class QasmSimulatorPy(BaseBackend):
             warnings.warn('The behvavior of getting quantum_state from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead.',
-                          DeprecationWarning)        
+                          DeprecationWarning)
         for circ in qobj['circuits']:
             if 'measure' not in [op['name'] for 
                                  op in circ['compiled_circuit']['operations']]:
