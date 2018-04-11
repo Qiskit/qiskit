@@ -47,4 +47,4 @@ from ._result import Result
 
 from . import backends
 
-__version__ = '0.4.11'
+__version__ = '0.4.12'
