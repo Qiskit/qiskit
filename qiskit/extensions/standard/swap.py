@@ -53,22 +53,10 @@ class SwapGate(Gate):
 def swap(self, ctl, tgt):
     """Apply SWAP from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
+            isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
         instructions = InstructionSet()
         for j in range(ctl.size):
             instructions.add(self.swap((ctl, j), (tgt, j)))
-        return instructions
-
-    if isinstance(ctl, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(ctl.size):
-            instructions.add(self.swap((ctl, j), tgt))
-        return instructions
-
-    if isinstance(tgt, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(tgt.size):
-            instructions.add(self.swap(ctl, (tgt, j)))
         return instructions
 
     self._check_qubit(ctl)

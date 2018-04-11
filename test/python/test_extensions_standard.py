@@ -83,9 +83,10 @@ class TestStandard1Q(StandardExtensionTest):
 
     def setUp(self):
         self.q = QuantumRegister("q", 3)
+        self.r = QuantumRegister("r", 3)
         self.c = ClassicalRegister("c", 3)
-        self.circuit = QuantumCircuit(self.q, self.c)
-        self.c_header = 58  # lenght of the header
+        self.circuit = QuantumCircuit(self.q, self.r, self.c)
+        self.c_header = 69  # lenght of the header
 
     def test_barrier(self):
         self.circuit.barrier(self.q[1])
@@ -107,7 +108,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_barrier_None(self):
         self.circuit.barrier()
-        qasm_txt = 'barrier q[0],q[1],q[2];'
+        qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
         self.assertResult(Barrier, qasm_txt, qasm_txt)
 
     def test_ccx(self):
@@ -467,6 +468,8 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, c.swap, (self.q, 3), self.q[0])
         self.assertRaises(QISKitError, c.swap, self.c, self.q)
         self.assertRaises(QISKitError, c.swap, 'a', self.q[1])
+        self.assertRaises(QISKitError, c.swap, self.q, self.r[1])
+        self.assertRaises(QISKitError, c.swap, self.q[1], self.r)
 
     def test_t(self):
         c = self.circuit
@@ -1048,30 +1051,6 @@ class TestStandard2Q(StandardExtensionTest):
     def test_swap_reg_reg_inv(self):
         qasm_txt = 'swap q[0],r[0];\nswap q[1],r[1];\nswap q[2],r[2];'
         instruction_set = self.circuit.swap(self.q, self.r).inverse()
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_reg_bit(self):
-        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
-        instruction_set = self.circuit.swap(self.q, self.r[1])
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_reg_bit_inv(self):
-        qasm_txt = 'swap q[0],r[1];\nswap q[1],r[1];\nswap q[2],r[1];'
-        instruction_set = self.circuit.swap(self.q, self.r[1]).inverse()
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_bit_reg(self):
-        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
-        instruction_set = self.circuit.swap(self.q[1], self.r)
-        self.assertStmtsType(instruction_set.instructions, SwapGate)
-        self.assertQasm(qasm_txt)
-
-    def test_swap_bit_reg_inv(self):
-        qasm_txt = 'swap q[1],r[0];\nswap q[1],r[1];\nswap q[1],r[2];'
-        instruction_set = self.circuit.swap(self.q[1], self.r).inverse()
         self.assertStmtsType(instruction_set.instructions, SwapGate)
         self.assertQasm(qasm_txt)
 
