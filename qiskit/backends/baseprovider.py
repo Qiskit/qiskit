@@ -18,21 +18,25 @@
 
 """Base class for a backend provider."""
 
+from abc import ABC, abstractmethod
 
-class BaseProvider(object):
+
+class BaseProvider(ABC):
     """
     Base class for a backend provider.
     """
     def __init__(self, *args, **kwargs):
         pass
 
+    @abstractmethod
     def available_backends(self, *args, **kwargs):
         """
         Returns:
             list of str: a list of backend names available from this provider.
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get_backend(self, name):
         """
         Return a backend instance.
@@ -47,4 +51,4 @@ class BaseProvider(object):
             KeyError: if `name` is not among the list of backends available
                 from this provider.
         """
-        raise NotImplementedError
+        pass
