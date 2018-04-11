@@ -21,10 +21,13 @@ To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
 
+from abc import ABC, abstractmethod
 
-class BaseBackend(object):
+
+class BaseBackend(ABC):
     """Base class for backends."""
 
+    @abstractmethod
     def __init__(self, configuration=None):
         """Base class for backends.
 
@@ -40,9 +43,10 @@ class BaseBackend(object):
         """
         self._configuration = configuration or {}
 
+    @abstractmethod
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
-        raise NotImplementedError
+        pass
 
     @property
     def configuration(self):
