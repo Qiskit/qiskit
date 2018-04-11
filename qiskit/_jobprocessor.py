@@ -103,7 +103,6 @@ class JobProcessor:
                             future.qobj)
         with self.lock:
             logger.debug("Have a Result: %s", pprint.pformat(result))
-            self.futures[future]['result'] = result
             self.jobs_results.append(result)
             if self.num_jobs != 0:
                 self.num_jobs -= 1
