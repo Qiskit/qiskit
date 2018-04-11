@@ -22,7 +22,7 @@ import logging
 import pprint
 from threading import Lock
 
-import qiskit.backends
+from qiskit import backends
 from qiskit.backends import (local_backends, remote_backends)
 from qiskit._result import Result
 
@@ -44,13 +44,14 @@ def run_backend(q_job):
     """
     backend_name = q_job.backend
     qobj = q_job.qobj
+    backend_name = backends.resolve_name(backend_name) # in case backends were bypassed
     if backend_name in local_backends(compact=False):  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
                                                                format='json')
                 circuit['compiled_circuit'] = compiled_circuit
-    backend = qiskit.backends.get_backend_instance(backend_name)
+    backend = backends.get_backend_instance(backend_name)
     return backend.run(q_job)
 
 
@@ -73,7 +74,9 @@ class JobProcessor:
         """
         self.q_jobs = q_jobs
         self.max_workers = max_workers
-        # check whether any jobs are remote
+        for qj in q_jobs:
+            qj.backend = backends.resolve_name(qj.backend)  # in case backends were bypassed
+        # check whether any jobs are remote            
         self.online = any(qj.backend not in local_backends(compact=False) for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()
@@ -87,7 +90,7 @@ class JobProcessor:
             for q_job in q_jobs:
                 if q_job.backend not in (remote_backends(compact=False) +
                                          local_backends(compact=False)):
-                    raise QISKitError("Backend %s not found!" % q_job.backend)
+                    raise LookupError("Backend %s not found!" % q_job.backend)
         if self.online:
             # I/O intensive -> use ThreadedPoolExecutor
             self.executor_class = futures.ThreadPoolExecutor

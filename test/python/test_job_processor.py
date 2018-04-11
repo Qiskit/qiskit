@@ -334,7 +334,7 @@ class TestJobProcessor(QiskitTestCase):
         compiled_circuit = openquantumcompiler.compile(self.qc)
         job = QuantumJob(compiled_circuit,
                          backend='non_existing_backend')
-        self.assertRaises(QISKitError, jobprocessor.JobProcessor, [job],
+        self.assertRaises(LookupError, jobprocessor.JobProcessor, [job],
                           callback=None)
 
 
