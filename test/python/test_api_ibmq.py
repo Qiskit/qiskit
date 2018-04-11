@@ -20,22 +20,27 @@ import os
 from unittest import skipIf
 from unittest.mock import patch
 
-from IBMQuantumExperience.IBMQuantumExperience import _Request
-from qiskit import QuantumProgram, QISKitError
+from IBMQuantumExperience.IBMQuantumExperience import (_Request,
+                                                       IBMQuantumExperience)
+
+import qiskit
+from qiskit import QuantumProgram
 from .common import QiskitTestCase
 
-# We need the environment variable for Travis.
+# Try to fetch the QConfig values from file, or from travis.
 HAS_GROUP_VARS = False
 try:
     import Qconfig
-
     QE_TOKEN = Qconfig.APItoken
+    print(Qconfig.config)
     QE_URL = Qconfig.config['url']
     QE_HUB = Qconfig.config['hub']
     QE_GROUP = Qconfig.config['group']
     QE_PROJECT = Qconfig.config['project']
-    HAS_GROUP_VARS = True
-except (ImportError, KeyError):
+    if QE_HUB and QE_GROUP and QE_PROJECT:
+        # These keys need to have values different than `None`.
+        HAS_GROUP_VARS = True
+except (ImportError, KeyError) as e:
     if all(var in os.environ for var in
            ['QE_TOKEN', 'QE_URL', 'QE_HUB', 'QE_GROUP', 'QE_PROJECT']):
         QE_TOKEN = os.environ['QE_TOKEN']
@@ -43,7 +48,9 @@ except (ImportError, KeyError):
         QE_HUB = os.environ['QE_HUB']
         QE_GROUP = os.environ['QE_GROUP']
         QE_PROJECT = os.environ['QE_PROJECT']
-        HAS_GROUP_VARS = True
+        if QE_HUB and QE_GROUP and QE_PROJECT:
+            # These keys need to have values different than `None`.
+            HAS_GROUP_VARS = True
 
 
 class TestApiHub(QiskitTestCase):
@@ -51,9 +58,16 @@ class TestApiHub(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = 'ibmqx4'
+        self.backend = 'ibmqx_qasm_simulator'
 
-    def _get_quantum_program(self):
+    @staticmethod
+    def _set_api(token, config):
+        api = IBMQuantumExperience(token=token, config=config)
+        _ = qiskit.backends.update_backends(api)
+        return api
+
+    @staticmethod
+    def _get_quantum_program():
         quantum_program = QuantumProgram()
         qr = quantum_program.create_quantum_register("q", 1)
         cr = quantum_program.create_classical_register("c", 1)
@@ -69,10 +83,10 @@ class TestApiHub(QiskitTestCase):
         quantum_program = self._get_quantum_program()
 
         # Invoke with no hub, group or project parameters.
-        quantum_program.set_api(QE_TOKEN, QE_URL)
+        api = self._set_api(QE_TOKEN, {'url': QE_URL})
 
         # Store the original post() method.
-        post_original = quantum_program._QuantumProgram__api.req.post
+        post_original = api.req.post
         with patch.object(_Request, 'post',
                           wraps=post_original) as mocked_post:
             _ = quantum_program.execute(
@@ -88,10 +102,13 @@ class TestApiHub(QiskitTestCase):
         quantum_program = self._get_quantum_program()
 
         # Invoke with hub, group and project parameters.
-        quantum_program.set_api(QE_TOKEN, QE_URL, QE_HUB, QE_GROUP, QE_PROJECT)
+        api = self._set_api(QE_TOKEN, {'url': QE_URL,
+                                       'hub': QE_HUB,
+                                       'group': QE_GROUP,
+                                       'project': QE_PROJECT})
 
         # Store the original post() method.
-        post_original = quantum_program._QuantumProgram__api.req.post
+        post_original = api.req.post
         with patch.object(_Request, 'post',
                           wraps=post_original) as mocked_post:
             _ = quantum_program.execute(
@@ -106,52 +123,17 @@ class TestApiHub(QiskitTestCase):
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_execute_invalid_api_parameters(self):
         """Test calling the API with invalid hub parameters."""
-        quantum_program = self._get_quantum_program()
-
         # Invoke with hub, group and project parameters.
-        FAKE_QE_HUB = 'HUB'
-        FAKE_QE_GROUP = 'GROUP'
-        FAKE_QE_PROJECT = 'PROJECT'
-        quantum_program.set_api(QE_TOKEN, QE_URL,
-                                FAKE_QE_HUB, FAKE_QE_GROUP, FAKE_QE_PROJECT)
+        _ = self._set_api(QE_TOKEN, {'url': QE_URL,
+                                     'hub': 'FAKE_HUB',
+                                     'group': 'FAKE_GROUP',
+                                     'project': 'FAKE_PROJECT'})
 
-        # Store the original post() method.
-        with self.assertRaises(QISKitError) as context:
-            _ = quantum_program.execute(
-                ['qc'], backend=self.backend, shots=1, max_credits=3)
-        self.assertIn('Backend ibmqx4 not found!', str(context.exception))
-
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
-    def test_execute_api_modified_parameters(self):
-        """Test calling the API with modified hub parameters."""
-        quantum_program = self._get_quantum_program()
-
-        # Invoke with hub, group and project parameters.
-        FAKE_QE_HUB = 'HUB'
-        FAKE_QE_GROUP = 'GROUP'
-        FAKE_QE_PROJECT = 'PROJECT'
-        quantum_program.set_api(QE_TOKEN, QE_URL,
-                                FAKE_QE_HUB, FAKE_QE_GROUP, FAKE_QE_PROJECT)
-
-        # Modify the api parameters.
-        self.assertEqual(quantum_program._QuantumProgram__api.config['hub'],
-                         FAKE_QE_HUB)
-        quantum_program.set_api_hubs_config(QE_HUB, QE_GROUP, QE_PROJECT)
-        self.assertEqual(quantum_program._QuantumProgram__api.config['hub'],
-                         QE_HUB)
-
-        # Store the original post() method.
-        post_original = quantum_program._QuantumProgram__api.req.post
-        with patch.object(_Request, 'post',
-                          wraps=post_original) as mocked_post:
-            _ = quantum_program.execute(
-                ['qc'], backend=self.backend, shots=1, max_credits=3)
-
-            # Get the first parameter of the `run_job` POST call.
-            url = mocked_post.call_args_list[-1][0][0]
-            self.assertEqual('/Network/%s/Groups/%s/Projects/%s/jobs' %
-                             (QE_HUB, QE_GROUP, QE_PROJECT),
-                             url)
+        # TODO: this assertion is brittle. If the hub/group/token parameters
+        # are invalid, login will work, but all the API calls will be made
+        # against invalid URLS that return 400, ie:
+        # /api/Network/FAKE_HUB/Groups/FAKE_GROUP/Projects/FAKE_PROJECT/devices
+        self.assertEqual([], qiskit.backends.remote_backends())
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_no_parameters(self):
@@ -160,14 +142,12 @@ class TestApiHub(QiskitTestCase):
         Note: this tests does not make assertions, it is only intended to
             verify the endpoints.
         """
-        quantum_program = self._get_quantum_program()
-
         # Invoke with no hub, group or project parameters.
-        quantum_program.set_api(QE_TOKEN, QE_URL)
+        _ = self._set_api(QE_TOKEN, {'url': QE_URL})
 
-        self.log.info(quantum_program.online_backends())
-        self.log.info(quantum_program.get_backend_parameters(self.backend))
-        self.log.info(quantum_program.get_backend_calibration(self.backend))
+        self.log.info(qiskit.backends.remote_backends())
+        self.log.info(qiskit.backends.parameters(self.backend))
+        self.log.info(qiskit.backends.calibration(self.backend))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_parameters(self):
@@ -176,11 +156,12 @@ class TestApiHub(QiskitTestCase):
         Note: this tests does not make assertions, it is only intended to
             verify the endpoints.
         """
-        quantum_program = self._get_quantum_program()
-
         # Invoke with hub, group and project parameters.
-        quantum_program.set_api(QE_TOKEN, QE_URL, QE_HUB, QE_GROUP, QE_PROJECT)
+        _ = self._set_api(QE_TOKEN, {'url': QE_URL,
+                                     'hub': QE_HUB,
+                                     'group': QE_GROUP,
+                                     'project': QE_PROJECT})
 
-        self.log.info(quantum_program.online_backends())
-        self.log.info(quantum_program.get_backend_parameters(self.backend))
-        self.log.info(quantum_program.get_backend_calibration(self.backend))
+        self.log.info(qiskit.backends.remote_backends())
+        self.log.info(qiskit.backends.parameters(self.backend))
+        self.log.info(qiskit.backends.calibration(self.backend))

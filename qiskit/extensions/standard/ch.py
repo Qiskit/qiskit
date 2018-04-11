@@ -38,8 +38,8 @@ class CHGate(Gate):
         """Return OPENQASM string."""
         ctl = self.arg[0]
         tgt = self.arg[1]
-        return self._qasmif("ch %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
+        return self._qasmif("ch %s[%d],%s[%d];" % (ctl[0].openqasm_name, ctl[1],
+                                                   tgt[0].openqasm_name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -54,7 +54,6 @@ def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.ch((ctl, i), (tgt, i)))

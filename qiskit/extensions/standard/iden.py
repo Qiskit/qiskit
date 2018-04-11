@@ -37,7 +37,7 @@ class IdGate(Gate):
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        return self._qasmif("id %s[%d];" % (qubit[0].name, qubit[1]))
+        return self._qasmif("id %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -51,10 +51,10 @@ class IdGate(Gate):
 def iden(self, q):
     """Apply Identity to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.iden((q, j)))
-        return gs
+            instructions.add(self.iden((q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(IdGate(q, self))

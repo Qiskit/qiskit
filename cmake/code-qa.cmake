@@ -1,66 +1,76 @@
-# Run python code tests
-# Create Python distrubution package
+# Add targets for QA tasks:
+#   lint        Target for invoking pyling
+#   style       Target for invoking pycodestyle
+#   coverage    Target for invoking coverage
+#   doc         Target for invoking sphinx and producing the html docs
+#
+# If the dependencies for any of the targets cannot be found, they are skipped
+# with a warning, as they are considered not essential (ie. qiskit can be
+# executed and compiled even without them).
+
 find_program(PYTHON "python")
 if (NOT PYTHON)
     message(FATAL_ERROR "Couldn't find Python in your system. Please, install it and try again.")
 endif()
 
+# lint
 function(add_lint_target)
     find_program(PYLINT "pylint")
     if (NOT PYLINT)
-        message(FATAL_ERROR "Couldn't find pylint in your system. Please, install it and try again.")
+        message(WARNING "The 'lint' target will not be available: 'pylint' was not found.")
+    else()
+        add_custom_target(lint)
+        add_custom_command(TARGET lint
+            COMMAND ${PYLINT} -rn qiskit test
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
-
-    add_custom_target(lint)
-    add_custom_command(TARGET lint
-        COMMAND ${PYLINT} -rn qiskit test
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
 
+# style
 function(add_code_style_target)
     find_program(PYCODESTYLE "pycodestyle")
     if (NOT PYCODESTYLE)
-        message(SEND_ERROR "Couldn't find pycodestyle in your system. Please, install it and try again.")
+        message(WARNING "The 'style' target will not be available: 'pycodestyle' was not found.")
+    else()
+        add_custom_target(style)
+        add_custom_command(TARGET style
+            COMMAND ${PYCODESTYLE} --exclude=qiskit/tools --max-line-length=100
+                qiskit test
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
-
-    add_custom_target(style)
-    add_custom_command(TARGET style
-        COMMAND ${PYCODESTYLE} --exclude=qiskit/tools --max-line-length=100
-            qiskit test
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
 
+# coverage
 function(add_coverage_target)
     find_program(COV3 "coverage3")
     if (NOT COV3)
-        message(FATAL_ERROR "Couldn't find coverage3 in your system. Please, install it and try again.")
+        message(WARNING "The 'coverage' target will not be available: 'coverage3' was not found.")
+    else()
+        add_custom_target(coverage_erase)
+        add_custom_command(TARGET coverage_erase
+            COMMAND ${COV3} erase
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        add_custom_target(coverage)
+        add_custom_command(TARGET coverage
+            COMMAND ${COV3} run --source qiskit -m unittest discover -s test -q
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        add_custom_command(TARGET coverage
+            COMMAND ${COV3} report
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
-
-    add_custom_target(coverage_erase)
-    add_custom_command(TARGET coverage_erase
-        COMMAND ${COV3} erase
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-    add_custom_target(coverage)
-    add_custom_command(TARGET coverage
-        COMMAND ${COV3} run --source qiskit -m unittest discover -s test -q
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-    add_custom_command(TARGET coverage
-        COMMAND ${COV3} report
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
 
+# doc
 function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
-    find_program(PYTHON python)
-    if(NOT PYTHON)
-        message(SEND_ERROR "Couldn't find python in your system. Please, install it and try again.")
-    endif()
     find_program(BETTER_APIDOC "better-apidoc")
     if(NOT BETTER_APIDOC)
-        message(SEND_ERROR "Couldn't find better-apidoc in your system. Please, install it and try again.")
+        message(WARNING "The 'doc' target will not be available: 'better-apidoc' was not found.")
+        return()
     endif()
     find_program(SPHINX_AUTOGEN "sphinx-autogen")
     if(NOT SPHINX_AUTOGEN)
-        message(SEND_ERROR "Couldn't find sphinx-autogen in your system. Please, install it and try again.")
+        message(WARNING "The 'doc' target will not be available: 'sphinx-autogen' was not found.")
+        return()
     endif()
 
     set(SPHINX ${PYTHON} -msphinx)

@@ -64,41 +64,40 @@ PIP 为以下平台预装有二进制版本：
 这是一个产生叠加态的简单例子：
 
 ```python
-from qiskit import QuantumProgram, QISKitError, RegisterSizeError
+# Import the QISKit SDK
+import qiskit
 
-# Create a QuantumProgram object instance.
-q_program = QuantumProgram()
-backend = 'local_qasm_simulator'
-try:
-    # Create a Quantum Register called "qr" with 2 qubits.
-    quantum_reg = q_program.create_quantum_register("qr", 2)
-    # Create a Classical Register called "cr" with 2 bits.
-    classical_reg = q_program.create_classical_register("cr", 2)
-    # Create a Quantum Circuit called "qc" involving the Quantum Register "qr"
-    # and the Classical Register "cr".
-    quantum_circuit =
-        q_program.create_circuit("bell", [quantum_reg],[classical_reg])
+# Create a Quantum Register called "qr" with 2 qubits
+qr = qiskit.QuantumRegister("qr", 2)
+# Create a Classical Register called "cr" with 2 bits
+cr = qiskit.ClassicalRegister("cr", 2)
+# Create a Quantum Circuit called involving "qr" and "cr"
+qc = qiskit.QuantumCircuit(qr, cr)
 
-    # Add the H gate in the Qubit 0, putting this qubit in superposition.
-    quantum_circuit.h(quantum_reg[0])
-    # Add the CX gate on control qubit 0 and target qubit 1, putting
-    # the qubits in a Bell state
-    quantum_circuit.cx(quantum_reg[0], quantum_reg[1])
+# Add a H gate on the 0th qubit in "qr", putting this qubit in superposition.
+qc.h(qr[0])
+# Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+# the qubits in a Bell state.
+qc.cx(qr[0], qr[1])
+# Add a Measure gate to see the state.
+# (Omitting the index applies an operation on all qubits of the register(s))
+qc.measure(qr, cr)
 
-    # Add a Measure gate to see the state.
-    quantum_circuit.measure(quantum_reg, classical_reg)
+# Create a Quantum Program for execution 
+qp = qiskit.QuantumProgram()
+# Add the circuit you created to it, and call it the "bell" circuit.
+# (You can add multiple circuits to the same program, for batch execution)
+qp.add_circuit("bell", qc)
 
-    # Compile and execute the Quantum Program in the local_qasm_simulator.
-    result = q_program.execute(["bell"], backend=backend, shots=1024, seed=1)
+# See a list of available local simulators
+print("Local backends: ", qiskit.backends.discover_local_backends())
 
-    # Show the results.
-    print(result)
-    print(result.get_data("bell"))
+# Compile and run the Quantum Program on a simulator backend
+sim_result = qp.execute("bell", backend='local_qasm_simulator', shots=1024, seed=1)
 
-except QISKitError as ex:
-    print('There was an error in the circuit!. Error = {}'.format(ex))
-except RegisterSizeError as ex:
-    print('Error in the number of registers!. Error = {}'.format(ex))
+# Show the results
+print("simulation: ", sim_result)
+print(sim_result.get_counts("bell"))
 ```
 
 在这个例子中，输出是（大约是由于随机波动）：
@@ -192,11 +191,12 @@ QISKit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
 
 ## 作者 (按字母顺序)
 
-Ismail Yunus Akhalwaya, Jim Challenger, Andrew Cross, Vincent Dwyer, Mark Everitt, Ismael Faro,
-Jay Gambetta, Juan Gomez, Yunho Maeng, Paco Martin, Antonio Mezzacapo, Diego Moreda, Jesus Perez,
-Russell Rundle, Todd Tilma, John Smolin, Erick Winston, Chris Wood.
+QISKit was originally authored by
+Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
+Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-在将来的版本中，欢迎将任何对此项目代码做出贡献的人的名字添加在这里。
+And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-sdk-py/tree/master/CONTRIBUTORS.md) who contribute
+to the project at different levels.
 
 ## 版权许可证
 

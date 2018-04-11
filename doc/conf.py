@@ -74,7 +74,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QISKit SDK'
-copyright = '2017 IBM Research'
+copyright = '2017-2018 IBM Research'
 author = 'IBM Research'
 
 # Add description

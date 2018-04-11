@@ -18,7 +18,6 @@
 """
 OPENQASM interpreter.
 """
-import copy
 from ._unrollererror import UnrollerError
 
 
@@ -128,6 +127,7 @@ class Unroller(object):
         """
         self.gates[node.name] = {}
         de_gate = self.gates[node.name]
+        de_gate["print"] = True  # default
         de_gate["opaque"] = opaque
         de_gate["n_args"] = node.n_args()
         de_gate["n_bits"] = node.n_bits()
@@ -140,7 +140,7 @@ class Unroller(object):
             de_gate["body"] = None
         else:
             de_gate["body"] = node.body
-        self.backend.define_gate(node.name, copy.deepcopy(de_gate))
+        self.backend.define_gate(node.name, de_gate)
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""

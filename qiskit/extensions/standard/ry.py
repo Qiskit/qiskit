@@ -38,7 +38,7 @@ class RYGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].name,
+        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].openqasm_name,
                                                 qubit[1]))
 
     def inverse(self):
@@ -55,12 +55,12 @@ class RYGate(Gate):
 
 
 def ry(self, theta, q):
-    """Apply ry to q."""
+    """Apply Ry to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.ry(theta, (q, j)))
-        return gs
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.ry(theta, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(RYGate(theta, q, self))
