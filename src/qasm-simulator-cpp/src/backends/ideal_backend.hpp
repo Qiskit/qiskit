@@ -47,7 +47,7 @@ public:
    * Constructors
    ************************/
 
-  IdealBackend() : BaseBackend<QubitVector>(){};
+  IdealBackend() = default;
 
   /************************
    * BaseBackend Methods

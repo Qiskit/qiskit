@@ -102,7 +102,7 @@ public:
    * Seeded constructor initialize RNG engine with a fixed seed
    * @param seed integer to use as seed for mt19937 engine
    */
-  RngEngine(uint_t seed) { rng.seed(seed); };
+  explicit RngEngine(uint_t seed) { rng.seed(seed); };
 
 private:
   std::mt19937 rng; // Mersenne twister rng engine

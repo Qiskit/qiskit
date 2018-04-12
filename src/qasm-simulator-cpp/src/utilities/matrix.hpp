@@ -211,11 +211,11 @@ public:
   // Constructors of matrix class
   matrix();
   matrix(size_t rows, size_t cols);
-  matrix(size_t size); // Makes a square matrix and rows = sqrt(size) columns =
-                       // sqrt(dims)
+  explicit matrix(size_t size); // Makes a square matrix and rows = sqrt(size) columns =
+                                // sqrt(dims)
   matrix(const matrix<T> &m);
   matrix(const matrix<T> &m, const char uplo);
-
+  
   // Initialize an empty matrix() to matrix(size_t  rows, size_t cols)
   void initialize(size_t rows, size_t cols);
   // Clear used memory
@@ -512,9 +512,7 @@ inline matrix<T> MOs::TensorProduct(const matrix<T> &A, const matrix<T> &B) {
 
 template <class T>
 inline matrix<T>::matrix()
-    : rows_(0), cols_(0), size_(0), LD_(0), outputstyle_(Matrix) {
-  mat_ = 0;
-}
+    : rows_(0), cols_(0), size_(0), LD_(0), outputstyle_(Matrix), mat_(nullptr) {}
 // constructs an empty matrix using the ....
 template <class T>
 inline matrix<T>::matrix(size_t rows, size_t cols)
@@ -624,7 +622,7 @@ template <class T> inline void matrix<T>::resize(size_t rows, size_t cols) {
 
 template <class T> inline matrix<T>::~matrix() {
   // destructor, deletes the matrix from memory when we leave the scope
-  if (mat_ != 0)
+  if (mat_ != nullptr)
     delete[](mat_);
 }
 template <class T>

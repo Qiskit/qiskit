@@ -42,7 +42,7 @@ struct PauliOperator {
   BinaryVector Z;
   bool phase;
   PauliOperator() : X(0), Z(0), phase(0){};
-  PauliOperator(uint64_t len) : X(len), Z(len), phase(0) {}
+  explicit PauliOperator(uint64_t len) : X(len), Z(len), phase(0) {}
 };
 
 /*******************************************************************************
@@ -54,8 +54,8 @@ struct PauliOperator {
 class Clifford {
 public:
   // Constructors
-  Clifford(){};
-  Clifford(const uint64_t nqubit);
+  Clifford() = default;
+  explicit Clifford(const uint64_t nqubit);
 
   // first n rows are destabilizers; last n rows are stabilizers
   inline PauliOperator &operator[](uint64_t j) { return table[j]; };

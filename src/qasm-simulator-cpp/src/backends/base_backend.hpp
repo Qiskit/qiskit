@@ -62,7 +62,7 @@ public:
     noise_flag = false;
     qreg_init_flag = false;
   };
-  virtual ~BaseBackend() {};
+  virtual ~BaseBackend() = default;
 
   /**
    * Execute a program on backend

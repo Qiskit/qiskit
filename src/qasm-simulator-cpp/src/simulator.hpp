@@ -180,12 +180,12 @@ json_t Simulator::run_circuit(Circuit &circ) const {
 
 // Thread number
 #ifdef _OPENMP
-    uint_t ncpus = omp_get_num_procs(); // OMP method
+    uint16_t ncpus = omp_get_num_procs(); // OMP method
     omp_set_nested(1);                  // allow nested parallel threads
 #else
-    uint_t ncpus = std::thread::hardware_concurrency(); // C++11 method
+    uint16_t ncpus = std::thread::hardware_concurrency(); // C++11 method
 #endif
-    ncpus = std::max(1ULL, ncpus); // check 0 edge case
+    ncpus = std::max(static_cast<uint16_t>(1), ncpus); // check 0 edge case
     int_t dq = (max_qubits > circ.nqubits) ? max_qubits - circ.nqubits : 0;
     uint_t threads = std::max<uint_t>(1UL, 2 * dq);
     if (circ.noise.ideal && circ.opt_meas)
