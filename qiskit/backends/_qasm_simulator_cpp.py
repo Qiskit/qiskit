@@ -51,6 +51,8 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
+        self._error = False
+        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -101,6 +103,8 @@ class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
+        self._error = False
+        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {

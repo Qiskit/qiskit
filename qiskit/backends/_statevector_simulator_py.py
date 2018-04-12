@@ -47,7 +47,6 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     def __init__(self, configuration=None):
-
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
