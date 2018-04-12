@@ -42,4 +42,7 @@ from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 
+# Import the wrapper, to make it available when doing "import qiskit".
+from . import wrapper
+
 __version__ = '0.5.0'

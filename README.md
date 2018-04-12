@@ -95,10 +95,10 @@ qc.cx(q[0], q[1])
 qc.measure(q, c)
 
 # See a list of available local simulators
-print("Local backends: ", qiskit.backends.local_backends())
+print("Local backends: ", qiskit.wrapper.local_backends())
 
 # Compile and run the Quantum circuit on a simulator backend
-sim_result = qiskit.execute(qc)
+sim_result = qiskit.wrapper.execute(qc, 'local_qasm_simulator')
 
 # Show the results
 print("simulation: ", sim_result)

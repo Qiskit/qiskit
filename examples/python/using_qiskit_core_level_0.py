@@ -1,5 +1,22 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
 """
-Example showing how to use qiskit at level 0 (novice).
+Example showing how to use QISKit at level 0 (novice).
 
 See level 1 if you would like to understand how to compile
 
@@ -7,9 +24,9 @@ Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-# Import the QISKit
+# Import the QISKit modules
 import qiskit
-import qiskit.wrapper
+
 try:
     import Qconfig
     qiskit.wrapper.register(Qconfig.APItoken, Qconfig.config['url'])
@@ -19,8 +36,10 @@ except:
              For now, there's only access to local simulator backends...""")
 
 
-def lowest_pending_jobs(list_of_backends):
+def lowest_pending_jobs():
     """Returns the backend with lowest pending jobs."""
+    list_of_backends = qiskit.wrapper.available_backends(
+        {'local': False, 'simulator': False})
     device_status = [qiskit.wrapper.get_backend(backend).status
                      for backend in list_of_backends]
 
@@ -47,7 +66,7 @@ try:
 
     # setting up the backend
     print("(Local Backends)")
-    print(qiskit.wrapper.available_backends({'local': True}))
+    print(qiskit.wrapper.local_backends())
 
     # runing the job
     sim_result = qiskit.wrapper.execute([qc1, qc2], "local_qasm_simulator")
@@ -59,13 +78,12 @@ try:
 
     # see a list of available remote backends
     print("\n(Remote Backends)")
-    print(qiskit.wrapper.available_backends({'local': False, 'simulator': False}))
+    print(qiskit.wrapper.remote_backends())
 
-    # Compile and run the Quantum Program on a real device backend
+    # Compile and run on a real device backend
     try:
         # select least busy available device and execute.
-        best_device = lowest_pending_jobs(
-            qiskit.wrapper.available_backends({'local': False, 'simulator': False}))
+        best_device = lowest_pending_jobs()
         print("Running on current least busy device: ", best_device)
 
         # running the job
@@ -73,7 +91,7 @@ try:
             'shots': 1024,
             'max_credits': 10
             }
-        exp_result = qiskit.wrapper.execute([qc1, qc2], backend_id=best_device,
+        exp_result = qiskit.wrapper.execute([qc1, qc2], backend_name=best_device,
                                             compile_config=compile_config,
                                             wait=5, timeout=300)
 

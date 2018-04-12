@@ -691,7 +691,7 @@ class QuantumProgram(object):
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
         # pylint: disable=no-member
-        self.__api = qiskit.wrapper._DEFAULT_PROVIDER.providers[-1]._api
+        self.__api = qiskit.wrapper._wrapper._DEFAULT_PROVIDER.providers[-1]._api
         config_dict = {
             'url': url,
         }
