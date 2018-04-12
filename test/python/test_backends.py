@@ -25,7 +25,7 @@ import jsonschema
 
 import qiskit.wrapper
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper import DefaultQISKitProvider
+from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .common import requires_qe_access, QiskitTestCase, Path
 
 

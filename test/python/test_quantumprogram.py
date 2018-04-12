@@ -1987,7 +1987,7 @@ class TestQuantumProgram(QiskitTestCase):
         # TODO: use the backend directly when the deprecation is completed.
         from ._dummybackend import DummyProvider
         import qiskit.wrapper
-        qiskit.wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
+        qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
 
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")
