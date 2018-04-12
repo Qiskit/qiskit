@@ -41,7 +41,7 @@ public:
   /************************
    * Constructors
    ************************/
-  CliffordBackend() : BaseBackend<Clifford>(){};
+  CliffordBackend() = default;
 
   /************************
    * BaseBackend Methods

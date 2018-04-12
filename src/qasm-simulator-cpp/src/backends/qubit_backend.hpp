@@ -50,27 +50,27 @@ public:
   /************************
    * BaseBackend Methods
    ************************/
-  void initialize(const Circuit &prog);
-  void qc_operation(const operation &op);
+  void initialize(const Circuit &prog) override;
+  void qc_operation(const operation &op) override;
 
 protected:
   /************************
    * Measurement and Reset
    ************************/
 
-  virtual void qc_reset(const uint_t qubit, const uint_t state = 0);
-  virtual void qc_measure(const uint_t qubit, const uint_t bit);
+  void qc_reset(const uint_t qubit, const uint_t state = 0) override;
+  void qc_measure(const uint_t qubit, const uint_t bit) override;
 
   /************************
    * 1-Qubit Gates
    ************************/
 
   // Single-qubit gates
-  virtual void qc_gate(const uint_t qubit, const double theta, const double phi,
-                       const double lambda);
-  virtual void qc_idle(const uint_t qubit);
-  virtual void qc_gate_x(const uint_t qubit);
-  virtual void qc_gate_y(const uint_t qubit);
+  void qc_gate(const uint_t qubit, const double theta, const double phi,
+                       const double lambda) override;
+  void qc_idle(const uint_t qubit);
+  void qc_gate_x(const uint_t qubit) override;
+  void qc_gate_y(const uint_t qubit) override;
 
   void qc_u0(const uint_t qubit, const double n);
   void qc_u1(const uint_t qubit, const double lambda);
@@ -79,11 +79,11 @@ protected:
              const double lambda);
 
   // 2-qubit gates
-  virtual void qc_cnot(const uint_t qctrl, const uint_t qtrgt);
-  virtual void qc_cz(const uint_t q0, const uint_t q1);
+  void qc_cnot(const uint_t qctrl, const uint_t qtrgt) override;
+  void qc_cz(const uint_t q0, const uint_t q1) override;
 
   // Gates with relaxation
-  virtual void qc_relax(const uint_t qubit, const double time);
+  void qc_relax(const uint_t qubit, const double time);
   void qc_matrix1_noise(const uint_t qubit, const cmatrix_t &U,
                         const GateError &err);
 

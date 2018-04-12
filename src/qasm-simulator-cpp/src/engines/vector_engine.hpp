@@ -57,8 +57,8 @@ class VectorEngine : public BaseEngine<QubitVector> {
 
 public:
   // Default constructor
-  VectorEngine(uint_t dim = 2) : BaseEngine<QubitVector>(), qudit_dim(dim){};
-
+  explicit VectorEngine(uint_t dim = 2)
+      : BaseEngine<QubitVector>(), qudit_dim(dim){};
   //============================================================================
   // Configuration
   //============================================================================

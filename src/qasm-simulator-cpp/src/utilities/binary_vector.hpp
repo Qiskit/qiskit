@@ -27,11 +27,12 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <stdint.h>
 
 namespace BV {
   
   // Types
-  using uint_t = unsigned long long;
+  using uint_t = uint64_t;
 
 /*******************************************************************************
  *
@@ -48,13 +49,13 @@ public:
 
   BinaryVector() : m_length(0), m_data(0){};
 
-  BinaryVector(uint_t length)
+  explicit BinaryVector(uint_t length)
       : m_length(length), m_data((length - 1) / blockSize + 1, 0){};
 
   BinaryVector(std::vector<uint_t> mdata)
       : m_length(mdata.size()), m_data(mdata){};
 
-  BinaryVector(std::string);
+  explicit BinaryVector(std::string);
 
   bool setLength(uint_t length);
 
@@ -95,16 +96,16 @@ inline bool operator==(const BinaryVector &lhs, const BinaryVector &rhs) {
   return lhs.isSame(rhs, true);
 }
 
-inline long gauss_eliminate(std::vector<BinaryVector> &M,
-                            const long start_col = 0)
+inline int64_t gauss_eliminate(std::vector<BinaryVector> &M,
+                            const int64_t start_col = 0)
 // returns the rank of M.
 // M[] has length nrows.
 // each M[i] must have the same length ncols.
 {
-  const long nrows = M.size();
-  const long ncols = M.front().getLength();
-  long rank = 0;
-  long k, r, i;
+  const int64_t nrows = M.size();
+  const int64_t ncols = M.front().getLength();
+  int64_t rank = 0;
+  int64_t k, r, i;
   for (k = start_col; k < ncols; k++) {
     i = -1;
     for (r = rank; r < nrows; r++) {

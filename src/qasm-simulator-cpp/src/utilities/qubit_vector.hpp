@@ -41,7 +41,7 @@ namespace QV {
 // Types
 using TI::TensorIndex;
 using TI::uint_t;
-using omp_int_t = long long int; // signed int for OpenMP 2.0 on msvc
+using omp_int_t = int64_t; // signed int for OpenMP 2.0 on msvc
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
@@ -60,7 +60,7 @@ public:
    * Constructors
    ************************/
 
-  QubitVector(size_t num_qubits = 0);
+  explicit QubitVector(size_t num_qubits = 0);
   QubitVector(const cvector_t &vec);
   QubitVector(const rvector_t &vec);
 

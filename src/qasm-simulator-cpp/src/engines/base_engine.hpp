@@ -98,8 +98,8 @@ public:
   // Constructors
   //============================================================================
 
-  BaseEngine(){};
-  virtual ~BaseEngine(){};
+  BaseEngine() = default;
+  virtual ~BaseEngine() = default;
 
   //============================================================================
   // Methods

@@ -174,7 +174,7 @@ public:
    *  P(0|1) = p1, P(1|1) = 1-p1 for a 1 measurement outcome
    * @param p1: assignement error probability
    ***/
-  ReadoutError(double p1);
+  explicit ReadoutError(double p1);
 
   /***
    * Constructor: sets the readout assignment probablities from a vector of
@@ -210,7 +210,7 @@ public:
 
   // Constructors
   PauliChannel(){};
-  PauliChannel(uint_t nq) : n(nq){};
+  explicit PauliChannel(uint_t nq) : n(nq){};
   PauliChannel(uint_t nq, rvector_t p_pauli);
 
   // Get vector of error probabilities eg {pX, pY, pZ}

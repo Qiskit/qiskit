@@ -34,7 +34,7 @@ limitations under the License.
 
 namespace TI {
   
-  using uint_t = unsigned long long;
+  using uint_t = uint64_t;
 
 /*******************************************************************************
  *

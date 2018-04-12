@@ -31,6 +31,7 @@ limitations under the License.
 #include <iostream>
 #include <map>
 #include <vector>
+#include <stdint.h>
 
 #include "qubit_vector.hpp"  // N-qubit vector class
 #include "binary_vector.hpp" // Binary Vector class
@@ -45,8 +46,8 @@ limitations under the License.
  ******************************************************************************/
 
 // Numeric Types
-using int_t = long long;
-using uint_t = unsigned long long;
+using int_t = int64_t;
+using uint_t = uint64_t;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
