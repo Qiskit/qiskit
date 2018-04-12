@@ -159,7 +159,7 @@ def discover_remote_backends(api):
         if 'gateSet' in config:
             config_edit['basis_gates'] = config['gateSet']
             del config_edit['gate_set']
-        # ibmqx_qasm_simulator doesn't report coupling_map
+        # ibmq_qasm_simulator doesn't report coupling_map
         if 'coupling_map' not in config_edit.keys() and config['simulator']:
             config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,

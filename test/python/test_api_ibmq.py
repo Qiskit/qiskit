@@ -58,7 +58,7 @@ class TestApiHub(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = 'ibmqx_qasm_simulator'
+        self.backend = 'ibmq_qasm_simulator'
 
     @staticmethod
     def _set_api(token, config):

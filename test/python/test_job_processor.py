@@ -154,7 +154,7 @@ class TestJobProcessor(QiskitTestCase):
 
         compiled_circuit = openquantumcompiler.compile(self.qc)
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
-                                 backend='ibmqx_qasm_simulator')
+                                 backend='ibmq_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_compile(self):
@@ -167,7 +167,7 @@ class TestJobProcessor(QiskitTestCase):
         self._init_api(QE_TOKEN, QE_URL)
 
         quantum_job = QuantumJob(self.qc, do_compile=True,
-                                 backend='ibmqx_qasm_simulator')
+                                 backend='ibmq_qasm_simulator')
         jobprocessor.run_backend(quantum_job)
 
     def test_compile_job(self):
@@ -198,7 +198,7 @@ class TestJobProcessor(QiskitTestCase):
         for _ in range(njobs):
             compiled_circuit = openquantumcompiler.compile(self.qc)
             quantum_job = QuantumJob(compiled_circuit,
-                                     backend='ibmqx_qasm_simulator')
+                                     backend='ibmq_qasm_simulator')
             job_list.append(quantum_job)
         jp = jobprocessor.JobProcessor(job_list, callback=None)
         jp.submit()
@@ -213,7 +213,7 @@ class TestJobProcessor(QiskitTestCase):
         qc = qp.create_circuit('qc', [qr], [cr])
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
-        backend = 'ibmqx_qasm_simulator'  # the backend to run on
+        backend = 'ibmq_qasm_simulator'  # the backend to run on
         shots = 1024  # the number of shots in the experiment.
         api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
         qiskit.backends.discover_remote_backends(api)
@@ -277,7 +277,7 @@ class TestJobProcessor(QiskitTestCase):
 
         njobs = 6
         job_list = []
-        backend_type = ['local_qasm_simulator', 'ibmqx_qasm_simulator']
+        backend_type = ['local_qasm_simulator', 'ibmq_qasm_simulator']
         i = 0
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit')[:njobs]:
             compiled_circuit = openquantumcompiler.compile(circuit)
