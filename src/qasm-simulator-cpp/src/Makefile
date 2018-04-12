@@ -1,8 +1,7 @@
 INCLUDE = -I./ -I./backends -I./engines -I./utilities -I./third-party -I./third-party/headers
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
-# Install exe into pip location for backends
-OUTPUT_DIR = ../../../qiskit/backends
+OUTPUT_DIR = ../../../out/src/qasm-simulator-cpp
 
 CC = g++
 
@@ -32,22 +31,25 @@ LIBS = -lpthread $(LIB_BLAS)
 
 .SUFFIXES:.cpp .cc .o .c
 .cpp.o:
-	${CC} -c ${CPPFLAGS} ${DEFINES} -o $@ $<
+	${CC} -c ${CPPFLAGS} ${DEFINES} -o  ${OUTPUT_DIR}/$@ $<
 .cc.o:
-	${CC} -c ${CPPFLAGS} ${DEFINES} -o $@ $<
+	${CC} -c ${CPPFLAGS} ${DEFINES} -o  ${OUTPUT_DIR}/$@ $<
 .c.o:
-	${CC} -c ${CPPFLAGS} ${DEFINES} -o $@ $<
+	${CC} -c ${CPPFLAGS} ${DEFINES} -o  ${OUTPUT_DIR}/$@ $<
 
 
-all: sim
-debug: sim_debug
+all: directories sim
+debug: directories sim_debug
+
+directories:
+	mkdir -p $(OUTPUT_DIR)
 
 sim: main.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp main.o $(LIBS)
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp ${OUTPUT_DIR}/main.o $(LIBS)
 
 sim_debug: main.o
-	$(CC) -g $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp_debug main.o $(LIBS)
+	$(CC) -g $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp_debug ${OUTPUT_DIR}/main.o $(LIBS)
 
 clean:
-	rm -rf ${OUTPUT_DIR}/qasm_simulator_cpp main.o
+	rm -rf ${OUTPUT_DIR}
 
