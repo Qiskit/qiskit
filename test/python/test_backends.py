@@ -23,9 +23,9 @@ import unittest
 
 import jsonschema
 
-import qiskit.wizard
+import qiskit.wrapper
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wizard import DefaultQISKitProvider
+from qiskit.wrapper import DefaultQISKitProvider
 from .common import requires_qe_access, QiskitTestCase, Path
 
 
@@ -215,24 +215,24 @@ class TestBackends(QiskitTestCase):
                 self.assertEqual(len(parameters), 4)
 
     @requires_qe_access
-    def test_wizard_register_ok(self, QE_TOKEN, QE_URL):
-        """Test wizard.register()."""
-        qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
-        backends = qiskit.wizard.available_backends()
+    def test_wrapper_register_ok(self, QE_TOKEN, QE_URL):
+        """Test wrapper.register()."""
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        backends = qiskit.wrapper.available_backends()
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
     @requires_qe_access
-    def test_wizard_available_backends_with_filter(self, QE_TOKEN, QE_URL):
-        """Test wizard.available_backends(filter=...)."""
-        qiskit.wizard.register(QE_TOKEN, QE_URL, provider_name='qiskit')
-        backends = qiskit.wizard.available_backends({'local': False, 'simulator': True})
+    def test_wrapper_available_backends_with_filter(self, QE_TOKEN, QE_URL):
+        """Test wrapper.available_backends(filter=...)."""
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        backends = qiskit.wrapper.available_backends({'local': False, 'simulator': True})
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
-    def test_wizard_local_backends(self):
-        """Test wizard.local_backends(filter=...)."""
-        local_backends = qiskit.wizard.local_backends()
+    def test_wrapper_local_backends(self):
+        """Test wrapper.local_backends(filter=...)."""
+        local_backends = qiskit.wrapper.local_backends()
         self.log.info(local_backends)
         self.assertTrue(len(local_backends) > 0)
 
