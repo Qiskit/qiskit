@@ -148,20 +148,19 @@ def discover_remote_backends(api):
     backend_name_list = []
     for config in config_list:
         config_edit = {}
+        print(config)
         backend_name = config['name']
+        # FIXME: fix API: online simulator names should change
+        if backend_name == 'ibmqx_qasm_simulator':
+            backend_name = 'ibmq_qasm_simulator'
+        if backend_name == 'ibmqx_hpc_qasm_simulator':
+            backend_name = 'ibmq_qasm_simulator_hpc'
         backend_name_list.append(backend_name)
         config_edit['local'] = False
         for key in config.keys():
             new_key = _snake_case_to_camel_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
                 config_edit[new_key] = config[key]
-        # online_qasm_simulator uses different name for basis_gates
-        if 'gateSet' in config:
-            config_edit['basis_gates'] = config['gateSet']
-            del config_edit['gate_set']
-        # ibmq_qasm_simulator doesn't report coupling_map
-        if 'coupling_map' not in config_edit.keys() and config['simulator']:
-            config_edit['coupling_map'] = 'all-to-all'
         registered_backend = RegisteredBackend(backend_name,
                                                QeRemote,
                                                config_edit)

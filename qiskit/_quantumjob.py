@@ -24,7 +24,6 @@ from qiskit.unroll import Unroller, DagUnroller, JsonBackend
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumCircuit
 from qiskit.qasm import Qasm
-from qiskit import _openquantumcompiler as openquantumcompiler
 
 
 class QuantumJob():
@@ -34,7 +33,7 @@ class QuantumJob():
     # TODO We need to create more tests for checking all possible inputs.
     # TODO Make this interface clearer -- circuits could be many things!
     def __init__(self, circuits, backend='local_qasm_simulator',
-                 config=None, circuit_config=None, seed=None,
+                 circuit_config=None, seed=None,
                  resources=None,
                  shots=1024, names=None,
                  do_compile=False, preformatted=False):
@@ -77,33 +76,24 @@ class QuantumJob():
             # circuits is actually a qobj...validate (not ideal but convenient)
             self.qobj = circuits
         else:
-            self.qobj = self._create_qobj(circuits, config, circuit_config, backend,
+            self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
         self.backend = self.qobj['config']['backend']
         self.resources = resources
         self.seed = seed
         self.result = None
 
-    def _create_qobj(self, circuits, config, circuit_config, backend, seed,
+    def _create_qobj(self, circuits, circuit_config, backend, seed,
                      resources, shots, do_compile):
         # local and remote backends currently need different
         # compilied circuit formats
         formatted_circuits = []
+        backend = backends.resolve_name(backend)
         if do_compile:
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            for circuit in self.circuits:
-                formatted_circuits.append(
-                    openquantumcompiler.dag2json(circuit))
-        required_config = {
-            'max_credits': resources['max_credits'],
-            'shots': shots,
-            'backend': backend
-        }
-        """
-        else:
-            if backend in backends.local_backends():
+            if backend in backends.local_backends(compact=False):
                 for circuit in self.circuits:
                     basis = ['u1', 'u2', 'u3', 'cx', 'id']
                     unroller = Unroller
@@ -120,22 +110,15 @@ class QuantumJob():
             else:
                 for circuit in self.circuits:
                     formatted_circuits.append(circuit.qasm(qeflag=True))
-                    """
-        # merge dicts, second overrides first. Used if user supplies a
-        # circuit_config formatted config for the top level for backends which
-        # use the top level config for backend specific defaults.
-        if config is None:
-            config = required_config
-        else:
-            config = {**config, **required_config}
+
         # create circuit component of qobj
         circuit_records = []
         if circuit_config is None:
-            circuit_config = {'coupling_map': None,
-                              'basis_gates': 'u1,u2,u3,cx,id',
-                              'layout': None,
-                              'seed': seed}
-            circuit_config = [circuit_config] * len(self.circuits)
+            config = {'coupling_map': None,
+                      'basis_gates': 'u1,u2,u3,cx,id',
+                      'layout': None,
+                      'seed': seed}
+            circuit_config = [config] * len(self.circuits)
 
         for circuit, fcircuit, name, config in zip(self.circuits,
                                                    formatted_circuits,
@@ -145,13 +128,16 @@ class QuantumJob():
                 'name': name,
                 'compiled_circuit': None if do_compile else fcircuit,
                 'compiled_circuit_qasm': None if do_compile else fcircuit,
-                'circuit': circuit,
                 'config': config
             }
             circuit_records.append(record)
 
         return {'id': self._generate_job_id(length=10),
-                'config': config,
+                'config': {
+                    'max_credits': resources['max_credits'],
+                    'shots': shots,
+                    'backend': backend
+                },
                 'circuits': circuit_records}
 
     def _generate_job_id(self, length=10):

@@ -330,12 +330,13 @@ class TestJobProcessor(QiskitTestCase):
     @requires_qe_access
     def test_backend_not_found(self, QE_TOKEN, QE_URL):
         self._init_api(QE_TOKEN, QE_URL)
-
         compiled_circuit = openquantumcompiler.compile(self.qc)
-        job = QuantumJob(compiled_circuit,
-                         backend='non_existing_backend')
-        self.assertRaises(LookupError, jobprocessor.JobProcessor, [job],
-                          callback=None)
+        # Have to use context manager because the exception
+        # can be raised in both QuantumJob and JobProcessor
+        with self.assertRaises(LookupError) as raises_cm:
+            backend = 'non_existing_backend'
+            q_job = QuantumJob(compiled_circuit, backend=backend)
+            jobprocessor.JobProcessor([q_job], callback=None)
 
 
 if __name__ == '__main__':
