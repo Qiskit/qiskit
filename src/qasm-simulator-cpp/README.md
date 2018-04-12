@@ -1,62 +1,89 @@
-# QISKit Simulator
+# QASM Simulator
+
 ## A C++ quantum circuit simulator with realistic noise
 
 Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 
 ### Authors
- * Christopher J. Wood (<cjwood@us.ibm.com>)
- * John A. Smolin (<smolin@us.ibm.com>)
+
+* Christopher J. Wood (<cjwood@us.ibm.com>)
+* John A. Smolin (<smolin@us.ibm.com>)
 
 ### Description
 
-*QISKit Simulator* is quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Software Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-sdk-py).
+*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Software Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-sdk-py).
 
 ## Contents
 
-- [Installation](#installation)
-- [Using the simulator](#using-the-simulator)
-    - [Running from the command line](#running-from-the-command-line)
-    - [Running in Python](#running-in-python)
-    - [Running as a backend for qiskit-sdk-py](#running-as-a-backend-for-qiskit-sdk-py)
-    - [Simulator output](#simulator-output)
-- [Config Settings](#config-settings)
-     - [Using parallelization](#using-parallelization)
-    - [Using a custom initial state](#using-a-custom-initial-state)
-    - [Output data options](#output-data-options)
-- [Noise parameters](#noise-parameters)
-    - [Gate Errors](#gate-errors)
-    - [Thermal Relaxation Error](#thermal-relaxation-error)
-    - [Reset Error](#reset-error)
-    - [Measurement Readout Error](#measurement-readout-error)
-- [Full config specification](#full-config-specification)
-- [Acknowledgements]($#acknowledgements)
-- [License](#license)
+* [Installation](#installation)
+* [Using the simulator](#using-the-simulator)
+  * [Running from the command line](#running-from-the-command-line)
+  * [Running in Python](#running-in-python)
+  * [Running as a backend for qiskit-sdk-py](#running-as-a-backend-for-qiskit-sdk-py)
+  * [Simulator output](#simulator-output)
+* [Config Settings](#config-settings)
+  * [Using parallelization](#using-parallelization)
+  * [Using a custom initial state](#using-a-custom-initial-state)
+  * [Output data options](#output-data-options)
+* [Noise parameters](#noise-parameters)
+  * [Gate Errors](#gate-errors)
+  * [Thermal Relaxation Error](#thermal-relaxation-error)
+  * [Reset Error](#reset-error)
+  * [Measurement Readout Error](#measurement-readout-error)
+* [Full config specification](#full-config-specification)
+* [Acknowledgements]($#acknowledgements)
+* [License](#license)
 
 ## Installation
 
 After installing the required dependencies, build the simulator by running `make` in the root directory. This will build the executable `qasm_simulator_cpp` in the repository directory. For detailed OS-specific instructions on installing dependencies see the following sections
 
 ### Dependencies
+
 Building requires a compiler compatible with the C++11 standard. For example:
 
-- GCC >= 5.1
-- Clang >= 3.3
+* GCC >= 4.9
+* Clang >= 3.3
+* Apple XCode Clang *(note this has no OpenMP support)*
 
 The following packages are required for building:
 
-- BLAS
-- LAPACK
-- pthread
-- OpenMP (optional)
+* BLAS
+* pthread
+* OpenMP *(optional)*
 
-### OS Specific Instructions
+Installing these dependencies for MacOS, Ubunti or RHEL can be achieved by using the `build_dependencies.sh` script. This may be invoved from the command line by running
+
+```bash
+> make depends
+```
+
+This script installs the following platform specific dependencies:
+
+### Building with Make
+
+The simulator can be build with *Make*. By default this will build the simulator executable `qasm_simulator_cpp` at  `qiskit-sdk-py/out/qasm-simulator-cpp/qasm_simulator_cpp`. This may be done from the base `qiskit-sdk-py` folder, or the source folder `qiskit-sdk-py/src/qasm-simulator-cpp` by running:
+
+```bash
+> make sim
+```
+
+### Building with CMake
+
+CMake may also be used to build the simulator. To do this from the `qiskit-sdk-py` directory run
+
+```bash
+qiskit-sdk-py> mkdir out; cd out; cmake ..; make
+```
+
+To build with CMake on MacOS follow the specific instructions:
+
 #### Installation on MacOS
 
 The simplest way to install is without full OpenMP parallelization. This only requires XCode command line tools. To install run:
 
 ```bash
 > xcode-select --install
-> make
 ```
 
 To make full use of the parallelization requires OpenMP which requires installing GCC. This can be done by installing the [Homebrew](https://brew.sh/) package manager:
@@ -64,7 +91,20 @@ To make full use of the parallelization requires OpenMP which requires installin
 ```bash
 > /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 > brew install gcc
-> make
+```
+
+This will install GCC7 without overriding Apples XCode compiler. It can be invoked from the command line using `g++-7`. Once the dependencies are installed build using `make sim`. The Makefile will automatically check for GCC7 and preference it over XCodes complier if it is installed on the system.
+
+If building with CMake using the Apple XCode compiler for building you must add an additional flag to disable static linking:
+
+```bash
+qiskit-sdk-py> mkdir out; cd out; cmake -DSTATIC_LINKING=False ..; make
+```
+
+To enable OpenMP support by using the GCC7 compiler installed with Homebrew run:
+
+```bash
+qiskit-sdk-py> mkdir out; cd out; cmake -DCMAKE_CXX_COMPILER=g++-7 ..; make
 ```
 
 #### Installation on Ubuntu 16.04 LTS
@@ -74,7 +114,7 @@ Check that the build-essential, BLAS and LAPACK packages are installed, then mak
 ```bash
 > sudo apt-get update
 > sudo apt-get install build-essential libblas-dev liblapack-dev
-> make
+> make sim
 ```
 
 #### Installation on RHEL 6
@@ -84,11 +124,10 @@ The default GCC compiler on RHEL 6 does not support C++11. To build you must ins
 ```bash
 > sudo yum install devtoolset-6 blas blas-devel lapack lapack-devel
 > scl enable devtoolset-6 bash
-> make
+> make sim
 ```
 
 ## Using the simulator
-
 
 ### Running from the command line
 
@@ -106,30 +145,28 @@ It is also possible to pipe the contents of a qobj directly to the simulator by 
 cat input.json | ./qasm_simulator_cpp -
 ```
 
-
 ### Running in Python
 
-The simulator may be called from Python 3 by importing `qiskit/backends/_qiskit_cpp_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
+The simulator may be called from Python 3 by importing `qiskit/backends/_qasm_simulator_cpp.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
 # Set the path and file for the simulator executable
-SIM_EXECUTABLE = '/path/to/simulator/executable/qiskit_simulator'
+SIM_EXECUTABLE = '/path/to/simulator/executable/qasm_simulator_cpp'
 
 # Import simulator
-import qiskit.backends._qiskit_cpp_simulator as qs
+import qiskit.backends._qasm_simulator_cpp as qs
 
 # Run a qobj on the simulator
 qobj = {...}  # qobj as a Python dictionary
 result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 ```
 
-
 ### Running as a backend for qiskit-sdk-py
 
 This simulator can also be used as a backend for the QISKit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
 
 ```python
-backend = 'local_qiskit_simulator'
+backend = 'local_qasm_simulator'
 shots = <int>
 config = <dict>
 results = QuantumProgram.execute(circs,
@@ -138,8 +175,9 @@ results = QuantumProgram.execute(circs,
                 config=config)
 ```
 
-You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qiskit_simulator` and `local_clifford_simulator`.
+You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qasm_simulator` and `local_clifford_simulator`.
 
+Note: `local_qasm_simulator` is provided as a shortcut and will automatically point to `local_qasm_simulator_cpp` if it is installed. However, if this simulator is not installed, then it will point to the (slower) `local_qasm_simulator_py`.
 
 ### Simulator output
 
@@ -180,7 +218,7 @@ If the simulator is called though the Python QISKit SDK the input qobj will only
 
 In the raw output file, complex numbers are stored as a list of the real and imaginary parts. Eg. for *z = a +ib* the output of *z* will be `[a, b]`. Using this convention complex vectors and matrices are stored as one would expect: as lists of complex numbers, and as lists of lists of complex numbers respectively.
 
-If the simulator is called through the Python qiskit SDK then these are parsed into standard Python complex datatypes by using custom JSON encoders and decoders. 
+If the simulator is called through the Python qiskit SDK then these are parsed into standard Python complex datatypes by using custom JSON encoders and decoders.
 
 To manually export a qobj JSON from Python:
 
@@ -202,7 +240,6 @@ from qiskit.backends._qasm_simulator_cpp import QASMSimulatorDecoder
 with open('results.json', 'r') as infile:
     qobj = json.load(infile, cls=QASMSimulatorDecoder)
 ```
-
 
 #### Runtime errors
 
@@ -231,12 +268,12 @@ If a qobj contains multiple circuits failure of one circuit will not terminate e
 
 where for any circuit that encounted an error `<circ-n result>` will be given by `{"status": "FAILED", "message": "error message"}`.
 
-
 ## Config Settings
 
 The following table lists all recognized keys and allowed values for the config settings of the input qobj. Any of these options may be specified at the **qobj** config level, or at the individual **circuit** config level. In the latter case, any circuit-level config settings will override the top level config settings.
 
-##### Table of config options
+### Table of config options
+
 | Key | Allowed Values | Default | Description |
 | --- | --- | --- | --- |
 | `"shots"`| Integer > 0 | 1 | The number of simulation shots to be evaluated for a given circuit.
@@ -272,8 +309,8 @@ If compiled with OpenMP support the simulator can use parallelization for both t
 
 There are two types of parallel speedups available:
 
-- Multithreaded parallel evaluation of shots (OpenMP and C++11)
-- Multithreaded parallel update of the state vector for gates and measurements (OpenMP only)
+* Multithreaded parallel evaluation of shots (OpenMP and C++11)
+* Multithreaded parallel update of the state vector for gates and measurements (OpenMP only)
 
 If M1 threads are used in parallel shot evaluation, and M2 threads are used in parallel gate updates, then the total number of threads used is M = M1 * M2.
 
@@ -287,26 +324,23 @@ If multiple shots are being simulated parallel evaluation of shots takes precede
 
 The second type of parallelization is used to update large N-qubit state vectors in parallel. This is only available if the simulator is compiled with **OpenMP** using the `-fopenmp` option. Parallelization is activated when the number of qubits in a circuit is greater than the number specified by `"theshold_omp_gate"`, and it uses any remaining threads *after* shot parallelization. Once above the threshold the number of threads used *per shot thread* is given by the minimum of: the number of CPU cores/number of shot threads (rounded down), the `"max_threads_gate"` config setting. The default threshold is 20 qubits. Lowering this may reduce performance due to the overhead of thread management on the shared state vector.
 
-
-
 ### Using a custom initial state
 
 By default, the simulator will always be initialized with all qubits in the 0-state. A custom initial state for each shot of the simulator may be specified by using the config setting `"initial_state"`. This maybe be specified in the QOBJ as a vector or in a Bra-Ket style notation. If the initial state is the wrong dimension for the circuit being evaluated then the simulation will fail and return an error message.
 
-
 ##### Qobj Example
+
 The following are all valid representations of the state *|psi> = (|00> + |11> )/sqrt(2)*
 
-
-- `"initial_state": [0.707107, 0, 0, 0.707107]`
-- `"initial_state": [[0.707107, 0], [0,0], [0,0], [0.707107,0]]`
-- `"initial_state": {"00": 0.707107, "11": 0.707107}`
-- `"initial_state": {"00": [0.707107, 0], "11": [0.707107, 0]}`
+* `"initial_state": [0.707107, 0, 0, 0.707107]`
+* `"initial_state": [[0.707107, 0], [0,0], [0,0], [0.707107,0]]`
+* `"initial_state": {"00": 0.707107, "11": 0.707107}`
+* `"initial_state": {"00": [0.707107, 0], "11": [0.707107, 0]}`
 
 The input will be renormalized by the simulator to ensure it is a quantum state. Hence there is no difference between replacing the above inputs with `"initial_state": [1, 0, 0, 1]"`.
 
-
 ##### QISKit Example
+
 When calling the simulator though the QISKit Python SDK the input state may also be a a NumPy array, for example:
 
 ```python
@@ -315,13 +349,12 @@ config = {'initial_state': np.array([1, 0, 0, 1j]) / np.sqrt(2)}
 
 ### Output data options
 
-##### Table of classical bit config options
+#### Table of classical bit config options
 
 | Key |  Description |
 | --- | --- |
 | `"classical_state"` | Returns a list of the final classical register bitstring after each shot.
 | `"hide_counts"` | Hides the counts dictionary in the circuit results data.
-
 
 #### Table of quantum state snapshot output options
 
@@ -381,10 +414,10 @@ Note that `"U"` and `"X90"` implement different error models. `"U"` specifies a 
 
 In terms of X90 pulses single qubit gates are affected as:
 
-- `u1, z, s, sdg, t, tdg` have no error (zero X-90 pulses)
-- `u2, h`: have single gate error (one X-90 pulse)
-- `U, u3, x, y` have double gate error (two X-90 pulses)
-- `u0`: has multiples of X-90 pulse relaxation error only
+* `u1, z, s, sdg, t, tdg` have no error (zero X-90 pulses)
+* `u2, h`: have single gate error (one X-90 pulse)
+* `U, u3, x, y` have double gate error (two X-90 pulses)
+* `u0`: has multiples of X-90 pulse relaxation error only
 
 The following keys specifify the implemented error models for single qubit gates:
 
@@ -394,7 +427,6 @@ The following keys specifify the implemented error models for single qubit gates
 | `"p_pauli"` | list[3] or list[15] | Pauli error channel where the list specifies the Pauli error probabilities. Note that this list will be renormalized to a probability vector. For 1-qubit operations it is `[pX, pY, pZ]`, for 2-qubit operations it is `[pIX, pIY, pIZ, pXI, pXX, .... , pZZ]`. |
 | `"gate_time"` | t >=0  | The length of the gate. This is used for computing the thermal relaxation error probability in combination with the `"relaxation_rate"` parameter for thermal relaxation errors. Thermal relaxation is implemented as *T<sub>1</sub>* and *T<sub>2</sub>* relaxation with *T<sub>2</sub> = T<sub>1</sub>*.
 | `"U_error"` | unitary matrix | This is a coherent error which is applied after the ideal gate operation.
-
 
 ##### Example
 
@@ -462,24 +494,22 @@ This error models the system being reset into an incorrect computational basis s
 
 When a qubit is reset it be set to the 0 or 1 states with probabilities *1-p* and *p* respectively. This error is applied *before* the `"reset"` gate error is applied to the reset qubit.
 
-
 ### Measurement Readout Error
 
 This error models incorrectly assigning the value of a classical bit after a measurement. It does not affect the quantum state of the system at all, only the classical registers. If used in combination with the `"measure"` gate error, the gate error is applied first, and then the readout error is applied to the measurement of the resulting quantum state.
-
 
 ```python
 "readout_error": m
 ```
 
-- If a system is measured to be in the 0 (or 1) state, the value recorded in the classical bit will be correctly recorded as 0 (or 1) with probability *1-m*, and incorrectly recorded as 1 (or 0) with probability *m*.
+* If a system is measured to be in the 0 (or 1) state, the value recorded in the classical bit will be correctly recorded as 0 (or 1) with probability *1-m*, and incorrectly recorded as 1 (or 0) with probability *m*.
 
 ```python
 "readout_error": [m0, m1]
 ```
 
-- If a system is measured to be in the 0 state, the correct (0) and incorrect (1) outcome will be recorded with probability *1-m0* and *m0* respectively.
-- If the system is measured to be in the 1 state the correct (1) and incorrect (0) outcome will be recorded with probability *1-m1* and *m1* respectively.
+* If a system is measured to be in the 0 state, the correct (0) and incorrect (1) outcome will be recorded with probability *1-m0* and *m0* respectively.
+* If the system is measured to be in the 1 state the correct (1) and incorrect (0) outcome will be recorded with probability *1-m1* and *m1* respectively.
 
 ## Full Config Specification
 
@@ -557,7 +587,6 @@ An example of a configuration file for a 2-qubit circuit using all options is gi
     }
 }
 ```
-
 
 ## Acknowledgements
 
