@@ -48,7 +48,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
                      'config': {
                          'max_credits': resources['max_credits'],
                          'shots': 1024,
-                         'backend': 'local_sympy_qasm_simulator',
+                         'backend': 'local_qasm_simulator_sympy',
                      },
                      'circuits': [
                          {

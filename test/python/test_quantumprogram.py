@@ -1913,7 +1913,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         qc2.measure(qr[2], cr[2])
         shots = 1024  # the number of shots in the experiment.
-        backend = 'local_qasm_simulator_py'
+        backend = 'local_qasm_simulator'
         test_config = {'0': 0, '1': 1}
         qobj = q_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
         out = q_program.run(qobj)        
