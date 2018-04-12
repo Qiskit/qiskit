@@ -694,7 +694,7 @@ def count_keys(n):
 ###############################################################################
 
 
-def fit_tomography_data(tomo_data, method='wizard', options=None):
+def fit_tomography_data(tomo_data, method='wrapper', options=None):
     """
     Reconstruct a density matrix or process-matrix from tomography data.
 
@@ -707,7 +707,7 @@ def fit_tomography_data(tomo_data, method='wizard', options=None):
         tomo_data (dict): process tomography measurement data.
         method (str): the fitting method to use.
             Available methods:
-                - 'wizard' (default)
+                - 'wrapper' (default)
                 - 'leastsq'
         options (dict or None): additional options for fitting method.
 
@@ -715,7 +715,7 @@ def fit_tomography_data(tomo_data, method='wizard', options=None):
         numpy.array: The fitted operator.
 
     Available methods:
-        - 'wizard' (Default): The returned operator will be constrained to be
+        - 'wrapper' (Default): The returned operator will be constrained to be
                               positive-semidefinite.
             Options:
             - 'trace': the trace of the returned operator.
@@ -726,20 +726,20 @@ def fit_tomography_data(tomo_data, method='wizard', options=None):
                         The default value is 0
         - 'leastsq': Fitting without postive-semidefinite constraint.
             Options:
-            - 'trace': Same as for 'wizard' method.
-            - 'beta': Same as for 'wizard' method.
+            - 'trace': Same as for 'wrapper' method.
+            - 'beta': Same as for 'wrapper' method.
     Raises:
         Exception: if the `method` parameter is not valid.
     """
 
-    if isinstance(method, str) and method.lower() in ['wizard', 'leastsq']:
+    if isinstance(method, str) and method.lower() in ['wrapper', 'leastsq']:
         # get options
         trace = __get_option('trace', options)
         beta = __get_option('beta', options)
         # fit state
         rho = __leastsq_fit(tomo_data, trace=trace, beta=beta)
-        if method == 'wizard':
-            # Use wizard method to constrain positivity
+        if method == 'wrapper':
+            # Use wrapper method to constrain positivity
             epsilon = __get_option('epsilon', options)
             rho = __wizard(rho, epsilon=epsilon)
         return rho

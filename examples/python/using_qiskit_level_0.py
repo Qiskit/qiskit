@@ -9,10 +9,10 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit
 import qiskit
-import qiskit.wizard
+import qiskit.wrapper
 try:
     import Qconfig
-    qiskit.wizard.register(Qconfig.APItoken, Qconfig.config['url'])
+    qiskit.wrapper.register(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -21,7 +21,7 @@ except:
 
 def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
-    device_status = [qiskit.wizard.get_backend(backend).status
+    device_status = [qiskit.wrapper.get_backend(backend).status
                      for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
@@ -47,10 +47,10 @@ try:
 
     # setting up the backend
     print("(Local Backends)")
-    print(qiskit.wizard.available_backends({'local': True}))
+    print(qiskit.wrapper.available_backends({'local': True}))
 
     # runing the job
-    sim_result = qiskit.wizard.execute([qc1, qc2], "local_qasm_simulator")
+    sim_result = qiskit.wrapper.execute([qc1, qc2], "local_qasm_simulator")
 
     # Show the results
     print("simulation: ", sim_result)
@@ -59,13 +59,13 @@ try:
 
     # see a list of available remote backends
     print("\n(Remote Backends)")
-    print(qiskit.wizard.available_backends({'local': False, 'simulator': False}))
+    print(qiskit.wrapper.available_backends({'local': False, 'simulator': False}))
 
     # Compile and run the Quantum Program on a real device backend
     try:
         # select least busy available device and execute.
         best_device = lowest_pending_jobs(
-            qiskit.wizard.available_backends({'local': False, 'simulator': False}))
+            qiskit.wrapper.available_backends({'local': False, 'simulator': False}))
         print("Running on current least busy device: ", best_device)
 
         # running the job
@@ -73,9 +73,9 @@ try:
             'shots': 1024,
             'max_credits': 10
             }
-        exp_result = qiskit.wizard.execute([qc1, qc2], backend_id=best_device,
-                                           compile_config=compile_config,
-                                           wait=5, timeout=300)
+        exp_result = qiskit.wrapper.execute([qc1, qc2], backend_id=best_device,
+                                            compile_config=compile_config,
+                                            wait=5, timeout=300)
 
         # Show the results
         print("experiment: ", exp_result)

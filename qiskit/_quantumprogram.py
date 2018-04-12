@@ -29,7 +29,7 @@ import warnings
 from threading import Event
 
 import qiskit._compiler
-import qiskit.wizard
+import qiskit.wrapper
 
 from ._classicalregister import ClassicalRegister
 from ._jobprocessor import JobProcessor
@@ -684,14 +684,14 @@ class QuantumProgram(object):
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using the API object instead is recommended.", DeprecationWarning)
-        qiskit.wizard.register(token, url,
-                               hub, group, project, proxies, verify,
-                               provider_name='qiskit')
+        qiskit.wrapper.register(token, url,
+                                hub, group, project, proxies, verify,
+                                provider_name='qiskit')
 
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
         # pylint: disable=no-member
-        self.__api = qiskit.wizard.DEFAULT_PROVIDER.providers[-1]._api
+        self.__api = qiskit.wrapper._DEFAULT_PROVIDER.providers[-1]._api
         config_dict = {
             'url': url,
         }
@@ -770,7 +770,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wizard.available_backends()
+        return qiskit.wrapper.available_backends()
 
     def online_backends(self):
         """Get the online backends.
@@ -793,7 +793,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() object instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wizard.remote_backends()
+        return qiskit.wrapper.remote_backends()
 
     def online_simulators(self):
         """Gets online simulators via QX API calls.
@@ -813,8 +813,8 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wizard.available_backends({'local': False,
-                                                 'simulator': True})
+        return qiskit.wrapper.available_backends({'local': False,
+                                                  'simulator': True})
 
     def online_devices(self):
         """Gets online devices via QX API calls.
@@ -834,8 +834,8 @@ class QuantumProgram(object):
             "Using qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wizard.available_backends({'local': False,
-                                                 'simulator': False})
+        return qiskit.wrapper.available_backends({'local': False,
+                                                  'simulator': False})
 
     def get_backend_status(self, backend):
         """Return the online backend status.
@@ -862,7 +862,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').status "
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.wizard.get_backend(backend)
+        my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.status
 
     def get_backend_configuration(self, backend):
@@ -890,7 +890,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').configuration "
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.wizard.get_backend(backend)
+        my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.configuration
 
     def get_backend_calibration(self, backend):
@@ -918,7 +918,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').calibration "
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.wizard.get_backend(backend)
+        my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.calibration
 
     def get_backend_parameters(self, backend):
@@ -946,7 +946,7 @@ class QuantumProgram(object):
             "Using qiskit.backends.get_backend_instance('name').parameters"
             "instead is recommended.", DeprecationWarning)
 
-        my_backend = qiskit.wizard.get_backend(backend)
+        my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.parameters
 
     ###############################################################
@@ -993,7 +993,7 @@ class QuantumProgram(object):
             'qobj_id': qobj_id,
             'hpc': hpc
         }
-        my_backend = qiskit.wizard.get_backend(backend)
+        my_backend = qiskit.wrapper.get_backend(backend)
         qobj = qiskit._compiler.compile(list_of_circuits, my_backend, compile_config)
         return qobj
 
