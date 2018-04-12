@@ -84,7 +84,11 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                 backend='local_qiskit_simulator',
                                 preformatted=True)
         # Simulator backend
-        self.backend = QasmSimulatorCpp.QasmSimulatorCpp()
+        try:
+            self.backend = QasmSimulatorCpp.QasmSimulatorCpp()
+        except FileNotFoundError as fnferr:
+            raise unittest.SkipTest(
+                'cannot find {} in path'.format(fnferr))
 
     def test_x90_coherent_error_matrix(self):
         X90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
