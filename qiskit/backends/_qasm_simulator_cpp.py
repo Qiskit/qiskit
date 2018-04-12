@@ -39,10 +39,11 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    '../../out/src/qasm-simulator-cpp/qasm_simulator_cpp' + EXTENSION)),
+                                 '../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
+                                 + EXTENSION)),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    'qasm_simulator_cpp' + EXTENSION)),
+                                 'qasm_simulator_cpp' + EXTENSION)),
 ]
 
 
