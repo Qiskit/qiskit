@@ -96,7 +96,7 @@ try:
     # the job is a new object that runs when it does and i dont wait for it to
     # finish and can get results later
     # other job methods
-    # job.abort -- use to abort the job
+    # job.cancel -- use to abort the job
     # job.status   -- the status of the job
 
     # Show the results
@@ -151,7 +151,7 @@ try:
         # the job is a new object that runs when it does and i dont wait for it
         # to finish and can get results later
         # other job methods
-        # job.abort -- use to abort the job
+        # job.cancel -- use to abort the job
         # job.status   -- the status of the job
 
         # Show the results

@@ -32,7 +32,7 @@ class BaseProvider(ABC):
     def available_backends(self, *args, **kwargs):
         """
         Returns:
-            list of str: a list of backend names available from this provider.
+            list[BaseBackend]: a list of backend available from this provider.
         """
         pass
 

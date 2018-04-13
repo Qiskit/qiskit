@@ -219,43 +219,43 @@ class IBMQBackend(BaseBackend):
         return status
 
 
-def _wait_for_job(jobid, api, wait=5, timeout=60):
+def _wait_for_job(job_id, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
 
     Args:
-        jobid (list(str)):  is a list of id strings.
+        job_id (list(str)):  is a list of id strings.
         api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
             IBMQuantumExperience API connection
         wait (int):  is the time to wait between requests, in seconds
         timeout (int):  is how long we wait before failing, in seconds
 
     Returns:
-        list: A list of results that correspond to the jobids.
+        dict: A list of results that correspond to the jobids.
 
     Raises:
         QISKitError: job didn't return status or reported error in status
     """
     timer = 0
-    job_result = api.get_job(jobid)
+    job_result = api.get_job(job_id)
     if 'status' not in job_result:
         raise QISKitError("get_job didn't return status: %s" %
                           (pprint.pformat(job_result)))
 
     while job_result['status'] == 'RUNNING':
         if timer >= timeout:
-            return {'job_id': jobid, 'status': 'ERROR',
+            return {'job_id': job_id, 'status': 'ERROR',
                     'result': 'QISkit Time Out'}
         time.sleep(wait)
         timer += wait
         logger.info('status = %s (%d seconds)', job_result['status'], timer)
-        job_result = api.get_job(jobid)
+        job_result = api.get_job(job_id)
 
         if 'status' not in job_result:
             raise QISKitError("get_job didn't return status: %s" %
                               (pprint.pformat(job_result)))
         if (job_result['status'] == 'ERROR_CREATING_JOB' or
                 job_result['status'] == 'ERROR_RUNNING_JOB'):
-            return {'job_id': jobid, 'status': 'ERROR',
+            return {'job_id': job_id, 'status': 'ERROR',
                     'result': job_result['status']}
 
     # Get the results
@@ -263,5 +263,5 @@ def _wait_for_job(jobid, api, wait=5, timeout=60):
     for index in range(len(job_result['qasms'])):
         job_result_return.append({'data': job_result['qasms'][index]['data'],
                                   'status': job_result['qasms'][index]['status']})
-    return {'job_id': jobid, 'status': job_result['status'],
+    return {'job_id': job_id, 'status': job_result['status'],
             'result': job_result_return}

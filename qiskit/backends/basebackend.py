@@ -68,3 +68,11 @@ class BaseBackend(ABC):
         """Return backend status"""
         backend_name = self.configuration.get('name', '')
         return {'name': backend_name, 'available': True}
+
+    def __str__(self):
+        backend_name = self.configuration.get('name')
+        if backend_name:
+            # TODO: remove this conditional when we are able to enforce
+            # that all backends have a configuration['name'] more forcefully
+            return str(backend_name)
+        return super().__str__()

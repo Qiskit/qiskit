@@ -28,10 +28,8 @@ from qiskit.backends.ibmq import IBMQProvider
 from .common import requires_qe_access, QiskitTestCase
 
 
-def lowest_pending_jobs(list_of_backend_names, provider):
+def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
-    list_of_backends = [provider.get_backend(backend) for backend
-                        in list_of_backend_names]
     by_pending_jobs = sorted(list_of_backends,
                              key=lambda x: x.status['pending_jobs'])
     return by_pending_jobs[0]
@@ -161,8 +159,7 @@ class TestCompiler(QiskitTestCase):
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
         my_backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}),
-            provider)
+            provider.available_backends({'local': False, 'simulator': False}))
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -184,8 +181,7 @@ class TestCompiler(QiskitTestCase):
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
         my_backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}),
-            provider)
+            provider.available_backends({'local': False, 'simulator': False}))
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
