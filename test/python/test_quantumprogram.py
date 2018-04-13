@@ -1916,11 +1916,11 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_qasm_simulator'
         test_config = {'0': 0, '1': 1}
         qobj = q_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
-        out = q_program.run(qobj)        
+        out = q_program.run(qobj)
         results = out.get_counts('qc2')
 
         # change the number of shots and re-run to test if the reconfig does not break
-        # the ability to run the qobj        
+        # the ability to run the qobj
         qobj = q_program.reconfig(qobj, shots=2048)
         out2 = q_program.run(qobj)
         results2 = out2.get_counts('qc2')

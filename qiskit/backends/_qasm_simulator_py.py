@@ -84,7 +84,8 @@ The simulator is run using
                         'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
                         'classical_state': 0
                         'counts': {'0000': 1}
-                        'snapshots': { '0': {'quantum_state': array([1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j])}}
+                        'snapshots': { '0': {'quantum_state': array([1.+0.j,  0.+0.j,
+                                                                     0.+0.j,  0.+0.j])}}
                         }
                    }
                'time_taken': 0.002
@@ -106,6 +107,7 @@ from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 
 logger = logging.getLogger(__name__)
+
 
 class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
@@ -140,6 +142,7 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
+        self._seed = 1
 
     @staticmethod
     def _index1(b, i, k):
@@ -283,7 +286,7 @@ class QasmSimulatorPy(BaseBackend):
         self._snapshots.setdefault(slot, {}).setdefault("quantum_state",
                                                         []).append(self._quantum_state)
 
-    def run(self, q_job):   
+    def run(self, q_job):
         """Run circuits in q_job"""
         qobj = q_job.qobj
         self._validate(qobj)
@@ -419,16 +422,15 @@ class QasmSimulatorPy(BaseBackend):
 
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
-            warnings.warn('The behvavior of getting quantum_state from simulators '
+            warnings.warn('The behavior of getting quantum_state from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead.',
                           DeprecationWarning)
         for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for 
+            if 'measure' not in [op['name'] for
                                  op in circ['compiled_circuit']['operations']]:
-                wrn_msg = ("WARNING: no measurements in circuit '{}', "
-                           "classical register will remain all zeros.")
-                logger.warning(wrn_msg.format(circ['name']))        
+                logger.warning("WARNING: no measurements in circuit '%s', "
+                               "classical register will remain all zeros.", circ['name'])
         return
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):

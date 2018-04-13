@@ -21,8 +21,7 @@ import unittest
 
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 
-from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
-                    QuantumRegister, QISKitError)
+from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram, QuantumRegister)
 from qiskit import _openquantumcompiler as openquantumcompiler
 import qiskit._jobprocessor as jobprocessor
 import qiskit.backends
@@ -339,7 +338,7 @@ class TestJobProcessor(QiskitTestCase):
         compiled_circuit = openquantumcompiler.compile(self.qc)
         # Have to use context manager because the exception
         # can be raised in both QuantumJob and JobProcessor
-        with self.assertRaises(LookupError) as raises_cm:
+        with self.assertRaises(LookupError):
             backend = 'non_existing_backend'
             q_job = QuantumJob(compiled_circuit, backend=backend)
             jobprocessor.JobProcessor([q_job], callback=None)

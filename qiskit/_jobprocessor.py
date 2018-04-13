@@ -26,7 +26,6 @@ from qiskit import backends
 from qiskit.backends import (local_backends, remote_backends)
 from qiskit._result import Result
 
-from qiskit import QISKitError
 from qiskit import _openquantumcompiler as openquantumcompiler
 
 
@@ -44,8 +43,8 @@ def run_backend(q_job):
     """
     backend_name = q_job.backend
     qobj = q_job.qobj
-    backend_name = backends.resolve_name(backend_name) # in case backends were bypassed
-    if backend_name in local_backends(compact=False):  # remove condition when api gets qobj
+    backend_name = backends.resolve_name(backend_name)  # in case backends were bypassed
+    if backend_name in local_backends(compact=False):   # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = openquantumcompiler.compile(circuit['circuit'],
@@ -70,13 +69,13 @@ class JobProcessor:
             max_workers (int): The maximum number of workers to use.
 
         Raises:
-            QISKitError: if any of the job backends could not be found.
+            LookupError: if any of the job backends could not be found.
         """
         self.q_jobs = q_jobs
         self.max_workers = max_workers
-        for qj in q_jobs:
-            qj.backend = backends.resolve_name(qj.backend)  # in case backends were bypassed
-        # check whether any jobs are remote            
+        for q_job in q_jobs:
+            q_job.backend = backends.resolve_name(q_job.backend)  # in case backends were bypassed
+        # check whether any jobs are remote
         self.online = any(qj.backend not in local_backends(compact=False) for qj in q_jobs)
         self.futures = {}
         self.lock = Lock()

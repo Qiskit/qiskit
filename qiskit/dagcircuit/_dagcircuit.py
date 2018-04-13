@@ -261,7 +261,7 @@ class DAGCircuit:
         if name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations"
                                   % name)
-        # Check the number of arguments matches the signature            
+        # Check the number of arguments matches the signature
         if name in ["barrier"]:
             if not qargs:
                 raise DAGCircuitError("incorrect number of qubits for %s"
@@ -291,7 +291,7 @@ class DAGCircuit:
                                       % name)
             if len(params) != self.basis[name][2]:
                 raise DAGCircuitError("incorrect number of parameters for %s"
-                                      % name)                
+                                      % name)
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
@@ -768,7 +768,7 @@ class DAGCircuit:
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             simulator_instructions = ["snapshot", "save", "load", "noise"]
-            omit.extend(simulator_instructions)                
+            omit.extend(simulator_instructions)
             for k in self.basis.keys():
                 if k not in omit:
                     if not self.gates[k]["opaque"]:

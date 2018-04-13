@@ -160,7 +160,6 @@ class TestInitialize(QiskitTestCase):
 
     def test_malformed_amplitudes(self):
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3), 0]
-        qp = QuantumProgram()
         qr = QuantumRegister("qr", 2)
         qc = QuantumCircuit(qr)
         self.assertRaises(
@@ -169,7 +168,6 @@ class TestInitialize(QiskitTestCase):
 
     def test_non_unit_probability(self):
         desired_vector = [1, 1]
-        qp = QuantumProgram()
         qr = QuantumRegister("qr", 2)
         qc = QuantumCircuit(qr)
         self.assertRaises(
@@ -200,7 +198,7 @@ class TestInitialize(QiskitTestCase):
     def test_sympy(self):
         desired_vector = [
             0,
-            math.cos(math.pi / 3) * complex(0,1) / math.sqrt(4),
+            math.cos(math.pi / 3) * complex(0, 1) / math.sqrt(4),
             math.sin(math.pi / 3) / math.sqrt(4),
             0,
             0,
@@ -226,6 +224,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
+
 
 if __name__ == '__main__':
     unittest.main()

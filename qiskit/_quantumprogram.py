@@ -796,8 +796,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.backends.local_backends(compact) + \
-               qiskit.backends.remote_backends(compact)
+        return qiskit.backends.local_backends(compact) + qiskit.backends.remote_backends(compact)
 
     def online_backends(self):
         """Get the online backends.
@@ -1122,7 +1121,7 @@ class QuantumProgram(object):
                           "shots": shots}
 
         # TODO This backend needs HPC parameters to be passed in order to work
-        if backend == 'ibmq_qasm_simulator_hpc':
+        if 'hpc' in backend:
             if hpc is None:
                 logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
                             'parameter. Setting defaults to hpc.multi_shot_optimization '

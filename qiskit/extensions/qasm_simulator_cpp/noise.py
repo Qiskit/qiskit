@@ -48,7 +48,7 @@ class Noise(Instruction):
             if j != len(self.arg) - 1:
                 string += ","
         string += ";"
-        return string 
+        return string
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
@@ -57,10 +57,16 @@ class Noise(Instruction):
 
 def noise(self, switch, *tuples):
     """Turn noise on/off in simulator.
-    
+
     Args:
         switch (int): turn noise on (1) or off (0)
         tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+
+    Returns:
+        QuantumCircuit: with attached command
+
+    Raises:
+        ExtensionError: malformed command
     """
     tuples = list(tuples)
     if not tuples:

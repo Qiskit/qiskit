@@ -22,4 +22,3 @@ from .save import save
 from .snapshot import snapshot
 from .rzz import rzz
 from .wait import wait
-from .snapshot import snapshot

@@ -53,8 +53,6 @@ If you specify multiple shots, it will automatically set shots=1.
 
 import logging
 import uuid
-from collections import Counter
-
 import numpy as np
 from sympy import Matrix, pi, I, exp
 from sympy import re, im
@@ -199,15 +197,15 @@ class StatevectorSimulatorSympy(BaseBackend):
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._quantum_state = 0
-        cbit_index = 0
 
         self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
         for operation in ccircuit['operations']:
             if 'conditional' in operation:
-                raise SimulatorError('conditional operations not supported in statevector simulator')
+                raise SimulatorError('conditional operations not supported '
+                                     'in statevector simulator')
             if operation['name'] == 'measure' or operation['name'] == 'reset':
                 raise SimulatorError('operation {} not supported by '
-                                  'sympy statevector simulator.'.format(operation['name']))
+                                     'sympy statevector simulator.'.format(operation['name']))
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 qubit = operation['qubits'][0]
                 opname = operation['name'].upper()
@@ -238,9 +236,6 @@ class StatevectorSimulatorSympy(BaseBackend):
         matrix_form = represent(self._quantum_state)
         shape_n = matrix_form.shape[0]
         list_form = [matrix_form[i, 0] for i in range(shape_n)]
-
-        pdist = [StatevectorSimulatorSympy._conjugate_square(matrix_form[i, 0]) for i in range(shape_n)]
-        norm_pdist = [float(i)/sum(pdist) for i in pdist]
 
         # Return the results
         data = {

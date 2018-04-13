@@ -161,7 +161,7 @@ class UnitarySimulator(BaseBackend):
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
-        for circuit in qobj['circuits']:            
+        for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result(
             {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},

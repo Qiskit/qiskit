@@ -58,10 +58,16 @@ class Snapshot(Instruction):
 def snapshot(self, slot, *tuples):
     """Take a snapshot of the internal simulator representation (statevector,
     probability, density matrix, clifford table)
-    
+
     Args:
         slot (int): a snapshot slot to report the result
-        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits. 
+        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+
+    Returns:
+        QuantumCircuit: with attached command
+
+    Raises:
+        ExtensionError: malformed command
     """
     tuples = list(tuples)
     if not tuples:
@@ -72,7 +78,7 @@ def snapshot(self, slot, *tuples):
     if not tuples:
         raise ExtensionError("no snapshot arguments passed")
     if not slot:
-        raise ExtensionError("no snapshot slot passed")    
+        raise ExtensionError("no snapshot slot passed")
     qubits = []
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):

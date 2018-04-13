@@ -50,21 +50,21 @@ as its contents are a combination of:
 """
 
 _ALIASED_BACKENDS = {
-        'local_qasm_simulator': ['local_qasm_simulator_cpp',
-                                 'local_qasm_simulator_projectq',
-                                 'local_qasm_simulator_py'],
-        'local_statevector_simulator': ['local_statevector_simulator_cpp',
-                                        'local_statevector_simulator_projectq',
-                                        'local_statevector_simulator_py',
-                                        'local_statevector_simulator_sympy'],
-        'local_unitary_simulator': ['local_unitary_simulator_cpp',
-                                    'local_unitary_simulator_py',
-                                    'local_unitary_simulator_sympy'],
-        'local_clifford_simulator': ['local_clifford_simulator_cpp']
-        # FIXME: uncomment after API fix: online simulator names should change        
-        #'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
-        #                        'ibmq_qasm_simulator_hpc']
-        }
+    'local_qasm_simulator': ['local_qasm_simulator_cpp',
+                             'local_qasm_simulator_projectq',
+                             'local_qasm_simulator_py'],
+    'local_statevector_simulator': ['local_statevector_simulator_cpp',
+                                    'local_statevector_simulator_projectq',
+                                    'local_statevector_simulator_py',
+                                    'local_statevector_simulator_sympy'],
+    'local_unitary_simulator': ['local_unitary_simulator_cpp',
+                                'local_unitary_simulator_py',
+                                'local_unitary_simulator_sympy'],
+    # FIXME: uncomment after API fix: online simulator names should change
+    # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
+    #                        'ibmq_qasm_simulator_hpc'],
+    'local_clifford_simulator': ['local_clifford_simulator_cpp']
+}
 """
 dict (alias_name: backend_names(list))
 
@@ -76,13 +76,13 @@ of priority from the value list, depending on availability.
 """
 
 _DEPRECATED_BACKENDS = {
-        'local_qiskit_simulator': 'local_qasm_simulator_cpp',
-        'wood_simulator': 'local_qasm_simulator_cpp',
-        'real': 'ibmqx1'
-        # FIXME: uncomment after API fix: online simulator names should change
-        #'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-        #'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc'
-        }
+    'local_qiskit_simulator': 'local_qasm_simulator_cpp',
+    'wood_simulator': 'local_qasm_simulator_cpp',
+    # FIXME: uncomment after API fix: online simulator names should change
+    # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+    # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
+    'real': 'ibmqx1'
+}
 """
 dict (deprecated_name: backend_name)
 
@@ -106,11 +106,14 @@ def discover_local_backends(directory=os.path.dirname(__file__)):
 
     Returns:
         list: list of backend names discovered
+
+    Raises:
+        ValueError: if duplicate alias exists for a backend
     """
     # check aliases have been defined correctly (max one alias per backend)
     for pair in combinations(_ALIASED_BACKENDS.values(), r=2):
         if not set.isdisjoint(set(pair[0]), set(pair[1])):
-                raise ValueError('duplicate backend alias definition')
+            raise ValueError('duplicate backend alias definition')
 
     # discover the local backends
     backend_name_list = []
@@ -168,6 +171,7 @@ def _snake_case_to_camel_case(name):
     """Return a snake case string from a camelcase string."""
     string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
     return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
+
 
 def update_backends(api=None):
     """Update registered backends.
@@ -302,7 +306,7 @@ def configuration(backend_name):
         LookupError: if backend is unavailable
     """
     try:
-        backend = qiskit.backends.get_backend_instance(backend_name)        
+        backend = qiskit.backends.get_backend_instance(backend_name)
         return backend.configuration
     except KeyError:
         raise LookupError('backend "{}" is not available'.format(backend_name))
@@ -369,7 +373,7 @@ def status(backend_name):
 
 def local_backends(compact=True):
     """Get the local backends.
-    
+
     Args:
         compact (bool): only report alias names. this is usually shorter, any several
         backends usually share the same alias.
@@ -384,7 +388,7 @@ def local_backends(compact=True):
         aliases = set()
         for backend in registered_local:
             backend_alias = set(k for k, v in _ALIASED_BACKENDS.items() if backend in v)
-            if len(backend_alias) == 0:
+            if not backend_alias:
                 aliases.add(backend)
             elif len(backend_alias) == 1:
                 (alias,) = backend_alias
@@ -405,13 +409,13 @@ def remote_backends(compact=False):
         list(str): remote backend names
     """
     registered_remote = [backend.name for backend in _REGISTERED_BACKENDS.values()
-                        if backend.configuration.get('local') is False]
+                         if backend.configuration.get('local') is False]
     # if an alias has been defined, report that. otherwise use its own name
     if compact:
         aliases = set()
         for backend in registered_remote:
             backend_alias = set(k for k, v in _ALIASED_BACKENDS.items() if backend in v)
-            if len(backend_alias) == 0:
+            if not backend_alias:
                 aliases.add(backend)
             elif len(backend_alias) == 1:
                 (alias,) = backend_alias
@@ -445,9 +449,8 @@ def resolve_name(backend):
         if available_aliases:
             resolved_backend = available_aliases[0]
     elif backend in _DEPRECATED_BACKENDS:
-            resolved_backend = _DEPRECATED_BACKENDS[backend]
-            logger.warning('WARNING: "{0}" is deprecated. Use "{1}"'.format(
-                            backend, resolved_backend))
+        resolved_backend = _DEPRECATED_BACKENDS[backend]
+        logger.warning('WARNING: %s is deprecated. Use %s.', backend, resolved_backend)
     # FIXME: remove after API fix: online simulator names should change
     if backend == 'ibmq_qasm_simulator':
         resolved_backend = 'ibmqx_qasm_simulator'
@@ -458,5 +461,6 @@ def resolve_name(backend):
         raise LookupError('backend "{}" is not available'.format(backend))
 
     return resolved_backend
+
 
 discover_local_backends()

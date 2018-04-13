@@ -27,17 +27,9 @@ The input is a qobj dictionary and the output is a Result object.
 
 The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
-import random
-import uuid
 import logging
-from collections import Counter
-
-import numpy as np
-
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
 from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix
 from ._qasm_simulator_py import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -102,7 +94,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         for circuit in qobj['circuits']:
             if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
                 logger.warning("WARNING: statevector simulator only supports 1 shot. "
-                               "Setting shots=1 for circuit ", circuit['name'])
+                               "Setting shots=1 for circuit %s.", circuit['name'])
                 circuit['config']['shots'] = 1
             for op in circuit['compiled_circuit']['operations']:
                 if op['name'] == 'measure':

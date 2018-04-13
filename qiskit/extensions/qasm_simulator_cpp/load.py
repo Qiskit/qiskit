@@ -55,13 +55,19 @@ class Load(Instruction):
         self._modifiers(circ.snapshot(self.param[0], *self.arg))
 
 
-def load(self, m, q):
-    """Load the internal simulator representation (statevector, probability, 
+def load(self, slot, tuples):
+    """Load the internal simulator representation (statevector, probability,
     density matrix, clifford table)
-    
+
     Args:
         slot (int): a slot to load from
-        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits. 
+        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+
+    Returns:
+        QuantumCircuit: with attached command
+
+    Raises:
+        ExtensionError: malformed command
     """
     tuples = list(tuples)
     if not tuples:
@@ -72,7 +78,7 @@ def load(self, m, q):
     if not tuples:
         raise ExtensionError("no load arguments passed")
     if not slot:
-        raise ExtensionError("no load slot passed")    
+        raise ExtensionError("no load slot passed")
     qubits = []
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):

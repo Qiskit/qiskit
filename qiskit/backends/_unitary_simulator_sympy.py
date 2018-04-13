@@ -43,7 +43,7 @@ from sympy.physics.quantum import TensorProduct
 from qiskit._result import Result
 from ._basebackend import BaseBackend
 from ._simulatortools import compute_ugate_matrix, index2
-from qiskit import QISKitError
+from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +196,7 @@ class UnitarySimulatorSympy(BaseBackend):
         """Run a circuit and return the results.
         Args:
             circuit (dict): JSON that describes the circuit
+
         Returns:
             dict: A dictionary of results which looks something like::
                 {'data': {'unitary': array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
@@ -204,6 +205,9 @@ class UnitarySimulatorSympy(BaseBackend):
                                              [sqrt(2)/2, -sqrt(2)/2, 0, 0]], dtype=object)
                            },
                 'status': 'DONE'}
+
+        Raises:
+            SimulatorError: if unsupported operations passed
         """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
@@ -215,7 +219,7 @@ class UnitarySimulatorSympy(BaseBackend):
                 raise SimulatorError('conditional operations not supported in unitary simulator')
             if operation['name'] == 'measure' or operation['name'] == 'reset':
                 raise SimulatorError('operation {} not supported by '
-                                     'sympy unitary simulator.'.format(operation['name']))            
+                                     'sympy unitary simulator.'.format(operation['name']))
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 if 'params' in operation:
                     params = operation['params']
@@ -227,7 +231,7 @@ class UnitarySimulatorSympy(BaseBackend):
             elif operation['name'] in ['id']:
                 logger.info('Identity gate is ignored by sympy-based unitary simulator.')
             elif operation['name'] in ['barrier']:
-                logger.info('Barrier is ignored by sympy-based unitary simulator.')                
+                logger.info('Barrier is ignored by sympy-based unitary simulator.')
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]

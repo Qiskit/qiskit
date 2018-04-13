@@ -31,7 +31,6 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
-from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +50,6 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     def __init__(self, configuration=None):
-        self._error = False
-        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -92,10 +89,10 @@ class QasmSimulatorCpp(BaseBackend):
 
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
-            warnings.warn('The behvavior of getting quantum_state from simulators '
+            warnings.warn('The behavior of getting quantum_state from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead.',
-                          DeprecationWarning)        
+                          DeprecationWarning)
         return
 
 
@@ -103,8 +100,6 @@ class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     def __init__(self, configuration=None):
-        self._error = False
-        
         super().__init__(configuration)
         if not configuration:
             self._configuration = {
@@ -118,7 +113,7 @@ class CliffordSimulatorCpp(BaseBackend):
                                'snapshot,wait,noise,save,load'
             }
         else:
-            self._configuration = configuration            
+            self._configuration = configuration
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -150,6 +145,7 @@ class CliffordSimulatorCpp(BaseBackend):
 
     def _validate(self, qobj):
         return True
+
 
 class QASMSimulatorEncoder(json.JSONEncoder):
     """

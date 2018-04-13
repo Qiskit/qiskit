@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -46,7 +47,6 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         else:
             self._configuration = configuration
 
-
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
@@ -86,10 +86,10 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         for circuit in qobj['circuits']:
             if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
                 logger.warning("WARNING: statevector simulator only supports 1 shot. "
-                               "Setting shots=1 for circuit ", circuit['name'])
+                               "Setting shots=1 for circuit %s", circuit['name'])
                 circuit['config']['shots'] = 1
             for op in circuit['compiled_circuit']['operations']:
                 if op['name'] == 'measure':
                     raise SimulatorError("In circuit {}: statevector simulator does "
-                                         "not support measure.".format(circuit['name']))                    
+                                         "not support measure.".format(circuit['name']))
         return
