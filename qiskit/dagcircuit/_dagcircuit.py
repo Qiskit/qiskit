@@ -307,7 +307,7 @@ class DAGCircuit:
         # Check for each wire
         for q in args:
             if q not in amap:
-                raise DAGCircuitError("(qu)bit %s not found" % q)
+                raise DAGCircuitError("(qu)bit %s not found" % (q,))
             if self.wire_type[q] != bval:
                 raise DAGCircuitError("expected wire type %s for %s"
                                       % (bval, q))
@@ -1343,9 +1343,9 @@ class DAGCircuit:
         dagcircuit = DAGCircuit()
         for register in circuit.regs.values():
             if isinstance(register, QuantumRegister):
-                dagcircuit.add_qreg(register.name, len(register))
+                dagcircuit.add_qreg(register.openqasm_name, len(register))
             else:
-                dagcircuit.add_creg(register.name, len(register))
+                dagcircuit.add_creg(register.openqasm_name, len(register))
         # Add user gate definitions
         for name, data in circuit.definitions.items():
             dagcircuit.add_basis_element(name, data["n_bits"], 0,
@@ -1373,10 +1373,10 @@ class DAGCircuit:
                     dagcircuit.add_basis_element(*builtins[instruction.name])
                 # Separate classical arguments to measurements
                 if instruction.name == "measure":
-                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
-                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+                    qargs = [(instruction.arg[0][0].openqasm_name, instruction.arg[0][1])]
+                    cargs = [(instruction.arg[1][0].openqasm_name, instruction.arg[1][1])]
                 else:
-                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
+                    qargs = list(map(lambda x: (x[0].openqasm_name, x[1]), instruction.arg))
                     cargs = []
                 # Get arguments for classical control (if any)
                 if instruction.control is None:
