@@ -72,7 +72,8 @@ def available_backends(filters=None):
     Returns:
         list[str]: the names of the available backends.
     """
-    return _DEFAULT_PROVIDER.available_backends(filters)
+    return [str(backend) for backend in
+            _DEFAULT_PROVIDER.available_backends(filters)]
 
 
 def local_backends():

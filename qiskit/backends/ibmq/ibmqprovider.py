@@ -37,18 +37,17 @@ class IBMQProvider(BaseProvider):
         self.backends = self._discover_remote_backends()
 
     def get_backend(self, name):
-        return IBMQBackend(configuration=self.backends[name], api=self._api)
+        return self.backends[name]
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ
         backends = self.backends
 
-        # TODO: this is just an example filter.
         filters = filters or {}
         for key, value in filters.items():
-            backends = {name: config for name, config in backends.items() if
-                        config.get(key) == value}
-        return list(backends.keys())
+            backends = {name: instance for name, instance in backends.items()
+                        if instance.configuration.get(key) == value}
+        return list(backends.values())
 
     @classmethod
     def _authenticate(cls, token, url,
@@ -119,13 +118,13 @@ class IBMQProvider(BaseProvider):
         Return the remote backends available.
 
         Returns:
-            dict: (str: dict): a dict of the remote backend configurations,
+            dict[str:IBMQBackend]: a dict of the remote backend instances,
                 keyed by backend name.
         """
         ret = {}
         configs_list = self._api.available_backends()
         for raw_config in configs_list:
             config = self._parse_backend_configuration(raw_config)
-            ret[config['name']] = config
+            ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret

@@ -51,20 +51,17 @@ class LocalProvider(BaseProvider):
         self.backends = self._verify_local_backends()
 
     def get_backend(self, name):
-        return self.backends[name]()
+        return self.backends[name]
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ
         backends = self.backends
 
-        # TODO: this is just an example filter.
         filters = filters or {}
-        if 'local' in filters and not filters['local']:
-            backends = {}
-        if 'simulator' in filters and not filters['simulator']:
-            backends = {}
-
-        return list(backends.keys())
+        for key, value in filters.items():
+            backends = {name: instance for name, instance in backends.items()
+                        if instance.configuration.get(key) == value}
+        return list(backends.values())
 
     @classmethod
     def _verify_local_backends(cls):
@@ -74,14 +71,15 @@ class LocalProvider(BaseProvider):
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict: (str: class) a dict of the local backends classes that can
-                be instantiated, keyed by backend name.
+            dict[str:BaseBackend]: a dict of the local backends instances for
+                the backends that could be instantiated, keyed by backend name.
         """
         ret = {}
         for backend_cls in SDK_STANDARD_BACKENDS:
             try:
-                backend_name = cls._get_backend_name(backend_cls)
-                ret[backend_name] = backend_cls
+                backend_instance = cls._get_backend_instance(backend_cls)
+                backend_name = backend_instance.configuration['name']
+                ret[backend_name] = backend_instance
             except QISKitError as e:
                 # Ignore backends that could not be initialized.
                 logger.info('local backend %s is not available: %s',
@@ -89,15 +87,14 @@ class LocalProvider(BaseProvider):
         return ret
 
     @classmethod
-    def _get_backend_name(cls, backend_cls):
+    def _get_backend_instance(cls, backend_cls):
         """
-        Return the name of the backend, by instantiating it and reading the
-        name from its configuration.
+        Return an instance of a backend from its class.
 
         Args:
             backend_cls (class): Backend class.
         Returns:
-            str: the name of the backend.
+            BaseBackend: a backend instance.
         Raises:
             QISKitError: if the backend could not be instantiated or does not
                 provide a valid configuration containing a name.
@@ -111,8 +108,8 @@ class LocalProvider(BaseProvider):
 
         # Verify that the instance has a minimal valid configuration.
         try:
-            backend_name = backend_instance.configuration['name']
+            _ = backend_instance.configuration['name']
         except (LookupError, TypeError):
             raise QISKitError('Backend %s has an invalid configuration')
 
-        return backend_name
+        return backend_instance

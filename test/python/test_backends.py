@@ -107,8 +107,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends({'local': False})
-        for backend_name in remotes:
-            backend = ibmq_provider.get_backend(backend_name)
+        for backend in remotes:
             status = backend.status
             schema_path = self._get_resource_path(
                 'backends/backend_status_schema_py.json', path=Path.SCHEMAS)
@@ -123,8 +122,7 @@ class TestBackends(QiskitTestCase):
         """
         qiskit_provider = DefaultQISKitProvider()
         local_backends = qiskit_provider.available_backends({'local': True})
-        for backend_name in local_backends:
-            backend = qiskit_provider.get_backend(backend_name)
+        for backend in local_backends:
             configuration = backend.configuration
             schema_path = self._get_resource_path(
                 'backends/backend_configuration_schema_old_py.json',
@@ -141,8 +139,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends({'local': False})
-        for backend_name in remotes:
-            backend = ibmq_provider.get_backend(backend_name)
+        for backend in remotes:
             configuration = backend.configuration
             schema_path = self._get_resource_path(
                 'backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
@@ -157,8 +154,7 @@ class TestBackends(QiskitTestCase):
         """
         qiskit_provider = DefaultQISKitProvider()
         local_backends = qiskit_provider.available_backends({'local': True})
-        for backend_name in local_backends:
-            backend = qiskit_provider.get_backend(backend_name)
+        for backend in local_backends:
             calibration = backend.calibration
             # FIXME test against schema and decide what calibration
             # is for a simulator
@@ -172,8 +168,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends({'local': False})
-        for backend_name in remotes:
-            backend = ibmq_provider.get_backend(backend_name)
+        for backend in remotes:
             calibration = backend.calibration
             # FIXME test against schema and decide what calibration
             # is for a simulator
@@ -189,8 +184,7 @@ class TestBackends(QiskitTestCase):
         """
         qiskit_provider = DefaultQISKitProvider()
         local_backends = qiskit_provider.available_backends({'local': True})
-        for backend_name in local_backends:
-            backend = qiskit_provider.get_backend(backend_name)
+        for backend in local_backends:
             parameters = backend.parameters
             # FIXME test against schema and decide what parameters
             # is for a simulator
@@ -204,8 +198,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends({'local': False})
-        for backend_name in remotes:
-            backend = ibmq_provider.get_backend(backend_name)
+        for backend in remotes:
             parameters = backend.parameters
             # FIXME test against schema and decide what parameters
             # is for a simulator

@@ -47,7 +47,7 @@ class DefaultQISKitProvider(BaseProvider):
         Args:
             filters (dict): dictionary of filtering conditions.
         Returns:
-            list[str]: a list of backend names available from all the
+            list[BaseBackend]: a list of backend names available from all the
                 providers.
         """
         # pylint: disable=arguments-differ
