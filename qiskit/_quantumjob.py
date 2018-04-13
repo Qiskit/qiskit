@@ -128,6 +128,7 @@ class QuantumJob():
                 'name': name,
                 'compiled_circuit': None if do_compile else fcircuit,
                 'compiled_circuit_qasm': None if do_compile else fcircuit,
+                'circuit': circuit,
                 'config': config
             }
             circuit_records.append(record)

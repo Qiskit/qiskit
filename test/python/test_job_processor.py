@@ -138,8 +138,10 @@ class TestJobProcessor(QiskitTestCase):
 
     def test_run_local_backend_qasm(self):
         dag_circuit = openquantumcompiler.compile(self.qc)
+        # TODO: make this run on `local_qasm_simulator` after `do_compile`
+        # is fixed in _quantumjob.        
         quantum_job = QuantumJob(dag_circuit, do_compile=False,
-                                 backend='local_qasm_simulator')
+                                 backend='local_qasm_simulator_py')
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_unitary(self):
@@ -158,8 +160,10 @@ class TestJobProcessor(QiskitTestCase):
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_compile(self):
+        # TODO: make this run on `local_qasm_simulator` after `do_compile`
+        # is fixed in _quantumjob.        
         quantum_job = QuantumJob(self.qasm_circ, do_compile=True,
-                                 backend='local_qasm_simulator')
+                                 backend='local_qasm_simulator_py')
         jobprocessor.run_backend(quantum_job)
 
     @requires_qe_access
@@ -168,8 +172,6 @@ class TestJobProcessor(QiskitTestCase):
 
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend='ibmq_qasm_simulator')
-        from pprint import pprint
-        pprint(quantum_job.qobj)
         jobprocessor.run_backend(quantum_job)
 
     def test_compile_job(self):
@@ -236,8 +238,10 @@ class TestJobProcessor(QiskitTestCase):
         job_list = []
         for _ in range(njobs):
             compiled_circuit = openquantumcompiler.compile(self.qc)
+            # TODO: make this run on `local_qasm_simulator` after `do_compile`
+            # is fixed in _quantumjob.
             quantum_job = QuantumJob(compiled_circuit,
-                                     backend='local_qasm_simulator')
+                                     backend='local_qasm_simulator_py')
             job_list.append(quantum_job)
 
         self.job_processor_finished = False
