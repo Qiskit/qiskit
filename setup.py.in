@@ -56,7 +56,7 @@ packages = ["qiskit",
 
 
 # C++ components compilation
-class QiskitSimulatorBuild(build):
+class QasmSimulatorBuild(build):
     def run(self):
         super().run()
         # Store the current working directory, as invoking cmake involves
@@ -82,7 +82,7 @@ class QiskitSimulatorBuild(build):
                 cmd_cmake.append("-GMinGW Makefiles")
             cmd_cmake.append('..')
 
-            cmd_make = ['make', 'pypi_package_copy_qiskit_simulator']
+            cmd_make = ['make', 'pypi_package_copy_qasm_simulator_cpp']
 
             try:
                 cmd_make.append('-j%d' % cpu_count())
@@ -95,7 +95,7 @@ class QiskitSimulatorBuild(build):
                 call(cmd_cmake)
                 call(cmd_make)
 
-            self.execute(compile_simulator, [], 'Compiling QISKit C++ Simulator')
+            self.execute(compile_simulator, [], 'Compiling C++ QASM Simulator')
         except Exception as e:
             print(str(e))
             print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
@@ -140,7 +140,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.5",
     cmdclass={
-        'build': QiskitSimulatorBuild,
+        'build': QasmSimulatorBuild,
     },
     distclass=BinaryDistribution,
     extras_require={

@@ -91,9 +91,6 @@ public:
   // Initial State
   StateType initial_state;
 
-  // OMP Threshold for backend
-  int_t omp_threshold = -1; // < 0 for automatic
-
   //============================================================================
   // Constructors
   //============================================================================
@@ -115,8 +112,8 @@ public:
    * @param nshots the number of simulation shots to run
    */
   virtual void run_program(Circuit &circ, BaseBackend<StateType> *be,
-                           uint_t nshots = 1, uint_t nthreads = 1);
-  virtual void initialize(BaseBackend<StateType> *be, uint_t nthreads);
+                           uint_t nshots = 1);
+  virtual void initialize(BaseBackend<StateType> *be);
   virtual void execute(Circuit &circ, BaseBackend<StateType> *be,
                        uint_t nshots);
 
@@ -155,18 +152,14 @@ public:
 template <typename StateType>
 void BaseEngine<StateType>::run_program(Circuit &prog,
                                         BaseBackend<StateType> *be,
-                                        uint_t nshots, uint_t nthreads) {
-  initialize(be, nthreads);
+                                        uint_t nshots) {
+  initialize(be);
   execute(prog, be, nshots);
   total_shots += nshots;
 }
 
 template <typename StateType>
-void BaseEngine<StateType>::initialize(BaseBackend<StateType> *be,
-                                       uint_t nthreads) {
-  // Set OpenMP settings
-  be->set_omp_threads(nthreads);
-  be->set_omp_threshold(omp_threshold);
+void BaseEngine<StateType>::initialize(BaseBackend<StateType> *be) {
   // Set custom initial state
   if (initial_state_flag)
     be->set_initial_state(initial_state);
@@ -308,8 +301,6 @@ inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
     engine.initial_state_flag = true;
   }
 
-  // Get omp threshold
-  JSON::get_value(engine.omp_threshold, "omp_threshold", js);
 }
 
 //------------------------------------------------------------------------------

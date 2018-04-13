@@ -62,7 +62,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
-                         'shots': 1024,
+                         'shots': 2000,
                          'backend': 'local_qiskit_simulator',
                          'seed': 1111
                      },
@@ -127,7 +127,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
     def test_run_qobj(self):
         result = self.backend.run(self.q_job)
-        shots = 1024
+        shots = self.qobj['config']['shots']
         threshold = 0.025 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
@@ -144,7 +144,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                backend='local_qasm_simulator_cpp',
                                preformatted=True)
         result = self.backend.run(q_job)
-        shots = 1000
+        shots = q_job.qobj['config']['shots']
         expected_data = {
             'measure (opt)': {
                 'deterministic': True,

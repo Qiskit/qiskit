@@ -52,7 +52,7 @@ public:
   /************************
    * BaseBackend Methods
    ************************/
-  void set_config(json_t &config);
+  void set_config(json_t &config) override;
   virtual void initialize(const Circuit &prog);
   virtual void qc_operation(const operation &op);
 
@@ -64,6 +64,10 @@ public:
 
 
 protected:
+  /************************
+   * OpenMP setting
+   ************************/
+  int omp_threshold = 16;
 
   /************************
    * Apply matrices
@@ -122,10 +126,7 @@ protected:
 
 void IdealBackend::set_config(json_t &config) {
   // Set OMP threshold for state update functions
-  uint_t num_qubits_omp_threshold = 20; // default threshold
-  JSON::get_value(num_qubits_omp_threshold, "theshold_omp_gate", config);
-  qreg.set_omp_threshold(num_qubits_omp_threshold);
-  
+  JSON::get_value(omp_threshold, "threshold_omp_gate", config);
   // parse initial state from JSON
   if (JSON::check_key("initial_state", config)) {
     QubitVector initial_state = config["initial_state"].get<cvector_t>();
@@ -153,12 +154,10 @@ void IdealBackend::initialize(const Circuit &prog) {
   } else {
     // reset state std::vector to default state
     qreg = QubitVector(prog.nqubits);
+    qreg.set_omp_threshold(omp_threshold);
+    qreg.set_omp_threads(num_threads);
     qreg.initialize();
   }
-
-  // OpenMP settings
-  qreg.set_omp_threshold(omp_threshold);
-  qreg.set_omp_threads(omp_threads);
 
   // TODO: make a ClassicalRegister class using BinaryVector
   creg.assign(prog.nclbits, 0);
