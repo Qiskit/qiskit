@@ -52,7 +52,7 @@ The following packages are required for building:
 * pthread
 * OpenMP *(optional)*
 
-Installing these dependencies for MacOS, Ubunti or RHEL can be achieved by using the `build_dependencies.sh` script. This may be invoved from the command line by running
+Installing these dependencies for MacOS, Ubuntu or RHEL can be achieved by using the `build_dependencies.sh` script. This may be invoved from the command line by running
 
 ```bash
 > make depends
