@@ -177,13 +177,12 @@ public:
    */
 
   virtual inline void set_config(json_t &config) = 0; // raises unused param warning
-  inline void set_omp_threads(int n) {
+  inline void set_num_threads(int n) {
     if (n > 0)
-      omp_threads = n;
+      num_threads = n;
   };
-  inline void set_omp_threshold(int n) {
-    if (n > 0)
-      omp_threshold = n;
+  inline int get_num_threads() {
+    return num_threads;
   };
 
   /**
@@ -201,10 +200,8 @@ protected:
   /**
    * Number of threads to use for inner parallelization.
    */
-  uint_t omp_threads = 1;
-  uint_t omp_threshold;
-  bool omp_flag = false;
-
+  int num_threads = 1;
+  
   /**
    * Stores the state of measured classical registers in a QISKIT program. All
    * bits are initialized in the 0 state, and any unmeasured bits will hence

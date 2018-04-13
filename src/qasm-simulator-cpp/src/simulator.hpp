@@ -197,14 +197,17 @@ json_t Simulator::run_circuit(Circuit &circ) const {
         threads = std::min<uint_t>(max_threads_shot, threads);
     }
     uint_t gate_threads = std::max<uint_t>(1UL, ncpus / threads);
-    if (max_threads_gate > 0)
+    if (max_threads_gate > 0) {
       gate_threads = std::min<uint_t>(max_threads_gate, gate_threads);
-
+    }
+    if (gate_threads > 0) {
+      backend.set_num_threads(gate_threads);
+    }
     // Single-threaded shots loop
     if (threads < 2) {
       // Run shots on single-thread
       backend.set_rng_seed(rng_seed);
-      engine.run_program(circ, &backend, circ.shots, gate_threads);
+      engine.run_program(circ, &backend, circ.shots);
     }
     // Parallelized shots loop
     else {
@@ -223,7 +226,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
         Backend be(backend);
         be.set_rng_seed(ss.second);
         futures[j] = engine;
-        futures[j].run_program(circ, &be, ss.first, gate_threads);
+        futures[j].run_program(circ, &be, ss.first);
       }
       for (auto &f : futures)
         engine += f;
@@ -253,7 +256,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     }
 
     // Add time taken and return result
-    ret["data"]["time_taken"] =
+    ret["time_taken"] =
         std::chrono::duration<double>(myclock_t::now() - start).count();
     // Add metadata
     ret["name"] = circ.name;
@@ -261,6 +264,8 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     ret["seed"] = rng_seed;
     if (threads > 1)
       ret["threads_shot"] = threads;
+    if (gate_threads > 1)
+      ret["threads_gates"] = gate_threads;
     // Report success
     ret["success"] = true;
     ret["status"] = std::string("DONE");

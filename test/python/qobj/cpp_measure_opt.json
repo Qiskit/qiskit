@@ -1,7 +1,7 @@
 {
     "id": "test_measure_opt",
     "config": {
-        "shots": 1000,
+        "shots": 2000,
         "seed": 1,
         "backend": "local_qasm_simulator_cpp"
     },

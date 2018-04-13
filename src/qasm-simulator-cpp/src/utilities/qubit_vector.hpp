@@ -175,8 +175,8 @@ protected:
   TensorIndex idx;
 
   // OMP
-  uint_t omp_threads = 1;
-  uint_t omp_threshold = 20;
+  uint_t omp_threads = 1;     // Disable multithreading by default
+  uint_t omp_threshold = 16;  // Qubit threshold for multithreading when enabled
 
   /************************
    * Matrix-mult Helper functions

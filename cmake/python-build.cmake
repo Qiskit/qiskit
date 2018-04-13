@@ -53,13 +53,13 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	endif()
 
 	if(PIP_PACKAGE_PLATFORM_WHEELS)
-		set(COPY_QASM_SIM_TARGET ${TARGET_NAME}_copy_qasm_simulator)
+        set(COPY_QASM_SIM_CPP_TARGET ${TARGET_NAME}_copy_qasm_simulator_cpp)
 		# We create a target which will depend on TARGET_NAME_WHEELS for
 		# copying all the binaries to their final locations
-		add_custom_target(${COPY_QASM_SIM_TARGET})
-    	add_custom_command(TARGET ${COPY_QASM_SIM_TARGET}
+		add_custom_target(${COPY_QASM_SIM_CPP_TARGET})
+    	add_custom_command(TARGET ${COPY_QASM_SIM_CPP_TARGET}
 			COMMAND ${CMAKE_COMMAND} -E copy
-				${QASM_SIMULATOR_OUTPUT_DIR}/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
+            ${QASM_SIMULATOR_CPP_OUTPUT_DIR}/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
 				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends)
 		# For ' make clean' target
 		set_property(DIRECTORY APPEND PROPERTY
@@ -67,8 +67,8 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION})
 		# For Windows, we need to copy external .dll dependencies too
 		if(MINGW)
-			foreach(dll_file ${QASM_SIMULATOR_THIRD_PARTY_DLLS})
-				add_custom_command(TARGET ${COPY_QASM_SIM_TARGET}
+            foreach(dll_file ${QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS})
+				add_custom_command(TARGET ${COPY_QASM_SIM_CPP_TARGET}
 					COMMAND ${CMAKE_COMMAND} -E copy
 						${dll_file}
 						${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends)
@@ -97,7 +97,7 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	if(PIP_PACKAGE_PLATFORM_WHEELS)
 		add_dependencies(${TARGET_NAME}
 							${TARGET_NAME_WHEELS}
-							${COPY_QASM_SIM_TARGET}
+							${COPY_QASM_SIM_CPP_TARGET}
 							qasm_simulator_cpp)
 	endif()
 
