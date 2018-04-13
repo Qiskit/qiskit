@@ -139,7 +139,7 @@ class TestJobProcessor(QiskitTestCase):
     def test_run_local_backend_qasm(self):
         dag_circuit = openquantumcompiler.compile(self.qc)
         # TODO: make this run on `local_qasm_simulator` after `do_compile`
-        # is fixed in _quantumjob.        
+        # is fixed in _quantumjob.
         quantum_job = QuantumJob(dag_circuit, do_compile=False,
                                  backend='local_qasm_simulator_py')
         jobprocessor.run_backend(quantum_job)
@@ -161,7 +161,7 @@ class TestJobProcessor(QiskitTestCase):
 
     def test_run_local_backend_compile(self):
         # TODO: make this run on `local_qasm_simulator` after `do_compile`
-        # is fixed in _quantumjob.        
+        # is fixed in _quantumjob.
         quantum_job = QuantumJob(self.qasm_circ, do_compile=True,
                                  backend='local_qasm_simulator_py')
         jobprocessor.run_backend(quantum_job)

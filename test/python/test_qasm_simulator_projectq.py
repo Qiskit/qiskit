@@ -25,7 +25,6 @@ from scipy.stats import chi2_contingency
 
 import qiskit.backends._qasm_simulator_projectq as projectq_simulator
 import qiskit.backends._qasm_simulator_py as qasm_simulator
->>>>>>> 5e6e6f998778860fd7d954e2868cef5b827d1ec4:test/python/test_qasm_simulator_projectq.py
 from qiskit import QuantumJob
 from qiskit import QuantumProgram
 from qiskit import _openquantumcompiler as openquantumcompiler
