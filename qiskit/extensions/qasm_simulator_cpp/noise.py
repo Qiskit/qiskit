@@ -60,7 +60,7 @@ def noise(self, switch, *tuples):
 
     Args:
         switch (int): turn noise on (1) or off (0)
-        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+        tuples (tuple): (reg, index) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command

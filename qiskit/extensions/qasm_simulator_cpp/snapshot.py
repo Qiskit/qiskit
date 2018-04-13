@@ -61,7 +61,7 @@ def snapshot(self, slot, *tuples):
 
     Args:
         slot (int): a snapshot slot to report the result
-        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+        tuples (tuple): (reg, idx) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command

@@ -143,9 +143,6 @@ class CliffordSimulatorCpp(BaseBackend):
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
-    def _validate(self, qobj):
-        return True
-
 
 class QASMSimulatorEncoder(json.JSONEncoder):
     """

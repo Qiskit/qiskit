@@ -61,7 +61,7 @@ def load(self, slot, tuples):
 
     Args:
         slot (int): a slot to load from
-        tuples (reg, idx): qubits to act on. this works like a barrier for those qubits.
+        tuples (tuple): (reg, idx) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command

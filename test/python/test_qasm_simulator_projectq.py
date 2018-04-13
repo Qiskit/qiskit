@@ -77,7 +77,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qc.x(qr[0])
         qc.measure(qr, cr)
         result_pq = qp.execute(['circuitName'],
-                               backend='local_projectq_simulator',
+                               backend='local_qasm_simulator_projectq',
                                seed=1, shots=shots)
         self.assertEqual(result_pq.get_counts(result_pq.get_names()[0]),
                          {'1': shots})
@@ -93,7 +93,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
             qc.cx(qr[0], qr[i])
         qc.measure(qr, cr)
         result = qp.execute(['circuitName'],
-                            backend='local_projectq_simulator',
+                            backend='local_qasm_simulator_projectq',
                             seed=1, shots=100)
         counts = result.get_counts(result.get_names()[0])
         self.log.info(counts)
@@ -109,7 +109,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
             shots = 1000
             min_cnts = int(shots / 10)
             job_pq = QuantumJob(compiled_circuit,
-                                backend='local_projectq_simulator',
+                                backend='local_qasm_simulator_projectq',
                                 seed=1, shots=shots)
             job_py = QuantumJob(compiled_circuit,
                                 backend='local_qasm_simulator',
@@ -123,7 +123,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
                          if cnt > min_cnts}
             counts_py = {key: cnt for key, cnt in counts_py.items()
                          if cnt > min_cnts}
-            self.log.info('local_projectq_simulator: %s', str(counts_pq))
+            self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
             self.log.info('local_qasm_simulator: %s', str(counts_py))
             threshold = 0.05 * shots
             self.assertDictAlmostEqual(counts_pq, counts_py, threshold)
