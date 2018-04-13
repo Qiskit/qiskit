@@ -133,7 +133,7 @@ class CliffordSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
-        self._validate(qobj)
+        self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj:
             qobj['config']['simulator'] = 'clifford'
@@ -142,6 +142,9 @@ class CliffordSimulatorCpp(BaseBackend):
 
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
+
+    def _validate(self):
+        return
 
 
 class QASMSimulatorEncoder(json.JSONEncoder):
