@@ -60,9 +60,10 @@ _ALIASED_BACKENDS = {
         'local_unitary_simulator': ['local_unitary_simulator_cpp',
                                     'local_unitary_simulator_py',
                                     'local_unitary_simulator_sympy'],
-        'local_clifford_simulator': ['local_clifford_simulator_cpp'],
-        'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
-                                'ibmq_qasm_simulator_hpc']
+        'local_clifford_simulator': ['local_clifford_simulator_cpp']
+        # FIXME: uncomment after API fix: online simulator names should change        
+        #'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
+        #                        'ibmq_qasm_simulator_hpc']
         }
 """
 dict (alias_name: backend_names(list))
@@ -77,9 +78,10 @@ of priority from the value list, depending on availability.
 _DEPRECATED_BACKENDS = {
         'local_qiskit_simulator': 'local_qasm_simulator_cpp',
         'wood_simulator': 'local_qasm_simulator_cpp',
-        'real': 'ibmqx1',
-        'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-        'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc'
+        'real': 'ibmqx1'
+        # FIXME: uncomment after API fix: online simulator names should change
+        #'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+        #'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc'
         }
 """
 dict (deprecated_name: backend_name)
@@ -148,13 +150,7 @@ def discover_remote_backends(api):
     backend_name_list = []
     for config in config_list:
         config_edit = {}
-        print(config)
         backend_name = config['name']
-        # FIXME: fix API: online simulator names should change
-        if backend_name == 'ibmqx_qasm_simulator':
-            backend_name = 'ibmq_qasm_simulator'
-        if backend_name == 'ibmqx_hpc_qasm_simulator':
-            backend_name = 'ibmq_qasm_simulator_hpc'
         backend_name_list.append(backend_name)
         config_edit['local'] = False
         for key in config.keys():
@@ -452,6 +448,11 @@ def resolve_name(backend):
             resolved_backend = _DEPRECATED_BACKENDS[backend]
             logger.warning('WARNING: "{0}" is deprecated. Use "{1}"'.format(
                             backend, resolved_backend))
+    # FIXME: remove after API fix: online simulator names should change
+    if backend == 'ibmq_qasm_simulator':
+        resolved_backend = 'ibmqx_qasm_simulator'
+    if backend == 'ibmq_qasm_simulator_hpc':
+        resolved_backend = 'ibmqx_hpc_qasm_simulator'
 
     if resolved_backend not in _REGISTERED_BACKENDS:
         raise LookupError('backend "{}" is not available'.format(backend))

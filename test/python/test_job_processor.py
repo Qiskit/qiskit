@@ -168,6 +168,8 @@ class TestJobProcessor(QiskitTestCase):
 
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend='ibmq_qasm_simulator')
+        from pprint import pprint
+        pprint(quantum_job.qobj)
         jobprocessor.run_backend(quantum_job)
 
     def test_compile_job(self):
