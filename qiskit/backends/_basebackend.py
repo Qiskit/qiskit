@@ -54,16 +54,17 @@ class BaseBackend(ABC):
     @property
     def calibration(self):
         """Return backend calibration"""
-        backend_name = self.configuration['name']
-        return {'backend': backend_name, 'calibrations': None}
+        backend_name = self._configuration['name']
+        return {'name': backend_name, 'calibrations': None}
 
     @property
     def parameters(self):
         """Return backend parameters"""
-        backend_name = self.configuration['name']
-        return {'backend': backend_name, 'parameters': None}
+        backend_name = self._configuration['name']
+        return {'name': backend_name, 'parameters': None}
 
     @property
     def status(self):
         """Return backend status"""
-        return {'available': True}
+        backend_name = self._configuration['name']
+        return {'name': backend_name, 'available': True}

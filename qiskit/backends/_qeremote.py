@@ -82,7 +82,7 @@ class QeRemote(BaseBackend):
 
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
-        if (qobj['config']['backend'] == 'ibmqx_hpc_qasm_simulator' and
+        if (qobj['config']['backend'] == 'ibmq_qasm_simulator_hpc' and
                 'hpc' in qobj['config']):
             try:
                 # Use CamelCase when passing the hpc parameters to the API.

@@ -783,7 +783,7 @@ class QuantumProgram(object):
 
         return self.__api
 
-    def available_backends(self):
+    def available_backends(self, compact=True):
         """All the backends that are seen by QISKIT.
 
         .. deprecated:: 0.5
@@ -796,11 +796,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        local = qiskit.backends.local_backends()
-        if self.__api:
-            qiskit.backends.discover_remote_backends(self.__api)
-        remote = qiskit.backends.remote_backends()
-        return local + remote
+        return qiskit.backends.local_backends(compact) + qiskit.backends.remote_backends(compact)
 
     def online_backends(self):
         """Get the online backends.
@@ -1053,7 +1049,7 @@ class QuantumProgram(object):
             seed (int): the initial seed the simulators use
             qobj_id (str): identifier of the qobj.
             hpc (dict): This will setup some parameter for
-                ibmqx_hpc_qasm_simulator, using a JSON-like format like::
+                ibmq_qasm_simulator_hpc, using a JSON-like format like::
 
                     {
                         'multi_shot_optimization': Boolean,
@@ -1061,7 +1057,7 @@ class QuantumProgram(object):
                     }
 
                 This parameter MUST be used only with
-                ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                ibmq_qasm_simulator_hpc, otherwise the SDK will warn
                 the user via logging, and set the value to None.
 
         Returns:
@@ -1117,13 +1113,17 @@ class QuantumProgram(object):
             qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                                for n in range(30)])
         qobj['id'] = qobj_id
+
+        # Resolve backend name from a possible short alias or a deprecated name
+        backend = qiskit.backends.resolve_name(backend)
+
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
 
         # TODO This backend needs HPC parameters to be passed in order to work
-        if backend == 'ibmqx_hpc_qasm_simulator':
+        if 'hpc' in backend:
             if hpc is None:
-                logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
+                logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
                             'parameter. Setting defaults to hpc.multi_shot_optimization '
                             '= true and hpc.omp_num_threads = 16')
                 hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
@@ -1135,8 +1135,8 @@ class QuantumProgram(object):
             qobj['config']['hpc'] = hpc
         elif hpc is not None:
             logger.info('HPC parameter is only available for '
-                        'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
-                        'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                        'ibmq_qasm_simulator_hpc. You are passing an HPC parameter '
+                        'but you are not using ibmq_qasm_simulator_hpc, so we will '
                         'ignore it.')
             hpc = None
 
@@ -1508,7 +1508,7 @@ class QuantumProgram(object):
             max_credits (int): the max credits to use 3, or 5
             seed (int): the initial seed the simulators use
             hpc (dict): This will setup some parameter for
-                        ibmqx_hpc_qasm_simulator, using a JSON-like format like::
+                        ibmq_qasm_simulator_hpc, using a JSON-like format like::
 
                             {
                                 'multi_shot_optimization': Boolean,
@@ -1516,7 +1516,7 @@ class QuantumProgram(object):
                             }
 
                         This parameter MUST be used only with
-                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        ibmq_qasm_simulator_hpc, otherwise the SDK will warn
                         the user via logging, and set the value to None.
 
         Returns:

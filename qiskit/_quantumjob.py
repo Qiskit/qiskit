@@ -88,11 +88,12 @@ class QuantumJob():
         # local and remote backends currently need different
         # compilied circuit formats
         formatted_circuits = []
+        backend = backends.resolve_name(backend)
         if do_compile:
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            if backend in backends.local_backends():
+            if backend in backends.local_backends(compact=False):
                 for circuit in self.circuits:
                     basis = ['u1', 'u2', 'u3', 'cx', 'id']
                     unroller = Unroller

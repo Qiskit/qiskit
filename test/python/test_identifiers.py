@@ -296,7 +296,7 @@ class TestAnonymousIds(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
         q_program.add_circuit(quantum_circuit=new_circuit)
-        backend = 'local_qasm_simulator'  # the backend to run on
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string identifiers (FIXME)
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(backend=backend, shots=shots, seed=78)
         counts = result.get_counts(new_circuit.name)
@@ -645,7 +645,7 @@ class TestZeroIds(QiskitTestCase):
         new_circuit = qc1 + qc2
         q_program.add_circuit(1001, new_circuit)
         circuits = [1001]
-        backend = 'local_qasm_simulator'  # the backend to run on
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string identifiers (FIXME)
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots, seed=78)
         counts = result.get_counts(1001)
@@ -994,7 +994,7 @@ class TestIntegerIds(QiskitTestCase):
         q_program.add_circuit(1001, new_circuit)
         # new_circuit.measure(qr[0], cr[0])
         circuits = [1001]
-        backend = 'local_qasm_simulator'  # the backend to run on
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string identifiers (FIXME)
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
@@ -1339,7 +1339,7 @@ class TestTupleIds(QiskitTestCase):
         new_circuit = qc1 + qc2
         q_program.add_circuit((1001.1, 1001j), new_circuit)
         circuits = [(1001.1, 1001j)]
-        backend = 'local_qasm_simulator'  # the backend to run on
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string identifiers (FIXME)
         shots = 1024  # the number of shots in the experiment.
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)

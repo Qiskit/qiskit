@@ -102,7 +102,7 @@ qp = qiskit.QuantumProgram()
 qp.add_circuit("bell", qc)
 
 # See a list of available local simulators
-print("Local backends: ", qiskit.backends.discover_local_backends())
+print("Local backends: ", qiskit.backends.local_backends())
 
 # Compile and run the Quantum Program on a simulator backend
 sim_result = qp.execute("bell", backend='local_qasm_simulator', shots=1024, seed=1)

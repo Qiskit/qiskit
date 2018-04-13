@@ -28,7 +28,7 @@ from qiskit import QuantumCircuit
 
 import Qconfig
 
-online_backend = "ibmqx_qasm_simulator"
+online_backend = "ibmq_qasm_simulator"
 local_backend = "local_qasm_simulator"
 
 # Whether we have connection with API servers or not. If not, we only launch
