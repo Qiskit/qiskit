@@ -47,24 +47,24 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 		add_custom_target(${TARGET_NAME_SDIST})
 		add_custom_command(TARGET ${TARGET_NAME_SDIST}
 			COMMAND ${CMAKE_COMMAND} -E remove
-				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qasm_simulator${EXECUTABLE_FILE_EXTENSION}
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
 			COMMAND ${PYTHON} ${SETUP_PY} ${PIP_PACKAGE_SOURCE_DIST}
 			WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 	endif()
 
 	if(PIP_PACKAGE_PLATFORM_WHEELS)
-        set(COPY_QASM_SIM_CPP_TARGET ${TARGET_NAME}_copy_qasm_simulator)
+        set(COPY_QASM_SIM_CPP_TARGET ${TARGET_NAME}_copy_qasm_simulator_cpp)
 		# We create a target which will depend on TARGET_NAME_WHEELS for
 		# copying all the binaries to their final locations
 		add_custom_target(${COPY_QASM_SIM_CPP_TARGET})
     	add_custom_command(TARGET ${COPY_QASM_SIM_CPP_TARGET}
 			COMMAND ${CMAKE_COMMAND} -E copy
-            ${QASM_SIMULATOR_CPP_OUTPUT_DIR}/qasm_simulator${EXECUTABLE_FILE_EXTENSION}
+            ${QASM_SIMULATOR_CPP_OUTPUT_DIR}/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
 				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends)
 		# For ' make clean' target
 		set_property(DIRECTORY APPEND PROPERTY
 			ADDITIONAL_MAKE_CLEAN_FILES
-				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qasm_simulator${EXECUTABLE_FILE_EXTENSION})
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION})
 		# For Windows, we need to copy external .dll dependencies too
 		if(MINGW)
             foreach(dll_file ${QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS})
@@ -91,14 +91,14 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	if(PIP_PACKAGE_SOURCE_DIST)
 		add_dependencies(${TARGET_NAME}
 							${TARGET_NAME_SDIST}
-							qasm_simulator)
+							qasm_simulator_cpp)
 	endif()
 
 	if(PIP_PACKAGE_PLATFORM_WHEELS)
 		add_dependencies(${TARGET_NAME}
 							${TARGET_NAME_WHEELS}
 							${COPY_QASM_SIM_CPP_TARGET}
-							qasm_simulator)
+							qasm_simulator_cpp)
 	endif()
 
 endfunction()

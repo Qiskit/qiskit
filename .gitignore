@@ -134,5 +134,3 @@ qiskit/backends/qasm_simulator_cpp
 src/qasm-simulator-cpp/test/qubit_vector_tests
 
 *.o
-
-qiskit/backends/qasm_simulator_cpp
