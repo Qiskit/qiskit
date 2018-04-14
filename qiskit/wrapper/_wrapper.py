@@ -111,12 +111,12 @@ def get_backend(name):
 # Functions for compiling and executing.
 
 
-def compile(list_of_circuits, backend_name, compile_config=None):
+def compile(list_of_circuits, backend, compile_config=None):
     """Compile a list of circuits into a qobj.
 
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits
-        backend_name (str): a backend name to use as the default compiling
+        backend (BaseBackend): a backend to use as the default compiling
             option.
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
@@ -124,7 +124,6 @@ def compile(list_of_circuits, backend_name, compile_config=None):
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    backend = _DEFAULT_PROVIDER.get_backend(backend_name)
     return qiskit._compiler.compile(list_of_circuits, backend, compile_config)
 
 
