@@ -31,6 +31,8 @@ from ._instructionset import InstructionSet
 
 class QuantumCircuit(object):
     """Quantum circuit."""
+    instances = 0
+    prefix = 'circuit'
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
@@ -49,12 +51,30 @@ class QuantumCircuit(object):
 
     def __init__(self, *regs, name=None):
         """Create a new circuit."""
+        self._increment_instances()
+        if name is None:
+            name = self.cls_prefix() + str(self.cls_instances())
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
         self.regs = OrderedDict()
         self.add(*regs)
+
+    @classmethod
+    def _increment_instances(cls):
+        cls.instances += 1
+
+    @classmethod
+    def cls_instances(cls):
+        """Return the current number of instances of this class,
+        useful for auto naming."""
+        return cls.instances
+
+    @classmethod
+    def cls_prefix(cls):
+        """Return the prefix to use for auto naming."""
+        return cls.prefix
 
     def has_register(self, register):
         """
@@ -218,15 +238,15 @@ class QuantumCircuit(object):
 
     def qasm(self):
         """Return OPENQASM string."""
-        string = self.header + "\n"
+        string_temp = self.header + "\n"
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
-                string += self._gate_string(gate_name)
+                string_temp += self._gate_string(gate_name)
         for register in self.regs.values():
-            string += register.qasm() + "\n"
+            string_temp += register.qasm() + "\n"
         for instruction in self.data:
-            string += instruction.qasm() + "\n"
-        return string
+            string_temp += instruction.qasm() + "\n"
+        return string_temp
 
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples).

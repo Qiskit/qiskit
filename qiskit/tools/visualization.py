@@ -1617,7 +1617,7 @@ def _get_register_specs(bit_labels):
     """
     Get the number and size of unique registers from bit_labels list.
 
-    TODO: this function also appears in _projectq_simulator.py. Perhaps it
+    TODO: this function also appears in projectq_simulator.py. Perhaps it
     should be placed in _quantumcircuit.py or tools.
 
     Args:

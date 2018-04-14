@@ -18,7 +18,8 @@
 
 import unittest
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+import qiskit
+# from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
 from qiskit._qiskiterror import QISKitError
 
@@ -56,9 +57,9 @@ class TestStandard(QiskitTestCase):
     """Standard Extension Test."""
 
     def setUp(self):
-        self.q = QuantumRegister("q", 3)
-        self.c = ClassicalRegister("c", 3)
-        self.circuit = QuantumCircuit(self.q, self.c)
+        self.q = qiskit.QuantumRegister(3, "q")
+        self.c = qiskit.ClassicalRegister(3, "c")
+        self.circuit = qiskit.QuantumCircuit(self.q, self.c)
 
     def test_barrier(self):
         c = self.circuit

@@ -26,7 +26,7 @@ import numpy as np
 import qiskit._jobprocessor as jobprocessor
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
                     QuantumRegister, ClassicalRegister)
-from qiskit.backends._unitarysimulator import UnitarySimulator
+from qiskit.backends.local.unitarysimulator import UnitarySimulator
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -98,15 +98,16 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         This test is similar to one in test_quantumprogram but doesn't use
         multiprocessing.
         """
-        qr = QuantumRegister('q', 2)
-        cr = ClassicalRegister('c', 1)
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(1, 'c')
         qc1 = QuantumCircuit(qr, cr)
         qc2 = QuantumCircuit(qr, cr)
         qc1.h(qr)
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
+        backend = UnitarySimulator()
         quantum_job = QuantumJob(circuits, do_compile=True,
-                                 backend='local_unitary_simulator')
+                                 backend=backend)
         result = jobprocessor.run_backend(quantum_job)
         unitary1 = result[0]['data']['unitary']
         unitary2 = result[1]['data']['unitary']
