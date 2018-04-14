@@ -106,6 +106,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
+.DS_Store
 
 dummyscripts/*
 
@@ -129,5 +130,8 @@ out/*
 
 # CMake generates this file on the fly
 setup.py
-qiskit/backends/qiskit_simulator
-.DS_Store
+qiskit/backends/local/qasm_simulator_cpp
+
+src/qasm-simulator-cpp/test/qubit_vector_tests
+
+*.o
