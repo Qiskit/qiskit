@@ -1348,6 +1348,7 @@ class TestTupleIds(QiskitTestCase):
         threshold = 0.025 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
+
 class TestQobj(QiskitTestCase):
     """Check the objects compiled for different backends create names properly"""
 
