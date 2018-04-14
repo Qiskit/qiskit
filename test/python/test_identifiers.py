@@ -1348,6 +1348,83 @@ class TestTupleIds(QiskitTestCase):
         threshold = 0.025 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
+class TestQobj(QiskitTestCase):
+    """Check the objects compiled for different backends create names properly"""
+
+    def setUp(self):
+        qp = QuantumProgram()
+        qr = qp.create_quantum_register(2, 2)
+        cr = qp.create_classical_register(None, 2)
+        qc = qp.create_circuit(0, [qr], [cr])
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qp.add_circuit(10, qc)
+        circuits = [10]
+        self.qr_name = qr.openqasm_name
+        self.cr_name = cr.openqasm_name
+        self.qp = qp
+        self.circuits = circuits
+
+    def test_local_qasm_simulator(self):
+        backend = 'local_qasm_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_clifford_simulator(self):
+        backend = 'local_clifford_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_qiskit_simulator(self):
+        backend = 'local_qiskit_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_sympy_qasm_simulator(self):
+        backend = 'local_sympy_qasm_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_sympy_unitary_simulator(self):
+        backend = 'local_sympy_unitary_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_unitary_simulator(self):
+        backend = 'local_unitary_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
