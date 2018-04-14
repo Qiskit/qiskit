@@ -7,7 +7,7 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit
 import qiskit
-from qiskit.wrapper import available_backends, execute, register
+from qiskit.wrapper import available_backends, execute, register, get_backend
 
 # Authenticate for access to remote backends
 try:
@@ -21,10 +21,9 @@ except:
 
 def lowest_pending_jobs():
     """Returns the backend with lowest pending jobs."""
-    list_of_backends = qiskit.wrapper.available_backends(
+    list_of_backends = available_backends(
         {'local': False, 'simulator': False})
-    device_status = [qiskit.wrapper.get_backend(backend).status
-                     for backend in list_of_backends]
+    device_status = [get_backend(backend).status for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
                key=lambda x: x['pending_jobs'])

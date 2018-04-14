@@ -26,10 +26,12 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit modules
 import qiskit
+from qiskit.wrapper import available_backends, execute, register, get_backend
+
 
 try:
     import Qconfig
-    qiskit.wrapper.register(Qconfig.APItoken, Qconfig.config['url'])
+    register(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -38,9 +40,9 @@ except:
 
 def lowest_pending_jobs():
     """Returns the backend with lowest pending jobs."""
-    list_of_backends = qiskit.wrapper.available_backends(
+    list_of_backends = available_backends(
         {'local': False, 'simulator': False})
-    device_status = [qiskit.wrapper.get_backend(backend).status
+    device_status = [get_backend(backend).status
                      for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
@@ -66,10 +68,10 @@ try:
 
     # setting up the backend
     print("(Local Backends)")
-    print(qiskit.wrapper.local_backends())
+    print(available_backends({'local': True}))
 
     # runing the job
-    sim_result = qiskit.wrapper.execute([qc1, qc2], "local_qasm_simulator")
+    sim_result = execute([qc1, qc2], "local_qasm_simulator")
 
     # Show the results
     print("simulation: ", sim_result)
@@ -78,7 +80,7 @@ try:
 
     # see a list of available remote backends
     print("\n(Remote Backends)")
-    print(qiskit.wrapper.remote_backends())
+    print(available_backends({'local': False}))
 
     # Compile and run on a real device backend
     try:
@@ -91,9 +93,9 @@ try:
             'shots': 1024,
             'max_credits': 10
             }
-        exp_result = qiskit.wrapper.execute([qc1, qc2], backend_name=best_device,
-                                            compile_config=compile_config,
-                                            wait=5, timeout=300)
+        exp_result = execute([qc1, qc2], backend_name=best_device,
+                             compile_config=compile_config,
+                             wait=5, timeout=300)
 
         # Show the results
         print("experiment: ", exp_result)
