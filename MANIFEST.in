@@ -1,7 +1,7 @@
 include qiskit/qasm/libs/*.inc
-recursive-include src/qiskit-simulator *
-include qiskit/backends/qiskit_simulator
-include qiskit/backends/qiskit_simulator.exe
+recursive-include src/qasm-simulator-cpp *
+include qiskit/backends/qasm_simulator_cpp
+include qiskit/backends/qasm_simulator_cpp.exe
 include qiskit/backends/*.dll
 include CMakeLists.txt
 include cmake/*.cmake
