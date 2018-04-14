@@ -61,7 +61,12 @@ class JsonBackend(UnrollerBackend):
         super().__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
-        self.circuit['header'] = {}
+        self.circuit['header'] = {
+            'number_of_qubits': 0,
+            'number_of_clbits': 0,
+            'qubit_labels': [],
+            'clbit_labels': []
+        }
         self._number_of_qubits = 0
         self._number_of_cbits = 0
         self._qubit_order = []
