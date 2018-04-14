@@ -133,7 +133,7 @@ try:
 
         # I want to make it so the compile is only done once and the needing
         # a backend is optional
-        qobj = qiskit.wrapper.compile([qc1, qc2], backend_name=best_device,
+        qobj = qiskit.wrapper.compile([qc1, qc2], backend=my_backend,
                                       compile_config=compile_config)
         # I think we need to make a qobj into a class
 
