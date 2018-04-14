@@ -24,7 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
-# from qiskit.qasm import _node as node
+from qiskit.qasm import _node as node
 
 
 class NoiseGate(Gate):
@@ -68,7 +68,6 @@ CompositeGate.noise = noise
 
 
 # switch noise off (0) or on (1) (identity)
-"""
 QuantumCircuit.definitions["noise"] = {
     "print": True,
     "opaque": False,
@@ -79,4 +78,3 @@ QuantumCircuit.definitions["noise"] = {
     # gate noise(m) a { }
     "body": node.GateBody([])
 }
-"""

@@ -24,7 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
-# from qiskit.qasm import _node as node
+from qiskit.qasm import _node as node
 
 
 class SaveGate(Gate):
@@ -68,7 +68,6 @@ CompositeGate.save = save
 
 
 # cache quantum state (identity)
-"""
 QuantumCircuit.definitions["save"] = {
     "print": True,
     "opaque": False,
@@ -79,4 +78,3 @@ QuantumCircuit.definitions["save"] = {
     # gate save(m) a { }
     "body": node.GateBody([])
 }
-"""

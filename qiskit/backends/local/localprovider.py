@@ -22,7 +22,7 @@ import logging
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
 from .qasmsimulator import QasmSimulator
-from .qiskit_cpp_simulator import CliffordCppSimulator, QISKitCppSimulator
+from .qasm_simulator_cpp import CliffordCppSimulator, QasmSimulatorCpp
 from .projectq_simulator import ProjectQSimulator
 from .sympy_unitarysimulator import SympyUnitarySimulator
 from .sympy_qasmsimulator import SympyQasmSimulator
@@ -35,7 +35,7 @@ SDK_STANDARD_BACKENDS = [
     CliffordCppSimulator,
     ProjectQSimulator,
     QasmSimulator,
-    QISKitCppSimulator,
+    QasmSimulatorCpp,
     SympyQasmSimulator,
     SympyUnitarySimulator,
     UnitarySimulator

@@ -24,7 +24,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
-# from qiskit.qasm import _node as node
+from qiskit.qasm import _node as node
 
 
 class LoadGate(Gate):
@@ -67,7 +67,6 @@ CompositeGate.load = load
 
 
 # command to load a saved state (identity)
-"""
 QuantumCircuit.definitions["load"] = {
     "print": True,
     "opaque": False,
@@ -78,4 +77,3 @@ QuantumCircuit.definitions["load"] = {
     # gate load(m) a { }
     "body": node.GateBody([])
 }
-"""

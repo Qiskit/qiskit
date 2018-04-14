@@ -20,7 +20,7 @@
 from .localprovider import LocalProvider
 from .projectq_simulator import ProjectQSimulator
 from .qasmsimulator import QasmSimulator
-from .qiskit_cpp_simulator import CliffordCppSimulator, QISKitCppSimulator
+from .qasm_simulator_cpp import CliffordCppSimulator, QasmSimulatorCpp
 from .sympy_qasmsimulator import SympyQasmSimulator
 from .sympy_unitarysimulator import SympyUnitarySimulator
 from .unitarysimulator import UnitarySimulator
