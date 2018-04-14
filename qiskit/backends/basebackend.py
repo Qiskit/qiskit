@@ -20,11 +20,13 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
+
 from abc import ABC, abstractmethod
 
 
 class BaseBackend(ABC):
     """Base class for backends."""
+
     @abstractmethod
     def __init__(self, configuration=None):
         """Base class for backends.
@@ -39,7 +41,7 @@ class BaseBackend(ABC):
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        self._configuration = configuration
+        self._configuration = configuration or {}
 
     @abstractmethod
     def run(self, q_job):
@@ -54,16 +56,23 @@ class BaseBackend(ABC):
     @property
     def calibration(self):
         """Return backend calibration"""
-        backend_name = self.configuration['name']
-        return {'backend': backend_name, 'calibrations': None}
+        return {}
 
     @property
     def parameters(self):
         """Return backend parameters"""
-        backend_name = self.configuration['name']
-        return {'backend': backend_name, 'parameters': None}
+        return {}
 
     @property
     def status(self):
         """Return backend status"""
-        return {'available': True}
+        backend_name = self.configuration.get('name', '')
+        return {'name': backend_name, 'available': True}
+
+    def __str__(self):
+        backend_name = self.configuration.get('name')
+        if backend_name:
+            # TODO: remove this conditional when we are able to enforce
+            # that all backends have a configuration['name'] more forcefully
+            return str(backend_name)
+        return super().__str__()

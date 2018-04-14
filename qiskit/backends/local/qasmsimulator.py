@@ -112,35 +112,34 @@ from collections import Counter
 import numpy as np
 
 from qiskit._result import Result
-from qiskit.backends._basebackend import BaseBackend
-from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix
+from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local._simulatorerror import SimulatorError
+from qiskit.backends.local._simulatortools import single_gate_matrix
 
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
 
+
 class QasmSimulator(BaseBackend):
     """Python implementation of a qasm simulator."""
+
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_qasm_simulator',
+        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'simulator': True,
+        'local': True,
+        'description': 'A python simulator for qasm files',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,id'
+    }
 
     def __init__(self, configuration=None):
         """
         Args:
             configuration (dict): backend configuration
         """
-        super().__init__(configuration)
-        if configuration is None:
-            self._configuration = {
-                'name': 'local_qasm_simulator',
-                'url': 'https://github.com/IBM/qiskit-sdk-py',
-                'simulator': True,
-                'local': True,
-                'description': 'A python simulator for qasm files',
-                'coupling_map': 'all-to-all',
-                'basis_gates': 'u1,u2,u3,cx,id'
-            }
-        else:
-            self._configuration = configuration
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         self._local_random = random.Random()
 

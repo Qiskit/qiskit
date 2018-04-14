@@ -22,9 +22,9 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import json
 import logging
 import os
+import platform
 import subprocess
 from subprocess import PIPE
-import platform
 
 import numpy as np
 
@@ -39,7 +39,7 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 '../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
+                                 '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
                                  + EXTENSION)),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -50,21 +50,19 @@ DEFAULT_SIMULATOR_PATHS = [
 class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration)
-        self._configuration = configuration
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_qiskit_simulator',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'simulator': True,
+        'local': True,
+        'description': 'A C++ realistic noise simulator for qobj files',
+        'coupling_map': 'all-to-all',
+        "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+                       'snapshot,wait,noise,save,load'
+    }
 
-        if not configuration:
-            self._configuration = {
-                'name': 'local_qiskit_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
-                'simulator': True,
-                'local': True,
-                'description': 'A C++ realistic noise simulator for qobj files',
-                'coupling_map': 'all-to-all',
-                "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz' +
-                               'snapshot,wait,noise,save,load'
-            }
+    def __init__(self, configuration=None):
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -91,20 +89,18 @@ class QasmSimulatorCpp(BaseBackend):
 class CliffordCppSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration)
-        self._configuration = configuration
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_clifford_simulator',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'simulator': True,
+        'local': True,
+        'description': 'A C++ Clifford simulator with approximate noise',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
+    }
 
-        if not configuration:
-            self._configuration = {
-                'name': 'local_clifford_simulator',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
-                'simulator': True,
-                'local': True,
-                'description': 'A C++ Clifford simulator with approximate noise',
-                'coupling_map': 'all-to-all',
-                'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
-            }
+    def __init__(self, configuration=None):
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -143,7 +139,6 @@ class QASMSimulatorEncoder(json.JSONEncoder):
         complex numbers z as lists [z.real, z.imag]
         ndarrays as nested lists.
     """
-
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -192,7 +187,6 @@ def run(qobj, executable):
     Returns:
         dict: A dict of simulation results
     """
-
     # Open subprocess and execute external command
     try:
         with subprocess.Popen([executable, '-'],
