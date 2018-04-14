@@ -82,7 +82,7 @@ try:
 
 
     # Compiling the job
-    qobj = qiskit.wrapper.compile([qc1, qc2], my_backend_name)
+    qobj = qiskit.wrapper.compile([qc1, qc2], my_backend)
     # I think we need to make a qobj into a class
 
     # Runing the job

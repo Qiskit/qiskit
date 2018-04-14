@@ -28,7 +28,6 @@ import string
 import warnings
 from threading import Event
 
-import qiskit._compiler
 import qiskit.wrapper
 
 from ._classicalregister import ClassicalRegister
@@ -994,7 +993,7 @@ class QuantumProgram(object):
             'hpc': hpc
         }
         my_backend = qiskit.wrapper.get_backend(backend)
-        qobj = qiskit._compiler.compile(list_of_circuits, my_backend, compile_config)
+        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
