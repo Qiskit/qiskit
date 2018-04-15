@@ -36,6 +36,9 @@ def run_backend(q_job):
 
     Returns:
         Result: Result object.
+
+    Raises:
+        QISKitError: if the backend is malformed
     """
     backend = q_job.backend
     qobj = q_job.qobj
