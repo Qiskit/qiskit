@@ -86,8 +86,8 @@ class Result(object):
         # sessions)
         my_config = copy.deepcopy(self._qobj['config'])
         other_config = copy.deepcopy(other._qobj['config'])
-        my_backend = my_config.pop('backend').configuration['name']
-        other_backend = other_config.pop('backend').configuration['name']
+        my_backend = my_config.pop('backend_name')
+        other_backend = other_config.pop('backend_name')
 
         if my_config == other_config and my_backend == other_backend:
             if isinstance(self._qobj['id'], str):

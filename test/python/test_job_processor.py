@@ -116,14 +116,14 @@ class TestJobProcessor(QiskitTestCase):
                     'max_credits': 3,
                     'shots': 1024,
                     'seed': None,
-                    'backend': backend},
+                    'backend_name': backend.configuration['name']},
                 'circuits': [
                     {'name': 'example',
                      'compiled_circuit': formatted_circuit,
                      'layout': None,
                      'seed': None}
                 ]}
-        _ = QuantumJob(qobj, preformatted=True)
+        _ = QuantumJob(qobj, backend=backend, preformatted=True)
 
     def test_init_job_processor(self):
         njobs = 5

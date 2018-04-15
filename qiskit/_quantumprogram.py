@@ -1047,7 +1047,7 @@ class QuantumProgram(object):
         execution_list = []
 
         print_func("id: %s" % qobj['id'])
-        print_func("backend: %s" % qobj['config']['backend'])
+        print_func("backend: %s" % qobj['config']['backend_name'])
         print_func("qobj config:")
         for key in qobj['config']:
             if key != 'backend':
@@ -1229,7 +1229,8 @@ class QuantumProgram(object):
     def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
         q_job_list = []
         for qobj in qobj_list:
-            q_job = QuantumJob(qobj, preformatted=True, resources={
+            backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
+            q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
                 'max_credits': qobj['config']['max_credits'], 'wait': wait,
                 'timeout': timeout})
             q_job_list.append(q_job)

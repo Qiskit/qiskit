@@ -83,7 +83,7 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     if shots != 1:
         H = group_paulis(pauli_list)
 
-    entangler_map = qp.configuration(device)['coupling_map']
+    entangler_map = qp.get_backend_configuration(device)['coupling_map']
 
     if entangler_map == 'all-to-all':
         entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}

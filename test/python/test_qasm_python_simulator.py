@@ -66,7 +66,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                      'config': {
                          'max_credits': resources['max_credits'],
                          'shots': 1024,
-                         'backend': 'local_qasm_simulator',
+                         'backend_name': 'local_qasm_simulator',
                      },
                      'circuits': [
                          {
@@ -77,7 +77,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend='local_qasm_simulator',
+                                backend=QasmSimulator(),
                                 circuit_config=circuit_config,
                                 seed=self.seed,
                                 resources=resources,
@@ -143,7 +143,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': 3,
                 'shots': shots,
-                'backend': 'local_qasm_simulator',
+                'backend_name': 'local_qasm_simulator',
             },
             'circuits': [
                 {
@@ -170,7 +170,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                 }
             ]
         }
-        q_job = QuantumJob(qobj, preformatted=True)
+        q_job = QuantumJob(qobj, backend=QasmSimulator(), preformatted=True)
         result = QasmSimulator().run(q_job)
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
