@@ -61,7 +61,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend=SympyQasmSimulator,
+                                backend=SympyQasmSimulator(),
                                 circuit_config=circuit_config,
                                 seed=self.seed,
                                 resources=resources,

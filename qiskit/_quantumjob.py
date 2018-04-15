@@ -82,7 +82,6 @@ class QuantumJob():
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-        self.backend_name = self.qobj['config']['backend_name']
         self.backend = backend
         self.resources = resources
         self.seed = seed
