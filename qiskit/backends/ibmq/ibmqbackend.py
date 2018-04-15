@@ -103,7 +103,6 @@ class IBMQBackend(BaseBackend):
 
         # TODO: this should be self._configuration['name'] - need to check that
         # it is always the case.
-        #backend_name = qobj['config']['backend_name'].configuration['name']
         backend_name = qobj['config']['backend_name']
         output = self._api.run_job(api_jobs, backend_name,
                                    shots=qobj['config']['shots'],

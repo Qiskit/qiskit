@@ -127,8 +127,7 @@ def compile(list_of_circuits, backend, compile_config=None):
     qobj['id'] = qobj_id
     qobj['config'] = {'max_credits': max_credits,
                       'shots': shots,
-                      'backend_name': backend_name
-                     }
+                      'backend_name': backend_name}
 
     # TODO This backend needs HPC parameters to be passed in order to work
     if backend_name == 'ibmqx_hpc_qasm_simulator':
