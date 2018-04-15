@@ -850,7 +850,10 @@ class QCircuitImage(object):
         self.column_separation = 0.5
 
         # em points of separation between circuit row
-        self.row_separation = 0
+        self.row_separation = 0.0
+
+        # whether a "box" gate exists, which determines row spacing
+        self.has_box = False
 
         #################################
         self.header = self.circuit['header']
@@ -942,6 +945,7 @@ class QCircuitImage(object):
         # pylint: disable=unused-argument
         self.img_depth, self.sum_column_widths = self._get_image_depth(aliases)
         self.sum_row_heights = self.img_width
+        self.row_separation = 0.0 if self.has_box else 1.0
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
              else "\\qw" for i in range(self.img_depth + 1)]
@@ -971,6 +975,10 @@ class QCircuitImage(object):
         is_occupied = [False] * self.img_width
         max_column_width = {}
         for op in self.circuit['operations']:
+            if op['name'] in ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h',
+                              's', 'sdg', 't', 'tdg', 'rx', 'ry' , 'rz',
+                              'cy', 'crz', 'cu1', 'cu3']:
+                self.has_box = True
             if 'clbits' not in op:
                 if op['name'] != 'barrier':
                     qarglist = [self.qubit_list[i] for i in op['qubits']]
