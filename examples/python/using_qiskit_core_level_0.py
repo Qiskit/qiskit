@@ -25,7 +25,7 @@ used `pip install`, the examples only work from the root directory.
 """
 
 # Import the QISKit modules
-import qiskit
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
 from qiskit.wrapper import available_backends, execute, register, get_backend
 
 
@@ -52,17 +52,17 @@ def lowest_pending_jobs():
 
 try:
     # Create a Quantum and Classical Register.
-    qubit_reg = qiskit.QuantumRegister(2)
-    clbit_reg = qiskit.ClassicalRegister(2)
+    qubit_reg = QuantumRegister(2)
+    clbit_reg = ClassicalRegister(2)
 
     # making first circuit: bell state
-    qc1 = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+    qc1 = QuantumCircuit(qubit_reg, clbit_reg)
     qc1.h(qubit_reg[0])
     qc1.cx(qubit_reg[0], qubit_reg[1])
     qc1.measure(qubit_reg, clbit_reg)
 
     # making another circuit: superpositions
-    qc2 = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+    qc2 = QuantumCircuit(qubit_reg, clbit_reg)
     qc2.h(qubit_reg)
     qc2.measure(qubit_reg, clbit_reg)
 
@@ -103,5 +103,5 @@ try:
         print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
-except qiskit.QISKitError as ex:
+except QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
