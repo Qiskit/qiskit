@@ -911,57 +911,6 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
             'only for qobj2', 2, 3, 4])
 
-    @requires_qe_access
-    def test_gate_after_measure(self, QE_TOKEN, QE_URL):
-        """Test that no gate is inserted after measure when compiling
-        for real backends. NEED internet connection for this.
-
-        See: https://github.com/QISKit/qiskit-sdk-py/issues/342
-
-        TODO: (JAY) THIS IS VERY SYSTEM DEPENDENT AND NOT A GOOD TEST. I WOULD LIKE
-        TO DELETE THIS
-        """
-        q_program = QuantumProgram()
-        qr = q_program.create_quantum_register('qr', 16)
-        cr = q_program.create_classical_register('cr', 16)
-        qc = q_program.create_circuit('emoticon', [qr], [cr])
-        qc.x(qr[0])
-        qc.x(qr[3])
-        qc.x(qr[5])
-        qc.h(qr[9])
-        qc.cx(qr[9], qr[8])
-        qc.x(qr[11])
-        qc.x(qr[12])
-        qc.x(qr[13])
-        for j in range(16):
-            qc.measure(qr[j], cr[j])
-        api = IBMQuantumExperience(QE_TOKEN, {'url': QE_URL})
-        qiskit.backends.discover_remote_backends(api)
-        backend = 'ibmqx5'
-        coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
-                        [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
-                        [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
-                        [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
-
-        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0),
-                          ('qr', 2): ('q', 2), ('qr', 3): ('q', 3),
-                          ('qr', 4): ('q', 4), ('qr', 5): ('q', 14),
-                          ('qr', 6): ('q', 5), ('qr', 7): ('q', 6),
-                          ('qr', 8): ('q', 7), ('qr', 9): ('q', 11),
-                          ('qr', 10): ('q', 10), ('qr', 11): ('q', 8),
-                          ('qr', 12): ('q', 9), ('qr', 13): ('q', 12),
-                          ('qr', 14): ('q', 13), ('qr', 15): ('q', 15)}
-        qobj = q_program.compile(["emoticon"], backend=backend,
-                                 initial_layout=initial_layout, coupling_map=coupling_map)
-        measured_qubits = set()
-        has_gate_after_measure = False
-        for x in qobj["circuits"][0]["compiled_circuit"]["operations"]:
-            if x["name"] == "measure":
-                measured_qubits.add(x["qubits"][0])
-            elif set(x["qubits"]) & measured_qubits:
-                has_gate_after_measure = True
-        self.assertFalse(has_gate_after_measure)
-
     ###############################################################
     # Test for running programs
     ###############################################################
