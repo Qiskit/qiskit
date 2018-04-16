@@ -133,6 +133,20 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     return circuit_unrolled
 
 
+def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
+    """Make a Json representation of the circuit.
+    Takes a circuit dag and returns json circuit obj. This is an internal
+    function.
+    Args:
+        dag_circuit (QuantumCircuit): a dag representation of the circuit.
+        basis_gates (str): a comma seperated string and are the base gates,
+                               which by default are: u1,u2,u3,cx,id
+    Returns:
+        json: the json version of the dag
+    """
+    return DagUnroller(dag_circuit, JsonBackend(basis_gates)).execute()
+
+
 class QISKitCompilerError(QISKitError):
     """Exceptions raised during compilation"""
     pass
