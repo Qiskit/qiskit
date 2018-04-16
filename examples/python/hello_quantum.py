@@ -6,8 +6,8 @@ used `pip install`, the examples only work from the root directory.
 """
 
 # Import the QISKit
-import qiskit
-from qiskit.wrapper import available_backends, execute, register
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit.wrapper import available_backends, execute, register, get_backend
 
 # Authenticate for access to remote backends
 try:
@@ -21,10 +21,9 @@ except:
 
 def lowest_pending_jobs():
     """Returns the backend with lowest pending jobs."""
-    list_of_backends = qiskit.wrapper.available_backends(
+    list_of_backends = available_backends(
         {'local': False, 'simulator': False})
-    device_status = [qiskit.wrapper.get_backend(backend).status
-                     for backend in list_of_backends]
+    device_status = [get_backend(backend).status for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
                key=lambda x: x['pending_jobs'])
@@ -32,11 +31,11 @@ def lowest_pending_jobs():
 
 try:
     # Create a Quantum Register with 2 qubits.
-    q = qiskit.QuantumRegister(2)
+    q = QuantumRegister(2)
     # Create a Classical Register with 2 bits.
-    c = qiskit.ClassicalRegister(2)
+    c = ClassicalRegister(2)
     # Create a Quantum Circuit
-    qc = qiskit.QuantumCircuit(q, c)
+    qc = QuantumCircuit(q, c)
 
     # Add a H gate on qubit 0, putting this qubit in superposition.
     qc.h(q[0])
@@ -61,8 +60,7 @@ try:
 
     print("Remote backends: ", remote_backends)
     # Compile and run the Quantum Program on a real device backend
-    #try:
-    if remote_backends:
+    try:
         best_device = lowest_pending_jobs()
         print("Running on current least busy device: ", best_device)
 
@@ -76,8 +74,8 @@ try:
         # Show the results
         print("experiment: ", exp_result)
         print(exp_result.get_counts(qc))
-    #except:
+    except:
         print("All devices are currently unavailable.")
 
-except qiskit.QISKitError as ex:
+except QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
