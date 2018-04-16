@@ -50,7 +50,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                      'config': {
                          'max_credits': resources['max_credits'],
                          'shots': 1024,
-                         'backend': 'local_sympy_qasm_simulator',
+                         'backend_name': 'local_sympy_qasm_simulator',
                      },
                      'circuits': [
                          {
@@ -61,7 +61,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend='local_sympy_qasm_simulator',
+                                backend=SympyQasmSimulator(),
                                 circuit_config=circuit_config,
                                 seed=self.seed,
                                 resources=resources,

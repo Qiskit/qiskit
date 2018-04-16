@@ -21,6 +21,7 @@ import pprint
 from concurrent import futures
 from threading import Lock
 
+from ._qiskiterror import QISKitError
 from ._compiler import compile_circuit
 from ._result import Result
 
@@ -35,9 +36,18 @@ def run_backend(q_job):
 
     Returns:
         Result: Result object.
+
+    Raises:
+        QISKitError: if the backend is malformed
     """
     backend = q_job.backend
     qobj = q_job.qobj
+    backend_name = qobj['config']['backend_name']
+    if not backend:
+        raise QISKitError("No backend instance to run on.")
+    if backend_name != backend.configuration['name']:
+        raise QISKitError('non-matching backends specified in Qobj '
+                          'object and json')
     if backend.configuration.get('local'):  # remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:

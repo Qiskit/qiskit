@@ -21,7 +21,6 @@ import random
 import string
 
 # stable modules
-from qiskit import QISKitError
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
 
@@ -35,7 +34,7 @@ class QuantumJob():
 
     # TODO We need to create more tests for checking all possible inputs.
     # TODO Make this interface clearer -- circuits could be many things!
-    def __init__(self, circuits, backend=None,
+    def __init__(self, circuits, backend,
                  circuit_config=None, seed=None,
                  resources=None,
                  shots=1024, names=None,
@@ -45,8 +44,7 @@ class QuantumJob():
             circuits (QuantumCircuit|DagCircuit | list(QuantumCircuit|DagCircuit)):
                 QuantumCircuit|DagCircuit or list of QuantumCircuit|DagCircuit.
                 If preformatted=True, this is a raw qobj.
-            backend (BaseBackend): The backend to run the circuit on, required
-                if preformatted=False.
+            backend (BaseBackend): The backend to run the circuit on, required.
             circuit_config (dict): Circuit configuration.
             seed (int): The intial seed the simulatros use.
             resources (dict): Resource requirements of job.
@@ -82,12 +80,9 @@ class QuantumJob():
             # circuits is actually a qobj...validate (not ideal but convenient)
             self.qobj = circuits
         else:
-            if not backend:
-                raise QISKitError('backend needs to be specified if '
-                                  'preformatted==True.')
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-        self.backend = self.qobj['config']['backend']
+        self.backend = backend
         self.resources = resources
         self.seed = seed
         self.result = None
@@ -146,7 +141,7 @@ class QuantumJob():
                 'config': {
                     'max_credits': resources['max_credits'],
                     'shots': shots,
-                    'backend': backend
+                    'backend_name': backend.configuration['name']
                 },
                 'circuits': circuit_records}
 

@@ -27,6 +27,9 @@ import qiskit.backends.local.projectq_simulator as projectq_simulator
 import qiskit.backends.local.qasmsimulator as qasm_simulator
 from qiskit import QuantumJob
 from qiskit import QuantumProgram
+from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit import ClassicalRegister
 from qiskit._compiler import compile_circuit
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
@@ -71,15 +74,16 @@ class TestProjectQCppSimulator(QiskitTestCase):
     def test_gate_x(self):
         shots = 100
         qp = QuantumProgram()
-        qr = qp.create_quantum_register("qr", 1)
-        cr = qp.create_classical_register("cr", 1)
-        qc = qp.create_circuit("circuitName", [qr], [cr])
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
         qc.x(qr[0])
         qc.measure(qr, cr)
-        result_pq = qp.execute(['circuitName'],
+        qp.add_circuit("circuit_name", qc)
+        result_pq = qp.execute('circuit_name',
                                backend='local_projectq_simulator',
                                seed=1, shots=shots)
-        self.assertEqual(result_pq.get_counts(result_pq.get_names()[0]),
+        self.assertEqual(result_pq.get_counts(),
                          {'1': shots})
 
     def test_entangle(self):
@@ -87,12 +91,12 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qp = QuantumProgram()
         qr = qp.create_quantum_register("qr", N)
         cr = qp.create_classical_register("cr", N)
-        qc = qp.create_circuit("circuitName", [qr], [cr])
+        qc = qp.create_circuit("circuit_name", [qr], [cr])
         qc.h(qr[0])
         for i in range(1, N):
             qc.cx(qr[0], qr[i])
         qc.measure(qr, cr)
-        result = qp.execute(['circuitName'],
+        result = qp.execute(['circuit_name'],
                             backend='local_projectq_simulator',
                             seed=1, shots=100)
         counts = result.get_counts(result.get_names()[0])
@@ -109,10 +113,10 @@ class TestProjectQCppSimulator(QiskitTestCase):
             shots = 1000
             min_cnts = int(shots / 10)
             job_pq = QuantumJob(compiled_circuit,
-                                backend='local_projectq_simulator',
+                                backend=pq_simulator,
                                 seed=1, shots=shots)
             job_py = QuantumJob(compiled_circuit,
-                                backend='local_qasm_simulator',
+                                backend=local_simulator,
                                 seed=1, shots=shots)
             result_pq = pq_simulator.run(job_pq)
             result_py = local_simulator.run(job_py)
