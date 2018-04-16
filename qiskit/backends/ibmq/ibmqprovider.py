@@ -21,6 +21,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
 from .ibmqbackend import IBMQBackend
+from qiskit import QISKitError
 
 
 class IBMQProvider(BaseProvider):
@@ -39,14 +40,20 @@ class IBMQProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, filters=None):
+    def available_backends(self, *filters):
         # pylint: disable=arguments-differ
         backends = self.backends
+        
+        for filter_ in filters:
+            if isinstance(filter_, dict):
+                for key, value in filter_.items():
+                    backends = {name: instance for name, instance in backends.items()
+                                if instance.configuration.get(key) == value}
+            elif callable(filter_):
+                filter_(backends)
+            else:
+                raise QISKitError('backend filters must be either dict or callable.')
 
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
         return list(backends.values())
 
     @classmethod
@@ -128,3 +135,14 @@ class IBMQProvider(BaseProvider):
             ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret
+
+    def _lowest_pending_jobs(self):
+        """Returns the backend with lowest pending jobs."""
+        remote_backends = discover_remote_backends(api)
+        remote_backends.remove('ibmqx_hpc_qasm_simulator')
+        remote_backends.remove('ibmqx_qasm_simulator')
+        device_status = [api.backend_status(backend) for backend in remote_backends]
+
+        best = min([x for x in device_status if x['available'] is True],
+                   key=lambda x: x['pending_jobs'])
+        return best['backend']

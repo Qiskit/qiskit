@@ -26,7 +26,7 @@ from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
-def register(token, url,
+def register(token, url=None,
              hub=None, group=None, project=None, proxies=None, verify=True,
              provider_name='qiskit'):
     """
@@ -49,7 +49,8 @@ def register(token, url,
         QISKitError: if the provider name is not recognized.
     """
     if provider_name == 'qiskit':
-        provider = IBMQProvider(token, url,
+        provider = IBMQProvider(token,
+                                url='https://quantumexperience.ng.bluemix.net/api',
                                 hub, group, project, proxies, verify)
         _DEFAULT_PROVIDER.add_provider(provider)
     else:
