@@ -28,6 +28,7 @@ from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends import BaseBackend
+from .ibmqjob import IBMQJob
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,17 @@ class IBMQBackend(BaseBackend):
             self._configuration['local'] = False
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            IBMQJob (BaseJob)
+        """
+        return IBMQJob(self.run_job, q_job, self._api)
+
+    def run_job(self, q_job):
         """Run jobs
 
         Args:
