@@ -180,8 +180,8 @@ def compile(list_of_circuits, backend, compile_config=None):
                     raise QISKitError('backend "{0}" rejects gate after '
                                       'measurement in circuit "{1}"'.format(backend_name,
                                                                             circuit.name))
-            for i, qubit in zip(qasm_idx, measured_qubits):
-                circuit.data.insert(i, Barrier([qubit], circuit))
+            #for i, qubit in zip(qasm_idx, measured_qubits):
+            #    circuit.data.insert(i, Barrier([qubit], circuit))
         dag_circuit, final_layout = compile_circuit(
             circuit,
             basis_gates=basis_gates,
