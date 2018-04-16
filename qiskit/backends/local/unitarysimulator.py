@@ -97,6 +97,7 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
@@ -150,6 +151,17 @@ class UnitarySimulator(BaseBackend):
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            LocalJob (BaseJob)
+        """
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         """Run q_job
 
         Args:

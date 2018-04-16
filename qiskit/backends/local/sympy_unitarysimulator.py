@@ -42,6 +42,7 @@ from sympy.physics.quantum import TensorProduct
 
 from qiskit._result import Result
 from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatortools import compute_ugate_matrix, index2
 
 logger = logging.getLogger(__name__)
@@ -166,6 +167,17 @@ class SympyUnitarySimulator(BaseBackend):
         self._unitary_state = unitaty_add*self._unitary_state
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            LocalJob (BaseJob)
+        """
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         """Run q_job
 
         Args:

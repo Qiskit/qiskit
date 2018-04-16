@@ -28,6 +28,7 @@ from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result
 from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
 try:
     from projectq.backends._sim._cppsim import Simulator as CppSim
@@ -102,7 +103,11 @@ class ProjectQSimulator(BaseBackend):
         self._shots = 0
         self._sim = None
 
+
     def run(self, q_job):
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
@@ -117,6 +122,9 @@ class ProjectQSimulator(BaseBackend):
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
+        # multiprocessing requires data to be pickleable
+        if not isinstance(qobj['config']['backend'], str):
+            qobj['config']['backend'] = self._configuration['name']
         return Result({'job_id': job_id, 'result': result_list,
                        'status': 'COMPLETED'},
                       qobj)

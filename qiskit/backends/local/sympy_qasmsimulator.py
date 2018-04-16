@@ -66,6 +66,7 @@ from sympy.physics.quantum.represent import represent
 
 from qiskit._result import Result
 from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
 from qiskit.backends.local._simulatortools import compute_ugate_matrix
 
@@ -160,6 +161,17 @@ class SympyQasmSimulator(BaseBackend):
         return im(com)**2 + re(com)**2
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            LocalJob (BaseJob)
+        """
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         """Run circuits in q_job and return the result
             Args:
                 q_job (QuantumJob): all the information necessary

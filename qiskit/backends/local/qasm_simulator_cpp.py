@@ -30,6 +30,7 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,9 @@ class QasmSimulatorCpp(BaseBackend):
 
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         qobj = q_job.qobj
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
@@ -118,7 +122,17 @@ class CliffordCppSimulator(BaseBackend):
                                     self._configuration.get('exe', 'default locations'))
 
     def run(self, q_job):
-        """Run a QuantumJob on the the backend."""
+        """Run a QuantumJob on the the backend.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            LocalJob (BaseJob)
+        """
+        return LocalJob(self.run_job, q_job)
+    
+    def run_job(self, q_job):
         qobj = q_job.qobj
         # set backend to Clifford simulator
         if 'config' in qobj:

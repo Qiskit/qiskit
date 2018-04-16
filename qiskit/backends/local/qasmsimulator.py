@@ -113,9 +113,9 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
 from qiskit.backends.local._simulatortools import single_gate_matrix
-
 
 # TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
 # does not show up
@@ -284,6 +284,17 @@ class QasmSimulator(BaseBackend):
             self._quantum_state = temp
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job: QuantumJob object
+
+        Returns:
+            LocalJob (BaseJob)
+        """
+        return LocalJob(self.run_job, q_job)
+           
+    def run_job(self, q_job):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
