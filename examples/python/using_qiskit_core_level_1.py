@@ -27,11 +27,12 @@ used `pip install`, the examples only work from the root directory.
 import pprint
 
 # Import the QISKit modules
-import qiskit
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError, QuantumJob
+from qiskit.wrapper import available_backends, compile, register, get_backend
 
 try:
     import Qconfig
-    qiskit.wrapper.register(Qconfig.APItoken, Qconfig.config['url'])
+    register(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -40,9 +41,9 @@ except:
 
 def lowest_pending_jobs():
     """Returns the backend with lowest pending jobs."""
-    list_of_backends = qiskit.wrapper.available_backends(
+    list_of_backends = available_backends(
         {'local': False, 'simulator': False})
-    device_status = [qiskit.wrapper.get_backend(backend).status
+    device_status = [get_backend(backend).status
                      for backend in list_of_backends]
 
     best = min([x for x in device_status if x['available'] is True],
@@ -52,27 +53,27 @@ def lowest_pending_jobs():
 
 try:
     # Create a Quantum and Classical Register and giving a name.
-    qubit_reg = qiskit.QuantumRegister(2, name='q')
-    clbit_reg = qiskit.ClassicalRegister(2, name='c')
+    qubit_reg = QuantumRegister(2, name='q')
+    clbit_reg = ClassicalRegister(2, name='c')
 
     # Making first circuit: bell state
-    qc1 = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+    qc1 = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
     qc1.h(qubit_reg[0])
     qc1.cx(qubit_reg[0], qubit_reg[1])
     qc1.measure(qubit_reg, clbit_reg)
 
     # Making another circuit: superpositions
-    qc2 = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
+    qc2 = QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
     qc2.h(qubit_reg)
     qc2.measure(qubit_reg, clbit_reg)
 
     # Setting up the backend
     print("(Local Backends)")
-    for backend_name in qiskit.wrapper.available_backends({'local': True}):
-        backend = qiskit.wrapper.get_backend(backend_name)
+    for backend_name in available_backends({'local': True}):
+        backend = get_backend(backend_name)
         print(backend.status)
     my_backend_name = 'local_qasm_simulator'
-    my_backend = qiskit.wrapper.get_backend(my_backend_name)
+    my_backend = get_backend(my_backend_name)
     print("(Local QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration)
     print("(Local QASM Simulator calibration) ")
@@ -82,11 +83,11 @@ try:
 
 
     # Compiling the job
-    qobj = qiskit.wrapper.compile([qc1, qc2], my_backend)
+    qobj = compile([qc1, qc2], my_backend)
     # I think we need to make a qobj into a class
 
     # Runing the job
-    sim_result = my_backend.run(qiskit.QuantumJob(qobj, preformatted=True))
+    sim_result = my_backend.run(QuantumJob(qobj, preformatted=True))
     # ideally
     #   1. we need to make the run take as the input a qobj
     #   2. we need to make the run return a job object
@@ -108,15 +109,16 @@ try:
     # See a list of available remote backends
     try:
         print("\n(Remote Backends)")
-        for backend_name in qiskit.wrapper.available_backends({'local': False}):
-            backend = qiskit.wrapper.get_backend(backend_name)
+        for backend_name in available_backends({'local': False}):
+            backend = get_backend(backend_name)
             s = backend.status
+            print(s)
 
         # select least busy available device and execute.
         best_device = lowest_pending_jobs()
         print("Running on current least busy device: ", best_device)
 
-        my_backend = qiskit.wrapper.get_backend(best_device)
+        my_backend = get_backend(best_device)
 
         print("(with Configuration) ")
         pprint.pprint(my_backend.configuration)
@@ -133,12 +135,11 @@ try:
 
         # I want to make it so the compile is only done once and the needing
         # a backend is optional
-        qobj = qiskit.wrapper.compile([qc1, qc2], backend_name=best_device,
-                                      compile_config=compile_config)
+        qobj = compile([qc1, qc2], backend=my_backend, compile_config=compile_config)
         # I think we need to make a qobj into a class
 
         # Runing the job
-        q_job = qiskit.QuantumJob(qobj, preformatted=True, resources={
+        q_job = QuantumJob(qobj, preformatted=True, resources={
             'max_credits': qobj['config']['max_credits'], 'wait': 5, 'timeout': 300})
 
         exp_result = my_backend.run(q_job)
@@ -161,5 +162,5 @@ try:
     except:
         print("All devices are currently unavailable.")
 
-except qiskit.QISKitError as ex:
+except QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
