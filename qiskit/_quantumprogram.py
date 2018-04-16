@@ -722,6 +722,7 @@ class QuantumProgram(object):
             if proxies:
                 config_dict['proxies'] = proxies
             self.__api = IBMQuantumExperience(token, config_dict, verify)
+            qiskit.backends.discover_remote_backends(self.__api)
         except Exception as ex:
             root_exception = ex
             if 'License required' in str(ex):
