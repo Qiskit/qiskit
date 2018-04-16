@@ -69,10 +69,10 @@ class BaseBackend(ABC):
         backend_name = self.configuration.get('name', '')
         return {'name': backend_name, 'available': True}
 
-    def __str__(self):
+    def __repr__(self):
         backend_name = self.configuration.get('name')
         if backend_name:
             # TODO: remove this conditional when we are able to enforce
             # that all backends have a configuration['name'] more forcefully
             return str(backend_name)
-        return super().__str__()
+        return super().__repr__()
