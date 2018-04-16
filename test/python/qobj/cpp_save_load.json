@@ -1,0 +1,32 @@
+{
+    "id": "test_save_load",
+    "config": {
+        "shots": 1,
+        "seed": 1,
+        "backend": "local_qasm_simulator_cpp"
+    },
+    "circuits": [
+        {
+            "name": "save_command",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [],
+                    "number_of_clbits": 0,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "save", "params": [0]},
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "h", "qubits": [0]},
+                    {"name": "save", "params": [1]},
+                    {"name": "snapshot", "params": [10]},
+                    {"name": "load", "params": [0]},
+                    {"name": "snapshot", "params": [1]},
+                    {"name": "load", "params": [1]},
+                    {"name": "snapshot", "params": [11]}
+                ]
+            }
+        }
+    ]
+}

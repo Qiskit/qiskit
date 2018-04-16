@@ -1,0 +1,144 @@
+{
+    "id": "test_conditionals",
+    "config": {
+        "shots": 1,
+        "seed": 1,
+        "backend": "local_qasm_simulator_cpp"
+    },
+    "circuits": [
+        {
+            "name": "single creg (c0=0)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                	{
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0]
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0], 
+                    	"conditional": {"type": "equals", "mask": "0x1", "val": "0x0"}
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [1], 
+                    	"conditional": {"type": "equals", "mask": "0x1", "val": "0x1"}
+                    },
+                    {"name": "snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "single creg (c0=1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                	{
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0]
+                    },
+                    {
+                    	"name": "measure", 
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0], 
+                    	"conditional": {"type": "equals", "mask": "0x1", "val": "0x0"}
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [1], 
+                    	"conditional": {"type": "equals", "mask": "0x1", "val": "0x1"}
+                    },
+                    {"name": "snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "two creg (c1=0)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c0", 1], ["c1", 1]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                	{
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0]
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0], 
+                    	"conditional": {"type": "equals", "mask": "0x2", "val": "0x0"}
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [1], 
+                    	"conditional": {"type": "equals", "mask": "0x2", "val": "0x1"}
+                    },
+                    {"name": "snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "two creg (c1=1)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c0", 1], ["c1", 1]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 2,
+                    "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "operations": [
+                	{
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0]
+                    },
+                    {
+                    	"name": "measure", 
+                    	"qubits": [0],
+                    	"clbits": [1]
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [0], 
+                    	"conditional": {"type": "equals", "mask": "0x2", "val": "0x0"}
+                    },
+                    {
+                    	"name": "U", 
+                    	"params": [3.14159265358979, 0.0, 3.14159265358979], 
+                    	"qubits": [1], 
+                    	"conditional": {"type": "equals", "mask": "0x2", "val": "0x1"}
+                    },
+                    {"name": "snapshot", "params": [0]}
+                ]
+            }
+        }
+    ]
+}
