@@ -76,7 +76,7 @@ def execute(list_of_circuits, backend, compile_config=None,
     qobj = compile(list_of_circuits, backend, compile_config)
 
     # XXX When qobj is done this should replace q_job
-    q_job = QuantumJob(qobj, preformatted=True, resources={
+    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
     result = backend.run(q_job)
     return result
@@ -125,8 +125,9 @@ def compile(list_of_circuits, backend, compile_config=None):
         qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
                            for n in range(30)])
     qobj['id'] = qobj_id
-    qobj["config"] = {"max_credits": max_credits, 'backend': backend,
-                      "shots": shots}
+    qobj['config'] = {'max_credits': max_credits,
+                      'shots': shots,
+                      'backend_name': backend_name}
 
     # TODO This backend needs HPC parameters to be passed in order to work
     if backend_name == 'ibmqx_hpc_qasm_simulator':

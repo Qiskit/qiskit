@@ -60,7 +60,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': None,
                 'shots': 1,
-                'backend': 'local_unitary_simulator'
+                'backend_name': 'local_unitary_simulator'
             },
             'circuits': [
                 {
@@ -84,7 +84,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
         q_job = QuantumJob(qobj,
-                           backend='local_unitary_simulator',
+                           backend=UnitarySimulator(),
                            preformatted=True)
 
         result = UnitarySimulator().run(q_job)
@@ -142,7 +142,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        backend='local_unitary_simulator')
+                        backend=UnitarySimulator())
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')

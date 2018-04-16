@@ -88,7 +88,7 @@ class IBMQBackend(BaseBackend):
 
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
-        if (qobj['config']['backend'] == 'ibmqx_hpc_qasm_simulator' and
+        if (qobj['config']['backend_name'] == 'ibmqx_hpc_qasm_simulator' and
                 'hpc' in qobj['config']):
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
@@ -103,7 +103,7 @@ class IBMQBackend(BaseBackend):
 
         # TODO: this should be self._configuration['name'] - need to check that
         # it is always the case.
-        backend_name = qobj['config']['backend'].configuration['name']
+        backend_name = qobj['config']['backend_name']
         output = self._api.run_job(api_jobs, backend_name,
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
@@ -113,13 +113,13 @@ class IBMQBackend(BaseBackend):
             raise ResultError(output['error'])
 
         logger.info('Running qobj: %s on remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend'], output['id'])
+                    qobj["id"], qobj['config']['backend_name'], output['id'])
         job_result = _wait_for_job(output['id'], self._api, wait=wait,
                                    timeout=timeout)
         logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend'], output['id'])
+                    qobj["id"], qobj['config']['backend_name'], output['id'])
         job_result['name'] = qobj['id']
-        job_result['backend'] = qobj['config']['backend']
+        job_result['backend'] = qobj['config']['backend_name']
         this_result = Result(job_result, qobj)
         return this_result
 
