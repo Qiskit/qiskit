@@ -685,7 +685,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
 
 def plot_circuit(circuit,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                  scale=0.7):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
@@ -701,7 +701,7 @@ def plot_circuit(circuit,
 
 def circuit_drawer(circuit,
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                    scale=0.7):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
@@ -771,7 +771,7 @@ def trim(im):
 
 def latex_drawer(circuit, filename=None,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx",
+                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                  scale=0.7):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -852,8 +852,9 @@ class QCircuitImage(object):
         # em points of separation between circuit row
         self.row_separation = 0.0
 
-        # whether a "box" gate exists, which determines row spacing
+        # presence of "box" or "target" determines row spacing
         self.has_box = False
+        self.has_target = False
 
         #################################
         self.header = self.circuit['header']
@@ -945,7 +946,13 @@ class QCircuitImage(object):
         # pylint: disable=unused-argument
         self.img_depth, self.sum_column_widths = self._get_image_depth(aliases)
         self.sum_row_heights = self.img_width
-        self.row_separation = 0.0 if self.has_box else 1.0
+        # choose the most compact row spacing, while not squashing them
+        if self.has_box:
+            self.row_separation = 0.0
+        elif self.has_target:
+            self.row_separation = 0.2
+        else:
+            self.row_separation = 1.0
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
              else "\\qw" for i in range(self.img_depth + 1)]
@@ -975,10 +982,15 @@ class QCircuitImage(object):
         is_occupied = [False] * self.img_width
         max_column_width = {}
         for op in self.circuit['operations']:
-            if op['name'] in ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h',
-                              's', 'sdg', 't', 'tdg', 'rx', 'ry' , 'rz',
-                              'cy', 'crz', 'cu1', 'cu3']:
+
+            boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
+                           't', 'tdg', 'rx', 'ry' , 'rz', 'cy', 'crz', 'cu1', 'cu3']
+            target_gates = ['cx', 'ccx']
+            if op['name'] in boxed_gates:
                 self.has_box = True
+            if op['name'] in target_gates:
+                self.has_target = True
+
             if 'clbits' not in op:
                 if op['name'] != 'barrier':
                     qarglist = [self.qubit_list[i] for i in op['qubits']]
