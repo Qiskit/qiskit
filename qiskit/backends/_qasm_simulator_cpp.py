@@ -30,19 +30,6 @@ from qiskit.cython.qasm_simulator import SimulatorWrapper
 
 logger = logging.getLogger(__name__)
 
-EXTENSION = '.exe' if platform.system() == 'Windows' else ''
-
-# Add path to compiled qiskit simulator
-DEFAULT_SIMULATOR_PATHS = [
-    # This is the path where Makefile creates the simulator by default
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 '../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
-                                 + EXTENSION)),
-    # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 'qasm_simulator_cpp' + EXTENSION)),
-]
-
 
 class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
@@ -68,7 +55,8 @@ class QasmSimulatorCpp(BaseBackend):
         qobj = q_job.qobj
         simulator = SimulatorWrapper()
         result = simulator.run(json.dumps(qobj, cls=QASMSimulatorEncoder))
-        return json.loads(result, cls=QASMSimulatorDecoder)
+        result = json.loads(result, cls=QASMSimulatorDecoder)
+        return Result(result, qobj)
 
 
 class CliffordCppSimulator(BaseBackend):
@@ -100,7 +88,8 @@ class CliffordCppSimulator(BaseBackend):
 
         simulator = SimulatorWrapper()
         result = simulator.run(json.dumps(qobj, cls=QASMSimulatorEncoder))
-        return json.loads(result, cls=QASMSimulatorDecoder)
+        result = json.loads(result, cls=QASMSimulatorDecoder)
+        return Result(result, qobj)
 
 
 class QASMSimulatorEncoder(json.JSONEncoder):

@@ -1,41 +1,61 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
 """Software for developing quantum computing programs"""
 
-import sys
 import os
+import sys
+from distutils.spawn import find_executable
+import distutils.sysconfig
 from setuptools import setup, Extension
-import platform
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from numpy.__config__ import get_info as np_config
-from distutils.spawn import find_executable
 
 
-NAME = "qiskit",
-URL = "https://github.com/QISKit/qiskit-sdk-py",
-AUTHOR = "QISKit Development Team",
-AUTHOR_EMAIL = "qiskit@us.ibm.com",
-LICENSE = "Apache 2.0",
+NAME = "qiskit"
+URL = "https://github.com/QISKit/qiskit-sdk-py"
+AUTHOR = "QISKit Development Team"
+AUTHOR_EMAIL = "qiskit@us.ibm.com"
+LICENSE = "Apache 2.0"
 MAJOR = 0
 MINOR = 5
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 KEYWORDS = "qiskit sdk quantum"
-PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
+PLATFORMS = ["Linux", "OSX", "Unix", "Windows"]
 DOCLINES = __doc__.split('\n')
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
-EXTRA_KWARGS ={}
+EXTRA_KWARGS = {}
+
 
 def git_short_hash():
+    """Get the git short hash.
+    """
     try:
         git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
-    except:
+    except ValueError:
         git_str = ""
     else:
         if git_str == '+':  # fixes setuptools PEP issues with versioning
             git_str = ''
     return git_str
+
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -84,7 +104,6 @@ PACKAGES = ["qiskit",
             "qiskit.cython"]
 
 PACKAGE_DATA = {}
-
 HEADERS = []
 EXT_MODULES = []
 # Add Cython files from qutip/cy
@@ -144,7 +163,6 @@ else:
     extra_link_args.append('-fopenmp')
 
 # Remove -Wstrict-prototypes from cflags
-import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
