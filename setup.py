@@ -91,7 +91,7 @@ PACKAGES = ["qiskit",
             "qiskit.dagcircuit",
             "qiskit.extensions",
             "qiskit.extensions.standard",
-            "qiskit.extensions.qiskit_simulator",
+            "qiskit.extensions.qasm_simulator_cpp",
             "qiskit.extensions.quantum_initializer",
             "qiskit.mapper",
             "qiskit.qasm",
@@ -106,7 +106,7 @@ PACKAGES = ["qiskit",
 PACKAGE_DATA = {}
 HEADERS = []
 EXT_MODULES = []
-# Add Cython files from qutip/cy
+# Add Cython files
 # Build options
 include = [os.path.abspath('qiskit/cython/src'),
            os.path.abspath('qiskit/cython/src/backends'),
