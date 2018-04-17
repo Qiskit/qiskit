@@ -28,14 +28,12 @@ from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
 
-
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
-
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +112,11 @@ def compile(list_of_circuits, backend, compile_config=None):
     qobj_id = compile_config['qobj_id']
     hpc = compile_config['hpc']
 
-    backend_conf = backend.configuration
-    backend_name = backend_conf['name']
+    if backend is None:
+        backend_name = None
+    else:
+        backend_conf = backend.configuration
+        backend_name = backend_conf['name']
 
     qobj = {}
     if not qobj_id:
@@ -149,15 +150,16 @@ def compile(list_of_circuits, backend, compile_config=None):
     qobj['circuits'] = []
 
     if not basis_gates:
-        if 'basis_gates' in backend_conf:
+        if backend and 'basis_gates' in backend_conf:
             basis_gates = backend_conf['basis_gates']
     elif len(basis_gates.split(',')) < 2:
         # catches deprecated basis specification like 'SU2+CNOT'
         logger.warning('encountered deprecated basis specification: '
                        '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
         basis_gates = 'u1,u2,u3,cx,id'
-    if not coupling_map:
+    if not coupling_map and backend:
         coupling_map = backend_conf['coupling_map']
+
     for circuit in list_of_circuits:
         num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
         # TODO: A better solution is to have options to enable/disable optimizations
@@ -165,12 +167,7 @@ def compile(list_of_circuits, backend, compile_config=None):
             coupling_map = None
         if coupling_map == 'all-to-all':
             coupling_map = None
-        dag_circuit, final_layout = compile_circuit(
-            circuit,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=initial_layout,
-            get_layout=True)
+
         # making the job to be added to qobj
         job = {}
         job["name"] = circuit.name
@@ -180,25 +177,40 @@ def compile(list_of_circuits, backend, compile_config=None):
         job["config"] = copy.deepcopy(config)
         job["config"]["coupling_map"] = coupling_map
         # TODO: Jay: make config options optional for different backends
-        # Map the layout to a format that can be json encoded
-        list_layout = None
-        if final_layout:
-            list_layout = [[k, v] for k, v in final_layout.items()]
-        job["config"]["layout"] = list_layout
         job["config"]["basis_gates"] = basis_gates
         if seed is None:
             job["config"]["seed"] = None
         else:
             job["config"]["seed"] = seed
-        # the compiled circuit to be run saved as a dag
-        # we assume that compile_circuit has already expanded gates
-        # to the target basis, so we just need to generate json
-        json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-        job["compiled_circuit"] = json_circuit
-        # set eval_symbols=True to evaluate each symbolic expression
-        # TODO after transition to qobj, we can drop this
-        job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                        eval_symbols=True)
+
+        if backend is None:  # Just return the qobj, wihtout any transformation or analysis
+            job["config"]["layout"] = None
+            job["compiled_circuit_qasm"] = circuit.qasm()
+            job["compiled_circuit"] = DagUnroller(
+                DAGCircuit.fromQuantumCircuit(circuit),
+                JsonBackend([i for i in circuit.definitions.keys()])).execute()
+        else:
+            dag_circuit, final_layout = compile_circuit(
+                circuit,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=initial_layout,
+                get_layout=True)
+            # Map the layout to a format that can be json encoded
+            list_layout = None
+            if final_layout:
+                list_layout = [[k, v] for k, v in final_layout.items()]
+            job["config"]["layout"] = list_layout
+
+            # the compiled circuit to be run saved as a dag
+            # we assume that compile_circuit has already expanded gates
+            # to the target basis, so we just need to generate json
+            json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
+            job["compiled_circuit"] = json_circuit
+            # set eval_symbols=True to evaluate each symbolic expression
+            # TODO after transition to qobj, we can drop this
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
         # add job to the qobj
         qobj["circuits"].append(job)
     return qobj

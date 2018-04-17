@@ -55,6 +55,7 @@ def register(token, url,
     else:
         raise QISKitError('provider name %s is not recognized' % provider_name)
 
+
 # Functions for inspecting and retrieving backends.
 
 
@@ -98,13 +99,17 @@ def remote_backends():
 
 def get_backend(name):
     """
-    Return an instance of a `Backend` object from its identifier.
+    Return an instance of a `Backend` object from its name identifier.
+    If name is None, returns None.
 
     Args:
         name(str): unique name of the backend.
     Returns:
         BaseBackend: a Backend instance.
+        None: if name is None
     """
+    if name is None:
+        return None
     return _DEFAULT_PROVIDER.get_backend(name)
 
 
