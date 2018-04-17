@@ -1,0 +1,26 @@
+{
+    "backend": "local_qasm_simulator_cpp",
+    "cpp_simulator_kernel": "qasm_simulator_cpp",
+    "id": "test",
+    "result": [{
+        "data": {
+            "counts": {
+                "00": 1000
+            },
+            "snapshots": {
+                "0": {
+                    "quantum_state": [[[1.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]
+                }
+            },
+            "time_taken": 0.0013900000000000002
+        },
+        "name": "test",
+        "seed": 1,
+        "shots": 1000,
+        "status": "DONE",
+        "success": true
+    }],
+    "status": "COMPLETED",
+    "success": true,
+    "time_taken": 0.016975
+}
