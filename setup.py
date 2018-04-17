@@ -74,7 +74,6 @@ CLASSIFIERS = [
     "Topic :: Scientific/Engineering"]
 
 REQUIRES = [
-    "python (>=3.5)",
     "IBMQuantumExperience (>=1.8.26)",
     "matplotlib (>=2.0,<=2.1)",
     "networkx (>=1.11,<1.12)",
@@ -199,6 +198,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=PLATFORMS,
     requires=REQUIRES,
+    python_requires='>3.5.0',
     package_data=PACKAGE_DATA,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,
