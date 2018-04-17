@@ -22,14 +22,11 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import json
 import logging
 import os
-import subprocess
-from subprocess import PIPE
 import platform
-
 import numpy as np
-
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.cython.qasm_simulator import SimulatorWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -66,26 +63,12 @@ class QasmSimulatorCpp(BaseBackend):
                                'snapshot,wait,noise,save,load'
             }
 
-        # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
-        else:
-            paths = DEFAULT_SIMULATOR_PATHS
-
-        # Ensure that the executable is available.
-        try:
-            self._configuration['exe'] = next(
-                path for path in paths if (os.path.exists(path) and
-                                           os.path.getsize(path) > 100))
-        except StopIteration:
-            raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
-
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
-        result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        simulator = SimulatorWrapper()
+        result = simulator.run(json.dumps(qobj, cls=QASMSimulatorEncoder))
+        return json.loads(result, cls=QASMSimulatorDecoder)
 
 
 class CliffordCppSimulator(BaseBackend):
@@ -106,21 +89,6 @@ class CliffordCppSimulator(BaseBackend):
                 'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
             }
 
-        # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
-        else:
-            paths = DEFAULT_SIMULATOR_PATHS
-
-        # Ensure that the executable is available.
-        try:
-            self._configuration['exe'] = next(
-                path for path in paths if (os.path.exists(path) and
-                                           os.path.getsize(path) > 100))
-        except StopIteration:
-            raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
-
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
@@ -130,8 +98,9 @@ class CliffordCppSimulator(BaseBackend):
         else:
             qobj['config'] = {'simulator': 'clifford'}
 
-        result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        simulator = SimulatorWrapper()
+        result = simulator.run(json.dumps(qobj, cls=QASMSimulatorEncoder))
+        return json.loads(result, cls=QASMSimulatorDecoder)
 
 
 class QASMSimulatorEncoder(json.JSONEncoder):
@@ -180,34 +149,6 @@ class QASMSimulatorDecoder(json.JSONDecoder):
                         tmp = np.array(obj[key][j])
                         obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
         return obj
-
-
-def run(qobj, executable):
-    """
-    Run simulation on C++ simulator inside a subprocess.
-
-    Args:
-        qobj (dict): qobj dictionary defining the simulation to run
-        executable (string): filename (with path) of the simulator executable
-    Returns:
-        dict: A dict of simulation results
-    """
-
-    # Open subprocess and execute external command
-    try:
-        with subprocess.Popen([executable, '-'],
-                              stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj, cls=QASMSimulatorEncoder).encode()
-            cout, cerr = proc.communicate(cin)
-        if cerr:
-            logger.error('ERROR: Simulator encountered a runtime error: %s',
-                         cerr.decode())
-        return json.loads(cout.decode(), cls=QASMSimulatorDecoder)
-
-    except FileNotFoundError:
-        msg = "ERROR: Simulator exe not found at: %s" % executable
-        logger.error(msg)
-        return {"status": msg, "success": False}
 
 
 def cx_error_matrix(cal_error, zz_error):
