@@ -955,7 +955,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None, hpc=None):
+                qobj_id=None, hpc=None, skip_translation=False):
         """Compile the circuits into the execution list.
 
         .. deprecated:: 0.5
@@ -993,7 +993,7 @@ class QuantumProgram(object):
             'hpc': hpc
         }
         my_backend = qiskit.wrapper.get_backend(backend)
-        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config)
+        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config, skip_translation)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):

@@ -77,7 +77,7 @@ def execute(list_of_circuits, backend, compile_config=None,
     return result
 
 
-def compile(list_of_circuits, backend, compile_config=None):
+def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
@@ -112,11 +112,8 @@ def compile(list_of_circuits, backend, compile_config=None):
     qobj_id = compile_config['qobj_id']
     hpc = compile_config['hpc']
 
-    if backend is None:
-        backend_name = None
-    else:
-        backend_conf = backend.configuration
-        backend_name = backend_conf['name']
+    backend_conf = backend.configuration
+    backend_name = backend_conf['name']
 
     qobj = {}
     if not qobj_id:
@@ -150,14 +147,14 @@ def compile(list_of_circuits, backend, compile_config=None):
     qobj['circuits'] = []
 
     if not basis_gates:
-        if backend and 'basis_gates' in backend_conf:
+        if backend_conf is not None and 'basis_gates' in backend_conf:
             basis_gates = backend_conf['basis_gates']
     elif len(basis_gates.split(',')) < 2:
         # catches deprecated basis specification like 'SU2+CNOT'
         logger.warning('encountered deprecated basis specification: '
                        '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
         basis_gates = 'u1,u2,u3,cx,id'
-    if not coupling_map and backend:
+    if not coupling_map and backend_conf is not None:
         coupling_map = backend_conf['coupling_map']
 
     for circuit in list_of_circuits:
@@ -183,7 +180,7 @@ def compile(list_of_circuits, backend, compile_config=None):
         else:
             job["config"]["seed"] = seed
 
-        if backend is None:  # Just return the qobj, wihtout any transformation or analysis
+        if skip_translation:  # Just return the qobj, wihtout any transformation or analysis
             job["config"]["layout"] = None
             job["compiled_circuit_qasm"] = circuit.qasm()
             job["compiled_circuit"] = DagUnroller(

@@ -100,23 +100,19 @@ def remote_backends():
 def get_backend(name):
     """
     Return an instance of a `Backend` object from its name identifier.
-    If name is None, returns None.
 
     Args:
         name(str): unique name of the backend.
     Returns:
         BaseBackend: a Backend instance.
-        None: if name is None
     """
-    if name is None:
-        return None
     return _DEFAULT_PROVIDER.get_backend(name)
 
 
 # Functions for compiling and executing.
 
 
-def compile(list_of_circuits, backend, compile_config=None):
+def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -129,7 +125,7 @@ def compile(list_of_circuits, backend, compile_config=None):
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    return qiskit._compiler.compile(list_of_circuits, backend, compile_config)
+    return qiskit._compiler.compile(list_of_circuits, backend, compile_config, skip_translation)
 
 
 def execute(list_of_circuits, backend_name, compile_config=None,
