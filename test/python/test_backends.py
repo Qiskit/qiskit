@@ -210,7 +210,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_wrapper_register_ok(self, QE_TOKEN, QE_URL):
         """Test wrapper.register()."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='ibmq')
         backends = qiskit.wrapper.available_backends()
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
@@ -218,7 +218,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_wrapper_available_backends_with_filter(self, QE_TOKEN, QE_URL):
         """Test wrapper.available_backends(filter=...)."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='qiskit')
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, provider_name='ibmq')
         backends = qiskit.wrapper.available_backends({'local': False, 'simulator': True})
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)

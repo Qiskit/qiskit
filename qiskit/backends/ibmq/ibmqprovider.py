@@ -20,8 +20,8 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
-from .ibmqbackend import IBMQBackend
 from qiskit import QISKitError
+from .ibmqbackend import IBMQBackend
 
 
 class IBMQProvider(BaseProvider):
@@ -41,16 +41,42 @@ class IBMQProvider(BaseProvider):
         return self.backends[name]
 
     def available_backends(self, *filters):
+        """Get a list of available backend instances from this provider.
+
+        Filters can be applied to get a subset of available backends.
+        Each filter can be of the following type:
+        dict: specifies exact-matching criteria for backend configuration
+        callable (more flexible):
+            - acceptor function: backend (IBMQBackend) -> bool
+            - selector function: backends (list(IBMQBackend) -> backends (list(IBMQBackend))
+        """
         # pylint: disable=arguments-differ
         backends = self.backends
-        
+
         for filter_ in filters:
             if isinstance(filter_, dict):
+                # exact match configuration filter:
+                # e.g. {'n_qubits': 5, 'local': False}
                 for key, value in filter_.items():
                     backends = {name: instance for name, instance in backends.items()
                                 if instance.configuration.get(key) == value}
             elif callable(filter_):
-                filter_(backends)
+                # acceptor filter: accept or reject a specific backend
+                # e.g. lambda x: x.configuration['n_qubits'] > 5
+                try:
+                    backends = {name: instance for name, instance in backends.items()
+                                if filter_(instance)}
+                except TypeError:
+                    # selector filter: pick out one or more backends that meet criteria
+                    # e.g. least_busy
+                    try:
+                        backends = {b.configuration['name']: b
+                                    for b in filter_(list(backends.values()))}
+                    except TypeError:
+                        raise QISKitError('backend filter functions must be either '
+                                          'acceptors on a single backend, '
+                                          'or selectors on a list of backends.')
+
             else:
                 raise QISKitError('backend filters must be either dict or callable.')
 
@@ -136,13 +162,8 @@ class IBMQProvider(BaseProvider):
 
         return ret
 
-    def _lowest_pending_jobs(self):
-        """Returns the backend with lowest pending jobs."""
-        remote_backends = discover_remote_backends(api)
-        remote_backends.remove('ibmqx_hpc_qasm_simulator')
-        remote_backends.remove('ibmqx_qasm_simulator')
-        device_status = [api.backend_status(backend) for backend in remote_backends]
 
-        best = min([x for x in device_status if x['available'] is True],
-                   key=lambda x: x['pending_jobs'])
-        return best['backend']
+def least_busy(backends):
+    """Returns the backend with lowest pending jobs."""
+    return [min([b for b in backends if not b.configuration['simulator'] and b.status['available']],
+                key=lambda b: b.status['pending_jobs'])]
