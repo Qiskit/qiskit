@@ -1,26 +1,72 @@
+"""Software for developing quantum computing programs"""
+
 import sys
 import os
-from setuptools import setup
-from setuptools.command.install import install
-from distutils.command.build import build
-from multiprocessing import cpu_count
-from subprocess import call
+from setuptools import setup, Extension
 import platform
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+from numpy.__config__ import get_info as np_config
+from distutils.spawn import find_executable
 
 
-requirements = [
-    "IBMQuantumExperience>=1.8.26",
-    "matplotlib>=2.0,<=2.1",
-    "networkx>=1.11,<1.12",
-    "numpy>=1.13,<=1.14",
-    "ply==3.10",
-    "scipy>=0.19,<=1.0",
-    "Sphinx>=1.6,<1.7",
-    "sympy>=1.0"
-]
+NAME = "qiskit",
+URL = "https://github.com/QISKit/qiskit-sdk-py",
+AUTHOR = "QISKit Development Team",
+AUTHOR_EMAIL = "qiskit@us.ibm.com",
+LICENSE = "Apache 2.0",
+MAJOR = 0
+MINOR = 5
+MICRO = 0
+ISRELEASED = False
+VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+KEYWORDS = "qiskit sdk quantum"
+PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
+DOCLINES = __doc__.split('\n')
+DESCRIPTION = DOCLINES[0]
+LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
+EXTRA_KWARGS ={}
 
+def git_short_hash():
+    try:
+        git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
+    except:
+        git_str = ""
+    else:
+        if git_str == '+':  # fixes setuptools PEP issues with versioning
+            git_str = ''
+    return git_str
 
-packages = ["qiskit",
+FULLVERSION = VERSION
+if not ISRELEASED:
+    FULLVERSION += '.dev'+str(MICRO)+git_short_hash()
+
+CLASSIFIERS = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Topic :: Scientific/Engineering"]
+
+REQUIRES = [
+    "python (>=3.5)",
+    "IBMQuantumExperience (>=1.8.26)",
+    "matplotlib (>=2.0,<=2.1)",
+    "networkx (>=1.11,<1.12)",
+    "numpy (>=1.13,<=1.14)",
+    "ply (==3.10)",
+    "scipy (>=0.19,<=1.0)",
+    "Sphinx (>=1.6,<1.7)",
+    "sympy (>=1.0)"]
+
+INSTALL_REQUIRES = REQUIRES
+
+PACKAGES = ["qiskit",
             "qiskit.backends",
             "qiskit.dagcircuit",
             "qiskit.extensions",
@@ -34,78 +80,109 @@ packages = ["qiskit",
             "qiskit.tools",
             "qiskit.tools.apps",
             "qiskit.tools.qcvv",
-            "qiskit.tools.qi"]
+            "qiskit.tools.qi",
+            "qiskit.cython"]
 
+PACKAGE_DATA = {}
 
-# C++ components compilation
-class QiskitSimulatorBuild(build):
-    def run(self):
-        build.run(self)
-        supported_platforms = ['Linux', 'Darwin']
-        if not platform.system() in supported_platforms:
-            print('WARNING: QISKit cpp simulator is ment to be built with these '
-                  'platforms: {}. We will support other platforms soon!'
-                  .format(supported_platforms))
-            return
+HEADERS = []
+EXT_MODULES = []
+# Add Cython files from qutip/cy
+# Build options
+include = [os.path.abspath('qiskit/cython/src'),
+           os.path.abspath('qiskit/cython/src/backends'),
+           os.path.abspath('qiskit/cython/src/engines'),
+           os.path.abspath('qiskit/cython/src/utilities'),
+           os.path.abspath('qiskit/cython/src/third-party'),
+           os.path.abspath('qiskit/cython/src/third-party/headers')]
+warnings = ['-pedantic', '-Wall', '-Wextra', '-Wfloat-equal', '-Wundef',
+            '-Wcast-align', '-Wwrite-strings', '-Wmissing-declarations',
+            '-Wshadow', '-Woverloaded-virtual']
+opt = ['-ffast-math', '-O3', '-march=native']
+if sys.platform != 'win32':
+    extra_compile_args = ['-g', '-std=c++11'] + opt + warnings
+else:
+    extra_compile_args = ['/W1', '/Ox']
 
-        target_platform = '{}-{}'.format(platform.system(), platform.machine()).lower()
-        build_path = os.path.join(os.path.abspath(self.build_base), target_platform)
-        binary_path = os.path.join(build_path, 'qiskit_simulator')
+extra_link_args = []
+libraries = []
+library_dirs = []
+include_dirs = include
 
-        cmd = [
-            'make',
-            'sim',
-            'OUTPUT_DIR=' + build_path,
-        ]
+# Numpy BLAS
+blas_info = np_config('blas_mkl_info')
+if blas_info == {}:
+    blas_info = np_config('blas_opt_info')
+extra_compile_args += blas_info.get('extra_compile_args', [])
+extra_link_args += blas_info.get('extra_link_args', [])
+libraries += blas_info.get('libraries', [])
+library_dirs += blas_info.get('library_dirs', [])
+include_dirs += blas_info.get('include_dirs', [])
 
-        try:
-            cmd.append('-j%d' % cpu_count())
-        except NotImplementedError:
-            print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
+# MacOS Specific build instructions
+if sys.platform == 'darwin':
+    # Set minimum os version to support C++11 headers
+    min_macos_version = '-mmacosx-version-min=10.9'
+    extra_compile_args.append(min_macos_version)
+    extra_link_args.append(min_macos_version)
 
-        def compile():
-            call(cmd)
+    # Check for OpenMP compatible GCC compiler
+    for gcc in ['g++-7', 'g++-6', 'g++-5']:
+        path = find_executable(gcc)
+        if path is not None:
+            # Use most recent GCC compiler
+            os.environ['CC'] = path
+            os.environ['CXX'] = path
+            extra_compile_args.append('-fopenmp')
+            extra_link_args.append('-fopenmp')
+            break
+elif sys.platform == 'win32':
+    extra_compile_args.append('/openmp')
+else:
+    # Linux
+    extra_compile_args.append('-fopenmp')
+    extra_link_args.append('-fopenmp')
 
-        try:
-            self.execute(compile, [], 'Compiling QISKit C++ Simulator')
-        except:
-            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
-                  "install anyway, but won't have this simulator support.")
-            return
+# Remove -Wstrict-prototypes from cflags
+import distutils.sysconfig
+cfg_vars = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in cfg_vars:
+    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
 
-        self.mkpath(self.build_lib)
-        if not self.dry_run:
-            self.copy_file(binary_path, '{}/qiskit/backends'.format(self.build_lib))
+# Simulator extension
+qasm_simulator = Extension('qiskit.cython.qasm_simulator',
+                           sources=['qiskit/cython/qasm_simulator.pyx'],
+                           extra_link_args=extra_link_args,
+                           extra_compile_args=extra_compile_args,
+                           libraries=libraries,
+                           library_dirs=library_dirs,
+                           include_dirs=include_dirs,
+                           language='c++')
 
+EXT_MODULES.append(qasm_simulator)
+
+# Setup commands go here
 setup(
-    name="qiskit",
-    version="0.5.0",
-    description="Software for developing quantum computing programs",
-    long_description="""QISKit is a software development kit for writing
-        quantum computing experiments, programs, and applications. Works with
-        Python 3.5 and 3.6""",
-    url="https://github.com/QISKit/qiskit-sdk-py",
-    author="QISKit Development Team",
-    author_email="qiskit@us.ibm.com",
-    license="Apache 2.0",
-    classifiers=[
-        "Environment :: Console",
-        "License :: OSI Approved :: Apache Software License",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: MacOS",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Topic :: Scientific/Engineering",
-    ],
-    keywords="qiskit sdk quantum",
-    packages=packages,
-    install_requires=requirements,
+    name=NAME,
+    version=FULLVERSION,
+    packages=PACKAGES,
     include_package_data=True,
-    python_requires=">=3.5",
-    cmdclass={
-        'build': QiskitSimulatorBuild,
-    }
+    include_dirs=include_dirs,
+    headers=HEADERS,
+    ext_modules=cythonize(EXT_MODULES),
+    cmdclass={'build_ext': build_ext},
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    license=LICENSE,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    keywords=KEYWORDS,
+    url=URL,
+    classifiers=CLASSIFIERS,
+    platforms=PLATFORMS,
+    requires=REQUIRES,
+    package_data=PACKAGE_DATA,
+    zip_safe=False,
+    install_requires=INSTALL_REQUIRES,
+    **EXTRA_KWARGS
 )
