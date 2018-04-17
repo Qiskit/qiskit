@@ -49,12 +49,12 @@ def options():
                         help='Number of shots (default: 1000)')
     parser.add_argument('-i', '--interval', action='store', default=2, type=int,
                         help='Interval time to poll a result (default: 2)')
-    parser.add_argument('-l', '--job-list', action='store', default=0, type=int,
+    parser.add_argument('-l', '--job-list', action='store', default=10, type=int,
                         help='Number of jobs to show')
     parser.add_argument('-j', '--jobid', action='store', type=str, help='Get job information')
     parser.add_argument('-b', '--backends', action='store_true', help='Show backends information')
     parser.add_argument('-c', '--credits', action='store_true', help='Show my credits')
-    parser.add_argument('--verbose', action='store_true', help='verbose')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose')
     args = parser.parse_args()
     if args.verbose:
         print('options:', args)
@@ -80,7 +80,7 @@ class JobManager:
         hpc = None
         if dev == 'ibmqx_hpc_qasm_simulator':
             hpc = {'multishot_optimization': True, 'omp_num_threads': 1}
-        out = self._api.run_job(qasms=qasms, backend=dev, shots=shots, max_credits=5, hpc=hpc)
+        out = self._api.run_job(job=qasms, backend=dev, shots=shots, max_credits=5, hpc=hpc)
         if 'error' in out:
             print(out['error']['message'])
             return None
@@ -114,14 +114,16 @@ class JobManager:
     def get_credits(self):
         print('credits :', self._api.get_my_credits())
 
-    def available_backends(self):
+    def available_backends(self, verbose=False):
         tab = {}
         for e in self._api.available_backends() + self._api.available_backend_simulators():
             status = self._api.backend_status(e['name'])
             try:
-                tab[e['name']] = (':', str(e['nQubits']) + ' qubits,', e['description'], status)
+                tab[e['name']] = [':', str(e['nQubits']) + ' qubits,', e['description'], status]
             except KeyError:
-                tab[e['name']] = (':', status)
+                tab[e['name']] = [':', status]
+            if verbose:
+                tab[e['name']].append(e)
         for k, v in sorted(tab.items()):
             print(k, *v)
 
@@ -130,7 +132,7 @@ def main():
     jm = JobManager()
     args = options()
     if args.backends:
-        jm.available_backends()
+        jm.available_backends(args.verbose)
     if args.credits:
         jm.get_credits()
     if args.qasm:
