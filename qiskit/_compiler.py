@@ -25,8 +25,6 @@ import copy
 
 # Stable Modules
 from ._qiskiterror import QISKitError
-from ._measure import Measure
-from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
 
@@ -34,7 +32,6 @@ from .qasm import Qasm
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
-from .extensions.standard.barrier import Barrier
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
