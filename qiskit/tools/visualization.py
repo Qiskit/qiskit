@@ -984,7 +984,7 @@ class QCircuitImage(object):
         for op in self.circuit['operations']:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
-                           't', 'tdg', 'rx', 'ry' , 'rz', 'cy', 'crz', 'cu1', 'cu3']
+                           't', 'tdg', 'rx', 'ry' , 'rz', 'ch', 'cy', 'crz', 'cu1', 'cu3']
             target_gates = ['cx', 'ccx']
             if op['name'] in boxed_gates:
                 self.has_box = True
@@ -1415,7 +1415,7 @@ class QCircuitImage(object):
                         elif nm == "cz":
                             self._latex[pos_1][columns] = \
                                 "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns] = "\\gate{Z}"
+                            self._latex[pos_2][columns] = "\\control\\qw"
                         elif nm == "cy":
                             self._latex[pos_1][columns] = \
                                 "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -1466,7 +1466,7 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = "\\targ"
                         elif nm == "cz":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns] = "\\gate{Z}"
+                            self._latex[pos_2][columns] = "\\control\\qw"
                         elif nm == "cy":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = "\\gate{Y}"
