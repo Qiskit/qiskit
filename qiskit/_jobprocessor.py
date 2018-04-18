@@ -24,6 +24,7 @@ from threading import Lock
 from ._qiskiterror import QISKitError
 from ._compiler import compile_circuit
 from ._result import Result
+from qiskit.backends import BaseJob
 
 logger = logging.getLogger(__name__)
 

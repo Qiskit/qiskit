@@ -92,7 +92,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     def test_compile_two_run(self):
@@ -111,7 +112,8 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     def test_execute(self):
@@ -212,7 +214,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
@@ -232,7 +235,8 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     @requires_qe_access

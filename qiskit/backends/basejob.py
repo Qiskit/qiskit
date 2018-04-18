@@ -41,7 +41,7 @@ class BaseJob(ABC):
         pass
 
     @abstractmethod    
-    def abort(self):
+    def cancel(self):
         """
         Attempt to cancel job.
         Returns:
@@ -56,3 +56,11 @@ class BaseJob(ABC):
             bool: True if job is currently running.
         """
         pass
+
+    # @abstractmethod
+    # def id(self):
+    #     """
+    #     Returns:
+    #         job id
+    #     """
+    #     pass

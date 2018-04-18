@@ -37,7 +37,7 @@ class IBMQJob(BaseJob):
         else:
             return "unknown"
 
-    def abort(self):
+    def cancel(self):
         # TODO: the IBMQExperience API needs an abort/cancel job.
         #self._api.abort(job_id)
         return self._future.cancel()

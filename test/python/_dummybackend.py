@@ -106,7 +106,7 @@ class DummyJob(BaseJob):
         else:
             return "unknown"
 
-    def abort(self):
+    def cancel(self):
         return self._future.cancel()
 
     def running(self):

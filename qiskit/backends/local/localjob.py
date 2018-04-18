@@ -35,9 +35,8 @@ class LocalJob(BaseJob):
             return "done"
         else:
             return "unknown"
-    
 
-    def abort(self):
+    def cancel():
         return self._future.cancel()
 
     def running(self):

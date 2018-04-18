@@ -73,7 +73,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                            backend=SympyUnitarySimulator(),
                            preformatted=True)
 
-        result = SympyUnitarySimulator().run(q_job)
+        result = SympyUnitarySimulator().run(q_job).result()
         actual = result.get_data('test')['unitary']
 
         self.assertEqual(actual[0][0], sqrt(2)/2)

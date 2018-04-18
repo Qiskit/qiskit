@@ -87,7 +87,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                            backend=UnitarySimulator(),
                            preformatted=True)
 
-        result = UnitarySimulator().run(q_job)
+        result = UnitarySimulator().run(q_job).result()
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],
                                     expected,
                                     rtol=1e-3))
@@ -108,7 +108,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         backend = UnitarySimulator()
         quantum_job = QuantumJob(circuits, do_compile=True,
                                  backend=backend)
-        result = jobprocessor.run_backend(quantum_job)
+        result = jobprocessor.run_backend(quantum_job).result()
         unitary1 = result[0]['data']['unitary']
         unitary2 = result[1]['data']['unitary']
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],

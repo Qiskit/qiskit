@@ -122,9 +122,6 @@ class ProjectQSimulator(BaseBackend):
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        # multiprocessing requires data to be pickleable
-        if not isinstance(qobj['config']['backend'], str):
-            qobj['config']['backend'] = self._configuration['name']
         return Result({'job_id': job_id, 'result': result_list,
                        'status': 'COMPLETED'},
                       qobj)
