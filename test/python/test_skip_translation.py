@@ -28,66 +28,6 @@ from .common import QiskitTestCase
 class CompileSkipTranslationTest(QiskitTestCase):
     """Test compilaton with skip translation."""
 
-    def setUp(self):
-        self.seed = 88
-        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
-        self.qp = QuantumProgram()
-        self.qp.load_qasm_file(self.qasm_filename, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
-            unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        circuit_config = {'coupling_map': None,
-                          'basis_gates': 'u1,u2,u3,cx,id',
-                          'layout': None,
-                          'seed': self.seed}
-        resources = {'max_credits': 3,
-                     'wait': 5,
-                     'timeout': 120}
-        self.qobj = {'id': 'test_sim_single_shot',
-                     'config': {
-                         'max_credits': resources['max_credits'],
-                         'shots': 1024,
-                         'backend_name': 'local_qasm_simulator',
-                     },
-                     'circuits': [
-                         {
-                             'name': 'test',
-                             'compiled_circuit': circuit,
-                             'compiled_circuit_qasm': None,
-                             'config': circuit_config
-                         }
-                     ]}
-        self.q_job = QuantumJob(self.qobj,
-                                backend=QasmSimulator(),
-                                circuit_config=circuit_config,
-                                seed=self.seed,
-                                resources=resources,
-                                preformatted=True)
-
-    def tearDown(self):
-        pass
-
-    def test_qasm_simulator_single_shot(self):
-        """Test single shot run."""
-        shots = 1
-        self.qobj['config']['shots'] = shots
-        result = QasmSimulator().run(self.q_job)
-        self.assertEqual(result.get_status(), 'COMPLETED')
-
-    def test_qasm_simulator(self):
-        """Test data counts output for single circuit run against reference."""
-        result = QasmSimulator().run(self.q_job)
-        shots = 1024
-        threshold = 0.025 * shots
-        counts = result.get_counts('test')
-        target = {'100 100': shots / 8, '011 011': shots / 8,
-                  '101 101': shots / 8, '111 111': shots / 8,
-                  '000 000': shots / 8, '010 010': shots / 8,
-                  '110 110': shots / 8, '001 001': shots / 8}
-        self.assertDictAlmostEqual(counts, target, threshold)
-
     def test_if_statement(self):
         self.log.info('test_if_statement_x')
         max_qubits = 3
@@ -166,11 +106,10 @@ class CompileSkipTranslationTest(QiskitTestCase):
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
         backend = 'local_qasm_simulator'
-        result = qp.compile('teleport', backend=backend, shots=shots,
-                            seed=self.seed, skip_translation=True)
+        result = qp.compile('teleport', backend=backend, shots=shots, seed=2, skip_translation=True)
         config = {'max_credits': 10, 'shots': 1000, 'backend_name': 'local_qasm_simulator'}
         circuits = [{'name': 'teleport',
-                     'config': {'coupling_map': None, 'basis_gates': 'u1,u2,u3,cx,id', 'seed': 88,
+                     'config': {'coupling_map': None, 'basis_gates': 'u1,u2,u3,cx,id', 'seed': 2,
                                 'layout': None},
                      'compiled_circuit_qasm': 'OPENQASM 2.0;\n'
                                               'include "qelib1.inc";\n'
