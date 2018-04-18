@@ -22,6 +22,47 @@ from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
+_ALIASED_BACKENDS = {
+    'local_qasm_simulator': ['local_qasm_simulator_cpp',
+                             'local_qasm_simulator_projectq',
+                             'local_qasm_simulator_py'],
+    'local_statevector_simulator': ['local_statevector_simulator_cpp',
+                                    'local_statevector_simulator_projectq',
+                                    'local_statevector_simulator_py',
+                                    'local_statevector_simulator_sympy'],
+    'local_unitary_simulator': ['local_unitary_simulator_cpp',
+                                'local_unitary_simulator_py',
+                                'local_unitary_simulator_sympy'],
+    # FIXME: uncomment after API fix: online simulator names should change
+    # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
+    #                        'ibmq_qasm_simulator_hpc'],
+    'local_clifford_simulator': ['local_clifford_simulator_cpp']
+}
+"""
+dict (alias_name: backend_names(list))
+
+Dict that defines alias names, usually shorter names for referring to
+the backends.
+
+If an alias key is used, the corresponding backend will be chosen in order
+of priority from the value list, depending on availability.
+"""
+
+_DEPRECATED_BACKENDS = {
+    'local_qiskit_simulator': 'local_qasm_simulator_cpp',
+    'wood_simulator': 'local_qasm_simulator_cpp',
+    # FIXME: uncomment after API fix: online simulator names should change
+    # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+    # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
+    'real': 'ibmqx1'
+}
+"""
+dict (deprecated_name: backend_name)
+
+Dict that stores the current name for all deprecated backends.
+These will be removed in future releases.
+"""
+
 
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
@@ -139,3 +180,40 @@ class IBMQProvider(BaseProvider):
             ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret
+
+    def _resolve_backend_name(self, backend_name):
+        """Resolve backend name from a possible short alias or a deprecated name.
+
+        The alias will be chosen in order of priority, depending on availability.
+
+        Args:
+            backend (str): name of backend to resolve
+
+        Returns:
+            str: name of resolved backend
+
+        Raises:
+            LookupError: if backend cannot be resolved through registered names,
+            nor aliases, nor deprecated names
+        """
+        resolved_backend = ""
+        if backend in _REGISTERED_BACKENDS:
+            resolved_backend = backend
+        elif backend in _ALIASED_BACKENDS:
+            available_aliases = [b for b in _ALIASED_BACKENDS[backend]
+                                 if b in _REGISTERED_BACKENDS]
+            if available_aliases:
+                resolved_backend = available_aliases[0]
+        elif backend in _DEPRECATED_BACKENDS:
+            resolved_backend = _DEPRECATED_BACKENDS[backend]
+            logger.warning('WARNING: %s is deprecated. Use %s.', backend, resolved_backend)
+        # FIXME: remove after API fix: online simulator names should change
+        if backend == 'ibmq_qasm_simulator':
+            resolved_backend = 'ibmqx_qasm_simulator'
+        if backend == 'ibmq_qasm_simulator_hpc':
+            resolved_backend = 'ibmqx_hpc_qasm_simulator'
+
+        if resolved_backend not in _REGISTERED_BACKENDS:
+            raise LookupError('backend "{}" is not available'.format(backend))
+
+    return resolved_backend
