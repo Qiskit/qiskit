@@ -59,7 +59,7 @@ class DefaultQISKitProvider(BaseProvider):
 
     def add_provider(self, provider):
         """
-        Add a new provider to the list of know providers.
+        Add a new provider to the list of known providers.
 
         Args:
             provider (BaseProvider): Provider instance.
