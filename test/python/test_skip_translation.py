@@ -123,8 +123,8 @@ class CompileSkipTranslationTest(QiskitTestCase):
                                               'measure qr[0] -> cr[0];\n'
                                               'measure qr[1] -> cr[1];\n'
                                               'measure qr[2] -> cr[2];\n',
-                     'compiled_circuit':
-                         {'operations': [
+                     'compiled_circuit': {
+                         'operations': [
                              {'name': 'x', 'params': [], 'texparams': [], 'qubits': [1]},
                              {'name': 'measure', 'qubits': [1], 'clbits': [1]},
                              {'name': 'x', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -134,10 +134,10 @@ class CompileSkipTranslationTest(QiskitTestCase):
                              {'name': 'measure', 'qubits': [2], 'clbits': [2]},
                              {'name': 'measure', 'qubits': [1], 'clbits': [1]},
                              {'name': 'measure', 'qubits': [0], 'clbits': [0]}],
-                             'header': {'number_of_qubits': 3,
-                                        'number_of_clbits': 3,
-                                        'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
-                                        'clbit_labels': [['cr', 3]]}}}]
+                         'header': {'number_of_qubits': 3,
+                                    'number_of_clbits': 3,
+                                    'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
+                                    'clbit_labels': [['cr', 3]]}}}]
         self.assertEqual(result['config'], config)
         self.assertEqual(result['circuits'], circuits)
 
@@ -189,26 +189,25 @@ class CompileSkipTranslationTest(QiskitTestCase):
                                               'if(cr0==1) z qr[2];\n'
                                               'if(cr1==1) x qr[2];\n'
                                               'measure qr[2] -> cr2[0];\n',
-                     'compiled_circuit': {'operations': [
-                         {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]},
-                         {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [1, 2]},
-                         {'name': 'ry', 'params': [0.7853981633974483],
-                          'texparams': ['0.785398163397448'], 'qubits': [0]},
-                         {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
-                         {'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
-                         {'name': 'barrier', 'qubits': [0, 1, 2]},
-                         {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                         {'name': 'measure', 'qubits': [0], 'clbits': [0]},
-                         {'name': 'z', 'params': [], 'texparams': [], 'qubits': [2],
-                          'conditional': {'type': 'equals', 'mask': '0x1', 'val': '0x1'}},
-                         {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
-                          'conditional': {'type': 'equals', 'mask': '0x2', 'val': '0x1'}},
-                         {'name': 'measure', 'qubits': [2], 'clbits': [2]}],
+                     'compiled_circuit': {
+                         'operations': [
+                             {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]},
+                             {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [1, 2]},
+                             {'name': 'ry', 'params': [0.7853981633974483],
+                              'texparams': ['0.785398163397448'], 'qubits': [0]},
+                             {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
+                             {'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                             {'name': 'barrier', 'qubits': [0, 1, 2]},
+                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
+                             {'name': 'measure', 'qubits': [0], 'clbits': [0]},
+                             {'name': 'z', 'params': [], 'texparams': [], 'qubits': [2],
+                              'conditional': {'type': 'equals', 'mask': '0x1', 'val': '0x1'}},
+                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
+                              'conditional': {'type': 'equals', 'mask': '0x2', 'val': '0x1'}},
+                             {'name': 'measure', 'qubits': [2], 'clbits': [2]}],
                          'header': {'number_of_qubits': 3, 'number_of_clbits': 3,
-                                    'qubit_labels': [['qr', 0], ['qr', 1],
-                                                     ['qr', 2]],
-                                    'clbit_labels': [['cr0', 1], ['cr1', 1],
-                                                     ['cr2', 1]]}}}]
+                                    'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
+                                    'clbit_labels': [['cr0', 1], ['cr1', 1], ['cr2', 1]]}}}]
         self.assertEqual(result['config'], config)
         self.assertEqual(result['circuits'], circuits)
 
