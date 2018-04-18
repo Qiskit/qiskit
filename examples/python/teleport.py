@@ -29,7 +29,7 @@ import Qconfig
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "ibmqx_qasm_simulator"
+backend = "ibmq_qasm_simulator"
 coupling_map = {0: [1, 2],
                 1: [2],
                 2: [],
