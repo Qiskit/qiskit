@@ -961,11 +961,13 @@ class QCircuitImage(object):
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
                 self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0] + \
-                                    "_{" + str(self.ordered_regs[i][1]) + "}}"
+                                    "_{" + str(self.ordered_regs[i][1]) + "}" + \
+                                    ": 0}"
             else:
                 self._latex[i][0] = "\\lstick{\\ket{" + \
                                     self.ordered_regs[i][0] + "_{" + \
-                                    str(self.ordered_regs[i][1]) + "}}}"
+                                    str(self.ordered_regs[i][1]) + "}}" + \
+                                    ": \ket{0}}"
 
     def _get_image_depth(self, aliases=None):
         """Get depth information for the circuit.
@@ -977,6 +979,9 @@ class QCircuitImage(object):
         Returns:
             int: number of columns in the circuit
             int: total size of columns in the circuit
+        
+        Raises:
+            QISKitError: if trying to draw unsupported gates
         """
         columns = 2     # wires in the beginning and end
         is_occupied = [False] * self.img_width
@@ -984,7 +989,7 @@ class QCircuitImage(object):
         for op in self.circuit['operations']:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
-                           't', 'tdg', 'rx', 'ry' , 'rz', 'ch', 'cy', 'cu3']
+                           't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy', 'cu3']
             target_gates = ['cx', 'ccx']
             if op['name'] in boxed_gates:
                 self.has_box = True
@@ -1053,7 +1058,7 @@ class QCircuitImage(object):
                         if op['name'] in ['crz', 'cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            is_occupied[max(pos_1, pos_2)] = True                                
+                            is_occupied[max(pos_1, pos_2)] = True
                     else:
                         temp = [pos_1, pos_2]
                         temp.sort(key=int)
@@ -1385,7 +1390,8 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
                                 op["texparams"][0])
                         elif nm == "reset":
-                            self._latex[pos_1][columns] = "\\push{\\rule{.6em}{0em}\ket{0}\\rule{.2em}{0em}} \qw"
+                            self._latex[pos_1][columns] = \
+                                "\\push{\\rule{.6em}{0em}\ket{0}\\rule{.2em}{0em}} \qw"
 
                 elif len(qarglist) == 2:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -1411,7 +1417,7 @@ class QCircuitImage(object):
                         if op['name'] in ['crz', 'cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            is_occupied[top] = True                            
+                            is_occupied[top] = True
 
                         gap = pos_3 - bottom
                         for i in range(self.cregs[if_reg]):
@@ -1448,13 +1454,13 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                    "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                    "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = \
@@ -1504,14 +1510,14 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                    "\\dstick{%s}\\qw" % (op["texparams"][0])
-                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"                            
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                    "\\dstick{%s}\\qw" % (op["texparams"][0])
-                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"                            
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = "\\gate{U_3(%s,%s,%s)}" \
