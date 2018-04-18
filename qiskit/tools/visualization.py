@@ -1581,6 +1581,12 @@ class QCircuitImage(object):
                                 self._latex[pos_2][columns] = "\\ctrl{" + str(pos_3 - pos_2) + "}"
                                 self._latex[pos_3][columns] = "\\targ"
 
+                            if nm == "cswap":
+                                self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                self._latex[pos_2][columns] = "\\qswap"
+                                self._latex[pos_3][columns] = \
+                                    "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+
             else:
                 if op["name"] == "measure":
                     assert len(op['clbits']) == 1 and \
