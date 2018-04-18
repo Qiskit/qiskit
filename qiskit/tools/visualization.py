@@ -1072,7 +1072,7 @@ class QCircuitImage(object):
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
                         cl_reg = self.clbit_list[self._ffs(mask)]
-                        if_reg = cl_reg[0]                        
+                        if_reg = cl_reg[0]
                         pos_4 = self.img_regs[(if_reg, 0)]
 
                         temp = [pos_1, pos_2, pos_3, pos_4]
@@ -1382,124 +1382,69 @@ class QCircuitImage(object):
 
                     if 'conditional' in op:
                         pos_3 = self.img_regs[(if_reg, 0)]
+                        temp = [pos_1, pos_2, pos_3]
+                        temp.sort(key=int)
+                        top = temp[0]
+                        bottom = temp[1]
 
-                        if pos_1 > pos_2:
-                            for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(pos_2, pos_3 + 1):
-                                        is_occupied[j] = True
-                                    break
+                        for i in range(top, pos_3 + 1):
+                            if is_occupied[i] is False:
+                                is_occupied[i] = True
+                            else:
+                                columns += 1
+                                is_occupied = [False] * self.img_width
+                                for j in range(top, pos_3 + 1):
+                                    is_occupied[j] = True
+                                break
 
-                            if nm == "cx":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\targ"
-                            elif nm == "cz":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{Z}"
-                            elif nm == "cy":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{Y}"
-                            elif nm == "ch":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = "\\gate{H}"
-                            elif nm == "swap":
-                                self._latex[pos_1][columns] = "\\qswap"
-                                self._latex[pos_2][columns] = \
-                                    "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
-                            elif nm == "crz":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = \
-                                    "\\gate{R_z(%s)}" % (op["texparams"][0])
-                            elif nm == "cu1":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = \
-                                    "\\gate{U_1(%s)}" % (op["texparams"][0])
-                            elif nm == "cu3":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][columns] = \
-                                    "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
-                                                               op["texparams"][1],
-                                                               op["texparams"][2])
-                            gap = pos_3 - pos_1
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
-                                    self._latex[pos_3 + i][columns] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_3 + i][columns] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                        else:
-                            for i in range(pos_1, pos_3 + self.cregs[if_reg]):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(pos_1, pos_3 + 1):
-                                        is_occupied[j] = True
-                                    break
+                        gap = pos_3 - bottom
+                        for i in range(self.cregs[if_reg]):
+                            if if_value[i] == '1':
+                                self._latex[pos_3 + i][columns] = \
+                                    "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                            else:
+                                self._latex[pos_3 + i][columns] = \
+                                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
 
-                            if nm == "cx":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = "\\targ"
-                            elif nm == "cz":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = "\\gate{Z}"
-                            elif nm == "cy":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = "\\gate{Y}"
-                            elif nm == "ch":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = "\\gate{H}"
-                            elif nm == "swap":
-                                self._latex[pos_1][columns] = "\\qswap"
-                                self._latex[pos_2][columns] = \
-                                    "\\qswap \\qwx[" + str(pos_2 - pos_1) + "]"
-                            elif nm == "crz":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = \
-                                    "\\gate{R_z(%s)}" % (op["texparams"][0])
-                            elif nm == "cu1":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = \
-                                    "\\gate{U_1(%s)}" % (op["texparams"][0])
-                            elif nm == "cu3":
-                                self._latex[pos_1][columns] = \
-                                    "\\ctrl{" + str(pos_1 - pos_2) + "}"
-                                self._latex[pos_2][columns] = "\\gate{U_3(%s,%s,%s)}" \
-                                    % (op["texparams"][0], op["texparams"][1],
-                                       op["texparams"][2])
-
-                            gap = pos_3 - pos_2
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
-                                    self._latex[pos_3 + i][columns] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_3 + i][columns] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-
+                        if nm == "cx":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\targ"
+                        elif nm == "cz":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\gate{Z}"
+                        elif nm == "cy":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\gate{Y}"
+                        elif nm == "ch":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\gate{H}"
+                        elif nm == "swap":
+                            self._latex[pos_1][columns] = "\\qswap"
+                            self._latex[pos_2][columns] = \
+                                "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
+                        elif nm == "crz":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = \
+                                "\\gate{R_z(%s)}" % (op["texparams"][0])
+                        elif nm == "cu1":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = \
+                                "\\gate{U_1(%s)}" % (op["texparams"][0])
+                        elif nm == "cu3":
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = \
+                                "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
+                                                           op["texparams"][1],
+                                                           op["texparams"][2])
                     else:
                         temp = [pos_1, pos_2]
                         temp.sort(key=int)
@@ -1578,6 +1523,17 @@ class QCircuitImage(object):
                                 self._latex[pos_4 + i][columns] = \
                                     "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
+
+                        if nm == "ccx":
+                            self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\ctrl{" + str(pos_3 - pos_2) + "}"
+                            self._latex[pos_3][columns] = "\\targ"
+
+                        if nm == "cswap":
+                            self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = "\\qswap"
+                            self._latex[pos_3][columns] = \
+                                "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
                     else:
                         temp = [pos_1, pos_2, pos_3]
                         temp.sort(key=int)
