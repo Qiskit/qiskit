@@ -993,7 +993,8 @@ class QuantumProgram(object):
             'hpc': hpc
         }
         my_backend = qiskit.wrapper.get_backend(backend)
-        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config, skip_translation)
+        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config,
+                                      skip_translation)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):

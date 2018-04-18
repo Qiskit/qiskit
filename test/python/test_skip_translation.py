@@ -16,20 +16,12 @@
 # limitations under the License.
 # =============================================================================
 
-from sys import version_info
-import cProfile
-import io
-import pstats
-import shutil
-import time
 import unittest
 
-from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends.local.qasmsimulator import QasmSimulator
 
-from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 
@@ -98,7 +90,6 @@ class CompileSkipTranslationTest(QiskitTestCase):
 
     def test_if_statement(self):
         self.log.info('test_if_statement_x')
-        shots = 100
         max_qubits = 3
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', max_qubits)
@@ -132,20 +123,21 @@ class CompileSkipTranslationTest(QiskitTestCase):
                                               'measure qr[0] -> cr[0];\n'
                                               'measure qr[1] -> cr[1];\n'
                                               'measure qr[2] -> cr[2];\n',
-                     'compiled_circuit': {'operations': [
-                         {'name': 'x', 'params': [], 'texparams': [], 'qubits': [1]},
-                         {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                         {'name': 'x', 'params': [], 'texparams': [], 'qubits': [0]},
-                         {'name': 'measure', 'qubits': [0], 'clbits': [0]},
-                         {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
-                          'conditional': {'type': 'equals', 'mask': '0x7', 'val': '0x3'}},
-                         {'name': 'measure', 'qubits': [2], 'clbits': [2]},
-                         {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                         {'name': 'measure', 'qubits': [0], 'clbits': [0]}],
-                         'header': {'number_of_qubits': 3, 'number_of_clbits': 3,
-                                    'qubit_labels': [['qr', 0], ['qr', 1],
-                                                     ['qr', 2]],
-                                    'clbit_labels': [['cr', 3]]}}}]
+                     'compiled_circuit':
+                         {'operations': [
+                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [1]},
+                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
+                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [0]},
+                             {'name': 'measure', 'qubits': [0], 'clbits': [0]},
+                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
+                              'conditional': {'type': 'equals', 'mask': '0x7', 'val': '0x3'}},
+                             {'name': 'measure', 'qubits': [2], 'clbits': [2]},
+                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
+                             {'name': 'measure', 'qubits': [0], 'clbits': [0]}],
+                             'header': {'number_of_qubits': 3,
+                                        'number_of_clbits': 3,
+                                        'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
+                                        'clbit_labels': [['cr', 3]]}}}]
         self.assertEqual(result['config'], config)
         self.assertEqual(result['circuits'], circuits)
 

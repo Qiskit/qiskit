@@ -121,6 +121,8 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
             option.
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
+        skip_translation (bool): If True, bypass most of the compilation process and
+            creates a qobj with minimal check nor translation
     Returns:
         obj: the qobj to be run on the backends
     """
