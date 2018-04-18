@@ -110,7 +110,7 @@ def discover_remote_backends(api):
             if new_key not in ['id', 'serial_number', 'topology_id', 'status']:
                 config_edit[new_key] = config[key]
         # online_qasm_simulator uses different name for basis_gates
-        if 'gateSet' in config:
+        if 'gateSet' in config and 'basisGates' not in config:
             config_edit['basis_gates'] = config['gateSet']
             del config_edit['gate_set']
         # ibmqx_qasm_simulator doesn't report coupling_map
