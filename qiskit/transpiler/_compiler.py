@@ -24,16 +24,16 @@ import string
 import copy
 
 # Stable Modules
-from ._qiskiterror import QISKitError
-from ._quantumcircuit import QuantumCircuit
-from .qasm import Qasm
+from qiskit._qiskiterror import QISKitError
+from qiskit._quantumcircuit import QuantumCircuit
+from qiskit.qasm import Qasm
 
 # Beta Modules
-from .dagcircuit import DAGCircuit
-from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
-from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
-                     cx_cancellation, direction_mapper)
-from ._quantumjob import QuantumJob
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
+from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
+                           cx_cancellation, direction_mapper)
+from qiskit._quantumjob import QuantumJob
 
 logger = logging.getLogger(__name__)
 

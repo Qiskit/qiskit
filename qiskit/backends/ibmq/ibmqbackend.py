@@ -23,7 +23,7 @@ import pprint
 import time
 
 from qiskit import QISKitError
-from qiskit._compiler import compile_circuit
+from qiskit.transpiler import compile_circuit
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit._util import _snake_case_to_camel_case

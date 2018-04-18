@@ -21,8 +21,8 @@ import pprint
 from concurrent import futures
 from threading import Lock
 
+from qiskit.transpiler import compile_circuit
 from ._qiskiterror import QISKitError
-from ._compiler import compile_circuit
 from ._result import Result
 
 logger = logging.getLogger(__name__)

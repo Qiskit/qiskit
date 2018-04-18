@@ -16,7 +16,7 @@
 # =============================================================================
 """Helper module for simplified QISKit usage."""
 
-import qiskit._compiler
+import qiskit.transpiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
@@ -151,7 +151,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    return qiskit._compiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    return qiskit.transpiler.compile(list_of_circuits, backend, compile_config)
 
 
 def execute(list_of_circuits, backend_name, compile_config=None,
@@ -170,5 +170,5 @@ def execute(list_of_circuits, backend_name, compile_config=None,
         Result: The results object
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    wait, timeout, skip_translation)
+    return qiskit.transpiler.execute(list_of_circuits, backend, compile_config,
+                                    wait, timeout)

@@ -24,7 +24,7 @@ import qiskit._jobprocessor as jobprocessor
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister)
 from qiskit import QuantumJob
-from qiskit._compiler import (compile_circuit, load_unroll_qasm_file)
+from qiskit.transpiler import (compile_circuit, load_unroll_qasm_file)
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import get_backend
 from ._random_circuit_generator import RandomCircuitGenerator

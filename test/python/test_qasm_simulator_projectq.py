@@ -28,7 +28,7 @@ from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit.wrapper import get_backend, execute
+from qiskit.transpiler import compile_circuit
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
