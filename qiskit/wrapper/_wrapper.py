@@ -138,8 +138,9 @@ def execute(list_of_circuits, backend_name, compile_config=None,
         list_of_circuits (list[QuantumCircuits]): list of circuits.
         backend_name (str): the name of the backend to execute the circuits on.
         compile_config (dict or None): a dictionary of compile configurations.
-        wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
-        timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+        wait (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
+        timeout (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
+        skip_translation (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
         Result: The results object
