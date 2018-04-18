@@ -187,7 +187,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
             job["compiled_circuit_qasm"] = circuit.qasm()
             job["compiled_circuit"] = DagUnroller(
                 DAGCircuit.fromQuantumCircuit(circuit),
-                JsonBackend([i for i in circuit.definitions.keys()])).execute()
+                JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
             dag_circuit, final_layout = compile_circuit(
                 circuit,

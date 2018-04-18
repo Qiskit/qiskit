@@ -18,9 +18,7 @@
 
 import unittest
 
-import numpy as np
-from qiskit import qasm, unroll, QuantumProgram, QuantumJob
-from qiskit.backends.local.qasmsimulator import QasmSimulator
+from qiskit import QuantumProgram
 
 from .common import QiskitTestCase
 
@@ -28,128 +26,42 @@ from .common import QiskitTestCase
 class CompileSkipTranslationTest(QiskitTestCase):
     """Test compilaton with skip translation."""
 
-    def test_if_statement(self):
-        self.log.info('test_if_statement_x')
-        max_qubits = 3
+    def test_simple_compile(self):
+        '''
+        Compares with and without skip_translation
+        '''
+        name = 'test_simple'
+        self.log.info(name)
         qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr', max_qubits)
-        cr = qp.create_classical_register('cr', max_qubits)
-        circuit_if_true = qp.create_circuit('test_if_true', [qr], [cr])
-        circuit_if_true.x(qr[0])
-        circuit_if_true.x(qr[1])
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        circuit_if_true.x(qr[2]).c_if(cr, 0x3)
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        circuit_if_true.measure(qr[2], cr[2])
+        qr = qp.create_quantum_register('qr',2)
+        cr = qp.create_classical_register('cr',2)
+        qc = qp.create_circuit(name, [qr], [cr])
+        qc.u1(3.14, qr[0])
+        qc.u2(3.14, 1.57, qr[0])
+        qc.measure(qr, cr)
 
-        result = qp.compile(['test_if_true'], backend='local_qasm_simulator', shots=1024,
+        rtrue = qp.compile([name], backend='local_qasm_simulator', shots=1024,
                             skip_translation=True)
+        rfalse = qp.compile([name], backend='local_qasm_simulator', shots=1024,
+                            skip_translation=False)
+        self.assertEqual(rtrue['config'], rfalse['config'])
+        self.assertEqual(rtrue['circuits'], rfalse['circuits'])
 
-        config = {'max_credits': 10, 'shots': 1024, 'backend_name': 'local_qasm_simulator'}
-        circuits = [{'name': 'test_if_true',
-                     'config': {'coupling_map': None, 'basis_gates': 'u1,u2,u3,cx,id',
-                                'seed': None, 'layout': None},
-                     'compiled_circuit_qasm': 'OPENQASM 2.0;\n'
-                                              'include "qelib1.inc";\n'
-                                              'qreg qr[3];\n'
-                                              'creg cr[3];\n'
-                                              'x qr[0];\n'
-                                              'x qr[1];\n'
-                                              'measure qr[0] -> cr[0];\n'
-                                              'measure qr[1] -> cr[1];\n'
-                                              'if(cr==3) x qr[2];\n'
-                                              'measure qr[0] -> cr[0];\n'
-                                              'measure qr[1] -> cr[1];\n'
-                                              'measure qr[2] -> cr[2];\n',
-                     'compiled_circuit': {
-                         'operations': [
-                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [1]},
-                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [0]},
-                             {'name': 'measure', 'qubits': [0], 'clbits': [0]},
-                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
-                              'conditional': {'type': 'equals', 'mask': '0x7', 'val': '0x3'}},
-                             {'name': 'measure', 'qubits': [2], 'clbits': [2]},
-                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                             {'name': 'measure', 'qubits': [0], 'clbits': [0]}],
-                         'header': {'number_of_qubits': 3,
-                                    'number_of_clbits': 3,
-                                    'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
-                                    'clbit_labels': [['cr', 3]]}}}]
-        self.assertEqual(result['config'], config)
-        self.assertEqual(result['circuits'], circuits)
-
-    def test_teleport(self):
-        """test teleportation as in tutorials"""
-
-        self.log.info('test_teleport')
-        pi = np.pi
-        shots = 1000
+    def test_simple_execute(self):
+        name = 'test_simple'
+        seed = 42
+        self.log.info(name)
         qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr', 3)
-        cr0 = qp.create_classical_register('cr0', 1)
-        cr1 = qp.create_classical_register('cr1', 1)
-        cr2 = qp.create_classical_register('cr2', 1)
-        circuit = qp.create_circuit('teleport', [qr],
-                                    [cr0, cr1, cr2])
-        circuit.h(qr[1])
-        circuit.cx(qr[1], qr[2])
-        circuit.ry(pi / 4, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[0])
-        circuit.barrier(qr)
-        circuit.measure(qr[0], cr0[0])
-        circuit.measure(qr[1], cr1[0])
-        circuit.z(qr[2]).c_if(cr0, 1)
-        circuit.x(qr[2]).c_if(cr1, 1)
-        circuit.measure(qr[2], cr2[0])
-        backend = 'local_qasm_simulator'
-        result = qp.compile('teleport', backend=backend, shots=shots, seed=2, skip_translation=True)
-        config = {'max_credits': 10, 'shots': 1000, 'backend_name': 'local_qasm_simulator'}
-        circuits = [{'name': 'teleport',
-                     'config': {'coupling_map': None, 'basis_gates': 'u1,u2,u3,cx,id', 'seed': 2,
-                                'layout': None},
-                     'compiled_circuit_qasm': 'OPENQASM 2.0;\n'
-                                              'include "qelib1.inc";\n'
-                                              'qreg qr[3];\n'
-                                              'creg cr0[1];\n'
-                                              'creg cr1[1];\n'
-                                              'creg cr2[1];\n'
-                                              'h qr[1];\n'
-                                              'cx qr[1],qr[2];\n'
-                                              'ry(0.785398163397448) qr[0];\n'
-                                              'cx qr[0],qr[1];\n'
-                                              'h qr[0];\n'
-                                              'barrier qr[0],qr[1],qr[2];\n'
-                                              'measure qr[0] -> cr0[0];\n'
-                                              'measure qr[1] -> cr1[0];\n'
-                                              'if(cr0==1) z qr[2];\n'
-                                              'if(cr1==1) x qr[2];\n'
-                                              'measure qr[2] -> cr2[0];\n',
-                     'compiled_circuit': {
-                         'operations': [
-                             {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]},
-                             {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [1, 2]},
-                             {'name': 'ry', 'params': [0.7853981633974483],
-                              'texparams': ['0.785398163397448'], 'qubits': [0]},
-                             {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
-                             {'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
-                             {'name': 'barrier', 'qubits': [0, 1, 2]},
-                             {'name': 'measure', 'qubits': [1], 'clbits': [1]},
-                             {'name': 'measure', 'qubits': [0], 'clbits': [0]},
-                             {'name': 'z', 'params': [], 'texparams': [], 'qubits': [2],
-                              'conditional': {'type': 'equals', 'mask': '0x1', 'val': '0x1'}},
-                             {'name': 'x', 'params': [], 'texparams': [], 'qubits': [2],
-                              'conditional': {'type': 'equals', 'mask': '0x2', 'val': '0x1'}},
-                             {'name': 'measure', 'qubits': [2], 'clbits': [2]}],
-                         'header': {'number_of_qubits': 3, 'number_of_clbits': 3,
-                                    'qubit_labels': [['qr', 0], ['qr', 1], ['qr', 2]],
-                                    'clbit_labels': [['cr0', 1], ['cr1', 1], ['cr2', 1]]}}}]
-        self.assertEqual(result['config'], config)
-        self.assertEqual(result['circuits'], circuits)
+        qr = qp.create_quantum_register('qr',2)
+        cr = qp.create_classical_register('cr',2)
+        qc = qp.create_circuit(name, [qr], [cr])
+        qc.u1(3.14, qr[0])
+        qc.u2(3.14, 1.57, qr[0])
+        qc.measure(qr, cr)
 
+        rtrue  = qp.execute(name, seed=seed, skip_translation=True)
+        rfalse = qp.execute(name, seed=seed, skip_translation=False)
+        self.assertEqual(rtrue.get_counts(),rfalse.get_counts())
 
 if __name__ == '__main__':
     unittest.main()
