@@ -51,7 +51,7 @@ COMPILE_CONFIG_DEFAULT = {
 
 
 def execute(list_of_circuits, backend, compile_config=None,
-            wait=5, timeout=60):
+            wait=5, timeout=60, skip_translation=True):
     """Executes a set of circuits.
 
     Args:
@@ -68,7 +68,7 @@ def execute(list_of_circuits, backend, compile_config=None,
     """
     compile_config = compile_config or {}
     compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    qobj = compile(list_of_circuits, backend, compile_config)
+    qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
 
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={

@@ -131,7 +131,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
 
 
 def execute(list_of_circuits, backend_name, compile_config=None,
-            wait=5, timeout=60):
+            wait=5, timeout=60, skip_translation=False):
     """Executes a set of circuits.
 
     Args:
@@ -146,4 +146,4 @@ def execute(list_of_circuits, backend_name, compile_config=None,
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
     return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    wait, timeout)
+                                    wait, timeout, skip_translation=False)
