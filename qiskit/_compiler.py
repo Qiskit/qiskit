@@ -25,8 +25,6 @@ import copy
 
 # Stable Modules
 from ._qiskiterror import QISKitError
-from ._measure import Measure
-from ._gate import Gate
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
 
@@ -34,7 +32,6 @@ from .qasm import Qasm
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
-from .extensions.standard.barrier import Barrier
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
@@ -168,21 +165,6 @@ def compile(list_of_circuits, backend, compile_config=None):
             coupling_map = None
         if coupling_map == 'all-to-all':
             coupling_map = None
-        # if the backend is a real chip, insert barrier before measurements
-        if not backend_conf['simulator']:
-            measured_qubits = []
-            qasm_idx = []
-            for i, instruction in enumerate(circuit.data):
-                if isinstance(instruction, Measure):
-                    measured_qubits.append(instruction.arg[0])
-                    qasm_idx.append(i)
-                elif isinstance(instruction, Gate) and bool(set(instruction.arg) &
-                                                            set(measured_qubits)):
-                    raise QISKitError('backend "{0}" rejects gate after '
-                                      'measurement in circuit "{1}"'.format(backend_name,
-                                                                            circuit.name))
-            for i, qubit in zip(qasm_idx, measured_qubits):
-                circuit.data.insert(i, Barrier([qubit], circuit))
         dag_circuit, final_layout = compile_circuit(
             circuit,
             basis_gates=basis_gates,
