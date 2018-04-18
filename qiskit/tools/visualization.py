@@ -964,10 +964,10 @@ class QCircuitImage(object):
                                     "_{" + str(self.ordered_regs[i][1]) + "}" + \
                                     ": 0}"
             else:
-                self._latex[i][0] = "\\lstick{\\ket{" + \
+                self._latex[i][0] = "\\lstick{" + \
                                     self.ordered_regs[i][0] + "_{" + \
-                                    str(self.ordered_regs[i][1]) + "}}" + \
-                                    ": \ket{0}}"
+                                    str(self.ordered_regs[i][1]) + "}" + \
+                                    ": \\ket{0}}"
 
     def _get_image_depth(self, aliases=None):
         """Get depth information for the circuit.
@@ -979,7 +979,7 @@ class QCircuitImage(object):
         Returns:
             int: number of columns in the circuit
             int: total size of columns in the circuit
-        
+
         Raises:
             QISKitError: if trying to draw unsupported gates
         """
@@ -1454,13 +1454,13 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = \
@@ -1510,13 +1510,13 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["texparams"][0])
+                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
