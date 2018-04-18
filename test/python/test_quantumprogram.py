@@ -547,7 +547,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         check_result = q_program.get_qasm('circuitName')
         self.log.info(check_result)
-        self.assertEqual(len(check_result), 1662)
+        self.assertEqual(len(check_result), 1716)
 
     def test_load_wrong(self):
         """Test load Json.
@@ -776,7 +776,7 @@ class TestQuantumProgram(QiskitTestCase):
                                  coupling_map=coupling_map)
         result = q_program.get_compiled_qasm(qobj, 'circuitName',)
         self.log.info(result)
-        self.assertEqual(len(result), 190)
+        self.assertEqual(len(result), 244)
 
     def test_get_execution_list(self):
         """Test get_execution_list.

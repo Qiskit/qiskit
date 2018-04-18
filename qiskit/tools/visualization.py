@@ -1175,6 +1175,8 @@ class QCircuitImage(object):
                     columns += 1
                     is_occupied = [False] * self.img_width
                     is_occupied[pos_1] = True
+            elif op['name'] == "barrier":
+                pass
             else:
                 assert False, "bad node data"
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -1631,6 +1633,8 @@ class QCircuitImage(object):
                 except Exception as e:
                     raise QISKitError('Error during Latex building: %s' %
                                       str(e))
+            elif op['name'] == "barrier":
+                pass
             else:
                 assert False, "bad node data"
 
