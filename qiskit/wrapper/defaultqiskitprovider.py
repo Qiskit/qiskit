@@ -21,6 +21,7 @@ import logging
 from itertools import combinations
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
+from itertools import combinations
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class DefaultQISKitProvider(BaseProvider):
                 pass
         raise KeyError(name)
 
-    def available_backends(self, filters=None):
+    def available_backends(self, filters=None, compact=True):
         """
         Args:
             filters (dict): dictionary of filtering conditions.
