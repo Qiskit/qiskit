@@ -33,15 +33,15 @@ class CompileSkipTranslationTest(QiskitTestCase):
         name = 'test_simple'
         self.log.info(name)
         qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr',2)
-        cr = qp.create_classical_register('cr',2)
+        qr = qp.create_quantum_register('qr', 2)
+        cr = qp.create_classical_register('cr', 2)
         qc = qp.create_circuit(name, [qr], [cr])
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
 
         rtrue = qp.compile([name], backend='local_qasm_simulator', shots=1024,
-                            skip_translation=True)
+                           skip_translation=True)
         rfalse = qp.compile([name], backend='local_qasm_simulator', shots=1024,
                             skip_translation=False)
         self.assertEqual(rtrue['config'], rfalse['config'])
@@ -52,16 +52,17 @@ class CompileSkipTranslationTest(QiskitTestCase):
         seed = 42
         self.log.info(name)
         qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr',2)
-        cr = qp.create_classical_register('cr',2)
+        qr = qp.create_quantum_register('qr', 2)
+        cr = qp.create_classical_register('cr', 2)
         qc = qp.create_circuit(name, [qr], [cr])
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
 
-        rtrue  = qp.execute(name, seed=seed, skip_translation=True)
+        rtrue = qp.execute(name, seed=seed, skip_translation=True)
         rfalse = qp.execute(name, seed=seed, skip_translation=False)
-        self.assertEqual(rtrue.get_counts(),rfalse.get_counts())
+        self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
+
 
 if __name__ == '__main__':
     unittest.main()
