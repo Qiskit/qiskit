@@ -1004,7 +1004,7 @@ class QCircuitImage(object):
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
-                        for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                        for i in range(pos_1, pos_2 + self.cregs[if_reg]):
                             if is_occupied[i] is False:
                                 is_occupied[i] = True
                             else:
@@ -1030,7 +1030,7 @@ class QCircuitImage(object):
                         if_reg = cl_reg[0]
                         pos_3 = self.img_regs[(if_reg, 0)]
                         if pos_1 > pos_2:
-                            for i in range(pos_2, pos_3 + self.cregs[if_reg] + 1):
+                            for i in range(pos_2, pos_3 + self.cregs[if_reg]):
                                 if is_occupied[i] is False:
                                     is_occupied[i] = True
                                 else:
@@ -1040,7 +1040,7 @@ class QCircuitImage(object):
                                         is_occupied[j] = True
                                     break
                         else:
-                            for i in range(pos_1, pos_3 + self.cregs[if_reg] + 1):
+                            for i in range(pos_1, pos_3 + self.cregs[if_reg]):
                                 if is_occupied[i] is False:
                                     is_occupied[i] = True
                                 else:
@@ -1070,6 +1070,9 @@ class QCircuitImage(object):
                     pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
                     if 'conditional' in op:
+                        mask = int(op['conditional']['mask'], 16)
+                        cl_reg = self.clbit_list[self._ffs(mask)]
+                        if_reg = cl_reg[0]                        
                         pos_4 = self.img_regs[(if_reg, 0)]
 
                         temp = [pos_1, pos_2, pos_3, pos_4]
@@ -1264,7 +1267,7 @@ class QCircuitImage(object):
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
-                        for i in range(pos_1, pos_2 + self.cregs[if_reg] + 1):
+                        for i in range(pos_1, pos_2 + self.cregs[if_reg]):
                             if is_occupied[i] is False:
                                 is_occupied[i] = True
                             else:
