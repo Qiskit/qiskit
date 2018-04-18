@@ -31,7 +31,7 @@ from qiskit.backends import BaseBackend
 from .ibmqjob import IBMQJob
 
 logger = logging.getLogger(__name__)
-
+from forkable import ForkablePdb
 
 class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
@@ -70,23 +70,22 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob (BaseJob)
         """
-        return IBMQJob(self.run_job, q_job, self._api)
+        timeout = q_job.timeout
+        submit_info = self._submit(q_job)
+        return IBMQJob(self._run_job, q_job, self._api, timeout, submit_info)
 
-    def run_job(self, q_job):
-        """Run jobs
+    def _submit(self, q_job):
+        """Submit job to IBM Q.
 
         Args:
             q_job (QuantumJob): job to run
 
         Returns:
-            Result: Result object.
-
-        Raises:
-            ResultError: if the api put 'error' in its output
+            dict: submission info including job id from server
         """
         qobj = q_job.qobj
-        wait = q_job.wait
-        timeout = q_job.timeout
+        self._wait = q_job.wait
+        self._timeout = q_job.timeout
         api_jobs = []
         for circuit in qobj['circuits']:
             if (('compiled_circuit_qasm' not in circuit) or
@@ -116,24 +115,42 @@ class IBMQBackend(BaseBackend):
         # TODO: this should be self._configuration['name'] - need to check that
         # it is always the case.
         backend_name = qobj['config']['backend_name']
-        output = self._api.run_job(api_jobs, backend_name,
-                                   shots=qobj['config']['shots'],
-                                   max_credits=qobj['config']['max_credits'],
-                                   seed=seed0,
-                                   hpc=hpc)
-        if 'error' in output:
-            raise ResultError(output['error'])
+        submit_info = self._api.run_job(api_jobs, backend_name,
+                                        shots=qobj['config']['shots'],
+                                        max_credits=qobj['config']['max_credits'],
+                                        seed=seed0,
+                                        hpc=hpc)
+        self._submit_info = submit_info
+        return submit_info
+
+    def _run_job(self, q_job):
+        """This waits for job to complete before returning.
+
+        Returns:
+            Result object
+        """
+        qobj = q_job.qobj
+        wait = q_job.wait
+        timeout = q_job.timeout
+        submit_info = self._submit_info
+        #ForkablePdb().set_trace()
+        if 'error' in submit_info:
+            raise ResultError(submit_info['error'])
 
         logger.info('Running qobj: %s on remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'], output['id'])
-        job_result = _wait_for_job(output['id'], self._api, wait=wait,
+                    qobj["id"], qobj['config']['backend_name'],
+                    submit_info['id'])
+        job_result = _wait_for_job(submit_info['id'], self._api, wait=wait,
                                    timeout=timeout)
         logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'], output['id'])
+                    qobj["id"], qobj['config']['backend_name'],
+                    submit_info['id'])
         job_result['name'] = qobj['id']
         job_result['backend'] = qobj['config']['backend_name']
         this_result = Result(job_result, qobj)
         return this_result
+        
+        
 
     @property
     def calibration(self):
@@ -233,6 +250,8 @@ class IBMQBackend(BaseBackend):
 
 def _wait_for_job(job_id, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
+    
+    (This function could be in IBMQJob instead)
 
     Args:
         job_id (list(str)):  is a list of id strings.

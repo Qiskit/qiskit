@@ -17,26 +17,10 @@ class BaseJob(ABC):
         pass
 
     @abstractmethod
-    def cancelled(self):
-        """
-        Returns:
-            bool: True if call was successfully cancelled
-        """
-        pass
-
-    @abstractmethod
-    def done(self):
-        """
-        Returns:
-            bool: True if call was successfully cancelled or finished.
-        """
-        pass    
-
-    @abstractmethod
     def status(self):
         """
         Returns:
-            str or code: user defined
+            str: 'ERROR', 'QUEUED', 'RUNNING', 'CANCELLED', or 'DONE'
         """
         pass
 
@@ -49,6 +33,9 @@ class BaseJob(ABC):
         """
         pass
 
+    # Property attributes
+    #####################
+    @property
     @abstractmethod
     def running(self):
         """
@@ -57,10 +44,20 @@ class BaseJob(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def id(self):
-    #     """
-    #     Returns:
-    #         job id
-    #     """
-    #     pass
+    @property
+    @abstractmethod
+    def done(self):
+        """
+        Returns:
+            bool: True if call was successfully cancelled or finished.
+        """
+        pass    
+
+    @property    
+    @abstractmethod
+    def cancelled(self):
+        """
+        Returns:
+            bool: True if call was successfully cancelled
+        """
+        pass

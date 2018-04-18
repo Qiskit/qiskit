@@ -36,11 +36,8 @@ class LocalJob(BaseJob):
         else:
             return "unknown"
 
-    def cancel():
+    def cancel(self):
         return self._future.cancel()
 
     def running(self):
         return self._future.running()
-
-    def add_done_callback(self, fn):
-        self._future.add_done_callback(fn)
