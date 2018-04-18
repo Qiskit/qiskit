@@ -18,7 +18,7 @@
 
 import os
 import sys
-from distutils.spawn import find_executable
+import shutil
 import distutils.sysconfig
 from setuptools import setup, Extension
 from Cython.Build import cythonize
@@ -144,16 +144,13 @@ if sys.platform == 'darwin':
     extra_compile_args.append(min_macos_version)
     extra_link_args.append(min_macos_version)
 
-    # Check for OpenMP compatible GCC compiler
-    for gcc in ['g++-7', 'g++-6', 'g++-5']:
-        path = find_executable(gcc)
-        if path is not None:
-            # Use most recent GCC compiler
-            os.environ['CC'] = path
-            os.environ['CXX'] = path
+    # Add OMP flags if compiler explicitly set
+    # and compiler not Apple's, i.e. in /usr/bin
+    if ('CC' in os.environ.keys() and 'CXX' in os.environ.keys()):
+        which_compiler = shutil.which(os.environ['CC'])
+        if not which_compiler.startswith('/usr/bin'):
             extra_compile_args.append('-fopenmp')
             extra_link_args.append('-fopenmp')
-            break
 elif sys.platform == 'win32':
     extra_compile_args.append('/openmp')
 else:
