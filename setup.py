@@ -20,7 +20,8 @@ import os
 import sys
 import shutil
 import distutils.sysconfig
-from setuptools import setup, Extension
+import subprocess
+from setuptools import setup, Extension, Command
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from numpy.__config__ import get_info as np_config
@@ -175,6 +176,39 @@ qasm_simulator = Extension('qiskit.cython.qasm_simulator',
 
 EXT_MODULES.append(qasm_simulator)
 
+
+
+# Add commands for running pylint from setup.py
+class PylintCommand(Command):
+    """Run Pylint on all QISKit Python source files."""
+    description = 'Run Pylint on QISKIT Python source files'
+    user_options = [
+      # The format is (long option, short option, description).
+      ('pylint-rcfile=', None, 'path to Pylint config file')]
+
+    def initialize_options(self):
+        """Set default values for options."""
+        # Each user option must be listed here with their default value.
+        self.pylint_rcfile = ''
+
+    def finalize_options(self):
+        """Post-process options."""
+        if self.pylint_rcfile:
+            assert os.path.exists(self.pylint_rcfile), (
+                'Pylint config file %s does not exist.' % self.pylint_rcfile)
+
+    def run(self):
+        """Run command."""
+        command = ['pylint']
+        if self.pylint_rcfile:
+            command.append('--rcfile=%s' % self.pylint_rcfile)
+        command.append(os.getcwd()+"/qiskit")
+        subprocess.call(command, stderr=subprocess.STDOUT)
+
+
+
+
+
 # Setup commands go here
 setup(
     name=NAME,
@@ -184,7 +218,7 @@ setup(
     include_dirs=include_dirs,
     headers=HEADERS,
     ext_modules=cythonize(EXT_MODULES),
-    cmdclass={'build_ext': build_ext},
+    cmdclass={'build_ext': build_ext, 'pylint': PylintCommand},
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     license=LICENSE,
