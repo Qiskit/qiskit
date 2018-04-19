@@ -206,9 +206,6 @@ class PylintCommand(Command):
         subprocess.call(command, stderr=subprocess.STDOUT)
 
 
-
-
-
 # Setup commands go here
 setup(
     name=NAME,
