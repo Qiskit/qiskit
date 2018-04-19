@@ -21,6 +21,7 @@ import sys
 import shutil
 import distutils.sysconfig
 import subprocess
+import unittest
 from setuptools import setup, Extension, Command
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -81,7 +82,7 @@ REQUIRES = [
     "numpy (>=1.13,<=1.14)",
     "ply (==3.10)",
     "scipy (>=0.19,<=1.0)",
-    "Sphinx (>=1.6,<1.7)",
+    "Sphinx (>=1.6)",
     "sympy (>=1.0)"]
 
 INSTALL_REQUIRES = REQUIRES
@@ -176,9 +177,27 @@ qasm_simulator = Extension('qiskit.cython.qasm_simulator',
 
 EXT_MODULES.append(qasm_simulator)
 
+# Add command for running unittests from setup.py
+class TestCommand(Command):
+    """Run unittests from setup."""
+    description = 'Run unittests from setup'
+    user_options = [
+        # The format is (long option, short option, description).
+        ('abc', None, 'abc')]
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        """Run command."""
+        command = 'python3 -m unittest discover -s test -v'
+        subprocess.run(command, shell=True, stderr=subprocess.STDOUT)
 
 
-# Add commands for running pylint from setup.py
+# Add command for running pylint from setup.py
 class PylintCommand(Command):
     """Run Pylint on all QISKit Python source files."""
     description = 'Run Pylint on QISKIT Python source files'
@@ -203,7 +222,68 @@ class PylintCommand(Command):
         if self.pylint_rcfile:
             command.append('--rcfile=%s' % self.pylint_rcfile)
         command.append(os.getcwd()+"/qiskit")
-        subprocess.call(command, stderr=subprocess.STDOUT)
+        subprocess.run(command, stderr=subprocess.STDOUT)
+
+
+# Add command for running PEP8 tests from setup.py
+class PEP8Command(Command):
+    """Run pep8 from setup."""
+    description = 'Run pep8 from setup'
+    user_options = [
+        # The format is (long option, short option, description).
+        ('abc', None, 'abc')]
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        """Run command."""
+        command = 'pycodestyle --max-line-length=100 qiskit test'
+        subprocess.run(command, shell=True, stderr=subprocess.STDOUT)
+
+
+# Add command for running profile from setup.py
+class ProfileCommand(Command):
+    """Run profile from setup."""
+    description = 'Run profile from setup'
+    user_options = [
+        # The format is (long option, short option, description).
+        ('abc', None, 'abc')]
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        """Run command."""
+        command = 'python3 -m unittest discover -p "profile*.py" -v'
+        subprocess.run(command, shell=True, stderr=subprocess.STDOUT)
+
+
+# Add command for running coverage from setup.py
+class CoverageCommand(Command):
+    """Runcoverage from setup."""
+    description = 'Run coverage from setup'
+    user_options = [
+        # The format is (long option, short option, description).
+        ('abc', None, 'abc')]
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        """Run command."""
+        command = 'coverage erase; coverage run --source qiskit -m unittest ' \
+                'discover -s test -q; coverage html'
+        subprocess.run(command, shell=True, stderr=subprocess.STDOUT)
 
 
 # Setup commands go here
@@ -215,7 +295,10 @@ setup(
     include_dirs=include_dirs,
     headers=HEADERS,
     ext_modules=cythonize(EXT_MODULES),
-    cmdclass={'build_ext': build_ext, 'pylint': PylintCommand},
+    cmdclass={'build_ext': build_ext, 'test': TestCommand, 
+              'lint': PylintCommand, 'pep8': PEP8Command,
+              'profile': ProfileCommand,
+              'coverage': CoverageCommand},
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     license=LICENSE,
