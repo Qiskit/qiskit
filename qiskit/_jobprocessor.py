@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 def run_backend(q_job):
     """Run a program of compiled quantum circuits on a backend.
 
+    TODO: replace with run_backend(qobj: Qobj)
+    TODO: backend.run(qobj.as_dict())
+
     Args:
         q_job (QuantumJob): job object
 
@@ -63,6 +66,8 @@ class JobProcessor:
     """
     def __init__(self, q_jobs, callback, max_workers=1):
         """
+        TODO: replace with __init__(q_jobs: list[Qobj])
+
         Args:
             q_jobs (list(QuantumJob)): List of QuantumJob objects.
             callback (fn(results)): The function that will be called when all

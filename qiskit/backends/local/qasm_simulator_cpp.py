@@ -81,9 +81,17 @@ class QasmSimulatorCpp(BaseBackend):
 
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
+        # TODO: replace with run(self, qobj: Qobj)
         qobj = q_job.qobj
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
+
+    def _validate_qobj(self, qobj):
+        """Validate qobj against backend specific schema.
+        Validate qobj against any other semantic constraints imposed by this backend.
+        """
+        # TODO: invoke when Qobj is completed.
+        pass
 
 
 class CliffordCppSimulator(BaseBackend):
@@ -119,6 +127,7 @@ class CliffordCppSimulator(BaseBackend):
 
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
+        # TODO: replace with run(self, qobj: Qobj)
         qobj = q_job.qobj
         # set backend to Clifford simulator
         if 'config' in qobj:
