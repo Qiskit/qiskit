@@ -61,7 +61,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                      'config': {
                          'max_credits': 3,
                          'shots': 2000,
-                         'backend_name': 'local_qiskit_simulator',
+                         'backend_name': 'local_qasm_simulator_cpp',
                          'seed': 1111
                      },
                      'circuits': [

@@ -17,7 +17,7 @@
 # =============================================================================
 
 """
-local_qiskit_simulator single qubit wait gate.
+local_qasm_simulator single qubit wait gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate

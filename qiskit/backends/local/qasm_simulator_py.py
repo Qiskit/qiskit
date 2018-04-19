@@ -47,7 +47,7 @@ The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulator(compiled_circuit,shots,seed).run().
+    QasmSimulatorPy(compiled_circuit,shots,seed).run().
 
 .. code-block:: guess
 
@@ -76,62 +76,50 @@ The simulator is run using
            ]
        }
 
-if shots = 1
-
 .. code-block:: python
 
        result =
                {
-               'data':
-                   {
-                   'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
-                   'classical_state': 0
-                   'counts': {'0000': 1}
+               'data': {
+                        'quantum_state': array([ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j]),
+                        'classical_state': 0
+                        'counts': {'0000': 1}
+                        'snapshots': { '0': {'quantum_state': array([1.+0.j,  0.+0.j,
+                                                                     0.+0.j,  0.+0.j])}}
+                        }
                    }
-               'status': 'DONE'
-               }
-
-if shots > 1
-
-.. code-block:: python
-
-       result =
-               {
-               'data':
-                   {
-                   'counts': {'0000': 50, '1001': 44},
-                   }
+               'time_taken': 0.002
                'status': 'DONE'
                }
 
 """
 import random
-import uuid
+import time
+import logging
+import warnings
 from collections import Counter
 
 import numpy as np
 
 from qiskit._result import Result
-from qiskit.backends.basebackend import BaseBackend
-from qiskit.backends.local._simulatorerror import SimulatorError
-from qiskit.backends.local._simulatortools import single_gate_matrix
+from qiskit.backends import BaseBackend
+from ._simulatorerror import SimulatorError
+from ._simulatortools import single_gate_matrix
+
+logger = logging.getLogger(__name__)
 
 
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
-# does not show up
-
-
-class QasmSimulator(BaseBackend):
+class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qasm_simulator',
-        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'name': 'local_qasm_simulator_py',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for qasm files',
         'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id'
+        'basis_gates': 'u1,u2,u3,cx,id,snapshot'
     }
 
     def __init__(self, configuration=None):
@@ -146,9 +134,11 @@ class QasmSimulator(BaseBackend):
         # Define attributes in __init__.
         self._classical_state = 0
         self._quantum_state = 0
+        self._snapshots = {}
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
+        self._seed = 1
 
     @staticmethod
     def _index1(b, i, k):
@@ -181,12 +171,12 @@ class QasmSimulator(BaseBackend):
 
         if i1 > i2:
             # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b1, i1-1, k)
-            retval = QasmSimulator._index1(b2, i2, retval)
+            retval = QasmSimulatorPy._index1(b1, i1-1, k)
+            retval = QasmSimulatorPy._index1(b2, i2, retval)
         else:  # i2>i1
             # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulator._index1(b2, i2-1, k)
-            retval = QasmSimulator._index1(b1, i1, retval)
+            retval = QasmSimulatorPy._index1(b2, i2-1, k)
+            retval = QasmSimulatorPy._index1(b1, i1, retval)
         return retval
 
     def _add_qasm_single(self, gate, qubit):
@@ -283,17 +273,33 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
+    def _add_qasm_snapshot(self, slot):
+        """Snapshot instruction to record simulator's internal representation
+        of quantum statevector.
+
+        slot is an integer indicating a snapshot slot number.
+        """
+        self._snapshots.setdefault(int(slot),
+                                   {}).setdefault("quantum_state",
+                                                  []).append(self._quantum_state)
+
     def run(self, q_job):
         """Run circuits in q_job"""
-        # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
+        self._validate(qobj)
         result_list = []
         self._shots = qobj['config']['shots']
+        start = time.time()
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-                      qobj)
+        end = time.time()
+        result = {'backend': self._configuration['name'],
+                  'id': qobj['id'],
+                  'result': result_list,
+                  'status': 'COMPLETED',
+                  'success': True,
+                  'time_taken': (end - start)}
+        return Result(result, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
@@ -328,10 +334,13 @@ class QasmSimulator(BaseBackend):
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
         if circuit['config']['seed'] is None:
-            self._local_random.seed(random.getrandbits(32))
+            self._seed = random.getrandbits(32)
         else:
-            self._local_random.seed(circuit['config']['seed'])
+            self._seed = circuit['config']['seed']
+        self._local_random.seed(self._seed)
         outcomes = []
+
+        start = time.time()
         for _ in range(self._shots):
             self._quantum_state = np.zeros(1 << self._number_of_qubits,
                                            dtype=complex)
@@ -372,8 +381,16 @@ class QasmSimulator(BaseBackend):
                 elif operation['name'] == 'reset':
                     qubit = operation['qubits'][0]
                     self._add_qasm_reset(qubit)
+                # Check if barrier
                 elif operation['name'] == 'barrier':
                     pass
+                # Check if snapshot command
+                elif operation['name'] == 'snapshot':
+                    if 'params' in operation:
+                        params = operation['params']
+                    else:
+                        params = None
+                    self._add_qasm_snapshot(params[0])
                 else:
                     backend = self._configuration['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
@@ -386,10 +403,32 @@ class QasmSimulator(BaseBackend):
         counts = dict(Counter(outcomes))
         data = {'counts': self._format_result(
             counts, cl_reg_index, cl_reg_nbits)}
+        data['snapshots'] = self._snapshots
         if self._shots == 1:
+            # TODO: deprecated -- remove in v0.6
             data['quantum_state'] = self._quantum_state
             data['classical_state'] = self._classical_state
-        return {'data': data, 'status': 'DONE'}
+        end = time.time()
+        return {'name': circuit['name'],
+                'seed': self._seed,
+                'shots': self._shots,
+                'data': data,
+                'status': 'DONE',
+                'success': True,
+                'time_taken': (end-start)}
+
+    def _validate(self, qobj):
+        if qobj['config']['shots'] == 1:
+            warnings.warn('The behavior of getting quantum_state from simulators '
+                          'by setting shots=1 is deprecated and will be removed. '
+                          'Use the local_statevector_simulator instead.',
+                          DeprecationWarning)
+        for circ in qobj['circuits']:
+            if 'measure' not in [op['name'] for
+                                 op in circ['compiled_circuit']['operations']]:
+                logger.warning("no measurements in circuit '%s', "
+                               "classical register will remain all zeros.", circ['name'])
+        return
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
@@ -406,9 +445,10 @@ class QasmSimulator(BaseBackend):
         """
         fcounts = {}
         for key, value in counts.items():
-            new_key = [key[-cl_reg_nbits[0]:]]
-            for index, nbits in zip(cl_reg_index[1:],
-                                    cl_reg_nbits[1:]):
-                new_key.insert(0, key[-(index+nbits):-index])
-            fcounts[' '.join(new_key)] = value
+            if cl_reg_nbits:
+                new_key = [key[-cl_reg_nbits[0]:]]
+                for index, nbits in zip(cl_reg_index[1:],
+                                        cl_reg_nbits[1:]):
+                    new_key.insert(0, key[-(index+nbits):-index])
+                fcounts[' '.join(new_key)] = value
         return fcounts

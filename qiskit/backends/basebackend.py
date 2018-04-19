@@ -41,7 +41,7 @@ class BaseBackend(ABC):
         Raises:
             FileNotFoundError if backend executable is not available.
         """
-        self._configuration = configuration or {}
+        self._configuration = configuration
 
     @abstractmethod
     def run(self, q_job):
@@ -66,13 +66,12 @@ class BaseBackend(ABC):
     @property
     def status(self):
         """Return backend status"""
-        backend_name = self.configuration.get('name', '')
-        return {'name': backend_name, 'available': True}
+        return {'name': self.name, 'available': True}
+
+    @property
+    def name(self):
+        """Return backend name"""
+        return self._configuration['name']
 
     def __str__(self):
-        backend_name = self.configuration.get('name')
-        if backend_name:
-            # TODO: remove this conditional when we are able to enforce
-            # that all backends have a configuration['name'] more forcefully
-            return str(backend_name)
-        return super().__str__()
+        return self.configuration['name']
