@@ -955,7 +955,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None, hpc=None):
+                qobj_id=None, hpc=None, skip_translation=False):
         """Compile the circuits into the execution list.
 
         .. deprecated:: 0.5
@@ -993,7 +993,8 @@ class QuantumProgram(object):
             'hpc': hpc
         }
         my_backend = qiskit.wrapper.get_backend(backend)
-        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config)
+        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config,
+                                      skip_translation)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
@@ -1242,7 +1243,7 @@ class QuantumProgram(object):
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None, hpc=None):
+                max_credits=3, seed=None, hpc=None, skip_translation=False):
         """Execute, compile, and run an array of quantum circuits).
 
         This builds the internal "to execute" list which is list of quantum
@@ -1294,10 +1295,10 @@ class QuantumProgram(object):
                         This parameter MUST be used only with
                         ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
                         the user via logging, and set the value to None.
-
+            skip_translation (bool): If True, bypass most of the compilation process and
+                creates a qobj with minimal check nor translation
         Returns:
-            Result: status done and populates the internal __quantum_program with the
-            data
+            Result: status done and populates the internal __quantum_program with the data.
 
         .. deprecated:: 0.5
             The `coupling_map` parameter as a dictionary will be deprecated in
@@ -1310,7 +1311,7 @@ class QuantumProgram(object):
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,
-                            hpc=hpc)
+                            hpc=hpc, skip_translation=skip_translation)
         result = self.run(qobj, wait=wait, timeout=timeout)
         return result
 
