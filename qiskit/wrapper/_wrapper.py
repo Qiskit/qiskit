@@ -147,4 +147,4 @@ def execute(list_of_circuits, backend_name, compile_config=None,
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
     return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    wait, timeout, skip_translation=False)
+                                    wait, timeout, skip_translation)
