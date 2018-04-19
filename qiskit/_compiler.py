@@ -51,7 +51,7 @@ COMPILE_CONFIG_DEFAULT = {
 
 
 def execute(list_of_circuits, backend, compile_config=None,
-            wait=5, timeout=60, skip_translation=True):
+            wait=5, timeout=60, skip_translation=False):
     """Executes a set of circuits.
 
     Args:
