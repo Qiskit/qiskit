@@ -16,14 +16,6 @@ class BaseJob(ABC):
         """
         pass
 
-    @abstractmethod
-    def status(self):
-        """
-        Returns:
-            str: 'ERROR', 'QUEUED', 'RUNNING', 'CANCELLED', or 'DONE'
-        """
-        pass
-
     @abstractmethod    
     def cancel(self):
         """
@@ -35,6 +27,18 @@ class BaseJob(ABC):
 
     # Property attributes
     #####################
+    @property
+    @abstractmethod
+    def status(self):
+        """
+        Returns:
+            dict: {'job_id': <job_id>,
+                   'status': 'ERROR'|'QUEUED'|'RUNNING'|'CANCELLED'|'DONE',
+                   'status_msg': <str>}
+        """
+        pass
+
+
     @property
     @abstractmethod
     def running(self):

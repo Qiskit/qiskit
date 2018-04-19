@@ -159,9 +159,9 @@ class UnitarySimulator(BaseBackend):
         Returns:
             LocalJob (BaseJob)
         """
-        return LocalJob(self.run_job, q_job)
+        return LocalJob(self._run_job, q_job)
     
-    def run_job(self, q_job):
+    def _run_job(self, q_job):
         """Run q_job
 
         Args:

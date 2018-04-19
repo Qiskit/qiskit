@@ -82,9 +82,9 @@ class QasmSimulatorCpp(BaseBackend):
 
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
-        return LocalJob(self.run_job, q_job)
+        return LocalJob(self._run_job, q_job)
     
-    def run_job(self, q_job):
+    def _run_job(self, q_job):
         qobj = q_job.qobj
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
@@ -130,9 +130,9 @@ class CliffordCppSimulator(BaseBackend):
         Returns:
             LocalJob (BaseJob)
         """
-        return LocalJob(self.run_job, q_job)
+        return LocalJob(self._run_job, q_job)
     
-    def run_job(self, q_job):
+    def _run_job(self, q_job):
         qobj = q_job.qobj
         # set backend to Clifford simulator
         if 'config' in qobj:

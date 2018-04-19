@@ -292,18 +292,18 @@ class QasmSimulator(BaseBackend):
         Returns:
             LocalJob (BaseJob)
         """
-        return LocalJob(self.run_job, q_job)
-           
-    def run_job(self, q_job):
-        """Run circuits in q_job"""
         # Generating a string id for the job
-        job_id = str(uuid.uuid4())
+        job = LocalJob(self._run_job, q_job)
+        return job
+           
+    def _run_job(self, q_job):
+        """Run circuits in q_job"""
         qobj = q_job.qobj
         result_list = []
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
+        return Result({'job_id': self._job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)
 
     def run_circuit(self, circuit):

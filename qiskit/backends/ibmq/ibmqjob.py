@@ -28,6 +28,22 @@ class IBMQJob(BaseJob):
     def result(self, timeout=None):
         return self._future.result(timeout=timeout)
 
+    def cancel(self):
+        """Attempt to cancel job. Currently this is only possible on 
+        commercial systems.
+        """
+        if self._is_commercial:
+            hub = self._api.config['hub']
+            group = self._api.config['group']
+            project = self._api.config['project']
+            response = self._api.cancel_job(self._job_id, hub, group, project)
+            if 'error' in response:
+                err_msg = response.get('error', '')
+                raise QISKitError('Error cancelling job: %s' % err_msg)
+        raise QISKitError('The IBM Q remote API does not currently implement'
+                          ' job cancellation')
+
+    @property
     def status(self):
         # order is important here
         if self.running:
@@ -47,21 +63,6 @@ class IBMQJob(BaseJob):
         return {'job_id': self._job_id,
                 'status': _status,
                 'status_msg': _status_msg} 
-
-    def cancel(self):
-        """Attempt to cancel job. Currently this is only possible on 
-        commercial systems.
-        """
-        if self._is_commercial:
-            hub = self._api.config['hub']
-            group = self._api.config['group']
-            project = self._api.config['project']
-            response = self._api.cancel_job(self._job_id, hub, group, project)
-            if 'error' in response:
-                err_msg = response.get('error', '')
-                raise QISKitError('Error cancelling job: %s' % err_msg)
-        raise QISKitError('The IBM Q remote API does not currently implement'
-                          ' job cancellation')
 
     @property
     def running(self):
