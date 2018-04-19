@@ -28,14 +28,12 @@ from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
 
-
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
 from ._quantumjob import QuantumJob
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,7 @@ COMPILE_CONFIG_DEFAULT = {
 
 
 def execute(list_of_circuits, backend, compile_config=None,
-            wait=5, timeout=60):
+            wait=5, timeout=60, skip_translation=False):
     """Executes a set of circuits.
 
     Args:
@@ -61,16 +59,17 @@ def execute(list_of_circuits, backend, compile_config=None,
 
         backend (BaseBackend): A string for the backend name to use
 
-        wait (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
-        timeout (int): XXX -- I DONT THINK WE NEED TO KEEP THIS
+        wait (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
+        timeout (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
         compile_config (dict or None): a dictionary of compile configurations.
+        skip_translation (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
         obj: The results object
     """
     compile_config = compile_config or {}
     compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    qobj = compile(list_of_circuits, backend, compile_config)
+    qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
 
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
@@ -79,7 +78,7 @@ def execute(list_of_circuits, backend, compile_config=None,
     return result
 
 
-def compile(list_of_circuits, backend, compile_config=None):
+def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
@@ -91,6 +90,8 @@ def compile(list_of_circuits, backend, compile_config=None):
             option
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
+        skip_translation (bool): If True, bypass most of the compilation process and
+            creates a qobj with minimal check nor translation
 
     Returns:
         obj: the qobj to be run on the backends
@@ -158,6 +159,7 @@ def compile(list_of_circuits, backend, compile_config=None):
         basis_gates = 'u1,u2,u3,cx,id'
     if not coupling_map:
         coupling_map = backend_conf['coupling_map']
+
     for circuit in list_of_circuits:
         num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
         # TODO: A better solution is to have options to enable/disable optimizations
@@ -165,12 +167,7 @@ def compile(list_of_circuits, backend, compile_config=None):
             coupling_map = None
         if coupling_map == 'all-to-all':
             coupling_map = None
-        dag_circuit, final_layout = compile_circuit(
-            circuit,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=initial_layout,
-            get_layout=True)
+
         # making the job to be added to qobj
         job = {}
         job["name"] = circuit.name
@@ -180,25 +177,40 @@ def compile(list_of_circuits, backend, compile_config=None):
         job["config"] = copy.deepcopy(config)
         job["config"]["coupling_map"] = coupling_map
         # TODO: Jay: make config options optional for different backends
-        # Map the layout to a format that can be json encoded
-        list_layout = None
-        if final_layout:
-            list_layout = [[k, v] for k, v in final_layout.items()]
-        job["config"]["layout"] = list_layout
         job["config"]["basis_gates"] = basis_gates
         if seed is None:
             job["config"]["seed"] = None
         else:
             job["config"]["seed"] = seed
-        # the compiled circuit to be run saved as a dag
-        # we assume that compile_circuit has already expanded gates
-        # to the target basis, so we just need to generate json
-        json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-        job["compiled_circuit"] = json_circuit
-        # set eval_symbols=True to evaluate each symbolic expression
-        # TODO after transition to qobj, we can drop this
-        job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                        eval_symbols=True)
+
+        if skip_translation:  # Just return the qobj, wihtout any transformation or analysis
+            job["config"]["layout"] = None
+            job["compiled_circuit_qasm"] = circuit.qasm()
+            job["compiled_circuit"] = DagUnroller(
+                DAGCircuit.fromQuantumCircuit(circuit),
+                JsonBackend(job['config']['basis_gates'].split(','))).execute()
+        else:
+            dag_circuit, final_layout = compile_circuit(
+                circuit,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=initial_layout,
+                get_layout=True)
+            # Map the layout to a format that can be json encoded
+            list_layout = None
+            if final_layout:
+                list_layout = [[k, v] for k, v in final_layout.items()]
+            job["config"]["layout"] = list_layout
+
+            # the compiled circuit to be run saved as a dag
+            # we assume that compile_circuit has already expanded gates
+            # to the target basis, so we just need to generate json
+            json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
+            job["compiled_circuit"] = json_circuit
+            # set eval_symbols=True to evaluate each symbolic expression
+            # TODO after transition to qobj, we can drop this
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
         # add job to the qobj
         qobj["circuits"].append(job)
     return qobj
