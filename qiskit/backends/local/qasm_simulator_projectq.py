@@ -27,7 +27,7 @@ import logging
 from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result
-from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends import BaseBackend
 from qiskit.backends.local._simulatorerror import SimulatorError
 try:
     from projectq.backends._sim._cppsim import Simulator as CppSim
@@ -56,18 +56,8 @@ else:
 logger = logging.getLogger(__name__)
 
 
-class ProjectQSimulator(BaseBackend):
+class QasmSimulatorProjectQ(BaseBackend):
     """Python interface to Project Q simulator"""
-
-    DEFAULT_CONFIGURATION = {
-        'name': 'local_projectq_simulator',
-        'url': 'https://projectq.ch',
-        'simulator': True,
-        'local': True,
-        'description': 'ProjectQ C++ simulator',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'h,s,t,cx,id'
-    }
 
     def __init__(self, configuration=None):
         """
@@ -76,13 +66,13 @@ class ProjectQSimulator(BaseBackend):
         Raises:
              ImportError: if the Project Q simulator is not available.
         """
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        super().__init__(configuration)
         if CppSim is None:
             logger.info('Project Q C++ simulator unavailable.')
             raise ImportError('Project Q C++ simulator unavailable.')
         if configuration is None:
             self._configuration = {
-                'name': 'local_projectq_simulator',
+                'name': 'local_qasm_simulator_projectq',
                 'url': 'https://projectq.ch',
                 'simulator': True,
                 'local': True,

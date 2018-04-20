@@ -22,9 +22,10 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import json
 import logging
 import os
-import platform
 import subprocess
 from subprocess import PIPE
+import platform
+import warnings
 
 import numpy as np
 
@@ -35,34 +36,34 @@ logger = logging.getLogger(__name__)
 
 EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 
-# Add path to compiled qiskit simulator
+# Add path to compiled qasm simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
-                                 + EXTENSION)),
+    os.path.abspath(os.path.dirname(__file__) + \
+                    '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp' + EXTENSION),
     # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 'qasm_simulator_cpp' + EXTENSION)),
+    os.path.abspath(os.path.dirname(__file__) + '/qasm_simulator_cpp' + EXTENSION),
 ]
 
 
 class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
-    DEFAULT_CONFIGURATION = {
-        'name': 'local_qiskit_simulator',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
-        'simulator': True,
-        'local': True,
-        'description': 'A C++ realistic noise simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
-                       'snapshot,wait,noise,save,load'
-    }
-
     def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        super().__init__(configuration)
+        if not configuration:
+            self._configuration = {
+                'name': 'local_qasm_simulator_cpp',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulato-cpp',
+                'simulator': True,
+                'local': True,
+                'description': 'A C++ realistic noise simulator for qobj files',
+                'coupling_map': 'all-to-all',
+                "basis_gates": 'u0,u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+                               'snapshot,wait,noise,save,load'
+            }
+        else:
+            self._configuration = configuration
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -82,25 +83,37 @@ class QasmSimulatorCpp(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
+        self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
+    def _validate(self, qobj):
+        if qobj['config']['shots'] == 1:
+            warnings.warn('The behavior of getting quantum_state from simulators '
+                          'by setting shots=1 is deprecated and will be removed. '
+                          'Use the local_statevector_simulator instead.',
+                          DeprecationWarning)
+        return
 
-class CliffordCppSimulator(BaseBackend):
+
+class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
-    DEFAULT_CONFIGURATION = {
-        'name': 'local_clifford_simulator',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
-        'simulator': True,
-        'local': True,
-        'description': 'A C++ Clifford simulator with approximate noise',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
-    }
-
     def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        super().__init__(configuration)
+        if not configuration:
+            self._configuration = {
+                'name': 'local_clifford_simulator_cpp',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+                'simulator': True,
+                'local': True,
+                'description': 'A C++ Clifford simulator with approximate noise',
+                'coupling_map': 'all-to-all',
+                'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+                               'snapshot,wait,noise,save,load'
+            }
+        else:
+            self._configuration = configuration
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
@@ -120,6 +133,7 @@ class CliffordCppSimulator(BaseBackend):
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj
+        self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj:
             qobj['config']['simulator'] = 'clifford'
@@ -128,6 +142,9 @@ class CliffordCppSimulator(BaseBackend):
 
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
+
+    def _validate(self):
+        return
 
 
 class QASMSimulatorEncoder(json.JSONEncoder):
@@ -139,6 +156,7 @@ class QASMSimulatorEncoder(json.JSONEncoder):
         complex numbers z as lists [z.real, z.imag]
         ndarrays as nested lists.
     """
+
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -187,6 +205,7 @@ def run(qobj, executable):
     Returns:
         dict: A dict of simulation results
     """
+
     # Open subprocess and execute external command
     try:
         with subprocess.Popen([executable, '-'],
