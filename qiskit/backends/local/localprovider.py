@@ -24,9 +24,9 @@ from qiskit.backends import BaseProvider
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
 from .qasm_simulator_projectq import QasmSimulatorProjectQ
-from .qasm_simulator_sympy import QasmSimulatorSympy
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
+from .statevector_simulator_sympy import StatevectorSimulatorSympy
 from .unitary_simulator_py import UnitarySimulatorPy
 from .unitary_simulator_sympy import UnitarySimulatorSympy
 
@@ -37,9 +37,9 @@ SDK_STANDARD_BACKENDS = [
     QasmSimulatorCpp,
     QasmSimulatorPy,
     QasmSimulatorProjectQ,
-    QasmSimulatorSympy,
     StatevectorSimulatorCpp,
     StatevectorSimulatorPy,
+    StatevectorSimulatorSympy,
     UnitarySimulatorSympy,
     UnitarySimulatorPy,
     CliffordSimulatorCpp,
