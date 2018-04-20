@@ -38,18 +38,6 @@ except:
              For now, there's only access to local simulator backends...""")
 
 
-def lowest_pending_jobs():
-    """Returns the backend with lowest pending jobs."""
-    list_of_backends = qiskit.wrapper.available_backends(
-        {'local': False, 'simulator': False})
-    device_status = [qiskit.wrapper.get_backend(backend).status
-                     for backend in list_of_backends]
-
-    best = min([x for x in device_status if x['available'] is True],
-               key=lambda x: x['pending_jobs'])
-    return best['name']
-
-
 try:
     # Create a Quantum and Classical Register and giving a name.
     qubit_reg = qiskit.QuantumRegister(2, name='q')
@@ -113,7 +101,7 @@ try:
             s = backend.status
 
         # select least busy available device and execute.
-        best_device = lowest_pending_jobs()
+        best_device = least_busy(qiskit.wrapper.available_backends({'local': False}))
         print("Running on current least busy device: ", best_device)
 
         my_backend = qiskit.wrapper.get_backend(best_device)

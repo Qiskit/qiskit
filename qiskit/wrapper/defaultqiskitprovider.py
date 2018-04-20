@@ -45,7 +45,7 @@ class DefaultQISKitProvider(BaseProvider):
     def available_backends(self, filters=None):
         """
         Args:
-            filters (dict): dictionary of filtering conditions.
+            filters (dict or callable): filtering conditions.
         Returns:
             list[BaseBackend]: a list of backend names available from all the
                 providers.
@@ -59,7 +59,7 @@ class DefaultQISKitProvider(BaseProvider):
 
     def add_provider(self, provider):
         """
-        Add a new provider to the list of know providers.
+        Add a new provider to the list of known providers.
 
         Args:
             provider (BaseProvider): Provider instance.

@@ -26,7 +26,7 @@ from .ibmqbackend import IBMQBackend
 
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
-    def __init__(self, token, url='https://quantumexperience.ng.bluemix.net/api',
+    def __init__(self, token, url,
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
@@ -40,43 +40,41 @@ class IBMQProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, *filters):
+    def available_backends(self, filters=None):
         """Get a list of available backend instances from this provider.
-
         Filters can be applied to get a subset of available backends.
-        Each filter can be of the following type:
-        dict: specifies exact-matching criteria for backend configuration
-        callable (more flexible):
-            - acceptor function: backend (IBMQBackend) -> bool
-            - selector function: backends (list(IBMQBackend) -> backends (list(IBMQBackend))
+
+        Args:
+            filters (dict or callable):
+                one or more filters to apply to each backend instance.
+                each filter can be of the following type:
+                    dict: {'criteria': value}
+                        example: {'local': False, 'simulator': True}
+                    callable: IBMQBackend -> bool
+                        example: lambda x: x.configuration['n_qubits'] > 5
+
+        Returns:
+            list[IBMQBackend]: available backends from this provider (after filtering)
         """
         # pylint: disable=arguments-differ
         backends = self.backends
 
+        if isinstance(filters, dict) or callable(filters):
+            filters = [filters]
+
         for filter_ in filters:
             if isinstance(filter_, dict):
-                # exact match configuration filter:
-                # e.g. {'n_qubits': 5, 'local': False}
+                # exact match filter:
+                # e.g. {'n_qubits': 5, 'local': False, 'available': True}
                 for key, value in filter_.items():
                     backends = {name: instance for name, instance in backends.items()
-                                if instance.configuration.get(key) == value}
+                                if instance.configuration.get(key) == value
+                                or instance.status.get(key) == value}
             elif callable(filter_):
                 # acceptor filter: accept or reject a specific backend
                 # e.g. lambda x: x.configuration['n_qubits'] > 5
-                try:
-                    backends = {name: instance for name, instance in backends.items()
-                                if filter_(instance)}
-                except TypeError:
-                    # selector filter: pick out one or more backends that meet criteria
-                    # e.g. least_busy
-                    try:
-                        backends = {b.configuration['name']: b
-                                    for b in filter_(list(backends.values()))}
-                    except TypeError:
-                        raise QISKitError('backend filter functions must be either '
-                                          'acceptors on a single backend, '
-                                          'or selectors on a list of backends.')
-
+                backends = {name: instance for name, instance in backends.items()
+                            if filter_(instance) == True}
             else:
                 raise QISKitError('backend filters must be either dict or callable.')
 
@@ -161,9 +159,3 @@ class IBMQProvider(BaseProvider):
             ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret
-
-
-def least_busy(backends):
-    """Returns the backend with lowest pending jobs."""
-    return [min([b for b in backends if not b.configuration['simulator'] and b.status['available']],
-                key=lambda b: b.status['pending_jobs'])]

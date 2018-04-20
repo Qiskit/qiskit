@@ -54,13 +54,24 @@ class LocalProvider(BaseProvider):
         return self.backends[name]
 
     def available_backends(self, filters=None):
+        """
+        Args:
+            filters (dict): dictionary of filtering conditions.
+        Returns:
+            list[BaseBackend]: a list of backend names available from all the
+                providers.
+        """        
         # pylint: disable=arguments-differ
         backends = self.backends
 
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
+        if isinstance(filters, dict):
+            filters = [filters]
+
+        for filter_ in filters:
+            if isinstance(filter_, dict):
+                for key, value in filter_.items():
+                    backends = {name: instance for name, instance in backends.items()
+                                if instance.configuration.get(key) == value}
         return list(backends.values())
 
     @classmethod

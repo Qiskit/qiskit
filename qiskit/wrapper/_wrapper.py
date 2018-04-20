@@ -49,7 +49,7 @@ def register(token, url=None,
         QISKitError: if the provider name is not recognized.
     """
     if provider_name == 'ibmq':
-        provider = IBMQProvider(token, url,
+        provider = IBMQProvider(token, 'https://quantumexperience.ng.bluemix.net/api',
                                 hub, group, project, proxies, verify)
         _DEFAULT_PROVIDER.add_provider(provider)
     else:
@@ -58,7 +58,7 @@ def register(token, url=None,
 # Functions for inspecting and retrieving backends.
 
 
-def available_backends(filters=None):
+def available_backends(*filters):
     """
     Return the backends that are available in the SDK, optionally filtering
     them based on their capabilities.
@@ -68,7 +68,7 @@ def available_backends(filters=None):
         an online backend provider needs to be established by calling the
         `register()` function.
     Args:
-        filters (dict): dictionary of filtering conditions.
+        *filters (dict or callable): filtering conditions.
     Returns:
         list[str]: the names of the available backends.
     """
@@ -94,6 +94,25 @@ def remote_backends():
         list[str]: the names of the available remote backends.
     """
     return available_backends({'local': False})
+
+
+def least_busy(names):
+    """
+    Return the least busy available backend for those that 
+    have a `pending_jobs` in their `status`. Backends such as 
+    local backends that do not have this are ignored.
+
+    Args:
+        names(str): backend names to choose from
+    Returns:
+        str: the name of the least busy backend
+    """
+    backends = [get_backend(name) for name in names]
+    try:
+        return min([b for b in backends if b.status['available'] and 'pending_jobs' in b.status],
+                   key=lambda b: b.status['pending_jobs'])
+    except (ValueError, TypeError):
+        assert False, "Error: can only find least_busy backend from a non-empty list."
 
 
 def get_backend(name):

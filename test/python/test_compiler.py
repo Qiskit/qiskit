@@ -24,15 +24,9 @@ import qiskit._compiler
 from qiskit import Result
 from qiskit.backends.local import QasmSimulator
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit import wrapper
 
 from .common import requires_qe_access, QiskitTestCase
-
-
-def lowest_pending_jobs(list_of_backends):
-    """Returns the backend with lowest pending jobs."""
-    by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0]
 
 
 class TestCompiler(QiskitTestCase):
@@ -155,11 +149,12 @@ class TestCompiler(QiskitTestCase):
     def test_compile_remote(self, QE_TOKEN, QE_URL):
         """Test Compiler remote.
 
-        If all correct some should exists.
+        If all correct some should exist.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        my_backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        devices = provider.available_backends({'local': False, 'simulator': False})
+        my_backend = wrapper.least_busy([d.configuration['name'] for d in devices])
+        my_backend = provider.get_backend(my_backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -177,11 +172,12 @@ class TestCompiler(QiskitTestCase):
     def test_compile_two_remote(self, QE_TOKEN, QE_URL):
         """Test Compiler remote on two circuits.
 
-        If all correct some should exists.
+        If all correct some should exist.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        my_backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        devices = provider.available_backends({'local': False, 'simulator': False})
+        my_backend = wrapper.least_busy([d.configuration['name'] for d in devices])
+        my_backend = provider.get_backend(my_backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')

@@ -18,5 +18,4 @@
 """Backends provided by IBM Quantum Experience."""
 
 from .ibmqprovider import IBMQProvider
-from .ibmqprovider import least_busy
 from .ibmqbackend import IBMQBackend
