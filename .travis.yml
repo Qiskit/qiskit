@@ -3,55 +3,59 @@ dist: trusty
 language: python
 
 matrix:
-    include:
-        - python: 3.5
-          env:
-            - PYFLAKES=1
-            - PEP8=1
-          before_install:
-            - pip install pycodestyle
-            - pip install pyflakes
-          script:
-            - pylint -rn qiskit test
-            - pycodestyle --max-line-length=100 qiskit test
-        - python: 3.6
-          env:
-        - python: 3.6
-          env: CC=clang CXX=clang++
-        - python: 3.6
-          env: NOMKL=1
-        - os: osx
-          osx_image: xcode9.2
-          language: generic
-          env:
-            - TRAVIS_PYTHON_VERSION=3.6
+  include:
+    - python: 3.6
+      env:
+        - PYFLAKES=1 PEP8=1
+      before_install: skip
+      install:
+        - pip install pyflakes pycodestyle
+      script:
+        - pyflakes qiskit
+        - pycodestyle qiskit
+    - python: 3.5
+      env: CC=gcc-5 CXX=g++-5
+    - python: 3.6
+      env: CC=gcc-5 CXX=g++-5
+    - python: 3.6
+      env: CC=clang CXX=clang++
+    - python: 3.6
+      env: OPENBLAS=1 CC=gcc-5 CXX=g++-5
+    - os: osx
+      osx_image: xcode9.2
+      language: generic
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test;
+      sudo apt-get update -qq;
+      sudo apt-get install -qq g++-5;
+    fi
 
 # command to install dependencies
 install:
-  - echo $TRAVIS_OS_NAME
-  - |
-    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then  
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      export LD_LIBRARY_PATH=$(if [[ $CC == "clang" ]]; then echo -n '/usr/local/clang/lib'; fi);
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew install wget;
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
-    fi;
-    - bash miniconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda/bin:$PATH"
-    - hash -r
-    - conda config --set always_yes yes --set changeps1 no
-    #- conda update -q conda
-    - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-    - source activate test-environment
-    - if [[ "${NOMKL}" == "1" ]]; then
-          conda install nomkl numpy scipy cython;
-        else
-          conda install mkl numpy scipy cython;
-      fi
-    - pip install coverage coveralls
-    # Finally, build Cython modules.
-    - python setup.py build_ext --inplace
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  #- conda update -q conda
+  - conda info -a
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+  - source activate test-environment
+  - if [[ "${OPENBLAS}" == "1" ]]; then
+        conda install nomkl numpy scipy cython sympy ply networkx matplotlib;
+      else
+        conda install mkl numpy scipy cython sympy ply networkx matplotlib;
+    fi
+  - pip install IBMQuantumExperience
+  # Finally, build Cython modules.
+  - python setup.py build_ext --inplace
 
 # command to run tests
 script: 
