@@ -19,7 +19,6 @@
 
 import json
 import unittest
-
 import numpy as np
 from numpy.linalg import norm
 
