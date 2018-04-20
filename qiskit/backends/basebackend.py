@@ -42,7 +42,6 @@ class BaseBackend(ABC):
             FileNotFoundError if backend executable is not available.
         """
         self._configuration = configuration
-        self._name = self._configuration['name']
 
     @abstractmethod
     def run(self, q_job):
@@ -72,7 +71,7 @@ class BaseBackend(ABC):
     @property
     def name(self):
         """Return backend name"""
-        return self._name
+        return self._configuration['name']
 
     def __str__(self):
         return self.configuration['name']
