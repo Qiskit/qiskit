@@ -127,8 +127,6 @@ class QasmSimulatorPy(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-        self._error = False
-
         super().__init__(configuration)
         if configuration is None:
             self._configuration = {
