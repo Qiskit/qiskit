@@ -52,9 +52,6 @@ class IBMQBackend(BaseBackend):
             for key, vals in self._configuration.items():
                 new_key = _snake_case_to_camel_case(key)
                 configuration_edit[new_key] = vals
-            #  FIXME: This is a hack as the hpc simulator is not correct in api
-            if configuration_edit['name'] == 'ibmqx_hpc_qasm_simulator':
-                configuration_edit['simulator'] = True
             self._configuration = configuration_edit
             # FIXME: This is a hack to make sure that the
             # local : False is added to the online device
@@ -101,9 +98,9 @@ class IBMQBackend(BaseBackend):
             except (KeyError, TypeError):
                 hpc = None
 
-        # TODO: this should be self._configuration['name'] - need to check that
-        # it is always the case.
         backend_name = qobj['config']['backend_name']
+        assertEqual(backend_name, self.name,
+                    'inconsistent qobj backend name ({0} != {1})'.format(backend_name, self.name))
         output = self._api.run_job(api_jobs, backend_name,
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
@@ -170,11 +167,11 @@ class IBMQBackend(BaseBackend):
         try:
             backend_name = self.configuration['name']
             parameters = self._api.backend_parameters(backend_name)
-            # FIXME a hack to remove calibration data that is none.
+            # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
             if backend_name == 'ibmqx_hpc_qasm_simulator':
                 parameters = {}
-            # FIXME a hack to remove calibration data that is none.
+            # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
             if backend_name == 'ibmqx_qasm_simulator':
                 parameters = {}

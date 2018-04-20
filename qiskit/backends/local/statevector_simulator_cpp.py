@@ -23,7 +23,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import logging
 
 from qiskit._result import Result
-from ._qasm_simulator_cpp import QasmSimulatorCpp
+from .qasm_simulator_cpp import QasmSimulatorCpp
 from ._simulatorerror import SimulatorError
 
 logger = logging.getLogger(__name__)
