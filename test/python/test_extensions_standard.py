@@ -101,8 +101,7 @@ class TestStandard(QiskitTestCase):
         self.assertRaises(QISKitError, c.cswap, self.q[1], self.q[0], self.q[0])
         # TODO self.assertRaises(QISKitError, c.cswap, self.q[1], 0, self.q[0])
         c.cswap(self.q[0], self.q[1], self.q[2])
-        qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
-        self.assertResult(FredkinGate, qasm_txt, qasm_txt)
+        self.assertResult(FredkinGate, 'cswap q[0],q[1],q[2];', 'cswap q[0],q[1],q[2];')
 
     def test_cu1(self):
         c = self.circuit
