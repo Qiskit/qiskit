@@ -44,7 +44,7 @@ class DefaultQISKitProvider(BaseProvider):
                 pass
         raise KeyError(name)
 
-    def available_backends(self, filters=None):
+    def available_backends(self, filters=None, compact=True):
         """
         Args:
             filters (dict): dictionary of filtering conditions.
