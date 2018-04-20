@@ -20,6 +20,7 @@ import logging
 
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
+from itertools import combinations
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class DefaultQISKitProvider(BaseProvider):
         self.providers = [LocalProvider()]
 
     def get_backend(self, name):
+        name = self.resolve_backend_name(name)
         for provider in self.providers:
             try:
                 return provider.get_backend(name)
@@ -42,10 +44,13 @@ class DefaultQISKitProvider(BaseProvider):
                 pass
         raise KeyError(name)
 
-    def available_backends(self, filters=None):
+    def available_backends(self, filters=None, compact=True):
         """
         Args:
             filters (dict): dictionary of filtering conditions.
+            compact (bool): if True, report only the alias for a group of
+                            of similarly-aliased backends.
+
         Returns:
             list[BaseBackend]: a list of backend names available from all the
                 providers.
@@ -55,7 +60,46 @@ class DefaultQISKitProvider(BaseProvider):
         for provider in self.providers:
             backends.extend(provider.available_backends(filters))
 
+        if compact:
+            aliased_dict = self.aliased_backend_names()
+            aliases = set()
+            for backend in backends:
+                backend_alias = set(k for k, v in aliased_dict.items()
+                                    if backend in v)
+                if not backend_alias:
+                    aliases.add(backend)
+                elif len(backend_alias) == 1:
+                    (alias,) = backend_alias
+                    aliases.add(alias)
+            backends = list(aliases)
+
         return backends
+
+    def aliased_backend_names(self):
+        """
+        Aggregate alias information from all providers.
+
+        Raises:
+            ValueError: if a backend is mapped to multiple aliases
+        """
+        aliases = {}
+        for provider in self.providers:
+            aliases = {**aliases, **provider.aliased_backend_names()}
+        for pair in combinations(aliases.values(), r=2):
+            if not set.isdisjoint(set(pair[0]), set(pair[1])):
+                raise ValueError('duplicate backend alias definition')
+
+        return aliases
+
+    def deprecated_backend_names(self):
+        """
+        Aggregate deprecated names from all providers.
+        """
+        deprecates = {}
+        for provider in self.providers:
+            deprecates = {**deprecates, **provider.deprecated_backend_names()}
+
+        return deprecates
 
     def add_provider(self, provider):
         """
@@ -65,3 +109,44 @@ class DefaultQISKitProvider(BaseProvider):
             provider (BaseProvider): Provider instance.
         """
         self.providers.append(provider)
+
+    def resolve_backend_name(self, name):
+        """Resolve backend name from a possible short alias or a deprecated name.
+
+        The alias will be chosen in order of priority, depending on availability.
+
+        Args:
+            name (str): name of backend to resolve
+
+        Returns:
+            str: name of resolved backend, which is available from one of the providers
+
+        Raises:
+            LookupError: if name cannot be resolved through
+            regular available names, nor aliases, nor deprecated names
+        """
+        resolved_name = ""
+        available = [b.name for b in self.available_backends(filters=None, compact=False)]
+        aliased = self.aliased_backend_names()
+        deprecated = self.deprecated_backend_names()
+
+        if name in available:
+            resolved_name = name
+        elif name in aliased:
+            available_dealiases = [b for b in aliased[name] if b in available]
+            if available_dealiases:
+                resolved_name = available_dealiases[0]
+        elif name in deprecated:
+            resolved_name = deprecated[name]
+            logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
+
+        # FIXME: remove after API fix: online simulator names should change
+        if name == 'ibmq_qasm_simulator':
+            resolved_name = 'ibmqx_qasm_simulator'
+        if name == 'ibmq_qasm_simulator_hpc':
+            resolved_name = 'ibmqx_hpc_qasm_simulator'
+
+        if resolved_name not in available:
+            raise LookupError('backend "{}" not found.'.format(name))
+
+        return resolved_name
