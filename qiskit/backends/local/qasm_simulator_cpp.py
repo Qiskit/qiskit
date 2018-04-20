@@ -39,12 +39,10 @@ EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 # Add path to compiled qasm simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
-                                 + EXTENSION)),
+    os.path.abspath(os.path.dirname(__file__) + \
+                    '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp' + EXTENSION),
     # This is the path where PIP installs the simulator
-    os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 'qasm_simulator_cpp' + EXTENSION)),
+    os.path.abspath(os.path.dirname(__file__) + '/qasm_simulator_cpp' + EXTENSION),
 ]
 
 
@@ -114,7 +112,20 @@ class CliffordSimulatorCpp(BaseBackend):
     }
 
     def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        super().__init__(configuration)
+        if not configuration:
+            self._configuration = {
+                'name': 'local_clifford_simulator_cpp',
+                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+                'simulator': True,
+                'local': True,
+                'description': 'A C++ Clifford simulator with approximate noise',
+                'coupling_map': 'all-to-all',
+                'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+                               'snapshot,wait,noise,save,load'
+            }
+        else:
+            self._configuration = configuration
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
