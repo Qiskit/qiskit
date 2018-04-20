@@ -60,7 +60,7 @@ class LocalProvider(BaseProvider):
         Returns:
             list[BaseBackend]: a list of backend names available from all the
                 providers.
-        """        
+        """
         # pylint: disable=arguments-differ
         backends = self.backends
 

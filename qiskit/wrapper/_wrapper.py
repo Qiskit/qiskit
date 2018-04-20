@@ -49,8 +49,10 @@ def register(token, url=None,
         QISKitError: if the provider name is not recognized.
     """
     if provider_name == 'ibmq':
-        provider = IBMQProvider(token, 'https://quantumexperience.ng.bluemix.net/api',
-                                hub, group, project, proxies, verify)
+        provider = IBMQProvider(token=token,
+                                url='https://quantumexperience.ng.bluemix.net/api',
+                                hub=hub, group=group, project=project,
+                                proxies=proxies, verify=verify)
         _DEFAULT_PROVIDER.add_provider(provider)
     else:
         raise QISKitError('provider name %s is not recognized' % provider_name)
@@ -98,8 +100,8 @@ def remote_backends():
 
 def least_busy(names):
     """
-    Return the least busy available backend for those that 
-    have a `pending_jobs` in their `status`. Backends such as 
+    Return the least busy available backend for those that
+    have a `pending_jobs` in their `status`. Backends such as
     local backends that do not have this are ignored.
 
     Args:

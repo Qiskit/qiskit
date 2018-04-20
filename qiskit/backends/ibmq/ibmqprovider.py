@@ -55,6 +55,9 @@ class IBMQProvider(BaseProvider):
 
         Returns:
             list[IBMQBackend]: available backends from this provider (after filtering)
+        
+        Raises:
+            QISKitError: if filter(s) is neither dict nor callable
         """
         # pylint: disable=arguments-differ
         backends = self.backends
@@ -74,7 +77,7 @@ class IBMQProvider(BaseProvider):
                 # acceptor filter: accept or reject a specific backend
                 # e.g. lambda x: x.configuration['n_qubits'] > 5
                 backends = {name: instance for name, instance in backends.items()
-                            if filter_(instance) == True}
+                            if filter_(instance) is True}
             else:
                 raise QISKitError('backend filters must be either dict or callable.')
 
