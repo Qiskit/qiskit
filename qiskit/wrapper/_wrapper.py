@@ -59,7 +59,7 @@ def register(token, url,
 # Functions for inspecting and retrieving backends.
 
 
-def available_backends(filters=None):
+def available_backends(filters=None, compact=True):
     """
     Return the backends that are available in the SDK, optionally filtering
     them based on their capabilities.
@@ -74,27 +74,35 @@ def available_backends(filters=None):
         list[str]: the names of the available backends.
     """
     return [str(backend) for backend in
-            _DEFAULT_PROVIDER.available_backends(filters)]
+            _DEFAULT_PROVIDER.available_backends(filters, compact=compact)]
 
 
-def local_backends():
+def local_backends(compact=True):
     """
     Return the available local backends.
 
+    Args:
+        compact (bool): only report alias names. this is usually shorter, any several
+        backends usually share the same alias.
+
     Returns:
         list[str]: the names of the available remote backends.
     """
-    return available_backends({'local': True})
+    return available_backends({'local': True}, compact=compact)
 
 
-def remote_backends():
+def remote_backends(compact=True):
     """
     Return the available remote backends.
 
+    Args:
+        compact (bool): only report alias names. this is usually shorter, any several
+        backends usually share the same alias.
+
     Returns:
         list[str]: the names of the available remote backends.
     """
-    return available_backends({'local': False})
+    return available_backends({'local': False}, compact=compact)
 
 
 def get_backend(name):
