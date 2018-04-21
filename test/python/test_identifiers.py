@@ -22,7 +22,17 @@ import unittest
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram)
+from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
+                                                      CliffordCppSimulator)
 from .common import QiskitTestCase
+
+try:
+    qasm_simulator_cpp = QasmSimulatorCpp()
+    clifford_simulator_cpp = CliffordCppSimulator()
+except Exception as err:
+    _skip_cpp = True
+else:
+    _skip_cpp = False
 
 
 class TestAnonymousIds(QiskitTestCase):
@@ -1376,6 +1386,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
+    @unittest.skipIf(_skip_cpp, 'C++ simulator unavailable')
     def test_local_clifford_simulator(self):
         backend = 'local_clifford_simulator'
         qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
@@ -1386,6 +1397,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
+    @unittest.skipIf(_skip_cpp, 'C++ simulator unavailable')
     def test_local_qiskit_simulator(self):
         backend = 'local_qiskit_simulator'
         qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
