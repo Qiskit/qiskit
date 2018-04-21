@@ -76,7 +76,7 @@ class QasmSimulatorProjectQ(BaseBackend):
         Raises:
              ImportError: if the Project Q simulator is not available.
         """
-        super().__init__(configuration)
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         if CppSim is None:
             logger.info('Project Q C++ simulator unavailable.')
             raise ImportError('Project Q C++ simulator unavailable.')

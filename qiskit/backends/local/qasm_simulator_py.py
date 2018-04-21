@@ -127,19 +127,7 @@ class QasmSimulatorPy(BaseBackend):
         Args:
             configuration (dict): backend configuration
         """
-        super().__init__(configuration)
-        if configuration is None:
-            self._configuration = {
-                'name': 'local_qasm_simulator_py',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py',
-                'simulator': True,
-                'local': True,
-                'description': 'A python simulator for qasm files',
-                'coupling_map': 'all-to-all',
-                'basis_gates': 'u1,u2,u3,cx,id,snapshot'
-            }
-        else:
-            self._configuration = configuration
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         self._local_random = random.Random()
 
