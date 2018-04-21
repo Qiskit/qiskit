@@ -32,20 +32,18 @@ logger = logging.getLogger(__name__)
 class StatevectorSimulatorCpp(QasmSimulatorCpp):
     """C++ statevector simulator"""
 
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_statevector_simulator_cpp',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'simulator': True,
+        'local': True,
+        'description': 'A C++ statevector simulator for qobj files',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot'
+    }
+
     def __init__(self, configuration=None):
-        super().__init__(configuration)
-        if not configuration:
-            self._configuration = {
-                'name': 'local_statevector_simulator_cpp',
-                'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
-                'simulator': True,
-                'local': True,
-                'description': 'A C++ statevector simulator for qobj files',
-                'coupling_map': 'all-to-all',
-                'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot'
-            }
-        else:
-            self._configuration = configuration
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
     def run(self, q_job):
         """Run a QuantumJob on the backend."""
