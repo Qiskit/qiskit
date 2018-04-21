@@ -33,7 +33,7 @@ and the output is the results object
 
 The simulator is run using
 
-    UnitarySimulator(compiled_circuit).run().
+    UnitarySimulatorPy(compiled_circuit).run().
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
@@ -109,19 +109,20 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_unitary_simulator_py',
+        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'simulator': True,
+        'local': True,
+        'description': 'A python simulator for unitary matrix',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,id'
+    }
+
     def __init__(self, configuration=None):
-        """Initial the UnitarySimulator object."""
-        super().__init__(configuration)
-        if configuration is None:
-            self._configuration = {'name': 'local_unitary_simulator_py',
-                                   'url': 'https://github.com/QISKit/qiskit-sdk-py',
-                                   'simulator': True,
-                                   'local': True,
-                                   'description': 'A python simulator for unitary matrix',
-                                   'coupling_map': 'all-to-all',
-                                   'basis_gates': 'u1,u2,u3,cx,id'}
-        else:
-            self._configuration = configuration
+        """Initialize the UnitarySimulatorPy object.
+        """
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         # Define attributes inside __init__.
         self._unitary_state = None

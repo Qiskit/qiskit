@@ -59,6 +59,16 @@ logger = logging.getLogger(__name__)
 class QasmSimulatorProjectQ(BaseBackend):
     """Python interface to Project Q simulator"""
 
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_qasm_simulator_projectq',
+        'url': 'https://projectq.ch',
+        'simulator': True,
+        'local': True,
+        'description': 'ProjectQ C++ simulator',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'h,s,t,cx,id'
+    }
+
     def __init__(self, configuration=None):
         """
         Args:
@@ -66,22 +76,10 @@ class QasmSimulatorProjectQ(BaseBackend):
         Raises:
              ImportError: if the Project Q simulator is not available.
         """
-        super().__init__(configuration)
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         if CppSim is None:
             logger.info('Project Q C++ simulator unavailable.')
             raise ImportError('Project Q C++ simulator unavailable.')
-        if configuration is None:
-            self._configuration = {
-                'name': 'local_qasm_simulator_projectq',
-                'url': 'https://projectq.ch',
-                'simulator': True,
-                'local': True,
-                'description': 'ProjectQ C++ simulator',
-                'coupling_map': 'all-to-all',
-                'basis_gates': 'h,s,t,cx,id'
-            }
-        else:
-            self._configuration = configuration
 
         # Define the attributes inside __init__.
         self._number_of_qubits = 0

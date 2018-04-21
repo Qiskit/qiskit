@@ -52,13 +52,13 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qiskit_simulator',
+        'name': 'local_qasm_simulator_cpp',
         'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'description': 'A C++ realistic noise simulator for qobj files',
         'coupling_map': 'all-to-all',
-        "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+        "basis_gates": 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
                        'snapshot,wait,noise,save,load'
     }
 
@@ -91,6 +91,11 @@ class QasmSimulatorCpp(BaseBackend):
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead.',
                           DeprecationWarning)
+        for circ in qobj['circuits']:
+            if 'measure' not in [op['name'] for
+                                 op in circ['compiled_circuit']['operations']]:
+                logger.warning("WARNING: no measurements in circuit '%s', "
+                               "classical register will remain all zeros.", circ['name'])
         return
 
 
@@ -98,7 +103,7 @@ class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_clifford_simulator',
+        'name': 'local_clifford_simulator_cpp',
         'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,

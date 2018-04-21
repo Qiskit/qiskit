@@ -61,11 +61,11 @@ class DefaultQISKitProvider(BaseProvider):
             backends.extend(provider.available_backends(filters))
 
         if compact:
-            aliased_dict = self.aliased_backend_names()
+            alias_dict = self.aliased_backend_names()
             aliases = set()
             for backend in backends:
-                backend_alias = set(k for k, v in aliased_dict.items()
-                                    if backend in v)
+                backend_alias = set(k for k, v in alias_dict.items()
+                                    if backend.name in v)
                 if not backend_alias:
                     aliases.add(backend)
                 elif len(backend_alias) == 1:
