@@ -18,9 +18,9 @@
 """Meta-provider that aggregates several providers."""
 import logging
 
+from itertools import combinations
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
-from itertools import combinations
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,9 @@ class DefaultQISKitProvider(BaseProvider):
         """
         Aggregate alias information from all providers.
 
+        Returns:
+            dict{str: list[str]}: aggregated alias dictionary
+
         Raises:
             ValueError: if a backend is mapped to multiple aliases
         """
@@ -94,6 +97,9 @@ class DefaultQISKitProvider(BaseProvider):
     def deprecated_backend_names(self):
         """
         Aggregate deprecated names from all providers.
+
+        Returns:
+            dict{str: list[str]}: aggregated alias dictionary        
         """
         deprecates = {}
         for provider in self.providers:

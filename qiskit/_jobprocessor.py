@@ -48,7 +48,7 @@ def run_backend(q_job):
     if backend_name != backend.configuration['name']:
         raise QISKitError('non-matching backends specified in Qobj '
                           'object and json')
-    if backend.configuration.get('local'):  # remove condition when api gets qobj
+    if backend.configuration.get('local'):  # FIXME: remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
                 compiled_circuit = compile_circuit(circuit['circuit'], format='json')

@@ -70,6 +70,8 @@ def available_backends(filters=None, compact=True):
         `register()` function.
     Args:
         filters (dict): dictionary of filtering conditions.
+        compact (bool): group backend names based on aliases
+
     Returns:
         list[str]: the names of the available backends.
     """
