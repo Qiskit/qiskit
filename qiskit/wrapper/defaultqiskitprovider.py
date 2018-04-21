@@ -21,7 +21,6 @@ import logging
 from itertools import combinations
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
-from itertools import combinations
 
 logger = logging.getLogger(__name__)
 
