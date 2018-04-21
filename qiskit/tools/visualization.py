@@ -989,7 +989,7 @@ class QCircuitImage(object):
         for op in self.circuit['operations']:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
-                           't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy', 'cu3']
+                           't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy', 'crz', 'cu3']
             target_gates = ['cx', 'ccx']
             if op['name'] in boxed_gates:
                 self.has_box = True
@@ -1055,7 +1055,7 @@ class QCircuitImage(object):
                                         is_occupied[j] = True
                                     break
                         # symetric gates have angle labels
-                        if op['name'] in ['crz', 'cu1']:
+                        if op['name'] in ['cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
                             is_occupied[max(pos_1, pos_2)] = True
@@ -1075,7 +1075,7 @@ class QCircuitImage(object):
                                     is_occupied[j] = True
                                 break
                         # symetric gates have angle labels
-                        if op['name'] in ['crz', 'cu1']:
+                        if op['name'] in ['cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
                             is_occupied[top] = True
@@ -1180,10 +1180,11 @@ class QCircuitImage(object):
             else:
                 assert False, "bad node data"
         # every 3 characters is roughly one extra 'unit' of width in the cell
-        # the gate name is one extra 'unit'
-        # the qubit/cbit labels plus the wires poking out at the ends is 3 more
+        # the gate name is 1 extra 'unit'
+        # the qubit/cbit labels plus initial states is 2 more
+        # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
-        return columns+1, math.ceil(sum_column_widths)+2
+        return columns+1, math.ceil(sum_column_widths)+4
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
@@ -1416,7 +1417,7 @@ class QCircuitImage(object):
                                     is_occupied[j] = True
                                 break
                         # symetric gates have angle labels
-                        if op['name'] in ['crz', 'cu1']:
+                        if op['name'] in ['cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
                             is_occupied[top] = True
@@ -1453,16 +1454,15 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                         elif nm == "crz":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
-                            self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
-                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"
+                            self._latex[pos_1][columns] = \
+                                "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = \
+                                "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = \
@@ -1487,7 +1487,7 @@ class QCircuitImage(object):
                                     is_occupied[j] = True
                                 break
                         # symetric gates have angle labels
-                        if op['name'] in ['crz', 'cu1']:
+                        if op['name'] in ['cu1']:
                             columns += 1
                             is_occupied = [False] * self.img_width
                             is_occupied[top] = True
@@ -1509,16 +1509,14 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
                         elif nm == "crz":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
-                            self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
-                            self._latex[max(pos_1, pos_2)][columns] = "\\qw"
+                            self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns] = \
+                                "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
                             self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns-1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\push{\\rule{.1em}{0em}e^{i%s}}\qw" % (op["texparams"][0])
+                                "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
