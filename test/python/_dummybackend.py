@@ -27,8 +27,18 @@ from threading import Event
 
 from qiskit import Result, QISKitError
 from qiskit.backends import BaseBackend
+from qiskit.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
+
+
+class DummyProvider(BaseProvider):
+    """Dummy provider just for testing purposes."""
+    def get_backend(self, name):
+        return DummySimulator()
+
+    def available_backends(self, *args, **kwargs):
+        return ['local_dummy_simulator']
 
 
 class DummySimulator(BaseBackend):

@@ -320,7 +320,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
             n_qubits = input_circuit.regs['q'].size
-            q = QuantumRegister("q", n_qubits)
+            q = QuantumRegister(n_qubits, "q")
             i = 1
             for p in hamiltonian:
                 circuits.append(copy.deepcopy(input_circuit))
@@ -352,8 +352,8 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         circuits = []
         circuits_labels = []
         n = int(len(hamiltonian[0][0][1].v))
-        q = QuantumRegister("q", n)
-        c = ClassicalRegister("c", n)
+        q = QuantumRegister(n, "q")
+        c = ClassicalRegister(n, "c")
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
@@ -396,8 +396,8 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
     Returns:
         QuantumCircuit: A QuantumCircuit object
     """
-    q = QuantumRegister("q", n)
-    c = ClassicalRegister("c", n)
+    q = QuantumRegister(n, "q")
+    c = ClassicalRegister(n, "c")
     trial_circuit = QuantumCircuit(q, c)
     trial_circuit.h(q)
     if meas_string is None:
@@ -439,8 +439,8 @@ def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
     Returns:
         QuantumCircuit: A QuantumCircuit object
     """
-    q = QuantumRegister("q", n)
-    c = ClassicalRegister("c", n)
+    q = QuantumRegister(n, "q")
+    c = ClassicalRegister(n, "c")
     trial_circuit = QuantumCircuit(q, c)
     trial_circuit.h(q)
     if meas_string is None:

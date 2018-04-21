@@ -1,0 +1,134 @@
+{
+    "lastUpdateDate": "2017-08-31T08:32:12Z",
+    "multiQubitGates": [
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.030172186236362503
+            },
+            "name": "CX0_1",
+            "qubits": [
+                0,
+                1
+            ],
+            "type": "CX"
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.02439953511237683
+            },
+            "name": "CX0_2",
+            "qubits": [
+                0,
+                2
+            ],
+            "type": "CX"
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.0336469083512502
+            },
+            "name": "CX1_2",
+            "qubits": [
+                1,
+                2
+            ],
+            "type": "CX"
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.049009587345366284
+            },
+            "name": "CX3_2",
+            "qubits": [
+                3,
+                2
+            ],
+            "type": "CX"
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.03241957543776744
+            },
+            "name": "CX3_4",
+            "qubits": [
+                3,
+                4
+            ],
+            "type": "CX"
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.031193291229275444
+            },
+            "name": "CX4_2",
+            "qubits": [
+                4,
+                2
+            ],
+            "type": "CX"
+        }
+    ],
+    "qubits": [
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.0013737021608475342
+            },
+            "name": "Q0",
+            "readoutError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.05
+            }
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.0013737021608475342
+            },
+            "name": "Q1",
+            "readoutError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.07
+            }
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.0024043886349084387
+            },
+            "name": "Q2",
+            "readoutError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.03
+            }
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.001889001411209068
+            },
+            "name": "Q3",
+            "readoutError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.056
+            }
+        },
+        {
+            "gateError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.00197489316929661
+            },
+            "name": "Q4",
+            "readoutError": {
+                "date": "2017-08-31T08:32:12Z",
+                "value": 0.053
+            }
+        }
+    ]
+}

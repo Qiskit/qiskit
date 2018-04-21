@@ -22,7 +22,7 @@ import unittest
 from sympy import sqrt
 
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob)
-from qiskit.backends._sympy_unitarysimulator import SympyUnitarySimulator
+from qiskit.backends.local.sympy_unitarysimulator import SympyUnitarySimulator
 from .common import QiskitTestCase
 
 
@@ -52,7 +52,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': None,
                 'shots': 1,
-                'backend': 'local_sympy_unitary_simulator'
+                'backend_name': 'local_sympy_unitary_simulator'
             },
             'circuits': [
                 {
@@ -70,7 +70,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         }
 
         q_job = QuantumJob(qobj,
-                           backend='local_sympy_unitary_simulator',
+                           backend=SympyUnitarySimulator(),
                            preformatted=True)
 
         result = SympyUnitarySimulator().run(q_job)
