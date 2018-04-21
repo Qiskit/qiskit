@@ -26,7 +26,7 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
 from qiskit import QuantumJob
 from qiskit._compiler import (compile_circuit, load_unroll_qasm_file)
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.backends.local import QasmSimulator, UnitarySimulator
+from qiskit.wrapper import get_backend
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import requires_qe_access, QiskitTestCase
 
@@ -105,12 +105,12 @@ class TestJobProcessor(QiskitTestCase):
         _ = load_unroll_qasm_file(self.qasm_filename)
 
     def test_init_quantum_job(self):
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         _ = QuantumJob(self.qc, backend)
 
     def test_init_quantum_job_qobj(self):
         formatted_circuit = self.qasm_text
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         qobj = {'id': 'qobj_init',
                 'config': {
                     'max_credits': 3,
@@ -128,21 +128,21 @@ class TestJobProcessor(QiskitTestCase):
     def test_init_job_processor(self):
         njobs = 5
         job_list = []
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
             quantum_job = QuantumJob(self.qc, backend, do_compile=False)
             job_list.append(quantum_job)
         _ = jobprocessor.JobProcessor(job_list, callback=None)
 
     def test_run_local_backend_qasm(self):
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         dag_circuit = compile_circuit(self.qc)
         quantum_job = QuantumJob(dag_circuit, do_compile=False,
                                  backend=backend)
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_unitary(self):
-        backend = UnitarySimulator()
+        backend = get_backend('local_unitary_simulator')
         compiled_circuit = compile_circuit(self.qc)
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend=backend)
@@ -151,7 +151,7 @@ class TestJobProcessor(QiskitTestCase):
     @requires_qe_access
     def test_run_remote_simulator(self, QE_TOKEN, QE_URL):
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         compiled_circuit = compile_circuit(self.qc)
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
@@ -159,7 +159,7 @@ class TestJobProcessor(QiskitTestCase):
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_compile(self):
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         quantum_job = QuantumJob(self.qasm_circ, do_compile=True,
                                  backend=backend)
         jobprocessor.run_backend(quantum_job)
@@ -167,7 +167,7 @@ class TestJobProcessor(QiskitTestCase):
     @requires_qe_access
     def test_run_remote_simulator_compile(self, QE_TOKEN, QE_URL):
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         quantum_job = QuantumJob(self.qc, do_compile=True,
                                  backend=backend)
@@ -175,7 +175,7 @@ class TestJobProcessor(QiskitTestCase):
 
     def test_compile_job(self):
         """Test compilation as part of job"""
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         quantum_job = QuantumJob(self.qasm_circ, do_compile=True,
                                  backend=backend)
         jp = jobprocessor.JobProcessor([quantum_job], callback=None)
@@ -184,7 +184,7 @@ class TestJobProcessor(QiskitTestCase):
     def test_run_job_processor_local(self):
         njobs = 5
         job_list = []
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
             compiled_circuit = compile_circuit(self.qc)
             quantum_job = QuantumJob(compiled_circuit,
@@ -197,7 +197,7 @@ class TestJobProcessor(QiskitTestCase):
     @requires_qe_access
     def test_run_job_processor_online(self, QE_TOKEN, QE_URL):
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         njobs = 1
         job_list = []
@@ -218,8 +218,8 @@ class TestJobProcessor(QiskitTestCase):
         qc = qp.create_circuit('qc', [qr], [cr])
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
-        backend = 'ibmqx_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'ibmq_qasm_simulator'
+        shots = 1024
         _ = qp.execute(['qc'], backend=backend, shots=shots, seed=78)
 
     def test_run_job_processor_local_parallel(self):
@@ -235,7 +235,7 @@ class TestJobProcessor(QiskitTestCase):
 
         njobs = 20
         job_list = []
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
             compiled_circuit = compile_circuit(self.qc)
             quantum_job = QuantumJob(compiled_circuit,
@@ -259,7 +259,7 @@ class TestJobProcessor(QiskitTestCase):
         """test randomly generated circuits on local_qasm_simulator"""
         njobs = 5
         job_list = []
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit')[:njobs]:
             compiled_circuit = compile_circuit(circuit)
             quantum_job = QuantumJob(compiled_circuit,
@@ -278,8 +278,8 @@ class TestJobProcessor(QiskitTestCase):
         both kinds in one list. Test that this works.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        remote_backend = provider.get_backend('ibmqx_qasm_simulator')
-        local_backend = QasmSimulator()
+        remote_backend = provider.get_backend('ibmq_qasm_simulator')
+        local_backend = get_backend('local_qasm_simulator')
 
         njobs = 6
         job_list = []
@@ -311,7 +311,7 @@ class TestJobProcessor(QiskitTestCase):
 
         njobs = 5
         job_list = []
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
             compiled_circuit = compile_circuit(self.qc)
             quantum_job = QuantumJob(compiled_circuit,

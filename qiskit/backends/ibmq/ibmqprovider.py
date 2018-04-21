@@ -51,18 +51,18 @@ class IBMQProvider(BaseProvider):
 
     def aliased_backend_names(self):
         return {
-                # FIXME: uncomment after API fix: online simulator names should change
-                # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
-                #                         'ibmq_qasm_simulator_hpc'],
-                }
+            # FIXME: uncomment after API fix: online simulator names should change
+            # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
+            #                         'ibmq_qasm_simulator_hpc']
+            }
 
     def deprecated_backend_names(self):
         return {
-                # FIXME: uncomment after API fix: online simulator names should change
-                # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-                # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
-                'real': 'ibmqx1'
-                }
+            # FIXME: uncomment after API fix: online simulator names should change
+            # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+            # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
+            'real': 'ibmqx1'
+            }
 
     @classmethod
     def _authenticate(cls, token, url,

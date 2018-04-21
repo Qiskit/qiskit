@@ -141,7 +141,7 @@ class StatevectorSimulatorSympy(BaseBackend):
             configuration (dict): backend configuration
         """
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
-        
+
         self._number_of_qubits = None
         self._quantum_state = None
 

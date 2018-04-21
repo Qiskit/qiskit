@@ -26,7 +26,7 @@ import numpy as np
 import qiskit._jobprocessor as jobprocessor
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
                     QuantumRegister, ClassicalRegister)
-from qiskit.backends.local.unitarysimulator import UnitarySimulator
+from qiskit.backends.local._unitary_simulator_py import UnitarySimulatorPy
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -60,7 +60,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': None,
                 'shots': 1,
-                'backend_name': 'local_unitary_simulator'
+                'backend_name': 'local_unitary_simulator_py'
             },
             'circuits': [
                 {
