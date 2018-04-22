@@ -43,7 +43,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator')        
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -69,7 +69,7 @@ class TestInitialize(QiskitTestCase):
         qp = QuantumProgram()
         qr = QuantumRegister("qr", 2)
         qc = QuantumCircuit(qr)
-        qc = qp.create_circuit("qc", [qr], [cr])
+        qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
         result = qp.execute("qc", backend='local_statevector_simulator')
@@ -84,7 +84,7 @@ class TestInitialize(QiskitTestCase):
         qp = QuantumProgram()
         qr = QuantumRegister("qr", 3)
         qc = QuantumCircuit(qr)
-        qc = qp.create_circuit("qc", [qr], [cr])
+        qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         qp.add_circuit("qc", qc)
         result = qp.execute("qc", backend='local_statevector_simulator')
@@ -162,7 +162,6 @@ class TestInitialize(QiskitTestCase):
 
     def test_malformed_amplitudes(self):
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3), 0]
-        qp = QuantumProgram()
         qr = QuantumRegister("qr", 2)
         qc = QuantumCircuit(qr)
         self.assertRaises(
@@ -171,7 +170,6 @@ class TestInitialize(QiskitTestCase):
 
     def test_non_unit_probability(self):
         desired_vector = [1, 1]
-        qp = QuantumProgram()
         qr = QuantumRegister("qr", 2)
         qc = QuantumCircuit(qr)
         self.assertRaises(
