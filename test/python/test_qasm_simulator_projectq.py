@@ -106,6 +106,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
     def test_random_circuits(self):
         qk_simulator = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
+            print(circuit.qasm())
             self.log.info(circuit.qasm())
             shots = 1000
             min_cnts = int(shots / 10)
