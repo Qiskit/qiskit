@@ -128,7 +128,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
                       'backend_name': backend_name}
 
     # TODO This backend needs HPC parameters to be passed in order to work
-    if backend_name == 'ibmq_qasm_simulator_hpc':
+    if 'hpc' in backend_name:
         if hpc is None:
             logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
                         'parameter. Setting defaults to hpc.multi_shot_optimization '
