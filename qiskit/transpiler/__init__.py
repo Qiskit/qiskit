@@ -17,4 +17,4 @@
 
 """Utils for transpiler."""
 
-from ._compiler import compile, compile_circuit, execute
+from ._transpiler import compile, compile_circuit
