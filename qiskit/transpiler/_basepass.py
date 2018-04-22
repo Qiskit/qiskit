@@ -18,7 +18,6 @@
 """This module implements the base pass.
 """
 from abc import ABC, abstractmethod
-from qiskit._dagcircuit import DAGCircuit
 
 
 class BasePass(ABC):

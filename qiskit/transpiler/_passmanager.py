@@ -33,16 +33,17 @@ class PassManager():
         """
         self._configuration = configuration
         self._resources = {}
+        self._passes = []
 
-    def add(self, BasePass):
+    def add_pass(self, pass_):
         """Schedule a pass in the passmanager."""
-        pass
+        self._passes.append(pass_)
 
-    def run(self, BasePass, DAGCircuit):
-        """Run a Pass on the DAGCircuit."""
-        pass
+    def passes(self):
+        """Return list of passes scheduled."""
+        return self._passes
 
     @property
     def configuration(self):
-        """Return backend configuration"""
+        """Return passmanager configuration"""
         return self._configuration

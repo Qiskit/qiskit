@@ -15,8 +15,19 @@
 # limitations under the License.
 # =============================================================================
 
-"""Utils for transpiler."""
+"""
+Exception for errors raised by the transpiler.
+"""
+from qiskit import QISKitError
 
-from ._transpiler import compile, compile_circuit
-from ._passmanager import PassManager
-from ._transpilererror import QISKitTranspilerError
+
+class QISKitTranspilerError(QISKitError):
+    """Exceptions raised during transpilation"""
+    def __init__(self, *msg):
+        """Set the error message."""
+        super().__init__(*msg)
+        self.msg = ' '.join(msg)
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.msg)
