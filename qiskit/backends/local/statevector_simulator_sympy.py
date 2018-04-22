@@ -288,7 +288,7 @@ class StatevectorSimulatorSympy(BaseBackend):
         if the_gate is not None:
             return the_gate
 
-        # U gate, CU gate gate handled below
+        # U gate, CU gate handled below
         if name.startswith('U') or name.startswith('CU'):
             parameters = params
 

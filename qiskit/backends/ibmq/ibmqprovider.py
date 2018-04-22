@@ -59,8 +59,8 @@ class IBMQProvider(BaseProvider):
     def deprecated_backend_names(self):
         return {
             # FIXME: uncomment after API fix: online simulator names should change
-            # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-            # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
+            # 'ibmq_qasm_simulator': 'ibmq_qasm_simulator',
+            # 'ibmq_qasm_simulator_hpc': 'ibmq_qasm_simulator_hpc',
             'real': 'ibmqx1'
             }
 
@@ -122,7 +122,7 @@ class IBMQProvider(BaseProvider):
                                'status']:
                 edited_config[new_key] = config[key]
 
-        # ibmqx_qasm_simulator doesn't report coupling_map
+        # ibmq_qasm_simulator doesn't report coupling_map
         if 'coupling_map' not in edited_config.keys() and config['simulator']:
             edited_config['coupling_map'] = 'all-to-all'
 
