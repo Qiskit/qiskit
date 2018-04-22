@@ -114,12 +114,12 @@ class QasmSimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_qasm_simulator_py',
-        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for qasm files',
         'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id'
+        'basis_gates': 'u1,u2,u3,cx,id,snapshot'
     }
 
     def __init__(self, configuration=None):
