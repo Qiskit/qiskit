@@ -59,8 +59,8 @@ class IBMQProvider(BaseProvider):
     def deprecated_backend_names(self):
         return {
             # FIXME: uncomment after API fix: online simulator names should change
-            # 'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-            # 'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator_hpc',
+            # 'ibmq_qasm_simulator': 'ibmq_qasm_simulator',
+            # 'ibmq_qasm_simulator_hpc': 'ibmq_qasm_simulator_hpc',
             'real': 'ibmqx1'
             }
 

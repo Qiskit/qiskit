@@ -137,11 +137,11 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_hpc_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator_hpc':
                 calibrations = {}
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator':
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -169,11 +169,11 @@ class IBMQBackend(BaseBackend):
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_hpc_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator_hpc':
                 parameters = {}
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator':
                 parameters = {}
         except Exception as ex:
             raise LookupError(
@@ -207,7 +207,7 @@ class IBMQBackend(BaseBackend):
                 del status['busy']
             # FIXME a hack to add available to the hpc simulator.  Needs to
             # be fixed in api
-            if status['name'] == 'ibmqx_hpc_qasm_simulator':
+            if status['name'] == 'ibmq_qasm_simulator_hpc':
                 status['available'] = True
 
         except Exception as ex:
