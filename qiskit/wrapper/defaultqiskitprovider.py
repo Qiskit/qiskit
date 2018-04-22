@@ -44,7 +44,7 @@ class DefaultQISKitProvider(BaseProvider):
                 pass
         raise KeyError(name)
 
-    def available_backends(self, filters=None, compact=True):
+    def available_backends(self, filters=None):
         """
         Args:
             filters (dict): dictionary of filtering conditions.
@@ -132,9 +132,9 @@ class DefaultQISKitProvider(BaseProvider):
 
         # FIXME: remove after API fix: online simulator names should change
         if name == 'ibmq_qasm_simulator':
-            resolved_name = 'ibmq_qasm_simulator'
+            resolved_name = 'ibmqx_qasm_simulator'
         if name == 'ibmq_qasm_simulator_hpc':
-            resolved_name = 'ibmq_qasm_simulator_hpc'
+            resolved_name = 'ibmqx_hpc_qasm_simulator'
 
         if resolved_name not in available:
             raise LookupError('backend "{}" not found.'.format(name))
