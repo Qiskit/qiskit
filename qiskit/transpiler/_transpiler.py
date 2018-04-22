@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-builtin
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -275,26 +275,3 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
     if get_layout:
         return compiled_circuit, final_layout
     return compiled_circuit
-
-
-def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
-    """Load qasm file and return unrolled circuit
-
-    XXX HOW IS THIS FUNCTION USED. COPIED FROM OPENQUANTUMCOMPILER
-
-    Args:
-        filename (str): a string for the filename including its location.
-        basis_gates (str): basis to unroll circuit to.
-    Returns:
-        object: Returns a unrolled QuantumCircuit object
-    """
-    # create Program object Node (AST)
-    node_circuit = Qasm(filename=filename).parse()
-    node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-    circuit_unrolled = node_unroller.execute()
-    return circuit_unrolled
-
-
-class QISKitCompilerError(QISKitError):
-    """Exceptions raised during compilation"""
-    pass

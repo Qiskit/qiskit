@@ -24,7 +24,7 @@ import qiskit._jobprocessor as jobprocessor
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister)
 from qiskit import QuantumJob
-from qiskit.transpiler import (compile_circuit, load_unroll_qasm_file)
+from qiskit.transpiler import compile_circuit
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import get_backend
 from ._random_circuit_generator import RandomCircuitGenerator
@@ -100,9 +100,6 @@ class TestJobProcessor(QiskitTestCase):
                      ]}
         self.job_processor_exception = Exception()
         self.job_processor_finished = False
-
-    def test_load_unroll_qasm_file(self):
-        _ = load_unroll_qasm_file(self.qasm_filename)
 
     def test_init_quantum_job(self):
         backend = get_backend('local_qasm_simulator')
