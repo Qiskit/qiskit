@@ -17,12 +17,10 @@
 
 """This module implements a passmanager 
 """
-from abc import ABC, abstractmethod
+from ._basepass import BasePass
 
-
-class PassManager(ABC):
-    """Base class for backends."""
-    @abstractmethod
+class PassManager():
+    """PassManager class for the transpiler."""
     def __init__(self, configuration=None):
         """Base class for backends.
 
@@ -34,9 +32,13 @@ class PassManager(ABC):
             configuration (dict): configuration dictionary
         """
         self._configuration = configuration
+        self._resources = {}
 
-    @abstractmethod
-    def run(self, Pass, DAGCircuit):
+    def add(self, BasePass):
+        """Schedule a pass in the passmanager."""
+        pass
+
+    def run(self, BasePass, DAGCircuit):
         """Run a Pass on the DAGCircuit."""
         pass
 
