@@ -50,34 +50,6 @@ COMPILE_CONFIG_DEFAULT = {
 }
 
 
-def execute(list_of_circuits, backend, compile_config=None,
-            wait=5, timeout=60, skip_translation=False):
-    """Executes a set of circuits.
-
-    Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-
-        backend (BaseBackend): A string for the backend name to use
-
-        wait (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
-        timeout (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
-        compile_config (dict or None): a dictionary of compile configurations.
-        skip_translation (bool): skip most of the compile steps and produce qobj directly
-
-    Returns:
-        obj: The results object
-    """
-    compile_config = compile_config or {}
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
-
-    # XXX When qobj is done this should replace q_job
-    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = backend.run(q_job)
-    return result
-
-
 def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 

@@ -147,6 +147,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
             If `None`, the default compile configuration will be used.
         skip_translation (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
+
     Returns:
         obj: the qobj to be run on the backends
     """
@@ -156,7 +157,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
 
 def execute(list_of_circuits, backend_name, compile_config=None,
             wait=5, timeout=60, skip_translation=False):
-    """Executes a set of circuits.
+    """Executes a list of circuits.
 
     Args:
         list_of_circuits (list[QuantumCircuits]): list of circuits.
@@ -170,5 +171,9 @@ def execute(list_of_circuits, backend_name, compile_config=None,
         Result: The results object
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    wait, timeout, skip_translation)
+    qobj = qiskit._transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    # FIXME: When qobj is done this should replace q_job
+    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
+        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
+    result = backend.run(q_job)
+    return result
