@@ -24,18 +24,16 @@ import numpy
 from scipy.stats import chi2_contingency
 
 import qiskit.backends.local.qasm_simulator_projectq as projectq_simulator
-from qiskit import QuantumJob
 from qiskit import QuantumProgram
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit.wrapper import get_backend
-from qiskit._compiler import compile_circuit
+from qiskit.wrapper import get_backend, execute
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
 try:
-    pq_simulator = projectq_simulator.ProjectQSimulator()
+    pq_simulator = projectq_simulator.QasmSimulatorProjectQ()
 except Exception as err:
     _skip_class = True
 else:
@@ -106,35 +104,31 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                 self.assertTrue(key in ['0' * N, '1' * N])
 
     def test_random_circuits(self):
-        local_simulator = get_backend('local_qasm_simulator')
+        qk_simulator = get_backend('local_qasm_simulator_py')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
-            compiled_circuit = compile_circuit(circuit)
             shots = 1000
             min_cnts = int(shots / 10)
-            job_pq = QuantumJob(compiled_circuit,
-                                backend=pq_simulator,
-                                seed=1, shots=shots)
-            job_py = QuantumJob(compiled_circuit,
-                                backend=local_simulator,
-                                seed=1, shots=shots)
-            result_pq = pq_simulator.run(job_pq)
-            result_py = local_simulator.run(job_py)
+            result_pq = execute(circuit, pq_simulator.name)
+            result_qk = execute(circuit, qk_simulator.name)
+            from pprint import pprint
+            pprint(result_pq._qobj)
+            pprint(result_qk._qobj)
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
-            counts_py = result_py.get_counts(result_py.get_names()[0])
+            counts_qk = result_qk.get_counts(result_qk.get_names()[0])
             # filter states with few counts
             counts_pq = {key: cnt for key, cnt in counts_pq.items()
                          if cnt > min_cnts}
-            counts_py = {key: cnt for key, cnt in counts_py.items()
+            counts_qk = {key: cnt for key, cnt in counts_qk.items()
                          if cnt > min_cnts}
             self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
-            self.log.info('local_qasm_simulator: %s', str(counts_py))
+            self.log.info('local_qasm_simulator: %s', str(counts_qk))
             threshold = 0.05 * shots
-            self.assertDictAlmostEqual(counts_pq, counts_py, threshold)
-            states = counts_py.keys()
+            self.assertDictAlmostEqual(counts_pq, counts_qk, threshold)
+            states = counts_qk.keys()
             # contingency table
             ctable = numpy.array([[counts_pq[key] for key in states],
-                                  [counts_py[key] for key in states]])
+                                  [counts_qk[key] for key in states]])
             result = chi2_contingency(ctable)
             self.log.info('chi2_contingency: %s', str(result))
             with self.subTest(circuit=circuit):

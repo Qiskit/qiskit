@@ -62,7 +62,7 @@ class BaseProvider(ABC):
         in order of priority from the value list, depending on availability.
 
         Returns:
-            dict {str: list[str]}: {alias_name: list(backend_name)}
+            dict[str: list[str]]: {alias_name: list(backend_name)}
         """
         return {}
 
@@ -73,6 +73,6 @@ class BaseProvider(ABC):
         These can be gradually removed in subsequent releases.
 
         Returns:
-            dict {str: str}: {deprecated_name: backend_name}
+            dict[str: str]: {deprecated_name: backend_name}
         """
         return {}
