@@ -756,7 +756,7 @@ class QuantumProgram(object):
 
         return self.__api
 
-    def available_backends(self):
+    def available_backends(self, compact=True):
         """All the backends that are seen by QISKIT.
 
         .. deprecated:: 0.5
@@ -769,7 +769,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wrapper.available_backends()
+        return qiskit.wrapper.available_backends(compact=compact)
 
     def online_backends(self):
         """Get the online backends.
