@@ -20,7 +20,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
-from qiskit.backends.ibmq import IBMQBackend
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
 
 class IBMQProvider(BaseProvider):
