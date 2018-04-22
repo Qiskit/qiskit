@@ -75,8 +75,22 @@ def available_backends(filters=None, compact=True):
     Returns:
         list[str]: the names of the available backends.
     """
-    return [str(backend) for backend in
-            _DEFAULT_PROVIDER.available_backends(filters, compact=compact)]
+    backend_names = [str(backend)
+                     for backend in _DEFAULT_PROVIDER.available_backends(filters)]
+
+    if compact:
+        alias_dict = _DEFAULT_PROVIDER.aliased_backend_names()
+        aliases = set()
+        for name in backend_names:
+            backend_alias = set(k for k, v in alias_dict.items() if name in v)
+            if not backend_alias:
+                aliases.add(name)
+            elif len(backend_alias) == 1:
+                (alias,) = backend_alias
+                aliases.add(alias)
+        backend_names = list(aliases)
+
+    return backend_names
 
 
 def local_backends(compact=True):
