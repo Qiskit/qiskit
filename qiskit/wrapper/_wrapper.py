@@ -152,7 +152,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    return qiskit._compiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    return qiskit.transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
 
 
 def execute(list_of_circuits, backend_name, compile_config=None,
@@ -171,7 +171,7 @@ def execute(list_of_circuits, backend_name, compile_config=None,
         Result: The results object
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    qobj = qiskit._transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    qobj = qiskit.transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
     # FIXME: When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})

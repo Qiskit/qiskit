@@ -17,6 +17,6 @@
 
 """Utils for transpiler."""
 
-from ._transpiler import compile, compile_circuit
+from ._transpiler import compile, transpile
 from ._passmanager import PassManager
 from ._transpilererror import QISKitTranspilerError

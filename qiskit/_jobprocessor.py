@@ -21,7 +21,7 @@ import pprint
 from concurrent import futures
 from threading import Lock
 
-from qiskit.transpiler import compile_circuit
+from qiskit.transpiler import transpile
 from ._qiskiterror import QISKitError
 from ._result import Result
 
@@ -51,7 +51,7 @@ def run_backend(q_job):
     if backend.configuration.get('local'):  # FIXME: remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
-                compiled_circuit = compile_circuit(circuit['circuit'], format='json')
+                compiled_circuit = transpile(circuit['circuit'], format='json')
                 circuit['compiled_circuit'] = compiled_circuit
 
     return backend.run(q_job)
