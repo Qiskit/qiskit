@@ -22,7 +22,7 @@ import unittest
 from sympy import sqrt
 
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
-from qiskit.backends.local._statevector_simulator_sympy import StatevectorSimulatorSympy
+from qiskit.backends.local.statevector_simulator_sympy import StatevectorSimulatorSympy
 from .common import QiskitTestCase
 
 

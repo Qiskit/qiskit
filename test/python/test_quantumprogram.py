@@ -764,7 +764,8 @@ class TestQuantumProgram(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'local_qasm_simulator'
+        # cannot interchange simulators here due to differing basis
+        backend = 'local_qasm_simulator_py'
         coupling_map = None
         qobj = q_program.compile(['circuitName'], backend=backend,
                                  coupling_map=coupling_map)
@@ -1206,7 +1207,8 @@ class TestQuantumProgram(QiskitTestCase):
         qc3.cx(qr[0], qr[1])
         qc3.cx(qr[0], qr[2])
         circuits = ['qc2', 'qc3']
-        backend = 'local_qasm_simulator'
+        # the behavior of getting statevector from 1 shot only existed in py simulator
+        backend = 'local_qasm_simulator_py'
         shots = 1
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=9)

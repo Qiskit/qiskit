@@ -20,7 +20,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
-from .ibmqbackend import IBMQBackend
+from qiskit.backends.ibmq import IBMQBackend
 
 
 class IBMQProvider(BaseProvider):
@@ -121,10 +121,6 @@ class IBMQProvider(BaseProvider):
             if new_key not in ['id', 'serial_number', 'topology_id',
                                'status']:
                 edited_config[new_key] = config[key]
-
-        # ibmq_qasm_simulator doesn't report coupling_map
-        if 'coupling_map' not in edited_config.keys() and config['simulator']:
-            edited_config['coupling_map'] = 'all-to-all'
 
         return edited_config
 

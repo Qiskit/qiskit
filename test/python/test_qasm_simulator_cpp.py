@@ -17,20 +17,21 @@
 
 # =============================================================================
 
-import os
-import unittest
 import json
+import unittest
+
 import numpy as np
 from numpy.linalg import norm
 
 import qiskit
+import qiskit._compiler
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumJob
 from qiskit import QuantumRegister
-from qiskit import _openquantumcompiler as openquantumcompiler
-from qiskit.backends import _qasm_simulator_cpp as QasmSimulatorCpp
-
+from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
+                                                      cx_error_matrix,
+                                                      x90_error_matrix)
 from .common import QiskitTestCase
 
 
@@ -41,29 +42,26 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasm_filename = os.path.join(qiskit.__path__[0],
-                                          '../test/python/qasm/example.qasm')
+        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
         with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
             self.qasm_ast = qiskit.qasm.Qasm(data=self.qasm_text).parse()
             self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
             self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
-        qr = QuantumRegister('q', 2)
-        cr = ClassicalRegister('c', 2)
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = openquantumcompiler.compile(self.qc,
-                                                        format='json')
-        compiled_circuit2 = openquantumcompiler.compile(self.qasm_circ,
-                                                        format='json')
+        compiled_circuit1 = qiskit._compiler.compile_circuit(self.qc, format='json')
+        compiled_circuit2 = qiskit._compiler.compile_circuit(self.qasm_circ, format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
-                         'shots': 1024,
-                         'backend': 'local_qasm_simulator_cpp',
+                         'shots': 2000,
+                         'backend_name': 'local_qasm_simulator_cpp',
                          'seed': 1111
                      },
                      'circuits': [
@@ -80,50 +78,55 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              'layout': None,
                          }
                      ]}
-        self.q_job = QuantumJob(self.qobj,
-                                backend='local_qasm_simulator_cpp',
-                                preformatted=True)
         # Simulator backend
-        self.backend = QasmSimulatorCpp.QasmSimulatorCpp()
+        try:
+            self.backend = QasmSimulatorCpp()
+        except FileNotFoundError as fnferr:
+            raise unittest.SkipTest(
+                'cannot find {} in path'.format(fnferr))
+
+        self.q_job = QuantumJob(self.qobj,
+                                backend=self.backend,
+                                preformatted=True)
 
     def test_x90_coherent_error_matrix(self):
         X90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
-        U = QasmSimulatorCpp.x90_error_matrix(0., 0.).dot(X90)
+        U = x90_error_matrix(0., 0.).dot(X90)
         target = X90
         self.assertAlmostEqual(norm(U - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = QasmSimulatorCpp.x90_error_matrix(np.pi / 2., 0.).dot(X90)
+        U = x90_error_matrix(np.pi / 2., 0.).dot(X90)
         target = -1j * np.array([[0, 1], [1, 0]])
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = QasmSimulatorCpp.x90_error_matrix(0., np.pi / 2.).dot(X90)
+        U = x90_error_matrix(0., np.pi / 2.).dot(X90)
         target = np.array([[1., -1], [1, 1.]]) / np.sqrt(2.)
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = QasmSimulatorCpp.x90_error_matrix(np.pi / 2, np.pi / 2.).dot(X90)
+        U = x90_error_matrix(np.pi / 2, np.pi / 2.).dot(X90)
         target = np.array([[0., -1], [1, 0.]])
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = QasmSimulatorCpp.x90_error_matrix(0.02, -0.03)
+        U = x90_error_matrix(0.02, -0.03)
         self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(2)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_cx_coherent_error_matrix(self):
         CX = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
-        U = QasmSimulatorCpp.cx_error_matrix(0., 0.).dot(CX)
+        U = cx_error_matrix(0., 0.).dot(CX)
         target = CX
         self.assertAlmostEqual(norm(U - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = QasmSimulatorCpp.cx_error_matrix(np.pi / 2., 0.).dot(CX)
+        U = cx_error_matrix(np.pi / 2., 0.).dot(CX)
         target = np.array([[1, 0, 1j, 0],
                            [0, -1j, 0, 1],
                            [1j, 0, 1, 0],
                            [0, 1, 0, -1j]]) / np.sqrt(2)
         self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = QasmSimulatorCpp.cx_error_matrix(0.03, -0.04)
+        U = cx_error_matrix(0.03, -0.04)
         self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(4)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):
         result = self.backend.run(self.q_job)
-        shots = 1024
+        shots = self.qobj['config']['shots']
         threshold = 0.025 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
@@ -133,14 +136,13 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_qobj_measure_opt(self):
-        filename = os.path.join(qiskit.__path__[0],
-                                '../test/python/qobj/cpp_measure_opt.json')
+        filename = self._get_resource_path('qobj/cpp_measure_opt.json')
         with open(filename, 'r') as file:
             q_job = QuantumJob(json.load(file),
-                               backend='local_qasm_simulator_cpp',
+                               backend=self.backend,
                                preformatted=True)
         result = self.backend.run(q_job)
-        shots = 1000
+        shots = q_job.qobj['config']['shots']
         expected_data = {
             'measure (opt)': {
                 'deterministic': True,
@@ -213,11 +215,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                    msg=name + ' snapshot fidelity')
 
     def test_qobj_reset(self):
-        filename = os.path.join(qiskit.__path__[0],
-                                '../test/python/qobj/cpp_reset.json')
+        filename = self._get_resource_path('qobj/cpp_reset.json')
         with open(filename, 'r') as file:
             q_job = QuantumJob(json.load(file),
-                               backend='local_qasm_simulator_cpp',
+                               backend=self.backend,
                                preformatted=True)
         result = self.backend.run(q_job)
         expected_data = {
@@ -240,11 +241,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                    msg=name + ' snapshot fidelity')
 
     def test_qobj_save_load(self):
-        filename = os.path.join(qiskit.__path__[0],
-                                '../test/python/qobj/cpp_save_load.json')
+        filename = self._get_resource_path('qobj/cpp_save_load.json')
         with open(filename, 'r') as file:
             q_job = QuantumJob(json.load(file),
-                               backend='local_qasm_simulator_cpp',
+                               backend=self.backend,
                                preformatted=True)
         result = self.backend.run(q_job)
 
@@ -269,11 +269,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         self.assertAlmostEqual(fidelity11, 1.0, places=10, msg='snapshot 0')
 
     def test_qobj_single_qubit_gates(self):
-        filename = os.path.join(qiskit.__path__[0],
-                                '../test/python/qobj/cpp_single_qubit_gates.json')
+        filename = self._get_resource_path('qobj/cpp_single_qubit_gates.json')
         with open(filename, 'r') as file:
             q_job = QuantumJob(json.load(file),
-                               backend='local_qasm_simulator_cpp',
+                               backend=self.backend,
                                preformatted=True)
         result = self.backend.run(q_job)
         expected_data = {
@@ -363,11 +362,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                    msg=name + ' snapshot fidelity')
 
     def test_qobj_two_qubit_gates(self):
-        filename = os.path.join(qiskit.__path__[0],
-                                '../test/python/qobj/cpp_two_qubit_gates.json')
+        filename = self._get_resource_path('qobj/cpp_two_qubit_gates.json')
         with open(filename, 'r') as file:
             q_job = QuantumJob(json.load(file),
-                               backend='local_qasm_simulator_cpp',
+                               backend=self.backend,
                                preformatted=True)
         result = self.backend.run(q_job)
         expected_data = {
@@ -407,6 +405,37 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 'quantum_state': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
             'h0 h1 rzz01': {'quantum_state': np.array([0.5, 0.5j, 0.5j, 0.5])},
             'h0 h1 rzz10': {'quantum_state': np.array([0.5, 0.5j, 0.5j, 0.5])}
+        }
+
+        for name in expected_data:
+            # Check snapshot
+            snapshots = result.get_data(name).get('snapshots', {})
+            self.assertEqual(set(snapshots), {'0'},
+                             msg=name + ' snapshot keys')
+            self.assertEqual(len(snapshots['0']), 1,
+                             msg=name + ' snapshot length')
+            state = snapshots['0']['quantum_state'][0]
+            expected_state = expected_data[name]['quantum_state']
+            fidelity = np.abs(expected_state.dot(state.conj())) ** 2
+            self.assertAlmostEqual(fidelity, 1.0, places=10,
+                                   msg=name + ' snapshot fidelity')
+
+    def test_conditionals(self):
+        filename = self._get_resource_path('qobj/cpp_conditionals.json')
+        with open(filename, 'r') as file:
+            q_job = QuantumJob(json.load(file),
+                               backend=self.backend,
+                               preformatted=True)
+        result = self.backend.run(q_job)
+        expected_data = {
+            'single creg (c0=0)': {
+                'quantum_state': np.array([1, 0, 0, 0])},
+            'single creg (c0=1)': {
+                'quantum_state': np.array([0, 0, 0, 1])},
+            'two creg (c1=0)': {
+                'quantum_state': np.array([1, 0, 0, 0])},
+            'two creg (c1=1)': {
+                'quantum_state': np.array([0, 0, 0, 1])}
         }
 
         for name in expected_data:

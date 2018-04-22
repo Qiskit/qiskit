@@ -78,6 +78,7 @@ class QasmSimulatorCpp(BaseBackend):
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
+
     def run(self, q_job):
         """Run a QuantumJob on the the backend."""
         qobj = q_job.qobj

@@ -38,7 +38,7 @@ class DummyProvider(BaseProvider):
         return DummySimulator()
 
     def available_backends(self, *args, **kwargs):
-        return ['local_dummy_simulator']
+        return [DummySimulator()]
 
 
 class DummySimulator(BaseBackend):

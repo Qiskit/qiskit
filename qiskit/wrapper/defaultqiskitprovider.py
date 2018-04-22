@@ -57,7 +57,6 @@ class DefaultQISKitProvider(BaseProvider):
         backends = []
         for provider in self.providers:
             backends.extend(provider.available_backends(filters))
-
         return backends
 
     def aliased_backend_names(self):
@@ -65,7 +64,7 @@ class DefaultQISKitProvider(BaseProvider):
         Aggregate alias information from all providers.
 
         Returns:
-            dict{str: list[str]}: aggregated alias dictionary
+            dict[str: list[str]]: aggregated alias dictionary
 
         Raises:
             ValueError: if a backend is mapped to multiple aliases
@@ -84,7 +83,7 @@ class DefaultQISKitProvider(BaseProvider):
         Aggregate deprecated names from all providers.
 
         Returns:
-            dict{str: list[str]}: aggregated alias dictionary        
+            dict[str: list[str]]: aggregated alias dictionary
         """
         deprecates = {}
         for provider in self.providers:
@@ -133,9 +132,9 @@ class DefaultQISKitProvider(BaseProvider):
 
         # FIXME: remove after API fix: online simulator names should change
         if name == 'ibmq_qasm_simulator':
-            resolved_name = 'ibmq_qasm_simulator'
+            resolved_name = 'ibmqx_qasm_simulator'
         if name == 'ibmq_qasm_simulator_hpc':
-            resolved_name = 'ibmq_qasm_simulator_hpc'
+            resolved_name = 'ibmqx_hpc_qasm_simulator'
 
         if resolved_name not in available:
             raise LookupError('backend "{}" not found.'.format(name))
