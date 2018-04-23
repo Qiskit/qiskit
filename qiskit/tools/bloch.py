@@ -209,10 +209,10 @@ class Bloch():
                   see also: http://en.wikipedia.org/wiki/Jones_calculus
                 - "polarization stokes"
                   see also: http://en.wikipedia.org/wiki/Stokes_parameters
-        
         Raises
         ------
-        Exception if convention is not valid.
+        Exception
+            if convention is not valid.
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -339,6 +339,7 @@ class Bloch():
 
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
+
         Parameters
         ----------
         vectors : array_like
@@ -353,7 +354,7 @@ class Bloch():
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
         parametrized by a qubit state or a vector.
-        
+
         Parameters
         ----------
         state_or_vector : Qobj/array/list/tuple
@@ -371,7 +372,8 @@ class Bloch():
 
         Raises
         ------
-        Exception if input not array_like or tuple.
+        Exception 
+            if input not array_like or tuple.
         """
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
