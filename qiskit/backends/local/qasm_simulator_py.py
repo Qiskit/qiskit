@@ -279,7 +279,7 @@ class QasmSimulatorPy(BaseBackend):
 
         slot is an integer indicating a snapshot slot number.
         """
-        self._snapshots.setdefault(slot, {}).setdefault("quantum_state",
+        self._snapshots.setdefault(int(slot), {}).setdefault("quantum_state",
                                                         []).append(self._quantum_state)
 
     def run(self, q_job):
@@ -444,9 +444,10 @@ class QasmSimulatorPy(BaseBackend):
         """
         fcounts = {}
         for key, value in counts.items():
-            new_key = [key[-cl_reg_nbits[0]:]]
-            for index, nbits in zip(cl_reg_index[1:],
-                                    cl_reg_nbits[1:]):
-                new_key.insert(0, key[-(index+nbits):-index])
-            fcounts[' '.join(new_key)] = value
+            if cl_reg_nbits:
+                new_key = [key[-cl_reg_nbits[0]:]]
+                for index, nbits in zip(cl_reg_index[1:],
+                                        cl_reg_nbits[1:]):
+                    new_key.insert(0, key[-(index+nbits):-index])
+                fcounts[' '.join(new_key)] = value
         return fcounts
