@@ -24,6 +24,7 @@ import numpy as np
 from numpy.linalg import norm
 
 import qiskit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import transpile
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
@@ -58,8 +59,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = transpile(self.qc, format='json')
-        compiled_circuit2 = transpile(self.qasm_circ, format='json')
+        compiled_circuit1 = transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json')
+        compiled_circuit2 = transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ), format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,

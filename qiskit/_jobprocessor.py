@@ -22,6 +22,7 @@ from concurrent import futures
 from threading import Lock
 
 from qiskit.transpiler import transpile
+from qiskit.dagcircuit import DAGCircuit
 from ._qiskiterror import QISKitError
 from ._result import Result
 
@@ -51,7 +52,8 @@ def run_backend(q_job):
     if backend.configuration.get('local'):  # FIXME: remove condition when api gets qobj
         for circuit in qobj['circuits']:
             if circuit['compiled_circuit'] is None:
-                compiled_circuit = transpile(circuit['circuit'], format='json')
+                dag = DAGCircuit.fromQuantumCircuit(circuit['circuit'])
+                compiled_circuit = transpile(dag, format='json')
                 circuit['compiled_circuit'] = compiled_circuit
 
     return backend.run(q_job)

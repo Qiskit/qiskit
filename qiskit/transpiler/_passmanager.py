@@ -15,9 +15,9 @@
 # limitations under the License.
 # =============================================================================
 
-"""This module implements a passmanager 
+"""This module implements a passmanager
 """
-from ._basepass import BasePass
+
 
 class PassManager():
     """PassManager class for the transpiler."""

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=redefined-builtin
 
 # Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
@@ -17,6 +18,6 @@
 
 """Utils for transpiler."""
 
-from ._transpiler import compile, transpile
 from ._passmanager import PassManager
 from ._transpilererror import QISKitTranspilerError
+from ._transpiler import compile, transpile

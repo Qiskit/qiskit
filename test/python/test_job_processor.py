@@ -24,6 +24,7 @@ import qiskit._jobprocessor as jobprocessor
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumProgram,
                     QuantumRegister)
 from qiskit import QuantumJob
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import transpile
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import get_backend
@@ -74,8 +75,8 @@ class TestJobProcessor(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = transpile(self.qc)
-        compiled_circuit2 = transpile(self.qasm_circ)
+        compiled_circuit1 = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
+        compiled_circuit2 = transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ))
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
@@ -135,14 +136,14 @@ class TestJobProcessor(QiskitTestCase):
         # TODO: make this run on `local_qasm_simulator` after `do_compile`
         # is fixed in _quantumjob.
         backend = get_backend('local_qasm_simulator_py')
-        dag_circuit = transpile(self.qc)
+        dag_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
         quantum_job = QuantumJob(dag_circuit, do_compile=False,
                                  backend=backend)
         jobprocessor.run_backend(quantum_job)
 
     def test_run_local_backend_unitary(self):
         backend = get_backend('local_unitary_simulator')
-        compiled_circuit = transpile(self.qc)
+        compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend=backend)
         jobprocessor.run_backend(quantum_job)
@@ -152,7 +153,7 @@ class TestJobProcessor(QiskitTestCase):
         provider = IBMQProvider(QE_TOKEN, QE_URL)
         backend = provider.available_backends({'simulator': True})[0]
 
-        compiled_circuit = transpile(self.qc)
+        compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
         quantum_job = QuantumJob(compiled_circuit, do_compile=False,
                                  backend=backend)
         jobprocessor.run_backend(quantum_job)
@@ -187,7 +188,7 @@ class TestJobProcessor(QiskitTestCase):
         job_list = []
         backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
-            compiled_circuit = transpile(self.qc)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
             quantum_job = QuantumJob(compiled_circuit,
                                      backend=backend,
                                      do_compile=False)
@@ -203,7 +204,7 @@ class TestJobProcessor(QiskitTestCase):
         njobs = 1
         job_list = []
         for _ in range(njobs):
-            compiled_circuit = transpile(self.qc)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
             quantum_job = QuantumJob(compiled_circuit,
                                      backend=backend)
             job_list.append(quantum_job)
@@ -240,7 +241,7 @@ class TestJobProcessor(QiskitTestCase):
         # is fixed in _quantumjob.
         backend = get_backend('local_qasm_simulator_py')
         for _ in range(njobs):
-            compiled_circuit = transpile(self.qc)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
             quantum_job = QuantumJob(compiled_circuit,
                                      backend=backend)
             job_list.append(quantum_job)
@@ -264,7 +265,7 @@ class TestJobProcessor(QiskitTestCase):
         job_list = []
         backend = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit')[:njobs]:
-            compiled_circuit = transpile(circuit)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(circuit))
             quantum_job = QuantumJob(compiled_circuit,
                                      backend=backend)
             job_list.append(quantum_job)
@@ -290,7 +291,7 @@ class TestJobProcessor(QiskitTestCase):
         backend_type = [local_backend, remote_backend]
         i = 0
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit')[:njobs]:
-            compiled_circuit = transpile(circuit)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(circuit))
             backend = backend_type[i % len(backend_type)]
             self.log.info(backend)
             quantum_job = QuantumJob(compiled_circuit,
@@ -316,7 +317,7 @@ class TestJobProcessor(QiskitTestCase):
         job_list = []
         backend = get_backend('local_qasm_simulator')
         for _ in range(njobs):
-            compiled_circuit = transpile(self.qc)
+            compiled_circuit = transpile(DAGCircuit.fromQuantumCircuit(self.qc))
             quantum_job = QuantumJob(compiled_circuit,
                                      backend=backend)
             job_list.append(quantum_job)

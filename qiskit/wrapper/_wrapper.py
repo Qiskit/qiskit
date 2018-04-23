@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=redefined-builtin
 
 # Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
@@ -18,6 +19,7 @@
 
 import qiskit.transpiler
 from qiskit import QISKitError
+from qiskit import QuantumJob
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 
@@ -136,7 +138,7 @@ def get_backend(name):
 # Functions for compiling and executing.
 
 
-def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
+def compile(list_of_circuits, backend, compile_config=None, skip_transpiler=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -145,18 +147,24 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
             option.
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
-        skip_translation (bool): If True, bypass most of the compilation process and
-            creates a qobj with minimal check nor translation
+        skip_transpiler (bool): If True, bypass the transpiler stage and
+            create a qobj with minimal check or translation
 
     Returns:
         obj: the qobj to be run on the backends
     """
-    # pylint: disable=redefined-builtin
-    return qiskit.transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    pass_manager = None  # default pass manager which executes predetermined passes
+    if skip_transpiler:  # empty pass manager which does nothing
+        pass_manager = qiskit.transpiler.PassManager()
+
+    return qiskit.transpiler.compile(circuits=list_of_circuits,
+                                     backend=backend,
+                                     compile_config=compile_config,
+                                     pass_manager=pass_manager)
 
 
 def execute(list_of_circuits, backend_name, compile_config=None,
-            wait=5, timeout=60, skip_translation=False):
+            wait=5, timeout=60, skip_transpiler=False):
     """Executes a list of circuits.
 
     Args:
@@ -165,13 +173,13 @@ def execute(list_of_circuits, backend_name, compile_config=None,
         compile_config (dict or None): a dictionary of compile configurations.
         wait (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
         timeout (int): FIXME -- I DONT THINK WE NEED TO KEEP THIS
-        skip_translation (bool): skip most of the compile steps and produce qobj directly
+        skip_transpiler (bool): skip transpilation and attempt to execute circuit as is
 
     Returns:
         Result: The results object
     """
     backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    qobj = qiskit.transpiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    qobj = compile(list_of_circuits, backend, compile_config, skip_transpiler)
     # FIXME: When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})

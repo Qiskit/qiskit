@@ -23,7 +23,9 @@ from qiskit.transpiler._basepass import BasePass
 class CXCancellation(BasePass):
     """Cancel back-to-back 'cx' gates in dag."""
     def __init__(self):
-        pass
+        super().__init__()
+        self._requires = []
+        self._preserves = []
 
     def run(self, dag):
         """

@@ -30,10 +30,6 @@ class BasePass(ABC):
         raise an exception if a component of the module is
         not available.
 
-        Args:
-            requires (list[BasePass]): what passes must run before this
-            preserves (list[BasePass]): what passes are preserved by this
-
         Raises:
             FileNotFoundError: if referenced passes are not registered.
         """
@@ -62,4 +58,3 @@ class BasePass(ABC):
     def preserves(self):
         """Return `preserves` list"""
         return self._preserves
-
