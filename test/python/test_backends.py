@@ -30,13 +30,13 @@ from .common import requires_qe_access, QiskitTestCase, Path
 
 
 def remove_backends_from_list(backends):
+    """Helper and temporary function for removing specific backends from a list"""
     backends_to_remove = ['ibmqx_hpc_qasm_simulator', 'ibmqx_qasm_simulator']
     return [backend for backend in backends if str(backend) not in backends_to_remove]
 
 
 class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
-
 
     def test_local_backends_exist(self):
         """Test if there are local backends.
