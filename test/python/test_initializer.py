@@ -43,7 +43,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -57,7 +57,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -72,7 +72,7 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -87,7 +87,7 @@ class TestInitialize(QiskitTestCase):
         qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -101,7 +101,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -123,7 +123,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -153,7 +153,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
@@ -220,7 +220,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         qp.add_circuit("qc", qc)
-        result = qp.execute("qc", backend='local_statevector_simulator_cpp')
+        result = qp.execute("qc", backend='local_statevector_simulator')
         quantum_state = result.get_data("qc")['quantum_state']
         fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
