@@ -326,6 +326,7 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
         self._classical_state = 0
+        self._snapshots = {}
         cl_reg_index = []  # starting bit index of classical register
         cl_reg_nbits = []  # number of bits in classical register
         cbit_index = 0
