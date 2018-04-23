@@ -369,10 +369,9 @@ class Bloch():
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
-
         Raises
         ------
-        Exception 
+        Exception
             if input not array_like or tuple.
         """
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) \
