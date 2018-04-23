@@ -279,8 +279,9 @@ class QasmSimulatorPy(BaseBackend):
 
         slot is an integer indicating a snapshot slot number.
         """
-        self._snapshots.setdefault(int(slot), {}).setdefault("quantum_state",
-                                                        []).append(self._quantum_state)
+        self._snapshots.setdefault(int(slot),
+                                   {}).setdefault("quantum_state",
+                                                  []).append(self._quantum_state)
 
     def run(self, q_job):
         """Run circuits in q_job"""
