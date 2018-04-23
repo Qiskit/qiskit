@@ -214,6 +214,42 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
 
+    def test_qobj_measure_opt_flag(self):
+        filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
+        with open(filename, 'r') as file:
+            q_job = QuantumJob(json.load(file),
+                               backend=self.backend,
+                               preformatted=True)
+        result = self.backend.run(q_job)
+        shots = q_job.qobj['config']['shots']
+        sampled_measurements = {
+            'measure (sampled)': True,
+            'trivial (sampled)': True,
+            'reset1 (shots)': False,
+            'reset2 (shots)': False,
+            'reset3 (shots)': False,
+            'gate1 (shots)': False,
+            'gate2 (shots)': False,
+            'gate3 (shots)': False,
+            'gate4 (shots)': False
+        }
+
+        for name in sampled_measurements:
+            snapshots = result.get_data(name).get('snapshots', {})
+            # Check snapshot keys
+            self.assertEqual(set(snapshots), {'0'},
+                             msg=name + ' snapshot keys')
+            # Check number of snapshots
+            # there should be 1 for measurement sampling optimization
+            # and there should be >1 for each shot beign simulated.
+            num_snapshots = len(snapshots['0'].get('quantum_state', []))
+            if sampled_measurements[name] is True:
+                self.assertEqual(num_snapshots, 1,
+                                 msg=name + ' snapshot length')
+            else:
+                self.assertEqual(num_snapshots, shots,
+                                 msg=name + ' snapshot length')
+
     def test_qobj_reset(self):
         filename = self._get_resource_path('qobj/cpp_reset.json')
         with open(filename, 'r') as file:
