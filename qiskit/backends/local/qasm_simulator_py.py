@@ -425,7 +425,7 @@ class QasmSimulatorPy(BaseBackend):
         for circ in qobj['circuits']:
             if 'measure' not in [op['name'] for
                                  op in circ['compiled_circuit']['operations']]:
-                logger.warning("WARNING: no measurements in circuit '%s', "
+                logger.warning("no measurements in circuit '%s', "
                                "classical register will remain all zeros.", circ['name'])
         return
 
