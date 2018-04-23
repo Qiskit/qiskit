@@ -348,22 +348,25 @@ reglist Circuit::parse_reglist(const json_t &node) {
 
 //------------------------------------------------------------------------------
 bool Circuit::check_opt_meas() {
-
-  // Optimization not available if reset operations are used
-  for (auto it = operations.cbegin(); it < operations.cend(); it++)
-    if (it->id == gate_t::Reset)
+  // Find first instance of a measurement and check there
+  // are no reset operations before the measurement
+  auto start = operations.begin();
+  while (start != operations.end()) {
+    const auto op = start->id;
+    if (op == gate_t::Reset)
       return false;
-  
-  // Find first instance of a measurement
-  uint_t pos = 0;
-  while (operations[pos].id != gate_t::Measure && pos < operations.size()) {
-    pos++;
+    if (op == gate_t::Measure)
+      break;
+    ++start;
   }
-  // Check all remaining operations are also measurements
-  bool pass = true;
-  for (auto it = operations.cbegin() + pos; it < operations.cend(); it++)
-    pass &= (it->id == gate_t::Measure);
-  return pass;
+  // Check all remaining operations are measurements
+  while (start != operations.end()) {
+    if (start->id != gate_t::Measure) 
+      return false;
+    ++start;
+  }
+  // If we made it this far we can apply the optimization
+  return true;
 }
 
 //------------------------------------------------------------------------------
