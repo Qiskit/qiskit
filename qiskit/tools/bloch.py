@@ -35,7 +35,7 @@
 # allow for a title, and default to new vector colors.
 
 # pylint: disable=invalid-name, too-many-instance-attributes
-# pylint: disable= too-many-arguments
+# pylint: disable=too-many-arguments, import-error
 
 """Bloch sphere"""
 
@@ -209,6 +209,10 @@ class Bloch():
                   see also: http://en.wikipedia.org/wiki/Jones_calculus
                 - "polarization stokes"
                   see also: http://en.wikipedia.org/wiki/Stokes_parameters
+        
+        Raises
+        ------
+        Exception if convention is not valid.
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -349,6 +353,7 @@ class Bloch():
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
         parametrized by a qubit state or a vector.
+        
         Parameters
         ----------
         state_or_vector : Qobj/array/list/tuple
@@ -363,6 +368,10 @@ class Bloch():
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
+
+        Raises
+        ------
+        Exception if input not array_like or tuple.
         """
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
