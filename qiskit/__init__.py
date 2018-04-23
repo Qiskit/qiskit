@@ -36,6 +36,7 @@ from ._measure import Measure
 # mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
+import qiskit.extensions.qasm_simulator_cpp
 
 from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
