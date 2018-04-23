@@ -106,15 +106,11 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
     def test_random_circuits(self):
         qk_simulator = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
-            print(circuit.qasm())
             self.log.info(circuit.qasm())
             shots = 1000
             min_cnts = int(shots / 10)
             result_pq = execute(circuit, pq_simulator.name)
             result_qk = execute(circuit, qk_simulator.name)
-            from pprint import pprint
-            pprint(result_pq._qobj)
-            pprint(result_qk._qobj)
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
             counts_qk = result_qk.get_counts(result_qk.get_names()[0])
             # filter states with few counts
