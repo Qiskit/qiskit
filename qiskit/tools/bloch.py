@@ -34,22 +34,29 @@
 # Updated 04/23/18 by P. D. Nation @ IBM to cleanup imports,
 # allow for a title, and default to new vector colors.
 
+# pylint: disable=invalid-name, too-many-instance-attributes
+# pylint: disable= too-many-arguments
+
+"""Bloch sphere"""
+
 __all__ = ['Bloch']
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import (Axes3D, proj3d)
 from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import (Axes3D, proj3d)
+
 
 class Arrow3D(FancyArrowPatch):
+    """Makes a fancy arrow"""
     def __init__(self, xs, ys, zs, *args, **kwargs):
         FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
         self._verts3d = xs, ys, zs
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -111,6 +118,7 @@ class Bloch():
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
     """
+
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
 
@@ -273,6 +281,7 @@ class Bloch():
         return string
 
     def _repr_png_(self):
+        """png repr"""
         from IPython.core.pylabtools import print_figure
         self.render()
         fig_data = print_figure(self.fig, 'png')
@@ -280,6 +289,7 @@ class Bloch():
         return fig_data
 
     def _repr_svg_(self):
+        """svg repr"""
         from IPython.core.pylabtools import print_figure
         self.render()
         fig_data = print_figure(self.fig, 'svg').decode('utf-8')
@@ -309,7 +319,8 @@ class Bloch():
         points = np.array(points)
         if meth == 's':
             if len(points[0]) == 1:
-                pnts = np.array([[points[0][0]], [points[1][0]], [points[2][0]]])
+                pnts = np.array([[points[0][0]],
+                                 [points[1][0]], [points[2][0]]])
                 pnts = np.append(pnts, points, axis=1)
             else:
                 pnts = points
@@ -407,7 +418,7 @@ class Bloch():
         self.axes.set_title(title, fontsize=self.font_size, y=1.08)
 
     def plot_back(self):
-        # back half of sphere
+        """back half of sphere"""
         u = np.linspace(0, np.pi, 25)
         v = np.linspace(0, np.pi, 25)
         x = np.outer(np.cos(u), np.sin(v))
@@ -427,7 +438,7 @@ class Bloch():
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
-        # front half of sphere
+        """front half of sphere"""
         u = np.linspace(-np.pi, 0, 25)
         v = np.linspace(0, np.pi, 25)
         x = np.outer(np.cos(u), np.sin(v))
@@ -449,7 +460,7 @@ class Bloch():
                        color=self.frame_color)
 
     def plot_axes(self):
-        # axes
+        """axes"""
         span = np.linspace(-1.0, 1.0, 2)
         self.axes.plot(span, 0 * span, zs=0, zdir='z', label='X',
                        lw=self.frame_width, color=self.frame_color)
@@ -459,7 +470,7 @@ class Bloch():
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_axes_labels(self):
-        # axes labels
+        """axes labels"""
         opts = {'fontsize': self.font_size,
                 'color': self.font_color,
                 'horizontalalignment': 'center',
@@ -484,6 +495,7 @@ class Bloch():
             a.set_visible(False)
 
     def plot_vectors(self):
+        """Plot vector"""
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.vectors)):
 
@@ -509,6 +521,7 @@ class Bloch():
                 self.axes.add_artist(a)
 
     def plot_points(self):
+        """Plot points"""
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.points)):
             num = len(self.points[k][0])
@@ -533,11 +546,14 @@ class Bloch():
                     edgecolor='none',
                     zdir='z',
                     color=self.point_color[np.mod(k, len(self.point_color))],
-                    marker=self.point_marker[np.mod(k, len(self.point_marker))])
+                    marker=self.point_marker[np.mod(k,
+                                                    len(self.point_marker))])
 
             elif self.point_style[k] == 'm':
                 pnt_colors = np.array(self.point_color *
-                                   int(np.ceil(num / float(len(self.point_color)))))
+                                      int(np.ceil(num /
+                                                  float(len(self.point_color)
+                                                       ))))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
@@ -559,6 +575,7 @@ class Bloch():
                                color=color)
 
     def plot_annotations(self):
+        """Plot annotations"""
         # -X and Y data are switched for plotting purposes
         for annotation in self.annotations:
             vec = annotation['position']
@@ -594,6 +611,7 @@ class Bloch():
         -------
         File containing plot of Bloch sphere.
         """
+        # pylint: disable=redefined-builtin,locally-disabled
         self.render(self.fig, self.axes)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
@@ -601,10 +619,10 @@ class Bloch():
         if name is None:
             if dirc:
                 self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                            str(self.savenum) + '.' + format)
+                                 str(self.savenum) + '.' + format)
             else:
                 self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                            '.' + format)
+                                 '.' + format)
         else:
             self.fig.savefig(name)
         self.savenum += 1
