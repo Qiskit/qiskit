@@ -1,0 +1,119 @@
+{
+	"id": "8mtxVcePGV0rBHs0Bxg9yzfxDoJYF9",
+	"config": {
+		"max_credits": 10,
+		"backend": "local_clifford_simulator",
+		"shots": 1024
+	},
+	"circuits": [{
+		"name": "Circuit",
+		"config": {
+			"coupling_map": "None",
+			"layout": "None",
+			"basis_gates": "cx,id,x,y,z,h,s,sdg,wait,noise,save,load",
+			"seed": 123
+		},
+		"compiled_circuit": {
+			"operations": [{
+				"name": "z",
+				"params": [],
+				"texparams": [],
+				"qubits": [3]
+			}, {
+				"name": "y",
+				"params": [],
+				"texparams": [],
+				"qubits": [2]
+			}, {
+				"name": "x",
+				"params": [],
+				"texparams": [],
+				"qubits": [1]
+			}, {
+				"name": "cx",
+				"params": [],
+				"texparams": [],
+				"qubits": [0, 2]
+			}, {
+				"name": "barrier",
+				"qubits": [0, 1, 2, 3]
+			}, {
+				"name": "U",
+				"params": [0.3, 0.2, 0.1],
+				"texparams": ["0.3", "0.2", "0.1"],
+				"qubits": [2]
+			}, {
+				"name": "U",
+				"params": [0.0, 0.0, 0.2],
+				"texparams": ["0", "0", "0.2"],
+				"qubits": [2]
+			}, {
+				"name": "measure",
+				"qubits": [2],
+				"clbits": [2]
+			}, {
+				"name": "U",
+				"params": [0.0, 0.0, 0.7853981633974483],
+				"texparams": ["0", "0", "0.25 \\pi"],
+				"qubits": [1]
+			}, {
+				"name": "id",
+				"params": [],
+				"texparams": [],
+				"qubits": [1]
+			}, {
+				"name": "U",
+				"params": [1.5707963267948966, 0.3, 0.2],
+				"texparams": ["0.5 \\pi", "0.3", "0.2"],
+				"qubits": [1]
+			}, {
+				"name": "U",
+				"params": [0.2, 0.0, 0.0],
+				"texparams": ["0.2", "0", "0"],
+				"qubits": [1]
+			}, {
+				"name": "measure",
+				"qubits": [1],
+				"clbits": [1]
+			}, {
+				"name": "h",
+				"params": [],
+				"texparams": [],
+				"qubits": [0]
+			}, {
+				"name": "s",
+				"params": [],
+				"texparams": [],
+				"qubits": [0]
+			}, {
+				"name": "U",
+				"params": [0.0, 0.0, 0.3],
+				"texparams": ["0", "0", "0.3"],
+				"qubits": [0]
+			}, {
+				"name": "U",
+				"params": [0.2, -1.5707963267948966, 1.5707963267948966],
+				"texparams": ["0.2", "- 0.5 \\pi", "0.5 \\pi"],
+				"qubits": [0]
+			}, {
+				"name": "measure",
+				"qubits": [0],
+				"clbits": [0]
+			}],
+			"header": {
+				"number_of_qubits": 4,
+				"qubit_labels": [
+					["qr", 0],
+					["qr", 1],
+					["qr", 2],
+					["qr", 3]
+				],
+				"number_of_clbits": 4,
+				"clbit_labels": [
+					["cr", 4]
+				]
+			}
+		},
+		"compiled_circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg qr[4];\ncreg cr[4];\nz qr[3];\ny qr[2];\nx qr[1];\ncx qr[0],qr[2];\nbarrier qr[0],qr[1],qr[2],qr[3];\nU(0.300000000000000,0.200000000000000,0.100000000000000) qr[2];\nU(0,0,0.200000000000000) qr[2];\nmeasure qr[2] -> cr[2];\nU(0,0,0.785398163397448) qr[1];\nid qr[1];\nU(1.57079632679490,0.300000000000000,0.200000000000000) qr[1];\nU(0.200000000000000,0,0) qr[1];\nmeasure qr[1] -> cr[1];\nh qr[0];\ns qr[0];\nU(0,0,0.300000000000000) qr[0];\nU(0.200000000000000,-1.57079632679490,1.57079632679490) qr[0];\nmeasure qr[0] -> cr[0];\n"
+	}]
+}

@@ -173,9 +173,14 @@ void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
 
     // Find position of first measurement operation
     uint_t pos = 0;
-    while (prog.operations[pos].id != gate_t::Measure &&
-           pos < prog.operations.size()) {
+
+	// vsilva Win64: Array index out of bounds exception
+    //while (prog.operations[pos].id != gate_t::Measure && pos < prog.operations.size()) {
+	while (prog.operations[pos].id != gate_t::Measure ) {
       pos++;
+	  if (pos >= prog.operations.size()) {
+		  break;
+	  }
     }
     // Execute operations before measurements
     std::vector<operation> not_meas(prog.operations.begin(),

@@ -135,3 +135,13 @@ qiskit/backends/local/qasm_simulator_cpp
 src/qasm-simulator-cpp/test/qubit_vector_tests
 
 *.o
+
+# Visual Studio
+.vs/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.log
+*.tlog
+*.idb

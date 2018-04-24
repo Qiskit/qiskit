@@ -356,8 +356,13 @@ bool Circuit::check_opt_meas() {
   
   // Find first instance of a measurement
   uint_t pos = 0;
-  while (operations[pos].id != gate_t::Measure && pos < operations.size()) {
+
+  // vsilva Array out of bounds exception while ( operations[pos].id != gate_t::Measure  &&  pos < operations.size() ) {
+  while (operations[pos].id != gate_t::Measure) {
     pos++;
+	if (pos >= operations.size()) {
+		break;
+	}
   }
   // Check all remaining operations are also measurements
   bool pass = true;
