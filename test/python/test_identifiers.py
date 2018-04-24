@@ -593,7 +593,7 @@ class TestZeroIds(QiskitTestCase):
                                  coupling_map=coupling_map, qobj_id='cooljob')
         result = q_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
-        self.assertEqual(result, [0])
+        self.assertEqual(result, ['0'])
 
     def test_change_circuit_qobj_after_compile(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS_ZEROS)
@@ -941,7 +941,7 @@ class TestIntegerIds(QiskitTestCase):
                                  coupling_map=coupling_map, qobj_id='cooljob')
         result = q_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
-        self.assertEqual(result, [1])
+        self.assertEqual(result, ['1'])
 
     def test_change_circuit_qobj_after_compile(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS_INT)
@@ -1287,7 +1287,7 @@ class TestTupleIds(QiskitTestCase):
                                  coupling_map=coupling_map, qobj_id='cooljob')
         result = q_program.get_execution_list(qobj, print_func=self.log.info)
         self.log.info(result)
-        self.assertCountEqual(result, [(1.1, 1j)])
+        self.assertCountEqual(result, ['(1.1, 1j)'])
 
     def test_change_circuit_qobj_after_compile(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS_TUPLE)
