@@ -197,7 +197,7 @@ class Result(object):
                                    XX + XXj]]
 
         Args:
-            circuit_name (str): the name of the quantum circuit.
+            circuit_name: the name of the quantum circuit.
 
         Returns:
             dict: A dictionary of data for the different backends.
@@ -224,6 +224,8 @@ class Result(object):
                 raise QISKitError("You have to select a circuit when there is more than"
                                   "one available")
 
+        if not isinstance(circuit_name, str):
+            circuit_name = str(circuit_name)
         try:
             qobj = self._qobj
             for index in range(len(qobj['circuits'])):
