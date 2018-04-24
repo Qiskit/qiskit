@@ -170,7 +170,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
 
         # making the job to be added to qobj
         job = {}
-        job["name"] = circuit.name
+        job["name"] = str(circuit.name)
         # config parameters used by the runner
         if config is None:
             config = {}  # default to empty config dict
