@@ -24,6 +24,8 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram)
 from .common import QiskitTestCase
 
+available_backends = QuantumProgram().available_backends()
+
 
 class TestAnonymousIds(QiskitTestCase):
     """Circuits and records can have no name"""
@@ -1376,6 +1378,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
+    @unittest.skipIf('local_clifford_simulator' not in available_backends,
+                     'local_clifford_simulator is not available')
     def test_local_clifford_simulator(self):
         backend = 'local_clifford_simulator'
         qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
@@ -1386,6 +1390,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
+    @unittest.skipIf('local_qiskit_simulator' not in available_backends,
+                     'local_qiskit_simulator is not available')
     def test_local_qiskit_simulator(self):
         backend = 'local_qiskit_simulator'
         qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
