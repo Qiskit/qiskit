@@ -660,6 +660,8 @@ class TestQuantumProgram(QiskitTestCase):
                        'coupling_map', 'basis_gates'}
         qp.set_api(QE_TOKEN, QE_URL)
         backend_list = qp.available_backends()
+        backend_list.remove('ibmqx_hpc_qasm_simulator')
+        backend_list.remove('ibmqx_qasm_simulator')
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
