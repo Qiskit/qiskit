@@ -122,7 +122,7 @@ class IBMQBackend(BaseBackend):
         job_result['backend'] = qobj['config']['backend_name']
         this_result = Result(job_result, qobj)
         if not self.configuration['simulator']:
-            _reorder_bits(this_result)  # FIXME: remove this after Qobj
+            _reorder_bits(this_result)  # TODO: remove this after Qobj
         return this_result
 
     @property
