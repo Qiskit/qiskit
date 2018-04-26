@@ -67,6 +67,7 @@ class IBMQBackend(BaseBackend):
             Result: Result object.
 
         Raises:
+            QISKitError: if there are inconsistencies between qobj data and backend data
             ResultError: if the api put 'error' in its output
         """
         qobj = q_job.qobj
@@ -99,8 +100,9 @@ class IBMQBackend(BaseBackend):
                 hpc = None
 
         backend_name = qobj['config']['backend_name']
-        assert backend_name == self.name, \
-            "inconsistent qobj backend name ({0} != {1})".format(backend_name, self.name)
+        if backend_name != self.name:
+            raise QISKitError("inconsistent qobj backend "
+                              "name ({0} != {1})".format(backend_name, self.name))
         output = self._api.run_job(api_jobs, backend_name,
                                    shots=qobj['config']['shots'],
                                    max_credits=qobj['config']['max_credits'],
