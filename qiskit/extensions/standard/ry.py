@@ -38,7 +38,7 @@ class RYGate(Gate):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         theta = self.param[0]
-        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].openqasm_name,
+        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].name,
                                                 qubit[1]))
 
     def inverse(self):

@@ -484,12 +484,13 @@ class DAGCircuit:
             if k[0] in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
+            rname = ",".join(map(str, k))
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("wire_map fragments reg %s" % k)
+                raise DAGCircuitError("wire_map fragments reg %s" % rname)
             elif s == set([False]):
                 if k in self.qregs or k in self.cregs:
-                    raise DAGCircuitError("unmapped duplicate reg %s" % k)
+                    raise DAGCircuitError("unmapped duplicate reg %s" % rname)
                 else:
                     # Add registers that appear only in keyregs
                     add_regs.add((k, keyregs[k]))
@@ -1338,9 +1339,9 @@ class DAGCircuit:
         dagcircuit = DAGCircuit()
         for register in circuit.regs.values():
             if isinstance(register, QuantumRegister):
-                dagcircuit.add_qreg(register.openqasm_name, len(register))
+                dagcircuit.add_qreg(register.name, len(register))
             else:
-                dagcircuit.add_creg(register.openqasm_name, len(register))
+                dagcircuit.add_creg(register.name, len(register))
         # Add user gate definitions
         for name, data in circuit.definitions.items():
             dagcircuit.add_basis_element(name, data["n_bits"], 0,
@@ -1368,10 +1369,10 @@ class DAGCircuit:
                     dagcircuit.add_basis_element(*builtins[instruction.name])
                 # Separate classical arguments to measurements
                 if instruction.name == "measure":
-                    qargs = [(instruction.arg[0][0].openqasm_name, instruction.arg[0][1])]
-                    cargs = [(instruction.arg[1][0].openqasm_name, instruction.arg[1][1])]
+                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
+                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
                 else:
-                    qargs = list(map(lambda x: (x[0].openqasm_name, x[1]), instruction.arg))
+                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
                     cargs = []
                 # Get arguments for classical control (if any)
                 if instruction.control is None:
