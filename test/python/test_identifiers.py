@@ -306,6 +306,147 @@ class TestAnonymousIds(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
         self.assertRaises(QISKitError, result.get_counts)
 
+class TestQobj(QiskitTestCase):
+    """Check the objects compiled for different backends create names properly"""
+
+    def setUp(self):
+        qp = QuantumProgram()
+        qr = qp.create_quantum_register("qr2", 2)
+        cr = qp.create_classical_register(None, 2)
+        qc = qp.create_circuit("qc0", [qr], [cr])
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qp.add_circuit("qc10", qc)
+        circuits = ["qc10"]
+        self.qr_name = qr.name
+        self.cr_name = cr.name
+        self.qp = qp
+        self.circuits = circuits
+
+    def test_local_qasm_simulator(self):
+        backend = 'local_qasm_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    @unittest.skipIf('local_clifford_simulator' not in available_backends,
+                     'local_clifford_simulator is not available')
+    def test_local_clifford_simulator(self):
+        backend = 'local_clifford_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    @unittest.skipIf('local_qiskit_simulator' not in available_backends,
+                     'local_qiskit_simulator is not available')
+    def test_local_qiskit_simulator(self):
+        backend = 'local_qiskit_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_sympy_qasm_simulator(self):
+        backend = 'local_sympy_qasm_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_sympy_unitary_simulator(self):
+        backend = 'local_sympy_unitary_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+    def test_local_unitary_simulator(self):
+        backend = 'local_unitary_simulator'
+        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        cc = qobj['circuits'][0]['compiled_circuit']
+        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
+        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
+        self.assertIn(self.qr_name, ccq)
+        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
+        self.assertIn(self.cr_name, ccq)
+
+class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
+    """Test the anonymous use of registers.
+    TODO: this needs to be expanded, ending up with the rest of the tests
+    in the file not using QuantumProgram when it is deprecated.
+    """
+
+    def test_create_anonymous_classical_register(self):
+        """Test creating a ClassicalRegister with no name.
+        """
+        cr = ClassicalRegister(size=3)
+        self.assertIsInstance(cr, ClassicalRegister)
+
+    def test_create_anonymous_quantum_register(self):
+        """Test creating a QuantumRegister with no name.
+        """
+        qr = QuantumRegister(size=3)
+        self.assertIsInstance(qr, QuantumRegister)
+
+    def test_create_anonymous_classical_registers(self):
+        """Test creating several ClassicalRegister with no name.
+        """
+        cr1 = ClassicalRegister(size=3)
+        cr2 = ClassicalRegister(size=3)
+        self.assertNotEqual(cr1.name, cr2.name)
+
+    def test_create_anonymous_quantum_registers(self):
+        """Test creating several QuantumRegister with no name.
+        """
+        qr1 = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+        self.assertNotEqual(qr1.name, qr2.name)
+
+    def test_create_anonymous_mixed_registers(self):
+        """Test creating several Registers with no name.
+        """
+        cr0 = ClassicalRegister(size=3)
+        qr0 = QuantumRegister(size=3)
+        # Get the current index counte of the registers
+        cr_index = int(cr0.name[1:])
+        qr_index = int(qr0.name[1:])
+
+        cr1 = ClassicalRegister(size=3)
+        _ = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+
+        # Check that the counters for each kind are incremented separately.
+        cr_current = int(cr1.name[1:])
+        qr_current = int(qr2.name[1:])
+        self.assertEqual(cr_current, cr_index + 1)
+        self.assertEqual(qr_current, qr_index + 2)
+
+    def test_create_circuit_noname(self):
+        """Test create_circuit with no name
+        """
+        q_program = QuantumProgram()
+        qr = QuantumRegister(size=3)
+        cr = ClassicalRegister(size=3)
+        qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        self.assertIsInstance(qc, QuantumCircuit)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
