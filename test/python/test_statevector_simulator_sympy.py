@@ -23,7 +23,7 @@ from sympy import sqrt
 
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
 from qiskit.backends.local.statevector_simulator_sympy import StatevectorSimulatorSympy
-from .common import QiskitTestCase
+from test.python.common import QiskitTestCase
 
 
 class StatevectorSimulatorSympyTest(QiskitTestCase):
@@ -47,7 +47,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
         self.qobj = {'id': 'test_sim_single_shot',
                      'config': {
                          'max_credits': resources['max_credits'],
-                         'shots': 1024,
+                         'shots': 1,
                          'backend_name': 'local_statevector_simulator_sympy',
                      },
                      'circuits': [
@@ -65,7 +65,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
                                 preformatted=True)
 
     def test_statevector_simulator_sympy(self):
-        """Test data counts output for single circuit run against reference."""
+        """Test final quantum state for single circuit run."""
         result = StatevectorSimulatorSympy().run(self.q_job)
         actual = result.get_data('test')['quantum_state']
         self.assertEqual(result.get_status(), 'COMPLETED')

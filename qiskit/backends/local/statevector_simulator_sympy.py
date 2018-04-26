@@ -176,7 +176,7 @@ class StatevectorSimulatorSympy(BaseBackend):
         result_list = []
         shots = qobj['config']['shots']
         if shots > 1:
-            logger.info("No need for multiple shots. A single execution will be performed.")
+            logger.warning("No need for multiple shots. A single execution will be performed.")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
