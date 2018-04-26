@@ -26,6 +26,7 @@ from .common import QiskitTestCase
 
 available_backends = QuantumProgram().available_backends()
 
+
 class TestAnonymousIds(QiskitTestCase):
     """Circuits and records can have no name"""
 
@@ -306,6 +307,7 @@ class TestAnonymousIds(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
         self.assertRaises(QISKitError, result.get_counts)
 
+
 class TestQobj(QiskitTestCase):
     """Check the objects compiled for different backends create names properly"""
 
@@ -386,6 +388,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.qr_name, ccq)
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
+
 
 class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
     """Test the anonymous use of registers.
