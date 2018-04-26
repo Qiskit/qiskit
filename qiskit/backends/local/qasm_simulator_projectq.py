@@ -91,6 +91,7 @@ class QasmSimulatorProjectQ(BaseBackend):
         self._sim = None
 
     def run(self, q_job):
+        
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
@@ -231,6 +232,19 @@ class QasmSimulatorProjectQ(BaseBackend):
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
                                                         operation['name']))
+
+            # Extract the final quantum state
+            eng.flush()   # Runs the circuit
+            # If the number of qubits is 3, the following line sets bitstr_list to be:
+            # [[0,0,0], [0,0,1], [0,1,0], [0,1,1], [1,0,0], [1,0,1], [1,1,0], [1,1,1]]
+            # And similarly for a different number of qubits.
+            bitstr_list = [list(bitstr) for bitstr in itertools.product([0, 1], repeat = self._number_of_qubits)]
+            for i, bitstr in enumerate(bitstr_list):   #Iterate over the amplitudes
+                # Update the quantum state amplitude
+                self._quantum_state[i] = eng.backend.get_amplitude(bitstr, qureg)
+
+            # ProjectQ does not allow to deallocate a circuit which contains qubits in superposition.
+            # Therefore we measure all the qubits that have not been measured until now.
             for ind in unmeasured_qubits:
                 qubit = qureg[ind]
                 Measure | qubit
