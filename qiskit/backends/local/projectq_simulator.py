@@ -106,11 +106,9 @@ class ProjectQSimulator(BaseBackend):
 
     def run(self, q_job):
         return LocalJob(self._run_job, q_job)
-    
+
     def _run_job(self, q_job):
         """Run circuits in q_job"""
-        # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         result_list = []
         qobj = q_job.qobj
         self._sim = Simulator(gate_fusion=True)
@@ -122,6 +120,7 @@ class ProjectQSimulator(BaseBackend):
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
+        job_id = str(uuid.uuid4())
         return Result({'job_id': job_id, 'result': result_list,
                        'status': 'COMPLETED'},
                       qobj)

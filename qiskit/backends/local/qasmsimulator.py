@@ -287,15 +287,13 @@ class QasmSimulator(BaseBackend):
         """Run q_job asynchronously.
 
         Args:
-            q_job: QuantumJob object
+            q_job (QuantumJob): QuantumJob object
 
         Returns:
-            LocalJob (BaseJob)
+            LocalJob: derived from BaseJob
         """
-        # Generating a string id for the job
-        job = LocalJob(self._run_job, q_job)
-        return job
-           
+        return LocalJob(self._run_job, q_job)
+
     def _run_job(self, q_job):
         """Run circuits in q_job"""
         qobj = q_job.qobj
@@ -303,7 +301,8 @@ class QasmSimulator(BaseBackend):
         self._shots = qobj['config']['shots']
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': self._job_id, 'result': result_list, 'status': 'COMPLETED'},
+        job_id = str(uuid.uuid4())
+        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)
 
     def run_circuit(self, circuit):

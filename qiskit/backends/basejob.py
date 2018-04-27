@@ -1,8 +1,32 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+"""This module implements the abstract base class for backend jobs
+
+When creating a new backend module it is also necessary to implement this
+job interface.
+"""
+
 from abc import ABC, abstractmethod
+import enum
 
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
-    
+
     @abstractmethod
     def __init__(self):
         """Initializes and initates the asynchronous job"""
@@ -10,19 +34,12 @@ class BaseJob(ABC):
 
     @abstractmethod
     def result(self):
-        """
-        Returns:
-            qiskit.Result:
-        """
+        """Return backend result"""
         pass
 
-    @abstractmethod    
+    @abstractmethod
     def cancel(self):
-        """
-        Attempt to cancel job.
-        Returns:
-            bool: True if job can be cancelled, else False.
-        """
+        """Attempt to cancel job."""
         pass
 
     # Property attributes
@@ -30,38 +47,31 @@ class BaseJob(ABC):
     @property
     @abstractmethod
     def status(self):
-        """
-        Returns:
-            dict: {'job_id': <job_id>,
-                   'status': 'ERROR'|'QUEUED'|'RUNNING'|'CANCELLED'|'DONE',
-                   'status_msg': <str>}
-        """
+        """Get backend status dictionary"""
         pass
 
 
     @property
     @abstractmethod
     def running(self):
-        """
-        Returns:
-            bool: True if job is currently running.
-        """
+        """True if job is currently running."""
         pass
 
     @property
     @abstractmethod
     def done(self):
-        """
-        Returns:
-            bool: True if call was successfully cancelled or finished.
-        """
-        pass    
+        """True if call was successfully finished."""
+        pass
 
-    @property    
+    @property
     @abstractmethod
     def cancelled(self):
-        """
-        Returns:
-            bool: True if call was successfully cancelled
-        """
-        pass
+        """True if call was successfully cancelled"""
+
+class JobStatus(enum.Enum):
+    """Class for job status enumerated type."""
+    QUEUED = enum.auto()
+    RUNNING = enum.auto()
+    CANCELLED = enum.auto()
+    DONE = enum.auto()
+    ERROR = enum.auto()

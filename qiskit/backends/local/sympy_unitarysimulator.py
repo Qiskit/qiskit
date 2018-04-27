@@ -170,13 +170,13 @@ class SympyUnitarySimulator(BaseBackend):
         """Run q_job asynchronously.
 
         Args:
-            q_job: QuantumJob object
+            q_job (QuantumJob): QuantumJob object
 
         Returns:
-            LocalJob (BaseJob)
+            LocalJob: derived from BaseJob
         """
         return LocalJob(self._run_job, q_job)
-    
+
     def _run_job(self, q_job):
         """Run q_job
 
@@ -195,13 +195,13 @@ class SympyUnitarySimulator(BaseBackend):
                     ]
 
         """
-        # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
+        job_id = str(uuid.uuid4())
+        return Result({'job_id': job_id, 'result': result_list,
+                       'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return the results.

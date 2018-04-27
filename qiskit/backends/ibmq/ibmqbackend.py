@@ -28,10 +28,9 @@ from qiskit._result import Result
 from qiskit._resulterror import ResultError
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends import BaseBackend
-from .ibmqjob import IBMQJob
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
 
 logger = logging.getLogger(__name__)
-from forkable import ForkablePdb
 
 class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
@@ -47,7 +46,7 @@ class IBMQBackend(BaseBackend):
         """
         super().__init__(configuration=configuration)
         self._api = api
-
+        self._submit_info = None # dictionary coming from api upon submission
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():
@@ -65,10 +64,10 @@ class IBMQBackend(BaseBackend):
         """Run q_job asynchronously.
 
         Args:
-            q_job: QuantumJob object
+            q_job (QuantumJob): description of job
 
         Returns:
-            IBMQJob (BaseJob)
+            IBMQJob: an instance derived from BaseJob
         """
         timeout = q_job.timeout
         submit_info = self._submit(q_job)
@@ -84,8 +83,6 @@ class IBMQBackend(BaseBackend):
             dict: submission info including job id from server
         """
         qobj = q_job.qobj
-        self._wait = q_job.wait
-        self._timeout = q_job.timeout
         api_jobs = []
         for circuit in qobj['circuits']:
             if (('compiled_circuit_qasm' not in circuit) or
@@ -127,16 +124,18 @@ class IBMQBackend(BaseBackend):
         """This waits for job to complete before returning.
 
         Returns:
-            Result object
+            Result: Result object
+
+        Raises:
+            ResultError: if the api returns an error message when submitting
+                the job.
         """
         qobj = q_job.qobj
         wait = q_job.wait
         timeout = q_job.timeout
         submit_info = self._submit_info
-        #ForkablePdb().set_trace()
         if 'error' in submit_info:
             raise ResultError(submit_info['error'])
-
         logger.info('Running qobj: %s on remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],
                     submit_info['id'])
@@ -149,8 +148,6 @@ class IBMQBackend(BaseBackend):
         job_result['backend'] = qobj['config']['backend_name']
         this_result = Result(job_result, qobj)
         return this_result
-        
-        
 
     @property
     def calibration(self):
@@ -250,7 +247,7 @@ class IBMQBackend(BaseBackend):
 
 def _wait_for_job(job_id, api, wait=5, timeout=60):
     """Wait until all online ran circuits of a qobj are 'COMPLETED'.
-    
+
     (This function could be in IBMQJob instead)
 
     Args:

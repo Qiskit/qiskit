@@ -125,7 +125,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):
-        result = self.backend.run(self.q_job)
+        result = self.backend.run(self.q_job).result()
         shots = self.qobj['config']['shots']
         threshold = 0.025 * shots
         counts = result.get_counts('test_circuit2')
@@ -141,7 +141,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         shots = q_job.qobj['config']['shots']
         expected_data = {
             'measure (opt)': {
@@ -220,7 +220,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         expected_data = {
             'reset': {'quantum_state': np.array([1, 0])},
             'x reset': {'quantum_state': np.array([1, 0])},
@@ -246,7 +246,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
 
         snapshots = result.get_data('save_command').get('snapshots', {})
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
@@ -274,7 +274,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         expected_data = {
             'snapshot': {
                 'quantum_state': np.array([1, 0])},
@@ -367,7 +367,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         expected_data = {
             'h0 CX01': {
                 'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
@@ -426,7 +426,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         expected_data = {
             'single creg (c0=0)': {
                 'quantum_state': np.array([1, 0, 0, 0])},

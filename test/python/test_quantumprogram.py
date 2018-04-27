@@ -20,7 +20,6 @@
 
 import os
 import unittest
-from threading import Lock
 from sys import version_info
 
 import numpy as np
@@ -1944,8 +1943,8 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_dummy_simulator'
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88)
-        from concurrent.futures import TimeoutError
-        self.assertRaises(TimeoutError, q_program.run, qobj, wait=0.1,
+        from concurrent import futures
+        self.assertRaises(futures.TimeoutError, q_program.run, qobj, wait=0.1,
                           timeout=0.01)
 
     @requires_qe_access

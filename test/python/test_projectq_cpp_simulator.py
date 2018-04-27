@@ -22,7 +22,6 @@ import unittest
 
 import numpy
 from scipy.stats import chi2_contingency
-import copy
 
 import qiskit.backends.local.projectq_simulator as projectq_simulator
 import qiskit.backends.local.qasmsimulator as qasm_simulator
@@ -96,7 +95,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qr = QuantumRegister(N)
         cr = ClassicalRegister(N)
         qc = QuantumCircuit(qr, cr, name='test_entangle')
-        
+
         qc.h(qr[0])
         for i in range(1, N):
             qc.cx(qr[0], qr[i])

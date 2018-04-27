@@ -26,12 +26,10 @@ import os
 import random
 import string
 import warnings
-from threading import Event
 
 import qiskit.wrapper
 
 from ._classicalregister import ClassicalRegister
-from ._jobprocessor import JobProcessor
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
@@ -1146,60 +1144,11 @@ class QuantumProgram(object):
         jobs_list = self._run_internal(qobj_list,
                                        wait=wait,
                                        timeout=timeout)
-        while not(all(job_results)):
+        while not all(job_results):
             for i, job in enumerate(jobs_list):
-                if job.done():
+                if job.done:
                     job_results[i] = job.result()
         return job_results
-
-    # def run_async(self, qobj, wait=5, timeout=60, callback=None):
-    #     """Run a program (a pre-compiled quantum program) asynchronously. This
-    #     is a non-blocking function, so it will return immediately.
-
-    #     All input for run comes from qobj.
-
-    #     Args:
-    #         qobj(dict): the dictionary of the quantum object to
-    #             run or list of qobj.
-    #         wait (int): Time interval to wait between requests for results
-    #         timeout (int): Total time to wait until the execution stops
-    #         callback (fn(result)): A function with signature:
-    #                 fn(result):
-    #                 The result param will be a Result object.
-    #     """
-
-    #     def job_done_callback(results):
-    #         """Callback called when the job is done. It basically
-    #         transforms the results to what the user expects and pass it
-    #         to the main thread.
-    #         """
-    #         callback(results[0])  # The user is expecting a single Result
-
-    #     self._run_internal([qobj],
-    #                        wait=wait,
-    #                        timeout=timeout,
-    #                        callback=job_done_callback)
-
-    # def run_batch_async(self, qobj_list, wait=5, timeout=120, callback=None):
-    #     """Run various programs (a list of pre-compiled quantum program)
-    #     asynchronously. This is a non-blocking function, so it will return
-    #     immediately.
-
-    #     All input for run comes from qobj.
-
-    #     Args:
-    #         qobj_list (list(dict)): The list of quantum objects to run.
-    #         wait (int): Time interval to wait between requests for results
-    #         timeout (int): Total time to wait until the execution stops
-    #         callback (fn(results)): A function with signature:
-    #                 fn(results):
-    #                 The results param will be a list of Result objects, one
-    #                 Result per qobj in the input list.
-    #     """
-    #     self._run_internal(qobj_list,
-    #                        wait=wait,
-    #                        timeout=timeout,
-    #                        callback=callback)
 
     def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
         job_list = []
@@ -1213,7 +1162,7 @@ class QuantumProgram(object):
                 job.add_done_callback(callback)
             job_list.append(job)
         return job_list
-            
+
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,

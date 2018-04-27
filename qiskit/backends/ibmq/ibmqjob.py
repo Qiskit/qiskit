@@ -1,7 +1,30 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+"""IBMQJob module
+
+This module is used for creating asynchronous job objects for the
+IBM Q Experience.
+"""
+
 from concurrent import futures
 import logging
 
 from qiskit.backends import BaseJob
+from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 
 logger = logging.getLogger(__name__)
@@ -15,6 +38,17 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, fn, qobj, api, timeout, submit_info):
+        """IBMQJob init function.
+
+        Args:
+            fn (function): function object to call for job
+            qobj (QuantumJob): job description
+            api (IBMQuantumExperience): IBM Q API
+            timeout (float): timeout in seconds
+            submit_info (dict): this is the dictionary that comes back when
+                submitting a job using the IBMQuantumExperience API.
+        """
+        super().__init__()
         self._api = api
         self._timeout = timeout
         self._submit_info = submit_info
@@ -29,7 +63,7 @@ class IBMQJob(BaseJob):
         return self._future.result(timeout=timeout)
 
     def cancel(self):
-        """Attempt to cancel job. Currently this is only possible on 
+        """Attempt to cancel job. Currently this is only possible on
         commercial systems.
         """
         if self._is_commercial:
@@ -45,27 +79,35 @@ class IBMQJob(BaseJob):
 
     @property
     def status(self):
+        _status_msg = None
         # order is important here
         if self.running:
-            _status = 'RUNNING'
+            _status = JobStatus.RUNNING
         elif not self.done:
-            _status = 'QUEUED'
+            _status = JobStatus.QUEUED
         elif self.cancelled:
-            _status = 'CANCELLED'
+            _status = JobStatus.CANCELLED
         elif self.done:
-            _status = 'DONE'
-        elif self.error:
-            _status = 'ERROR'
+            _status = JobStatus.DONE
+        elif isinstance(self.error, Exception):
+            _status = JobStatus.ERROR
+            _status_msg = str(self.error)
         else:
             raise IBMQJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
-        _status_msg = None # This will be more descriptive
         return {'job_id': self._job_id,
                 'status': _status,
-                'status_msg': _status_msg} 
+                'status_msg': _status_msg}
 
     @property
     def running(self):
+        """
+        Returns whether job is actively running
+
+        Returns:
+            bool: True if job is running, else False.
+        """
+
         return self._future.running()
 
     @property
@@ -75,8 +117,17 @@ class IBMQJob(BaseJob):
     @property
     def cancelled(self):
         return self._future.cancelled()
-        
-        
+
+    @property
+    def error(self):
+        """
+        Return Exception object if exception occured else None.
+
+        Returns:
+            Exception: exception raised by attempting to run job.
+        """
+        return self._future.exception(timeout=0)
+
     def _is_commercial(self):
         config = self._api.config
         return config['hub'] and config['group'] and config['project']
