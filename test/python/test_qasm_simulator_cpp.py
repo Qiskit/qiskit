@@ -236,6 +236,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
         for name in sampled_measurements:
             snapshots = result.get_data(name).get('snapshots', {})
+            from pprint import pprint
+            pprint(snapshots)
             # Check snapshot keys
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')

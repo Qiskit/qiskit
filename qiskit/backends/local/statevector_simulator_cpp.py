@@ -39,7 +39,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         'local': True,
         'description': 'A C++ statevector simulator for qobj files',
         'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,snapshot'
+        'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,load,save,snapshot'
     }
 
     def __init__(self, configuration=None):
@@ -78,12 +78,12 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         2. No measurements in the middle
         """
         if qobj['config']['shots'] != 1:
-            logger.warning("statevector simulator only supports 1 shot. "
+            logger.info("statevector simulator only supports 1 shot. "
                            "Setting shots=1.")
             qobj['config']['shots'] = 1
         for circuit in qobj['circuits']:
             if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
-                logger.warning("statevector simulator only supports 1 shot. "
+                logger.info("statevector simulator only supports 1 shot. "
                                "Setting shots=1 for circuit %s", circuit['name'])
                 circuit['config']['shots'] = 1
             for op in circuit['compiled_circuit']['operations']:

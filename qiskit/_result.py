@@ -255,6 +255,51 @@ class Result(object):
         except KeyError:
             raise QISKitError('No counts for circuit "{0}"'.format(circuit_name))
 
+    def get_statevector(self, circuit_name=None):
+        """Get the final statevector of circuit name.
+
+        The data is a list of complex numbers
+        [1.+0.j, 0.+0.j].
+
+        Args:
+            circuit_name (hashable or None): the name of the quantum circuit.
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            list[complex]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no statevector for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['quantum_state']
+        except KeyError:
+            raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
+
+    def get_snapshots(self, circuit_name=None):
+        """Get snapshots recorded during the run.
+
+        The data is a dictionary:
+        where keys are requested snapshot slots.
+        and values are a dictionary of the snapshots themselves.
+
+        Args:
+            circuit_name (hashable or None): the name of the quantum circuit.
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no statevector for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['snapshots']
+        except KeyError:
+            raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
+
     def get_names(self):
         """Get the circuit names of the results.
 
