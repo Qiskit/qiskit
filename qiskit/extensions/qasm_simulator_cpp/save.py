@@ -69,6 +69,7 @@ def save(self, slot):
     Raises:
         ExtensionError: malformed command
     """
+    tuples = []
     if isinstance(self, QuantumCircuit):
         for register in self.regs.values():
             if isinstance(register, QuantumRegister):
