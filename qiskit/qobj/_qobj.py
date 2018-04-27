@@ -17,16 +17,34 @@
 
 """Models for QObj and its related components."""
 
+from types import SimpleNamespace
+
 from ._utils import QObjType
 
 
-class QObjStructure(object):
+class QObjStructure(SimpleNamespace):
     """
     General QObj structure.
     """
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    def as_dict(self):
+        """Return a dictionary representation of the QObjStructure, recursively
+        converting its public attributes.
+
+        Returns:
+            dict: a dictionary.
+        """
+        def expand_item(obj):
+            """
+            Return a valid representation of `obj` depending on its type.
+            """
+            if isinstance(obj, list):
+                return [expand_item(item) for item in obj]
+            if isinstance(obj, QObjStructure):
+                return obj.as_dict()
+            return obj
+
+        return {key: expand_item(value) for key, value
+                in self.__dict__.items() if not key.startswith('_')}
 
 
 class QObj(QObjStructure):
@@ -45,22 +63,9 @@ class QObj(QObjStructure):
         self.config = config
         self.experiments = experiments
         self.headers = headers
-        self.type = QObjType.PULSE.value
+        self.type = QObjType.QASM.value
 
         super().__init__(**kwargs)
-
-    def as_dict(self):
-        """
-        Returns:
-            dict: a dictionary representation of the QObj.
-        """
-        return {
-            'id': self.id,
-            'config': self.config.as_dict(),
-            'experiments': [experiment.as_dict() for experiment
-                            in self.experiments],
-            'headers': self.headers.as_dict()
-        }
 
 
 class QObjConfig(QObjStructure):
@@ -73,12 +78,8 @@ class QObjConfig(QObjStructure):
     def __init__(self, shots, register_slots, **kwargs):
         self.shots = shots
         self.register_slots = register_slots
-        super().__init__(**kwargs)
 
-    def __eq__(self, other):
-        attrs = ['max_credits', 'shots', 'backend']
-        return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in attrs)
+        super().__init__(**kwargs)
 
 
 class QObjExperiment(QObjStructure):
@@ -97,9 +98,13 @@ class QObjInstruction(QObjStructure):
     """Quantum Instruction.
 
     Attributes:
-        instructions(list[QObjInstruction]): list of instructions
+        name(str): name of the gate.
+        qubits(list): list of qubits to apply to the gate.
+        params(list): list of parameters for the gate.
     """
-    def __init__(self, instructions, **kwargs):
-        self.instructions = instructions
+    def __init__(self, name, qubits, params, **kwargs):
+        self.name = name
+        self.qubits = qubits
+        self.params = params
 
         super().__init__(**kwargs)

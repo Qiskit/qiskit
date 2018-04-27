@@ -17,7 +17,6 @@
 
 """QObj utilities and enums."""
 
-
 from enum import Enum
 
 
