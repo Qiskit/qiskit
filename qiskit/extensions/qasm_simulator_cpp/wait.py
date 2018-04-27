@@ -69,7 +69,7 @@ CompositeGate.wait = wait
 
 # idle for time t (identity)
 QuantumCircuit.definitions["wait"] = {
-    "print": True,
+    "print": False,
     "opaque": False,
     "n_args": 1,
     "n_bits": 1,

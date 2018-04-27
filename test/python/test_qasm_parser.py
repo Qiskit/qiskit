@@ -51,7 +51,7 @@ class TestParser(QiskitTestCase):
         res = parse(self.QASM_FILE_PATH)
         self.log.info(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1450)
+        self.assertEqual(len(res), 1509)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
         self.assertEqual(res[1434:1449], "measure r -> d;")
