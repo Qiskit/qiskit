@@ -55,13 +55,13 @@ class Snapshot(Instruction):
         self._modifiers(circ.snapshot(self.param[0], *self.arg))
 
 
-def snapshot(self, slot, *tuples):
+def snapshot(self, slot):
     """Take a snapshot of the internal simulator representation (statevector,
     probability, density matrix, clifford table)
+    Works on all qubits, and prevents reordering (like barrier).
 
     Args:
         slot (int): a snapshot slot to report the result
-        tuples (tuple): (reg, idx) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command
@@ -69,15 +69,14 @@ def snapshot(self, slot, *tuples):
     Raises:
         ExtensionError: malformed command
     """
-    tuples = list(tuples)
+    tuples = []
+    if isinstance(self, QuantumCircuit):
+        for register in self.regs.values():
+            if isinstance(register, QuantumRegister):
+                tuples.append(register)
     if not tuples:
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no snapshot arguments passed")
-    if not slot:
+        raise ExtensionError("no qubits for snapshot")
+    if slot is None:
         raise ExtensionError("no snapshot slot passed")
     qubits = []
     for tuple_element in tuples:
