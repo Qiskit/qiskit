@@ -216,7 +216,8 @@ def run(qobj, executable):
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
                          cerr.decode())
-        return json.loads(cout.decode(), cls=QASMSimulatorDecoder)
+        sim_output = cout.decode()
+        return json.loads(sim_output, cls=QASMSimulatorDecoder)
 
     except FileNotFoundError:
         msg = "ERROR: Simulator exe not found at: %s" % executable
