@@ -55,12 +55,12 @@ class Noise(Instruction):
         self._modifiers(circ.noise(self.param[0], *self.arg))
 
 
-def noise(self, switch, *tuples):
+def noise(self, switch):
     """Turn noise on/off in simulator.
+    Works on all qubits, and prevents reordering (like barrier).
 
     Args:
         switch (int): turn noise on (1) or off (0)
-        tuples (tuple): (reg, index) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command
@@ -68,15 +68,13 @@ def noise(self, switch, *tuples):
     Raises:
         ExtensionError: malformed command
     """
-    tuples = list(tuples)
+    if isinstance(self, QuantumCircuit):
+        for register in self.regs.values():
+            if isinstance(register, QuantumRegister):
+                tuples.append(register)
     if not tuples:
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no arguments passed")
-    if not switch:
+        raise ExtensionError("no qubits for noise")
+    if switch is None:
         raise ExtensionError("no noise switch passed")
     qubits = []
     for tuple_element in tuples:

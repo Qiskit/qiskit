@@ -55,13 +55,13 @@ class Save(Instruction):
         self._modifiers(circ.save(self.param[0], *self.arg))
 
 
-def save(self, slot, tuples):
+def save(self, slot):
     """Save the internal simulator representation (statevector, probability,
-    density matrix, clifford table)
+    density matrix, clifford table).
+    Works on all qubits, and prevents reordering (like barrier).
 
     Args:
         slot (int): a slot to save into
-        tuples (tuple): (reg, idx) qubits to act on. works like a barrier for those qubits.
 
     Returns:
         QuantumCircuit: with attached command
@@ -69,15 +69,13 @@ def save(self, slot, tuples):
     Raises:
         ExtensionError: malformed command
     """
-    tuples = list(tuples)
+    if isinstance(self, QuantumCircuit):
+        for register in self.regs.values():
+            if isinstance(register, QuantumRegister):
+                tuples.append(register)
     if not tuples:
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no save arguments passed")
-    if not slot:
+        raise ExtensionError("no qubits for save")
+    if slot is None:
         raise ExtensionError("no save slot passed")
     qubits = []
     for tuple_element in tuples:
