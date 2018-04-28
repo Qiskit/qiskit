@@ -150,48 +150,48 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             'measure (opt)': {
                 'deterministic': True,
                 'counts': {'00': shots},
-                'quantum_state': np.array([1, 0, 0, 0])},
+                'statevector': np.array([1, 0, 0, 0])},
             'x0 measure (opt)': {
                 'deterministic': True,
                 'counts': {'01': shots},
-                'quantum_state': np.array([0, 1, 0, 0])},
+                'statevector': np.array([0, 1, 0, 0])},
             'x1 measure (opt)': {
                 'deterministic': True,
                 'counts': {'10': shots},
-                'quantum_state': np.array([0, 0, 1, 0])},
+                'statevector': np.array([0, 0, 1, 0])},
             'x0 x1 measure (opt)': {
                 'deterministic': True,
                 'counts': {'11': shots},
-                'quantum_state': np.array([0, 0, 0, 1])},
+                'statevector': np.array([0, 0, 0, 1])},
             'y0 measure (opt)': {
                 'deterministic': True,
                 'counts': {'01': shots},
-                'quantum_state': np.array([0, 1j, 0, 0])},
+                'statevector': np.array([0, 1j, 0, 0])},
             'y1 measure (opt)': {
                 'deterministic': True,
                 'counts': {'10': shots},
-                'quantum_state': np.array([0, 0, 1j, 0])},
+                'statevector': np.array([0, 0, 1j, 0])},
             'y0 y1 measure (opt)': {
                 'deterministic': True,
                 'counts': {'11': shots},
-                'quantum_state': np.array([0, 0, 0, -1j])},
+                'statevector': np.array([0, 0, 0, -1j])},
             'h0 measure (opt)': {
                 'deterministic': False,
                 'counts': {'00': shots / 2, '01': shots / 2},
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
             'h1 measure (opt)': {
                 'deterministic': False,
                 'counts': {'00': shots / 2, '10': shots / 2},
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
             'h0 h1 measure (opt)': {
                 'deterministic': False,
                 'counts': {'00': shots / 4, '01': shots / 4,
                            '10': shots / 4, '11': shots / 4},
-                'quantum_state': np.array([0.5, 0.5, 0.5, 0.5])},
+                'statevector': np.array([0.5, 0.5, 0.5, 0.5])},
             'bell measure (opt)': {
                 'deterministic': False,
                 'counts': {'00': shots / 2, '11': shots / 2},
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])}
+                'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])}
         }
 
         for name in expected_data:
@@ -211,8 +211,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['quantum_state'][0]
-            expected_state = expected_data[name]['quantum_state']
+            state = snapshots['0']['statevector'][0]
+            expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
@@ -245,7 +245,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             # Check number of snapshots
             # there should be 1 for measurement sampling optimization
             # and there should be >1 for each shot beign simulated.
-            num_snapshots = len(snapshots['0'].get('quantum_state', []))
+            num_snapshots = len(snapshots['0'].get('statevector', []))
             if sampled_measurements[name] is True:
                 self.assertEqual(num_snapshots, 1,
                                  msg=name + ' snapshot length')
@@ -261,10 +261,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                preformatted=True)
         result = self.backend.run(q_job)
         expected_data = {
-            'reset': {'quantum_state': np.array([1, 0])},
-            'x reset': {'quantum_state': np.array([1, 0])},
-            'y reset': {'quantum_state': np.array([1, 0])},
-            'h reset': {'quantum_state': np.array([1, 0])}
+            'reset': {'statevector': np.array([1, 0])},
+            'x reset': {'statevector': np.array([1, 0])},
+            'y reset': {'statevector': np.array([1, 0])},
+            'h reset': {'statevector': np.array([1, 0])}
         }
         for name in expected_data:
             # Check snapshot is |0> state
@@ -273,8 +273,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['quantum_state'][0]
-            expected_state = expected_data[name]['quantum_state']
+            state = snapshots['0']['statevector'][0]
+            expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
@@ -290,10 +290,10 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         snapshots = result.get_snapshots('save_command')
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
                          msg='snapshot keys')
-        state0 = snapshots['0']['quantum_state'][0]
-        state10 = snapshots['10']['quantum_state'][0]
-        state1 = snapshots['1']['quantum_state'][0]
-        state11 = snapshots['11']['quantum_state'][0]
+        state0 = snapshots['0']['statevector'][0]
+        state10 = snapshots['10']['statevector'][0]
+        state1 = snapshots['1']['statevector'][0]
+        state11 = snapshots['11']['statevector'][0]
 
         expected_state0 = np.array([1, 0])
         expected_state10 = np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])
@@ -316,75 +316,75 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         result = self.backend.run(q_job)
         expected_data = {
             'snapshot': {
-                'quantum_state': np.array([1, 0])},
+                'statevector': np.array([1, 0])},
             'id(U)': {
-                'quantum_state': np.array([1, 0])},
+                'statevector': np.array([1, 0])},
             'id(u3)': {
-                'quantum_state': np.array([1, 0])},
+                'statevector': np.array([1, 0])},
             'id(u1)': {
-                'quantum_state': np.array([1, 0])},
+                'statevector': np.array([1, 0])},
             'id(direct)': {
-                'quantum_state': np.array([1, 0])},
+                'statevector': np.array([1, 0])},
             'x(U)': {
-                'quantum_state': np.array([0, 1])},
+                'statevector': np.array([0, 1])},
             'x(u3)': {
-                'quantum_state': np.array([0, 1])},
+                'statevector': np.array([0, 1])},
             'x(direct)': {
-                'quantum_state': np.array([0, 1])},
+                'statevector': np.array([0, 1])},
             'y(U)': {
-                'quantum_state': np.array([0, 1j])},
+                'statevector': np.array([0, 1j])},
             'y(u3)': {
-                'quantum_state': np.array([0, 1j])},
+                'statevector': np.array([0, 1j])},
             'y(direct)': {
-                'quantum_state': np.array([0, 1j])},
+                'statevector': np.array([0, 1j])},
             'h(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
             'h(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
             'h(u2)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
             'h(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])},
             'h(direct) z(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
             'h(direct) z(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
             'h(direct) z(u1)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
             'h(direct) z(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1 / np.sqrt(2)])},
             'h(direct) s(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
             'h(direct) s(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
             'h(direct) s(u1)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
             'h(direct) s(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2)])},
             'h(direct) sdg(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
             'h(direct) sdg(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
             'h(direct) sdg(u1)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
             'h(direct) sdg(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), -1j / np.sqrt(2)])},
             'h(direct) t(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
             'h(direct) t(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
             'h(direct) t(u1)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
             'h(direct) t(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 + 0.5j])},
             'h(direct) tdg(U)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
             'h(direct) tdg(u3)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
             'h(direct) tdg(u1)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
+                'statevector': np.array([1 / np.sqrt(2), 0.5 - 0.5j])},
             'h(direct) tdg(direct)': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0.5 - 0.5j])}
+                'statevector': np.array([1 / np.sqrt(2), 0.5 - 0.5j])}
         }
 
         for name in expected_data:
@@ -394,8 +394,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['quantum_state'][0]
-            expected_state = expected_data[name]['quantum_state']
+            state = snapshots['0']['statevector'][0]
+            expected_state = expected_data[name]['statevector']
             inner_product = expected_state.dot(state.conj())
             self.assertAlmostEqual(inner_product, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
@@ -409,41 +409,41 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         result = self.backend.run(q_job)
         expected_data = {
             'h0 CX01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
             'h0 CX10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
             'h1 CX01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
             'h1 CX10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
             'h0 cx01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
             'h0 cx10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
             'h1 cx01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
             'h1 cx10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
             'h0 cz01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
             'h0 cz10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])},
             'h1 cz01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
             'h1 cz10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
-            'h0 h1 cz01': {'quantum_state': np.array([0.5, 0.5, 0.5, -0.5])},
-            'h0 h1 cz10': {'quantum_state': np.array([0.5, 0.5, 0.5, -0.5])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1 / np.sqrt(2), 0])},
+            'h0 h1 cz01': {'statevector': np.array([0.5, 0.5, 0.5, -0.5])},
+            'h0 h1 cz10': {'statevector': np.array([0.5, 0.5, 0.5, -0.5])},
             'h0 rzz01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
             'h0 rzz10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
+                'statevector': np.array([1 / np.sqrt(2), 1j / np.sqrt(2), 0, 0])},
             'h1 rzz01': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
+                'statevector': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
             'h1 rzz10': {
-                'quantum_state': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
-            'h0 h1 rzz01': {'quantum_state': np.array([0.5, 0.5j, 0.5j, 0.5])},
-            'h0 h1 rzz10': {'quantum_state': np.array([0.5, 0.5j, 0.5j, 0.5])}
+                'statevector': np.array([1 / np.sqrt(2), 0, 1j / np.sqrt(2), 0])},
+            'h0 h1 rzz01': {'statevector': np.array([0.5, 0.5j, 0.5j, 0.5])},
+            'h0 h1 rzz10': {'statevector': np.array([0.5, 0.5j, 0.5j, 0.5])}
         }
 
         for name in expected_data:
@@ -453,8 +453,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['quantum_state'][0]
-            expected_state = expected_data[name]['quantum_state']
+            state = snapshots['0']['statevector'][0]
+            expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
@@ -468,13 +468,13 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         result = self.backend.run(q_job)
         expected_data = {
             'single creg (c0=0)': {
-                'quantum_state': np.array([1, 0, 0, 0])},
+                'statevector': np.array([1, 0, 0, 0])},
             'single creg (c0=1)': {
-                'quantum_state': np.array([0, 0, 0, 1])},
+                'statevector': np.array([0, 0, 0, 1])},
             'two creg (c1=0)': {
-                'quantum_state': np.array([1, 0, 0, 0])},
+                'statevector': np.array([1, 0, 0, 0])},
             'two creg (c1=1)': {
-                'quantum_state': np.array([0, 0, 0, 1])}
+                'statevector': np.array([0, 0, 0, 1])}
         }
 
         for name in expected_data:
@@ -484,8 +484,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['quantum_state'][0]
-            expected_state = expected_data[name]['quantum_state']
+            state = snapshots['0']['statevector'][0]
+            expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')

@@ -1212,19 +1212,19 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=9)
-        quantum_state = np.array([0.70710678+0.j, 0.70710678+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j])
-        norm = np.dot(np.conj(quantum_state),
-                      result.get_data('qc2')['quantum_state'])
+        statevector = np.array([0.70710678+0.j, 0.70710678+0.j,
+                                0.00000000+0.j, 0.00000000+0.j,
+                                0.00000000+0.j, 0.00000000+0.j,
+                                0.00000000+0.j, 0.00000000+0.j])
+        norm = np.dot(np.conj(statevector),
+                      result.get_data('qc2')['statevector'])
         self.assertAlmostEqual(norm, 1)
-        quantum_state = np.array([0.70710678+0.j, 0+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.00000000+0.j,
-                                  0.00000000+0.j, 0.70710678+0.j])
-        norm = np.dot(np.conj(quantum_state),
-                      result.get_data('qc3')['quantum_state'])
+        statevector = np.array([0.70710678+0.j, 0+0.j,
+                                0.00000000+0.j, 0.00000000+0.j,
+                                0.00000000+0.j, 0.00000000+0.j,
+                                0.00000000+0.j, 0.70710678+0.j])
+        norm = np.dot(np.conj(statevector),
+                      result.get_data('qc3')['statevector'])
         self.assertAlmostEqual(norm, 1)
 
     def test_local_unitary_simulator(self):
