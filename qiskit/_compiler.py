@@ -167,6 +167,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
             coupling_map = None
         if coupling_map == 'all-to-all':
             coupling_map = None
+
         # making the job to be added to qobj
         job = {}
         job["name"] = circuit.name

@@ -180,7 +180,7 @@ class Result(object):
 
         for the qasm simulators of 1 shot::
 
-            'quantum_state': array([ XXX,  ..., XXX]),
+            'statevector': array([ XXX,  ..., XXX]),
             'classical_state': 0
 
         for the qasm simulators of n shots::
@@ -276,7 +276,7 @@ class Result(object):
             QISKitError: if there is no statevector for the circuit.
         """
         try:
-            return self.get_data(circuit_name)['quantum_state']
+            return self.get_data(circuit_name)['statevector']
         except KeyError:
             raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
 

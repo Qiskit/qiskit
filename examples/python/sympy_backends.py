@@ -39,7 +39,7 @@ def use_sympy_backends():
     backend = 'local_statevector_simulator_sympy'
     result = qprogram.execute([qasm_circuit], backend=backend, shots=1, timeout=300)
     print("final quantum amplitude vector: ")
-    print(result.get_data(qasm_circuit)['quantum_state'])
+    print(result.get_data(qasm_circuit)['statevector'])
 
     # sympy unitary simulator
     backend = 'local_unitary_simulator_sympy'

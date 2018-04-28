@@ -41,6 +41,7 @@ else:
     _skip_class = False
 
 
+@unittest.skipIf(_skip_class, 'C++ simulators unavailable')
 class TestCrossSimulation(QiskitTestCase):
     """Test output consistency across simulators.
     """

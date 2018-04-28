@@ -764,7 +764,8 @@ class DAGCircuit:
             if qeflag:
                 qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
                          "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap", "u0", "rx", "ry", "rz", "ch", "crz", "rzz"]
+                         "cu3", "swap", "cswap", "u0", "rx", "ry", "rz",
+                         "ch", "crz", "rzz"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
             simulator_instructions = ["snapshot", "save", "load", "noise", "wait"]

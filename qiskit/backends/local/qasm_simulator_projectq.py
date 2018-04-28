@@ -19,11 +19,12 @@
 """Backend for the Project Q C++ simulator."""
 
 
+import time
 import itertools
 import operator
 import random
-import uuid
 import logging
+import warnings
 from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result
@@ -84,7 +85,7 @@ class QasmSimulatorProjectQ(BaseBackend):
         # Define the attributes inside __init__.
         self._number_of_qubits = 0
         self._number_of_clbits = 0
-        self._quantum_state = 0
+        self._statevector = 0
         self._classical_state = 0
         self._seed = None
         self._shots = 0
@@ -93,9 +94,9 @@ class QasmSimulatorProjectQ(BaseBackend):
     def run(self, q_job):
         """Run circuits in q_job"""
         # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         result_list = []
         qobj = q_job.qobj
+        self._validate(qobj)
         self._sim = Simulator(gate_fusion=True)
         if 'seed' in qobj['config']:
             self._seed = qobj['config']['seed']
@@ -103,11 +104,17 @@ class QasmSimulatorProjectQ(BaseBackend):
         else:
             self._seed = random.getrandbits(32)
         self._shots = qobj['config']['shots']
+        start = time.time()
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list,
-                       'status': 'COMPLETED'},
-                      qobj)
+        end = time.time()
+        result = {'backend': self._configuration['name'],
+                  'id': qobj['id'],
+                  'result': result_list,
+                  'status': 'COMPLETED',
+                  'success': True,
+                  'time_taken': (end - start)}
+        return Result(result, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
@@ -133,7 +140,7 @@ class QasmSimulatorProjectQ(BaseBackend):
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_clbits = ccircuit['header']['number_of_clbits']
-        self._quantum_state = 0
+        self._statevector = 0
         self._classical_state = 0
         cl_reg_index = []  # starting bit index of classical register
         cl_reg_nbits = []  # number of bits in classical register
@@ -151,10 +158,11 @@ class QasmSimulatorProjectQ(BaseBackend):
                 if circuit['config']['seed'] is not None:
                     self._sim._simulator = CppSim(circuit['config']['seed'])
         outcomes = []
+        start = time.time()
         for _ in range(self._shots):
-            self._quantum_state = np.zeros(1 << self._number_of_qubits,
-                                           dtype=complex)
-            self._quantum_state[0] = 1
+            self._statevector = np.zeros(1 << self._number_of_qubits,
+                                         dtype=complex)
+            self._statevector[0] = 1
             # initialize starting state
             self._classical_state = 0
             unmeasured_qubits = list(range(self._number_of_qubits))
@@ -243,9 +251,32 @@ class QasmSimulatorProjectQ(BaseBackend):
         data = {'counts': _format_result(
             counts, cl_reg_index, cl_reg_nbits)}
         if self._shots == 1:
-            data['quantum_state'] = self._quantum_state
+            # TODO: deprecated -- remove in v0.6
+            data['statevector'] = self._statevector
+            data['quantum_state'] = self._statevector
             data['classical_state'] = self._classical_state
-        return {'data': data, 'status': 'DONE'}
+        end = time.time()
+        return {'name': circuit['name'],
+                'seed': self._seed,
+                'shots': self._shots,
+                'data': data,
+                'status': 'DONE',
+                'success': True,
+                'time_taken': (end-start)}
+
+    def _validate(self, qobj):
+        if qobj['config']['shots'] == 1:
+            warnings.warn('The behavior of getting statevector from simulators '
+                          'by setting shots=1 is deprecated and will be removed. '
+                          'Use the local_statevector_simulator instead, or place '
+                          'explicit snapshot instructions.',
+                          DeprecationWarning)
+        for circ in qobj['circuits']:
+            if 'measure' not in [op['name'] for
+                                 op in circ['compiled_circuit']['operations']]:
+                logger.warning("no measurements in circuit '%s', "
+                               "classical register will remain all zeros.", circ['name'])
+        return
 
 
 def _get_register_specs(bit_labels):

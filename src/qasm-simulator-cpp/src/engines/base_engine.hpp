@@ -263,10 +263,10 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     try {
       // use try incase state class doesn't have json conversion method
       for (const auto& pair: engine.snapshots)
-        js["snapshots"][pair.first]["quantum_state"] = pair.second;
+        js["snapshots"][pair.first]["statevector"] = pair.second;
     } catch (std::exception &e) {
       // Leave message in output that type conversion failed
-      js["quantum_state"] =
+      js["statevector"] =
           "Error: Failed to convert state type to JSON";
     }
   }

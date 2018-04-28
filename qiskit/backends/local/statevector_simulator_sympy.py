@@ -143,7 +143,7 @@ class StatevectorSimulatorSympy(BaseBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         self._number_of_qubits = None
-        self._quantum_state = None
+        self._statevector = None
 
     @staticmethod
     def _conjugate_square(com):
@@ -166,7 +166,7 @@ class StatevectorSimulatorSympy(BaseBackend):
                     which looks like this::
                         [{'data':
                         {
-                          'quantum_state': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object),
+                          'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object),
                         },
                         'status': 'DONE'
                         }]
@@ -189,7 +189,7 @@ class StatevectorSimulatorSympy(BaseBackend):
             dict: A dictionary of results which looks something like::
                 {
                 "data":{
-                        'quantum_state': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object)},
+                        'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object)},
                 "status": --status (string)--
                 }
         Raises:
@@ -197,9 +197,9 @@ class StatevectorSimulatorSympy(BaseBackend):
         """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        self._quantum_state = 0
+        self._statevector = 0
 
-        self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
+        self._statevector = Qubit(*tuple([0]*self._number_of_qubits))
         for operation in ccircuit['operations']:
             if 'conditional' in operation:
                 raise SimulatorError('conditional operations not supported '
@@ -212,8 +212,8 @@ class StatevectorSimulatorSympy(BaseBackend):
                 opname = operation['name'].upper()
                 opparas = operation['params']
                 _sym_op = StatevectorSimulatorSympy.get_sym_op(opname, tuple([qubit]), opparas)
-                _applied_quantum_state = _sym_op * self._quantum_state
-                self._quantum_state = qapply(_applied_quantum_state)
+                _applied_statevector = _sym_op * self._statevector
+                self._statevector = qapply(_applied_statevector)
             elif operation['name'] in ['id']:
                 logger.info('Identity gate is ignored by sympy-based statevector simulator.')
             elif operation['name'] in ['barrier']:
@@ -228,19 +228,19 @@ class StatevectorSimulatorSympy(BaseBackend):
                     opparas = None
                 q0q1tuple = tuple([qubit0, qubit1])
                 _sym_op = StatevectorSimulatorSympy.get_sym_op(opname, q0q1tuple, opparas)
-                self._quantum_state = qapply(_sym_op * self._quantum_state)
+                self._statevector = qapply(_sym_op * self._statevector)
             else:
                 backend = globals()['__configuration']['name']
                 err_msg = '{0} encountered unrecognized operation "{1}"'
                 raise SimulatorError(err_msg.format(backend, operation['name']))
 
-        matrix_form = represent(self._quantum_state)
+        matrix_form = represent(self._statevector)
         shape_n = matrix_form.shape[0]
         list_form = [matrix_form[i, 0] for i in range(shape_n)]
 
         # Return the results
         data = {
-            'quantum_state': np.asarray(list_form),
+            'statevector': np.asarray(list_form),
         }
 
         return {'data': data, 'status': 'DONE'}

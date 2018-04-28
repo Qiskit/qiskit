@@ -29,7 +29,7 @@ class BaseBackend(ABC):
     """Base class for backends."""
 
     @abstractmethod
-    def __init__(self, configuration=None):
+    def __init__(self, configuration):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -43,6 +43,8 @@ class BaseBackend(ABC):
             FileNotFoundError if backend executable is not available.
             QISKitError: if there is no name in the configuration
         """
+        if 'name' not in configuration:
+            raise QISKitError('backend does not have a name.')
         self._configuration = configuration
 
     @abstractmethod
@@ -76,4 +78,4 @@ class BaseBackend(ABC):
         return self._configuration['name']
 
     def __str__(self):
-        return self.configuration['name']
+        return self.name

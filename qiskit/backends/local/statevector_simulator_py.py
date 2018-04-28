@@ -63,16 +63,16 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         result = super().run(q_job)._result
         # Replace backend name with current backend
         result['backend'] = self._configuration['name']
-        # Extract final state snapshot and move to 'quantum_state' data field
+        # Extract final state snapshot and move to 'statevector' data field
         for res in result['result']:
             snapshots = res['data']['snapshots']
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
             # Pop off final snapshot added above
             final_state = snapshots.pop(final_state_key, None)
-            final_state = final_state['quantum_state'][0]
+            final_state = final_state['statevector'][0]
             # Add final state to results data
-            res['data']['quantum_state'] = final_state
+            res['data']['statevector'] = final_state
             # Remove snapshot dict if empty
             if snapshots == {}:
                 res['data'].pop('snapshots', None)

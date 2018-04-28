@@ -67,7 +67,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
     def test_statevector_simulator_sympy(self):
         """Test data counts output for single circuit run against reference."""
         result = StatevectorSimulatorSympy().run(self.q_job)
-        actual = result.get_data('test')['quantum_state']
+        actual = result.get_data('test')['statevector']
         self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertEqual(actual[0], sqrt(2)/2)
         self.assertEqual(actual[1], 0)

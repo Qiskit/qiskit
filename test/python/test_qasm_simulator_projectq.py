@@ -51,7 +51,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         super().setUpClass()
 
         # Set up random circuits
-        n_circuits = 20
+        n_circuits = 1
         min_depth = 1
         max_depth = 10
         min_qubits = 1
@@ -66,6 +66,8 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                                        random.randint(2, 7)))
             if 'reset' in basis:
                 basis.remove('reset')
+            if 'u0' in basis:
+                basis.remove('u0')
             random_circuits.add_circuits(1, basis=basis)
         cls.rqg = random_circuits
 

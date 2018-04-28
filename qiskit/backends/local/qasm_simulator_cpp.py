@@ -88,7 +88,7 @@ class QasmSimulatorCpp(BaseBackend):
 
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
-            warnings.warn('The behavior of getting quantum_state from simulators '
+            warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead.',
                           DeprecationWarning)
@@ -186,7 +186,7 @@ class QASMSimulatorDecoder(json.JSONDecoder):
             if key in obj and isinstance(obj[key], list):
                 tmp = np.array(obj[key])
                 obj[key] = tmp[::, ::, 0] + 1j * tmp[::, ::, 1]
-        for key in ['quantum_state', 'inner_products']:
+        for key in ['statevector', 'inner_products']:
             # JSON is a list of complex vectors
             if key in obj:
                 for j in range(len(obj[key])):
