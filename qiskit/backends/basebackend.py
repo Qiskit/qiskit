@@ -41,6 +41,7 @@ class BaseBackend(ABC):
 
         Raises:
             FileNotFoundError if backend executable is not available.
+            QISKitError: if there is no name in the configuration
         """
         if 'name' not in configuration:
             raise QISKitError('backend does not have a name.')

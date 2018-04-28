@@ -19,6 +19,7 @@
 
 import json
 import unittest
+import logging
 import numpy as np
 from numpy.linalg import norm
 
@@ -32,6 +33,9 @@ from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
 from .common import QiskitTestCase
+
+logger = logging.getLogger('qiskit.backends.local.qasm_simulator_cpp')
+logger.setLevel(logging.ERROR)
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -202,7 +206,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 self.assertDictAlmostEqual(counts, expected_counts,
                                            threshold, msg=name + 'counts')
             # Check snapshot
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -234,7 +238,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         }
 
         for name in sampled_measurements:
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             # Check snapshot keys
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
@@ -264,7 +268,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         }
         for name in expected_data:
             # Check snapshot is |0> state
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -283,7 +287,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                preformatted=True)
         result = self.backend.run(q_job)
 
-        snapshots = result.get_data('save_command').get('snapshots', {})
+        snapshots = result.get_snapshots('save_command')
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
                          msg='snapshot keys')
         state0 = snapshots['0']['quantum_state'][0]
@@ -385,7 +389,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -444,7 +448,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -475,7 +479,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_data(name).get('snapshots', {})
+            snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,

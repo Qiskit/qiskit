@@ -33,19 +33,22 @@ from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 
+do_profiling = False
+
+
 class TestLocalQasmSimulatorPyPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
-
-    do_profiling = False
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pdf = PdfPages(cls.moduleName + '.pdf')
+        if do_profiling:
+            cls.pdf = PdfPages(cls.moduleName + '.pdf')
 
     @classmethod
     def tearDownClass(cls):
-        cls.pdf.close()
+        if do_profiling:
+            cls.pdf.close()
 
     def setUp(self):
         self.seed = 88
@@ -236,6 +239,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
 
+    @unittest.skipIf(not do_profiling, "skipping simulator profiling.")
     def profile_qasm_simulator(self):
         """Profile randomly generated circuits.
 
