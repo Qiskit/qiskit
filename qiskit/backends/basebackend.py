@@ -22,6 +22,7 @@ Doing so requires that the required backend interface is implemented.
 """
 
 from abc import ABC, abstractmethod
+from qiskit._qiskiterror import QISKitError
 
 
 class BaseBackend(ABC):
