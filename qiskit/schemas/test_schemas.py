@@ -74,18 +74,19 @@ schema_tests.append({"schema": "result_schema.json",
 
 """Run through each schema."""
 for schema_test in schema_tests:
-    print('Schema: %s'%(schema_test['schema']))
+    print('Schema: %s' % (schema_test['schema']))
     for example_schema in schema_test['examples']:
         schema = json.load(open(schema_test['schema'], 'r'))
-        example = json.load(open(os.path.join('examples', example_schema), 'r'))
+        example = json.load(open(os.path.join('examples',
+                                              example_schema), 'r'))
         try:
             jsch.validate(example, schema)
         except jsch.ValidationError as err:
-            print("Error on example %s:"%example_schema)
+            print("Error on example %s:" % example_schema)
             any_error = True
             if verbose_err:
                 print(err)
             continue
-        print('Passed: %s'%(example_schema))
+        print('Passed: %s' % (example_schema))
 if not any_error:
     print('ALL SCHEMAS PASSED')
