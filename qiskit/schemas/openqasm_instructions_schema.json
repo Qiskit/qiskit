@@ -1,0 +1,132 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://www.qiskit.org/schemas/openqasm_instructions_schema.json",        
+    "type": "object",
+    "required": ["name"],
+    "properties": {
+        "qubits": {"type": "array"},
+        "register": {"type": "array"},
+        "name": {"type": "string"},
+        "conditional": {"$ref": "file:conditional_schema.json"}        
+    },
+        
+    "oneOf": [{		
+            "title": "3-param 1Q op",
+            "required": ["qubits", "params"],
+            "properties": {
+                "name": {"enum": ["u3", "U"]},
+                "qubits": {"maxItems": 1},
+                "register": {"maxItems": 0},
+                "params": {"minItems": 3, "maxItems": 3},
+                "texparams": {"minItems": 3, "maxItems": 3}
+            }
+        }, {
+        "title": "fixed 1Q op",
+        "required": ["qubits"],
+        "properties": {
+            "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
+            "qubits": {"minItems": 1, "maxItems": 1},
+            "register": {"maxItems": 0},
+            "params": {"maxItems": 0},
+            "texparams": {"maxItems": 0}
+        }
+        }, {
+        "title": "1-param 1Q op",
+        "required": ["qubits", "params"],
+        "properties": {
+            "name": {"enum": ["u1", "rx", "ry", "rz"]},
+            "qubits": {"minItems": 1, "maxItems": 1},
+            "register": {"maxItems": 0},
+            "params": {"minItems": 1, "maxItems": 1},
+            "texparams": {"minItems": 1, "maxItems": 1}
+        }			
+        }, {
+        "title": "2-param 1Q op",
+        "required": ["qubits", "params"],				
+        "properties": {
+            "name": {"enum": ["u2"]},
+            "qubits": {"minItems": 1, "maxItems": 1},
+            "register": {"maxItems": 0},
+            "params": {"minItems": 2, "maxItems": 2},
+            "texparams": {"minItems": 2, "maxItems": 2}
+        }			
+        }, {
+        "title": "fixed 2Q gate",
+        "required": ["qubits"],
+        "properties": {
+            "name": {"enum": ["cx", "CX", "cy", "cz", "ch", "swap"]},
+            "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+            "register": {"maxItems": 0},
+            "params": {"maxItems": 0},
+            "texparams": {"maxItems": 0}
+        }
+        }, {
+        "title": "1-param 2Q controlled gate",
+        "required": ["qubits", "params"],
+        "properties": {
+            "name": {"enum": ["cu1", "crz"]},
+            "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+            "register": {"maxItems": 0},
+            "params": {"minItems": 1, "maxItems": 1},
+            "texparams": {"minItems": 1, "maxItems": 1}
+        }
+        }, {
+        "title": "3-param 2Q controlled gate",
+        "required": ["qubits", "params"],
+        "properties": {
+            "name": {"enum": ["cu3"]},
+            "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+            "register": {"maxItems": 0},
+            "params": {"minItems":3, "maxItems": 3},
+            "texparams": {"minItems":3, "maxItems": 3}
+        }
+        }, {
+        "title": "fixed 3Q doubly controlled gate",
+        "required": ["qubits"],
+        "properties": {
+            "name": {"enum": ["ccx"]},
+            "qubits": {"description": "[control, control, target]", "minItems": 3, "maxItems": 3},
+            "register": {"maxItems": 0},
+            "params": {"maxItems": 0},
+            "texparams": {"maxItems": 0}
+        }
+        }, {
+        "title": "measurement",
+        "required": ["qubits", "register"],
+        "properties": {
+            "name": {"enum": ["measure"]},
+            "qubits": {"minItems": 1, "maxItems": 1},
+            "register": {"minItems": 1, "maxItems": 1},
+            "params": {"maxItems": 0},
+            "texparams": {"maxItems": 0}
+        }
+        }, {
+        "title": "barrier",
+        "required": ["qubits"],
+        "properties": {
+            "name": {"enum": ["barrier"]},
+            "qubits": {"minItems": 1},
+            "register": {"maxItems": 0},
+            "params": {"maxItems": 0},
+            "texparams": {"maxItems": 0}
+        }
+        },
+        {
+        "title": "snapshot",
+        "properties": {
+            "name": {"enum": ["#snapshot"]},
+            "required": ["params"],
+            "register": {"maxItems": 0},
+            "params": {
+                "minItems": 2,
+                "items": {
+                    "type": "string"
+                }
+            },
+            "texparams": {"maxItems": 0}
+        }
+        }
+    ]
+    
+}
+

@@ -1,0 +1,228 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://www.qiskit.org/schemas/backend_config_schema.json",
+    "description": "QISKit device backend configuration",
+    "definitions": {
+        "coreconfig": {
+            "type": "object",
+            "required": ["backend_name", "backend_version", "n_qubits","basis_gates","gates","local","simulator"],
+            "properties": {
+                "backend_name": {
+                    "type": "string",
+                    "description": "Backend name"
+                    },
+                "sample_name": {
+                    "type": "string",
+                    "description": "Sample name"
+                    },
+                "backend_version": {
+                    "type": "string",
+                    "pattern": "[0-9]+.[0-9]+.[0-9]+$",
+                    "description": "Backend version in the form X.X.X"
+                    },
+                "n_qubits": {
+                    "type": "integer",
+                    "description": "Number of qubits",
+                    "minimum": 1,
+                    "default": 1
+                    },
+                "basis_gates": {
+                    "type": "array",
+                    "description": "List of basis gates names on the backend",
+                    "minItems": 1,
+                    "items": {"type": "string"}
+                    },
+                "coupling_map": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "array", "minItems": 1, "items": {"type": "integer"}},
+                    "description": "Array grouping qubits that are physically coupled together on the backend"
+                    },
+                "gates": {
+                    "type": "array",
+                    "description": "List of basis gate configuration data structures",
+                    "minItems": 1,
+                    "items": {"$ref": "#/definitions/gateconfig"}
+                    },
+                "gates": {
+                    "type": "array",
+                    "description": "List of basis gates on the backend",
+                    "minItems": 1,
+                    "items": {"$ref": "#/definitions/gateconfig"}
+                    },
+                "local": {
+                    "type": "boolean",
+                    "description": "Backend is local or remote (true/false)"
+                    },
+                "simulator": {
+                    "type": "boolean",
+                    "description": "Backend is a simulator (true/false)",
+                    "default": false
+                    },
+                "credits_required": {
+                    "type": "boolean",
+                    "description": "Backend requires credits to run a job (true/false)",
+                    "default": false
+                    },
+                "online_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date the backend went online"
+                    },
+                "display_name": {
+                    "type": "string",
+                    "description": "Alternate name field for the backend"
+                    },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the backend"
+                    },
+                "tags": {
+                    "type": "array",
+                    "minItems": 0,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "examples": ["credits_required"]
+                        }
+                    }
+                }
+            },
+        "gateconfig": {
+            "type": "object",
+            "required": ["name","parameters","coupling_map","qasm_def"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The gate name as it will be referred to in QASM"
+                    },
+                "parameters": {
+                    "type": "array",
+                    "minItems": 0,
+                    "items": {"type": "string"},
+                    "description": "Variable names for the gate parameters (if any)"
+                    },
+                "coupling_map": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "array", "minItems": 1, "items": {"type": "integer"}},
+                    "description": "List of qubit groupings which are coupled by this gate"
+                    },
+                "qasm_def": {
+                    "type": "string",
+                    "description": "Definition of this gate in terms of QASM primitives U and CX"
+                    },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the gate operation"
+                    }
+                }},
+        "complexnumber": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [{"type": "number"},{"type": "number"}]}
+    },
+    "oneOf": [
+    {"allOf": [{"$ref": "#/definitions/coreconfig"},
+    {
+    "required": ["open_pulse","n_uchannels","hamiltonian","u_channel_lo",
+                "meas_levels","qubit_lo_range","meas_lo_range","dt","dtm","rep_rates",
+                "meas_kernels","discriminators"],
+    "properties": {
+                "open_pulse": {
+                    "enum": [ true ],
+                    "description": "The backend supports openPulse (true/false)"},
+                "n_uchannels": {
+                    "type": "integer",
+                    "description": "Number of additional control channels", 
+                    "minimum": 0},
+                "hamiltonian": {
+                    "type": "object",
+                    "description": "Hamiltonian of the backend",
+                    "properties": {
+                        "h_latex": {
+                            "type": "string",
+                            "description": "The Hamiltonian in latex form"
+                            },
+                        "h_str": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "The Hamiltonian in machine readable form"
+                            }
+                        }
+                    },
+                "u_channel_lo": {
+                    "type": "array",
+                    "minItems": 0,
+                    "description": "Relationship of the U Channel LO's in terms of the qubit LO's",
+                    "items": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "q": {"type": "integer"},
+                                "scale": {"$ref": "#/definitions/complexnumber"}
+                                }}
+                            }
+                        },
+                "meas_levels": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxitems": 3,
+                    "description": "Available measurement levels on the backend",
+                    "items": {"type": "integer", "minimum": 0, "maximum": 2}},
+                "qubit_lo_range": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Frequency range for the qubit LO",
+                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                "meas_lo_range": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Frequency range for the measurement LO",
+                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                "dt": {
+                    "type": "number",
+                    "description": "Time discretization for the drive and U channels", 
+                    "minimum": 0},
+                "dtm": {
+                    "type": "number",
+                    "description": "Time discretization for the measurement channels", 
+                    "minimum": 0},
+                "rep_rates": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Available experiment repetition rates",
+                    "items": {"type": "number", "minimum": 0}},
+                "meas_map": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Grouping of measurement which are multiplexed",
+                    "items": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}},
+                "channel_bandwidth": {
+                    "type": "array",
+                    "minItems": 2,
+                    "description": "Bandwidth of all channels (qubit,measurement and U)",
+                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                "meas_kernels": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Available measurement kernels",
+                    "items": {"type": "string"}},
+                "discriminators": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Available discriminators",
+                    "items": {"type": "string"}}
+                }}]},
+    {"allOf": [{"$ref": "#/definitions/coreconfig"},
+    {
+    "required": ["open_pulse"],
+    "properties": {
+                "open_pulse": {"enum": [ false ]}
+                }}]}
+                ]           
+}
+
