@@ -43,7 +43,7 @@ packages = ["qiskit",
             "qiskit.dagcircuit",
             "qiskit.extensions",
             "qiskit.extensions.standard",
-            "qiskit.extensions.qasm_simulator_cpp",
+            "qiskit.extensions.simulator",
             "qiskit.extensions.quantum_initializer",
             "qiskit.mapper",
             "qiskit.qasm",
@@ -56,7 +56,7 @@ packages = ["qiskit",
 
 
 # C++ components compilation
-class QasmSimulatorBuild(build):
+class QasmSimulatorCppBuild(build):
     def run(self):
         super().run()
         # Store the current working directory, as invoking cmake involves
@@ -140,7 +140,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.5",
     cmdclass={
-        'build': QasmSimulatorBuild,
+        'build': QasmSimulatorCppBuild,
     },
     distclass=BinaryDistribution,
     extras_require={

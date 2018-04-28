@@ -92,14 +92,14 @@ def state_tomography(state, n_qubits, shots):
     print("target: {}".format(target))
 
     # Use the local qasm simulator
-    backend = 'local_qiskit_simulator'
+    backend = 'local_qasm_simulator'
 
     qp = QuantumProgram()
 
     # Prepared target state and assess quality
     qp = target_prep(qp, state, target)
-    prep_result = qp.execute(['prep'], backend='local_qasm_simulator', shots=1)
-    prep_state = prep_result.get_data('prep')['quantum_state']
+    prep_result = qp.execute(['prep'], backend=backend, shots=1)
+    prep_state = prep_result.get_data('prep')['statevector']
     F_prep = state_fidelity(prep_state, target)
     print('Prepared state fidelity =', F_prep)
 

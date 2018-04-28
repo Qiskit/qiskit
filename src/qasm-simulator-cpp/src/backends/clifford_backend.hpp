@@ -182,13 +182,13 @@ void CliffordBackend::qc_operation(const operation &op) {
     break;
   // Commands
   case gate_t::Snapshot:
-    snapshot_state(op.params[0]);
+    snapshot_state(op.string_params[0]);
     break;
   case gate_t::Save:
-    save_state(op.params[0]);
+    save_state(op.string_params[0]);
     break;
   case gate_t::Load:
-    load_state(op.params[0]);
+    load_state(op.string_params[0]);
     break;
   case gate_t::Noise:
     if (ideal_sim == false)

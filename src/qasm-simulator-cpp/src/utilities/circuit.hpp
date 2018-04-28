@@ -72,6 +72,7 @@ public:
   gate_t id;
   std::string name;
   std::vector<double> params;
+  std::vector<std::string> string_params;
   creg_t qubits;
   creg_t clbits;
   bool if_op = false;
@@ -204,7 +205,9 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
         std::string("number_qubits does not match qubit_labels"));
   }
 #ifdef DEBUG
-  std::clog << "DEBUG (json): clbit_labels = " << clbit_labels << std::endl;
+  std::stringstream ss;
+  ss << "DEBUG (json): clbit_labels = " << clbit_labels;
+  std::clog << ss << std::endl;
   std::clog << "DEBUG (json): parsing operations" << std::endl;
 #endif
 
@@ -263,9 +266,24 @@ operation Circuit::parse_op(const json_t &node, const gateset_t &gs) {
     throw std::runtime_error(
         std::string("invalid operation \'" + label + "\'."));
   }
-
+  // String param instructions
+  std::vector<std::string> instr{{"snapshot", "#snapshot", "save", "#save", "load", "_load"}};
   // load op parameters
-  JSON::get_value(op.params, "params", node);
+  json_t params;
+  JSON::get_value(params, "params", node);
+  if (std::find(instr.begin(), instr.end(), label) != instr.end()) {
+    // We want to parse params as strings
+    for (auto p: params) {
+      if (p.is_string()) {
+        op.string_params.push_back(p.get<std::string>());
+      } else {
+        // Convert numbers to strings for backwards compatibility
+        op.string_params.push_back(std::to_string(p.get<int>()));
+      }
+    }
+  } else {
+    JSON::get_value(op.params, "params", node);
+  }
   JSON::get_value(op.qubits, "qubits", node);
   JSON::get_value(op.clbits, "clbits", node);
 
@@ -282,14 +300,17 @@ operation Circuit::parse_op(const json_t &node, const gateset_t &gs) {
     }
 
 #ifdef DEBUG
-  std::clog << "DEBUG (json): op " << label;
+  std::stringstream ss;
+  ss << "DEBUG (json): op " << label;
   if (!op.params.empty())
-    std::clog << op.params;
+    ss << " params = " << op.params;
+  if (!op.string_params.empty())
+    ss << " string_params = " << op.string_params;
   if (!op.qubits.empty())
-    std::clog << " qubits = " << op.qubits;
+    ss << " qubits = " << op.qubits;
   if (!op.clbits.empty())
-    std::clog << " clbits = " << op.clbits;
-  std::clog << std::endl;
+    ss << " clbits = " << op.clbits;
+  std::clog << ss.str() << std::endl;
 #endif
 
   // Load if operation parameters
@@ -348,22 +369,25 @@ reglist Circuit::parse_reglist(const json_t &node) {
 
 //------------------------------------------------------------------------------
 bool Circuit::check_opt_meas() {
-
-  // Optimization not available if reset operations are used
-  for (auto it = operations.cbegin(); it < operations.cend(); it++)
-    if (it->id == gate_t::Reset)
+  // Find first instance of a measurement and check there
+  // are no reset operations before the measurement
+  auto start = operations.begin();
+  while (start != operations.end()) {
+    const auto op = start->id;
+    if (op == gate_t::Reset)
       return false;
-  
-  // Find first instance of a measurement
-  uint_t pos = 0;
-  while (operations[pos].id != gate_t::Measure && pos < operations.size()) {
-    pos++;
+    if (op == gate_t::Measure)
+      break;
+    ++start;
   }
-  // Check all remaining operations are also measurements
-  bool pass = true;
-  for (auto it = operations.cbegin() + pos; it < operations.cend(); it++)
-    pass &= (it->id == gate_t::Measure);
-  return pass;
+  // Check all remaining operations are measurements
+  while (start != operations.end()) {
+    if (start->id != gate_t::Measure) 
+      return false;
+    ++start;
+  }
+  // If we made it this far we can apply the optimization
+  return true;
 }
 
 //------------------------------------------------------------------------------

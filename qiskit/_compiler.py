@@ -128,9 +128,9 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
                       'backend_name': backend_name}
 
     # TODO This backend needs HPC parameters to be passed in order to work
-    if backend_name == 'ibmqx_hpc_qasm_simulator':
+    if 'hpc' in backend_name:
         if hpc is None:
-            logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
+            logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
                         'parameter. Setting defaults to hpc.multi_shot_optimization '
                         '= true and hpc.omp_num_threads = 16')
             hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
@@ -142,8 +142,8 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
         qobj['config']['hpc'] = hpc
     elif hpc is not None:
         logger.info('HPC parameter is only available for '
-                    'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
-                    'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                    'ibmq_qasm_simulator_hpc. You are passing an HPC parameter '
+                    'but you are not using ibmq_qasm_simulator_hpc, so we will '
                     'ignore it.')
         hpc = None
 

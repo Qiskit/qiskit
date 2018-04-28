@@ -72,7 +72,7 @@ class TestQuantumOptimization(QiskitTestCase):
         4_applications/quantum_chemistry.ipynb#Optimization-of-H2-at-bond-length but shorter."""
         n = 2
         m = 6
-        device = 'local_qasm_simulator'
+        device = 'local_statevector_simulator'
 
         np.random.seed(42)
         initial_theta = np.random.randn(2 * n * m)
@@ -193,7 +193,7 @@ class TestQuantumOptimization(QiskitTestCase):
         pauli_list = Hamiltonian_from_file(ham_name)
         n = 2
         m = 6
-        device = 'local_qasm_simulator'
+        device = 'local_statevector_simulator'
 
         theta = np.array([-0.607547697211, -0.126136414606, - 0.684606358705, 0.928714748593,
                           -1.84440103405, -0.467002424077, 2.29249034315, 0.488810054396,
