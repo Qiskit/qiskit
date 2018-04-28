@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,no-value-for-parameter,broad-except
+# pylint: disable=invalid-name,unused-import
 
 # Copyright 2018 IBM RESEARCH. All Rights Reserved.
 #
@@ -19,59 +19,126 @@
 
 import unittest
 import qiskit as qk
-import qiskit.extensions.qasm_simulator_cpp
+import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
-from qiskit.wrapper import register, available_backends, get_backend, execute
+from qiskit.wrapper import register, execute
 from .common import requires_qe_access, QiskitTestCase
 
-class TestSimulatorExtensions(QiskitTestCase):
-    """Test instruction extensions for simulators:
-    save, load, noise, snapshot, wait
+
+class TestCrossSimulation(QiskitTestCase):
+    """Test output consistency across simulators.
     """
     _desired_fidelity = 0.99
 
-    def test_save_load(self):
-        """save |+>|0>, do some stuff, then load"""
+    def test_statevector(self):
+        """statevector from a bell state"""
         q = qk.QuantumRegister(2)
-        c = qk.ClassicalRegister(2)
-        circ = qk.QuantumCircuit(q, c)
+        circ = qk.QuantumCircuit(q)
         circ.h(q[0])
-        circ.save(1)
         circ.cx(q[0], q[1])
-        circ.cx(q[1], q[0])
-        circ.h(q[1])
-        circ.load(1)
 
-        sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim)
-        statevector = result.get_statevector()
-        target = [0.70710678+0.j, 0.70710678+0.j, 0.        +0.j, 0.        +0.j]
-        fidelity = state_fidelity(statevector, target)
+        sim_cpp = 'local_statevector_simulator_cpp'
+        sim_py = 'local_statevector_simulator_py'
+        result_cpp = execute(circ, sim_cpp)
+        result_py = execute(circ, sim_py)
+        statevector_cpp = result_cpp.get_statevector()
+        statevector_py = result_py.get_statevector()
+        fidelity = state_fidelity(statevector_cpp, statevector_py)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "save-load statevector has low fidelity{0:.2g}.".format(fidelity))
+            "cpp vs. py statevector has low fidelity{0:.2g}.".format(fidelity))
 
-    def test_snapshot(self):
-        """save |+>|0>, do some stuff, then load"""
-        q = qk.QuantumRegister(2)
-        c = qk.ClassicalRegister(2)
+    @requires_qe_access
+    def test_qasm(self, QE_TOKEN, QE_URL):
+        """counts from a GHZ state"""
+        register(QE_TOKEN, QE_URL)
+        q = qk.QuantumRegister(3)
+        c = qk.ClassicalRegister(3)
         circ = qk.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.cx(q[0], q[1])
+        circ.cx(q[1], q[2])
+        circ.measure(q, c)
+
+        sim_cpp = 'local_qasm_simulator_cpp'
+        sim_py = 'local_qasm_simulator_py'
+        sim_ibmq = 'ibmq_qasm_simulator'
+        sim_hpc = 'ibmq_qasm_simulator_hpc'
+        shots = 2000
+        result_cpp = execute(circ, sim_cpp, {'shots': shots})
+        result_py = execute(circ, sim_py, {'shots': shots})
+        result_ibmq = execute(circ, sim_ibmq, {'shots': shots})
+        result_hpc = execute(circ, sim_hpc, {'shots': shots})
+        counts_cpp = result_cpp.get_counts()
+        counts_py = result_py.get_counts()
+        counts_ibmq = result_ibmq.get_counts()
+        counts_hpc = result_hpc.get_counts()
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.025)
+        self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.025)
+        self.assertDictAlmostEqual(counts_ibmq, counts_hpc, shots*0.025)
+
+    def test_qasm_snapshot(self):
+        """snapshot a circuit at multiple places"""
+        q = qk.QuantumRegister(3)
+        c = qk.ClassicalRegister(3)
+        circ = qk.QuantumCircuit(q, c)
+        circ.h(q[0])
+        circ.cx(q[0], q[1])
+        circ.snapshot(1)
+        circ.ccx(q[0], q[1], q[2])
+        circ.snapshot(2)
+        circ.reset(q)
         circ.snapshot(3)
-        circ.cx(q[0], q[1])
-        circ.h(q[1])
-        circ.load(1)
 
-        sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim)
-        snapshot = result.get_snapshots()[3]
-        statevector = snapshot['quantum_state']
-        target = [0.70710678+0.j, 0.        +0.j, 0.        +0.j, 0.70710678+0.j]
-        fidelity = state_fidelity(statevector, target)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "snapshot statevector has low fidelity{0:.2g}.".format(fidelity))
+        sim_cpp = 'local_qasm_simulator_cpp'
+        sim_py = 'local_qasm_simulator_py'
+        result_cpp = execute(circ, sim_cpp, {'shots': 2})
+        result_py = execute(circ, sim_py, {'shots': 2})
+        snapshots_cpp = result_cpp.get_snapshots()
+        snapshots_py = result_py.get_snapshots()
+        self.assertEqual(snapshots_cpp.keys(), snapshots_py.keys())
+        self.assertEqual(len(snapshots_cpp['1']['quantum_state']),
+                         len(snapshots_py['1']['quantum_state']))
+        for k in snapshots_cpp.keys():
+            fidelity = state_fidelity(snapshots_cpp[k]['quantum_state'][0],
+                                      snapshots_py[k]['quantum_state'][0])
+            self.assertGreater(fidelity, self._desired_fidelity)
+
+    @requires_qe_access
+    def test_qasm_reset_measure(self, QE_TOKEN, QE_URL):
+        """counts from a qasm program with measure and reset in the middle"""
+        register(QE_TOKEN, QE_URL)
+        q = qk.QuantumRegister(3)
+        c = qk.ClassicalRegister(3)
+        circ = qk.QuantumCircuit(q, c)
+        circ.h(q[0])
+        circ.cx(q[0], q[1])
+        circ.reset(q[0])
+        circ.cx(q[1], q[2])
+        circ.t(q)
+        circ.measure(q[1], c[1])
+        circ.h(q[2])
+        circ.measure(q[2], c[2])
+
+        # TODO: bring back online simulator tests when reset/measure doesn't
+        # get rejected by the api
+        sim_cpp = 'local_qasm_simulator_cpp'
+        sim_py = 'local_qasm_simulator_py'
+        # sim_ibmq = 'ibmq_qasm_simulator'
+        # sim_hpc = 'ibmq_qasm_simulator_hpc'
+        shots = 1000
+        result_cpp = execute(circ, sim_cpp, {'shots': shots})
+        result_py = execute(circ, sim_py, {'shots': shots})
+        # result_ibmq = execute(circ, sim_ibmq, {'shots': shots})
+        # result_hpc = execute(circ, sim_hpc, {'shots': shots})
+        counts_cpp = result_cpp.get_counts()
+        counts_py = result_py.get_counts()
+        # counts_ibmq = result_ibmq.get_counts()
+        # counts_hpc = result_hpc.get_counts()
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.025)
+        # self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.025)
+        # self.assertDictAlmostEqual(counts_ibmq, counts_hpc, shots*0.025)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
