@@ -79,12 +79,12 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         """
         if qobj['config']['shots'] != 1:
             logger.info("statevector simulator only supports 1 shot. "
-                           "Setting shots=1.")
+                        "Setting shots=1.")
             qobj['config']['shots'] = 1
         for circuit in qobj['circuits']:
             if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
                 logger.info("statevector simulator only supports 1 shot. "
-                               "Setting shots=1 for circuit %s", circuit['name'])
+                            "Setting shots=1 for circuit %s", circuit['name'])
                 circuit['config']['shots'] = 1
             for op in circuit['compiled_circuit']['operations']:
                 if op['name'] in ['measure', 'reset']:

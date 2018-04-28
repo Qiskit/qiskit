@@ -279,9 +279,9 @@ class QasmSimulatorPy(BaseBackend):
 
         slot is an integer indicating a snapshot slot number.
         """
-        self._snapshots.setdefault(int(slot),
+        self._snapshots.setdefault(str(int(slot)),
                                    {}).setdefault("quantum_state",
-                                                  []).append(self._quantum_state)
+                                                  []).append(np.copy(self._quantum_state))
 
     def run(self, q_job):
         """Run circuits in q_job"""
@@ -387,10 +387,7 @@ class QasmSimulatorPy(BaseBackend):
                     pass
                 # Check if snapshot command
                 elif operation['name'] == 'snapshot':
-                    if 'params' in operation:
-                        params = operation['params']
-                    else:
-                        params = None
+                    params = operation['params']
                     self._add_qasm_snapshot(params[0])
                 else:
                     backend = self._configuration['name']
