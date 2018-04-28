@@ -22,18 +22,19 @@ import logging
 import random
 import string
 import copy
+from uuid import uuid4
 
 # Stable Modules
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
 from .qasm import Qasm
+from .qobj import QObj, QObjExperiment, QObjInstruction, QObjConfig, QObjStructure
 
 # Beta Modules
 from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
-from ._quantumjob import QuantumJob
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +68,14 @@ def execute(list_of_circuits, backend, compile_config=None,
     Returns:
         obj: The results object
     """
-    compile_config = compile_config or {}
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
+    # TODO: wait and timeout
     qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
 
-    # XXX When qobj is done this should replace q_job
-    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits'], 'wait': wait, 'timeout': timeout})
-    result = backend.run(q_job)
+    result = backend.run(qobj)
     return result
 
 
-def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
+def compile_non_qobj(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
@@ -321,6 +318,193 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled
+
+
+def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
+    """Compile a list of circuits into a qobj.
+
+    FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
+    of circuit->dag, transpiler (dag -> dag) and dags-> qobj
+
+    Args:
+        list_of_circuits (list[QuantumCircuits]): list of circuits
+        backend (BaseBackend): a backend object to use as the default compiling
+            option
+        compile_config (dict or None): a dictionary of compile configurations.
+            If `None`, the default compile configuration will be used.
+        skip_translation (bool): If True, bypass most of the compilation process
+            and create a qobj with minimal check nor translation.
+
+    Returns:
+        obj: the qobj to be run on the backends
+
+    Raises:
+        QISKitError: if any of the circuit names cannot be found on the
+            Quantum Program.
+    """
+    if isinstance(list_of_circuits, QuantumCircuit):
+        list_of_circuits = [list_of_circuits]
+    compile_config = compile_config or {}
+    parameters = _get_compile_parameters(compile_config, backend)
+
+    qobj = _build_qobj(parameters, backend)
+
+    for circuit in list_of_circuits:
+        # Compile the circuit.
+        num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+
+        # TODO: A better solution is to have options to enable/disable optimizations
+        coupling_map = parameters['coupling_map']
+        if num_qubits == 1 or coupling_map == 'all-to-all':
+            coupling_map = None
+
+        if skip_translation:
+            # Just return the qobj, without any transformation or analysis
+            compiled_circuit = DagUnroller(
+                DAGCircuit.fromQuantumCircuit(circuit),
+                JsonBackend(parameters['basis_gates'].split(','))).execute()
+            layout = None
+        else:
+            dag_circuit, final_layout = compile_circuit(
+                circuit,
+                basis_gates=parameters['basis_gates'],
+                coupling_map=coupling_map,
+                initial_layout=parameters['initial_layout'],
+                get_layout=True)
+            # Map the layout to a format that can be json encoded
+            list_layout = None
+            if final_layout:
+                list_layout = [[k, v] for k, v in final_layout.items()]
+
+            # the compiled circuit to be run saved as a dag
+            # we assume that compile_circuit has already expanded gates
+            # to the target basis, so we just need to generate json
+            compiled_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
+            layout = list_layout
+
+        # Add the experiment to the QObj.
+        qobj_experiment = _build_qobj_experiment(parameters, circuit,
+                                                 compiled_circuit, layout)
+        qobj.experiments.append(qobj_experiment)
+
+    return qobj
+
+
+def _get_compile_parameters(compile_config, backend):
+    """Check a compile configuration and transform it into a valid configuration
+    for the compilation, performing a series of checks and replacements.
+
+    Args:
+        compile_config (dict): compile configuration.
+        backend (BaseBackend): backend instance.
+
+    Returns:
+        dict: a compile configuration with valid parameters.
+    """
+    compile_config = compile_config.copy() or {}
+    parsed_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}.copy()
+    backend_name = backend.configuration['name']
+
+    # Check "id" field.
+    if not parsed_config['qobj_id']:
+        parsed_config['qobj_id'] = str(uuid4())
+
+    # Check "basis_gates" field.
+    if not parsed_config['basis_gates']:
+        if 'basis_gates' in backend.configuration:
+            parsed_config['basis_gates'] = backend.configuration['basis_gates']
+    elif len(parsed_config['basis_gates'].split(',')) < 2:
+        # catches deprecated basis specification like 'SU2+CNOT'
+        logger.warning('encountered deprecated basis specification: '
+                       '"%s" substituting u1,u2,u3,cx,id',
+                       str(parsed_config['basis_gates']))
+        parsed_config['basis_gates'] = 'u1,u2,u3,cx,id'
+
+    # Check "coupling_map" field.
+    if not parsed_config['coupling_map']:
+        parsed_config['coupling_map'] = backend.configuration['coupling_map']
+
+    # Check "hpc" field.
+    if backend_name == 'ibmqx_hpc_qasm_simulator':
+        if not parsed_config['hpc']:
+            logger.info('ibmqx_hpc_qasm_simulator backend needs HPC '
+                        'parameter. Setting defaults to hpc.multi_shot_optimization '
+                        '= true and hpc.omp_num_threads = 16')
+            parsed_config['hpc'] = {'multi_shot_optimization': True,
+                                     'omp_num_threads': 16}
+
+        if not all(key in parsed_config['hpc'] for key in
+                   ('multi_shot_optimization', 'omp_num_threads')):
+            raise QISKitError('Unknown HPC parameter format!')
+    elif 'hpc' in parsed_config:
+        logger.info('HPC parameter is only available for '
+                    'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
+                    'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                    'ignore it.')
+        del parsed_config['hpc']
+
+    # Check "config" field.
+    if not parsed_config['config']:
+        parsed_config['config'] = {}
+
+    return parsed_config
+
+
+def _build_qobj(parameters, backend):
+    """
+
+    Args:
+        parameters:
+        backend:
+
+    Returns:
+
+    """
+    # Append custom attributes to QObjConfig, based on the keys in "parameters"
+    # that are not part of a subset of the default compile configuration.
+    reserved_keys = ['config', 'basis_gates', 'coupling_map', 'initial_layout',
+                     'qobj_id']
+    extra_config_options = {key: value for key, value in parameters.items()
+                            if key not in reserved_keys}
+
+    config = QObjConfig(register_slots=3,  # TODO: needed?,
+                        **extra_config_options)
+    header = QObjStructure(backend_name=backend.configuration['name'])
+
+    qobj = QObj(id=parameters['qobj_id'],
+                config=config,
+                header=header,
+                experiments=[])
+
+    return qobj
+
+
+def _build_qobj_experiment(parameters, circuit, compiled_circuit, layout):
+    """
+
+    Args:
+        parameters:
+        circuit:
+        compiled_circuit:
+        layout:
+
+    Returns:
+
+    """
+    # TODO: "coupling_map" and "basis_gates" where previously part of
+    # job['config']. Where in the schema are they now?
+    extra_config_options = parameters.get('config', {}).copy()
+    if layout:
+        extra_config_options['layout'] = layout
+
+    config = QObjStructure(**extra_config_options)
+    instructions = [QObjInstruction(**instruction) for instruction in
+                    compiled_circuit['instructions']]
+    experiment = QObjExperiment(name=circuit.name,
+                                config=config,
+                                header=compiled_circuit['header'],
+                                instructions=instructions)
+    return experiment
 
 
 class QISKitCompilerError(QISKitError):

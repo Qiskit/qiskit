@@ -283,14 +283,15 @@ class QasmSimulator(BaseBackend):
         else:
             self._quantum_state = temp
 
-    def run(self, q_job):
+    def run(self, qobj):
         """Run circuits in q_job"""
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
         result_list = []
+        qobj = qobj.as_dict()
         self._shots = qobj['config']['shots']
-        for circuit in qobj['circuits']:
+
+        for circuit in qobj['experiments']:
             result_list.append(self.run_circuit(circuit))
         return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
                       qobj)
@@ -315,7 +316,7 @@ class QasmSimulator(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
-        ccircuit = circuit['compiled_circuit']
+        ccircuit = circuit
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         self._number_of_cbits = ccircuit['header']['number_of_clbits']
         self._quantum_state = 0
@@ -327,7 +328,7 @@ class QasmSimulator(BaseBackend):
             cl_reg_nbits.append(cl_reg[1])
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
+        if circuit['config'].get('seed') is None:
             self._local_random.seed(random.getrandbits(32))
         else:
             self._local_random.seed(circuit['config']['seed'])
@@ -337,7 +338,7 @@ class QasmSimulator(BaseBackend):
                                            dtype=complex)
             self._quantum_state[0] = 1
             self._classical_state = 0
-            for operation in ccircuit['operations']:
+            for operation in ccircuit['instructions']:
                 if 'conditional' in operation:
                     mask = int(operation['conditional']['mask'], 16)
                     if mask > 0:

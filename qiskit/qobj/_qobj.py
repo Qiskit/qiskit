@@ -54,15 +54,15 @@ class QObj(QObjStructure):
         id (str): QObj identifier.
         config (QObjConfig): config settings for the QObj.
         experiments (list[QObjExperiment]): list of experiments.
-        headers (QObjStructure): headers.
+        header (QObjStructure): headers.
         type (str): experiment type (QASM/PULSE).
     """
-    def __init__(self, id, config, experiments, headers, **kwargs):
+    def __init__(self, id, config, experiments, header, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
         self.id = id
         self.config = config
         self.experiments = experiments
-        self.headers = headers
+        self.header = header
         self.type = QObjType.QASM.value
 
         super().__init__(**kwargs)
@@ -100,11 +100,9 @@ class QObjInstruction(QObjStructure):
     Attributes:
         name(str): name of the gate.
         qubits(list): list of qubits to apply to the gate.
-        params(list): list of parameters for the gate.
     """
-    def __init__(self, name, qubits, params, **kwargs):
+    def __init__(self, name, qubits, **kwargs):
         self.name = name
         self.qubits = qubits
-        self.params = params
 
         super().__init__(**kwargs)

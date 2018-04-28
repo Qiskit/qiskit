@@ -31,10 +31,10 @@ class TestQObj(QiskitTestCase):
         experiment_1 = QObjExperiment(instructions)
         experiments = [experiment_1]
         config = QObjConfig(shots=1024, register_slots=3)
-        headers = {}
+        header = {}
 
         qobj = QObj(id='12345', config=config,
-                    experiments=experiments, headers=headers)
+                    experiments=experiments, header=header)
 
         expected = {'id': '12345',
                     'headers': {},

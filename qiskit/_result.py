@@ -93,7 +93,7 @@ class Result(object):
             if isinstance(self._qobj['id'], str):
                 self._qobj['id'] = [self._qobj['id']]
             self._qobj['id'].append(other._qobj['id'])
-            self._qobj['circuits'] += other._qobj['circuits']
+            self._qobj['experiments'] += other._qobj['experiments']
             self._result['result'] += other._result['result']
             return self
         else:
@@ -161,9 +161,9 @@ class Result(object):
         """
         try:
             qobj = self._qobj
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
+            for index in range(len(qobj["experiments"])):
+                if qobj["experiments"][index]['name'] == name:
+                    return qobj["experiments"][index]["compiled_circuit_qasm"]
         except KeyError:
             pass
         raise QISKitError('No  qasm for circuit "{0}"'.format(name))
@@ -217,7 +217,7 @@ class Result(object):
             circuit_name = circuit_name.name
 
         if circuit_name is None:
-            circuits = list([i['name'] for i in self._qobj['circuits']])
+            circuits = list([i['name'] for i in self._qobj['experiments']])
             if len(circuits) == 1:
                 circuit_name = circuits[0]
             else:
@@ -226,8 +226,8 @@ class Result(object):
 
         try:
             qobj = self._qobj
-            for index in range(len(qobj['circuits'])):
-                if qobj['circuits'][index]['name'] == circuit_name:
+            for index in range(len(qobj['experiments'])):
+                if qobj['experiments'][index]['name'] == circuit_name:
                     return self._result['result'][index]['data']
         except (KeyError, TypeError):
             pass
@@ -261,7 +261,7 @@ class Result(object):
         Returns:
             List: A list of circuit names.
         """
-        return [c['name'] for c in self._qobj['circuits']]
+        return [c['name'] for c in self._qobj['experiments']]
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -299,9 +299,9 @@ class Result(object):
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self._qobj['circuits'])
+        ncircuits = len(self._qobj['experiments'])
         # Is this the best way to get the number of qubits?
-        nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
+        nqubits = self._qobj['experiments'][0]['compiled_circuit']['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
@@ -318,9 +318,9 @@ class Result(object):
         # go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
             if xvals_dict:
-                xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
+                xvals[circuit_ind] = xvals_dict[self._qobj['experiments'][circuit_ind]['name']]
             for qubit_ind in range(nqubits):
                 qubitpol[circuit_ind, qubit_ind] = self.average_data(
-                    self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                    self._qobj['experiments'][circuit_ind]['name'], z_dicts[qubit_ind])
 
         return qubitpol, xvals
