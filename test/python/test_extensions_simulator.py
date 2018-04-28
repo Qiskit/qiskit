@@ -22,9 +22,20 @@ import qiskit as qk
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import execute
+from qiskit.backends.local import QasmSimulatorCpp
 from .common import QiskitTestCase
 
 
+# Cpp backend required
+try:
+    cpp_backend = QasmSimulatorCpp()
+except FileNotFoundError:
+    _skip_class = True
+else:
+    _skip_class = False
+
+
+@unittest.skipIf(_skip_class, 'C++ simulators unavailable')
 class TestExtensionsSimulator(QiskitTestCase):
     """Test instruction extensions for simulators:
     save, load, noise, snapshot, wait
@@ -65,13 +76,12 @@ class TestExtensionsSimulator(QiskitTestCase):
 
         sim = 'local_statevector_simulator_cpp'
         result = execute(circ, sim)
-        snapshot = result.get_snapshots()['3']
-        statevector = snapshot['quantum_state'][0]
+        snapshot = result.get_snapshot(slot='3')
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
-        fidelity = state_fidelity(statevector, target)
+        fidelity = state_fidelity(snapshot, target)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "snapshot statevector has low fidelity{0:.2g}.".format(fidelity))
+            "snapshot has low fidelity{0:.2g}.".format(fidelity))
 
     def test_noise(self):
         """turn on a pauli x noise for qubits 0 and 2"""

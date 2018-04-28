@@ -18,11 +18,27 @@
 """Tests for checking qiskit interfaces to simulators."""
 
 import unittest
+import logging
 import qiskit as qk
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import register, execute
+from qiskit.backends.local import QasmSimulatorCpp
 from .common import requires_qe_access, QiskitTestCase
+
+
+logger_cpp = logging.getLogger('qiskit.backends.local.qasm_simulator_cpp')
+logger_py = logging.getLogger('qiskit.backends.local.qasm_simulator_py')
+logger_cpp.setLevel(logging.ERROR)
+logger_py.setLevel(logging.ERROR)
+
+# Cpp backend required
+try:
+    cpp_backend = QasmSimulatorCpp()
+except FileNotFoundError:
+    _skip_class = True
+else:
+    _skip_class = False
 
 
 class TestCrossSimulation(QiskitTestCase):
@@ -97,12 +113,11 @@ class TestCrossSimulation(QiskitTestCase):
         snapshots_cpp = result_cpp.get_snapshots()
         snapshots_py = result_py.get_snapshots()
         self.assertEqual(snapshots_cpp.keys(), snapshots_py.keys())
-        self.assertEqual(len(snapshots_cpp['1']['quantum_state']),
-                         len(snapshots_py['1']['quantum_state']))
-        for k in snapshots_cpp.keys():
-            fidelity = state_fidelity(snapshots_cpp[k]['quantum_state'][0],
-                                      snapshots_py[k]['quantum_state'][0])
-            self.assertGreater(fidelity, self._desired_fidelity)
+        snapshot_cpp_1 = result_cpp.get_snapshot(slot='1')
+        snapshot_py_1 = result_py.get_snapshot(slot='1')
+        self.assertEqual(len(snapshot_cpp_1), len(snapshot_py_1))
+        fidelity = state_fidelity(snapshot_cpp_1[0], snapshot_py_1[0])
+        self.assertGreater(fidelity, self._desired_fidelity)
 
     @requires_qe_access
     def test_qasm_reset_measure(self, QE_TOKEN, QE_URL):

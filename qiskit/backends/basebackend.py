@@ -41,6 +41,7 @@ class BaseBackend(ABC):
 
         Raises:
             FileNotFoundError if backend executable is not available.
+            QISKitError: if there is no name in the configuration
         """
         self._configuration = configuration
 
