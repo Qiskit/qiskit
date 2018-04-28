@@ -58,10 +58,10 @@ class DummySimulator(BaseBackend):
         """
         Args:
             configuration (dict): backend configuration
+            time_alive (int): time to wait before returning result
         """
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())        
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
-
 
     def run(self, q_job):
         """ Main dummy simulator loop """

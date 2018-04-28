@@ -36,6 +36,8 @@ from .common import QiskitTestCase
 class TestLocalQasmSimulatorPyPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
 
+    do_profiling = False
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -273,6 +275,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 
+    @unittest.skipIf(not do_profiling, "skipping simulator profiling.")
     def profile_nqubit_speed_grow_depth(self):
         """simulation time vs the number of qubits
 
@@ -350,6 +353,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
             ax.legend()
         self.pdf.savefig(fig)
 
+    @unittest.skipIf(not do_profiling, "skipping simulator profiling.")
     def profile_nqubit_speed_constant_depth(self):
         """simulation time vs the number of qubits
 
