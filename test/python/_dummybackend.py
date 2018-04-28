@@ -43,20 +43,25 @@ class DummyProvider(BaseProvider):
 
 class DummySimulator(BaseBackend):
     """ This is Dummy backend simulator just for testing purposes """
+
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_dummy_simulator',
+        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'simulator': True,
+        'local': True,
+        'description': 'A dummy simulator for testing purposes',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,id'
+    }
+
     def __init__(self, configuration=None, time_alive=10):
-        super().__init__(configuration)
+        """
+        Args:
+            configuration (dict): backend configuration
+        """
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())        
         self.time_alive = time_alive
 
-        if configuration is None:
-            self._configuration = {'name': 'local_dummy_simulator',
-                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
-                                   'simulator': True,
-                                   'local': True,
-                                   'description': 'A dummy simulator for testing purposes',
-                                   'coupling_map': 'all-to-all',
-                                   'basis_gates': 'u1,u2,u3,cx,id'}
-        else:
-            self._configuration = configuration
 
     def run(self, q_job):
         """ Main dummy simulator loop """

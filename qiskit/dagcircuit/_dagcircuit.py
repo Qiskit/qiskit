@@ -768,7 +768,7 @@ class DAGCircuit:
                          "ch", "crz", "rzz"]
                 omit.extend(qelib)
                 printed_gates.extend(qelib)
-            simulator_instructions = ["snapshot", "save", "load", "noise"]
+            simulator_instructions = ["snapshot", "save", "load", "noise", "wait"]
             omit.extend(simulator_instructions)
             for k in self.basis.keys():
                 if k not in omit:
