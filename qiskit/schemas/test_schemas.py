@@ -30,6 +30,8 @@ import jsonschema as jsch
 schema_tests = []
 verbose_err = False
 any_error = False
+cur_file_path = os.path.dirname(os.path.abspath(__file__))
+print(cur_file_path)
 
 """List the schemas and their examples."""
 schema_tests.append({"schema": "backend_config_schema.json",
@@ -48,10 +50,6 @@ schema_tests.append({"schema": "backend_status_schema.json",
 schema_tests.append({"schema": "default_pulse_config_schema.json",
                      "examples": [
                          "default_pulse_config_example.json"
-                         ]})
-schema_tests.append({"schema": "gate_def_schema.json",
-                     "examples": [
-                         "gate_def_example.json"
                          ]})
 schema_tests.append({"schema": "job_status_schema.json",
                      "examples": [
@@ -76,8 +74,9 @@ schema_tests.append({"schema": "result_schema.json",
 for schema_test in schema_tests:
     print('Schema: %s' % (schema_test['schema']))
     for example_schema in schema_test['examples']:
-        schema = json.load(open(schema_test['schema'], 'r'))
-        example = json.load(open(os.path.join('examples',
+        schema = json.load(open(os.path.join(cur_file_path,
+                                             schema_test['schema']), 'r'))
+        example = json.load(open(os.path.join(cur_file_path, 'examples',
                                               example_schema), 'r'))
         try:
             jsch.validate(example, schema)

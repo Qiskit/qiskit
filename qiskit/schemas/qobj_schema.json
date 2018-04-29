@@ -3,6 +3,15 @@
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
     "definitions": {
+        "conditional": {
+            "type": "object",
+            "required": ["mask","relation","val"],
+            "properties": {
+                "mask": {"type": "string"},
+                "relation": {"type": "string"},
+                "val": {"type": "string"}
+            }
+        },
         "complex": {
             "description": "JSON representation of a complex number",
             "type": "array",
@@ -160,7 +169,200 @@
                     "minItems": 1,
                     "description": "List of experiment instructions."}
                 }
-        }
+        },
+        "openpulse_instructions": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+                "name": {"type": "string"},
+                "t0": {"type": "integer", "minimum": 0},
+                "ch": {"type": "string"},
+                "params": {"type": "array"},
+                "conditional": {"$ref": "#/definitions/conditional"}
+            },
+            "oneOf": [
+                {"title": "Standard pulse",
+                "required": ["t0", "ch"],
+                "properties": {
+                    "name": {"not": {"enum": ["pv","fc","acquire"]}}}},
+                {
+                "title": "Persistent value pulse",
+                "required": ["val", "t0", "ch"],
+                "properties": {
+                    "name": {"enum": ["pv"]},
+                    "val": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {"type": "number"}}
+                }
+                },
+                {
+                "title": "Frame change pulse",
+                "required": ["phase", "t0", "ch"],
+                "properties": {
+                    "name": {"enum": ["fc"]},
+                    "phase": {"type": "number"}
+                }
+                },
+                {
+                "title": "Acquisition",
+                "required": ["tstart","tend","qubits","register_slot"],
+                "properties": {
+                    "name": {"enum": ["acquire"]},
+                    "tstart": {"type": "number"},
+                    "tend": {"type": "number"},
+                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
+                    "register_slot": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
+                    "kernels": {"type": "array"},
+                    "discriminators": {"type": "array"}
+                }
+                },
+                {
+                    "title": "snapshot",
+                    "required": ["t0"],
+                    "properties": {
+                        "name": {"enum": ["#snapshot"]},
+                        "register": {"maxItems": 0},
+                        "params": {
+                            "minItems": 2,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "texparams": {"maxItems": 0}
+                    }
+                }	
+            ] 
+        },
+        "openqasm_instructions": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+                "qubits": {"type": "array"},
+                "register": {"type": "array"},
+                "name": {"type": "string"},
+                "params": {"type": "array"},
+                "conditional": {"$ref": "#definitions/conditional"}        
+            },
+            "oneOf": [{		
+                    "title": "3-param 1Q op",
+                    "required": ["qubits", "params"],
+                    "properties": {
+                        "name": {"enum": ["u3", "U"]},
+                        "qubits": {"maxItems": 1},
+                        "register": {"maxItems": 0},
+                        "params": {"minItems": 3, "maxItems": 3},
+                        "texparams": {"minItems": 3, "maxItems": 3}
+                    }
+                }, {
+                "title": "fixed 1Q op",
+                "required": ["qubits"],
+                "properties": {
+                    "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
+                    "qubits": {"minItems": 1, "maxItems": 1},
+                    "register": {"maxItems": 0},
+                    "params": {"maxItems": 0},
+                    "texparams": {"maxItems": 0}
+                }
+                }, {
+                "title": "1-param 1Q op",
+                "required": ["qubits", "params"],
+                "properties": {
+                    "name": {"enum": ["u1", "rx", "ry", "rz"]},
+                    "qubits": {"minItems": 1, "maxItems": 1},
+                    "register": {"maxItems": 0},
+                    "params": {"minItems": 1, "maxItems": 1},
+                    "texparams": {"minItems": 1, "maxItems": 1}
+                }			
+                }, {
+                "title": "2-param 1Q op",
+                "required": ["qubits", "params"],				
+                "properties": {
+                    "name": {"enum": ["u2"]},
+                    "qubits": {"minItems": 1, "maxItems": 1},
+                    "register": {"maxItems": 0},
+                    "params": {"minItems": 2, "maxItems": 2},
+                    "texparams": {"minItems": 2, "maxItems": 2}
+                }			
+                }, {
+                "title": "fixed 2Q gate",
+                "required": ["qubits"],
+                "properties": {
+                    "name": {"enum": ["cx", "CX", "cy", "cz", "ch", "swap"]},
+                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                    "register": {"maxItems": 0},
+                    "params": {"maxItems": 0},
+                    "texparams": {"maxItems": 0}
+                }
+                }, {
+                "title": "1-param 2Q controlled gate",
+                "required": ["qubits", "params"],
+                "properties": {
+                    "name": {"enum": ["cu1", "crz"]},
+                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                    "register": {"maxItems": 0},
+                    "params": {"minItems": 1, "maxItems": 1},
+                    "texparams": {"minItems": 1, "maxItems": 1}
+                }
+                }, {
+                "title": "3-param 2Q controlled gate",
+                "required": ["qubits", "params"],
+                "properties": {
+                    "name": {"enum": ["cu3"]},
+                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
+                    "register": {"maxItems": 0},
+                    "params": {"minItems": 3, "maxItems": 3},
+                    "texparams": {"minItems":3, "maxItems": 3}
+                }
+                }, {
+                "title": "fixed 3Q doubly controlled gate",
+                "required": ["qubits"],
+                "properties": {
+                    "name": {"enum": ["ccx"]},
+                    "qubits": {"description": "[control, control, target]", "minItems": 3, "maxItems": 3},
+                    "register": {"maxItems": 0},
+                    "params": {"maxItems": 0},
+                    "texparams": {"maxItems": 0}
+                }
+                }, {
+                "title": "measurement",
+                "required": ["qubits", "register"],
+                "properties": {
+                    "name": {"enum": ["measure"]},
+                    "qubits": {"minItems": 1, "maxItems": 1},
+                    "register": {"minItems": 1, "maxItems": 1},
+                    "params": {"maxItems": 0},
+                    "texparams": {"maxItems": 0}
+                }
+                }, {
+                "title": "barrier",
+                "required": ["qubits"],
+                "properties": {
+                    "name": {"enum": ["barrier"]},
+                    "qubits": {"minItems": 1},
+                    "register": {"maxItems": 0},
+                    "params": {"maxItems": 0},
+                    "texparams": {"maxItems": 0}
+                }
+                },
+                {
+                "title": "snapshot",
+                "required": ["params"],
+                "properties": {
+                    "name": {"enum": ["#snapshot"]},                    
+                    "register": {"maxItems": 0},
+                    "params": {
+                        "minItems": 2,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "texparams": {"maxItems": 0}
+                }
+                }
+            ]
+        }        
     },
     "oneOf": [
     {"allOf": [{"$ref": "#/definitions/qobjlevel0"},
@@ -174,7 +376,7 @@
                     {"$ref": "#/definitions/qobjexp"},
                     {"properties": {
                         "instructions": {
-                            "items": {"$ref": "file:openqasm_instructions_schema.json"}
+                            "items": {"$ref": "#definitions/openqasm_instructions"}
                             }
                         }
                     }]
@@ -232,7 +434,7 @@
                     {"$ref": "#/definitions/qobjexp"},
                     {"properties": {
                         "instructions": {
-                            "items": {"$ref": "file:openpulse_instructions_schema.json"}
+                            "items": {"$ref": "#/definitions/openpulse_instructions"}
                             }
                         }
                     }]
