@@ -16,8 +16,7 @@
 # =============================================================================
 
 """
-Exception for errors raised by the JobProcessor when there's an error
-in the result
+Exception for errors when there's an error in the Result
 """
 
 from ._qiskiterror import QISKitError

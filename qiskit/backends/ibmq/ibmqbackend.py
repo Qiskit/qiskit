@@ -25,10 +25,10 @@ import time
 from qiskit import QISKitError
 from qiskit._compiler import compile_circuit
 from qiskit._result import Result
-from qiskit._resulterror import ResultError
+
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ class IBMQBackend(BaseBackend):
             Result: Result object
 
         Raises:
-            ResultError: if the api returns an error message when submitting
+            IBMQJobError: if the api returns an error message when submitting
                 the job.
         """
         qobj = q_job.qobj
@@ -135,7 +135,7 @@ class IBMQBackend(BaseBackend):
         timeout = q_job.timeout
         submit_info = self._submit_info
         if 'error' in submit_info:
-            raise ResultError(submit_info['error'])
+            raise IBMQJobError(submit_info['error'])
         logger.info('Running qobj: %s on remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],
                     submit_info['id'])
