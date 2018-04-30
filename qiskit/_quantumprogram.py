@@ -614,7 +614,7 @@ class QuantumProgram(object):
 
     def get_circuit_names(self):
         """Return all the names of the quantum circuits."""
-        return list(self.__quantum_program.keys())
+        return sorted(list(self.__quantum_program.keys()))
 
     def get_qasm(self, name=None):
         """Get qasm format of circuit by name.
