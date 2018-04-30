@@ -450,9 +450,9 @@ class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
         qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
+
 class TestInvalidIds(QiskitTestCase):
     """Circuits and records with invalid IDs"""
-
 
     def test_invalid_type_circuit_name(self):
         """Test create_circuit with invalid type name
@@ -489,7 +489,6 @@ class TestInvalidIds(QiskitTestCase):
         }
 
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
 
     def test_invalid_type_cr_spec(self):
         """QPS_SPECS_NONAMES defines a classical register with an invalid type name
@@ -533,7 +532,6 @@ class TestInvalidIds(QiskitTestCase):
         }
 
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
 
     def test_invalid_qasmname_cr_spec(self):
         """QPS_SPECS_NONAMES defines a classical register with invalid QASM name (do not start

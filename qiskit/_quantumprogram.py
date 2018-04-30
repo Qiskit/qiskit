@@ -1250,13 +1250,6 @@ class QuantumProgram(object):
                                      callback=callback)
         job_processor.submit()
 
-    def _create_id(self, formatstring, existing):
-        i = next(self.__counter)
-        formatstring = "autoid_" + formatstring
-        if formatstring % i not in existing:
-            return formatstring % i
-        raise QISKitError("Anonymous identifier was not possible to be created")
-
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, wait=5, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
