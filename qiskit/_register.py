@@ -51,8 +51,14 @@ class Register(object):
             name_temp = size
             size = name
             name = name_temp
+
         if name is None:
             name = '%s%i' % (self.prefix, next(self.instances_counter))
+
+        test = re.compile('[a-z][a-zA-Z0-9_]*')
+        if test.match(name) is None:
+            raise QISKitError("%s is an invalid OPENQASM register name." % name)
+
         self.name = name
         self.size = size
         if size <= 0:
