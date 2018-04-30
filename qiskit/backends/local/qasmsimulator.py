@@ -285,6 +285,8 @@ class QasmSimulator(BaseBackend):
 
     def run(self, qobj):
         """Run circuits in q_job"""
+        # pylint: disable=arguments-differ
+        # TODO: revise arguments in base class
         # Generating a string id for the job
         job_id = str(uuid.uuid4())
         result_list = []

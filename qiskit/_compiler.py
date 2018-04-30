@@ -68,7 +68,9 @@ def execute(list_of_circuits, backend, compile_config=None,
     Returns:
         obj: The results object
     """
-    # TODO: wait and timeout
+    # pylint: disable=unused-argument
+    # TODO: wait and timeout?
+
     qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
 
     result = backend.run(qobj)
@@ -337,10 +339,6 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
 
     Returns:
         obj: the qobj to be run on the backends
-
-    Raises:
-        QISKitError: if any of the circuit names cannot be found on the
-            Quantum Program.
     """
     if isinstance(list_of_circuits, QuantumCircuit):
         list_of_circuits = [list_of_circuits]
@@ -400,8 +398,12 @@ def _get_compile_parameters(compile_config, backend):
 
     Returns:
         dict: a compile configuration with valid parameters.
+
+    Raises:
+        QISKitError: if any of the circuit names cannot be found on the
+            Quantum Program.
     """
-    compile_config = compile_config.copy() or {}
+    compile_config = copy.deepcopy(compile_config) or {}
     parsed_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}.copy()
     backend_name = backend.configuration['name']
 
@@ -431,16 +433,17 @@ def _get_compile_parameters(compile_config, backend):
                         'parameter. Setting defaults to hpc.multi_shot_optimization '
                         '= true and hpc.omp_num_threads = 16')
             parsed_config['hpc'] = {'multi_shot_optimization': True,
-                                     'omp_num_threads': 16}
+                                    'omp_num_threads': 16}
 
         if not all(key in parsed_config['hpc'] for key in
                    ('multi_shot_optimization', 'omp_num_threads')):
             raise QISKitError('Unknown HPC parameter format!')
     elif 'hpc' in parsed_config:
-        logger.info('HPC parameter is only available for '
-                    'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
-                    'but you are not using ibmqx_hpc_qasm_simulator, so we will '
-                    'ignore it.')
+        if parsed_config['hpc']:
+            logger.info('HPC parameter is only available for '
+                        'ibmqx_hpc_qasm_simulator. You are passing an HPC parameter '
+                        'but you are not using ibmqx_hpc_qasm_simulator, so we will '
+                        'ignore it.')
         del parsed_config['hpc']
 
     # Check "config" field.
@@ -458,7 +461,7 @@ def _build_qobj(parameters, backend):
         backend:
 
     Returns:
-
+        QObj: qobj
     """
     # Append custom attributes to QObjConfig, based on the keys in "parameters"
     # that are not part of a subset of the default compile configuration.
@@ -489,6 +492,7 @@ def _build_qobj_experiment(parameters, circuit, compiled_circuit, layout):
         layout:
 
     Returns:
+        QObjExperiment: experiment
 
     """
     # TODO: "coupling_map" and "basis_gates" where previously part of

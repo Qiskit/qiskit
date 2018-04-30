@@ -26,6 +26,8 @@ class QObjStructure(SimpleNamespace):
     """
     General QObj structure.
     """
+    REQUIRED_ARGS = ()
+
     def as_dict(self):
         """Return a dictionary representation of the QObjStructure, recursively
         converting its public attributes.
@@ -46,6 +48,12 @@ class QObjStructure(SimpleNamespace):
         return {key: expand_item(value) for key, value
                 in self.__dict__.items() if not key.startswith('_')}
 
+    def __reduce__(self):
+        init_args = tuple(getattr(self, key) for key in self.REQUIRED_ARGS)
+        extra_args = {key: value for key, value in self.__dict__.items()
+                      if key not in self.REQUIRED_ARGS}
+        return self.__class__, init_args, extra_args
+
 
 class QObj(QObjStructure):
     """Representation of a QObj.
@@ -57,6 +65,9 @@ class QObj(QObjStructure):
         header (QObjStructure): headers.
         type (str): experiment type (QASM/PULSE).
     """
+
+    REQUIRED_ARGS = ['id', 'config', 'experiments', 'header']
+
     def __init__(self, id, config, experiments, header, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
         self.id = id
@@ -75,6 +86,8 @@ class QObjConfig(QObjStructure):
         shots (int): number of shots.
         register_slots (int): number of classical register slots.
     """
+    REQUIRED_ARGS = ['shots', 'register_slots']
+
     def __init__(self, shots, register_slots, **kwargs):
         self.shots = shots
         self.register_slots = register_slots
@@ -88,6 +101,8 @@ class QObjExperiment(QObjStructure):
     Attributes:
         instructions(list[QObjInstruction]): list of instructions
     """
+    REQUIRED_ARGS = ['instructions']
+
     def __init__(self, instructions, **kwargs):
         self.instructions = instructions
 
@@ -101,6 +116,8 @@ class QObjInstruction(QObjStructure):
         name(str): name of the gate.
         qubits(list): list of qubits to apply to the gate.
     """
+    REQUIRED_ARGS = ['name', 'qubits']
+
     def __init__(self, name, qubits, **kwargs):
         self.name = name
         self.qubits = qubits

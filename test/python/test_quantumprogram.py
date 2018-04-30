@@ -734,7 +734,8 @@ class TestQuantumProgram(QiskitTestCase):
         out = q_program.compile(['circuitName'], backend=backend,
                                 coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
-        self.assertEqual(len(out), 3)
+        self.assertEqual(out.experiments[0].name, 'circuitName')
+        self.assertEqual(out.id, 'cooljob')
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
@@ -885,23 +886,23 @@ class TestQuantumProgram(QiskitTestCase):
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        qobj1['circuits'][0]['config']['shots'] = 50
-        qobj1['circuits'][0]['config']['xvals'] = [1, 1, 1]
+        qobj1.experiments[0].config.shots = 50
+        qobj1.experiments[0].config.xvals = [1, 1, 1]
         config['shots'] = 1000
         config['xvals'][0] = 'only for qobj2'
         qobj2 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
-        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
-        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1, 1, 1])
-        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1, 2, 3, 4])
-        self.assertTrue(qobj1['config']['shots'] == 1024)
-        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
-            'only for qobj2', 2, 3, 4])
-        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
-            'only for qobj2', 2, 3, 4])
+        self.assertEqual(qobj1.experiments[0].config.shots, 50)
+        self.assertEqual(qobj1.experiments[1].config.shots, 1)
+        self.assertEqual(qobj1.experiments[0].config.xvals, [1, 1, 1])
+        self.assertEqual(qobj1.experiments[1].config.xvals, [1, 2, 3, 4])
+        self.assertTrue(qobj1.config.shots, 1024)
+        self.assertTrue(qobj2.experiments[0].config.shots, 1000)
+        self.assertTrue(qobj2.experiments[1].config.shots, 1000)
+        self.assertTrue(qobj2.experiments[0].config.xvals,
+                        ['only for qobj2', 2, 3, 4])
+        self.assertTrue(qobj2.experiments[1].config.xvals,
+                        ['only for qobj2', 2, 3, 4])
 
     ###############################################################
     # Test for running programs
