@@ -107,6 +107,10 @@ class IBMQProvider(BaseProvider):
                                'status']:
                 edited_config[new_key] = config[key]
 
+        if 'gateSet' in config and 'basisGates' not in config:
+            edited_config['basis_gates'] = config['gateSet']
+            del edited_config['gate_set']
+
         # ibmqx_qasm_simulator doesn't report coupling_map
         if 'coupling_map' not in edited_config.keys() and config['simulator']:
             edited_config['coupling_map'] = 'all-to-all'

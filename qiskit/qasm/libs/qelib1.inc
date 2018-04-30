@@ -70,6 +70,13 @@ gate ccx a,b,c
   cx a,b; t a; tdg b;
   cx a,b;
 }
+// cswap (Fredkin)
+gate cswap a,b,c
+{
+  cx c,b;
+  ccx a,b,c;
+  cx c,b;
+}
 // controlled rz rotation
 gate crz(lambda) a,b
 {
