@@ -257,8 +257,7 @@ def _is_ci_fork_pull_request():
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.
-        if (os.getenv('TRAVIS_REPO_SLUG') !=
-                os.getenv('TRAVIS_PULL_REQUEST_SLUG')):
+        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
             return True
     elif os.getenv('APPVEYOR'):
         # Using AppVeyor CI.
