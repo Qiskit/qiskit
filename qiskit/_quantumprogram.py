@@ -556,7 +556,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self._get_single_name(self.get_quantum_register_names(), "a quantum register")
+            name = self._get_single_item(self.get_quantum_register_names(), "a quantum register")
         try:
             return self.__quantum_registers[name]
         except KeyError:
@@ -576,7 +576,8 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self._get_single_name(self.get_classical_register_names(), "a classical register")
+            name = self._get_single_item(self.get_classical_register_names(),
+                                         "a classical register")
         try:
             return self.__classical_registers[name]
         except KeyError:
@@ -605,7 +606,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self._get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         try:
             return self.__quantum_program[name]
         except KeyError:
@@ -629,7 +630,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self._get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_item(self.get_circuit_names(), "a circuit")
         quantum_circuit = self.get_circuit(name)
         return quantum_circuit.qasm()
 
