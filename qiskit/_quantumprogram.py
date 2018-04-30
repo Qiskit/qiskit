@@ -166,7 +166,7 @@ class QuantumProgram(object):
         """Create a new Quantum Register.
 
         Args:
-            name (hashable or None): the name of the quantum register. If None, an
+            name (str or None): the name of the quantum register. If None, an
                 automatically generated identifier will be assigned.
             size (int): the size of the quantum register
 
@@ -387,7 +387,7 @@ class QuantumProgram(object):
         """Add a new circuit based on an Object representation.
 
         Args:
-            name (hashable or None): the name of the circuit to add. If None, an
+            name (str or None): the name of the circuit to add. If None, an
                 identifier will be assigned.
             quantum_circuit (QuantumCircuit): a quantum circuit to add to the
                 program-name
@@ -538,7 +538,7 @@ class QuantumProgram(object):
         """Return a Quantum Register by name.
 
         Args:
-            name (hashable or None): the name of the quantum register. If None and there is only
+            name (str or None): the name of the quantum register. If None and there is only
                 one quantum register available, returns that one.
         Returns:
             QuantumRegister: The quantum register with this name.
@@ -557,7 +557,7 @@ class QuantumProgram(object):
         """Return a Classical Register by name.
 
         Args:
-            name (hashable or None): the name of the classical register. If None and there is only
+            name (str or None): the name of the classical register. If None and there is only
                 one classical register available, returns that one.
         Returns:
             ClassicalRegister: The classical register with this name.
@@ -595,7 +595,7 @@ class QuantumProgram(object):
         """Return a Circuit Object by name.
 
         Args:
-            name (hashable or None): the name of the quantum circuit.
+            name (str or None): the name of the quantum circuit.
                 If None and there is only one circuit available, returns
                 that one.
         Returns:
@@ -620,7 +620,7 @@ class QuantumProgram(object):
         """Get qasm format of circuit by name.
 
         Args:
-            name (hashable or None): name of the circuit. If None and only one circuit is
+            name (str or None): name of the circuit. If None and only one circuit is
                 available, that one is selected.
 
         Returns:
@@ -1051,7 +1051,7 @@ class QuantumProgram(object):
             instead of the stdout.
 
         Returns:
-            list(hashable): names of the circuits in `qobj`
+            list(str): names of the circuits in `qobj`
         """
         if not qobj:
             print_func("no executions to run")
@@ -1260,7 +1260,7 @@ class QuantumProgram(object):
         circuits to run on different backends.
 
         Args:
-            name_of_circuits (list[hashable] or hashable or None): circuit
+            name_of_circuits (list[str] or str or None): circuit
                 names to be executed. If None, all the circuits will be
                 executed.
             backend (str): a string representing the backend to compile to.

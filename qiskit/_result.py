@@ -242,7 +242,7 @@ class Result(object):
         {'00000': XXXX, '00001': XXXXX}.
 
         Args:
-            circuit_name (hashable or None): the name of the quantum circuit.
+            circuit_name (str or None): the name of the quantum circuit.
                 If None and there is only one circuit available, returns
                 that one.
 
