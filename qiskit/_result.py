@@ -197,7 +197,7 @@ class Result(object):
                                    XX + XXj]]
 
         Args:
-            circuit_name (None, str or str(circuit_name): the name of the quantum circuit.
+            circuit_name (str or None): the name of the quantum circuit.
 
         Returns:
             dict: A dictionary of data for the different backends.
