@@ -24,6 +24,7 @@ job interface.
 from abc import ABC, abstractmethod
 import enum
 
+
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
 
@@ -50,7 +51,6 @@ class BaseJob(ABC):
         """Get backend status dictionary"""
         pass
 
-
     @property
     @abstractmethod
     def running(self):
@@ -67,6 +67,7 @@ class BaseJob(ABC):
     @abstractmethod
     def cancelled(self):
         """True if call was successfully cancelled"""
+
 
 class JobStatus(enum.Enum):
     """Class for job status enumerated type."""

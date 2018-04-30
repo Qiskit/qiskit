@@ -103,7 +103,6 @@ class ProjectQSimulator(BaseBackend):
         self._shots = 0
         self._sim = None
 
-
     def run(self, q_job):
         return LocalJob(self._run_job, q_job)
 

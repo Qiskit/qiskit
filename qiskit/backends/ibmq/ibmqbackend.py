@@ -32,6 +32,7 @@ from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 
 logger = logging.getLogger(__name__)
 
+
 class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
     """
@@ -46,7 +47,7 @@ class IBMQBackend(BaseBackend):
         """
         super().__init__(configuration=configuration)
         self._api = api
-        self._submit_info = None # dictionary coming from api upon submission
+        self._submit_info = None   # dictionary coming from api upon submission
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():

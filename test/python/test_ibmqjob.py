@@ -28,6 +28,7 @@ from qiskit._compiler import compile
 from qiskit.backends.ibmq import IBMQProvider
 from .common import requires_qe_access, QiskitTestCase
 
+
 class TestIBMQJob(QiskitTestCase):
     """
     Test ibmqjob module.
@@ -54,7 +55,7 @@ class TestIBMQJob(QiskitTestCase):
         job = backend.run(quantum_job)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
-        counts_ex = {'00': 512, '11':512}
+        counts_ex = {'00': 512, '11': 512}
         states = counts_qx.keys() | counts_ex.keys()
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],

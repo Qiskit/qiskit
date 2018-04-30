@@ -29,6 +29,7 @@ from qiskit._qiskiterror import QISKitError
 
 logger = logging.getLogger(__name__)
 
+
 class IBMQJob(BaseJob):
     """IBM Q Job class
 
@@ -131,6 +132,7 @@ class IBMQJob(BaseJob):
     def _is_commercial(self):
         config = self._api.config
         return config['hub'] and config['group'] and config['project']
+
 
 class IBMQJobError(QISKitError):
     """class for IBM Q Job errors"""

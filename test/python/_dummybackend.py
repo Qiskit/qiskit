@@ -80,6 +80,7 @@ class DummySimulator(BaseBackend):
 
         return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'}, qobj)
 
+
 class DummyJob(BaseJob):
     """dummy simulator job"""
     _executor = futures.ProcessPoolExecutor()
@@ -109,7 +110,7 @@ class DummyJob(BaseJob):
         else:
             raise Exception('Unexpected state of {0}'.format(
                 self.__class__.__name__))
-        _status_msg = None # This will be more descriptive
+        _status_msg = None
         return {'status': _status,
                 'status_msg': _status_msg}
 

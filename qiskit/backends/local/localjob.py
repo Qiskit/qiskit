@@ -26,6 +26,7 @@ from qiskit import QISKitError
 
 logger = logging.getLogger(__name__)
 
+
 class LocalJob(BaseJob):
     """Local QISKit SDK Job class
 
@@ -53,6 +54,7 @@ class LocalJob(BaseJob):
 
     @property
     def status(self):
+        _status_msg = None
         # order is important here
         if self.running:
             _status = JobStatus.RUNNING
@@ -62,12 +64,13 @@ class LocalJob(BaseJob):
             _status = JobStatus.CANCELLED
         elif self.done:
             _status = JobStatus.DONE
-        elif self.error:
+        elif isinstance(self.error, Exception):
             _status = JobStatus.ERROR
+            _status_msg = str(self.error)
         else:
             raise LocalJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
-        _status_msg = None # This will be more descriptive
+        _status_msg = None
         return {'status': _status,
                 'status_msg': _status_msg}
 
@@ -92,6 +95,7 @@ class LocalJob(BaseJob):
             Exception: exception raised by attempting to run job.
         """
         return self._future.exception(timeout=0)
+
 
 class LocalJobError(QISKitError):
     """class for Local Job errors"""
