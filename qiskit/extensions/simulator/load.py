@@ -16,7 +16,7 @@
 # =============================================================================
 
 """
-Barrier instruction.
+Simulator command to load a saved quantum state.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
@@ -26,12 +26,12 @@ from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
-class Barrier(Instruction):
-    """Barrier instruction."""
+class Load(Instruction):
+    """Simulator load instruction."""
 
-    def __init__(self, qubits, circ):
-        """Create new barrier instruction."""
-        super().__init__("barrier", [], list(qubits), circ)
+    def __init__(self, slot, qubits, circ):
+        """Create new load instruction."""
+        super().__init__("load", [slot], list(qubits), circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -39,7 +39,7 @@ class Barrier(Instruction):
 
     def qasm(self):
         """Return OPENQASM string."""
-        string = "barrier "
+        string = "load(%d) " % self.param[0]
         for j in range(len(self.arg)):
             if len(self.arg[j]) == 1:
                 string += "%s" % self.arg[j].openqasm_name
@@ -48,23 +48,36 @@ class Barrier(Instruction):
             if j != len(self.arg) - 1:
                 string += ","
         string += ";"
-        return string  # no c_if on barrier instructions
+        return string
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.barrier(*self.arg))
+        self._modifiers(circ.load(self.param[0], *self.arg))
 
 
-def barrier(self, *tuples):
-    """Apply barrier to tuples (reg, idx)."""
-    tuples = list(tuples)
-    if not tuples:  # TODO: implement this for all single qubit gates
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
+def load(self, slot):
+    """Load the internal simulator representation (statevector, probability,
+    density matrix, clifford table)
+    Works on all qubits, and prevents reordering (like barrier).
+
+    Args:
+        slot (int): a slot to load from
+
+    Returns:
+        QuantumCircuit: with attached command
+
+    Raises:
+        ExtensionError: malformed command
+    """
+    tuples = []
+    if isinstance(self, QuantumCircuit):
+        for register in self.regs.values():
+            if isinstance(register, QuantumRegister):
+                tuples.append(register)
     if not tuples:
-        raise ExtensionError("no arguments passed")
+        raise ExtensionError("no qubits for load")
+    if slot is None:
+        raise ExtensionError("no load slot passed")
     qubits = []
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):
@@ -75,8 +88,9 @@ def barrier(self, *tuples):
             self._check_qubit(tuple_element)
             qubits.append(tuple_element)
     self._check_dups(qubits)
-    return self._attach(Barrier(qubits, self))
+    return self._attach(Load(slot, qubits, self))
 
 
-QuantumCircuit.barrier = barrier
-CompositeGate.barrier = barrier
+# Add to QuantumCircuit and CompositeGate classes
+QuantumCircuit.load = load
+CompositeGate.load = load

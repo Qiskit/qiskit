@@ -59,6 +59,7 @@ public:
   // Default constructor
   explicit VectorEngine(uint_t dim = 2)
       : BaseEngine<QubitVector>(), qudit_dim(dim){};
+  ~VectorEngine() = default;
   //============================================================================
   // Configuration
   //============================================================================
@@ -79,17 +80,17 @@ public:
   //============================================================================
 
   // Snapshots output data
-  std::map<int, std::vector<cket_t>> snapshots_ket;
-  std::map<int, cmatrix_t> snapshots_density;
-  std::map<int, rvector_t> snapshots_probs;
-  std::map<int, std::map<std::string, double>> snapshots_probs_ket;
-  std::map<int, std::vector<cvector_t>> snapshots_inprods;
-  std::map<int, rvector_t> snapshots_overlaps;
+  std::map<std::string, std::vector<cket_t>> snapshots_ket;
+  std::map<std::string, cmatrix_t> snapshots_density;
+  std::map<std::string, rvector_t> snapshots_probs;
+  std::map<std::string, std::map<std::string, double>> snapshots_probs_ket;
+  std::map<std::string, std::vector<cvector_t>> snapshots_inprods;
+  std::map<std::string, rvector_t> snapshots_overlaps;
 
   //============================================================================
   // Methods
   //============================================================================
-  void execute(Circuit &circ, BaseBackend<QubitVector> *be, uint_t nshots);
+  void execute(const Circuit &circ, BaseBackend<QubitVector> *be, uint_t nshots) override;
 
   // Adds results data from another engine.
   void add(const VectorEngine &eng);
@@ -101,17 +102,17 @@ public:
   };
 
   // Compute results
-  void compute_results(Circuit &circ, BaseBackend<QubitVector> *be);
+  void compute_results(const Circuit &circ, BaseBackend<QubitVector> *be) override;
   template<class T>
-  void sample_counts(Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
+  void sample_counts(const Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
                      const std::vector<T> &probs, const std::vector<operation> &meas,
                      const std::vector<uint_t> &meas_qubits);
   // Additional snapshot formatting
-  void snapshot_ketform(const std::map<int, QubitVector>& qreg_snapshots,
+  void snapshot_ketform(const std::map<std::string, QubitVector>& qreg_snapshots,
                         const std::vector<uint_t> &labels);
-  void snapshot_density_matrix(const std::map<int, QubitVector>& qreg_snapshots);
-  void snapshot_probabilities(const std::map<int, QubitVector>& qreg_snapshots);
-  void snapshot_inner_products(const std::map<int, QubitVector>& qreg_snapshots);
+  void snapshot_density_matrix(const std::map<std::string, QubitVector>& qreg_snapshots);
+  void snapshot_probabilities(const std::map<std::string, QubitVector>& qreg_snapshots);
+  void snapshot_inner_products(const std::map<std::string, QubitVector>& qreg_snapshots);
 
   // Convert a complex vector or ket to a real one
   double get_probs(const complex_t &val) const;
@@ -165,7 +166,7 @@ void VectorEngine::add(const VectorEngine &eng) {
 
 }
 
-void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
+void VectorEngine::execute(const Circuit &prog, BaseBackend<QubitVector> *be,
                            uint_t nshots) {
 
   // Check to see if circuit is ideal and allows for measurement optimization
@@ -221,7 +222,7 @@ void VectorEngine::execute(Circuit &prog, BaseBackend<QubitVector> *be,
 
 // Templated so works for real or complex probability vector
 template<class T>
-void VectorEngine::sample_counts(Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
+void VectorEngine::sample_counts(const Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
                                  const std::vector<T> &probs, const std::vector<operation> &meas, 
                                  const std::vector<uint_t> &meas_qubits) {
   // Map to store measured outcome after
@@ -255,7 +256,7 @@ void VectorEngine::sample_counts(Circuit &prog, BaseBackend<QubitVector> *be, ui
 
 //------------------------------------------------------------------------------
 
-void VectorEngine::snapshot_ketform(const std::map<int, QubitVector>& qreg_snapshots,
+void VectorEngine::snapshot_ketform(const std::map<std::string, QubitVector>& qreg_snapshots,
                                     const std::vector<uint_t> &labels) {
   if (show_snapshots_ket || show_snapshots_probs_ket) {
     for (auto const &psi : qreg_snapshots) {
@@ -275,7 +276,7 @@ void VectorEngine::snapshot_ketform(const std::map<int, QubitVector>& qreg_snaps
   }
 }
 
-void VectorEngine::snapshot_density_matrix(const std::map<int, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_density_matrix(const std::map<std::string, QubitVector>& qreg_snapshots) {
   if (show_snapshots_density) {
     for (auto const &psi : qreg_snapshots) {
       cmatrix_t &rho = snapshots_density[psi.first];
@@ -287,7 +288,7 @@ void VectorEngine::snapshot_density_matrix(const std::map<int, QubitVector>& qre
   }
 }
 
-void VectorEngine::snapshot_probabilities(const std::map<int, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_probabilities(const std::map<std::string, QubitVector>& qreg_snapshots) {
   if (show_snapshots_probs) {
       for (auto const &psi : qreg_snapshots) {
         auto &pr = snapshots_probs[psi.first];
@@ -299,7 +300,7 @@ void VectorEngine::snapshot_probabilities(const std::map<int, QubitVector>& qreg
     }
 }
 
-void VectorEngine::snapshot_inner_products(const std::map<int, QubitVector>& qreg_snapshots) {
+void VectorEngine::snapshot_inner_products(const std::map<std::string, QubitVector>& qreg_snapshots) {
   if (target_states.empty() == false &&
         (show_snapshots_inner_product || show_snapshots_overlaps)) {
       for (auto const &psi : qreg_snapshots) {
@@ -328,11 +329,11 @@ void VectorEngine::snapshot_inner_products(const std::map<int, QubitVector>& qre
     }
 }
 
-void VectorEngine::compute_results(Circuit &qasm, BaseBackend<QubitVector> *be) {
+void VectorEngine::compute_results(const Circuit &qasm, BaseBackend<QubitVector> *be) {
   // Run BaseEngine Counts
   BaseEngine<QubitVector>::compute_results(qasm, be);
 
-  std::map<int, QubitVector> &qreg_snapshots = be->access_snapshots();
+  std::map<std::string, QubitVector> &qreg_snapshots = be->access_snapshots();
 
   /* Snapshot quantum state output data */
   if (snapshots.empty() == false) {
@@ -393,7 +394,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
   // Snapshot skets
   if (eng.show_snapshots_ket && eng.snapshots_ket.empty() == false) {
     for (const auto& s: eng.snapshots_ket)
-        js["snapshots"][std::to_string(s.first)]["quantum_state_ket"] = s.second;
+        js["snapshots"][s.first]["quantum_state_ket"] = s.second;
   }
 
   // Snapshots density
@@ -401,7 +402,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
     for (const auto &s : eng.snapshots_density) {
       auto rho = s.second * renorm;
       chop(rho, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["density_matrix"] = rho;
+      js["snapshots"][s.first]["density_matrix"] = rho;
     }
   }
 
@@ -411,7 +412,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["probabilities"] = val;
+      js["snapshots"][s.first]["probabilities"] = val;
     }
   }
 
@@ -421,7 +422,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["probabilities_ket"] = val;
+      js["snapshots"][s.first]["probabilities_ket"] = val;
     }
   }
 
@@ -431,7 +432,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
     for (const auto &s : eng.snapshots_inprods) {
       auto val = s.second;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["target_states_inner_product"] = val;
+      js["snapshots"][s.first]["target_states_inner_product"] = val;
     }
   }
 
@@ -441,7 +442,7 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
       auto val = s.second;
       val *= renorm;
       chop(val, eng.epsilon);
-      js["snapshots"][std::to_string(s.first)]["target_states_inner_overlaps"] = val;
+      js["snapshots"][s.first]["target_states_inner_overlaps"] = val;
     }
   }
 }

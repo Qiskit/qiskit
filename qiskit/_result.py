@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=no-else-return
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -179,7 +180,7 @@ class Result(object):
 
         for the qasm simulators of 1 shot::
 
-            'quantum_state': array([ XXX,  ..., XXX]),
+            'statevector': array([ XXX,  ..., XXX]),
             'classical_state': 0
 
         for the qasm simulators of n shots::
@@ -197,7 +198,9 @@ class Result(object):
                                    XX + XXj]]
 
         Args:
-            circuit_name (str): the name of the quantum circuit.
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
 
         Returns:
             dict: A dictionary of data for the different backends.
@@ -240,7 +243,7 @@ class Result(object):
         {'00000': XXXX, '00001': XXXXX}.
 
         Args:
-            circuit_name (hashable or None): the name of the quantum circuit.
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
                 If None and there is only one circuit available, returns
                 that one.
 
@@ -254,6 +257,91 @@ class Result(object):
             return self.get_data(circuit_name)['counts']
         except KeyError:
             raise QISKitError('No counts for circuit "{0}"'.format(circuit_name))
+
+    def get_statevector(self, circuit_name=None):
+        """Get the final statevector of circuit name.
+
+        The data is a list of complex numbers
+        [1.+0.j, 0.+0.j].
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            list[complex]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no statevector for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['statevector']
+        except KeyError:
+            raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
+
+    def get_snapshots(self, circuit_name=None):
+        """Get snapshots recorded during the run.
+
+        The data is a dictionary:
+        where keys are requested snapshot slots.
+        and values are a dictionary of the snapshots themselves.
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there are no snapshots for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['snapshots']
+        except KeyError:
+            raise QISKitError('No snapshots for circuit "{0}"'.format(circuit_name))
+
+    def get_snapshot(self, circuit_name=None, slot=None):
+        """Get snapshot at a specific slot.
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+            slot (str): snapshot slot to retrieve
+
+        Returns:
+            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no snapshot at all, or in this slot
+        """
+        try:
+            snapshots_dict = self.get_snapshots(circuit_name)
+
+            if slot is None:
+                slots = list(snapshots_dict.keys())
+                if len(slots) == 1:
+                    slot = slots[0]
+                else:
+                    raise QISKitError("You have to select a slot when there"
+                                      "is more than one available")
+            snapshot_dict = snapshots_dict[slot]
+
+            snapshot_types = list(snapshot_dict.keys())
+            if len(snapshot_types) == 1:
+                snapshot_list = snapshot_dict[snapshot_types[0]]
+                if len(snapshot_list) == 1:
+                    return snapshot_list[0]
+                else:
+                    return snapshot_list
+            else:
+                return snapshot_dict
+        except KeyError:
+            raise QISKitError('No snapshot at slot {0} for '
+                              'circuit "{1}"'.format(slot, circuit_name))
 
     def get_names(self):
         """Get the circuit names of the results.
