@@ -83,7 +83,8 @@ class QasmSimulatorCpp(BaseBackend):
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
             warnings.warn('The behavior of getting statevector from simulators '
-                          'by setting shots=1 is deprecated and will be removed. '
+                          'by setting shots=1 is deprecated and has been removed '
+                          'for this simulator. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
