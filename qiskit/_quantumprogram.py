@@ -187,6 +187,11 @@ class QuantumProgram(object):
         if name is None:
             name = self._create_id('q', self.__quantum_registers)
 
+        if not isinstance(name, str):
+            logger.info(">> quantum_register name is not a valid type: %s ", type(name))
+            raise QISKitError("The register name should be a string "
+                              "(or None for autogenerate a name).")
+
         self.__quantum_registers[name] = QuantumRegister(size=size, name=name)
         logger.info(">> new quantum_register created: %s %s", name, size)
         return self.__quantum_registers[name]
@@ -269,6 +274,11 @@ class QuantumProgram(object):
 
         if name is None:
             name = self._create_id('c%i', self.__classical_registers)
+
+        if not isinstance(name, str):
+            logger.info(">> quantum_register name is not a valid type: %s ", type(name))
+            raise QISKitError("The register name should be a string "
+                              "(or None for autogenerate a name).")
 
         self.__classical_registers[name] = ClassicalRegister(size=size, name=name)
         logger.info(">> new classical register created: %s %s", name, size)

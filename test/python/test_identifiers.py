@@ -450,6 +450,51 @@ class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
         qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
         self.assertIsInstance(qc, QuantumCircuit)
 
+class TestInvalidIds(QiskitTestCase):
+    """Circuits and records with invalid IDs"""
+
+    def test_invalid_type_qr(self):
+        """Test create_quantum_register with an invalid type name.
+        """
+        q_program = QuantumProgram()
+        self.assertRaises(QISKitError, q_program.create_quantum_register, size=3, name=1)
+
+    def test_invalid_type_cr(self):
+        """Test create_classical_register with an invalid type name.
+        """
+        q_program = QuantumProgram()
+        self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name=1)
+
+    def test_invalid_type_qr_spec(self):
+        """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "name": 1,
+                    "size": 3}],
+                "classical_registers": [{
+                    "size": 3}]
+            }]
+        }
+
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
+
+
+    def test_invalid_type_cr_spec(self):
+        """QPS_SPECS_NONAMES defines a classical register with an invalid type name
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "size": 3}],
+                "classical_registers": [{
+                    "name": 1,
+                    "size": 3}]
+            }]
+        }
+
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
