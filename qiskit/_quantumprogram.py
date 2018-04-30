@@ -343,7 +343,7 @@ class QuantumProgram(object):
 
         Args:
             name (str or None): the name of the circuit. If None, an
-                identifier will be assigned.
+                automatically generated identifier will be assigned.
             qregisters (list(QuantumRegister)): is an Array of Quantum
                 Registers by object reference
             cregisters (list(ClassicalRegister)): is an Array of Classical
@@ -388,15 +388,24 @@ class QuantumProgram(object):
 
         Args:
             name (str or None): the name of the circuit to add. If None, an
-                identifier will be assigned.
+                automatically generated identifier will be assigned to the
+                circuit.
             quantum_circuit (QuantumCircuit): a quantum circuit to add to the
                 program-name
+        Raises:
+            QISKitError: if `quantum_circuit` is None, as the attribute is
+                optional only for not breaking backwards compatibility (as
+                it is placed after an optional argument).
         """
+        if quantum_circuit is None:
+            raise QISKitError('quantum_circuit is required when invoking '
+                              'add_circuit')
         if name is None:
             if quantum_circuit.name:
                 name = quantum_circuit.name
             else:
-                name = quantum_circuit.name = self._create_id('qc%i', self.__quantum_program.keys())
+                name = self._create_id('qc', self.__quantum_program.keys())
+                quantum_circuit.name = name
         for qname, qreg in quantum_circuit.get_qregs().items():
             self.create_quantum_register(qname, len(qreg))
         for cname, creg in quantum_circuit.get_cregs().items():
@@ -547,7 +556,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_quantum_register_names(), "a quantum register")
+            name = self._get_single_name(self.get_quantum_register_names(), "a quantum register")
         try:
             return self.__quantum_registers[name]
         except KeyError:
@@ -567,21 +576,11 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_classical_register_names(), "a classical register")
+            name = self._get_single_name(self.get_classical_register_names(), "a classical register")
         try:
             return self.__classical_registers[name]
         except KeyError:
             raise KeyError('No classical register "{0}"'.format(name))
-
-    @staticmethod
-    def get_single_name(list_of_names, str_what="from the list"):
-        '''Selects the only element of the list list_of_names or raise if there is more than one
-        (or None)'''
-        if len(list_of_names) == 1:
-            return list_of_names[0]
-        else:
-            raise QISKitError("You have to select %s to get when there is more"
-                              "than one available" % str_what)
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
@@ -606,7 +605,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_name(self.get_circuit_names(), "a circuit")
         try:
             return self.__quantum_program[name]
         except KeyError:
@@ -630,7 +629,7 @@ class QuantumProgram(object):
             QISKitError: if the register does not exist in the program.
         """
         if name is None:
-            name = self.get_single_name(self.get_circuit_names(), "a circuit")
+            name = self._get_single_name(self.get_circuit_names(), "a circuit")
         quantum_circuit = self.get_circuit(name)
         return quantum_circuit.qasm()
 
