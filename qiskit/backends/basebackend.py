@@ -22,13 +22,14 @@ Doing so requires that the required backend interface is implemented.
 """
 
 from abc import ABC, abstractmethod
+from qiskit._qiskiterror import QISKitError
 
 
 class BaseBackend(ABC):
     """Base class for backends."""
 
     @abstractmethod
-    def __init__(self, configuration=None):
+    def __init__(self, configuration):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -40,8 +41,11 @@ class BaseBackend(ABC):
 
         Raises:
             FileNotFoundError if backend executable is not available.
+            QISKitError: if there is no name in the configuration
         """
-        self._configuration = configuration or {}
+        if 'name' not in configuration:
+            raise QISKitError('backend does not have a name.')
+        self._configuration = configuration
 
     @abstractmethod
     def run(self, q_job):
@@ -66,13 +70,12 @@ class BaseBackend(ABC):
     @property
     def status(self):
         """Return backend status"""
-        backend_name = self.configuration.get('name', '')
-        return {'name': backend_name, 'available': True}
+        return {'name': self.name, 'available': True}
+
+    @property
+    def name(self):
+        """Return backend name"""
+        return self._configuration['name']
 
     def __str__(self):
-        backend_name = self.configuration.get('name')
-        if backend_name:
-            # TODO: remove this conditional when we are able to enforce
-            # that all backends have a configuration['name'] more forcefully
-            return str(backend_name)
-        return super().__str__()
+        return self.name

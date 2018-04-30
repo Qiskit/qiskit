@@ -73,14 +73,14 @@ qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: no mapping
 print("no mapping, simulator")
-result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
+result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
                     coupling_map=None, shots=1024)
 print(result)
 print(result.get_counts("ghz"))
 
 # Second version: map to qx2 coupling graph and simulate
 print("map to %s, simulator" % backend)
-result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
+result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(result.get_counts("ghz"))

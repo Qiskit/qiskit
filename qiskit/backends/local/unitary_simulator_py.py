@@ -33,7 +33,7 @@ and the output is the results object
 
 The simulator is run using
 
-    UnitarySimulator(compiled_circuit).run().
+    UnitarySimulatorPy(compiled_circuit).run().
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
@@ -96,7 +96,7 @@ import uuid
 import numpy as np
 
 from qiskit._result import Result
-from qiskit.backends.basebackend import BaseBackend
+from qiskit.backends import BaseBackend
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
@@ -106,12 +106,12 @@ logger = logging.getLogger(__name__)
 # does not show up
 
 
-class UnitarySimulator(BaseBackend):
+class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_unitary_simulator',
-        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'name': 'local_unitary_simulator_py',
+        'url': 'https://github.com/QISKit/qiskit-sdk-py',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for unitary matrix',
@@ -120,7 +120,8 @@ class UnitarySimulator(BaseBackend):
     }
 
     def __init__(self, configuration=None):
-        """Initial the UnitarySimulator object."""
+        """Initialize the UnitarySimulatorPy object.
+        """
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
         # Define attributes inside __init__.

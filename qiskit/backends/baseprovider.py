@@ -52,3 +52,27 @@ class BaseProvider(ABC):
                 from this provider.
         """
         pass
+
+    def aliased_backend_names(self):
+        """
+        Returns dict that defines alias names, usually shorter names
+        for referring to the backends.
+
+        If an alias key is used, the corresponding backend will be chosen
+        in order of priority from the value list, depending on availability.
+
+        Returns:
+            dict[str: list[str]]: {alias_name: list(backend_name)}
+        """
+        return {}
+
+    def deprecated_backend_names(self):
+        """
+        Dict that stores the current name for all deprecated backends.
+        The conversion to the current name is done with a warning.
+        These can be gradually removed in subsequent releases.
+
+        Returns:
+            dict[str: str]: {deprecated_name: backend_name}
+        """
+        return {}
