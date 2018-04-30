@@ -585,11 +585,11 @@ class QuantumProgram(object):
 
     def get_quantum_register_names(self):
         """Return all the names of the quantum Registers."""
-        return list(self.__quantum_registers.keys())
+        return sorted(list(self.__quantum_registers.keys()))
 
     def get_classical_register_names(self):
         """Return all the names of the classical Registers."""
-        return list(self.__classical_registers.keys())
+        return sorted(list(self.__classical_registers.keys()))
 
     def get_circuit(self, name=None):
         """Return a Circuit Object by name.
