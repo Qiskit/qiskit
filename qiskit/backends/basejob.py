@@ -71,8 +71,8 @@ class BaseJob(ABC):
 
 class JobStatus(enum.Enum):
     """Class for job status enumerated type."""
-    QUEUED = enum.auto()
-    RUNNING = enum.auto()
-    CANCELLED = enum.auto()
-    DONE = enum.auto()
-    ERROR = enum.auto()
+    QUEUED = 'job is queued'
+    RUNNING = 'job is actively running'
+    CANCELLED = 'job has been cancelled'
+    DONE = 'job has successfully run'
+    ERROR = 'job incurred error'
