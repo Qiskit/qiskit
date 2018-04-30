@@ -28,6 +28,8 @@ from .qasm import Qasm
 from .unroll import Unroller, DagUnroller, JsonBackend
 from .dagcircuit import DAGCircuit
 
+# TODO: remove the file after Qobj is completed
+
 
 class QuantumJob():
     """Creates a quantum circuit job."""

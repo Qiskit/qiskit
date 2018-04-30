@@ -1230,10 +1230,15 @@ class QuantumProgram(object):
     def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
         q_job_list = []
         for qobj in qobj_list:
-            backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
-            q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-                'max_credits': qobj['config']['max_credits'], 'wait': wait,
-                'timeout': timeout})
+            # TODO: qobj.header.backend is the backend it was compiled to, not
+            # the one to be executed in.
+            backend = qiskit.wrapper.get_backend(qobj.header.backend_name)
+            q_job = QuantumJob(
+                qobj, backend=backend, preformatted=True,
+                resources={
+                    'max_credits': qobj.config.max_credits,
+                    'wait': wait,
+                    'timeout': timeout})
             q_job_list.append(q_job)
 
         job_processor = JobProcessor(q_job_list, max_workers=5,

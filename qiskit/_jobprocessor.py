@@ -22,7 +22,6 @@ from concurrent import futures
 from threading import Lock
 
 from ._qiskiterror import QISKitError
-from ._compiler import compile_circuit
 from ._result import Result
 
 logger = logging.getLogger(__name__)
@@ -30,6 +29,9 @@ logger = logging.getLogger(__name__)
 
 def run_backend(q_job):
     """Run a program of compiled quantum circuits on a backend.
+
+    TODO: replace with run_backend(qobj: Qobj)
+    TODO: backend.run(qobj.as_dict())
 
     Args:
         q_job (QuantumJob): job object
@@ -42,19 +44,15 @@ def run_backend(q_job):
     """
     backend = q_job.backend
     qobj = q_job.qobj
-    backend_name = qobj['config']['backend_name']
+    backend_name = qobj.header.backend_name
+
     if not backend:
         raise QISKitError("No backend instance to run on.")
     if backend_name != backend.configuration['name']:
         raise QISKitError('non-matching backends specified in Qobj '
                           'object and json')
-    if backend.configuration.get('local'):  # remove condition when api gets qobj
-        for circuit in qobj['circuits']:
-            if circuit['compiled_circuit'] is None:
-                compiled_circuit = compile_circuit(circuit['circuit'], format='json')
-                circuit['compiled_circuit'] = compiled_circuit
 
-    return backend.run(q_job)
+    return backend.run(qobj)
 
 
 class JobProcessor:
@@ -63,6 +61,8 @@ class JobProcessor:
     """
     def __init__(self, q_jobs, callback, max_workers=1):
         """
+        TODO: replace with __init__(q_jobs: list[Qobj])
+
         Args:
             q_jobs (list(QuantumJob)): List of QuantumJob objects.
             callback (fn(results)): The function that will be called when all
