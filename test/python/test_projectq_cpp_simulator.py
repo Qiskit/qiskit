@@ -29,7 +29,8 @@ from qiskit import QuantumJob
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit._compiler import compile, compile_circuit, COMPILE_CONFIG_DEFAULT
+import qiskit._compiler
+from qiskit._compiler import compile_circuit, COMPILE_CONFIG_DEFAULT
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
@@ -79,8 +80,8 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qc.measure(qr, cr)
         cconfig = COMPILE_CONFIG_DEFAULT
         cconfig['shots'] = 100
-        qobj = compile([qc], pq_simulator,
-                       compile_config=cconfig)
+        qobj = qiskit._compiler.compile([qc], pq_simulator,
+                                        compile_config=cconfig)
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
                            resources={'max_credits': qobj['config']['max_credits'],
                                       'wait': 5,
@@ -102,8 +103,8 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qc.measure(qr, cr)
         cconfig = COMPILE_CONFIG_DEFAULT
         cconfig['shots'] = 100
-        qobj = compile([qc], pq_simulator,
-                       compile_config=cconfig)
+        qobj = qiskit._compiler.compile([qc], pq_simulator,
+                                        compile_config=cconfig)
         timeout = 30
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
                            resources={'max_credits': qobj['config']['max_credits'],

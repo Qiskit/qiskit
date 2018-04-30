@@ -91,6 +91,7 @@ class DummyJob(BaseJob):
         self._future = self._executor.submit(fn, qobj)
 
     def result(self, timeout=None):
+        # pylint: disable=arguments-differ
         return self._future.result(timeout=timeout)
 
     def cancel(self):

@@ -24,7 +24,7 @@ from scipy.stats import chi2_contingency
 
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
-from qiskit._compiler import compile
+import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
 from .common import requires_qe_access, QiskitTestCase
 
@@ -37,6 +37,7 @@ class TestIBMQJob(QiskitTestCase):
     @classmethod
     @requires_qe_access
     def setUpClass(cls, QE_TOKEN, QE_URL):
+        # pylint: disable=arguments-differ
         super().setUpClass()
         # create QuantumCircuit
         qr = QuantumRegister(2, 'q')
@@ -50,7 +51,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_run(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
-        qobj = compile(self._qc, backend)
+        qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
@@ -67,7 +68,7 @@ class TestIBMQJob(QiskitTestCase):
     @unittest.skip('cancel is not currently possible on IBM Q')
     def test_cancel(self):
         backend = self._provider.get_backend('ibmqx4')
-        qobj = compile(self._qc, backend)
+        qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)
         job.cancel()

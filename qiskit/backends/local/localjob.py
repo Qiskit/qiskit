@@ -41,6 +41,7 @@ class LocalJob(BaseJob):
         self._future = self._executor.submit(fn, qobj)
 
     def result(self, timeout=None):
+        # pylint: disable=arguments-differ
         """
         Get job result.
 
