@@ -19,6 +19,7 @@
 
 from concurrent import futures
 import logging
+import sys
 
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
@@ -33,7 +34,10 @@ class LocalJob(BaseJob):
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
-    _executor = futures.ProcessPoolExecutor()
+    if sys.platform == 'darwin':
+        _executor = futures.ThreadPoolExecutor()
+    else:
+        _executor = futures.ProcessPoolExecutor()
 
     def __init__(self, fn, qobj):
         super().__init__()
