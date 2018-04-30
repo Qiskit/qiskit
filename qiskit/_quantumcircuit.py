@@ -54,6 +54,11 @@ class QuantumCircuit(object):
         self._increment_instances()
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
+
+        if not isinstance(name, str):
+            raise QISKitError("The circuit name should be a string "
+                              "(or None for autogenerate a name).")
+
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []

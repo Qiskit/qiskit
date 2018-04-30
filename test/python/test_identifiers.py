@@ -453,6 +453,16 @@ class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
 class TestInvalidIds(QiskitTestCase):
     """Circuits and records with invalid IDs"""
 
+
+    def test_invalid_type_circuit_name(self):
+        """Test create_circuit with invalid type name
+        """
+        q_program = QuantumProgram()
+        qr = QuantumRegister(size=3)
+        cr = ClassicalRegister(size=3)
+        self.assertRaises(QISKitError, q_program.create_circuit,
+                          qregisters=[qr], cregisters=[cr], name=1)
+
     def test_invalid_type_qr(self):
         """Test create_quantum_register with an invalid type name.
         """
@@ -495,7 +505,6 @@ class TestInvalidIds(QiskitTestCase):
         }
 
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
 
     def test_invalid_qasmname_qr(self):
         """Test create_quantum_register with an invalid QASM name (do not start with lowercase).

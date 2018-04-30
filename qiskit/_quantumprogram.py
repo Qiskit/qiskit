@@ -342,7 +342,7 @@ class QuantumProgram(object):
         """Create a empty Quantum Circuit in the Quantum Program.
 
         Args:
-            name (hashable or None): the name of the circuit. If None, an
+            name (str or None): the name of the circuit. If None, an
                 identifier will be assigned.
             qregisters (list(QuantumRegister)): is an Array of Quantum
                 Registers by object reference
