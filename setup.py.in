@@ -27,7 +27,7 @@ from setuptools.dist import Distribution
 
 
 requirements = [
-    "IBMQuantumExperience>=1.8.29",
+    "IBMQuantumExperience>=1.9.0",
     "matplotlib>=2.1,<2.2",
     "networkx>=2.0,<2.1",
     "numpy>=1.13,<1.15",
