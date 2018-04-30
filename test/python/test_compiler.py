@@ -22,7 +22,7 @@ import unittest
 import qiskit
 import qiskit._compiler
 from qiskit import Result
-from qiskit.backends.local import QasmSimulator
+from qiskit.wrapper import get_backend
 from qiskit.backends.ibmq import IBMQProvider
 
 from .common import requires_qe_access, QiskitTestCase
@@ -43,7 +43,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -62,7 +62,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -82,7 +82,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -100,7 +100,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -119,7 +119,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
@@ -127,9 +127,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-
         results = qiskit._compiler.execute(qc, backend)
-
         self.assertIsInstance(results, Result)
 
     def test_execute_two(self):
@@ -137,7 +135,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = QasmSimulator()
+        backend = get_backend('local_qasm_simulator')
 
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
@@ -203,14 +201,13 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
+        backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-
         qobj = qiskit._compiler.compile(qc, backend)
         result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
         self.assertIsInstance(result, Result)
@@ -222,7 +219,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
+        backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -242,8 +239,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
-
+        backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -261,8 +257,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
-        backend = provider.get_backend('ibmqx_qasm_simulator')
-
+        backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)

@@ -264,7 +264,7 @@ class TestAnonymousIds(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = [qc2.name, qc3.name]
-        shots = 1024  # the number of shots in the experiment.
+        shots = 1024
         backend = 'local_qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots, seed=88, config=config)
@@ -298,8 +298,8 @@ class TestAnonymousIds(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
         q_program.add_circuit(quantum_circuit=new_circuit)
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string IDs (FIXME)
+        shots = 1024
         result = q_program.execute(backend=backend, shots=shots, seed=78)
         counts = result.get_counts(new_circuit.name)
         target = {'00': shots / 2, '01': shots / 2}
@@ -548,7 +548,6 @@ class TestInvalidIds(QiskitTestCase):
         }
 
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

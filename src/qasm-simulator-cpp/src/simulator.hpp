@@ -181,14 +181,11 @@ json_t Simulator::run_circuit(Circuit &circ) const {
 // Thread number
 #ifdef _OPENMP
     uint16_t ncpus = omp_get_num_procs(); // OMP method
-    omp_set_nested(1);                  // allow nested parallel threads
-#else
-    uint16_t ncpus = std::thread::hardware_concurrency(); // C++11 method
-#endif
+    omp_set_nested(1);                    // allow nested parallel threads
     ncpus = std::max(static_cast<uint16_t>(1), ncpus); // check 0 edge case
     int_t dq = (max_qubits > circ.nqubits) ? max_qubits - circ.nqubits : 0;
     uint_t threads = std::max<uint_t>(1UL, 2 * dq);
-    if (circ.noise.ideal && circ.opt_meas)
+    if (circ.opt_meas && circ.noise.ideal)
       threads = 1; // single shot thread
     else {
       threads = std::min<uint_t>(threads, ncpus);
@@ -213,14 +210,12 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     else {
       // Set rng seed for each thread
       std::vector<std::pair<uint_t, uint_t>> shotseed;
-      for (uint_t j = 0; j < threads; ++j)
+      for (uint_t j = 0; j < threads; ++j) {
         shotseed.push_back(std::make_pair(circ.shots / threads, rng_seed + j));
+      }
       shotseed[0].first += (circ.shots % threads);
-
-// OMP Execution
-#ifdef _OPENMP
       std::vector<Engine> futures(threads);
-#pragma omp parallel for if (threads > 1) num_threads(threads)
+    #pragma omp parallel for if (threads > 1) num_threads(threads)
       for (omp_int_t j = 0; j < omp_int_t(threads); j++) {
         const auto &ss = shotseed[j];
         Backend be(backend);
@@ -230,23 +225,19 @@ json_t Simulator::run_circuit(Circuit &circ) const {
       }
       for (auto &f : futures)
         engine += f;
-
-// C++11 Execution
-#else
-      std::vector<std::future<Engine>> futures;
-      for (auto &&ss : shotseed)
-        futures.push_back(async(std::launch::async, [&]() {
-          Engine eng(engine);
-          Backend be(backend);
-          be.set_rng_seed(ss.second);
-          eng.run_program(circ, &be, ss.first);
-          return eng;
-        }));
-      // collect results
-      for (auto &&f : futures)
-        engine += f.get();
-#endif
     } // end parallel shots
+
+    // Add multi-threading information to output
+    if (threads > 1)
+      ret["threads_shot"] = threads;
+    if (gate_threads > 1)
+      ret["threads_gates"] = gate_threads;
+#else
+      // Non-OMP implementation
+      backend.set_rng_seed(rng_seed);
+      engine.run_program(circ, &backend, circ.shots);
+#endif
+    
 
     // Return results
     ret["data"] = engine; // add engine output to return
@@ -262,10 +253,6 @@ json_t Simulator::run_circuit(Circuit &circ) const {
     ret["name"] = circ.name;
     ret["shots"] = circ.shots;
     ret["seed"] = rng_seed;
-    if (threads > 1)
-      ret["threads_shot"] = threads;
-    if (gate_threads > 1)
-      ret["threads_gates"] = gate_threads;
     // Report success
     ret["success"] = true;
     ret["status"] = std::string("DONE");
@@ -318,8 +305,9 @@ void Simulator::load_qobj_json(const json_t &js) {
 
       // Load circuit instructions
       const json_t &circs = js["circuits"];
-      for (auto it = circs.cbegin(); it != circs.cend(); ++it)
+      for (auto it = circs.cbegin(); it != circs.cend(); ++it) {
         circuits.push_back(Circuit(*it, config, gateset));
+      }
     } else {
       throw std::runtime_error(std::string("invalid qobj file."));
     }

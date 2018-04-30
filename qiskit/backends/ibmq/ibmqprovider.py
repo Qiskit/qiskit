@@ -20,7 +20,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends.baseprovider import BaseProvider
-from .ibmqbackend import IBMQBackend
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
 
 class IBMQProvider(BaseProvider):
@@ -48,6 +48,21 @@ class IBMQProvider(BaseProvider):
             backends = {name: instance for name, instance in backends.items()
                         if instance.configuration.get(key) == value}
         return list(backends.values())
+
+    def aliased_backend_names(self):
+        return {
+            # FIXME: uncomment after API fix: online simulator names should change
+            # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
+            #                         'ibmq_qasm_simulator_hpc']
+            }
+
+    def deprecated_backend_names(self):
+        return {
+            # FIXME: uncomment after API fix: online simulator names should change
+            # 'ibmq_qasm_simulator': 'ibmq_qasm_simulator',
+            # 'ibmq_qasm_simulator_hpc': 'ibmq_qasm_simulator_hpc',
+            'real': 'ibmqx1'
+            }
 
     @classmethod
     def _authenticate(cls, token, url,
@@ -106,14 +121,6 @@ class IBMQProvider(BaseProvider):
             if new_key not in ['id', 'serial_number', 'topology_id',
                                'status']:
                 edited_config[new_key] = config[key]
-
-        if 'gateSet' in config and 'basisGates' not in config:
-            edited_config['basis_gates'] = config['gateSet']
-            del edited_config['gate_set']
-
-        # ibmqx_qasm_simulator doesn't report coupling_map
-        if 'coupling_map' not in edited_config.keys() and config['simulator']:
-            edited_config['coupling_map'] = 'all-to-all'
 
         return edited_config
 

@@ -175,7 +175,7 @@ results = QuantumProgram.execute(circs,
                 config=config)
 ```
 
-You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qiskit_simulator` and `local_clifford_simulator`.
+You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qasm_simulator_cpp` and `local_clifford_simulator_cpp`.
 
 ### Simulator output
 
@@ -366,7 +366,7 @@ The snapshot gate command is specified as
     "data": {
         "snapshots": {
             "0": {
-                "quantum_state": [[[1.0, 0.0], [0.0, 0.0]]
+                "statevector": [[[1.0, 0.0], [0.0, 0.0]]
             }
         },
         "time_taken": 0.001188
@@ -379,12 +379,12 @@ The snapshot gate command is specified as
 }
 ```
 
-The keys of the `"snapshot"` dictionary are strings of the integers `"j"`, each containing a dictionary of data of the quantum state at the point of the snapshot. By default this dictionary will contain a field `"quantum_state"` containing a list of quantum state vector for each simulation shot. Note that if measurement optimizations are used to sample the outcome for an ideal circuit with all measurements at the end, this list will contain only a single vector. Additional snapshot formats options can be specified using the following config settings in the `"data"` field list:
+The keys of the `"snapshot"` dictionary are strings of the integers `"j"`, each containing a dictionary of data of the quantum state at the point of the snapshot. By default this dictionary will contain a field `"statevector"` containing a list of quantum state vector for each simulation shot. Note that if measurement optimizations are used to sample the outcome for an ideal circuit with all measurements at the end, this list will contain only a single vector. Additional snapshot formats options can be specified using the following config settings in the `"data"` field list:
 
 | Key |  Description |
 | --- | --- |
-| `"hide_quantum_states"` | Removes the `"quantum_state"` field from quantum state snapshot data.
-| `"quantum_state_ket"` | Adds a `"quantum_state_ket"` field to the snapshot data showing a list of the quantum states for each shot in in ket-form.
+| `"hide_statevector"` | Removes the `"statevector"` field from quantum state snapshot data.
+| `"quantum_state_ket"` | Adds a `"quantum_state_ket"` field to the snapshot data showing a list of the quantum states for each shot in ket-form.
 | `"density_matrix"` | Adds a `"density_matrix"` field to the snapshot data showing the density matrix obtained by averaging the snapshot over shots.
 | `"probabilities"` | Adds a `"probabilities"` field to the snapshot data showing a list of the Z-basis measurement outcome probabilities obtained by averaging the snapshot over shots.
 | `"probabilities_ket"` | Adds a `"probabilities_ket"` field to the snapshot data showing the Z-basis measurement outcome probabilities in ket-form obtained by averaging the snapshot over shots.

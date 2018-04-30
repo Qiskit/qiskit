@@ -52,10 +52,7 @@ If you specify multiple shots, it will automatically set shots=1.
 """
 
 import logging
-import random
 import uuid
-from collections import Counter
-
 import numpy as np
 from sympy import Matrix, pi, I, exp
 from sympy import re, im
@@ -65,9 +62,9 @@ from sympy.physics.quantum.qubit import Qubit
 from sympy.physics.quantum.represent import represent
 
 from qiskit._result import Result
-from qiskit.backends.basebackend import BaseBackend
-from qiskit.backends.local._simulatorerror import SimulatorError
-from qiskit.backends.local._simulatortools import compute_ugate_matrix
+from qiskit.backends import BaseBackend
+from ._simulatorerror import SimulatorError
+from ._simulatortools import compute_ugate_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -124,30 +121,29 @@ class UGateGeneric(OneQubitGate):
         return self._u_mat
 
 
-class SympyQasmSimulator(BaseBackend):
-    """Python implementation of a qasm simulator."""
+class StatevectorSimulatorSympy(BaseBackend):
+    """Sympy implementation of a statevector simulator."""
+
     DEFAULT_CONFIGURATION = {
-        'name': 'local_sympy_qasm_simulator',
+        'name': 'local_statevector_simulator_sympy',
         'url': 'https://github.com/QISKit/qiskit-sdk-py',
         'simulator': True,
         'local': True,
-        'description': 'A python sympy-based simulator for qasm files',
+        'description': 'A sympy-based statevector simulator',
         'coupling_map': 'all-to-all',
         'basis_gates': 'u1,u2,u3,cx,id'
     }
 
     def __init__(self, configuration=None):
-        """
+        """Initialize the StatevectorSimulatorSympy object.
+
         Args:
             configuration (dict): backend configuration
         """
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
-        self._classical_state = None
         self._number_of_qubits = None
-        self._number_of_cbits = None
-        self._quantum_state = None
-        self._shots = 1
+        self._statevector = None
 
     @staticmethod
     def _conjugate_square(com):
@@ -170,9 +166,7 @@ class SympyQasmSimulator(BaseBackend):
                     which looks like this::
                         [{'data':
                         {
-                          'counts': {'00': 1},
-                          'quantum_state': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object),
-                          'classical_state': 0
+                          'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object),
                         },
                         'status': 'DONE'
                         }]
@@ -180,8 +174,8 @@ class SympyQasmSimulator(BaseBackend):
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
-        self._shots = qobj['config']['shots']
-        if self._shots > 1:
+        shots = qobj['config']['shots']
+        if shots > 1:
             logger.info("No need for multiple shots. A single execution will be performed.")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
@@ -195,9 +189,7 @@ class SympyQasmSimulator(BaseBackend):
             dict: A dictionary of results which looks something like::
                 {
                 "data":{
-                        'classical_state': 0,
-                        'counts': {'11': 1},
-                        'quantum_state': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object)},
+                        'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object)},
                 "status": --status (string)--
                 }
         Raises:
@@ -205,45 +197,27 @@ class SympyQasmSimulator(BaseBackend):
         """
         ccircuit = circuit['compiled_circuit']
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        self._number_of_cbits = ccircuit['header']['number_of_clbits']
-        self._quantum_state = 0
-        self._classical_state = 0
-        cl_reg_index = []  # starting bit index of classical register
-        cl_reg_nbits = []  # number of bits in classical register
-        cbit_index = 0
-        for cl_reg in ccircuit['header']['clbit_labels']:
-            cl_reg_nbits.append(cl_reg[1])
-            cl_reg_index.append(cbit_index)
-            cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
-            random.seed(random.getrandbits(32))
-        else:
-            random.seed(circuit['config']['seed'])
+        self._statevector = 0
 
-        actual_shots = self._shots
-        self._quantum_state = Qubit(*tuple([0]*self._number_of_qubits))
-        self._classical_state = 0
-        # Do each operation in this shot
+        self._statevector = Qubit(*tuple([0]*self._number_of_qubits))
         for operation in ccircuit['operations']:
-            if 'conditional' in operation:  # not related to sympy
-                mask = int(operation['conditional']['mask'], 16)
-                if mask > 0:
-                    value = self._classical_state & mask
-                    while (mask & 0x1) == 0:
-                        mask >>= 1
-                        value >>= 1
-                    if value != int(operation['conditional']['val'], 16):
-                        continue
+            if 'conditional' in operation:
+                raise SimulatorError('conditional operations not supported '
+                                     'in statevector simulator')
+            if operation['name'] == 'measure' or operation['name'] == 'reset':
+                raise SimulatorError('operation {} not supported by '
+                                     'sympy statevector simulator.'.format(operation['name']))
             if operation['name'] in ['U', 'u1', 'u2', 'u3']:
                 qubit = operation['qubits'][0]
                 opname = operation['name'].upper()
                 opparas = operation['params']
-                _sym_op = SympyQasmSimulator.get_sym_op(opname, tuple([qubit]), opparas)
-                _applied_quantum_state = _sym_op * self._quantum_state
-                self._quantum_state = qapply(_applied_quantum_state)
-            # Check if CX gate
+                _sym_op = StatevectorSimulatorSympy.get_sym_op(opname, tuple([qubit]), opparas)
+                _applied_statevector = _sym_op * self._statevector
+                self._statevector = qapply(_applied_statevector)
             elif operation['name'] in ['id']:
-                logger.info('Identity gate is ignored by sympy-based qasm simulator.')
+                logger.info('Identity gate is ignored by sympy-based statevector simulator.')
+            elif operation['name'] in ['barrier']:
+                logger.info('Barrier is ignored by sympy-based statevector simulator.')
             elif operation['name'] in ['CX', 'cx']:
                 qubit0 = operation['qubits'][0]
                 qubit1 = operation['qubits'][1]
@@ -253,64 +227,23 @@ class SympyQasmSimulator(BaseBackend):
                 else:
                     opparas = None
                 q0q1tuple = tuple([qubit0, qubit1])
-                _sym_op = SympyQasmSimulator.get_sym_op(opname, q0q1tuple, opparas)
-                self._quantum_state = qapply(_sym_op * self._quantum_state)
-            # Check if measure
-            elif operation['name'] == 'measure':
-                logger.info('The statement measure is ignored by sympy-based qasm simulator.')
-            elif operation['name'] == 'reset':
-                logger.info('The statement reset is ignored by sympy-based qasm simulator.')
-            elif operation['name'] == 'barrier':
-                logger.info('The statement barrier is ignored by sympy-based qasm simulator.')
+                _sym_op = StatevectorSimulatorSympy.get_sym_op(opname, q0q1tuple, opparas)
+                self._statevector = qapply(_sym_op * self._statevector)
             else:
                 backend = globals()['__configuration']['name']
                 err_msg = '{0} encountered unrecognized operation "{1}"'
                 raise SimulatorError(err_msg.format(backend, operation['name']))
 
-        outcomes = []
-        matrix_form = represent(self._quantum_state)
+        matrix_form = represent(self._statevector)
         shape_n = matrix_form.shape[0]
         list_form = [matrix_form[i, 0] for i in range(shape_n)]
 
-        pdist = [SympyQasmSimulator._conjugate_square(matrix_form[i, 0]) for i in range(shape_n)]
-        norm_pdist = [float(i)/sum(pdist) for i in pdist]
-
-        for _ in range(actual_shots):
-            _classical_state_observed = np.random.choice(np.arange(0, shape_n), p=norm_pdist)
-            outcomes.append(bin(_classical_state_observed)[2:].zfill(
-                self._number_of_cbits))
-
         # Return the results
-        counts = dict(Counter(outcomes))
-        # data['quantum_state']: consistent with other backends.
         data = {
-            'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits),
-            'quantum_state': np.asarray(list_form),
-            'classical_state': self._classical_state
+            'statevector': np.asarray(list_form),
         }
 
         return {'data': data, 'status': 'DONE'}
-
-    def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
-        """Format the result bit string.
-        This formats the result bit strings such that spaces are inserted
-        at register divisions.
-
-        Args:
-            counts (dict): dictionary of counts e.g. {'1111': 1000, '0000':5}
-            cl_reg_index (list): starting bit index of classical register
-            cl_reg_nbits (list): total amount of bits in classical register
-        Returns:
-            dict: spaces inserted into dictionary keys at register boundaries.
-        """
-        fcounts = {}
-        for key, value in counts.items():
-            new_key = [key[-cl_reg_nbits[0]:]]
-            for index, nbits in zip(cl_reg_index[1:],
-                                    cl_reg_nbits[1:]):
-                new_key.insert(0, key[-(index+nbits):-index])
-            fcounts[' '.join(new_key)] = value
-        return fcounts
 
     @staticmethod
     def get_sym_op(name, qid_tuple, params=None):
@@ -355,7 +288,7 @@ class SympyQasmSimulator(BaseBackend):
         if the_gate is not None:
             return the_gate
 
-        # U gate, CU gate or measure gate handled below
+        # U gate, CU gate handled below
         if name.startswith('U') or name.startswith('CU'):
             parameters = params
 
@@ -380,7 +313,5 @@ class SympyQasmSimulator(BaseBackend):
                 u_mat = compute_ugate_matrix(parameters)
                 ugate.set_target_matrix(u_matrix=u_mat)
                 return CGate(qid_tuple[0], ugate)
-        elif name == "MEASURE":
-            return None
         # if the control flow comes here,  alarm!
         raise Exception('Not supported')
