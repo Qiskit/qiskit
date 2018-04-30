@@ -23,7 +23,7 @@ import unittest
 import numpy
 from scipy.stats import chi2_contingency
 
-import qiskit.backends.local.projectq_simulator as projectq_simulator
+import qiskit.backends.local.qasm_simulator_projectq as projectq_simulator
 import qiskit.backends.local.qasmsimulator as qasm_simulator
 from qiskit import QuantumJob
 from qiskit import QuantumCircuit
@@ -35,7 +35,7 @@ from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
 try:
-    pq_simulator = projectq_simulator.ProjectQSimulator()
+    pq_simulator = projectq_simulator.QasmSimulatorProjectQ()
 except ImportError:
     _skip_class = True
 else:
@@ -43,7 +43,7 @@ else:
 
 
 @unittest.skipIf(_skip_class, 'Project Q C++ simulator unavailable')
-class TestProjectQCppSimulator(QiskitTestCase):
+class TestQasmSimulatorProjectQ(QiskitTestCase):
     """
     Test projectq simulator.
     """
@@ -53,7 +53,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         super().setUpClass()
 
         # Set up random circuits
-        n_circuits = 20
+        n_circuits = 5
         min_depth = 1
         max_depth = 10
         min_qubits = 1
@@ -68,6 +68,8 @@ class TestProjectQCppSimulator(QiskitTestCase):
                                        random.randint(2, 7)))
             if 'reset' in basis:
                 basis.remove('reset')
+            if 'u0' in basis:
+                basis.remove('u0')
             random_circuits.add_circuits(1, basis=basis)
         cls.rqg = random_circuits
 
@@ -79,7 +81,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
         qc.x(qr[0])
         qc.measure(qr, cr)
         cconfig = COMPILE_CONFIG_DEFAULT
-        cconfig['shots'] = 100
+        cconfig['shots'] = shots
         qobj = qiskit._compiler.compile([qc], pq_simulator,
                                         compile_config=cconfig)
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
@@ -119,7 +121,7 @@ class TestProjectQCppSimulator(QiskitTestCase):
                 self.assertTrue(key in ['0' * N, '1' * N])
 
     def test_random_circuits(self):
-        local_simulator = qasm_simulator.QasmSimulator()
+        qk_simulator = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
             compiled_circuit = compile_circuit(circuit)
@@ -127,19 +129,19 @@ class TestProjectQCppSimulator(QiskitTestCase):
             job_pq = QuantumJob(compiled_circuit,
                                 backend=pq_simulator,
                                 seed=1, shots=shots)
-            job_py = QuantumJob(compiled_circuit,
-                                backend=local_simulator,
+            job_qk = QuantumJob(compiled_circuit,
+                                backend=qk_simulator,
                                 seed=1, shots=shots)
             result_pq = pq_simulator.run(job_pq).result()
-            result_py = local_simulator.run(job_py).result()
+            result_qk = local_simulator.run(job_qk).result()
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
-            counts_py = result_py.get_counts(result_py.get_names()[0])
-            self.log.info('local_projectq_simulator: %s', str(counts_pq))
-            self.log.info('local_qasm_simulator: %s', str(counts_py))
+            counts_qk = result_qk.get_counts(result_qk.get_names()[0])
+            self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
+            self.log.info('local_qasm_simulator: %s', str(counts_qk))
             states = counts_py.keys() | counts_pq.keys()
             # contingency table
             ctable = numpy.array([[counts_pq.get(key, 0) for key in states],
-                                  [counts_py.get(key, 0) for key in states]])
+                                  [counts_pk.get(key, 0) for key in states]])
             result = chi2_contingency(ctable)
             self.log.info('chi2_contingency: %s', str(result))
             with self.subTest(circuit=circuit):

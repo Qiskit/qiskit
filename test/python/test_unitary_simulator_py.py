@@ -24,7 +24,7 @@ import numpy as np
 
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
                     QuantumRegister, ClassicalRegister)
-from qiskit.backends.local.unitarysimulator import UnitarySimulator
+from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -58,7 +58,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             'config': {
                 'max_credits': None,
                 'shots': 1,
-                'backend_name': 'local_unitary_simulator'
+                'backend_name': 'local_unitary_simulator_py'
             },
             'circuits': [
                 {
@@ -82,10 +82,10 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
         q_job = QuantumJob(qobj,
-                           backend=UnitarySimulator(),
+                           backend=UnitarySimulatorPy(),
                            preformatted=True)
 
-        result = UnitarySimulator().run(q_job).result()
+        result = UnitarySimulatorPy().run(q_job).result()
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],
                                     expected,
                                     rtol=1e-3))
@@ -103,7 +103,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc1.h(qr)
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
-        backend = UnitarySimulator()
+        backend = UnitarySimulatorPy()
         quantum_job = QuantumJob(circuits, do_compile=False,
                                  backend=backend)
         result = backend.run(quantum_job).result()
@@ -140,14 +140,14 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.qp = random_circuits.get_program()
         pr.enable()
         self.qp.execute(self.qp.get_circuit_names(),
-                        backend=UnitarySimulator())
+                        backend=UnitarySimulatorPy())
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
-        self.log.info('------- start profiling UnitarySimulator -----------')
+        self.log.info('------- start profiling UnitarySimulatorPy -----------')
         ps.print_stats()
         self.log.info(sout.getvalue())
-        self.log.info('------- stop profiling UnitarySimulator -----------')
+        self.log.info('------- stop profiling UnitarySimulatorPy -----------')
         sout.close()
         pr.dump_stats(self.moduleName + '.prof')
 

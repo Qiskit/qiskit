@@ -43,3 +43,4 @@ from .cu1 import cu1
 from .ch import ch
 from .crz import crz
 from .cu3 import cu3
+from .rzz import rzz

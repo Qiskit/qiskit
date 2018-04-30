@@ -22,9 +22,10 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import json
 import logging
 import os
-import platform
 import subprocess
 from subprocess import PIPE
+import platform
+import warnings
 
 import numpy as np
 
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 EXTENSION = '.exe' if platform.system() == 'Windows' else ''
 
-# Add path to compiled qiskit simulator
+# Add path to compiled qasm simulator
 DEFAULT_SIMULATOR_PATHS = [
     # This is the path where Makefile creates the simulator by default
     os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -52,19 +53,18 @@ class QasmSimulatorCpp(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qiskit_simulator',
+        'name': 'local_qasm_simulator_cpp',
         'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'description': 'A C++ realistic noise simulator for qobj files',
         'coupling_map': 'all-to-all',
-        "basis_gates": 'u1,u2,u3,cx,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
                        'snapshot,wait,noise,save,load'
     }
 
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
-
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
             paths = [self._configuration.get('exe')]
@@ -86,15 +86,29 @@ class QasmSimulatorCpp(BaseBackend):
 
     def _run_job(self, q_job):
         qobj = q_job.qobj
+        self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
 
+    def _validate(self, qobj):
+        if qobj['config']['shots'] == 1:
+            warnings.warn('The behavior of getting statevector from simulators '
+                          'by setting shots=1 is deprecated and will be removed. '
+                          'Use the local_statevector_simulator instead.',
+                          DeprecationWarning)
+        for circ in qobj['circuits']:
+            if 'measure' not in [op['name'] for
+                                 op in circ['compiled_circuit']['operations']]:
+                logger.warning("no measurements in circuit '%s', "
+                               "classical register will remain all zeros.", circ['name'])
+        return
 
-class CliffordCppSimulator(BaseBackend):
+
+class CliffordSimulatorCpp(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_clifford_simulator',
+        'name': 'local_clifford_simulator_cpp',
         'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
@@ -134,6 +148,7 @@ class CliffordCppSimulator(BaseBackend):
 
     def _run_job(self, q_job):
         qobj = q_job.qobj
+        self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj:
             qobj['config']['simulator'] = 'clifford'
@@ -142,6 +157,9 @@ class CliffordCppSimulator(BaseBackend):
 
         result = run(qobj, self._configuration['exe'])
         return Result(result, qobj)
+
+    def _validate(self):
+        return
 
 
 class QASMSimulatorEncoder(json.JSONEncoder):
@@ -153,6 +171,7 @@ class QASMSimulatorEncoder(json.JSONEncoder):
         complex numbers z as lists [z.real, z.imag]
         ndarrays as nested lists.
     """
+
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -181,7 +200,7 @@ class QASMSimulatorDecoder(json.JSONDecoder):
             if key in obj and isinstance(obj[key], list):
                 tmp = np.array(obj[key])
                 obj[key] = tmp[::, ::, 0] + 1j * tmp[::, ::, 1]
-        for key in ['quantum_state', 'inner_products']:
+        for key in ['statevector', 'inner_products']:
             # JSON is a list of complex vectors
             if key in obj:
                 for j in range(len(obj[key])):
@@ -201,6 +220,7 @@ def run(qobj, executable):
     Returns:
         dict: A dict of simulation results
     """
+
     # Open subprocess and execute external command
     try:
         with subprocess.Popen([executable, '-'],
@@ -210,7 +230,8 @@ def run(qobj, executable):
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
                          cerr.decode())
-        return json.loads(cout.decode(), cls=QASMSimulatorDecoder)
+        sim_output = cout.decode()
+        return json.loads(sim_output, cls=QASMSimulatorDecoder)
 
     except FileNotFoundError:
         msg = "ERROR: Simulator exe not found at: %s" % executable

@@ -88,8 +88,8 @@ class TestBackends(QiskitTestCase):
         If all correct should return a name the same as input.
         """
         local_provider = DefaultQISKitProvider()
-        backend = local_provider.get_backend(name='local_qasm_simulator')
-        self.assertEqual(backend.configuration['name'], 'local_qasm_simulator')
+        backend = local_provider.get_backend(name='local_qasm_simulator_py')
+        self.assertEqual(backend.configuration['name'], 'local_qasm_simulator_py')
 
     def test_local_backend_status(self):
         """Test backend_status.
