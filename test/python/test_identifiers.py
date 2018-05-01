@@ -549,5 +549,6 @@ class TestInvalidIds(QiskitTestCase):
 
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
