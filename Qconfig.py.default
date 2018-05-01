@@ -1,5 +1,5 @@
 # Before you can use the jobs API, you need to set up an access token.
-# Log in to the Quantum Experience. Under "Account", generate a personal 
+# Log in to the IBM Q experience. Under "Account", generate a personal 
 # access token. Replace 'PUT_YOUR_API_TOKEN_HERE' below with the quoted
 # token string. Uncomment the APItoken variable, and you will be ready to go.
 

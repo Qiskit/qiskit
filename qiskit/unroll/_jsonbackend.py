@@ -46,6 +46,7 @@ The input is a AST and a basis set and returns a json memory object::
 """
 from qiskit.unroll import BackendError
 from qiskit.unroll import UnrollerBackend
+from qiskit import QISKitError
 
 
 class JsonBackend(UnrollerBackend):
@@ -60,7 +61,12 @@ class JsonBackend(UnrollerBackend):
         super().__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
-        self.circuit['header'] = {}
+        self.circuit['header'] = {
+            'number_of_qubits': 0,
+            'number_of_clbits': 0,
+            'qubit_labels': [],
+            'clbit_labels': []
+        }
         self._number_of_qubits = 0
         self._number_of_cbits = 0
         self._qubit_order = []
@@ -302,10 +308,9 @@ class JsonBackend(UnrollerBackend):
 
     def get_output(self):
         """Returns the generated circuit."""
-        assert self._is_circuit_valid(), """Invalid circuit!
-            Please check the syntax of your circuit.
-            Has the Qasm parsing been called?. e.g: unroller.execute().
-        """
+        if not self._is_circuit_valid():
+            raise QISKitError("Invalid circuit! Please check the syntax of your circuit."
+                              "Has the Qasm parsing been called?. e.g: unroller.execute().")
         return self.circuit
 
     def _is_circuit_valid(self):

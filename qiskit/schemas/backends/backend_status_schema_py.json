@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/backend/configuration-01/schema#",
+    "description": "QISKit backend states",
+    "type": "object",
+    "required": [
+        "name",
+        "available"
+    ],
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "pending_jobs":{
+            "type": "number"
+        },
+        "available": {
+            "type": "boolean",
+            "default": true
+        }
+    }
+}

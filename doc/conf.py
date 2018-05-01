@@ -23,7 +23,7 @@ from qiskit import __version__
 sys.path.insert(0, os.path.abspath('.'))
 
 # Imported manually, as otherwise it will not be fully imported.
-import qiskit.extensions.qiskit_simulator
+import qiskit.extensions.simulator
 
 # -- General configuration ------------------------------------------------
 
@@ -74,7 +74,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QISKit SDK'
-copyright = '2017 IBM Research'
+copyright = '2017-2018 IBM Research'
 author = 'IBM Research'
 
 # Add description

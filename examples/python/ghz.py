@@ -17,18 +17,12 @@
 
 """
 GHZ state example illustrating mapping onto the backend.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 
-import sys
-import os
-
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
-
 import Qconfig
 
 ###############################################################
@@ -79,14 +73,14 @@ qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: no mapping
 print("no mapping, simulator")
-result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
+result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
                     coupling_map=None, shots=1024)
 print(result)
 print(result.get_counts("ghz"))
 
 # Second version: map to qx2 coupling graph and simulate
 print("map to %s, simulator" % backend)
-result = qp.execute(["ghz"], backend='ibmqx_qasm_simulator',
+result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(result.get_counts("ghz"))

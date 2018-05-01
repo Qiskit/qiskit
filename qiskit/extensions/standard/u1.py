@@ -39,7 +39,7 @@ class U1Gate(Gate):
         qubit = self.arg[0]
         theta = self.param[0]
         return self._qasmif("u1(%s) %s[%d];" % (
-            theta, qubit[0].name, qubit[1]))
+            theta, qubit[0].openqasm_name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -54,10 +54,10 @@ class U1Gate(Gate):
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.u1(theta, (q, j)))
-        return gs
+            instructions.add(self.u1(theta, (q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(U1Gate(theta, q, self))

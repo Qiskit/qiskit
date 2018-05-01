@@ -38,8 +38,8 @@ class CrzGate(Gate):
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("crz(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
-                                                        tgt[0].name, tgt[1]))
+        return self._qasmif("crz(%s) %s[%d],%s[%d];" % (theta, ctl[0].openqasm_name, ctl[1],
+                                                        tgt[0].openqasm_name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -55,7 +55,6 @@ def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
     if isinstance(ctl, QuantumRegister) and \
        isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.crz(theta, (ctl, i), (tgt, i)))

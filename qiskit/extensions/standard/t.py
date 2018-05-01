@@ -44,18 +44,18 @@ class TGate(CompositeGate):
         qubit = self.data[0].arg[0]
         phi = self.data[0].param[0]
         if phi > 0:
-            return self.data[0]._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
+            return self.data[0]._qasmif("t %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
 
-        return self.data[0]._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
+        return self.data[0]._qasmif("tdg %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
 
 
 def t(self, q):
     """Apply T to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
+        instructions = InstructionSet()
         for j in range(q.size):
-            gs.add(self.t((q, j)))
-        return gs
+            instructions.add(self.t((q, j)))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(TGate(q, self))

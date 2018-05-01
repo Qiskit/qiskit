@@ -15,7 +15,10 @@
 # limitations under the License.
 # =============================================================================
 
-"""Tools for QASM."""
+"""Tools for QASM.
+
+Use Unrollers in qiskit.unroll to convert a QASM specification to a qiskit circuit.
+"""
 
 from sympy import pi
 

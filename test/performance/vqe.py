@@ -25,11 +25,11 @@ import os
 import argparse
 import time
 import numpy as np
-import time
 from scipy import linalg as la
 from functools import partial
 
 # import qiskit modules
+from qiskit import mapper
 from qiskit import QuantumProgram
 from qiskit import QISKitError
 
@@ -77,15 +77,18 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     print('The exact ground state energy is: {}'.format(exact))
 
     # Optimization
-    device = 'local_qiskit_simulator'
+    device = 'local_qasm_simulator'
     qp = QuantumProgram()
 
     if shots != 1:
         H = group_paulis(pauli_list)
 
     entangler_map = qp.get_backend_configuration(device)['coupling_map']
+
     if entangler_map == 'all-to-all':
         entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}
+    else:
+        entangler_map = mapper.coupling_list2dict(entangler_map)
 
     initial_theta = np.random.randn(2 * n_qubits * depth)   # initial angles
     initial_c = 0.01                                        # first theta perturbations

@@ -16,25 +16,21 @@
 # =============================================================================
 
 """
-Ripple adder example based on Cuccaro et al, quant-ph/0410184.
+Ripple adder example based on Cuccaro et al., quant-ph/0410184.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 
-import sys
-import os
-
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qiskit import QuantumProgram, QuantumCircuit
+from qiskit import QuantumProgram
+from qiskit import QuantumCircuit
 
 import Qconfig
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "ibmqx_qasm_simulator"
+backend = "ibmq_qasm_simulator"
 coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
                 5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
                 11: [12], 12: [13], 13: [14], 14: [15]}

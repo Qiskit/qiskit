@@ -1,0 +1,92 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/device-file/parameters-01/schema#",
+    "description": "QISKit device backend parameters",
+    "definitions": {
+        "measuredParameter": {
+            "description": "recorded parameter value",
+            "type": "object",
+            "required": [
+                "date",
+                "unit",
+                "value"
+            ],
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "unit": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        }
+    },
+    "type": "object",
+    "required": [
+        "fridgeParameters",
+        "lastUpdateDate",
+        "qubits"
+    ],
+    "properties": {
+        "fridgeParameters": {
+            "type": "object",
+            "required": [
+                "Temperature",
+                "cooldownDate"
+            ],
+            "properties": {
+                "Temperature": {
+                    "$ref": "#/definitions/measuredParameter"
+                }
+            },
+            "cooldownDate": {
+                "type": "string",
+                "format": "date-time"
+            }
+        },
+        "lastUpdateData": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "qubits": {
+            "title": "System qubit parameters",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": [
+                    "T1",
+                    "T2",
+                    "buffer",
+                    "frequency",
+                    "gateTime",
+                    "name"
+                ],
+                "properties": {
+                    "T1": {
+                        "$ref": "#/definitions/measuredParameter"
+                    },
+                    "T2": {
+                        "$ref": "#/definitions/measuredParameter"
+                    },
+                    "buffer": {
+                        "$ref": "#/definitions/measuredParameter"
+                    },
+                    "frequency": {
+                        "$ref": "#/definitions/measuredParameter"
+                    },
+                    "gateTime": {
+                        "$ref": "#/definitions/measuredParameter"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

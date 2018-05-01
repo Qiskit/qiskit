@@ -17,17 +17,12 @@
 
 """
 Quantum Fourier Transform examples.
+
+Note: if you have only cloned the QISKit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 
-import sys
-import os
 import math
-
-# We don't know from where the user is running the example,
-# so we need a relative position from this file path.
-# TODO: Relative imports for intra-package imports are highly discouraged.
-# http://stackoverflow.com/a/7506006
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from qiskit import QuantumProgram
 
 import Qconfig
@@ -138,7 +133,7 @@ print(qft5.qasm())
 ###############################################################
 qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
-result = qp.execute(["qft3", "qft4", "qft5"], backend='ibmqx_qasm_simulator',
+result = qp.execute(["qft3", "qft4", "qft5"], backend='ibmq_qasm_simulator',
                     coupling_map=coupling_map, shots=1024)
 print(result)
 print(result.get_ran_qasm("qft3"))

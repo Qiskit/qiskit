@@ -17,7 +17,9 @@
 # =============================================================================
 
 """Main QISKit public functionality."""
-from IBMQuantumExperience import RegisterSizeError
+
+# First, check for required Python and API version
+from . import _util
 
 from ._qiskiterror import QISKitError
 from ._classicalregister import ClassicalRegister
@@ -39,8 +41,8 @@ from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-from ._util import _check_ibmqe_version
+
+# Import the wrapper, to make it available when doing "import qiskit".
+from . import wrapper
 
 __version__ = '0.5.0'
-
-_check_ibmqe_version()

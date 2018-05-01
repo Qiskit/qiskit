@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=missing-param-doc,missing-type-doc
+#
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,29 +19,32 @@
 """Quantum Job class"""
 import random
 import string
-from qiskit import _openquantumcompiler as openquantumcompiler
-import qiskit.backends as backends
+
+# stable modules
+from ._quantumcircuit import QuantumCircuit
+from .qasm import Qasm
+
+# beta modules
+from .unroll import Unroller, DagUnroller, JsonBackend
+from .dagcircuit import DAGCircuit
 
 
 class QuantumJob():
-    """Creates a quantum circuit job
-
-    Attributes:
-       qobj (dict): describes circuits and configuration to run them
-    """
+    """Creates a quantum circuit job."""
 
     # TODO We need to create more tests for checking all possible inputs.
-    def __init__(self, circuits, backend='local_qasm_simulator',
+    # TODO Make this interface clearer -- circuits could be many things!
+    def __init__(self, circuits, backend,
                  circuit_config=None, seed=None,
                  resources=None,
                  shots=1024, names=None,
                  do_compile=False, preformatted=False):
         """
         Args:
-            circuits (QuantumCircuit or list(QuantumCircuit)):
-                QuantumCircuit or list of QuantumCircuit. If preformatted=True,
-                this is a raw qobj.
-            backend (str): The backend to run the circuit on.
+            circuits (QuantumCircuit|DagCircuit | list(QuantumCircuit|DagCircuit)):
+                QuantumCircuit|DagCircuit or list of QuantumCircuit|DagCircuit.
+                If preformatted=True, this is a raw qobj.
+            backend (BaseBackend): The backend to run the circuit on, required.
             circuit_config (dict): Circuit configuration.
             seed (int): The intial seed the simulatros use.
             resources (dict): Resource requirements of job.
@@ -71,12 +75,12 @@ class QuantumJob():
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:
-            # circuits is actually a qobj...validate (not ideal but conventient)
+            # circuits is actually a qobj...validate (not ideal but convenient)
             self.qobj = circuits
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-        self.backend = self.qobj['config']['backend']
+        self.backend = backend
         self.resources = resources
         self.seed = seed
         self.result = None
@@ -90,10 +94,21 @@ class QuantumJob():
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            if backend in backends.local_backends():
+            # if backend in backends.local_backends():
+            if backend.configuration.get('local'):
                 for circuit in self.circuits:
-                    formatted_circuits.append(
-                        openquantumcompiler.dag2json(circuit))
+                    basis = ['u1', 'u2', 'u3', 'cx', 'id']
+                    unroller = Unroller
+                    # TODO: No instanceof here! Refactor this class
+                    if isinstance(circuit, DAGCircuit):
+                        unroller = DagUnroller
+                    elif isinstance(circuit, QuantumCircuit):
+                        # TODO: We should remove this code path (it's redundant and slow)
+                        circuit = Qasm(data=circuit.qasm()).parse()
+                    unroller_instance = unroller(circuit, JsonBackend(basis))
+                    compiled_circuit = unroller_instance.execute()
+                    formatted_circuits.append(compiled_circuit)
+
             else:
                 for circuit in self.circuits:
                     formatted_circuits.append(circuit.qasm(qeflag=True))
@@ -124,7 +139,7 @@ class QuantumJob():
                 'config': {
                     'max_credits': resources['max_credits'],
                     'shots': shots,
-                    'backend': backend
+                    'backend_name': backend.configuration['name']
                 },
                 'circuits': circuit_records}
 

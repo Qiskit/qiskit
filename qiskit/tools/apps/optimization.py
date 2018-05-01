@@ -87,9 +87,9 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
         # saving
         if k % save_steps == 0:
             print('objective function at theta+ for step # ' + str(k))
-            print(cost_plus)
+            print("%.7f" % cost_plus)
             print(('objective function at theta- for step # ' + str(k)))
-            print(cost_minus)
+            print("%.7f" % cost_minus)
             theta_plus_save.append(theta_plus)
             theta_minus_save.append(theta_minus)
             cost_plus_save.append(cost_plus)
@@ -100,7 +100,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
 
     # final cost update
     cost_final = obj_fun(theta_best)
-    print('Final objective function is: ' + str(cost_final))
+    print('Final objective function is: %.7f' % cost_final)
     return [cost_final, theta_best, cost_plus_save, cost_minus_save,
             theta_plus_save, theta_minus_save]
 
@@ -139,7 +139,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
     SPSA_parameters[0] = target_update * 2 / delta_obj \
         * SPSA_parameters[1] * (SPSA_parameters[4] + 1)
 
-    print('calibrated SPSA_parameters[0] is ' + str(SPSA_parameters[0]))
+    print('calibrated SPSA_parameters[0] is %.7f' % SPSA_parameters[0])
 
     return SPSA_parameters
 
@@ -264,7 +264,7 @@ def print_pauli_list_grouped(pauli_list_grouped):
         print(str(pauli_list_grouped[i][0][0]) + '\n')
         for j in range((len(pauli_list_grouped[i]) - 1)):
             print(pauli_list_grouped[i][j + 1][1].to_label())
-            print(pauli_list_grouped[i][j + 1][0])
+            print("%.7f" % pauli_list_grouped[i][j + 1][0])
 
         print('\n')
 
@@ -288,27 +288,27 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     """
     energy = 0
 
-    if shots == 1:
+    if 'statevector' in device:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
             circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       config={"data": ["quantum_state"]})
-            quantum_state = result.get_data(circuit[0]).get('quantum_state')
-            if quantum_state is None:
-                quantum_state = result.get_data(
-                    circuit[0]).get('quantum_states')
-                if quantum_state:
-                    quantum_state = quantum_state[0]
+                                       config={"data": ["statevector"]})
+            statevector = result.get_data(circuit[0]).get('statevector')
+            if statevector is None:
+                statevector = result.get_data(
+                    circuit[0]).get('statevector')
+                if statevector:
+                    statevector = statevector[0]
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
-                energy = np.sum(hamiltonian * np.absolute(quantum_state) ** 2)
+                energy = np.sum(hamiltonian * np.absolute(statevector) ** 2)
             # Hamiltonian represented by square matrix
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
-                energy = np.inner(np.conjugate(quantum_state),
-                                  np.dot(hamiltonian, quantum_state))
+                energy = np.inner(np.conjugate(statevector),
+                                  np.dot(hamiltonian, statevector))
         # Hamiltonian represented by a Pauli list
         else:
             circuits = []
@@ -320,7 +320,7 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
             n_qubits = input_circuit.regs['q'].size
-            q = QuantumRegister("q", n_qubits)
+            q = QuantumRegister(n_qubits, "q")
             i = 1
             for p in hamiltonian:
                 circuits.append(copy.deepcopy(input_circuit))
@@ -337,23 +337,23 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
-            quantum_state_0 = result.get_data(
-                circuits_labels[0])['quantum_state']
+            statevector_0 = result.get_data(
+                circuits_labels[0])['statevector']
             i = 1
             for p in hamiltonian:
-                quantum_state_i = result.get_data(
-                    circuits_labels[i])['quantum_state']
+                statevector_i = result.get_data(
+                    circuits_labels[i])['statevector']
                 # inner product with final rotations of (i-1)-th Pauli
-                energy += p[0] * np.inner(np.conjugate(quantum_state_0),
-                                          quantum_state_i)
+                energy += p[0] * np.inner(np.conjugate(statevector_0),
+                                          statevector_i)
                 i += 1
     # finite number of shots and hamiltonian grouped in tpb sets
     else:
         circuits = []
         circuits_labels = []
         n = int(len(hamiltonian[0][0][1].v))
-        q = QuantumRegister("q", n)
-        c = ClassicalRegister("c", n)
+        q = QuantumRegister(n, "q")
+        c = ClassicalRegister(n, "c")
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
@@ -396,8 +396,8 @@ def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
     Returns:
         QuantumCircuit: A QuantumCircuit object
     """
-    q = QuantumRegister("q", n)
-    c = ClassicalRegister("c", n)
+    q = QuantumRegister(n, "q")
+    c = ClassicalRegister(n, "c")
     trial_circuit = QuantumCircuit(q, c)
     trial_circuit.h(q)
     if meas_string is None:
@@ -439,8 +439,8 @@ def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
     Returns:
         QuantumCircuit: A QuantumCircuit object
     """
-    q = QuantumRegister("q", n)
-    c = ClassicalRegister("c", n)
+    q = QuantumRegister(n, "q")
+    c = ClassicalRegister(n, "c")
     trial_circuit = QuantumCircuit(q, c)
     trial_circuit.h(q)
     if meas_string is None:
