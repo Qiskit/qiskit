@@ -95,14 +95,15 @@ class QiskitTestCase(unittest.TestCase):
         comparing that the difference between values with the same key are
         not greater than delta (default 1e-8), or that difference rounded
         to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword arugment
+        dictionary is not in the other the default_value keyword argument
         will be used for the missing value (default 0). If the two objects
         compare equal then they will automatically compare almost equal.
 
         Args:
             dict1 (dict): a dictionary.
             dict2 (dict): a dictionary.
-            delta (number): threshold for comparison (defaults to 1e-8).
+            delta (number): threshold for comparison (defaults to 0.040 *
+                sum of values in dict1).
             msg (str): return a custom message on failure.
             places (int): number of decimal places for comparison.
             default_value (number): default value for missing keys.
@@ -117,8 +118,8 @@ class QiskitTestCase(unittest.TestCase):
         if delta is not None and places is not None:
             raise TypeError("specify delta or places not both")
 
+        success = True
         if places is not None:
-            success = True
             standard_msg = ''
             # check value for keys in target
             keys1 = set(dict1.keys())
@@ -140,14 +141,14 @@ class QiskitTestCase(unittest.TestCase):
                     standard_msg += '(%s: %s != %s), ' % (safe_repr(key),
                                                           safe_repr(val1),
                                                           safe_repr(val2))
-            if success is True:
+            if success:
                 return
             standard_msg = standard_msg[:-2] + ' within %s places' % places
 
         else:
             if delta is None:
-                delta = 1e-8  # default delta value
-            success = True
+                delta = 0.04 * sum(dict1.values())  # default delta value
+
             standard_msg = ''
             # check value for keys in target
             keys1 = set(dict1.keys())
@@ -169,7 +170,7 @@ class QiskitTestCase(unittest.TestCase):
                     standard_msg += '(%s: %s != %s), ' % (safe_repr(key),
                                                           safe_repr(val1),
                                                           safe_repr(val2))
-            if success is True:
+            if success:
                 return
             standard_msg = standard_msg[:-2] + ' within %s delta' % delta
 

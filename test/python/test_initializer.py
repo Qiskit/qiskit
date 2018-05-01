@@ -191,11 +191,10 @@ class TestInitialize(QiskitTestCase):
         qp.add_circuit("qc", qc)
         # statevector simulator does not support reset
         shots = 2000
-        threshold = 0.025 * shots
         result = qp.execute("qc", backend='local_qasm_simulator', shots=shots)
         counts = result.get_counts()
         target = {'00': shots / 4, '01': shots / 4, '10': shots / 4, '11': shots / 4}
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
 
     def test_sympy(self):
         desired_vector = [

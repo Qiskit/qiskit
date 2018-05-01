@@ -90,9 +90,9 @@ class TestCrossSimulation(QiskitTestCase):
         counts_py = result_py.get_counts()
         counts_ibmq = result_ibmq.get_counts()
         counts_hpc = result_hpc.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.025)
-        self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.025)
-        self.assertDictAlmostEqual(counts_ibmq, counts_hpc, shots*0.025)
+        self.assertDictAlmostEqual(counts_cpp, counts_py)
+        self.assertDictAlmostEqual(counts_py, counts_ibmq)
+        self.assertDictAlmostEqual(counts_ibmq, counts_hpc)
 
     def test_qasm_snapshot(self):
         """snapshot a circuit at multiple places"""
@@ -151,9 +151,9 @@ class TestCrossSimulation(QiskitTestCase):
         counts_py = result_py.get_counts()
         # counts_ibmq = result_ibmq.get_counts()
         # counts_hpc = result_hpc.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.025)
-        # self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.025)
-        # self.assertDictAlmostEqual(counts_ibmq, counts_hpc, shots*0.025)
+        self.assertDictAlmostEqual(counts_cpp, counts_py)
+        # self.assertDictAlmostEqual(counts_py, counts_ibmq)
+        # self.assertDictAlmostEqual(counts_ibmq, counts_hpc)
 
 
 class TestSimulatorNames(QiskitTestCase):

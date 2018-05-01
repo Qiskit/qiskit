@@ -130,13 +130,12 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_run_qobj(self):
         result = self.backend.run(self.q_job)
         shots = self.qobj['config']['shots']
-        threshold = 0.025 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
                   '101 101': shots / 8, '111 111': shots / 8,
                   '000 000': shots / 8, '010 010': shots / 8,
                   '110 110': shots / 8, '001 001': shots / 8}
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
 
     def test_qobj_measure_opt(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt.json')
@@ -202,9 +201,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 self.assertEqual(counts, expected_counts,
                                  msg=name + ' counts')
             else:
-                threshold = 0.025 * shots
                 self.assertDictAlmostEqual(counts, expected_counts,
-                                           threshold, msg=name + 'counts')
+                                           msg=name + 'counts')
             # Check snapshot
             snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
