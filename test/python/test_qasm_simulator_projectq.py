@@ -122,8 +122,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                          if cnt > min_cnts}
             self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
             self.log.info('local_qasm_simulator: %s', str(counts_qk))
-            threshold = 0.05 * shots
-            self.assertDictAlmostEqual(counts_pq, counts_qk, threshold)
+            self.assertDictAlmostEqual(counts_pq, counts_qk)
             states = counts_qk.keys()
             # contingency table
             ctable = numpy.array([[counts_pq[key] for key in states],

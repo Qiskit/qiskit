@@ -301,8 +301,7 @@ class TestAnonymousIds(QiskitTestCase):
         result = q_program.execute(backend=backend, shots=shots, seed=78)
         counts = result.get_counts(new_circuit.name)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
         self.assertRaises(QISKitError, result.get_counts)
 
 
@@ -650,8 +649,7 @@ class TestZeroIds(QiskitTestCase):
         result = q_program.execute(circuits, backend=backend, shots=shots, seed=78)
         counts = result.get_counts(1001)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
 
 
 class TestIntegerIds(QiskitTestCase):
@@ -999,8 +997,7 @@ class TestIntegerIds(QiskitTestCase):
                                    seed=78)
         counts = result.get_counts(1001)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
 
 
 class TestTupleIds(QiskitTestCase):
@@ -1344,8 +1341,7 @@ class TestTupleIds(QiskitTestCase):
                                    seed=78)
         counts = result.get_counts((1001.1, 1001j))
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target)
 
 
 class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
