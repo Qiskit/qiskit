@@ -39,7 +39,7 @@ class TestInitialize(QiskitTestCase):
     def test_uniform_superposition(self):
         desired_vector = [0.5, 0.5, 0.5, 0.5]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 2)
+        qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
@@ -53,7 +53,7 @@ class TestInitialize(QiskitTestCase):
     def test_deterministic_state(self):
         desired_vector = [0, 1, 0, 0]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 2)
+        qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qp.add_circuit("qc", qc)
@@ -67,7 +67,7 @@ class TestInitialize(QiskitTestCase):
     def test_bell_state(self):
         desired_vector = [1/math.sqrt(2), 0, 0, 1/math.sqrt(2)]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 2)
+        qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1]])
@@ -82,7 +82,7 @@ class TestInitialize(QiskitTestCase):
     def test_ghz_state(self):
         desired_vector = [1/math.sqrt(2), 0, 0, 0, 0, 0, 0, 1/math.sqrt(2)]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 3)
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc = qp.create_circuit("qc", [qr])
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
@@ -97,7 +97,7 @@ class TestInitialize(QiskitTestCase):
     def test_single_qubit(self):
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3)]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 1)
+        qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0]])
         qp.add_circuit("qc", qc)
@@ -119,7 +119,7 @@ class TestInitialize(QiskitTestCase):
             1 / math.sqrt(16) * complex(1, 0),
             0]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 3)
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
         qp.add_circuit("qc", qc)
@@ -149,7 +149,7 @@ class TestInitialize(QiskitTestCase):
             1 / math.sqrt(4) * complex(1, 0),
             1 / math.sqrt(8) * complex(1, 0)]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 4)
+        qr = QuantumRegister(4, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         qp.add_circuit("qc", qc)
@@ -162,7 +162,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_malformed_amplitudes(self):
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3), 0]
-        qr = QuantumRegister("qr", 2)
+        qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(
             QISKitError,
@@ -170,7 +170,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_non_unit_probability(self):
         desired_vector = [1, 1]
-        qr = QuantumRegister("qr", 2)
+        qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(
             QISKitError,
@@ -179,8 +179,8 @@ class TestInitialize(QiskitTestCase):
     def test_initialize_middle_circuit(self):
         desired_vector = [0.5, 0.5, 0.5, 0.5]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 2)
-        cr = ClassicalRegister("cr", 2)
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
@@ -216,7 +216,7 @@ class TestInitialize(QiskitTestCase):
             1 / math.sqrt(4),
             1 / math.sqrt(4) * complex(0, 1)]
         qp = QuantumProgram()
-        qr = QuantumRegister("qr", 4)
+        qr = QuantumRegister(4, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
         qp.add_circuit("qc", qc)

@@ -1530,8 +1530,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return the data
         """
 
-        qr = QuantumRegister("qr", 2)
-        cr = ClassicalRegister("cr", 2)
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
         qc1 = QuantumCircuit(qr)
         qc1.x(qr)
         qc2 = QuantumCircuit(qr, cr)
@@ -1554,9 +1554,9 @@ class TestQuantumProgram(QiskitTestCase):
         If two circuits have samed name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister("q", 1)
-        q2 = QuantumRegister("q", 2)
-        c1 = QuantumRegister("q", 1)
+        q1 = QuantumRegister(1, "q")
+        q2 = QuantumRegister(2, "q")
+        c1 = QuantumRegister(1, "q")
         qc1 = QuantumCircuit(q1)
         qc2 = QuantumCircuit(q2)
         qc3 = QuantumCircuit(c1)
@@ -1595,8 +1595,8 @@ class TestQuantumProgram(QiskitTestCase):
         If all correct should return the data
         """
 
-        qr = QuantumRegister("qr", 2)
-        cr = ClassicalRegister("cr", 2)
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
         qc1 = QuantumCircuit(qr)
         qc1.x(qr)
         qc2 = QuantumCircuit(qr, cr)
@@ -1619,9 +1619,9 @@ class TestQuantumProgram(QiskitTestCase):
         If two circuits have samed name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister("q", 1)
-        q2 = QuantumRegister("q", 2)
-        c1 = QuantumRegister("q", 1)
+        q1 = QuantumRegister(1, "q")
+        q2 = QuantumRegister(2, "q")
+        c1 = QuantumRegister(1, "q")
         qc1 = QuantumCircuit(q1)
         qc2 = QuantumCircuit(q2)
         qc3 = QuantumCircuit(c1)
