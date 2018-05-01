@@ -369,8 +369,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
-    def test_local_sympy_unitary_simulator(self):
-        backend = 'local_sympy_unitary_simulator'
+    def test_local_unitary_simulator_sympy(self):
+        backend = 'local_unitary_simulator_sympy'
         qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
