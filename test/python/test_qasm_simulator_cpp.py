@@ -19,7 +19,6 @@
 
 import json
 import unittest
-import logging
 import numpy as np
 from numpy.linalg import norm
 
@@ -33,9 +32,6 @@ from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
 from .common import QiskitTestCase
-
-logger = logging.getLogger('qiskit.backends.local.qasm_simulator_cpp')
-logger.setLevel(logging.ERROR)
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
