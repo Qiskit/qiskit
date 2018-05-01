@@ -18,19 +18,13 @@
 """Tests for checking qiskit interfaces to simulators."""
 
 import unittest
-import logging
-import qiskit as qk
+import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import available_backends, register, execute, get_backend
 from qiskit.backends.local import QasmSimulatorPy, QasmSimulatorCpp
 from .common import requires_qe_access, QiskitTestCase
 
-
-logger_cpp = logging.getLogger('qiskit.backends.local.qasm_simulator_cpp')
-logger_py = logging.getLogger('qiskit.backends.local.qasm_simulator_py')
-logger_cpp.setLevel(logging.ERROR)
-logger_py.setLevel(logging.ERROR)
 
 # Cpp backend required
 try:
@@ -49,8 +43,8 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_statevector(self):
         """statevector from a bell state"""
-        q = qk.QuantumRegister(2)
-        circ = qk.QuantumCircuit(q)
+        q = qiskit.QuantumRegister(2)
+        circ = qiskit.QuantumCircuit(q)
         circ.h(q[0])
         circ.cx(q[0], q[1])
 
@@ -69,9 +63,9 @@ class TestCrossSimulation(QiskitTestCase):
     def test_qasm(self, QE_TOKEN, QE_URL):
         """counts from a GHZ state"""
         register(QE_TOKEN, QE_URL)
-        q = qk.QuantumRegister(3)
-        c = qk.ClassicalRegister(3)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(3)
+        c = qiskit.ClassicalRegister(3)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.cx(q[0], q[1])
         circ.cx(q[1], q[2])
@@ -96,9 +90,9 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_qasm_snapshot(self):
         """snapshot a circuit at multiple places"""
-        q = qk.QuantumRegister(3)
-        c = qk.ClassicalRegister(3)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(3)
+        c = qiskit.ClassicalRegister(3)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.cx(q[0], q[1])
         circ.snapshot(1)
@@ -124,9 +118,9 @@ class TestCrossSimulation(QiskitTestCase):
     def test_qasm_reset_measure(self, QE_TOKEN, QE_URL):
         """counts from a qasm program with measure and reset in the middle"""
         register(QE_TOKEN, QE_URL)
-        q = qk.QuantumRegister(3)
-        c = qk.ClassicalRegister(3)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(3)
+        c = qiskit.ClassicalRegister(3)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.cx(q[0], q[1])
         circ.reset(q[0])

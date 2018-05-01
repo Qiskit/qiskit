@@ -85,7 +85,6 @@ class QiskitTestCase(unittest.TestCase):
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
-    # pylint: disable=invalid-name
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):
         """
@@ -111,7 +110,7 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-
+        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
