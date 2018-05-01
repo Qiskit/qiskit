@@ -101,8 +101,7 @@ class QiskitTestCase(unittest.TestCase):
         Args:
             dict1 (dict): a dictionary.
             dict2 (dict): a dictionary.
-            delta (number): threshold for comparison (defaults to 0.040 *
-                sum of values in dict1).
+            delta (number): threshold for comparison (defaults to 1e-8).
             msg (str): return a custom message on failure.
             places (int): number of decimal places for comparison.
             default_value (number): default value for missing keys.
@@ -117,8 +116,8 @@ class QiskitTestCase(unittest.TestCase):
         if delta is not None and places is not None:
             raise TypeError("specify delta or places not both")
 
-        success = True
         if places is not None:
+            success = True
             standard_msg = ''
             # check value for keys in target
             keys1 = set(dict1.keys())
@@ -140,14 +139,14 @@ class QiskitTestCase(unittest.TestCase):
                     standard_msg += '(%s: %s != %s), ' % (safe_repr(key),
                                                           safe_repr(val1),
                                                           safe_repr(val2))
-            if success:
+            if success is True:
                 return
             standard_msg = standard_msg[:-2] + ' within %s places' % places
 
         else:
             if delta is None:
-                delta = 0.04 * sum(dict1.values())  # default delta value
-
+                delta = 1e-8  # default delta value
+            success = True
             standard_msg = ''
             # check value for keys in target
             keys1 = set(dict1.keys())
@@ -169,7 +168,7 @@ class QiskitTestCase(unittest.TestCase):
                     standard_msg += '(%s: %s != %s), ' % (safe_repr(key),
                                                           safe_repr(val1),
                                                           safe_repr(val2))
-            if success:
+            if success is True:
                 return
             standard_msg = standard_msg[:-2] + ' within %s delta' % delta
 

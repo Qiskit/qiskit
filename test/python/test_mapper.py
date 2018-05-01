@@ -58,7 +58,8 @@ class MapperTest(QiskitTestCase):
                                  seed=self.seed, shots=shots)
         counts = result.get_counts("test")
         target = {'0001': shots / 2, '0101':  shots / 2}
-        self.assertDictAlmostEqual(counts, target)
+        threshold = 0.04 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
@@ -126,7 +127,8 @@ class MapperTest(QiskitTestCase):
             '11111': 0.017684822659235985
         }
         target = {key: shots * val for key, val in expected_probs.items()}
-        self.assertDictAlmostEqual(counts, target)
+        threshold = 0.04 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
