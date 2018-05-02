@@ -50,7 +50,14 @@ class QuantumCircuit(object):
     definitions = OrderedDict()
 
     def __init__(self, *regs, name=None):
-        """Create a new circuit."""
+        """Create a new circuit.
+
+        Args:
+            *regs (Registers): registers to include in the circuit.
+            name (str or None): the name of the quantum circuit. If
+                None, an automatically generated identifier will be
+                assigned.
+        """
         self._increment_instances()
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
