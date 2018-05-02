@@ -57,6 +57,9 @@ class QuantumCircuit(object):
             name (str or None): the name of the quantum circuit. If
                 None, an automatically generated identifier will be
                 assigned.
+
+        Raises:
+            QISKitError: if the circuit name, if given, is not valid.
         """
         self._increment_instances()
         if name is None:
