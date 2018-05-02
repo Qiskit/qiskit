@@ -64,7 +64,7 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q[1], c[0])
 
         shots = 2000
-        result_real = execute(circ, real, {"shots": shots, "timeout": 300})
+        result_real = execute(circ, real, {"shots": shots}, timeout=600)
         result_sim = execute(circ, sim, {"shots": shots})
         counts_real = result_real.get_counts()
         counts_sim = result_sim.get_counts()
@@ -94,7 +94,7 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q2[0], c1[1])
 
         shots = 4000
-        result_real = execute(circ, real, {"shots": shots, "timeout": 300})
+        result_real = execute(circ, real, {"shots": shots}, timeout=600)
         result_sim = execute(circ, sim, {"shots": shots})
         counts_real = result_real.get_counts()
         counts_sim = result_sim.get_counts()
