@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,no-member,bad-continuation
+# pylint: disable=invalid-name,missing-docstring
 #
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -133,7 +133,7 @@ measure r[2] -> d[2];
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend(["cx", "u1", "u2", "u3"])).execute()
         dag_unroller = DagUnroller(dag_circuit, DAGBackend())
-        expanded_dag_circuit = dag_unroller.expand_gates(["cx", "u1", "u2", "u3"])
+        expanded_dag_circuit = dag_unroller.expand_gates(basis=["cx", "u1", "u2", "u3"])
         expected_result = """\
 OPENQASM 2.0;
 qreg q[3];
@@ -173,30 +173,33 @@ measure r[2] -> d[2];
         dag_circuit = Unroller(ast, DAGBackend()).execute()
         dag_unroller = DagUnroller(dag_circuit, JsonBackend())
         json_circuit = dag_unroller.execute()
-        expected_result = \
-            {'operations':
-                [{'qubits': [5], 'texparams': ['0.5 \\pi', '0', '\\pi'],
-                  'name': 'U', 'params': [1.5707963267948966, 0.0, 3.141592653589793]},
-                 {'name': 'CX', 'qubits': [5, 2]},
-                 {'clbits': [2], 'name': 'measure', 'qubits': [2]},
-                 {'qubits': [4], 'texparams': ['0.5 \\pi', '0', '\\pi'], 'name': 'U',
-                  'params': [1.5707963267948966, 0.0, 3.141592653589793]},
-                 {'name': 'CX', 'qubits': [4, 1]},
-                 {'clbits': [1], 'name': 'measure', 'qubits': [1]},
-                 {'qubits': [3], 'texparams': ['0.5 \\pi', '0', '\\pi'], 'name': 'U',
-                  'params': [1.5707963267948966, 0.0, 3.141592653589793]},
-                 {'name': 'CX', 'qubits': [3, 0]},
-                 {'name': 'barrier', 'qubits': [3, 4, 5]},
-                 {'clbits': [5], 'name': 'measure', 'qubits': [5]},
-                 {'clbits': [4], 'name': 'measure', 'qubits': [4]},
-                 {'clbits': [3], 'name': 'measure', 'qubits': [3]},
-                 {'clbits': [0], 'name': 'measure', 'qubits': [0]}],
-             'header':
-                 {'number_of_clbits': 6,
-                  'qubit_labels': [['r', 0], ['r', 1], ['r', 2], ['q', 0], ['q', 1], ['q', 2]],
-                  'number_of_qubits': 6, 'clbit_labels': [['d', 3], ['c', 3]]
-                  }
-             }
+        expected_result = {
+            'operations':
+                [
+                    {'qubits': [5], 'texparams': ['0.5 \\pi', '0', '\\pi'],
+                     'name': 'U', 'params': [1.5707963267948966, 0.0, 3.141592653589793]},
+                    {'name': 'CX', 'qubits': [5, 2]},
+                    {'clbits': [2], 'name': 'measure', 'qubits': [2]},
+                    {'qubits': [4], 'texparams': ['0.5 \\pi', '0', '\\pi'], 'name': 'U',
+                     'params': [1.5707963267948966, 0.0, 3.141592653589793]},
+                    {'name': 'CX', 'qubits': [4, 1]},
+                    {'clbits': [1], 'name': 'measure', 'qubits': [1]},
+                    {'qubits': [3], 'texparams': ['0.5 \\pi', '0', '\\pi'], 'name': 'U',
+                     'params': [1.5707963267948966, 0.0, 3.141592653589793]},
+                    {'name': 'CX', 'qubits': [3, 0]},
+                    {'name': 'barrier', 'qubits': [3, 4, 5]},
+                    {'clbits': [5], 'name': 'measure', 'qubits': [5]},
+                    {'clbits': [4], 'name': 'measure', 'qubits': [4]},
+                    {'clbits': [3], 'name': 'measure', 'qubits': [3]},
+                    {'clbits': [0], 'name': 'measure', 'qubits': [0]}
+                ],
+            'header':
+                {
+                    'number_of_clbits': 6,
+                    'qubit_labels': [['r', 0], ['r', 1], ['r', 2], ['q', 0], ['q', 1], ['q', 2]],
+                    'number_of_qubits': 6, 'clbit_labels': [['d', 3], ['c', 3]]
+                }
+        }
 
         self.assertEqual(json_circuit, expected_result)
 
@@ -209,29 +212,32 @@ measure r[2] -> d[2];
         dag_circuit = Unroller(ast, DAGBackend(["cx", "u1", "u2", "u3"])).execute()
         dag_unroller = DagUnroller(dag_circuit, JsonBackend(["cx", "u1", "u2", "u3"]))
         json_circuit = dag_unroller.execute()
-        expected_result = \
-            {'operations':
-                [{'qubits': [5], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
-                  'name': 'u2'},
-                 {'qubits': [5, 2], 'texparams': [], 'params': [], 'name': 'cx'},
-                 {'qubits': [2], 'clbits': [2], 'name': 'measure'},
-                 {'qubits': [4], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
-                  'name': 'u2'},
-                 {'qubits': [4, 1], 'texparams': [], 'params': [], 'name': 'cx'},
-                 {'qubits': [1], 'clbits': [1], 'name': 'measure'},
-                 {'qubits': [3], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
-                  'name': 'u2'},
-                 {'qubits': [3, 0], 'texparams': [], 'params': [], 'name': 'cx'},
-                 {'qubits': [3, 4, 5], 'name': 'barrier'},
-                 {'qubits': [5], 'clbits': [5], 'name': 'measure'},
-                 {'qubits': [4], 'clbits': [4], 'name': 'measure'},
-                 {'qubits': [3], 'clbits': [3], 'name': 'measure'},
-                 {'qubits': [0], 'clbits': [0], 'name': 'measure'}],
-             'header':
-                 {'clbit_labels': [['d', 3], ['c', 3]],
-                  'number_of_qubits': 6,
-                  'qubit_labels': [['r', 0], ['r', 1], ['r', 2], ['q', 0], ['q', 1], ['q', 2]],
-                  'number_of_clbits': 6
-                  }
-             }
+        expected_result = {
+            'operations':
+                [
+                    {'qubits': [5], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
+                     'name': 'u2'},
+                    {'qubits': [5, 2], 'texparams': [], 'params': [], 'name': 'cx'},
+                    {'qubits': [2], 'clbits': [2], 'name': 'measure'},
+                    {'qubits': [4], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
+                     'name': 'u2'},
+                    {'qubits': [4, 1], 'texparams': [], 'params': [], 'name': 'cx'},
+                    {'qubits': [1], 'clbits': [1], 'name': 'measure'},
+                    {'qubits': [3], 'texparams': ['0', '\\pi'], 'params': [0.0, 3.141592653589793],
+                     'name': 'u2'},
+                    {'qubits': [3, 0], 'texparams': [], 'params': [], 'name': 'cx'},
+                    {'qubits': [3, 4, 5], 'name': 'barrier'},
+                    {'qubits': [5], 'clbits': [5], 'name': 'measure'},
+                    {'qubits': [4], 'clbits': [4], 'name': 'measure'},
+                    {'qubits': [3], 'clbits': [3], 'name': 'measure'},
+                    {'qubits': [0], 'clbits': [0], 'name': 'measure'}
+                ],
+            'header':
+                {
+                    'clbit_labels': [['d', 3], ['c', 3]],
+                    'number_of_qubits': 6,
+                    'qubit_labels': [['r', 0], ['r', 1], ['r', 2], ['q', 0], ['q', 1], ['q', 2]],
+                    'number_of_clbits': 6
+                }
+        }
         self.assertEqual(json_circuit, expected_result)

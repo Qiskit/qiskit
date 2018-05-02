@@ -70,6 +70,13 @@ gate ccx a,b,c
   cx a,b; t a; tdg b;
   cx a,b;
 }
+// cswap (Fredkin)
+gate cswap a,b,c
+{
+  cx c,b;
+  ccx a,b,c;
+  cx c,b;
+}
 // controlled rz rotation
 gate crz(lambda) a,b
 {
@@ -96,4 +103,11 @@ gate cu3(theta,phi,lambda) c, t
   u3(-theta/2,0,-(phi+lambda)/2) t;
   cx c,t;
   u3(theta/2,phi,0) t;
+}
+// two-qubit ZZ rotation
+gate rzz(theta) a,b
+{
+  cx a,b;
+  u1(theta) b;
+  cx a,b;
 }

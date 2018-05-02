@@ -48,6 +48,7 @@ from qiskit.extensions.standard.ubase import UBase
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.y import YGate
 from qiskit.extensions.standard.z import ZGate
+from qiskit.extensions.standard.rzz import RZZGate
 
 from .common import QiskitTestCase
 
@@ -82,9 +83,9 @@ class TestStandard1Q(StandardExtensionTest):
     """Standard Extension Test. Gates with a single Qubit"""
 
     def setUp(self):
-        self.q = QuantumRegister("q", 3)
-        self.r = QuantumRegister("r", 3)
-        self.c = ClassicalRegister("c", 3)
+        self.q = QuantumRegister(3, "q")
+        self.r = QuantumRegister(3, "r")
+        self.c = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.q, self.r, self.c)
         self.c_header = 69  # lenght of the header
 
@@ -713,7 +714,19 @@ class TestStandard1Q(StandardExtensionTest):
         self.circuit.z(self.q[1])
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
 
-    def test_z_invalid(self):
+    def test_rzz(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.rzz, 0.1, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.rzz, 0.1, self.q[0], self.q[0])
+        c.rzz(pi/2, self.q[1], self.q[2])
+        self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', 'rzz(-pi/2) q[1],q[2];')
+
+    def assertResult(self, t, qasm_txt, qasm_txt_):
+        """
+        t: type
+        qasm_txt: qasm representation
+        qasm_txt_: qasm representation of inverse
+        """
         c = self.circuit
         self.assertRaises(QISKitError, c.z, self.c[0])
         self.assertRaises(QISKitError, c.z, self.c)
@@ -738,9 +751,9 @@ class TestStandard2Q(StandardExtensionTest):
     """Standard Extension Test. Gates with two Qubits"""
 
     def setUp(self):
-        self.q = QuantumRegister("q", 3)
-        self.r = QuantumRegister("r", 3)
-        self.c = ClassicalRegister("c", 3)
+        self.q = QuantumRegister(3, "q")
+        self.r = QuantumRegister(3, "r")
+        self.c = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.q, self.r, self.c)
         self.c_header = 69  # lenght of the header
 
@@ -1059,10 +1072,10 @@ class TestStandard3Q(StandardExtensionTest):
     """Standard Extension Test. Gates with three Qubits"""
 
     def setUp(self):
-        self.q = QuantumRegister("q", 3)
-        self.r = QuantumRegister("r", 3)
-        self.s = QuantumRegister("s", 3)
-        self.c = ClassicalRegister("c", 3)
+        self.q = QuantumRegister(3, "q")
+        self.r = QuantumRegister(3, "r")
+        self.s = QuantumRegister(3, "s")
+        self.c = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.q, self.r, self.s, self.c)
         self.c_header = 80  # lenght of the header
 
@@ -1084,17 +1097,17 @@ class TestStandard3Q(StandardExtensionTest):
         self.assertQasm(qasm_txt)
 
     def test_cswap_reg_reg_reg(self):
-        qasm_txt = 'cx s[0],r[0];\n' \
-                   'ccx q[0],r[0],s[0];\ncx s[0],r[0];\ncx s[1],r[1];\nccx q[1],r[1],s[1];\n' \
-                   'cx s[1],r[1];\ncx s[2],r[2];\nccx q[2],r[2],s[2];\ncx s[2],r[2];'
+        qasm_txt = 'cswap q[0],r[0],s[0];\n' \
+                   'cswap q[1],r[1],s[1];\n' \
+                   'cswap q[2],r[2],s[2];'
         instruction_set = self.circuit.cswap(self.q, self.r, self.s)
         self.assertStmtsType(instruction_set.instructions, FredkinGate)
         self.assertQasm(qasm_txt)
 
     def test_cswap_reg_reg_inv(self):
-        qasm_txt = 'cx s[0],r[0];\n' \
-                   'ccx q[0],r[0],s[0];\ncx s[0],r[0];\ncx s[1],r[1];\nccx q[1],r[1],s[1];\n' \
-                   'cx s[1],r[1];\ncx s[2],r[2];\nccx q[2],r[2],s[2];\ncx s[2],r[2];'
+        qasm_txt = 'cswap q[0],r[0],s[0];\n' \
+                   'cswap q[1],r[1],s[1];\n' \
+                   'cswap q[2],r[2],s[2];'
         instruction_set = self.circuit.cswap(self.q, self.r, self.s).inverse()
         self.assertStmtsType(instruction_set.instructions, FredkinGate)
         self.assertQasm(qasm_txt)

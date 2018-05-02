@@ -31,6 +31,8 @@ from ._instructionset import InstructionSet
 
 class QuantumCircuit(object):
     """Quantum circuit."""
+    instances = 0
+    prefix = 'circuit'
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
@@ -49,12 +51,30 @@ class QuantumCircuit(object):
 
     def __init__(self, *regs, name=None):
         """Create a new circuit."""
+        self._increment_instances()
+        if name is None:
+            name = self.cls_prefix() + str(self.cls_instances())
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
         self.regs = OrderedDict()
         self.add(*regs)
+
+    @classmethod
+    def _increment_instances(cls):
+        cls.instances += 1
+
+    @classmethod
+    def cls_instances(cls):
+        """Return the current number of instances of this class,
+        useful for auto naming."""
+        return cls.instances
+
+    @classmethod
+    def cls_prefix(cls):
+        """Return the prefix to use for auto naming."""
+        return cls.prefix
 
     def has_register(self, register):
         """
@@ -90,32 +110,51 @@ class QuantumCircuit(object):
 
     def combine(self, rhs):
         """
-        Append rhs to self if self contains rhs's registers.
+        Append rhs to self if self contains compatible registers.
+
+        Two circuits are compatible if they contain the same registers
+        or if they contain different registers with unique names. The
+        returned circuit will contain all unique registers between both
+        circuits.
 
         Return self + rhs as a new object.
         """
-        if self.name is not None and rhs.name is not None:
-            circuit_name = "c%sN%s" % (self.name, rhs.name)
-        else:
-            circuit_name = None
-        for register in rhs.regs.values():
-            if not self.has_register(register):
+        combined_registers = []
+        # Check registers in LHS are compatible with RHS
+        for name, register in self.regs.items():
+            if name in rhs.regs and register != rhs.regs[name]:
                 raise QISKitError("circuits are not compatible")
-        circuit = QuantumCircuit(
-            *[register for register in self.regs.values()], name=circuit_name)
+            else:
+                combined_registers.append(register)
+        # Add registers in RHS not in LHS
+        complement_registers = set(rhs.regs) - set(self.regs)
+        for name in complement_registers:
+            combined_registers.append(rhs.regs[name])
+        # Make new circuit with combined registers
+        circuit = QuantumCircuit(*combined_registers)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
 
     def extend(self, rhs):
         """
-        Append rhs to self if self contains rhs's registers.
+        Append rhs to self if self if it contains compatible registers.
+
+        Two circuits are compatible if they contain the same registers
+        or if they contain different registers with unique names. The
+        returned circuit will contain all unique registers between both
+        circuits.
 
         Modify and return self.
         """
-        for register in rhs.regs.values():
-            if not self.has_register(register):
+        # Check compatibility and add new registers
+        for name, register in rhs.regs.items():
+            if name not in self.regs:
+                self.add(register)
+            elif name in self.regs and register != self.regs[name]:
                 raise QISKitError("circuits are not compatible")
+
+        # Add new gates
         for gate in rhs.data:
             gate.reapply(self)
         return self
@@ -202,20 +241,20 @@ class QuantumCircuit(object):
         if self.definitions[name]["opaque"]:
             out += ";"
         else:
-            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}"
+            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}\n"
         return out
 
     def qasm(self):
         """Return OPENQASM string."""
-        string = self.header + "\n"
+        string_temp = self.header + "\n"
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
-                string += self._gate_string(gate_name)
+                string_temp += self._gate_string(gate_name)
         for register in self.regs.values():
-            string += register.qasm() + "\n"
+            string_temp += register.qasm() + "\n"
         for instruction in self.data:
-            string += instruction.qasm() + "\n"
-        return string
+            string_temp += instruction.qasm() + "\n"
+        return string_temp
 
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples).

@@ -27,26 +27,41 @@ from threading import Event
 
 from qiskit import Result, QISKitError
 from qiskit.backends import BaseBackend
+from qiskit.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
 
 
+class DummyProvider(BaseProvider):
+    """Dummy provider just for testing purposes."""
+    def get_backend(self, name):
+        return DummySimulator()
+
+    def available_backends(self, *args, **kwargs):
+        return [DummySimulator()]
+
+
 class DummySimulator(BaseBackend):
     """ This is Dummy backend simulator just for testing purposes """
-    def __init__(self, configuration=None, time_alive=10):
-        super().__init__(configuration)
-        self.time_alive = time_alive
 
-        if configuration is None:
-            self._configuration = {'name': 'local_dummy_simulator',
-                                   'url': 'https://github.com/IBM/qiskit-sdk-py',
-                                   'simulator': True,
-                                   'local': True,
-                                   'description': 'A dummy simulator for testing purposes',
-                                   'coupling_map': 'all-to-all',
-                                   'basis_gates': 'u1,u2,u3,cx,id'}
-        else:
-            self._configuration = configuration
+    DEFAULT_CONFIGURATION = {
+        'name': 'local_dummy_simulator',
+        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'simulator': True,
+        'local': True,
+        'description': 'A dummy simulator for testing purposes',
+        'coupling_map': 'all-to-all',
+        'basis_gates': 'u1,u2,u3,cx,id'
+    }
+
+    def __init__(self, configuration=None, time_alive=10):
+        """
+        Args:
+            configuration (dict): backend configuration
+            time_alive (int): time to wait before returning result
+        """
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        self.time_alive = time_alive
 
     def run(self, q_job):
         """ Main dummy simulator loop """

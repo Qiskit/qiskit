@@ -262,7 +262,7 @@ class TestAnonymousIds(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = [qc2.name, qc3.name]
-        shots = 1024  # the number of shots in the experiment.
+        shots = 1024
         backend = 'local_qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots, seed=88, config=config)
@@ -296,12 +296,12 @@ class TestAnonymousIds(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
         q_program.add_circuit(quantum_circuit=new_circuit)
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string IDs (FIXME)
+        shots = 1024
         result = q_program.execute(backend=backend, shots=shots, seed=78)
         counts = result.get_counts(new_circuit.name)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
         self.assertRaises(QISKitError, result.get_counts)
 
@@ -608,7 +608,7 @@ class TestZeroIds(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = [102, 103]
-        shots = 1024  # the number of shots in the experiment.
+        shots = 1024
         backend = 'local_qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
@@ -645,12 +645,12 @@ class TestZeroIds(QiskitTestCase):
         new_circuit = qc1 + qc2
         q_program.add_circuit(1001, new_circuit)
         circuits = [1001]
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string IDs (FIXME)
+        shots = 1024
         result = q_program.execute(circuits, backend=backend, shots=shots, seed=78)
         counts = result.get_counts(1001)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
 
@@ -956,7 +956,7 @@ class TestIntegerIds(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = [102, 103]
-        shots = 1024  # the number of shots in the experiment.
+        shots = 1024
         backend = 'local_qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
@@ -992,15 +992,14 @@ class TestIntegerIds(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
         q_program.add_circuit(1001, new_circuit)
-        # new_circuit.measure(qr[0], cr[0])
         circuits = [1001]
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string IDs (FIXME)
+        shots = 1024
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
         counts = result.get_counts(1001)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
 
@@ -1302,7 +1301,7 @@ class TestTupleIds(QiskitTestCase):
         qc2.measure(qr, cr)
         qc3.measure(qr, cr)
         circuits = [(102.1, 102j), (103.1, 103j)]
-        shots = 1024  # the number of shots in the experiment.
+        shots = 1024
         backend = 'local_qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
@@ -1339,14 +1338,75 @@ class TestTupleIds(QiskitTestCase):
         new_circuit = qc1 + qc2
         q_program.add_circuit((1001.1, 1001j), new_circuit)
         circuits = [(1001.1, 1001j)]
-        backend = 'local_qasm_simulator'  # the backend to run on
-        shots = 1024  # the number of shots in the experiment.
+        backend = 'local_qasm_simulator_py'  # cpp simulator rejects non string IDs (FIXME)
+        shots = 1024
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=78)
         counts = result.get_counts((1001.1, 1001j))
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
+
+
+class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
+    """Test the anonymous use of registers.
+    TODO: this needs to be expanded, ending up with the rest of the tests
+    in the file not using QuantumProgram when it is deprecated.
+    """
+
+    def test_create_anonymous_classical_register(self):
+        """Test creating a ClassicalRegister with no name.
+        """
+        cr = ClassicalRegister(size=3)
+        self.assertIsInstance(cr, ClassicalRegister)
+
+    def test_create_anonymous_quantum_register(self):
+        """Test creating a QuantumRegister with no name.
+        """
+        qr = QuantumRegister(size=3)
+        self.assertIsInstance(qr, QuantumRegister)
+
+    def test_create_anonymous_classical_registers(self):
+        """Test creating several ClassicalRegister with no name.
+        """
+        cr1 = ClassicalRegister(size=3)
+        cr2 = ClassicalRegister(size=3)
+        self.assertNotEqual(cr1.name, cr2.name)
+
+    def test_create_anonymous_quantum_registers(self):
+        """Test creating several QuantumRegister with no name.
+        """
+        qr1 = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+        self.assertNotEqual(qr1.name, qr2.name)
+
+    def test_create_anonymous_mixed_registers(self):
+        """Test creating several Registers with no name.
+        """
+        cr0 = ClassicalRegister(size=3)
+        qr0 = QuantumRegister(size=3)
+        # Get the current index counte of the registers
+        cr_index = int(cr0.name[1:])
+        qr_index = int(qr0.name[1:])
+
+        cr1 = ClassicalRegister(size=3)
+        _ = QuantumRegister(size=3)
+        qr2 = QuantumRegister(size=3)
+
+        # Check that the counters for each kind are incremented separately.
+        cr_current = int(cr1.name[1:])
+        qr_current = int(qr2.name[1:])
+        self.assertEqual(cr_current, cr_index + 1)
+        self.assertEqual(qr_current, qr_index + 2)
+
+    def test_create_circuit_noname(self):
+        """Test create_circuit with no name
+        """
+        q_program = QuantumProgram()
+        qr = QuantumRegister(size=3)
+        cr = ClassicalRegister(size=3)
+        qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        self.assertIsInstance(qc, QuantumCircuit)
 
 
 if __name__ == '__main__':

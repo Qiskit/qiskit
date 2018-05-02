@@ -19,20 +19,22 @@
 """Quantum Job class"""
 import random
 import string
-import qiskit.backends as backends
-from qiskit.unroll import Unroller, DagUnroller, JsonBackend
-from qiskit.dagcircuit import DAGCircuit
-from qiskit import QuantumCircuit
-from qiskit.qasm import Qasm
+
+# stable modules
+from ._quantumcircuit import QuantumCircuit
+from .qasm import Qasm
+
+# beta modules
+from .unroll import Unroller, DagUnroller, JsonBackend
+from .dagcircuit import DAGCircuit
 
 
 class QuantumJob():
-    """Creates a quantum circuit job
-    """
+    """Creates a quantum circuit job."""
 
     # TODO We need to create more tests for checking all possible inputs.
     # TODO Make this interface clearer -- circuits could be many things!
-    def __init__(self, circuits, backend='local_qasm_simulator',
+    def __init__(self, circuits, backend,
                  circuit_config=None, seed=None,
                  resources=None,
                  shots=1024, names=None,
@@ -42,7 +44,7 @@ class QuantumJob():
             circuits (QuantumCircuit|DagCircuit | list(QuantumCircuit|DagCircuit)):
                 QuantumCircuit|DagCircuit or list of QuantumCircuit|DagCircuit.
                 If preformatted=True, this is a raw qobj.
-            backend (str): The backend to run the circuit on.
+            backend (BaseBackend): The backend to run the circuit on, required.
             circuit_config (dict): Circuit configuration.
             seed (int): The intial seed the simulatros use.
             resources (dict): Resource requirements of job.
@@ -78,7 +80,7 @@ class QuantumJob():
         else:
             self.qobj = self._create_qobj(circuits, circuit_config, backend,
                                           seed, resources, shots, do_compile)
-        self.backend = self.qobj['config']['backend']
+        self.backend = backend
         self.resources = resources
         self.seed = seed
         self.result = None
@@ -92,7 +94,8 @@ class QuantumJob():
             for circuit in circuits:
                 formatted_circuits.append(None)
         else:
-            if backend in backends.local_backends():
+            # if backend in backends.local_backends():
+            if backend.configuration.get('local'):
                 for circuit in self.circuits:
                     basis = ['u1', 'u2', 'u3', 'cx', 'id']
                     unroller = Unroller
@@ -136,7 +139,7 @@ class QuantumJob():
                 'config': {
                     'max_credits': resources['max_credits'],
                     'shots': shots,
-                    'backend': backend
+                    'backend_name': backend.configuration['name']
                 },
                 'circuits': circuit_records}
 

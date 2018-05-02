@@ -24,6 +24,9 @@ import warnings
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
 
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
+
 
 def _check_python_version():
     """Check for Python version 3.5+
@@ -106,6 +109,12 @@ def _enable_deprecation_warnings():
     # _add_filter() function is used for being able to match against the
     # module.
     warnings._add_filter(*deprecation_filter, append=False)
+
+
+def _snake_case_to_camel_case(name):
+    """Return a snake case string from a camelcase string."""
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 
 _check_python_version()

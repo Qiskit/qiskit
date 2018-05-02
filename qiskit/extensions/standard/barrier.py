@@ -28,9 +28,9 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, args, circ):
+    def __init__(self, qubits, circ):
         """Create new barrier instruction."""
-        super().__init__("barrier", [], list(args), circ)
+        super().__init__("barrier", [], list(qubits), circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -50,8 +50,8 @@ class Barrier(Instruction):
         return string  # no c_if on barrier instructions
 
     def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ._attach(Barrier(self.arg, self)))
+        """Reapply this instruction to corresponding qubits in circ."""
+        self._modifiers(circ.barrier(*self.arg))
 
 
 def barrier(self, *args):
@@ -59,7 +59,6 @@ def barrier(self, *args):
     If args is None, applies to all the qbits.
     Args is a list of QuantumRegister or single qubits.
     For QuantumRegister, applies barrier to all the qbits in that register."""
-
     qubits = []
 
     if not args:  # None

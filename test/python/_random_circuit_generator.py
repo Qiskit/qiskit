@@ -162,8 +162,8 @@ class RandomCircuitGenerator(object):
             for i_size, size in enumerate(reg_sizes):
                 cr_name = 'cr' + str(i_size)
                 qr_name = 'qr' + str(i_size)
-                creg = ClassicalRegister(cr_name, size)
-                qreg = QuantumRegister(qr_name, size)
+                creg = ClassicalRegister(size, cr_name)
+                qreg = QuantumRegister(size, qr_name)
                 circuit.add(qreg, creg)
             while depth_cnt > 0:
                 # TODO: replace choices with random.choices() when python 3.6
