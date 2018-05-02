@@ -18,7 +18,7 @@
 """Tests for bit reordering fix."""
 
 import unittest
-import qiskit as qk
+import qiskit
 from qiskit.wrapper import register, available_backends, get_backend, execute
 from .common import requires_qe_access, QiskitTestCase
 
@@ -55,9 +55,9 @@ class TestBitReordering(QiskitTestCase):
     """
     def test_basic_reordering(self):
         """a simple reordering within a 2-qubit register"""
-        q = qk.QuantumRegister(2)
-        c = qk.ClassicalRegister(2)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(2)
+        c = qiskit.ClassicalRegister(2)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.measure(q[0], c[1])
         circ.measure(q[1], c[0])
@@ -72,13 +72,13 @@ class TestBitReordering(QiskitTestCase):
 
     def test_multi_register_reordering(self):
         """a more complicated reordering across 3 registers of different sizes"""
-        q0 = qk.QuantumRegister(2)
-        q1 = qk.QuantumRegister(2)
-        q2 = qk.QuantumRegister(1)
-        c0 = qk.ClassicalRegister(2)
-        c1 = qk.ClassicalRegister(2)
-        c2 = qk.ClassicalRegister(1)
-        circ = qk.QuantumCircuit(q0, q1, q2, c0, c1, c2)
+        q0 = qiskit.QuantumRegister(2)
+        q1 = qiskit.QuantumRegister(2)
+        q2 = qiskit.QuantumRegister(1)
+        c0 = qiskit.ClassicalRegister(2)
+        c1 = qiskit.ClassicalRegister(2)
+        c2 = qiskit.ClassicalRegister(1)
+        circ = qiskit.QuantumCircuit(q0, q1, q2, c0, c1, c2)
         circ.h(q0[0])
         circ.cx(q0[0], q2[0])
         circ.x(q1[1])
