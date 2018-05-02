@@ -273,7 +273,7 @@ class QuantumProgram(object):
             return self.__classical_registers[name]
 
         if name is None:
-            name = self._create_id('c%i', self.__classical_registers)
+            name = self._create_id('c', self.__classical_registers)
 
         if not isinstance(name, str):
             logger.info(">> quantum_register name is not a valid type: %s ", type(name))
@@ -354,7 +354,7 @@ class QuantumProgram(object):
                 Quantum Program
         """
         if name is None:
-            name = self._create_id('qc%i', self.__quantum_program.keys())
+            name = self._create_id('qc', self.__quantum_program.keys())
         if not qregisters:
             qregisters = []
         if not cregisters:
