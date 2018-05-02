@@ -32,7 +32,7 @@ def lowest_pending_jobs(list_of_backends):
 
 @requires_qe_access
 def _authenticate(QE_TOKEN, QE_URL):
-    sim_backend = 'local_qiskit_simulator'
+    sim_backend = 'local_qasm_simulator'
     try:
         register(QE_TOKEN, QE_URL)
         real_backends = available_backends({'simulator': False})
