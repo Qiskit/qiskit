@@ -20,7 +20,7 @@
 import unittest
 import qiskit
 from qiskit.wrapper import register, available_backends, get_backend, execute
-from .common import requires_qe_access, QiskitTestCase
+from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
 def lowest_pending_jobs(list_of_backends):
@@ -53,6 +53,7 @@ class TestBitReordering(QiskitTestCase):
     The bug will be fixed with the introduction of qobj,
     in which case these tests can be used to verify correctness.
     """
+    @slow_test
     def test_basic_reordering(self):
         """a simple reordering within a 2-qubit register"""
         q = qiskit.QuantumRegister(2)
@@ -70,6 +71,7 @@ class TestBitReordering(QiskitTestCase):
         threshold = 0.1 * shots
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
+    @slow_test
     def test_multi_register_reordering(self):
         """a more complicated reordering across 3 registers of different sizes"""
         q0 = qiskit.QuantumRegister(2)
