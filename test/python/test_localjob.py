@@ -65,14 +65,6 @@ class TestLocalJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
-    def test_cancel(self):
-        backend = self._provider.get_backend('local_qasm_simulator_py')
-        qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
-        job = backend.run(quantum_job)
-        job.cancel()
-        self.assertTrue(job.cancelled)
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
