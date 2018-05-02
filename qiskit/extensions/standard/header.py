@@ -749,6 +749,46 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
         ])
     }
 
+    # cswap (Fredkin)
+    QuantumCircuit.definitions["cswap"] = {
+        "print": False,
+        "opaque": False,
+        "n_args": 0,
+        "n_bits": 3,
+        "args": [],
+        "bits": ["a", "b", "c"],
+        # gate cswap a,b,c
+        # {
+        #  cx c,b;
+        #  ccx a,b,c;
+        #  cx c,b;
+        # }
+        "body": node.GateBody([
+            node.CustomUnitary([
+                node.Id("cx", 0, ""),
+                node.PrimaryList([
+                    node.Id("c", 0, ""),
+                    node.Id("b", 0, "")
+                ])
+            ]),
+            node.CustomUnitary([
+                node.Id("ccx", 0, ""),
+                node.PrimaryList([
+                    node.Id("a", 0, ""),
+                    node.Id("b", 0, ""),
+                    node.Id("c", 0, "")
+                ])
+            ]),
+            node.CustomUnitary([
+                node.Id("cx", 0, ""),
+                node.PrimaryList([
+                    node.Id("c", 0, ""),
+                    node.Id("b", 0, "")
+                ])
+            ])
+        ])
+    }
+
     # controlled rz rotation
     QuantumCircuit.definitions["crz"] = {
         "print": False,
@@ -977,6 +1017,42 @@ if not hasattr(QuantumCircuit, '_extension_standard'):
                 ]),
                 node.PrimaryList([
                     node.Id("t", 0, "")
+                ])
+            ])
+        ])
+    }
+
+    # Two-qubit ZZ-rotation by angle theta
+    QuantumCircuit.definitions["rzz"] = {
+        "print": False,
+        "opaque": False,
+        "n_args": 1,
+        "n_bits": 2,
+        "args": ["theta"],
+        "bits": ["a", "b"],
+        # gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
+        "body": node.GateBody([
+            node.CustomUnitary([
+                node.Id("cx", 0, ""),
+                node.PrimaryList([
+                    node.Id("a", 0, ""),
+                    node.Id("b", 0, "")
+                ])
+            ]),
+            node.CustomUnitary([
+                node.Id("u1", 0, ""),
+                node.ExpressionList([
+                    node.Id("theta", 0, "")
+                ]),
+                node.PrimaryList([
+                    node.Id("b", 0, "")
+                ])
+            ]),
+            node.CustomUnitary([
+                node.Id("cx", 0, ""),
+                node.PrimaryList([
+                    node.Id("a", 0, ""),
+                    node.Id("b", 0, "")
                 ])
             ])
         ])

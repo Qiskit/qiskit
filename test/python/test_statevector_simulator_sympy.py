@@ -22,15 +22,14 @@ import unittest
 from sympy import sqrt
 
 from qiskit import qasm, unroll, QuantumProgram, QuantumJob
-from qiskit.backends.local.sympy_qasmsimulator import SympyQasmSimulator
+from qiskit.backends.local.statevector_simulator_sympy import StatevectorSimulatorSympy
 from .common import QiskitTestCase
 
 
-class LocalQasmSimulatorTest(QiskitTestCase):
-    """Test local qasm simulator."""
+class StatevectorSimulatorSympyTest(QiskitTestCase):
+    """Test local statevector simulator."""
 
     def setUp(self):
-        self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.qp = QuantumProgram()
         self.qp.load_qasm_file(self.qasm_filename, name='example')
@@ -41,8 +40,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
         circuit = unroller.execute()
         circuit_config = {'coupling_map': None,
                           'basis_gates': 'u1,u2,u3,cx,id',
-                          'layout': None,
-                          'seed': self.seed}
+                          'layout': None}
         resources = {'max_credits': 3,
                      'wait': 5,
                      'timeout': 120}
@@ -50,7 +48,7 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                      'config': {
                          'max_credits': resources['max_credits'],
                          'shots': 1024,
-                         'backend_name': 'local_sympy_qasm_simulator',
+                         'backend_name': 'local_statevector_simulator_sympy',
                      },
                      'circuits': [
                          {
@@ -61,16 +59,15 @@ class LocalQasmSimulatorTest(QiskitTestCase):
                          }
                      ]}
         self.q_job = QuantumJob(self.qobj,
-                                backend=SympyQasmSimulator(),
+                                backend=StatevectorSimulatorSympy(),
                                 circuit_config=circuit_config,
-                                seed=self.seed,
                                 resources=resources,
                                 preformatted=True)
 
-    def test_qasm_simulator(self):
+    def test_statevector_simulator_sympy(self):
         """Test data counts output for single circuit run against reference."""
-        result = SympyQasmSimulator().run(self.q_job)
-        actual = result.get_data('test')['quantum_state']
+        result = StatevectorSimulatorSympy().run(self.q_job)
+        actual = result.get_data('test')['statevector']
         self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertEqual(actual[0], sqrt(2)/2)
         self.assertEqual(actual[1], 0)

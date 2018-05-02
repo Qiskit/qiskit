@@ -55,8 +55,6 @@ class QuantumJob():
                 and formatted (qasm for online, json for local). If true the
                 parameters "names" and "circuit_config" must also be defined
                 of the same length as "circuits".
-        Raises:
-            QISKitError: if preformatted==True but no backend is specified.
         """
         resources = resources or {'max_credits': 10, 'wait': 5, 'timeout': 120}
         if isinstance(circuits, list):

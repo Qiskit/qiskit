@@ -18,9 +18,11 @@
 """Local Backends."""
 
 from .localprovider import LocalProvider
-from .projectq_simulator import ProjectQSimulator
-from .qasmsimulator import QasmSimulator
-from .qasm_simulator_cpp import CliffordCppSimulator, QasmSimulatorCpp
-from .sympy_qasmsimulator import SympyQasmSimulator
-from .sympy_unitarysimulator import SympyUnitarySimulator
-from .unitarysimulator import UnitarySimulator
+from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
+from .qasm_simulator_py import QasmSimulatorPy
+from .qasm_simulator_projectq import QasmSimulatorProjectQ
+from .statevector_simulator_cpp import StatevectorSimulatorCpp
+from .statevector_simulator_py import StatevectorSimulatorPy
+from .statevector_simulator_sympy import StatevectorSimulatorSympy
+from .unitary_simulator_py import UnitarySimulatorPy
+from .unitary_simulator_sympy import UnitarySimulatorSympy

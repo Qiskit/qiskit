@@ -82,8 +82,7 @@ public:
   counts_t counts;        // Map of observed final creg values
 
   // Quantum state snapshots
-  std::map<int, std::vector<StateType>> snapshots;   // final qreg state for each shot
-  //std::map<uint_t, std::vector<StateType>> snapshots;   // final qreg state for each shot
+  std::map<std::string, std::vector<StateType>> snapshots;   // final qreg state for each shot
   
   // Classical states
   std::vector<std::string> output_creg; // creg string for each shot
@@ -111,10 +110,10 @@ public:
    * @param be a pointer to the backend to execute the qasm program on
    * @param nshots the number of simulation shots to run
    */
-  virtual void run_program(Circuit &circ, BaseBackend<StateType> *be,
+  virtual void run_program(const Circuit &circ, BaseBackend<StateType> *be,
                            uint_t nshots = 1);
   virtual void initialize(BaseBackend<StateType> *be);
-  virtual void execute(Circuit &circ, BaseBackend<StateType> *be,
+  virtual void execute(const Circuit &circ, BaseBackend<StateType> *be,
                        uint_t nshots);
 
   /**
@@ -138,7 +137,7 @@ public:
    * @param be a pointer to the backend containing the state of the system
    *           after  execution of the qasm program
    */
-  virtual void compute_results(Circuit &circ, BaseBackend<StateType> *be);
+  virtual void compute_results(const Circuit &circ, BaseBackend<StateType> *be);
 
   void compute_counts(const reglist clbit_labels, const creg_t &creg);
 };
@@ -150,7 +149,7 @@ public:
  ******************************************************************************/
 
 template <typename StateType>
-void BaseEngine<StateType>::run_program(Circuit &prog,
+void BaseEngine<StateType>::run_program(const Circuit &prog,
                                         BaseBackend<StateType> *be,
                                         uint_t nshots) {
   initialize(be);
@@ -166,7 +165,7 @@ void BaseEngine<StateType>::initialize(BaseBackend<StateType> *be) {
 }
 
 template <typename StateType>
-void BaseEngine<StateType>::execute(Circuit &prog, BaseBackend<StateType> *be,
+void BaseEngine<StateType>::execute(const Circuit &prog, BaseBackend<StateType> *be,
                                     uint_t nshots) {
   for (uint_t ishot = 0; ishot < nshots; ++ishot) {
     be->initialize(prog);
@@ -176,15 +175,16 @@ void BaseEngine<StateType>::execute(Circuit &prog, BaseBackend<StateType> *be,
 }
 
 template <typename StateType>
-void BaseEngine<StateType>::compute_results(Circuit &qasm,
+void BaseEngine<StateType>::compute_results(const Circuit &qasm,
                                             BaseBackend<StateType> *be) {
   // Compute counts
   compute_counts(qasm.clbit_labels, be->access_creg());
 
   // Snapshots
-  if (show_snapshots && be->access_snapshots().empty() == false)
+  if (show_snapshots && be->access_snapshots().empty() == false) {
     for (const auto& pair: be->access_snapshots()) {
-    snapshots[pair.first].push_back(pair.second);
+      snapshots[pair.first].push_back(pair.second);
+    }
   }
 }
 
@@ -223,21 +223,21 @@ void BaseEngine<StateType>::compute_counts(const reglist clbit_labels,
 
 template <typename StateType>
 void BaseEngine<StateType>::add(const BaseEngine<StateType> &eng) {
-  // add time taken
   time_taken += eng.time_taken;
 
   // add total shots;
   total_shots += eng.total_shots;
 
   // copy counts
-  for (auto pair : eng.counts)
+  for (auto pair : eng.counts) {
     counts[pair.first] += pair.second;
+  }
 
   // copy snapshots
-  for (const auto &s: eng.snapshots)
+  for (const auto &s: eng.snapshots) {
     std::copy(s.second.begin(), s.second.end(),
               back_inserter(snapshots[s.first]));
-
+  }
   // copy output cregs
   std::copy(eng.output_creg.begin(), eng.output_creg.end(),
             std::back_inserter(output_creg));
@@ -263,10 +263,10 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     try {
       // use try incase state class doesn't have json conversion method
       for (const auto& pair: engine.snapshots)
-        js["snapshots"][std::to_string(pair.first)]["quantum_state"] = pair.second;
+        js["snapshots"][pair.first]["statevector"] = pair.second;
     } catch (std::exception &e) {
       // Leave message in output that type conversion failed
-      js["quantum_state"] =
+      js["statevector"] =
           "Error: Failed to convert state type to JSON";
     }
   }

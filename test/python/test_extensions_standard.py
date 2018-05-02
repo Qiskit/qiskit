@@ -49,6 +49,7 @@ from qiskit.extensions.standard.ubase import UBase
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.y import YGate
 from qiskit.extensions.standard.z import ZGate
+from qiskit.extensions.standard.rzz import RZZGate
 
 from .common import QiskitTestCase
 
@@ -101,8 +102,7 @@ class TestStandard(QiskitTestCase):
         self.assertRaises(QISKitError, c.cswap, self.q[1], self.q[0], self.q[0])
         # TODO self.assertRaises(QISKitError, c.cswap, self.q[1], 0, self.q[0])
         c.cswap(self.q[0], self.q[1], self.q[2])
-        qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
-        self.assertResult(FredkinGate, qasm_txt, qasm_txt)
+        self.assertResult(FredkinGate, 'cswap q[0],q[1],q[2];', 'cswap q[0],q[1],q[2];')
 
     def test_cu1(self):
         c = self.circuit
@@ -315,6 +315,13 @@ class TestStandard(QiskitTestCase):
         # TODO self.assertRaises(QISKitError, c.z, 0)
         c.z(self.q[1])
         self.assertResult(ZGate, 'z q[1];', 'z q[1];')
+
+    def test_rzz(self):
+        c = self.circuit
+        self.assertRaises(QISKitError, c.rzz, 0.1, self.c[1], self.c[2])
+        self.assertRaises(QISKitError, c.rzz, 0.1, self.q[0], self.q[0])
+        c.rzz(pi/2, self.q[1], self.q[2])
+        self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', 'rzz(-pi/2) q[1],q[2];')
 
     def assertResult(self, t, qasm_txt, qasm_txt_):
         """
