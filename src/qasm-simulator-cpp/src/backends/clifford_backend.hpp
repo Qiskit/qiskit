@@ -406,13 +406,13 @@ void CliffordBackend::qc_gate_z(uint_t qubit) {
 
 void CliffordBackend::qc_idle(uint_t qubit) {
 
-  if (noise_flag && !gate_error("idle").ideal) {
+  if (noise_flag && !gate_error("id").ideal) {
 #ifdef DEBUG
     std::stringstream ss;
     ss << "DEBUG CliffordBackend::qc_gate_id(" << qubit << ")";
     std::clog << ss.str() << std::endl;
 #endif
-    qc_relax(qubit, gate_error("idle").gate_time);
+    qc_relax(qubit, gate_error("id").gate_time);
   }
 }
 

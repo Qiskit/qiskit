@@ -18,7 +18,7 @@
 """Tests for verifying the correctness of simulator extension instructions."""
 
 import unittest
-import qiskit as qk
+import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import execute
@@ -44,9 +44,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_save_load(self):
         """save |+>|0>, do some stuff, then load"""
-        q = qk.QuantumRegister(2)
-        c = qk.ClassicalRegister(2)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(2)
+        c = qiskit.ClassicalRegister(2)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.save(1)
         circ.cx(q[0], q[1])
@@ -65,9 +65,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
-        q = qk.QuantumRegister(2)
-        c = qk.ClassicalRegister(2)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(2)
+        c = qiskit.ClassicalRegister(2)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.h(q[0])
         circ.cx(q[0], q[1])
         circ.snapshot(3)
@@ -85,9 +85,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_noise(self):
         """turn on a pauli x noise for qubits 0 and 2"""
-        q = qk.QuantumRegister(3)
-        c = qk.ClassicalRegister(3)
-        circ = qk.QuantumCircuit(q, c)
+        q = qiskit.QuantumRegister(3)
+        c = qiskit.ClassicalRegister(3)
+        circ = qiskit.QuantumCircuit(q, c)
         circ.iden(q[0])
         circ.noise(0)
         circ.iden(q[1])

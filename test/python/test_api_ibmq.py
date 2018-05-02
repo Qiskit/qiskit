@@ -32,7 +32,6 @@ HAS_GROUP_VARS = False
 try:
     import Qconfig
     QE_TOKEN = Qconfig.APItoken
-    print(Qconfig.config)
     QE_URL = Qconfig.config['url']
     QE_HUB = Qconfig.config['hub']
     QE_GROUP = Qconfig.config['group']

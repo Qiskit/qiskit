@@ -27,11 +27,10 @@ class CompileSkipTranslationTest(QiskitTestCase):
     """Test compilaton with skip translation."""
 
     def test_simple_compile(self):
-        '''
+        """
         Compares with and without skip_translation
-        '''
+        """
         name = 'test_simple'
-        self.log.info(name)
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', 2)
         cr = qp.create_classical_register('cr', 2)
@@ -50,7 +49,6 @@ class CompileSkipTranslationTest(QiskitTestCase):
     def test_simple_execute(self):
         name = 'test_simple'
         seed = 42
-        self.log.info(name)
         qp = QuantumProgram()
         qr = qp.create_quantum_register('qr', 2)
         cr = qp.create_classical_register('cr', 2)
