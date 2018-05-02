@@ -24,6 +24,7 @@ import sys
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit import QISKitError
+from qiskit._result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +40,41 @@ class LocalJob(BaseJob):
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj):
+    def __init__(self, fn, q_job):
         super().__init__()
-        self._qobj = qobj
-        self._future = self._executor.submit(fn, qobj)
+        self._q_job = q_job
+        self._future = self._executor.submit(fn, q_job)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
         """
         Get job result.
 
+        Args:
+            timeout (float): number of seconds to wait for results.
+
         Returns:
             Result: Result object
         """
-        return self._future.result(timeout=timeout)
+        try:
+            return self._future.result(timeout=timeout)
+        except futures.TimeoutError as err:
+            qobj = self._q_job.qobj
+            qobj_result = {'backend_name': qobj['config']['backend_name'],
+                           'header': qobj['config'],
+                           'results': []}
+            for circ in qobj['circuits']:
+                seed = circ['config'].get('seed',
+                                          qobj['config'].get('seed', None))
+                shots = circ['config'].get('shots',
+                                           qobj['config'].get('shots', None))
+                exp_result = {'shots': shots,
+                              'status': str(err),
+                              'success': False,
+                              'seed': seed,
+                              'data': None}
+                qobj_result['results'].append(exp_result)
+            return Result(qobj_result, qobj)
 
     def cancel(self):
         return self._future.cancel()

@@ -50,7 +50,7 @@ class TestLocalJob(QiskitTestCase):
         cls._provider = LocalProvider(QE_TOKEN, QE_URL)
 
     def test_run(self):
-        backend = self._provider.get_backend('local_qasm_simulator')
+        backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)
@@ -66,7 +66,7 @@ class TestLocalJob(QiskitTestCase):
         self.assertGreater(contingency[1], 0.01)
 
     def test_cancel(self):
-        backend = self._provider.get_backend('local_qasm_simulator')
+        backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)

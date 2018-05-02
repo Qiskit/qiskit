@@ -19,11 +19,13 @@
 """Backend for the Project Q C++ simulator."""
 
 
+import time
 import itertools
 import operator
 import random
 import uuid
 import logging
+import warnings
 from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result

@@ -223,7 +223,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             q_job = QuantumJob(json.load(file),
                                backend=self.backend,
                                preformatted=True)
-        result = self.backend.run(q_job)
+        result = self.backend.run(q_job).result()
         shots = q_job.qobj['config']['shots']
         sampled_measurements = {
             'measure (sampled)': True,

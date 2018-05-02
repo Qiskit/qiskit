@@ -1150,7 +1150,7 @@ class QuantumProgram(object):
                     job_results[i] = job.result()
         return job_results
 
-    def _run_internal(self, qobj_list, wait=5, timeout=60, callback=None):
+    def _run_internal(self, qobj_list, wait=5, timeout=60):
         job_list = []
         for qobj in qobj_list:
             backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
@@ -1158,8 +1158,6 @@ class QuantumProgram(object):
                 'max_credits': qobj['config']['max_credits'], 'wait': wait,
                 'timeout': timeout})
             job = backend.run(q_job)
-            if callback:
-                job.add_done_callback(callback)
             job_list.append(job)
         return job_list
 

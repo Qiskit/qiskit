@@ -82,6 +82,9 @@ class IBMQBackend(BaseBackend):
 
         Returns:
             dict: submission info including job id from server
+
+        Raises:
+            QISKitError: The backend name in the job doesn't match this backend.
         """
         qobj = q_job.qobj
         api_jobs = []

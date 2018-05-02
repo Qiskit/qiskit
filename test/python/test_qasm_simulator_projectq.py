@@ -24,11 +24,11 @@ import numpy
 from scipy.stats import chi2_contingency
 
 import qiskit.backends.local.qasm_simulator_projectq as projectq_simulator
-import qiskit.backends.local.qasmsimulator as qasm_simulator
 from qiskit import QuantumJob
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
+from qiskit.wrapper import get_backend
 import qiskit._compiler
 from qiskit._compiler import compile_circuit, COMPILE_CONFIG_DEFAULT
 from ._random_circuit_generator import RandomCircuitGenerator
@@ -133,15 +133,15 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                                 backend=qk_simulator,
                                 seed=1, shots=shots)
             result_pq = pq_simulator.run(job_pq).result()
-            result_qk = local_simulator.run(job_qk).result()
+            result_qk = qk_simulator.run(job_qk).result()
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
             counts_qk = result_qk.get_counts(result_qk.get_names()[0])
             self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
             self.log.info('local_qasm_simulator: %s', str(counts_qk))
-            states = counts_py.keys() | counts_pq.keys()
+            states = counts_qk.keys() | counts_pq.keys()
             # contingency table
             ctable = numpy.array([[counts_pq.get(key, 0) for key in states],
-                                  [counts_pk.get(key, 0) for key in states]])
+                                  [counts_qk.get(key, 0) for key in states]])
             result = chi2_contingency(ctable)
             self.log.info('chi2_contingency: %s', str(result))
             with self.subTest(circuit=circuit):
