@@ -396,10 +396,7 @@ class QuantumProgram(object):
             else:
                 name = self._create_id('qc', self.__quantum_program.keys())
                 quantum_circuit.name = name
-        for qname, qreg in quantum_circuit.get_qregs().items():
-            self.create_quantum_register(qname, len(qreg))
-        for cname, creg in quantum_circuit.get_cregs().items():
-            self.create_classical_register(cname, len(creg))
+
         self.__quantum_program[name] = quantum_circuit
 
     def load_qasm_file(self, qasm_file, name=None,

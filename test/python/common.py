@@ -85,7 +85,6 @@ class QiskitTestCase(unittest.TestCase):
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
-    # pylint: disable=invalid-name
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):
         """
@@ -95,7 +94,7 @@ class QiskitTestCase(unittest.TestCase):
         comparing that the difference between values with the same key are
         not greater than delta (default 1e-8), or that difference rounded
         to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword arugment
+        dictionary is not in the other the default_value keyword argument
         will be used for the missing value (default 0). If the two objects
         compare equal then they will automatically compare almost equal.
 
@@ -110,7 +109,7 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-
+        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -257,8 +256,7 @@ def _is_ci_fork_pull_request():
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.
-        if (os.getenv('TRAVIS_REPO_SLUG') !=
-                os.getenv('TRAVIS_PULL_REQUEST_SLUG')):
+        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
             return True
     elif os.getenv('APPVEYOR'):
         # Using AppVeyor CI.

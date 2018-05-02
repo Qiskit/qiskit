@@ -825,7 +825,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         counts = result.get_counts("circuitName")
         target = {'000': shots / 2, '111': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_compile_coupling_map_as_dict(self):
@@ -859,7 +859,7 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(len(to_check), 160)
         counts = result.get_counts("circuitName")
         target = {'000': shots / 2, '111': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_change_circuit_qobj_after_compile(self):
@@ -930,7 +930,7 @@ class TestQuantumProgram(QiskitTestCase):
         target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                    '011': shots / 8, '100': shots / 8, '101': shots / 8,
                    '110': shots / 8, '111': shots / 8}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts2, target2, threshold)
         self.assertDictAlmostEqual(counts3, target3, threshold)
 
@@ -948,7 +948,7 @@ class TestQuantumProgram(QiskitTestCase):
                 target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                            '011': shots / 8, '100': shots / 8, '101': shots / 8,
                            '110': shots / 8, '111': shots / 8}
-                threshold = 0.025 * shots
+                threshold = 0.04 * shots
                 self.assertDictAlmostEqual(counts2, target2, threshold)
                 self.assertDictAlmostEqual(counts3, target3, threshold)
             except Exception as e:
@@ -1004,7 +1004,7 @@ class TestQuantumProgram(QiskitTestCase):
                 target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                            '011': shots / 8, '100': shots / 8, '101': shots / 8,
                            '110': shots / 8, '111': shots / 8}
-                threshold = 0.025 * shots
+                threshold = 0.04 * shots
                 self.assertDictAlmostEqual(counts2, target2, threshold)
                 self.assertDictAlmostEqual(counts3, target3, threshold)
             except Exception as e:
@@ -1076,7 +1076,7 @@ class TestQuantumProgram(QiskitTestCase):
             target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                        '011': shots / 8, '100': shots / 8, '101': shots / 8,
                        '110': shots / 8, '111': shots / 8}
-            threshold = 0.025 * shots
+            threshold = 0.04 * shots
             self.assertDictAlmostEqual(counts2, target2, threshold)
             self.assertDictAlmostEqual(counts3, target3, threshold)
 
@@ -1095,7 +1095,7 @@ class TestQuantumProgram(QiskitTestCase):
                     target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                                '011': shots / 8, '100': shots / 8, '101': shots / 8,
                                '110': shots / 8, '111': shots / 8}
-                    threshold = 0.025 * shots
+                    threshold = 0.04 * shots
                     self.assertDictAlmostEqual(counts2, target2, threshold)
                     self.assertDictAlmostEqual(counts3, target3, threshold)
             except Exception as e:
@@ -1188,7 +1188,7 @@ class TestQuantumProgram(QiskitTestCase):
         target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
                    '011': shots / 8, '100': shots / 8, '101': shots / 8,
                    '110': shots / 8, '111': shots / 8}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts2, target2, threshold)
         self.assertDictAlmostEqual(counts3, target3, threshold)
 
@@ -1344,7 +1344,7 @@ class TestQuantumProgram(QiskitTestCase):
                                    seed=73846087)
         counts = result.get_counts('qc')
         target = {'0': shots / 2, '1': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     @requires_qe_access
@@ -1398,7 +1398,7 @@ class TestQuantumProgram(QiskitTestCase):
         target1 = {'00': shots / 4, '01': shots / 4,
                    '10': shots / 4, '11': shots / 4}
         target2 = {'00': shots / 2, '11': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts1, target1, threshold)
         self.assertDictAlmostEqual(counts2, target2, threshold)
 
@@ -1521,17 +1521,16 @@ class TestQuantumProgram(QiskitTestCase):
                                    seed=78)
         counts = result.get_counts(name)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_combine_circuit_different(self):
-        """Test combinging two circuits with different registers.
+        """Test combining two circuits with different registers.
 
         If all correct should return the data
         """
-
-        qr = QuantumRegister("qr", 2)
-        cr = ClassicalRegister("cr", 2)
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
         qc1 = QuantumCircuit(qr)
         qc1.x(qr)
         qc2 = QuantumCircuit(qr, cr)
@@ -1545,8 +1544,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = qp.execute(name, backend=backend, shots=shots, seed=78)
         counts = result.get_counts(name)
         target = {'11': shots}
-        threshold = 0.0
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertEqual(counts, target)
 
     def test_combine_circuit_fail(self):
         """Test combining two circuits fails if registers incompatible.
@@ -1554,9 +1552,9 @@ class TestQuantumProgram(QiskitTestCase):
         If two circuits have samed name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister("q", 1)
-        q2 = QuantumRegister("q", 2)
-        c1 = QuantumRegister("q", 1)
+        q1 = QuantumRegister(1, "q")
+        q2 = QuantumRegister(2, "q")
+        c1 = QuantumRegister(1, "q")
         qc1 = QuantumCircuit(q1)
         qc2 = QuantumCircuit(q2)
         qc3 = QuantumCircuit(c1)
@@ -1586,7 +1584,7 @@ class TestQuantumProgram(QiskitTestCase):
                                    seed=78)
         counts = result.get_counts(name)
         target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_extend_circuit_different_registers(self):
@@ -1594,9 +1592,8 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct should return the data
         """
-
-        qr = QuantumRegister("qr", 2)
-        cr = ClassicalRegister("cr", 2)
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
         qc1 = QuantumCircuit(qr)
         qc1.x(qr)
         qc2 = QuantumCircuit(qr, cr)
@@ -1610,8 +1607,7 @@ class TestQuantumProgram(QiskitTestCase):
         result = qp.execute(name, backend=backend, shots=shots, seed=78)
         counts = result.get_counts(name)
         target = {'11': shots}
-        threshold = 0.0
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
         """Test extending a circuits fails if registers incompatible.
@@ -1619,9 +1615,9 @@ class TestQuantumProgram(QiskitTestCase):
         If two circuits have samed name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister("q", 1)
-        q2 = QuantumRegister("q", 2)
-        c1 = QuantumRegister("q", 1)
+        q1 = QuantumRegister(1, "q")
+        q2 = QuantumRegister(2, "q")
+        c1 = QuantumRegister(1, "q")
         qc1 = QuantumCircuit(q1)
         qc2 = QuantumCircuit(q2)
         qc3 = QuantumCircuit(c1)
@@ -1693,7 +1689,7 @@ class TestQuantumProgram(QiskitTestCase):
         self.log.info(bellresult.get_counts("bell"))
         self.log.info(ghzresult.get_counts("ghz"))
 
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         counts_bell = bellresult.get_counts('bell')
         target_bell = {'00000': shots / 2, '00011': shots / 2}
         self.assertDictAlmostEqual(counts_bell, target_bell, threshold)

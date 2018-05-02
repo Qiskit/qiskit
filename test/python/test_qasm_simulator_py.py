@@ -102,7 +102,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
         """Test data counts output for single circuit run against reference."""
         result = QasmSimulatorPy().run(self.q_job)
         shots = 1024
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         counts = result.get_counts('test')
         target = {'100 100': shots / 8, '011 011': shots / 8,
                   '101 101': shots / 8, '111 111': shots / 8,
