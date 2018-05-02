@@ -121,7 +121,7 @@ class IBMQBackend(BaseBackend):
         job_result['name'] = qobj['id']
         job_result['backend'] = qobj['config']['backend_name']
         this_result = Result(job_result, qobj)
-        if not self.configuration['simulator']:
+        if not self.configuration['simulator'] and this_result.get_status() == "COMPLETED":
             _reorder_bits(this_result)  # TODO: remove this after Qobj
         return this_result
 
