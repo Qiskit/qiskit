@@ -19,7 +19,6 @@
 
 import json
 import unittest
-import logging
 import numpy as np
 from numpy.linalg import norm
 
@@ -33,9 +32,6 @@ from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
 from .common import QiskitTestCase
-
-logger = logging.getLogger('qiskit.backends.local.qasm_simulator_cpp')
-logger.setLevel(logging.ERROR)
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -130,7 +126,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_run_qobj(self):
         result = self.backend.run(self.q_job)
         shots = self.qobj['config']['shots']
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
                   '101 101': shots / 8, '111 111': shots / 8,
@@ -202,7 +198,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 self.assertEqual(counts, expected_counts,
                                  msg=name + ' counts')
             else:
-                threshold = 0.025 * shots
+                threshold = 0.04 * shots
                 self.assertDictAlmostEqual(counts, expected_counts,
                                            threshold, msg=name + 'counts')
             # Check snapshot
