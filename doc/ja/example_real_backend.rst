@@ -31,8 +31,8 @@
     # "qr"の量子状態を観測し、その結果を"cr"に格納します。
     qc.measure(qr, cr)
 
-    # 量子回路をコンパイルして実機のバックエンドibmqx2で実行します。
-    result = Q_program.execute(["superposition"], backend='ibmqx2', shots=1024)
+    # 量子回路をコンパイルして実機のバックエンドibmqx4で実行します。
+    result = Q_program.execute(["superposition"], backend='ibmqx4', shots=1024)
 
     # 結果を表示します。
     print(result)

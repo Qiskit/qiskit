@@ -34,10 +34,10 @@ Main Modules
 .. autosummary::
    :nosignatures:
 
-   qiskit.QuantumProgram
-   qiskit.QuantumCircuit
+   qiskit
 
 :ref:`modindex`
+
 
 Authors (alphabetical)
 ======================

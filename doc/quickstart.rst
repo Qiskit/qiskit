@@ -1,12 +1,13 @@
 Getting Started
 ===============
 
-The starting point for writing code is the
-:py:class:`QuantumProgram <qiskit.QuantumProgram>` object. The
-QuantumProgram is a collection of circuits, or scores if you are
-coming from the Quantum Experience, quantum register objects, and
-classical register objects. The QuantumProgram methods can send these
-circuits to quantum hardware or simulator backends and collect the
+The starting point for writing code is the :class:`~qiskit.QuantumCircuit`.
+A circuit (or score if you are coming from the Quantum Experience) are
+collections of :class:`~qiskit.ClassicalRegister` objects,
+:class:`~qiskit.QuantumRegister` objects and
+:mod:`gates <qiskit.extensions.standard>`. Through the
+:ref:`top-level functions <qiskit_top_level_functions>`, the circuits can be
+sent to remote quantum devices or local simulator backends and collect the
 results for further analysis.
 
 To compose and run a circuit on a simulator, which is distributed with
@@ -43,7 +44,8 @@ this project, one can do,
     print("simulation: ", sim_result)
     print(sim_result.get_counts(qc))
 
-The :code:`get_counts` method outputs a dictionary of state:counts pairs;
+The :func:`~qiskit.Result.get_counts>` method outputs a dictionary of
+``state:counts`` pairs;
 
 .. code-block:: python
 

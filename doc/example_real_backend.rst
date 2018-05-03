@@ -37,7 +37,7 @@ Quantum device:
 
     # Compiled  and execute in the local_qasm_simulator
 
-    result = Q_program.execute(["superposition"], backend='ibmqx2', shots=1024)
+    result = Q_program.execute(["superposition"], backend='ibmqx4', shots=1024)
 
     # Show the results
     print(result)
@@ -90,7 +90,7 @@ the IBM Q features:
 
     # Compiled  and execute in the local_qasm_simulator
 
-    result = Q_program.execute(["superposition"], backend='ibmqx2', shots=1024)
+    result = Q_program.execute(["superposition"], backend='ibmqx4', shots=1024)
 
     # Show the results
     print(result)
