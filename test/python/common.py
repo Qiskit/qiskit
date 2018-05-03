@@ -40,6 +40,7 @@ class Path(Enum):
 
 class QiskitTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
+
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
@@ -202,6 +203,26 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
             self._raiseFailure(msg)
 
 
+def slow_test(func):
+    """
+    Decorator that signals that the test takes minutes to run.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _(*args, **kwargs):
+        if SKIP_SLOW_TESTS:
+            raise unittest.SkipTest('Skipping slow tests')
+        return func(*args, **kwargs)
+
+    return _
+
+
 def requires_qe_access(func):
     """
     Decorator that signals that the test uses the online API:
@@ -217,6 +238,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
+
     @functools.wraps(func)
     def _(*args, **kwargs):
         # pylint: disable=invalid-name
@@ -266,3 +288,4 @@ def _is_ci_fork_pull_request():
 
 
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
+SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
