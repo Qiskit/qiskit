@@ -476,84 +476,84 @@ class TestInvalidIds(QiskitTestCase):
         self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name=1)
 
 
-def test_invalid_type_qr_spec(self):
-    """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
-    """
-    QPS_SPECS_NONAMES = {
-        "circuits": [{
-            "quantum_registers": [{
-                "name": 1,
-                "size": 3}],
-            "classical_registers": [{
-                "size": 3}]
-        }]
-    }
+    def test_invalid_type_qr_spec(self):
+        """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "name": 1,
+                    "size": 3}],
+                "classical_registers": [{
+                    "size": 3}]
+            }]
+        }
 
-    self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
-
-def test_invalid_type_cr_spec(self):
-    """QPS_SPECS_NONAMES defines a classical register with an invalid type name
-    """
-    QPS_SPECS_NONAMES = {
-        "circuits": [{
-            "quantum_registers": [{
-                "size": 3}],
-            "classical_registers": [{
-                "name": 1,
-                "size": 3}]
-        }]
-    }
-
-    self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
 
-def test_invalid_qasmname_qr(self):
-    """Test create_quantum_register with an invalid QASM name (do not start with lowercase).
-    """
-    q_program = QuantumProgram()
-    self.assertRaises(QISKitError, q_program.create_quantum_register, size=3, name='Qr')
+    def test_invalid_type_cr_spec(self):
+        """QPS_SPECS_NONAMES defines a classical register with an invalid type name
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "size": 3}],
+                "classical_registers": [{
+                    "name": 1,
+                    "size": 3}]
+            }]
+        }
+
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
 
-def test_invalid_qasmname_cr(self):
-    """Test create_classical_register with an invalid QASM name (do not start with lowercase).
-    """
-    q_program = QuantumProgram()
-    self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name='Cr')
+    def test_invalid_qasmname_qr(self):
+        """Test create_quantum_register with an invalid QASM name (do not start with lowercase).
+        """
+        q_program = QuantumProgram()
+        self.assertRaises(QISKitError, q_program.create_quantum_register, size=3, name='Qr')
 
 
-def test_invalid_qasmname_qr_spec(self):
-    """QPS_SPECS_NONAMES defines a quantum register with invalid QASM name (do not start
-    with lowercase).
-    """
-    QPS_SPECS_NONAMES = {
-        "circuits": [{
-            "quantum_registers": [{
-                "name": 'Qr',
-                "size": 3}],
-            "classical_registers": [{
-                "size": 3}]
-        }]
-    }
-
-    self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
+    def test_invalid_qasmname_cr(self):
+        """Test create_classical_register with an invalid QASM name (do not start with lowercase).
+        """
+        q_program = QuantumProgram()
+        self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name='Cr')
 
 
-def test_invalid_qasmname_cr_spec(self):
-    """QPS_SPECS_NONAMES defines a classical register with invalid QASM name (do not start
-    with lowercase).
-    """
-    QPS_SPECS_NONAMES = {
-        "circuits": [{
-            "quantum_registers": [{
-                "size": 3}],
-            "classical_registers": [{
-                "name": "Cr",
-                "size": 3}]
-        }]
-    }
+    def test_invalid_qasmname_qr_spec(self):
+        """QPS_SPECS_NONAMES defines a quantum register with invalid QASM name (do not start
+        with lowercase).
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "name": 'Qr',
+                    "size": 3}],
+                "classical_registers": [{
+                    "size": 3}]
+            }]
+        }
 
-    self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
+
+
+    def test_invalid_qasmname_cr_spec(self):
+        """QPS_SPECS_NONAMES defines a classical register with invalid QASM name (do not start
+        with lowercase).
+        """
+        QPS_SPECS_NONAMES = {
+            "circuits": [{
+                "quantum_registers": [{
+                    "size": 3}],
+                "classical_registers": [{
+                    "name": "Cr",
+                    "size": 3}]
+            }]
+        }
+
+        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
 
 if __name__ == '__main__':
