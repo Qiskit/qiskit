@@ -30,23 +30,6 @@ def lowest_pending_jobs(list_of_backends):
     return by_pending_jobs[0]
 
 
-@requires_qe_access
-def _authenticate(QE_TOKEN, QE_URL):
-    sim_backend = 'local_qasm_simulator'
-    try:
-        register(QE_TOKEN, QE_URL)
-        real_backends = available_backends({'simulator': False})
-        real_backend = lowest_pending_jobs(real_backends)
-    except Exception:
-        real_backend = None
-
-    return sim_backend, real_backend
-
-
-sim, real = _authenticate()
-
-
-@unittest.skipIf(not real, 'no remote device available.')
 class TestBitReordering(QiskitTestCase):
     """Test QISKit's fix for the ibmq hardware reordering bug.
 
@@ -54,8 +37,12 @@ class TestBitReordering(QiskitTestCase):
     in which case these tests can be used to verify correctness.
     """
     @slow_test
-    def test_basic_reordering(self):
+    @requires_qe_access
+    def test_basic_reordering(self, QE_TOKEN, QE_URL):
         """a simple reordering within a 2-qubit register"""
+        sim, real = self._get_backends(QE_TOKEN, QE_URL)
+        unittest.skipIf(not real, 'no remote device available.')
+
         q = qiskit.QuantumRegister(2)
         c = qiskit.ClassicalRegister(2)
         circ = qiskit.QuantumCircuit(q, c)
@@ -72,8 +59,12 @@ class TestBitReordering(QiskitTestCase):
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
     @slow_test
-    def test_multi_register_reordering(self):
+    @requires_qe_access
+    def test_multi_register_reordering(self, QE_TOKEN, QE_URL):
         """a more complicated reordering across 3 registers of different sizes"""
+        sim, real = self._get_backends(QE_TOKEN, QE_URL)
+        unittest.skipIf(not real, 'no remote device available.')
+
         q0 = qiskit.QuantumRegister(2)
         q1 = qiskit.QuantumRegister(2)
         q2 = qiskit.QuantumRegister(1)
@@ -100,6 +91,17 @@ class TestBitReordering(QiskitTestCase):
         counts_sim = result_sim.get_counts()
         threshold = 0.2 * shots
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
+
+    def _get_backends(self, QE_TOKEN, QE_URL):
+        sim_backend = 'local_qasm_simulator'
+        try:
+            register(QE_TOKEN, QE_URL)
+            real_backends = available_backends({'simulator': False})
+            real_backend = lowest_pending_jobs(real_backends)
+        except Exception:
+            real_backend = None
+
+        return sim_backend, real_backend
 
 
 if __name__ == '__main__':
