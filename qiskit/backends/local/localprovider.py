@@ -21,24 +21,28 @@ import logging
 
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
-from .qasmsimulator import QasmSimulator
-from .qasm_simulator_cpp import CliffordCppSimulator, QasmSimulatorCpp
-from .projectq_simulator import ProjectQSimulator
-from .sympy_unitarysimulator import SympyUnitarySimulator
-from .sympy_qasmsimulator import SympyQasmSimulator
-from .unitarysimulator import UnitarySimulator
+from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
+from .qasm_simulator_py import QasmSimulatorPy
+from .qasm_simulator_projectq import QasmSimulatorProjectQ
+from .statevector_simulator_cpp import StatevectorSimulatorCpp
+from .statevector_simulator_py import StatevectorSimulatorPy
+from .statevector_simulator_sympy import StatevectorSimulatorSympy
+from .unitary_simulator_py import UnitarySimulatorPy
+from .unitary_simulator_sympy import UnitarySimulatorSympy
 
 
 logger = logging.getLogger(__name__)
 
 SDK_STANDARD_BACKENDS = [
-    CliffordCppSimulator,
-    ProjectQSimulator,
-    QasmSimulator,
     QasmSimulatorCpp,
-    SympyQasmSimulator,
-    SympyUnitarySimulator,
-    UnitarySimulator
+    QasmSimulatorPy,
+    QasmSimulatorProjectQ,
+    StatevectorSimulatorCpp,
+    StatevectorSimulatorPy,
+    StatevectorSimulatorSympy,
+    UnitarySimulatorSympy,
+    UnitarySimulatorPy,
+    CliffordSimulatorCpp,
 ]
 
 
@@ -62,6 +66,27 @@ class LocalProvider(BaseProvider):
             backends = {name: instance for name, instance in backends.items()
                         if instance.configuration.get(key) == value}
         return list(backends.values())
+
+    def aliased_backend_names(self):
+        return {
+            'local_qasm_simulator': ['local_qasm_simulator_cpp',
+                                     'local_qasm_simulator_projectq',
+                                     'local_qasm_simulator_py'],
+            'local_statevector_simulator': ['local_statevector_simulator_cpp',
+                                            'local_statevector_simulator_projectq',
+                                            'local_statevector_simulator_py',
+                                            'local_statevector_simulator_sympy'],
+            'local_unitary_simulator': ['local_unitary_simulator_cpp',
+                                        'local_unitary_simulator_py',
+                                        'local_unitary_simulator_sympy'],
+            'local_clifford_simulator': ['local_clifford_simulator_cpp']
+            }
+
+    def deprecated_backend_names(self):
+        return {
+            'local_qiskit_simulator': 'local_qasm_simulator_cpp',
+            'wood_simulator': 'local_qasm_simulator_cpp',
+            }
 
     @classmethod
     def _verify_local_backends(cls):

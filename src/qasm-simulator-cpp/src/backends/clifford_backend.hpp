@@ -182,13 +182,13 @@ void CliffordBackend::qc_operation(const operation &op) {
     break;
   // Commands
   case gate_t::Snapshot:
-    snapshot_state(op.params[0]);
+    snapshot_state(op.string_params[0]);
     break;
   case gate_t::Save:
-    save_state(op.params[0]);
+    save_state(op.string_params[0]);
     break;
   case gate_t::Load:
-    load_state(op.params[0]);
+    load_state(op.string_params[0]);
     break;
   case gate_t::Noise:
     if (ideal_sim == false)
@@ -406,13 +406,13 @@ void CliffordBackend::qc_gate_z(uint_t qubit) {
 
 void CliffordBackend::qc_idle(uint_t qubit) {
 
-  if (noise_flag && !gate_error("idle").ideal) {
+  if (noise_flag && !gate_error("id").ideal) {
 #ifdef DEBUG
     std::stringstream ss;
     ss << "DEBUG CliffordBackend::qc_gate_id(" << qubit << ")";
     std::clog << ss.str() << std::endl;
 #endif
-    qc_relax(qubit, gate_error("idle").gate_time);
+    qc_relax(qubit, gate_error("id").gate_time);
   }
 }
 

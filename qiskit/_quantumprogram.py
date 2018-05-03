@@ -396,10 +396,7 @@ class QuantumProgram(object):
             else:
                 name = self._create_id('qc', self.__quantum_program.keys())
                 quantum_circuit.name = name
-        for qname, qreg in quantum_circuit.get_qregs().items():
-            self.create_quantum_register(qname, len(qreg))
-        for cname, creg in quantum_circuit.get_cregs().items():
-            self.create_classical_register(cname, len(creg))
+
         self.__quantum_program[name] = quantum_circuit
 
     def load_qasm_file(self, qasm_file, name=None,
@@ -756,7 +753,7 @@ class QuantumProgram(object):
 
         return self.__api
 
-    def available_backends(self):
+    def available_backends(self, compact=True):
         """All the backends that are seen by QISKIT.
 
         .. deprecated:: 0.5
@@ -769,7 +766,7 @@ class QuantumProgram(object):
             "qiskit.backends.remote_backends() instead is recommended.",
             DeprecationWarning)
 
-        return qiskit.wrapper.available_backends()
+        return qiskit.wrapper.available_backends(compact=compact)
 
     def online_backends(self):
         """Get the online backends.
@@ -1285,7 +1282,7 @@ class QuantumProgram(object):
             max_credits (int): the max credits to use 3, or 5
             seed (int): the initial seed the simulators use
             hpc (dict): This will setup some parameter for
-                        ibmqx_hpc_qasm_simulator, using a JSON-like format like::
+                        ibmq_qasm_simulator_hpc, using a JSON-like format like::
 
                             {
                                 'multi_shot_optimization': Boolean,
@@ -1293,7 +1290,7 @@ class QuantumProgram(object):
                             }
 
                         This parameter MUST be used only with
-                        ibmqx_hpc_qasm_simulator, otherwise the SDK will warn
+                        ibmq_qasm_simulator_hpc, otherwise the SDK will warn
                         the user via logging, and set the value to None.
             skip_translation (bool): If True, bypass most of the compilation process and
                 creates a qobj with minimal check nor translation

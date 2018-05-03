@@ -104,3 +104,10 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
+// two-qubit ZZ rotation
+gate rzz(theta) a,b
+{
+  cx a,b;
+  u1(theta) b;
+  cx a,b;
+}

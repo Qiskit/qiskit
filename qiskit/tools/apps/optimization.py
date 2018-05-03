@@ -288,27 +288,27 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     """
     energy = 0
 
-    if shots == 1:
+    if 'statevector' in device:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
             circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
             Q_program.add_circuit(circuit[0], input_circuit)
             result = Q_program.execute(circuit, device, shots=shots,
-                                       config={"data": ["quantum_state"]})
-            quantum_state = result.get_data(circuit[0]).get('quantum_state')
-            if quantum_state is None:
-                quantum_state = result.get_data(
-                    circuit[0]).get('quantum_states')
-                if quantum_state:
-                    quantum_state = quantum_state[0]
+                                       config={"data": ["statevector"]})
+            statevector = result.get_data(circuit[0]).get('statevector')
+            if statevector is None:
+                statevector = result.get_data(
+                    circuit[0]).get('statevector')
+                if statevector:
+                    statevector = statevector[0]
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
-                energy = np.sum(hamiltonian * np.absolute(quantum_state) ** 2)
+                energy = np.sum(hamiltonian * np.absolute(statevector) ** 2)
             # Hamiltonian represented by square matrix
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
-                energy = np.inner(np.conjugate(quantum_state),
-                                  np.dot(hamiltonian, quantum_state))
+                energy = np.inner(np.conjugate(statevector),
+                                  np.dot(hamiltonian, statevector))
         # Hamiltonian represented by a Pauli list
         else:
             circuits = []
@@ -337,15 +337,15 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                 i += 1
             result = Q_program.execute(circuits_labels, device, shots=shots)
             # no Pauli final rotations
-            quantum_state_0 = result.get_data(
-                circuits_labels[0])['quantum_state']
+            statevector_0 = result.get_data(
+                circuits_labels[0])['statevector']
             i = 1
             for p in hamiltonian:
-                quantum_state_i = result.get_data(
-                    circuits_labels[i])['quantum_state']
+                statevector_i = result.get_data(
+                    circuits_labels[i])['statevector']
                 # inner product with final rotations of (i-1)-th Pauli
-                energy += p[0] * np.inner(np.conjugate(quantum_state_0),
-                                          quantum_state_i)
+                energy += p[0] * np.inner(np.conjugate(statevector_0),
+                                          statevector_i)
                 i += 1
     # finite number of shots and hamiltonian grouped in tpb sets
     else:
