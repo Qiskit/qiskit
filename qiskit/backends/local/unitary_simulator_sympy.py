@@ -94,12 +94,15 @@ class UnitarySimulatorSympy(BaseBackend):
 
     def enlarge_single_opt_sympy(self, opt, qubit, number_of_qubits):
         """Enlarge single operator to n qubits.
+
         It is exponential in the number of qubits.
+
         Args:
             opt (object): the single-qubit opt.
             qubit (int): the qubit to apply it on counts from 0 and order
                 is q_{n-1} ... otimes q_1 otimes q_0.
             number_of_qubits (int): the number of qubits in the system.
+
         Returns:
             Matrix: the enlarged matrix that operates on all qubits in the system.
         """
@@ -123,18 +126,23 @@ class UnitarySimulatorSympy(BaseBackend):
 
     def enlarge_two_opt_sympy(self, opt, qubit0, qubit1, num):
         """Enlarge two-qubit operator to n qubits.
+
         It is exponential in the number of qubits.
+
         Args:
             opt (Matrix): the matrix that represents a two-qubit gate.
-            It looks like this:
+                It looks like this::
+
                     Matrix([
-                            [1, 0, 0, 0],
-                            [0, 0, 0, 1],
-                            [0, 0, 1, 0],
-                            [0, 1, 0, 0]])
+                        [1, 0, 0, 0],
+                        [0, 0, 0, 1],
+                        [0, 0, 1, 0],
+                        [0, 1, 0, 0]])
+
             qubit0 (int): id of the control qubit
             qubit1 (int): id of the target qubit
             num (int): the number of qubits in the system.
+
         Returns:
             Matrix: the enlarged matrix that operates on all qubits in the system.
                     It is basically a tensorproduct of the gates applied on each qubit
@@ -186,16 +194,16 @@ class UnitarySimulatorSympy(BaseBackend):
             q_job (QuantumJob): job to run
         Returns:
             Result: Result is a class including the information to be returned to users.
-                   Specifically, result_list in the return looks is important and it like this:
-                   [
-                     {'data': {'unitary':
-                                       array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
-                                              [0, 0, sqrt(2)/2, -sqrt(2)/2],
-                                              [0, 0, sqrt(2)/2, sqrt(2)/2],
-                                              [sqrt(2)/2, -sqrt(2)/2, 0, 0]], dtype=object)},
-                     'status': 'DONE'}
-                    ]
+            Specifically, result_list in the return looks is important and it like this::
 
+                [
+                    {'data': {'unitary':
+                        array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
+                              [0, 0, sqrt(2)/2, -sqrt(2)/2],
+                              [0, 0, sqrt(2)/2, sqrt(2)/2],
+                              [sqrt(2)/2, -sqrt(2)/2, 0, 0]], dtype=object)},
+                    'status': 'DONE'}
+                ]
         """
         qobj = q_job.qobj
         result_list = []
@@ -212,6 +220,7 @@ class UnitarySimulatorSympy(BaseBackend):
 
         Returns:
             dict: A dictionary of results which looks something like::
+
                 {'data': {'unitary': array([[sqrt(2)/2, sqrt(2)/2, 0, 0],
                                             [0, 0, sqrt(2)/2, -sqrt(2)/2],
                                              [0, 0, sqrt(2)/2, sqrt(2)/2],
