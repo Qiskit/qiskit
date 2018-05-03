@@ -56,9 +56,14 @@ from .common import QiskitTestCase
 class StandardExtensionTest(QiskitTestCase):
     def assertResult(self, t, qasm_txt, qasm_txt_):
         """
-        t: type
-        qasm_txt: qasm representation
-        qasm_txt_: qasm representation of inverse
+        Assert the single gate in self.circuit is of the type t, the QASM
+        representation matches qasm_txt and the QASM representation of
+        inverse maches qasm_txt_.
+
+        Args:
+            t (type): a gate type.
+            qasm_txt (str): QASM representation of the gate.
+            qasm_txt_ (str): QASM representation of the inverse gate.
         """
         c = self.circuit
         self.assertEqual(type(c[0]), t)
@@ -69,10 +74,26 @@ class StandardExtensionTest(QiskitTestCase):
         self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
 
     def assertStmtsType(self, stmts, t):
+        """
+        Assert a list of statements stmts is of a type t.
+
+        Args:
+            stmts (list): list of statements.
+            t (type): a gate type.
+        """
         for stmt in stmts:
             self.assertEqual(type(stmt), t)
 
     def assertQasm(self, qasm_txt, offset=1):
+        """
+        Assert the QASM representation of the circuit self.circuit includes
+        the text qasm_txt in the right position (which can be adjusted by
+        offset)
+
+        Args:
+            qasm_txt (str): a string with QASM code
+            offset (int): the offset in which qasm_txt should be found.
+        """
         c = self.circuit
         c_txt = len(qasm_txt)
         self.assertIn('\n' + qasm_txt + '\n', c.qasm())
