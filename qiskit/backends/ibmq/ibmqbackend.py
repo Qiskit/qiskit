@@ -44,10 +44,16 @@ class IBMQBackend(BaseBackend):
             configuration (dict): configuration of backend.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
                 api for communicating with the Quantum Experience.
+
+        Attributes:
+            _api (IBMQuantumExperience): connection interface
+            _submit_info (dict): supplied by _api when submitting job
+            _configuration (dict): backend configuration
         """
         super().__init__(configuration=configuration)
         self._api = api
         self._submit_info = None   # dictionary coming from api upon submission
+        self._job_store = None
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():

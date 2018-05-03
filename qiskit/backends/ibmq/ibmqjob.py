@@ -143,7 +143,13 @@ class IBMQJob(BaseJob):
 
     @property
     def done(self):
-        return self._future.done()
+        """
+        Returns True if job successfully finished running. 
+
+        Note behavior is slightly different than Future objects which would
+        also return true if successfully cancelled.
+        """
+        return self._future.done() and not self._future.cancelled()
 
     @property
     def cancelled(self):
@@ -159,10 +165,18 @@ class IBMQJob(BaseJob):
         """
         return self._future.exception(timeout=0)
 
+    @property
     def _is_commercial(self):
         config = self._api.config
         # this check may give false positives so should probably be improved
         return config['hub'] and config['group'] and config['project']
+
+    @property
+    def job_id(self):
+        """
+        Return backend determined job_id (also available in status method).
+        """
+        return self._job_id
 
 
 class IBMQJobError(QISKitError):

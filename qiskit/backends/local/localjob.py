@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class LocalJob(BaseJob):
-    """Local QISKit SDK Job class
+    """Local QISKit SDK Job class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
@@ -48,33 +48,22 @@ class LocalJob(BaseJob):
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
         """
-        Get job result.
+        Get job result. The behavior is the same as the underlying 
+        concurrent Future objects,
+        
+        https://docs.python.org/3/library/concurrent.futures.html#future-objects
 
         Args:
             timeout (float): number of seconds to wait for results.
 
         Returns:
             Result: Result object
+
+        Raises:
+            concurrent.futures.TimeoutError: if timeout occured.
+            concurrent.futures.CancelledError: if job cancelled before completed.
         """
-        try:
-            return self._future.result(timeout=timeout)
-        except futures.TimeoutError as err:
-            qobj = self._q_job.qobj
-            qobj_result = {'backend_name': qobj['config']['backend_name'],
-                           'header': qobj['config'],
-                           'results': []}
-            for circ in qobj['circuits']:
-                seed = circ['config'].get('seed',
-                                          qobj['config'].get('seed', None))
-                shots = circ['config'].get('shots',
-                                           qobj['config'].get('shots', None))
-                exp_result = {'shots': shots,
-                              'status': str(err),
-                              'success': False,
-                              'seed': seed,
-                              'data': None}
-                qobj_result['results'].append(exp_result)
-            return Result(qobj_result, qobj)
+        return self._future.result(timeout=timeout)
 
     def cancel(self):
         return self._future.cancel()
@@ -111,7 +100,13 @@ class LocalJob(BaseJob):
 
     @property
     def done(self):
-        return self._future.done()
+        """
+        Returns True if job successfully finished running. 
+
+        Note behavior is slightly different than Future objects which would
+        also return true if successfully cancelled.
+        """
+        return self._future.done and not self._future.cancelled
 
     @property
     def error(self):
