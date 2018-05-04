@@ -44,24 +44,14 @@ class IBMQBackend(BaseBackend):
             configuration (dict): configuration of backend.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
                 api for communicating with the Quantum Experience.
-
-        Attributes:
-            _api (IBMQuantumExperience): connection interface
-            _submit_info (dict): supplied by _api when submitting job
-            _configuration (dict): backend configuration
         """
         super().__init__(configuration=configuration)
         self._api = api
-        self._submit_info = None   # dictionary coming from api upon submission
-        self._job_store = None
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():
                 new_key = _snake_case_to_camel_case(key)
                 configuration_edit[new_key] = vals
-            #  FIXME: This is a hack as the hpc simulator is not correct in api
-            if configuration_edit['name'] == 'ibmqx_hpc_qasm_simulator':
-                configuration_edit['simulator'] = True
             self._configuration = configuration_edit
             # FIXME: This is a hack to make sure that the
             # local : False is added to the online device
@@ -91,6 +81,7 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             QISKitError: The backend name in the job doesn't match this backend.
+            ResultError: If the API reported an error with the submitted job.
         """
         qobj = q_job.qobj
         api_jobs = []
@@ -128,11 +119,16 @@ class IBMQBackend(BaseBackend):
                                         max_credits=qobj['config']['max_credits'],
                                         seed=seed0,
                                         hpc=hpc)
-        self._submit_info = submit_info
+        if 'error' in output:
+            raise ResultError(submit_info['error'])
         return submit_info
 
-    def _run_job(self, q_job):
+    def _run_job(self, q_job, job_id):
         """This waits for job to complete before returning.
+
+        Args:
+            q_job (QuantumJob): qobj job
+            job_id (str): job id
 
         Returns:
             Result: Result object
@@ -144,21 +140,17 @@ class IBMQBackend(BaseBackend):
         qobj = q_job.qobj
         wait = q_job.wait
         timeout = q_job.timeout
-        submit_info = self._submit_info
-        if 'error' in submit_info:
-            raise IBMQJobError(submit_info['error'])
         logger.info('Running qobj: %s on remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],
-                    submit_info['id'])
-        job_result = _wait_for_job(submit_info['id'], self._api, wait=wait,
+                    job_id)
+        job_result = _wait_for_job(job_id, self._api, wait=wait,
                                    timeout=timeout)
         logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],
-                    submit_info['id'])
+                    job_id)
         job_result['name'] = qobj['id']
         job_result['backend'] = qobj['config']['backend_name']
-        this_result = Result(job_result, qobj)
-        return this_result
+        return Result(job_result, qobj)
 
     @property
     def calibration(self):
@@ -254,51 +246,3 @@ class IBMQBackend(BaseBackend):
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
         return status
-
-
-def _wait_for_job(job_id, api, wait=5, timeout=60):
-    """Wait until all online ran circuits of a qobj are 'COMPLETED'.
-
-    Args:
-        job_id (list(str)):  is a list of id strings.
-        api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
-            IBMQuantumExperience API connection
-        wait (int):  is the time to wait between requests, in seconds
-        timeout (int):  is how long we wait before failing, in seconds
-
-    Returns:
-        dict: A list of results that correspond to the jobids.
-
-    Raises:
-        QISKitError: job didn't return status or reported error in status
-    """
-    timer = 0
-    job_result = api.get_job(job_id)
-    if 'status' not in job_result:
-        raise QISKitError("get_job didn't return status: %s" %
-                          (pprint.pformat(job_result)))
-
-    while job_result['status'] == 'RUNNING':
-        if timer >= timeout:
-            return {'job_id': job_id, 'status': 'ERROR',
-                    'result': 'QISkit Time Out'}
-        time.sleep(wait)
-        timer += wait
-        logger.info('status = %s (%d seconds)', job_result['status'], timer)
-        job_result = api.get_job(job_id)
-
-        if 'status' not in job_result:
-            raise QISKitError("get_job didn't return status: %s" %
-                              (pprint.pformat(job_result)))
-        if (job_result['status'] == 'ERROR_CREATING_JOB' or
-                job_result['status'] == 'ERROR_RUNNING_JOB'):
-            return {'job_id': job_id, 'status': 'ERROR',
-                    'result': job_result['status']}
-
-    # Get the results
-    job_result_return = []
-    for index in range(len(job_result['qasms'])):
-        job_result_return.append({'data': job_result['qasms'][index]['data'],
-                                  'status': job_result['qasms'][index]['status']})
-    return {'job_id': job_id, 'status': job_result['status'],
-            'result': job_result_return}

@@ -55,38 +55,14 @@ class IBMQJob(BaseJob):
         self._api = api
         self._timeout = timeout
         self._submit_info = submit_info
-        if 'error' in submit_info:
-            self._status = JobStatus.ERROR
-            self._status_msg = submit_info['error']['message']
-            self._job_id = None
-        else:
-            self._job_id = submit_info['id']
-            self._future = self._executor.submit(fn, q_job)
-            self._status = JobStatus.QUEUED
-            self._status_msg = None
+        self._job_id = submit_info['id']
+        self._future = self._executor.submit(fn, q_job, self._job_id)
+        self._status = JobStatus.QUEUED
+        self._status_msg = None
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
-        try:
-            return self._future.result(timeout=timeout)
-        except futures.TimeoutError as err:
-            qobj = self._q_job.qobj
-            qobj_result = {'backend_name': qobj['backend_name'],
-                           'header': qobj['config'],
-                           'job_id': self._job_id,
-                           'results': []}
-            for circ in qobj['circuits']:
-                seed = circ['config'].get('seed',
-                                          qobj['config'].get('seed', None))
-                shots = circ['config'].get('shots',
-                                           qobj['config'].get('shots', None))
-                exp_result = {'shots': shots,
-                              'status': str(err),
-                              'success': False,
-                              'seed': seed,
-                              'data': None}
-                qobj_result['results'].append(exp_result)
-            return Result(qobj_result, qobj)
+        return self._future.result(timeout=timeout)
 
     def cancel(self):
         """Attempt to cancel job. Currently this is only possible on

@@ -30,7 +30,7 @@ class BaseJob(ABC):
 
     @abstractmethod
     def __init__(self):
-        """Initializes and initates the asynchronous job"""
+        """Initializes the asynchronous job"""
         pass
 
     @abstractmethod
@@ -67,6 +67,7 @@ class BaseJob(ABC):
     @abstractmethod
     def cancelled(self):
         """True if call was successfully cancelled"""
+        pass
 
 
 class JobStatus(enum.Enum):
