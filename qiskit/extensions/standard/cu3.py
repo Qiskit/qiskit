@@ -67,6 +67,18 @@ def cu3(self, theta, phi, lam, ctl, tgt):
             instructions.add(self.cu3(theta, phi, lam, (ctl, i), (tgt, i)))
         return instructions
 
+    if isinstance(ctl, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(ctl.size):
+            instructions.add(self.cu3(theta, phi, lam, (ctl, j), tgt))
+        return instructions
+
+    if isinstance(tgt, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(tgt.size):
+            instructions.add(self.cu3(theta, phi, lam, ctl, (tgt, j)))
+        return instructions
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])

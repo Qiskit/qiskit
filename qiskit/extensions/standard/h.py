@@ -56,6 +56,12 @@ def h(self, q):
             instructions.add(self.h((q, j)))
         return instructions
 
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.h(q))
+        return instructions
+
     self._check_qubit(q)
     return self._attach(HGate(q, self))
 

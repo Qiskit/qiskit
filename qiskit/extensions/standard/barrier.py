@@ -22,7 +22,6 @@ from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import CompositeGate
 from qiskit import QuantumRegister
-from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -55,26 +54,28 @@ class Barrier(Instruction):
         self._modifiers(circ.barrier(*self.arg))
 
 
-def barrier(self, *tuples):
-    """Apply barrier to tuples (reg, idx)."""
-    tuples = list(tuples)
-    if not tuples:  # TODO: implement this for all single qubit gates
-        if isinstance(self, QuantumCircuit):
-            for register in self.regs.values():
-                if isinstance(register, QuantumRegister):
-                    tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no arguments passed")
+def barrier(self, *args):
+    """Apply barrier to circuit.
+    If args is None, applies to all the qbits.
+    Args is a list of QuantumRegister or single qubits.
+    For QuantumRegister, applies barrier to all the qbits in that register."""
     qubits = []
-    for tuple_element in tuples:
-        if isinstance(tuple_element, QuantumRegister):
-            for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
-                qubits.append((tuple_element, j))
+
+    if not args:  # None
+        for qreg in self.get_qregs().values():
+            for j in range(qreg.size):
+                qubits.append((qreg, j))
+
+    for arg in args:
+        if isinstance(arg, QuantumRegister):
+            for j in range(arg.size):
+                qubits.append((arg, j))
         else:
-            self._check_qubit(tuple_element)
-            qubits.append(tuple_element)
+            qubits.append(arg)
+
     self._check_dups(qubits)
+    for qubit in qubits:
+        self._check_qubit(qubit)
     return self._attach(Barrier(qubits, self))
 
 
