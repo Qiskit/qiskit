@@ -60,6 +60,18 @@ def cu1(self, theta, ctl, tgt):
             instructions.add(self.cu1(theta, (ctl, i), (tgt, i)))
         return instructions
 
+    if isinstance(ctl, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(ctl.size):
+            instructions.add(self.cu1(theta, (ctl, j), tgt))
+        return instructions
+
+    if isinstance(tgt, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(tgt.size):
+            instructions.add(self.cu1(theta, ctl, (tgt, j)))
+        return instructions
+
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
