@@ -65,7 +65,8 @@ class IBMQBackend(BaseBackend):
             IBMQJob: an instance derived from BaseJob
         """
         submit_info = self._submit(q_job)
-        return IBMQJob(q_job, self._api, submit_info)
+        return IBMQJob(q_job, self._api, submit_info,
+                       not self.configuration['simulator'])
 
     def _submit(self, q_job):
         """Submit job to IBM Q.
@@ -119,8 +120,6 @@ class IBMQBackend(BaseBackend):
         if 'error' in submit_info:
             raise ResultError(submit_info['error'])
         return submit_info
-        if not self.configuration['simulator'] and this_result.get_status() == "COMPLETED":
-            _reorder_bits(this_result)  # TODO: remove this after Qobj
 
     @property
     def calibration(self):
@@ -216,59 +215,3 @@ class IBMQBackend(BaseBackend):
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
         return status
-
-
-
-def _reorder_bits(result):
-    """temporary fix for ibmq backends.
-    for every ran circuit, get reordering information from qobj
-    and apply reordering on result"""
-    for idx, circ in enumerate(result._qobj['circuits']):
-
-        # device_qubit -> device_clbit (how it should have been)
-        measure_dict = {op['qubits'][0]: op['clbits'][0]
-                        for op in circ['compiled_circuit']['operations']
-                        if op['name'] == 'measure'}
-
-        res = result._result['result'][idx]
-        counts_dict_new = {}
-        for item in res['data']['counts'].items():
-            # fix clbit ordering to what it should have been
-            bits = list(item[0])
-            bits.reverse()  # lsb in 0th position
-            count = item[1]
-            reordered_bits = list('x' * len(bits))
-            for device_clbit, bit in enumerate(bits):
-                if device_clbit in measure_dict:
-                    correct_device_clbit = measure_dict[device_clbit]
-                    reordered_bits[correct_device_clbit] = bit
-            reordered_bits.reverse()
-
-            # only keep the clbits specified by circuit, not everything on device
-            num_clbits = circ['compiled_circuit']['header']['number_of_clbits']
-            compact_key = reordered_bits[-num_clbits:]
-            compact_key = "".join([b if b != 'x' else '0'
-                                   for b in compact_key])
-
-            # insert spaces to signify different classical registers
-            cregs = circ['compiled_circuit']['header']['clbit_labels']
-            if sum([creg[1] for creg in cregs]) != num_clbits:
-                raise ResultError("creg sizes don't add up in result header.")
-            creg_begin_pos = []
-            creg_end_pos = []
-            acc = 0
-            for creg in reversed(cregs):
-                creg_size = creg[1]
-                creg_begin_pos.append(acc)
-                creg_end_pos.append(acc + creg_size)
-                acc += creg_size
-            compact_key = " ".join([compact_key[creg_begin_pos[i]:creg_end_pos[i]]
-                                    for i in range(len(cregs))])
-
-            # marginalize over unwanted measured qubits
-            if compact_key not in counts_dict_new:
-                counts_dict_new[compact_key] = count
-            else:
-                counts_dict_new[compact_key] += count
-
-        res['data']['counts'] = counts_dict_new
