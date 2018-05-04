@@ -23,10 +23,10 @@ purposes. Testing local timeouts, arbitrary responses or behavior, etc.
 
 import uuid
 import logging
-from threading import Event
 from concurrent import futures
+import time
 
-from qiskit import Result, QISKitError
+from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
@@ -73,15 +73,8 @@ class DummySimulator(BaseBackend):
         """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
         qobj = q_job.qobj
-        timeout = q_job.timeout
-        wait_time = q_job.wait
 
-        time_passed = 0
-        while time_passed <= self.time_alive:
-            Event().wait(timeout=wait_time)
-            time_passed += wait_time
-            if time_passed >= timeout:
-                raise QISKitError('Dummy backend has timed out!')
+        time.sleep(self.time_alive)
 
         return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'}, qobj)
 

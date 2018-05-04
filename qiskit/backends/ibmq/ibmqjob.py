@@ -20,8 +20,9 @@ This module is used for creating asynchronous job objects for the
 IBM Q Experience.
 """
 
-from concurrent import futures
+import time
 import logging
+import pprint
 
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
@@ -32,41 +33,40 @@ logger = logging.getLogger(__name__)
 
 
 class IBMQJob(BaseJob):
-    """IBM Q Job class
+    """IBM Q Job class"""
 
-    Attributes:
-        _executor (futures.Executor): executor to handle asynchronous jobs
-    """
-    _executor = futures.ThreadPoolExecutor()
-
-    def __init__(self, fn, q_job, api, timeout, submit_info):
+    def __init__(self, q_job, api, submit_info):
         """IBMQJob init function.
 
         Args:
-            fn (function): function object to call for job
             q_job (QuantumJob): job description
             api (IBMQuantumExperience): IBM Q API
-            timeout (float): timeout in seconds
             submit_info (dict): this is the dictionary that comes back when
                 submitting a job using the IBMQuantumExperience API.
         """
         super().__init__()
         self._q_job = q_job
         self._api = api
-        self._timeout = timeout
         self._submit_info = submit_info
         self._job_id = submit_info['id']
-        self._future = self._executor.submit(fn, q_job, self._job_id)
         self._status = JobStatus.QUEUED
         self._status_msg = None
+        self._cancelled = False
+        self._exception = None
 
-    def result(self, timeout=None):
+    def result(self, timeout=None, wait=5):
         # pylint: disable=arguments-differ
-        return self._future.result(timeout=timeout)
+        return self._wait_for_job(timeout=timeout, wait=wait)
 
     def cancel(self):
         """Attempt to cancel job. Currently this is only possible on
         commercial systems.
+
+        Returns:
+            bool: True if job can be cancelled, else False.
+
+        Raises:
+            QISKitError: if server returned error
         """
         if self._is_commercial:
             hub = self._api.config['hub']
@@ -75,9 +75,17 @@ class IBMQJob(BaseJob):
             response = self._api.cancel_job(self._job_id, hub, group, project)
             if 'error' in response:
                 err_msg = response.get('error', '')
-                raise QISKitError('Error cancelling job: %s' % err_msg)
-        raise QISKitError('The IBM Q remote API does not currently implement'
-                          ' job cancellation')
+                self._exception = QISKitError('Error cancelling job: %s' % err_msg)
+                raise QISKitError('Error canceelling job: %s' % err_msg)
+            else:
+                self._cancelled = True
+                return True
+        else:
+            # Since currently the API always reports RUNNING it isn't possible
+            # for the SDK to know when the job is actually running instead of just
+            # sitting in queue. Once that changes it may be useful to reimplement
+            # this class.
+            return False
 
     @property
     def status(self):
@@ -97,9 +105,9 @@ class IBMQJob(BaseJob):
                 _status = JobStatus.CANCELLED
             elif self.done:
                 _status = JobStatus.DONE
-            elif isinstance(self.error, Exception):
+            elif self.exception:
                 _status = JobStatus.ERROR
-                _status_msg = str(self.error)
+                _status_msg = str(self.exception)
             else:
                 raise IBMQJobError('Unexpected behavior of {0}'.format(
                     self.__class__.__name__))
@@ -114,32 +122,47 @@ class IBMQJob(BaseJob):
 
         Returns:
             bool: True if job is running, else False.
+
+        Raises:
+            QISKitError: couldn't get job status from server
         """
-        return self._future.running()
+        job_result = self._api.get_job(self._job_id)
+        if 'status' not in job_result:
+            self._exception = QISKitError("get_job didn't return status: %s" %
+                                          (pprint.pformat(job_result)))
+            raise QISKitError("get_job didn't return status: %s" %
+                              (pprint.pformat(job_result)))
+        return job_result['status'] == 'RUNNING'
 
     @property
     def done(self):
         """
-        Returns True if job successfully finished running. 
+        Returns True if job successfully finished running.
 
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
         """
-        return self._future.done() and not self._future.cancelled()
+        job_result = self._api.get_job(self._job_id)
+        if 'status' not in job_result:
+            self._exception = QISKitError("get_job didn't return status: %s" %
+                                          (pprint.pformat(job_result)))
+            raise QISKitError("get_job didn't return status: %s" %
+                              (pprint.pformat(job_result)))
+        return job_result['status'] == 'COMPLETED'
 
     @property
     def cancelled(self):
-        return self._future.cancelled()
+        return self._cancelled
 
     @property
-    def error(self):
+    def exception(self):
         """
-        Return Exception object if exception occured else None.
+        Return Exception object previously raised by job else None
 
         Returns:
-            Exception: exception raised by attempting to run job.
+            Exception: exception raised by job
         """
-        return self._future.exception(timeout=0)
+        return self._exception
 
     @property
     def _is_commercial(self):
@@ -153,6 +176,62 @@ class IBMQJob(BaseJob):
         Return backend determined job_id (also available in status method).
         """
         return self._job_id
+
+    def _wait_for_job(self, timeout=60, wait=5):
+        """Wait until all online ran circuits of a qobj are 'COMPLETED'.
+
+        Args:
+            timeout (float or None): seconds to wait for job. If None, wait
+                indefinitely.
+            wait (float): seconds between queries
+
+        Returns:
+            Result: A result object.
+
+        Raises:
+            QISKitError: job didn't return status or reported error in status
+        """
+        qobj = self._q_job.qobj
+        job_id = self.job_id
+        logger.info('Running qobj: %s on remote backend %s with job id: %s',
+                    qobj["id"], qobj['config']['backend_name'],
+                    job_id)
+        timer = 0
+        job_result = self._api.get_job(job_id)
+        while self.running:
+            if timeout is not None and timer >= timeout:
+                job_result = {'job_id': job_id, 'status': 'ERROR',
+                              'result': 'QISkit Time Out'}
+                return Result(job_result, qobj)
+            time.sleep(wait)
+            timer += wait
+            logger.info('status = %s (%d seconds)', job_result['status'], timer)
+            job_result = self._api.get_job(job_id)
+
+            if 'status' not in job_result:
+                self._exception = QISKitError("get_job didn't return status: %s" %
+                                              (pprint.pformat(job_result)))
+                raise QISKitError("get_job didn't return status: %s" %
+                                  (pprint.pformat(job_result)))
+            if (job_result['status'] == 'ERROR_CREATING_JOB' or
+                    job_result['status'] == 'ERROR_RUNNING_JOB'):
+                job_result = {'job_id': job_id, 'status': 'ERROR',
+                              'result': job_result['status']}
+                return Result(job_result, qobj)
+
+        # Get the results
+        job_result_return = []
+        for index in range(len(job_result['qasms'])):
+            job_result_return.append({'data': job_result['qasms'][index]['data'],
+                                      'status': job_result['qasms'][index]['status']})
+        job_result = {'job_id': job_id, 'status': job_result['status'],
+                      'result': job_result_return}
+        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
+                    qobj["id"], qobj['config']['backend_name'],
+                    job_id)
+        job_result['name'] = qobj['id']
+        job_result['backend'] = qobj['config']['backend_name']
+        return Result(job_result, qobj)
 
 
 class IBMQJobError(QISKitError):

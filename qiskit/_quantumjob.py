@@ -56,7 +56,7 @@ class QuantumJob():
                 parameters "names" and "circuit_config" must also be defined
                 of the same length as "circuits".
         """
-        resources = resources or {'max_credits': 10, 'wait': 5, 'timeout': 120}
+        resources = resources or {'max_credits': 10}
         if isinstance(circuits, list):
             self.circuits = circuits
         else:
@@ -70,8 +70,6 @@ class QuantumJob():
         else:
             self.names = [names]
 
-        self.timeout = resources['timeout']
-        self.wait = resources['wait']
         # check whether circuits have already been compiled
         # and formatted for backend.
         if preformatted:

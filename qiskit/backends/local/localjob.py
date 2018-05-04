@@ -24,7 +24,6 @@ import sys
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit import QISKitError
-from qiskit._result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +47,9 @@ class LocalJob(BaseJob):
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
         """
-        Get job result. The behavior is the same as the underlying 
+        Get job result. The behavior is the same as the underlying
         concurrent Future objects,
-        
+
         https://docs.python.org/3/library/concurrent.futures.html#future-objects
 
         Args:
@@ -80,9 +79,9 @@ class LocalJob(BaseJob):
             _status = JobStatus.CANCELLED
         elif self.done:
             _status = JobStatus.DONE
-        elif isinstance(self.error, Exception):
+        elif self.exception:
             _status = JobStatus.ERROR
-            _status_msg = str(self.error)
+            _status_msg = str(self.exception)
         else:
             raise LocalJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
@@ -95,13 +94,9 @@ class LocalJob(BaseJob):
         return self._future.running()
 
     @property
-    def cancelled(self):
-        return self._future.cancelled()
-
-    @property
     def done(self):
         """
-        Returns True if job successfully finished running. 
+        Returns True if job successfully finished running.
 
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
@@ -109,7 +104,11 @@ class LocalJob(BaseJob):
         return self._future.done and not self._future.cancelled
 
     @property
-    def error(self):
+    def cancelled(self):
+        return self._future.cancelled()
+
+    @property
+    def exception(self):
         """
         Return Exception object if exception occured else None.
 

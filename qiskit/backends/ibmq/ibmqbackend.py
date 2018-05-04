@@ -19,16 +19,14 @@
 This module is used for connecting to the Quantum Experience.
 """
 import logging
-import pprint
-import time
 
 from qiskit import QISKitError
 from qiskit._compiler import compile_circuit
-from qiskit._result import Result
+from qiskit._resulterror import ResultError
 
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +64,8 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        timeout = q_job.timeout
         submit_info = self._submit(q_job)
-        return IBMQJob(self._run_job, q_job, self._api, timeout, submit_info)
+        return IBMQJob(q_job, self._api, submit_info)
 
     def _submit(self, q_job):
         """Submit job to IBM Q.
@@ -119,38 +116,9 @@ class IBMQBackend(BaseBackend):
                                         max_credits=qobj['config']['max_credits'],
                                         seed=seed0,
                                         hpc=hpc)
-        if 'error' in output:
+        if 'error' in submit_info:
             raise ResultError(submit_info['error'])
         return submit_info
-
-    def _run_job(self, q_job, job_id):
-        """This waits for job to complete before returning.
-
-        Args:
-            q_job (QuantumJob): qobj job
-            job_id (str): job id
-
-        Returns:
-            Result: Result object
-
-        Raises:
-            IBMQJobError: if the api returns an error message when submitting
-                the job.
-        """
-        qobj = q_job.qobj
-        wait = q_job.wait
-        timeout = q_job.timeout
-        logger.info('Running qobj: %s on remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'],
-                    job_id)
-        job_result = _wait_for_job(job_id, self._api, wait=wait,
-                                   timeout=timeout)
-        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'],
-                    job_id)
-        job_result['name'] = qobj['id']
-        job_result['backend'] = qobj['config']['backend_name']
-        return Result(job_result, qobj)
 
     @property
     def calibration(self):
