@@ -1663,7 +1663,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         # Run.
         result = Q_program.execute(circuits, backend=backend, shots=shots,
-                                   max_credits=3, wait=10, timeout=240)
+                                   max_credits=3, timeout=240)
 
         self.assertEqual({'000': 1024}, result.get_counts('pqm'))
 
@@ -1738,7 +1738,7 @@ class TestQuantumProgram(QiskitTestCase):
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88)
         from concurrent import futures
-        self.assertRaises(futures.TimeoutError, q_program.run, qobj, wait=0.1,
+        self.assertRaises(futures.TimeoutError, q_program.run, qobj,
                           timeout=0.01)
 
     @requires_qe_access

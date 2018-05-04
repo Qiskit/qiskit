@@ -211,14 +211,14 @@ class IBMQJob(BaseJob):
                 return Result(job_result, qobj)
             time.sleep(wait)
             timer += wait
-            logger.info('status = %s (%d seconds)', job_result['status'], timer)
+            logger.info('status = %s (%d seconds)', api_result['status'], timer)
             api_result = self._api.get_job(job_id)
 
-            if 'status' not in job_result:
+            if 'status' not in api_result:
                 self._exception = QISKitError("get_job didn't return status: %s" %
-                                              (pprint.pformat(job_result)))
+                                              (pprint.pformat(api_result)))
                 raise QISKitError("get_job didn't return status: %s" %
-                                  (pprint.pformat(job_result)))
+                                  (pprint.pformat(api_result)))
             if (api_result['status'] == 'ERROR_CREATING_JOB' or
                     api_result['status'] == 'ERROR_RUNNING_JOB'):
                 job_result = {'job_id': job_id, 'status': 'ERROR',

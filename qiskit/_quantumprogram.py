@@ -1102,7 +1102,7 @@ class QuantumProgram(object):
     # methods to run quantum programs
     ###############################################################
 
-    def run(self, qobj, wait=5, timeout=60):
+    def run(self, qobj, timeout=60):
         """Run a program (a pre-compiled quantum program). This function will
         block until the Job is processed.
 
@@ -1110,18 +1110,15 @@ class QuantumProgram(object):
 
         Args:
             qobj (dict): the dictionary of the quantum object to run.
-            wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
             Result: A Result (class).
         """
-        job = self._run_internal([qobj],
-                                 wait=wait,
-                                 timeout=timeout)[0]
+        job = self._run_internal([qobj])[0]
         return job.result(timeout=timeout)
 
-    def run_batch(self, qobj_list, wait=5, timeout=120):
+    def run_batch(self, qobj_list, timeout=120):
         """Run various programs (a list of pre-compiled quantum programs). This
         function will block until all programs are processed.
 
@@ -1129,7 +1126,6 @@ class QuantumProgram(object):
 
         Args:
             qobj_list (list(dict)): The list of quantum objects to run.
-            wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
 
         Returns:
@@ -1138,28 +1134,25 @@ class QuantumProgram(object):
         """
         num_jobs = len(qobj_list)
         job_results = [None] * num_jobs
-        jobs_list = self._run_internal(qobj_list,
-                                       wait=wait,
-                                       timeout=timeout)
+        jobs_list = self._run_internal(qobj_list)
         while not all(job_results):
             for i, job in enumerate(jobs_list):
                 if job.done:
-                    job_results[i] = job.result()
+                    job_results[i] = job.result(timeout=timeout)
         return job_results
 
-    def _run_internal(self, qobj_list, wait=5, timeout=60):
+    def _run_internal(self, qobj_list):
         job_list = []
         for qobj in qobj_list:
             backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
             q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-                'max_credits': qobj['config']['max_credits'], 'wait': wait,
-                'timeout': timeout})
+                'max_credits': qobj['config']['max_credits']})
             job = backend.run(q_job)
             job_list.append(job)
         return job_list
 
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
-                config=None, wait=5, timeout=60, basis_gates=None,
+                config=None, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
                 max_credits=3, seed=None, hpc=None, skip_translation=False):
         """Execute, compile, and run an array of quantum circuits).
@@ -1174,7 +1167,6 @@ class QuantumProgram(object):
             backend (str): a string representing the backend to compile to.
             config (dict): a dictionary of configurations parameters for the
                 compiler.
-            wait (int): Time interval to wait between requests for results
             timeout (int): Total time to wait until the execution stops
             basis_gates (str): a comma separated string and are the base gates,
                                which by default are: u1,u2,u3,cx,id.
@@ -1230,7 +1222,7 @@ class QuantumProgram(object):
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,
                             hpc=hpc, skip_translation=skip_translation)
-        result = self.run(qobj, wait=wait, timeout=timeout)
+        result = self.run(qobj, timeout=timeout)
         return result
 
     ###############################################################
