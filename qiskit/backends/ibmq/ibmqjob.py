@@ -28,6 +28,7 @@ from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
+from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +203,7 @@ class IBMQJob(BaseJob):
                     qobj["id"], qobj['config']['backend_name'],
                     job_id)
         timer = 0
-        job_result = self._api.get_job(job_id)
+        api_result = self._api.get_job(job_id)
         while self.running:
             if timeout is not None and timer >= timeout:
                 job_result = {'job_id': job_id, 'status': 'ERROR',
@@ -211,25 +212,25 @@ class IBMQJob(BaseJob):
             time.sleep(wait)
             timer += wait
             logger.info('status = %s (%d seconds)', job_result['status'], timer)
-            job_result = self._api.get_job(job_id)
+            api_result = self._api.get_job(job_id)
 
             if 'status' not in job_result:
                 self._exception = QISKitError("get_job didn't return status: %s" %
                                               (pprint.pformat(job_result)))
                 raise QISKitError("get_job didn't return status: %s" %
                                   (pprint.pformat(job_result)))
-            if (job_result['status'] == 'ERROR_CREATING_JOB' or
-                    job_result['status'] == 'ERROR_RUNNING_JOB'):
+            if (api_result['status'] == 'ERROR_CREATING_JOB' or
+                    api_result['status'] == 'ERROR_RUNNING_JOB'):
                 job_result = {'job_id': job_id, 'status': 'ERROR',
-                              'result': job_result['status']}
+                              'result': api_result['status']}
                 return Result(job_result, qobj)
 
         # Get the results
         job_result_return = []
-        for index in range(len(job_result['qasms'])):
-            job_result_return.append({'data': job_result['qasms'][index]['data'],
-                                      'status': job_result['qasms'][index]['status']})
-        job_result = {'job_id': job_id, 'status': job_result['status'],
+        for index in range(len(api_result['qasms'])):
+            job_result_return.append({'data': api_result['qasms'][index]['data'],
+                                      'status': api_result['qasms'][index]['status']})
+        job_result = {'job_id': job_id, 'status': api_result['status'],
                       'result': job_result_return}
         logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],
