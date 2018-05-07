@@ -14,20 +14,34 @@ this project, one can do,
 
 .. code-block:: python
 
-   from qiskit import QuantumProgram
-   qp = QuantumProgram()
+    # Import the QISKit SDK
+    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+    from qiskit.wrapper import available_backends, execute
 
-   qr = qp.create_quantum_register('qr', 2)
-   cr = qp.create_classical_register('cr', 2)
-   qc = qp.create_circuit('Bell', [qr], [cr])
+    # Create a Quantum Register with 2 qubits
+    q = QuantumRegister(2)
+    # Create a Classical Register with 2 bits.
+    c = ClassicalRegister(2)
+    # Create a Quantum Circuit
+    qc = QuantumCircuit(q, c)
 
-   qc.h(qr[0])
-   qc.cx(qr[0], qr[1])
-   qc.measure(qr[0], cr[0])
-   qc.measure(qr[1], cr[1])
+    # Add a H gate on qubit 0, putting this qubit in superposition.
+    qc.h(q[0])
+    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+    # the qubits in a Bell state.
+    qc.cx(q[0], q[1])
+    # Add a Measure gate to see the state.
+    qc.measure(q, c)
 
-   result = qp.execute('Bell')
-   print(result.get_counts('Bell'))
+    # See a list of available local simulators
+    print("Local backends: ", available_backends({'local': True}))
+
+    # Compile and run the Quantum circuit on a simulator backend
+    sim_result = execute(qc, 'local_qasm_simulator')
+
+    # Show the results
+    print("simulation: ", sim_result)
+    print(sim_result.get_counts(qc))
 
 The :code:`get_counts` method outputs a dictionary of state:counts pairs;
 
