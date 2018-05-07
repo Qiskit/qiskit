@@ -44,6 +44,7 @@ class Register(object):
             and the order of the parameters will change (`size`, `name`)
             instead of (`name`, `size`).
         """
+
         if isinstance(size, str):
             warnings.warn(
                 "name will be optional in upcoming versions (>0.5.0) "
@@ -51,11 +52,20 @@ class Register(object):
             name_temp = size
             size = name
             name = name_temp
+
         if name is None:
             name = '%s%i' % (self.prefix, next(self.instances_counter))
+
+        if not isinstance(name, str):
+            raise QISKitError("The circuit name should be a string "
+                              "(or None for autogenerate a name).")
+
+        test = re.compile('[a-z][a-zA-Z0-9_]*')
+        if test.match(name) is None:
+            raise QISKitError("%s is an invalid OPENQASM register name." % name)
+
         self.name = name
         self.size = size
-        self._openqasm_name = None
         if size <= 0:
             raise QISKitError("register size must be positive")
 
@@ -71,21 +81,6 @@ class Register(object):
         """Check that j is a valid index into self."""
         if j < 0 or j >= self.size:
             raise QISKitError("register index out of range")
-
-    @property
-    def openqasm_name(self):
-        """Converts names to strings that are OpenQASM 2.0 complain."""
-        if self._openqasm_name is not None:
-            return self._openqasm_name
-        test = re.compile('[a-z][a-zA-Z0-9_]*')
-        if test.match(str(self.name)) is None:
-            oq_name = "id%i" % id(self.name)
-            logger.info("The name %s is an invalid OpenQASM register name."
-                        "Coverting it to %s", self.name, oq_name)
-            self._openqasm_name = oq_name
-            return oq_name
-        self._openqasm_name = self.name
-        return str(self.name)
 
     def __getitem__(self, key):
         """Return tuple (self, key) if key is valid."""

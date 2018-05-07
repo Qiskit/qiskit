@@ -32,9 +32,9 @@ class Measure(Instruction):
         """Return OPENQASM string."""
         qubit = self.arg[0]
         bit = self.arg[1]
-        return self._qasmif("measure %s[%d] -> %s[%d];" % (qubit[0].openqasm_name,
+        return self._qasmif("measure %s[%d] -> %s[%d];" % (qubit[0].name,
                                                            qubit[1],
-                                                           bit[0].openqasm_name,
+                                                           bit[0].name,
                                                            bit[1]))
 
     def reapply(self, circuit):
