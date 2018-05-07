@@ -22,12 +22,21 @@ import unittest
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram)
+from qiskit.backends.local.qasm_simulator_cpp import QasmSimulatorCpp
+from qiskit import wrapper
 from .common import QiskitTestCase
 
-available_backends = QuantumProgram().available_backends()
+
+# Cpp backend required
+try:
+    cpp_backend = QasmSimulatorCpp()
+except FileNotFoundError:
+    _skip_cpp = True
+else:
+    _skip_cpp = False
 
 
-class TestAnonymousIds(QiskitTestCase):
+class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
     """Circuits and records can have no name"""
 
     def setUp(self):
@@ -312,22 +321,18 @@ class TestQobj(QiskitTestCase):
     """Check the objects compiled for different backends create names properly"""
 
     def setUp(self):
-        qp = QuantumProgram()
-        qr = qp.create_quantum_register("qr2", 2)
-        cr = qp.create_classical_register(None, 2)
-        qc = qp.create_circuit("qc0", [qr], [cr])
+        qr = QuantumRegister(2, name="qr2")
+        cr = ClassicalRegister(2, name=None)
+        qc = QuantumCircuit(qr, cr, name="qc10")
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
-        qp.add_circuit("qc10", qc)
-        circuits = ["qc10"]
         self.qr_name = qr.name
         self.cr_name = cr.name
-        self.qp = qp
-        self.circuits = circuits
+        self.circuits = [qc]
 
-    def test_local_qasm_simulator(self):
-        backend = 'local_qasm_simulator'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+    def test_local_qasm_simulator_py(self):
+        backend = wrapper.get_backend('local_qasm_simulator_py')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -335,11 +340,10 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf('local_clifford_simulator' not in available_backends,
-                     'local_clifford_simulator is not available')
-    def test_local_clifford_simulator(self):
-        backend = 'local_clifford_simulator'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+    @unittest.skipIf(not _skip_cpp, "no c++ simulator found.")
+    def test_local_clifford_simulator_cpp(self):
+        backend = wrapper.get_backend('local_clifford_simulator_cpp')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -347,11 +351,10 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf('local_qiskit_simulator' not in available_backends,
-                     'local_qiskit_simulator is not available')
-    def test_local_qiskit_simulator(self):
-        backend = 'local_qiskit_simulator'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+    @unittest.skipIf(not _skip_cpp, "no c++ simulator found.")
+    def test_local_qasm_simulator_cpp(self):
+        backend = wrapper.get_backend('local_qasm_simulator_cpp')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -360,8 +363,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, ccq)
 
     def test_local_statevector_simulator_sympy(self):
-        backend = 'local_statevector_simulator_sympy'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        backend = wrapper.get_backend('local_statevector_simulator_sympy')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -370,8 +373,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, ccq)
 
     def test_local_unitary_simulator_sympy(self):
-        backend = 'local_unitary_simulator_sympy'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        backend = wrapper.get_backend('local_unitary_simulator_sympy')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -380,8 +383,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, ccq)
 
     def test_local_unitary_simulator(self):
-        backend = 'local_unitary_simulator'
-        qobj = self.qp.compile(self.circuits, backend=backend, shots=1024)
+        backend = wrapper.get_backend('local_unitary_simulator_py')
+        qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
         self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
@@ -390,10 +393,8 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, ccq)
 
 
-class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
+class TestAnonymousIds(QiskitTestCase):
     """Test the anonymous use of registers.
-    TODO: this needs to be expanded, ending up with the rest of the tests
-    in the file not using QuantumProgram when it is deprecated.
     """
 
     def test_create_anonymous_classical_register(self):
@@ -444,10 +445,9 @@ class TestAnonymousIdsNoQuantumProgram(QiskitTestCase):
     def test_create_circuit_noname(self):
         """Test create_circuit with no name
         """
-        q_program = QuantumProgram()
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
-        qc = q_program.create_circuit(qregisters=[qr], cregisters=[cr])
+        qc = QuantumCircuit(qr, cr)
         self.assertIsInstance(qc, QuantumCircuit)
 
 
@@ -455,28 +455,26 @@ class TestInvalidIds(QiskitTestCase):
     """Circuits and records with invalid IDs"""
 
     def test_invalid_type_circuit_name(self):
-        """Test create_circuit with invalid type name
+        """Test QuantumCircuit() with invalid type name
         """
-        q_program = QuantumProgram()
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
-        self.assertRaises(QISKitError, q_program.create_circuit,
-                          qregisters=[qr], cregisters=[cr], name=1)
+        self.assertRaises(QISKitError, QuantumCircuit, qr, cr, name=1)
 
-    def test_invalid_type_qr(self):
-        """Test create_quantum_register with an invalid type name.
+    def test_invalid_type_qr_name(self):
+        """Test QuantumRegister() with an invalid type name.
         """
-        q_program = QuantumProgram()
-        self.assertRaises(QISKitError, q_program.create_quantum_register, size=3, name=1)
+        self.assertRaises(QISKitError, QuantumRegister, size=3, name='1')
 
-    def test_invalid_type_cr(self):
-        """Test create_classical_register with an invalid type name.
+    def test_invalid_type_cr_name(self):
+        """Test ClassicalRegister() with an invalid type name.
         """
-        q_program = QuantumProgram()
-        self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name=1)
+        self.assertRaises(QISKitError, ClassicalRegister, size=3, name='1')
 
     def test_invalid_type_qr_spec(self):
         """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
+
+        Note: remove after QuantumProgram deprecation.
         """
         QPS_SPECS_NONAMES = {
             "circuits": [{
@@ -492,6 +490,8 @@ class TestInvalidIds(QiskitTestCase):
 
     def test_invalid_type_cr_spec(self):
         """QPS_SPECS_NONAMES defines a classical register with an invalid type name
+
+        Note: remove after QuantumProgram deprecation.
         """
         QPS_SPECS_NONAMES = {
             "circuits": [{
@@ -506,20 +506,20 @@ class TestInvalidIds(QiskitTestCase):
         self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
     def test_invalid_qasmname_qr(self):
-        """Test create_quantum_register with an invalid QASM name (do not start with lowercase).
+        """Test QuantumRegister() with an invalid QASM name (do not start with lowercase).
         """
-        q_program = QuantumProgram()
-        self.assertRaises(QISKitError, q_program.create_quantum_register, size=3, name='Qr')
+        self.assertRaises(QISKitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
-        """Test create_classical_register with an invalid QASM name (do not start with lowercase).
+        """Test ClassicalRegister() with an invalid QASM name (do not start with lowercase).
         """
-        q_program = QuantumProgram()
-        self.assertRaises(QISKitError, q_program.create_classical_register, size=3, name='Cr')
+        self.assertRaises(QISKitError, ClassicalRegister, size=3, name='Cr')
 
     def test_invalid_qasmname_qr_spec(self):
         """QPS_SPECS_NONAMES defines a quantum register with invalid QASM name (do not start
         with lowercase).
+
+        Note: remove after QuantumProgram deprecation.
         """
         QPS_SPECS_NONAMES = {
             "circuits": [{
@@ -536,6 +536,8 @@ class TestInvalidIds(QiskitTestCase):
     def test_invalid_qasmname_cr_spec(self):
         """QPS_SPECS_NONAMES defines a classical register with invalid QASM name (do not start
         with lowercase).
+
+        Note: remove after QuantumProgram deprecation.
         """
         QPS_SPECS_NONAMES = {
             "circuits": [{
