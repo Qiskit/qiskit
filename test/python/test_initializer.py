@@ -229,18 +229,17 @@ class TestInitialize(QiskitTestCase):
 
     def test_combiner(self):
         qp = QuantumProgram()
-        q = qp.create_quantum_register("q", 1)
-        c = qp.create_classical_register("c", 1)
-        qc1 = qp.create_circuit("H1", [q], [c])
-        qc1.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [q[0]])
+        qr = qp.create_quantum_register("qr", 1)
+        cr = qp.create_classical_register("cr", 1)
+        qc1 = qp.create_circuit("H1", [qr], [cr])
+        qc1.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
 
-        qc2 = qp.create_circuit("H2", [q], [c])
-        qc2.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [q[0]])
+        qc2 = qp.create_circuit("H2", [qr], [cr])
+        qc2.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         qp.add_circuit("H1_and_H2", qc1 + qc2)
-
         result = qp.execute(["H1_and_H2"], backend='local_qasm_simulator', shots=1)
-        quantum_state = result.get_data("H1_and_H2")['quantum_state']
+        quantum_state = result.get_statevector("H1_and_H2")
 
         fidelity = state_fidelity(quantum_state, [1, 0])
         self.assertGreater(
