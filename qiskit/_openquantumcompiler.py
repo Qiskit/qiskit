@@ -144,7 +144,7 @@ def dag2json(dag_circuit, basis_gates='u1,u2,u3,cx,id'):
     Returns:
         json: the json version of the dag
     """
-    return DagUnroller(dag_circuit, JsonBackend(basis_gates)).execute()
+    return DagUnroller(dag_circuit, JsonBackend(basis_gates.split(","))).execute()
 
 
 class QISKitCompilerError(QISKitError):
