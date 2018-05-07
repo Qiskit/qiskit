@@ -4,42 +4,76 @@ Release history
 QISKit SDK 0.5.0
 ================
 
-2018/04/15
+2018/05/14
 
 Improvements
 ------------
 
-- Introduce Quantum Object Code (Qobj)
-  -
-  - 
-  - Generic and core schema validation of compiler output
-  - Backend validation for simulators
-- Improve C++ simulator
-  - Add TensorIndex C++ class (``tensor_index.hpp``) for multi-partite qubit vector indexing
-  - Add QubitVector C++ class (``qubit_vector.hpp``) for multi-partite qubit vector algebra
-  - Reworked C++ simulator backends to use QubitVector class and methods instead of std::vector
-  - Added ``snapshot`` command for simulator for caching a copy of the current simulator state and returning in the output
-  - Removed the ability to return the cached states from the save command (use snapshot instead)
-  - Removed the ability to return the final quantum state of the simulator (use snapshot instead)
-- Improve interface to simulator backends
-  - Introduce ``local_statevector_simulator`` for snapshotting (one-shot, no-noise, no-measure, no-if, no-reset)
-  - 
-- Introduce circuit drawing via ``circuit_drawer()`` (suitable for Jupyter notebooks), ``plot_circuit()`` (suitable for Python scripts)
-- Introduce benchmark suite for performance testing (``test/performance``)
+- Introduce providers and rework backends (#376).
+    - Split backends into ``local`` and ``ibmq``.
+    - Each provider derives from the following classes for its specific requirements.
+        ``BaseProvider`` class.
+        ``BaseBackend`` class.
+        ``BaseJob`` class.
+    - Allow querying result by both circuit name and QuantumCircuit instance.
+- Introduce the QISKit ``wrapper`` (#376).
+    - Introduce convenience wrapper functions around commonly used QISKit components
+      (e.g. ``compile`` and ``execute`` functions).
+    - Introduce the DefaultQISKitProvider, which acts as a context manager for the current session
+      (e.g. providing easy access to all ``available_backends``).
+    - Avoid relying on QuantumProgram (eventual deprecation).
+- Introduce the QISKit Transpiler (#)
+    - ``PassManager`` class.
+    - ``BasePass`` class.
+    - ``CXCancellation`` pass to cancel consecutive runs of cx gates.
+    - Optional ``passmanager`` argument to ``transpiler.compile``.
+- Introduce ``BaseJob`` class and asynchronous jobs (#403).
+    - Return ``BaseJob`` after ``run()``.
+    - Mechanisms for querying ``status`` and ``results``, or to ``cancel`` a job
+- Introduce a ``skip_transpiler`` flag for ``compile()`` (#411).
+- Introduce schemas for validating interfaces between qiskit and backends (#434)
+    - qobj_schema
+    - result_schema
+    - job_status_schema
+    - default_pulse_config_schema
+    - backend_config_schema
+    - backend_props_schema
+    - backend_status_schema
+- Improve C++ simulator (#386)
+    - Add ``tensor_index.hpp`` for multi-partite qubit vector indexing.
+    - Add ``qubit_vector.hpp`` for multi-partite qubit vector algebra.
+    - Rework C++ simulator backends to use QubitVector class instead of std::vector.
+- Improve interface to simulator backends (#435)
+    - Introduce ``local_statevector_simulator_py`` and ``local_statevector_simulator_cpp``.
+    - Introduce aliased and deprecated backend names and mechanisms for resolving them.
+    - Introduce optional ``compact`` flag to query backend names only by unique function.
+    - Introduce result convenience functions ``get_statevector``, ``get_unitary``
+    - Add ``snapshot`` command for caching a copy of the current simulator state.
+- Introduce circuit drawing via ``circuit_drawer()`` and ``plot_circuit()`` (#295, #414)
+- Introduce benchmark suite for performance testing (``test/performance``) (#277)
+- Introduce more robust probability testing via assertDictAlmostEqual (#390)
+- Allow combining circuits across both depth and width (#389)
+- Enforce string token names (#395)
 
 Bug Fixes
 ---------
 
 - Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
+- Fix the order and format of result bits obtained from device backends (#430)
+- Fix support for noises in the idle gate of ``local_clifford_simulator_cpp`` (#440)
+- Fix JobProcessor modifying input qobj (#392)
+- Fix ability to apply all gates on register (#369)
 
 Backward-incompatible changes
 -----------------------------
 
-- Simulator name changes
-  - ``local_qiskit_simulator`` -> ``local_qasm_simulator_cpp`` (fast c++)
-  - ``local_qasm_simulator`` -> ``local_qasm_simulator_py`` (slow python)
-    (``local_qasm_simulator`` chooses the fast one if it is built, otherwise chooses the slow one.)
-- Simulators no longer return wavefunction by setting shots=1. Instead, explicitly ask for ``snapshot``.
+- Simulators no longer return wavefunction by setting shots=1. Instead,
+  use the ``local_statevector_simulator``, or explicitly ask for ``snapshot``.
+- Remove the QuantumJob class.
+- Return ``job`` instance after ``run()``, rather than ``result``.
+- Rename simulators according to ``PROVIDERNAME_SIMPLEALIAS_simulator_LANGUAGEORPROJECT``
+- Move simulator extensions to ``qiskit/extensions/simulator``
+- Move Rzz and CSwap to standard extension library
 
 
 
