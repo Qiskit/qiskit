@@ -44,6 +44,7 @@ class Register(object):
             and the order of the parameters will change (`size`, `name`)
             instead of (`name`, `size`).
         """
+
         if isinstance(size, str):
             warnings.warn(
                 "name will be optional in upcoming versions (>0.5.0) "
@@ -54,6 +55,10 @@ class Register(object):
 
         if name is None:
             name = '%s%i' % (self.prefix, next(self.instances_counter))
+
+        if not isinstance(name, str):
+            raise QISKitError("The circuit name should be a string "
+                              "(or None for autogenerate a name).")
 
         test = re.compile('[a-z][a-zA-Z0-9_]*')
         if test.match(name) is None:
