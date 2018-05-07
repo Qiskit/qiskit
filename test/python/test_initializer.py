@@ -228,20 +228,20 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_combiner(self):
+        desired_vector = [1, 0]
         qp = QuantumProgram()
-        qr = qp.create_quantum_register("qr", 1)
-        cr = qp.create_classical_register("cr", 1)
-        qc1 = qp.create_circuit("H1", [qr], [cr])
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc1 = QuantumCircuit(qr, cr)
         qc1.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
 
-        qc2 = qp.create_circuit("H2", [qr], [cr])
+        qc2 = QuantumCircuit(qr, cr)
         qc2.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         qp.add_circuit("H1_and_H2", qc1 + qc2)
-        result = qp.execute(["H1_and_H2"], backend='local_qasm_simulator', shots=1)
-        quantum_state = result.get_statevector("H1_and_H2")
-
-        fidelity = state_fidelity(quantum_state, [1, 0])
+        result = qp.execute("H1_and_H2", backend='local_statevector_simulator')
+        quantum_state = result.get_statevector()
+        fidelity = state_fidelity(quantum_state, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
