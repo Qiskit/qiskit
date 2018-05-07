@@ -340,7 +340,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf(not _skip_cpp, "no c++ simulator found.")
+    @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
     def test_local_clifford_simulator_cpp(self):
         backend = wrapper.get_backend('local_clifford_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
@@ -351,7 +351,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf(not _skip_cpp, "no c++ simulator found.")
+    @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
     def test_local_qasm_simulator_cpp(self):
         backend = wrapper.get_backend('local_qasm_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
@@ -464,12 +464,12 @@ class TestInvalidIds(QiskitTestCase):
     def test_invalid_type_qr_name(self):
         """Test QuantumRegister() with an invalid type name.
         """
-        self.assertRaises(QISKitError, QuantumRegister, size=3, name='1')
+        self.assertRaises(QISKitError, QuantumRegister, size=3, name=1)
 
     def test_invalid_type_cr_name(self):
         """Test ClassicalRegister() with an invalid type name.
         """
-        self.assertRaises(QISKitError, ClassicalRegister, size=3, name='1')
+        self.assertRaises(QISKitError, ClassicalRegister, size=3, name=1)
 
     def test_invalid_type_qr_spec(self):
         """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
