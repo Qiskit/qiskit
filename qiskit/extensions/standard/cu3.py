@@ -41,8 +41,8 @@ class Cu3Gate(Gate):
         phi = self.param[1]
         lam = self.param[2]
         return self._qasmif("cu3(%s,%s,%s) %s[%d],%s[%d];" % (theta, phi, lam,
-                                                              ctl[0].openqasm_name, ctl[1],
-                                                              tgt[0].openqasm_name, tgt[1]))
+                                                              ctl[0].name, ctl[1],
+                                                              tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""

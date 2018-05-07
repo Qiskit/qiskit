@@ -50,10 +50,25 @@ class QuantumCircuit(object):
     definitions = OrderedDict()
 
     def __init__(self, *regs, name=None):
-        """Create a new circuit."""
+        """Create a new circuit.
+
+        Args:
+            *regs (Registers): registers to include in the circuit.
+            name (str or None): the name of the quantum circuit. If
+                None, an automatically generated identifier will be
+                assigned.
+
+        Raises:
+            QISKitError: if the circuit name, if given, is not valid.
+        """
         self._increment_instances()
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
+
+        if not isinstance(name, str):
+            raise QISKitError("The circuit name should be a string "
+                              "(or None for autogenerate a name).")
+
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
