@@ -23,7 +23,7 @@ Table of Contents
    QISKit overview <qiskit>
    Developer documentation <dev_introduction>
    SDK reference <_autodoc/qiskit>
-   Release history <CHANGELOG>
+   Release history <releases>
 
 Python Modules
 ==============

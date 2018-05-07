@@ -88,6 +88,12 @@ Exceptions
 {%- endif %}
 
 {% if imported_functions %}
+{# Manually name this section via a "_qiskit_top_level_functions" reference,
+   for convenience (link from release notes). #}
+{% if fullname == 'qiskit' %}
+.. _qiskit_top_level_functions:
+{% endif %}
+
 Functions
 ---------
 
