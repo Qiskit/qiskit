@@ -72,6 +72,7 @@ class BaseJob(ABC):
 
 class JobStatus(enum.Enum):
     """Class for job status enumerated type."""
+    INITIALIZING = 'job is being initialized'
     QUEUED = 'job is queued'
     RUNNING = 'job is actively running'
     CANCELLED = 'job has been cancelled'

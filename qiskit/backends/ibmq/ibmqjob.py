@@ -20,10 +20,12 @@ This module is used for creating asynchronous job objects for the
 IBM Q Experience.
 """
 
+from concurrent import futures
 import time
 import logging
 import pprint
 
+from qiskit._compiler import compile_circuit
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
@@ -34,25 +36,29 @@ logger = logging.getLogger(__name__)
 
 
 class IBMQJob(BaseJob):
-    """IBM Q Job class"""
+    """IBM Q Job class
 
-    def __init__(self, q_job, api, submit_info, is_device):
+    Attributes:
+        _executor (futures.Executor): executor to handle asynchronous jobs
+    """
+    _executor = futures.ThreadPoolExecutor()
+
+    def __init__(self, q_job, api, is_device):
         """IBMQJob init function.
 
         Args:
             q_job (QuantumJob): job description
             api (IBMQuantumExperience): IBM Q API
-            submit_info (dict): this is the dictionary that comes back when
-                submitting a job using the IBMQuantumExperience API.
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
         super().__init__()
         self._q_job = q_job
+        self._qobj = q_job.qobj
         self._api = api
-        self._submit_info = submit_info
-        self._backend_name = submit_info.get('backend', None).get('name', None)
-        self._job_id = submit_info['id']
-        self._status = JobStatus.QUEUED
+        self._job_id = None  # this must be before creating the future
+        self._backend_name = self._qobj.get('config').get('backend_name')
+        self._future_submit = self._executor.submit(self._submit)
+        self._status = JobStatus.INITIALIZING
         self._status_msg = None
         self._cancelled = False
         self._exception = None
@@ -60,9 +66,12 @@ class IBMQJob(BaseJob):
 
     def result(self, timeout=None, wait=5):
         # pylint: disable=arguments-differ
+        while self._status == JobStatus.INITIALIZING:
+            time.sleep(0.1)
         this_result = self._wait_for_job(timeout=timeout, wait=wait)
         if self._is_device and self.done:
             _reorder_bits(this_result)  # TODO: remove this after Qobj
+        self._status = JobStatus.DONE
         return this_result
 
     def cancel(self):
@@ -92,6 +101,11 @@ class IBMQJob(BaseJob):
 
     @property
     def status(self):
+        if self._status == JobStatus.INITIALIZING:
+            stats = {'job_id': None,
+                     'status': self._status,
+                     'status_msg': 'job is begin initialized please wait a moment'}
+            return stats
         job_result = self._api.get_job(self._job_id)
         stats = {'job_id': self._job_id}
         _status = None
@@ -194,6 +208,59 @@ class IBMQJob(BaseJob):
         Return backend name used for this job
         """
         return self._backend_name
+
+    def _submit(self):
+        """Submit job to IBM Q.
+
+        Returns:
+            dict: submission info including job id from server
+
+        Raises:
+            QISKitError: The backend name in the job doesn't match this backend.
+            ResultError: If the API reported an error with the submitted job.
+        """
+        qobj = self._qobj
+        api_jobs = []
+        for circuit in qobj['circuits']:
+            if (('compiled_circuit_qasm' not in circuit) or
+                    (circuit['compiled_circuit_qasm'] is None)):
+                compiled_circuit = compile_circuit(circuit['circuit'])
+                circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
+            if isinstance(circuit['compiled_circuit_qasm'], bytes):
+                api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
+            else:
+                api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
+
+        seed0 = qobj['circuits'][0]['config']['seed']
+        hpc = None
+        if (qobj['config']['backend_name'] == 'ibmq_qasm_simulator_hpc' and
+                'hpc' in qobj['config']):
+            try:
+                # Use CamelCase when passing the hpc parameters to the API.
+                hpc = {
+                    'multiShotOptimization':
+                        qobj['config']['hpc']['multi_shot_optimization'],
+                    'ompNumThreads':
+                        qobj['config']['hpc']['omp_num_threads']
+                }
+            except (KeyError, TypeError):
+                hpc = None
+
+        backend_name = qobj['config']['backend_name']
+        if backend_name != self._backend_name:
+            raise QISKitError("inconsistent qobj backend "
+                              "name ({0} != {1})".format(backend_name,
+                                                         self._backend_name))
+        submit_info = self._api.run_job(api_jobs, backend_name,
+                                        shots=qobj['config']['shots'],
+                                        max_credits=qobj['config']['max_credits'],
+                                        seed=seed0,
+                                        hpc=hpc)
+        if 'error' in submit_info:
+            raise ResultError(submit_info['error'])
+        self._job_id = submit_info.get('id')
+        self._status = JobStatus.QUEUED
+        return submit_info
 
     def _wait_for_job(self, timeout=60, wait=5):
         """Wait until all online ran circuits of a qobj are 'COMPLETED'.

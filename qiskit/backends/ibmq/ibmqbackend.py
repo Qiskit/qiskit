@@ -20,10 +20,6 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from qiskit import QISKitError
-from qiskit._compiler import compile_circuit
-from qiskit._resulterror import ResultError
-
 from qiskit._util import _snake_case_to_camel_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
@@ -64,62 +60,7 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        submit_info = self._submit(q_job)
-        return IBMQJob(q_job, self._api, submit_info,
-                       not self.configuration['simulator'])
-
-    def _submit(self, q_job):
-        """Submit job to IBM Q.
-
-        Args:
-            q_job (QuantumJob): job to run
-
-        Returns:
-            dict: submission info including job id from server
-
-        Raises:
-            QISKitError: The backend name in the job doesn't match this backend.
-            ResultError: If the API reported an error with the submitted job.
-        """
-        qobj = q_job.qobj
-        api_jobs = []
-        for circuit in qobj['circuits']:
-            if (('compiled_circuit_qasm' not in circuit) or
-                    (circuit['compiled_circuit_qasm'] is None)):
-                compiled_circuit = compile_circuit(circuit['circuit'])
-                circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-            if isinstance(circuit['compiled_circuit_qasm'], bytes):
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
-            else:
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
-
-        seed0 = qobj['circuits'][0]['config']['seed']
-        hpc = None
-        if (qobj['config']['backend_name'] == 'ibmq_qasm_simulator_hpc' and
-                'hpc' in qobj['config']):
-            try:
-                # Use CamelCase when passing the hpc parameters to the API.
-                hpc = {
-                    'multiShotOptimization':
-                        qobj['config']['hpc']['multi_shot_optimization'],
-                    'ompNumThreads':
-                        qobj['config']['hpc']['omp_num_threads']
-                }
-            except (KeyError, TypeError):
-                hpc = None
-
-        backend_name = qobj['config']['backend_name']
-        if backend_name != self.name:
-            raise QISKitError("inconsistent qobj backend "
-                              "name ({0} != {1})".format(backend_name, self.name))
-        submit_info = self._api.run_job(api_jobs, backend_name,
-                                        shots=qobj['config']['shots'],
-                                        max_credits=qobj['config']['max_credits'],
-                                        seed=seed0,
-                                        hpc=hpc)
-        if 'error' in submit_info:
-            raise ResultError(submit_info['error'])
-        return submit_info
+        return IBMQJob(q_job, self._api, not self.configuration['simulator'])
 
     @property
     def calibration(self):

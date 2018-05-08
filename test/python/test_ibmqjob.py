@@ -27,6 +27,7 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
 import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -66,9 +67,8 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
-    @slow_test
     def test_run_async_simulator(self):
-        backend = self._provider.available_backends({'simulator': True})[0]
+        backend = self._provider.get_backend('ibmqx_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
@@ -81,14 +81,24 @@ class TestIBMQJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e3, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        time.sleep(0.1)  # give time for jobs to start (better way?)
-        num_queued = sum([job.queued for job in job_array])
-        num_running = sum([job.running for job in job_array])
+        time.sleep(3)  # give time for jobs to start (better way?)
+        job_status = [job.status['status'] for job in job_array]
+        num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
+        num_queued = sum([status == JobStatus.QUEUED for status in job_status])
+        num_running = sum([status == JobStatus.RUNNING for status in job_status])
+        num_done = sum([status == JobStatus.DONE for status in job_status])
+        num_error = sum([status == JobStatus.ERROR for status in job_status])
+        self.log.info('number of currently initializing jobs: %d/%d',
+                      num_init, num_jobs)
         self.log.info('number of currently queued jobs: %d/%d',
                       num_queued, num_jobs)
         self.log.info('number of currently running jobs: %d/%d',
                       num_running, num_jobs)
-        self.assertTrue(all([(job.running or job.queued) for job in job_array]))
+        self.log.info('number of currently done jobs: %d/%d',
+                      num_done, num_jobs)
+        self.log.info('number of errored jobs: %d/%d',
+                      num_error, num_jobs)
+        self.assertTrue(num_jobs - num_error - num_done > 0)
 
     @slow_test
     def test_run_async_device(self):
@@ -127,7 +137,9 @@ class TestIBMQJob(QiskitTestCase):
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)
-        self.log.info('job_id: %d', job.job_id)
+        while job.status['status'] == JobStatus.INITIALIZING:
+            time.sleep(0.1)
+        self.log.info('job_id: %s', job.job_id)
         self.assertTrue(job.job_id is not None)
 
     def test_get_backend_name(self):
