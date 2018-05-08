@@ -19,8 +19,8 @@
 """LocalJob Test."""
 
 import unittest
-import numpy
 import time
+import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
@@ -99,9 +99,26 @@ class TestLocalJob(QiskitTestCase):
         for job in job_array:
             job.cancel()
         num_cancelled = sum([job.cancelled for job in job_array])
-        self.log.info('number of successfully cancelled jobs: %d/%d' % (
-            num_cancelled, num_jobs))
+        self.log.info('number of successfully cancelled jobs: %d/%d',
+                      num_cancelled, num_jobs)
         self.assertTrue(num_cancelled > 0)
-        
+
+    def test_done(self):
+        backend = self._provider.get_backend('local_qasm_simulator_py')
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        job = backend.run(quantum_job)
+        job.result()
+        self.assertTrue(job.done)
+
+    def test_get_backend_name(self):
+        backend_name = 'local_qasm_simulator_py'
+        backend = self._provider.get_backend(backend_name)
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        job = backend.run(quantum_job)
+        self.assertTrue(job.backend_name == backend_name)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

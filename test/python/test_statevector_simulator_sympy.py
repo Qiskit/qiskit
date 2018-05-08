@@ -41,9 +41,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
         circuit_config = {'coupling_map': None,
                           'basis_gates': 'u1,u2,u3,cx,id',
                           'layout': None}
-        resources = {'max_credits': 3,
-                     'wait': 5,
-                     'timeout': 120}
+        resources = {'max_credits': 3}
         self.qobj = {'id': 'test_sim_single_shot',
                      'config': {
                          'max_credits': resources['max_credits'],

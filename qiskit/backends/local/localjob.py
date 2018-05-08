@@ -42,6 +42,7 @@ class LocalJob(BaseJob):
     def __init__(self, fn, q_job):
         super().__init__()
         self._q_job = q_job
+        self._backend_name = q_job.backend.name
         self._future = self._executor.submit(fn, q_job)
 
     def result(self, timeout=None):
@@ -100,7 +101,7 @@ class LocalJob(BaseJob):
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
         """
-        return self._future.done and not self._future.cancelled
+        return self._future.done() and not self._future.cancelled()
 
     @property
     def cancelled(self):
@@ -115,6 +116,13 @@ class LocalJob(BaseJob):
             Exception: exception raised by attempting to run job.
         """
         return self._future.exception(timeout=0)
+
+    @property
+    def backend_name(self):
+        """
+        Return backend name used for this job
+        """
+        return self._backend_name
 
 
 class LocalJobError(QISKitError):

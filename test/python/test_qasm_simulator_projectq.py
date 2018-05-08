@@ -85,9 +85,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         qobj = qiskit._compiler.compile([qc], pq_simulator,
                                         compile_config=cconfig)
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
-                           resources={'max_credits': qobj['config']['max_credits'],
-                                      'wait': 5,
-                                      'timeout': 30})
+                           resources={'max_credits': qobj['config']['max_credits']})
         job = pq_simulator.run(q_job)
         result_pq = job.result(timeout=30)
         self.assertEqual(result_pq.get_counts(result_pq.get_names()[0]),
@@ -109,9 +107,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                                         compile_config=cconfig)
         timeout = 30
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
-                           resources={'max_credits': qobj['config']['max_credits'],
-                                      'wait': 5,
-                                      'timeout': timeout})
+                           resources={'max_credits': qobj['config']['max_credits']})
         job = pq_simulator.run(q_job)
         result = job.result(timeout=timeout)
         counts = result.get_counts(result.get_names()[0])

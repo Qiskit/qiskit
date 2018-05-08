@@ -27,7 +27,7 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
 import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
-from .common import requires_qe_access, QiskitTestCase
+from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
 class TestIBMQJob(QiskitTestCase):
@@ -66,12 +66,37 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
-    def test_run_async(self):
-        #backend = self._provider.get_backend('ibmqx_qasm_simulator')
-        backend = self._provider.get_backend('ibmqx4')
+    @slow_test
+    def test_run_async_simulator(self):
+        backend = self._provider.available_backends({'simulator': True})[0]
+        self.log.info('submitting to backend %s', backend.name)
         num_qubits = 5
-        qr = QuantumRegister(num_qubits, 'q')
-        cr = ClassicalRegister(num_qubits, 'c')
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(num_qubits, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        for i in range(num_qubits-1):
+            qc.cx(qr[i], qr[i+1])
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile([qc]*10, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1e3, preformatted=True)
+        num_jobs = 5
+        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        time.sleep(0.1)  # give time for jobs to start (better way?)
+        num_queued = sum([job.queued for job in job_array])
+        num_running = sum([job.running for job in job_array])
+        self.log.info('number of currently queued jobs: %d/%d',
+                      num_queued, num_jobs)
+        self.log.info('number of currently running jobs: %d/%d',
+                      num_running, num_jobs)
+        self.assertTrue(all([(job.running or job.queued) for job in job_array]))
+
+    @slow_test
+    def test_run_async_device(self):
+        backend = self._provider.available_backends({'simulator': False})[0]
+        self.log.info('submitting to backend %s', backend.name)
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(num_qubits, 'cr')
         qc = QuantumCircuit(qr, cr)
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
@@ -80,13 +105,12 @@ class TestIBMQJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
         num_jobs = 3
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        time.sleep(0.1)  # give time for jobs to start (better way?)
         num_queued = sum([job.queued for job in job_array])
         num_running = sum([job.running for job in job_array])
-        self.log.info('number of currently queued jobs: %d/%d' % (
-            num_queued, num_jobs))
-        self.log.info('number of currently running jobs: %d/%d' % (
-            num_running, num_jobs))
+        self.log.info('number of currently queued jobs: %d/%d',
+                      num_queued, num_jobs)
+        self.log.info('number of currently running jobs: %d/%d',
+                      num_running, num_jobs)
         self.assertTrue(all([(job.running or job.queued) for job in job_array]))
 
     @unittest.skip('cancel is not currently possible on IBM Q')
@@ -103,8 +127,17 @@ class TestIBMQJob(QiskitTestCase):
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)
-        self.log.info('job_id: %s' % job.job_id)
+        self.log.info('job_id: %d', job.job_id)
         self.assertTrue(job.job_id is not None)
+
+    def test_get_backend_name(self):
+        backend_name = 'ibmqx_qasm_simulator'
+        backend = self._provider.get_backend(backend_name)
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        job = backend.run(quantum_job)
+        self.assertTrue(job.backend_name == backend_name)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

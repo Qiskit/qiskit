@@ -50,6 +50,7 @@ class IBMQJob(BaseJob):
         self._q_job = q_job
         self._api = api
         self._submit_info = submit_info
+        self._backend_name = submit_info.get('backend', None).get('name', None)
         self._job_id = submit_info['id']
         self._status = JobStatus.QUEUED
         self._status_msg = None
@@ -186,6 +187,13 @@ class IBMQJob(BaseJob):
         Return backend determined job_id (also available in status method).
         """
         return self._job_id
+
+    @property
+    def backend_name(self):
+        """
+        Return backend name used for this job
+        """
+        return self._backend_name
 
     def _wait_for_job(self, timeout=60, wait=5):
         """Wait until all online ran circuits of a qobj are 'COMPLETED'.
