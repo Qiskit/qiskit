@@ -85,7 +85,6 @@ class LocalJob(BaseJob):
         else:
             raise LocalJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
-        _status_msg = None
         return {'status': _status,
                 'status_msg': _status_msg}
 

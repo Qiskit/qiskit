@@ -20,6 +20,7 @@
 
 import unittest
 import numpy
+import time
 from scipy.stats import chi2_contingency
 
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
@@ -65,6 +66,42 @@ class TestLocalJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
+    def test_run_async(self):
+        backend = self._provider.get_backend('local_qasm_simulator_py')
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'q')
+        cr = ClassicalRegister(num_qubits, 'c')
+        qc = QuantumCircuit(qr, cr)
+        for i in range(num_qubits-1):
+            qc.cx(qr[i], qr[i+1])
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile(qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        num_jobs = 5
+        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        time.sleep(0.1)  # give time for jobs to start (better way?)
+        self.assertTrue(all([job.running for job in job_array]))
 
+    def test_cancel(self):
+        backend = self._provider.get_backend('local_qasm_simulator_py')
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'q')
+        cr = ClassicalRegister(num_qubits, 'c')
+        qc = QuantumCircuit(qr, cr)
+        for i in range(num_qubits-1):
+            qc.cx(qr[i], qr[i+1])
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile(qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        num_jobs = 50
+        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        time.sleep(0.1)
+        for job in job_array:
+            job.cancel()
+        num_cancelled = sum([job.cancelled for job in job_array])
+        self.log.info('number of successfully cancelled jobs: %d/%d' % (
+            num_cancelled, num_jobs))
+        self.assertTrue(num_cancelled > 0)
+        
 if __name__ == '__main__':
     unittest.main(verbosity=2)

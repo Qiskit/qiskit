@@ -19,6 +19,7 @@
 """IBMQJob Test."""
 
 import unittest
+import time
 import numpy
 from scipy.stats import chi2_contingency
 
@@ -65,6 +66,29 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
+    def test_run_async(self):
+        #backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        backend = self._provider.get_backend('ibmqx4')
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'q')
+        cr = ClassicalRegister(num_qubits, 'c')
+        qc = QuantumCircuit(qr, cr)
+        for i in range(num_qubits-1):
+            qc.cx(qr[i], qr[i+1])
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile(qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        num_jobs = 3
+        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        time.sleep(0.1)  # give time for jobs to start (better way?)
+        num_queued = sum([job.queued for job in job_array])
+        num_running = sum([job.running for job in job_array])
+        self.log.info('number of currently queued jobs: %d/%d' % (
+            num_queued, num_jobs))
+        self.log.info('number of currently running jobs: %d/%d' % (
+            num_running, num_jobs))
+        self.assertTrue(all([(job.running or job.queued) for job in job_array]))
+
     @unittest.skip('cancel is not currently possible on IBM Q')
     def test_cancel(self):
         backend = self._provider.get_backend('ibmqx4')
@@ -74,6 +98,13 @@ class TestIBMQJob(QiskitTestCase):
         job.cancel()
         self.assertTrue(job.cancelled)
 
+    def test_job_id(self):
+        backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        job = backend.run(quantum_job)
+        self.log.info('job_id: %s' % job.job_id)
+        self.assertTrue(job.job_id is not None)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

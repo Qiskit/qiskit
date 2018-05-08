@@ -87,39 +87,55 @@ class IBMQJob(BaseJob):
                 self._cancelled = True
                 return True
         else:
-            # Since currently the API always reports RUNNING it isn't possible
-            # for the SDK to know when the job is actually running instead of just
-            # sitting in queue. Once that changes it may be useful to reimplement
-            # this class.
             return False
 
     @property
     def status(self):
-        # check for submission error
-        if self._status == JobStatus.ERROR:
-            return {'job_id': self._job_id,
-                    'status': self._status,
-                    'status_msg': self._status_msg}
-        else:
-            _status_msg = None
-            # order is important here
-            if self.running:
-                _status = JobStatus.RUNNING
-            elif not self.done:
-                _status = JobStatus.QUEUED
-            elif self.cancelled:
-                _status = JobStatus.CANCELLED
-            elif self.done:
-                _status = JobStatus.DONE
-            elif self.exception:
-                _status = JobStatus.ERROR
-                _status_msg = str(self.exception)
+        job_result = self._api.get_job(self._job_id)
+        stats = {'job_id': self._job_id}
+        _status = None
+        _status_msg = None
+        if 'status' not in job_result:
+            self._exception = QISKitError("get_job didn't return status: %s" %
+                                          (pprint.pformat(job_result)))
+            raise QISKitError("get_job didn't return status: %s" %
+                              (pprint.pformat(job_result)))
+        elif job_result['status'] == 'RUNNING':
+            # we may have some other information here
+            if 'infoQueue' in job_result:
+                if 'status' in job_result['infoQueue']:
+                    if job_result['infoQueue']['status'] == 'PENDING_IN_QUEUE':
+                        _status = JobStatus.QUEUED
+                if 'position' in job_result['infoQueue']:
+                    stats['queue_position'] = job_result['infoQueue']['position']
             else:
-                raise IBMQJobError('Unexpected behavior of {0}'.format(
-                    self.__class__.__name__))
-            return {'job_id': self._job_id,
-                    'status': _status,
-                    'status_msg': _status_msg}
+                _status = JobStatus.RUNNING
+        elif job_result['status'] == 'COMPLETED':
+            _status = JobStatus.DONE
+        elif self.cancelled:
+            _status = JobStatus.CANCELLED
+        elif self.exception:
+            _status = JobStatus.ERROR
+            _status_msg = str(self.exception)
+        else:
+            raise IBMQJobError('Unexpected behavior of {0}'.format(
+                self.__class__.__name__))
+        stats['status'] = _status
+        stats['status_msg'] = _status_msg
+        return stats
+
+    @property
+    def queued(self):
+        """
+        Returns whether job is queued.
+
+        Returns:
+            bool: True if job is queued, else False.
+
+        Raises:
+            QISKitError: couldn't get job status from server
+        """
+        return self.status['status'] == JobStatus.QUEUED
 
     @property
     def running(self):
@@ -132,13 +148,7 @@ class IBMQJob(BaseJob):
         Raises:
             QISKitError: couldn't get job status from server
         """
-        job_result = self._api.get_job(self._job_id)
-        if 'status' not in job_result:
-            self._exception = QISKitError("get_job didn't return status: %s" %
-                                          (pprint.pformat(job_result)))
-            raise QISKitError("get_job didn't return status: %s" %
-                              (pprint.pformat(job_result)))
-        return job_result['status'] == 'RUNNING'
+        return self.status['status'] == JobStatus.RUNNING
 
     @property
     def done(self):
@@ -148,13 +158,7 @@ class IBMQJob(BaseJob):
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
         """
-        job_result = self._api.get_job(self._job_id)
-        if 'status' not in job_result:
-            self._exception = QISKitError("get_job didn't return status: %s" %
-                                          (pprint.pformat(job_result)))
-            raise QISKitError("get_job didn't return status: %s" %
-                              (pprint.pformat(job_result)))
-        return job_result['status'] == 'COMPLETED'
+        return self.status['status'] == JobStatus.DONE
 
     @property
     def cancelled(self):
