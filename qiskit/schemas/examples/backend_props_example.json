@@ -26,5 +26,5 @@
         {"qubits": [0,1], "gate": "cx", "parameters": [
                 {"name": "gateerr", "date": "2018-04-02 15:00:00Z", "unit": "None", "value": 0.02}]
         }],
-    "general": [{"name": "FridgeTemperature", "date": "2018-04-02 15:00:00Z", "unit": "mK", "value": 10}]
+    "general": [{"name": "fridge_temperature", "date": "2018-04-02 15:00:00Z", "unit": "mK", "value": 10}]
 }
