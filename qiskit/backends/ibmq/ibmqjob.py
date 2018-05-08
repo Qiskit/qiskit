@@ -116,6 +116,7 @@ class IBMQJob(BaseJob):
             raise QISKitError("get_job didn't return status: %s" %
                               (pprint.pformat(job_result)))
         elif job_result['status'] == 'RUNNING':
+            _status = JobStatus.RUNNING
             # we may have some other information here
             if 'infoQueue' in job_result:
                 if 'status' in job_result['infoQueue']:
@@ -123,8 +124,6 @@ class IBMQJob(BaseJob):
                         _status = JobStatus.QUEUED
                 if 'position' in job_result['infoQueue']:
                     stats['queue_position'] = job_result['infoQueue']['position']
-            else:
-                _status = JobStatus.RUNNING
         elif job_result['status'] == 'COMPLETED':
             _status = JobStatus.DONE
         elif self.cancelled:
@@ -133,6 +132,7 @@ class IBMQJob(BaseJob):
             _status = JobStatus.ERROR
             _status_msg = str(self.exception)
         else:
+            _status = JobStatus.ERROR
             raise IBMQJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
         stats['status'] = _status

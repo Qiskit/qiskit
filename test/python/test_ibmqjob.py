@@ -115,13 +115,24 @@ class TestIBMQJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
         num_jobs = 3
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        num_queued = sum([job.queued for job in job_array])
-        num_running = sum([job.running for job in job_array])
+        time.sleep(3)  # give time for jobs to start (better way?)
+        job_status = [job.status['status'] for job in job_array]
+        num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
+        num_queued = sum([status == JobStatus.QUEUED for status in job_status])
+        num_running = sum([status == JobStatus.RUNNING for status in job_status])
+        num_done = sum([status == JobStatus.DONE for status in job_status])
+        num_error = sum([status == JobStatus.ERROR for status in job_status])
+        self.log.info('number of currently initializing jobs: %d/%d',
+                      num_init, num_jobs)
         self.log.info('number of currently queued jobs: %d/%d',
                       num_queued, num_jobs)
         self.log.info('number of currently running jobs: %d/%d',
                       num_running, num_jobs)
-        self.assertTrue(all([(job.running or job.queued) for job in job_array]))
+        self.log.info('number of currently done jobs: %d/%d',
+                      num_done, num_jobs)
+        self.log.info('number of errored jobs: %d/%d',
+                      num_error, num_jobs)
+        self.assertTrue(num_jobs - num_error - num_done > 0)
 
     @unittest.skip('cancel is not currently possible on IBM Q')
     def test_cancel(self):
