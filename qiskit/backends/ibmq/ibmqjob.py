@@ -238,6 +238,7 @@ class IBMQJob(BaseJob):
                 return Result(job_result, qobj)
 
         # Get the results
+        api_result = self._api.get_job(job_id)
         job_result_return = []
         for index in range(len(api_result['qasms'])):
             job_result_return.append({'data': api_result['qasms'][index]['data'],
