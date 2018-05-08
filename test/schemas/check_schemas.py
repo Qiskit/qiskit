@@ -31,10 +31,10 @@ schema_tests = []
 verbose_err = False
 any_error = False
 cur_file_path = os.path.dirname(os.path.abspath(__file__))
-#go two up
+# go two directories up
 cur_file_path = os.path.dirname(cur_file_path)
 cur_file_path = os.path.dirname(cur_file_path)
-cur_file_path = os.path.join(cur_file_path, 'qiskit','schemas')
+cur_file_path = os.path.join(cur_file_path, 'qiskit', 'schemas')
 print(cur_file_path)
 
 """List the schemas and their examples."""
