@@ -52,14 +52,14 @@
         }
     },
     "type": "object",
-    "required": ["qubit_freq","meas_freq","pulse_library","meas_kernel","discriminator"],
+    "required": ["qubit_freq_est","meas_freq_est","pulse_library","meas_kernel","discriminator"],
     "properties": {
-        "qubit_freq": {
+        "qubit_freq_est": {
             "type": "array",
             "description": "Backend calibrated qubit frequencies",
             "minItems": 1,
             "items": {"type": "number"}},
-        "meas_freq": {
+        "meas_freq_est": {
             "type": "array",
             "description": "Backend calibrated qubit frequencies",
             "minItems": 1,

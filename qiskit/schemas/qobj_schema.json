@@ -207,11 +207,11 @@
                 },
                 {
                 "title": "Acquisition",
-                "required": ["tstart","tend","qubits","register_slot"],
+                "required": ["t_start","t_end","qubits","register_slot"],
                 "properties": {
                     "name": {"enum": ["acquire"]},
-                    "tstart": {"type": "number"},
-                    "tend": {"type": "number"},
+                    "t_start": {"type": "number"},
+                    "t_end": {"type": "number"},
                     "qubits": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
                     "register_slot": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
                     "kernels": {"type": "array"},
@@ -390,7 +390,7 @@
             "type": {
                 "enum": [ "PULSE" ]},
             "config": {
-                "required": ["meas_level", "pulse_library", "register_slot_size", "meas_return", "qubit_freq", "meas_freq", "rep_rate"],
+                "required": ["meas_level", "pulse_library", "register_slot_size", "meas_return", "qubit_lo_freq", "meas_lo_freq", "rep_rate"],
                 "properties": {
                     "meas_level": {"enum": [0,1,2]},
                     "pulse_library": {
@@ -415,12 +415,12 @@
                     "meas_return": {
                         "enum": ["single","avg"],
                         "description": "Return each shot of data or average over the shots"},
-                    "qubit_freq": {
+                    "qubit_lo_freq": {
                         "type": "array",
                         "description": "Qubit drive LO frequencies",
                         "minItems": 1,
                         "items": {"type": "number", "minimum": 0}},
-                    "meas_freq": {
+                    "meas_lo_freq": {
                         "type": "array",
                         "description": "Measurement LO frequencies",
                         "minItems": 1,

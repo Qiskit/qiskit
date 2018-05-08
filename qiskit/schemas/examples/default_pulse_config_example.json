@@ -1,6 +1,6 @@
 {
-    "qubit_freq": [5.34221,5.24654,5.67543],
-    "meas_freq": [6.87,7.1,7.4],
+    "qubit_freq_est": [5.34221,5.24654,5.67543],
+    "meas_freq_est": [6.87,7.1,7.4],
     "gate_def": [
         {"name": "u1", "qubits": [0], "sequence": [{}]},
         {"name": "u2", "qubits": [0], "sequence": [{}]},

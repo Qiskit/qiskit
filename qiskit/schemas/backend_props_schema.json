@@ -33,7 +33,7 @@
     "required": [
         "backend_name",
         "backend_version",
-        "lastUpdateDate",
+        "last_update_date",
         "qubits",
         "gates",
         "general"
@@ -48,7 +48,7 @@
             "pattern": "[0-9]+.[0-9]+.[0-9]+$",
             "description": "Backend version in the form X.X.X"
             },
-        "lastUpdateDate": {
+        "last_update_date": {
             "type": "string",
             "format": "date-time",
             "description": "Last date/time that a property was updated."
