@@ -37,8 +37,8 @@ class CzGate(Gate):
         """Return OPENQASM string."""
         ctl = self.arg[0]
         tgt = self.arg[1]
-        return self._qasmif("cz %s[%d],%s[%d];" % (ctl[0].openqasm_name, ctl[1],
-                                                   tgt[0].openqasm_name, tgt[1]))
+        return self._qasmif("cz %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
+                                                   tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""

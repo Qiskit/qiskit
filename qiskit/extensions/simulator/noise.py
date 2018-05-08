@@ -42,9 +42,9 @@ class Noise(Instruction):
         string = "noise(%d) " % self.param[0]
         for j in range(len(self.arg)):
             if len(self.arg[j]) == 1:
-                string += "%s" % self.arg[j].openqasm_name
+                string += "%s" % self.arg[j].name
             else:
-                string += "%s[%d]" % (self.arg[j][0].openqasm_name, self.arg[j][1])
+                string += "%s[%d]" % (self.arg[j][0].name, self.arg[j][1])
             if j != len(self.arg) - 1:
                 string += ","
         string += ";"

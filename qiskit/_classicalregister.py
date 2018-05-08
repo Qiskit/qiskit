@@ -33,7 +33,7 @@ class ClassicalRegister(Register):
 
     def qasm(self):
         """Return OPENQASM string for this register."""
-        return "creg %s[%d];" % (self.openqasm_name, self.size)
+        return "creg %s[%d];" % (self.name, self.size)
 
     def __str__(self):
         """Return a string representing the register."""

@@ -32,7 +32,7 @@ class QuantumRegister(Register):
 
     def qasm(self):
         """Return OPENQASM string for this register."""
-        return "qreg %s[%d];" % (self.openqasm_name, self.size)
+        return "qreg %s[%d];" % (self.name, self.size)
 
     def __str__(self):
         """Return a string representing the register."""
