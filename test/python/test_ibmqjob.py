@@ -89,7 +89,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('ctable: %s', str(ctable))
         contingency = chi2_contingency(ctable)
         self.log.info('chi2_contingency: %s', str(contingency))
-        self.assertGreater(contingency[1], 0.01)
+        self.assertDictAlmostEqual(counts_qx, counts_ex, 1024*0.1)
 
     def test_run_async_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
