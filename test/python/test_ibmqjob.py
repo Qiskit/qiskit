@@ -51,8 +51,25 @@ class TestIBMQJob(QiskitTestCase):
         cls._qc = qc
         cls._provider = IBMQProvider(QE_TOKEN, QE_URL)
 
-    def test_run(self):
+    def test_run_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        job = backend.run(quantum_job)
+        result = job.result()
+        counts_qx = result.get_counts(result.get_names()[0])
+        counts_ex = {'00': 512, '11': 512}
+        states = counts_qx.keys() | counts_ex.keys()
+        # contingency table
+        ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
+                              [counts_ex.get(key, 0) for key in states]])
+        contingency = chi2_contingency(ctable)
+        self.log.info('chi2_contingency: %s', str(contingency))
+        self.assertGreater(contingency[1], 0.01)
+
+    @slow_test
+    def test_run_device(self):
+        backend = self._provider.get_backend('ibmqx4')
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
         job = backend.run(quantum_job)

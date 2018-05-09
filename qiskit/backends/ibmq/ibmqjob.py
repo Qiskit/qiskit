@@ -283,7 +283,7 @@ class IBMQJob(BaseJob):
                     job_id)
         timer = 0
         api_result = self._api.get_job(job_id)
-        while self.running:
+        while not (self.done or self.cancelled or self.exception):
             if timeout is not None and timer >= timeout:
                 job_result = {'job_id': job_id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
@@ -304,20 +304,28 @@ class IBMQJob(BaseJob):
                               'result': api_result['status']}
                 return Result(job_result, qobj)
 
-        # Get the results
-        api_result = self._api.get_job(job_id)
-        job_result_return = []
-        for index in range(len(api_result['qasms'])):
-            job_result_return.append({'data': api_result['qasms'][index]['data'],
-                                      'status': api_result['qasms'][index]['status']})
-        job_result = {'job_id': job_id, 'status': api_result['status'],
-                      'result': job_result_return}
-        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'],
-                    job_id)
-        job_result['name'] = qobj['id']
-        job_result['backend'] = qobj['config']['backend_name']
-        return Result(job_result, qobj)
+        if self.cancelled:
+            job_result = {'job_id': job_id, 'status': 'CANCELLED',
+                          'result': 'job cancelled'}
+            return Result(job_result, qobj)
+        elif self.exception:
+            job_result = {'job_id': job_id, 'status': 'ERROR',
+                          'result': 'exception encountered'}
+            return Result(job_result, qobj)
+        else:
+            api_result = self._api.get_job(job_id)
+            job_result_return = []
+            for index in range(len(api_result['qasms'])):
+                job_result_return.append({'data': api_result['qasms'][index]['data'],
+                                          'status': api_result['qasms'][index]['status']})
+            job_result = {'job_id': job_id, 'status': api_result['status'],
+                          'result': job_result_return}
+            logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
+                        qobj["id"], qobj['config']['backend_name'],
+                        job_id)
+            job_result['name'] = qobj['id']
+            job_result['backend'] = qobj['config']['backend_name']
+            return Result(job_result, qobj)
 
 
 class IBMQJobError(QISKitError):
