@@ -31,6 +31,7 @@ from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
+from IBMQuantumExperience import RegisterSizeError
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,8 @@ class IBMQJob(BaseJob):
         self._api = api
         self._job_id = None  # this must be before creating the future
         self._backend_name = self._qobj.get('config').get('backend_name')
-        self._future_submit = self._executor.submit(self._submit)
         self._status = JobStatus.INITIALIZING
+        self._future_submit = self._executor.submit(self._submit)
         self._status_msg = None
         self._cancelled = False
         self._exception = None
@@ -108,7 +109,7 @@ class IBMQJob(BaseJob):
             return stats
         job_result = self._api.get_job(self._job_id)
         stats = {'job_id': self._job_id}
-        _status = None
+        self._status = None
         _status_msg = None
         if 'status' not in job_result:
             self._exception = QISKitError("get_job didn't return status: %s" %
@@ -116,26 +117,28 @@ class IBMQJob(BaseJob):
             raise QISKitError("get_job didn't return status: %s" %
                               (pprint.pformat(job_result)))
         elif job_result['status'] == 'RUNNING':
-            _status = JobStatus.RUNNING
+            self._status = JobStatus.RUNNING
             # we may have some other information here
             if 'infoQueue' in job_result:
                 if 'status' in job_result['infoQueue']:
                     if job_result['infoQueue']['status'] == 'PENDING_IN_QUEUE':
-                        _status = JobStatus.QUEUED
+                        self._status = JobStatus.QUEUED
                 if 'position' in job_result['infoQueue']:
                     stats['queue_position'] = job_result['infoQueue']['position']
         elif job_result['status'] == 'COMPLETED':
-            _status = JobStatus.DONE
+            self._status = JobStatus.DONE
         elif self.cancelled:
-            _status = JobStatus.CANCELLED
-        elif self.exception:
-            _status = JobStatus.ERROR
-            _status_msg = str(self.exception)
+            self._status = JobStatus.CANCELLED
+        elif self.exception or self._future_submit.exception:
+            self._status = JobStatus.ERROR
+            if self._future_submit.exception():
+                self._exception = self._future_submit.exception()
+            self._status_msg = str(self.exception)
         else:
-            _status = JobStatus.ERROR
+            self._status = JobStatus.ERROR
             raise IBMQJobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
-        stats['status'] = _status
+        stats['status'] = self._status
         stats['status_msg'] = _status_msg
         return stats
 
@@ -218,6 +221,8 @@ class IBMQJob(BaseJob):
         Raises:
             QISKitError: The backend name in the job doesn't match this backend.
             ResultError: If the API reported an error with the submitted job.
+            RegisterSizeError: If the requested register size exceeded device
+                capability.
         """
         qobj = self._qobj
         api_jobs = []
@@ -251,11 +256,16 @@ class IBMQJob(BaseJob):
             raise QISKitError("inconsistent qobj backend "
                               "name ({0} != {1})".format(backend_name,
                                                          self._backend_name))
-        submit_info = self._api.run_job(api_jobs, backend_name,
-                                        shots=qobj['config']['shots'],
-                                        max_credits=qobj['config']['max_credits'],
-                                        seed=seed0,
-                                        hpc=hpc)
+        try:
+            submit_info = self._api.run_job(api_jobs, backend_name,
+                                            shots=qobj['config']['shots'],
+                                            max_credits=qobj['config']['max_credits'],
+                                            seed=seed0,
+                                            hpc=hpc)
+        except RegisterSizeError as reg_err:
+            self._status = JobStatus.ERROR
+            self._exception = reg_err
+            raise
         if 'error' in submit_info:
             raise ResultError(submit_info['error'])
         self._job_id = submit_info.get('id')
@@ -310,22 +320,21 @@ class IBMQJob(BaseJob):
             return Result(job_result, qobj)
         elif self.exception:
             job_result = {'job_id': job_id, 'status': 'ERROR',
-                          'result': 'exception encountered'}
+                          'result': str(self.exception)}
             return Result(job_result, qobj)
-        else:
-            api_result = self._api.get_job(job_id)
-            job_result_return = []
-            for index in range(len(api_result['qasms'])):
-                job_result_return.append({'data': api_result['qasms'][index]['data'],
-                                          'status': api_result['qasms'][index]['status']})
-            job_result = {'job_id': job_id, 'status': api_result['status'],
-                          'result': job_result_return}
-            logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                        qobj["id"], qobj['config']['backend_name'],
-                        job_id)
-            job_result['name'] = qobj['id']
-            job_result['backend'] = qobj['config']['backend_name']
-            return Result(job_result, qobj)
+        api_result = self._api.get_job(job_id)
+        job_result_return = []
+        for index in range(len(api_result['qasms'])):
+            job_result_return.append({'data': api_result['qasms'][index]['data'],
+                                      'status': api_result['qasms'][index]['status']})
+        job_result = {'job_id': job_id, 'status': api_result['status'],
+                      'result': job_result_return}
+        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
+                    qobj["id"], qobj['config']['backend_name'],
+                    job_id)
+        job_result['name'] = qobj['id']
+        job_result['backend'] = qobj['config']['backend_name']
+        return Result(job_result, qobj)
 
 
 class IBMQJobError(QISKitError):

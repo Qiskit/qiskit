@@ -23,7 +23,6 @@ import unittest
 from sys import version_info
 
 import numpy as np
-from IBMQuantumExperience import RegisterSizeError
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
@@ -1161,9 +1160,9 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1
         q_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmq_qasm_simulator'
-        self.assertRaises(RegisterSizeError, q_program.execute, ['qc'],
-                          backend=backend, shots=shots, max_credits=3,
-                          seed=73846087)
+        result = q_program.execute(['qc'], backend=backend, shots=shots,
+                                   max_credits=3, seed=73846087)
+        self.assertTrue(result.get_status() == 'ERROR')
 
     @requires_qe_access
     def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL):
