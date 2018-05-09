@@ -54,7 +54,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
@@ -63,6 +63,8 @@ class TestIBMQJob(QiskitTestCase):
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
                               [counts_ex.get(key, 0) for key in states]])
+        self.log.info('states: %s', str(states))
+        self.log.info('ctable: %s', str(ctable))
         contingency = chi2_contingency(ctable)
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
@@ -71,8 +73,11 @@ class TestIBMQJob(QiskitTestCase):
     def test_run_device(self):
         backend = self._provider.get_backend('ibmqx4')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
+        while not job.done:
+            print(job.status)
+            time.sleep(5)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
         counts_ex = {'00': 512, '11': 512}
@@ -80,6 +85,8 @@ class TestIBMQJob(QiskitTestCase):
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
                               [counts_ex.get(key, 0) for key in states]])
+        self.log.info('states: %s', str(states))
+        self.log.info('ctable: %s', str(ctable))
         contingency = chi2_contingency(ctable)
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
@@ -95,7 +102,7 @@ class TestIBMQJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile([qc]*10, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e3, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
@@ -116,6 +123,17 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('number of errored jobs: %d/%d',
                       num_error, num_jobs)
         self.assertTrue(num_jobs - num_error - num_done > 0)
+
+        # Wait for all the results.
+        result_array = [job.result() for job in job_array]
+
+        # Ensure all jobs have finished.
+        self.assertTrue(all([job.done for job in job_array]))
+        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+
+        # Ensure job ids are unique.
+        job_ids = [job.job_id for job in job_array]
+        self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
     def test_run_async_device(self):
@@ -150,6 +168,17 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('number of errored jobs: %d/%d',
                       num_error, num_jobs)
         self.assertTrue(num_jobs - num_error - num_done > 0)
+
+        # Wait for all the results.
+        result_array = [job.result() for job in job_array]
+
+        # Ensure all jobs have finished.
+        self.assertTrue(all([job.done for job in job_array]))
+        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+
+        # Ensure job ids are unique.
+        job_ids = [job.job_id for job in job_array]
+        self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @unittest.skip('cancel is not currently possible on IBM Q')
     def test_cancel(self):
