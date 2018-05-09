@@ -139,3 +139,25 @@ class IBMQBackend(BaseBackend):
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
         return status
+
+    def jobs(self, limit=50, skip=0):
+        """Attempt to get the jobs submitted to the backend
+
+        Args:
+            limit (int): number of jobs to retrieve
+            skip (int): starting index of retrieval
+
+        Return:
+            list(IBMQJob): list of IBMQJob instances
+        """
+        backend_name = self.configuration['name']
+        job_list = []
+        base_index = 0
+        job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
+        while len(job_list) < limit or len(job_info_list) < limit:
+            base_index += skip
+            job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
+            for job_info in job_info_list:
+                if job_info.get('backend').get('name') == backend_name:
+                    job_list.append(IBMQJob.from_api(job_info))
+        return job_list

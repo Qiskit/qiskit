@@ -56,6 +56,42 @@ class IBMQJob(BaseJob):
         self._exception = None
         self._is_device = is_device
 
+    @classmethod
+    def from_api(self, job_info, api, is_device):
+        """Instantiates job using information returned from
+        IBMQuantumExperience about a particular job.
+
+        Args:
+            job_info (dict): This is the information about a job returned from
+                the API. It has the simplified structure:
+
+                {'backend': {'id', 'backend id string',
+                             'name', 'ibmqx4'},
+                 'id': 'job id string',
+                 'qasms': [{'executionId': 'id string',
+                            'qasm': 'qasm string'},
+                          ]
+                 'status': 'status string',
+                 'seed': '1',
+                 'shots': 1024,
+                 'status': 'status string',
+                 'usedCredits': 3,
+                 'userId': 'user id'}
+            api (IBMQuantumExperience): IBM Q API
+            is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
+        """
+        super().__init__()
+        self._status = JobStatus.QUEUED
+        self._backend_name = job_info.get('backend').get('name')
+        self._api = api
+        self._job_id = job_info.get('id')
+        # update status (need _api and _job_id)
+        self.status
+        self._status_msg = None
+        self._cancelled = False
+        self._exception = None
+        self._is_device = is_device
+
     def result(self, timeout=None, wait=5):
         # pylint: disable=arguments-differ
         while self._status == JobStatus.INITIALIZING:
