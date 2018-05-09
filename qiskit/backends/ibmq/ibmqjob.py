@@ -25,13 +25,13 @@ import time
 import logging
 import pprint
 
+from IBMQuantumExperience import RegisterSizeError
 from qiskit._compiler import compile_circuit
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-from IBMQuantumExperience import RegisterSizeError
 
 logger = logging.getLogger(__name__)
 
