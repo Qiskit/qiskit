@@ -41,9 +41,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
         circuit_config = {'coupling_map': None,
                           'basis_gates': 'u1,u2,u3,cx,id',
                           'layout': None}
-        resources = {'max_credits': 3,
-                     'wait': 5,
-                     'timeout': 120}
+        resources = {'max_credits': 3}
         self.qobj = {'id': 'test_sim_single_shot',
                      'config': {
                          'max_credits': resources['max_credits'],
@@ -66,7 +64,7 @@ class StatevectorSimulatorSympyTest(QiskitTestCase):
 
     def test_statevector_simulator_sympy(self):
         """Test data counts output for single circuit run against reference."""
-        result = StatevectorSimulatorSympy().run(self.q_job)
+        result = StatevectorSimulatorSympy().run(self.q_job).result()
         actual = result.get_data('test')['statevector']
         self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertEqual(actual[0], sqrt(2)/2)

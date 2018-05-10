@@ -18,6 +18,7 @@
 """Local Backends."""
 
 from .localprovider import LocalProvider
+from .localjob import LocalJob
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
 from .qasm_simulator_projectq import QasmSimulatorProjectQ

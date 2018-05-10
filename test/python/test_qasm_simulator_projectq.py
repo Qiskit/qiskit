@@ -24,17 +24,19 @@ import numpy
 from scipy.stats import chi2_contingency
 
 import qiskit.backends.local.qasm_simulator_projectq as projectq_simulator
-from qiskit import QuantumProgram
+from qiskit import QuantumJob
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit.wrapper import get_backend, execute
+from qiskit.wrapper import get_backend
+import qiskit._compiler
+from qiskit._compiler import compile_circuit, COMPILE_CONFIG_DEFAULT
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
 try:
     pq_simulator = projectq_simulator.QasmSimulatorProjectQ()
-except Exception as err:
+except ImportError:
     _skip_class = True
 else:
     _skip_class = False
@@ -51,7 +53,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         super().setUpClass()
 
         # Set up random circuits
-        n_circuits = 1
+        n_circuits = 5
         min_depth = 1
         max_depth = 10
         min_qubits = 1
@@ -73,32 +75,41 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
 
     def test_gate_x(self):
         shots = 100
-        qp = QuantumProgram()
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        qc = QuantumCircuit(qr, cr)
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr, name='test_gate_x')
         qc.x(qr[0])
         qc.measure(qr, cr)
-        qp.add_circuit("circuit_name", qc)
-        result_pq = qp.execute('circuit_name',
-                               backend='local_qasm_simulator_projectq',
-                               seed=1, shots=shots)
-        self.assertEqual(result_pq.get_counts(),
+        cconfig = COMPILE_CONFIG_DEFAULT
+        cconfig['shots'] = shots
+        qobj = qiskit._compiler.compile([qc], pq_simulator,
+                                        compile_config=cconfig)
+        q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
+                           resources={'max_credits': qobj['config']['max_credits']})
+        job = pq_simulator.run(q_job)
+        result_pq = job.result(timeout=30)
+        self.assertEqual(result_pq.get_counts(result_pq.get_names()[0]),
                          {'1': shots})
 
     def test_entangle(self):
         N = 5
-        qp = QuantumProgram()
-        qr = qp.create_quantum_register("qr", N)
-        cr = qp.create_classical_register("cr", N)
-        qc = qp.create_circuit("circuit_name", [qr], [cr])
+        qr = QuantumRegister(N)
+        cr = ClassicalRegister(N)
+        qc = QuantumCircuit(qr, cr, name='test_entangle')
+
         qc.h(qr[0])
         for i in range(1, N):
             qc.cx(qr[0], qr[i])
         qc.measure(qr, cr)
-        result = qp.execute(['circuit_name'],
-                            backend='local_qasm_simulator_projectq',
-                            seed=1, shots=100)
+        cconfig = COMPILE_CONFIG_DEFAULT
+        cconfig['shots'] = 100
+        qobj = qiskit._compiler.compile([qc], pq_simulator,
+                                        compile_config=cconfig)
+        timeout = 30
+        q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
+                           resources={'max_credits': qobj['config']['max_credits']})
+        job = pq_simulator.run(q_job)
+        result = job.result(timeout=timeout)
         counts = result.get_counts(result.get_names()[0])
         self.log.info(counts)
         for key, _ in counts.items():
@@ -109,25 +120,24 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         qk_simulator = get_backend('local_qasm_simulator')
         for circuit in self.rqg.get_circuits(format_='QuantumCircuit'):
             self.log.info(circuit.qasm())
-            shots = 1000
-            min_cnts = int(shots / 10)
-            result_pq = execute(circuit, pq_simulator.name)
-            result_qk = execute(circuit, qk_simulator.name)
+            compiled_circuit = compile_circuit(circuit)
+            shots = 100
+            job_pq = QuantumJob(compiled_circuit,
+                                backend=pq_simulator,
+                                seed=1, shots=shots)
+            job_qk = QuantumJob(compiled_circuit,
+                                backend=qk_simulator,
+                                seed=1, shots=shots)
+            result_pq = pq_simulator.run(job_pq).result()
+            result_qk = qk_simulator.run(job_qk).result()
             counts_pq = result_pq.get_counts(result_pq.get_names()[0])
             counts_qk = result_qk.get_counts(result_qk.get_names()[0])
-            # filter states with few counts
-            counts_pq = {key: cnt for key, cnt in counts_pq.items()
-                         if cnt > min_cnts}
-            counts_qk = {key: cnt for key, cnt in counts_qk.items()
-                         if cnt > min_cnts}
             self.log.info('local_qasm_simulator_projectq: %s', str(counts_pq))
             self.log.info('local_qasm_simulator: %s', str(counts_qk))
-            threshold = 0.05 * shots
-            self.assertDictAlmostEqual(counts_pq, counts_qk, threshold)
-            states = counts_qk.keys()
+            states = counts_qk.keys() | counts_pq.keys()
             # contingency table
-            ctable = numpy.array([[counts_pq[key] for key in states],
-                                  [counts_qk[key] for key in states]])
+            ctable = numpy.array([[counts_pq.get(key, 0) for key in states],
+                                  [counts_qk.get(key, 0) for key in states]])
             result = chi2_contingency(ctable)
             self.log.info('chi2_contingency: %s', str(result))
             with self.subTest(circuit=circuit):

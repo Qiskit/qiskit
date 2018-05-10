@@ -20,11 +20,9 @@
 
 import os
 import unittest
-from threading import Lock
 from sys import version_info
 
 import numpy as np
-from IBMQuantumExperience import RegisterSizeError
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
@@ -934,206 +932,6 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertDictAlmostEqual(counts2, target2, threshold)
         self.assertDictAlmostEqual(counts3, target3, threshold)
 
-    def test_run_async_program(self):
-        """Test run_async.
-
-        If all correct should the data.
-        """
-        def _job_done_callback(result):
-            try:
-                shots = 1024
-                counts2 = result.get_counts("qc2")
-                counts3 = result.get_counts("qc3")
-                target2 = {'000': shots / 2, '111': shots / 2}
-                target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
-                           '011': shots / 8, '100': shots / 8, '101': shots / 8,
-                           '110': shots / 8, '111': shots / 8}
-                threshold = 0.04 * shots
-                self.assertDictAlmostEqual(counts2, target2, threshold)
-                self.assertDictAlmostEqual(counts3, target3, threshold)
-            except Exception as e:
-                self.qp_program_exception = e
-            finally:
-                self.qp_program_finished = True
-
-        q_program = QuantumProgram(specs=self.QPS_SPECS)
-        qr = q_program.get_quantum_register("q_name")
-        cr = q_program.get_classical_register("c_name")
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc3 = q_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc2.cx(qr[0], qr[1])
-        qc2.cx(qr[0], qr[2])
-        qc3.h(qr)
-        qc2.measure(qr, cr)
-        qc3.measure(qr, cr)
-        circuits = ['qc2', 'qc3']
-        shots = 1024
-        backend = 'local_qasm_simulator'
-        qobj = q_program.compile(circuits, backend=backend, shots=shots,
-                                 seed=88)
-
-        self.qp_program_finished = False
-        self.qp_program_exception = None
-        q_program.run_async(qobj, callback=_job_done_callback)
-
-        while not self.qp_program_finished:
-            # Wait until the job_done_callback is invoked and completed.
-            pass
-
-        if self.qp_program_exception:
-            raise self.qp_program_exception
-
-    def test_run_async_stress(self):
-        """Test run_async.
-
-        If all correct should the data.
-        """
-        qp_programs_finished = 0
-        qp_programs_exception = []
-        lock = Lock()
-
-        def _job_done_callback(result):
-            nonlocal qp_programs_finished
-            nonlocal qp_programs_exception
-            try:
-                shots = 1024
-                counts2 = result.get_counts("qc2")
-                counts3 = result.get_counts("qc3")
-                target2 = {'000': shots / 2, '111': shots / 2}
-                target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
-                           '011': shots / 8, '100': shots / 8, '101': shots / 8,
-                           '110': shots / 8, '111': shots / 8}
-                threshold = 0.04 * shots
-                self.assertDictAlmostEqual(counts2, target2, threshold)
-                self.assertDictAlmostEqual(counts3, target3, threshold)
-            except Exception as e:
-                with lock:
-                    qp_programs_exception.append(e)
-            finally:
-                with lock:
-                    qp_programs_finished += 1
-
-        q_program = QuantumProgram(specs=self.QPS_SPECS)
-        qr = q_program.get_quantum_register("q_name")
-        cr = q_program.get_classical_register("c_name")
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc3 = q_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc2.cx(qr[0], qr[1])
-        qc2.cx(qr[0], qr[2])
-        qc3.h(qr)
-        qc2.measure(qr, cr)
-        qc3.measure(qr, cr)
-        circuits = ['qc2', 'qc3']
-        shots = 1024
-        backend = 'local_qasm_simulator'
-        qobj = q_program.compile(circuits, backend=backend, shots=shots,
-                                 seed=88)
-
-        q_program.run_async(qobj, callback=_job_done_callback)
-        q_program.run_async(qobj, callback=_job_done_callback)
-        q_program.run_async(qobj, callback=_job_done_callback)
-        q_program.run_async(qobj, callback=_job_done_callback)
-
-        while qp_programs_finished < 4:
-            # Wait until the job_done_callback is invoked and completed.
-            pass
-
-        if qp_programs_exception:
-            raise qp_programs_exception[0]
-
-    def test_run_batch(self):
-        """Test run_batch
-        If all correct should the data.
-        """
-        q_program = QuantumProgram(specs=self.QPS_SPECS)
-        qr = q_program.get_quantum_register("q_name")
-        cr = q_program.get_classical_register("c_name")
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc3 = q_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc2.cx(qr[0], qr[1])
-        qc2.cx(qr[0], qr[2])
-        qc3.h(qr)
-        qc2.measure(qr, cr)
-        qc3.measure(qr, cr)
-        circuits = ['qc2', 'qc3']
-        shots = 1024
-        backend = 'local_qasm_simulator'
-        qobj_list = [
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88)
-        ]
-
-        results = q_program.run_batch(qobj_list)
-        for result in results:
-            counts2 = result.get_counts("qc2")
-            counts3 = result.get_counts("qc3")
-            target2 = {'000': shots / 2, '111': shots / 2}
-            target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
-                       '011': shots / 8, '100': shots / 8, '101': shots / 8,
-                       '110': shots / 8, '111': shots / 8}
-            threshold = 0.04 * shots
-            self.assertDictAlmostEqual(counts2, target2, threshold)
-            self.assertDictAlmostEqual(counts3, target3, threshold)
-
-    def test_run_batch_async(self):
-        """Test run_batch_async
-
-        If all correct should the data.
-        """
-        def _jobs_done_callback(results):
-            try:
-                for result in results:
-                    shots = 1024
-                    counts2 = result.get_counts("qc2")
-                    counts3 = result.get_counts("qc3")
-                    target2 = {'000': shots / 2, '111': shots / 2}
-                    target3 = {'000': shots / 8, '001': shots / 8, '010': shots / 8,
-                               '011': shots / 8, '100': shots / 8, '101': shots / 8,
-                               '110': shots / 8, '111': shots / 8}
-                    threshold = 0.04 * shots
-                    self.assertDictAlmostEqual(counts2, target2, threshold)
-                    self.assertDictAlmostEqual(counts3, target3, threshold)
-            except Exception as e:
-                self.qp_program_exception = e
-            finally:
-                self.qp_program_finished = True
-
-        q_program = QuantumProgram(specs=self.QPS_SPECS)
-        qr = q_program.get_quantum_register("q_name")
-        cr = q_program.get_classical_register("c_name")
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc3 = q_program.create_circuit("qc3", [qr], [cr])
-        qc2.h(qr[0])
-        qc2.cx(qr[0], qr[1])
-        qc2.cx(qr[0], qr[2])
-        qc3.h(qr)
-        qc2.measure(qr, cr)
-        qc3.measure(qr, cr)
-        circuits = ['qc2', 'qc3']
-        shots = 1024
-        backend = 'local_qasm_simulator'
-        qobj_list = [
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88),
-            q_program.compile(circuits, backend=backend, shots=shots, seed=88)
-        ]
-
-        self.qp_program_finished = False
-        self.qp_program_exception = None
-        _ = q_program.run_batch_async(qobj_list, callback=_jobs_done_callback)
-        while not self.qp_program_finished:
-            # Wait until the job_done_callback is invoked and completed.
-            pass
-
-        if self.qp_program_exception:
-            raise self.qp_program_exception
-
     def test_combine_results(self):
         """Test run.
 
@@ -1362,12 +1160,9 @@ class TestQuantumProgram(QiskitTestCase):
         shots = 1
         q_program.set_api(QE_TOKEN, QE_URL)
         backend = 'ibmq_qasm_simulator'
-        with self.assertLogs('IBMQuantumExperience', level='WARNING') as cm:
-            result = q_program.execute(['qc'], backend=backend, shots=shots, max_credits=3,
-                                       seed=73846087)
-        self.assertIn('The registers exceed the number of qubits, it can\'t be greater than 24.',
-                      cm.output[0])
-        self.assertRaises(RegisterSizeError, result.get_data, 'qc')
+        result = q_program.execute(['qc'], backend=backend, shots=shots,
+                                   max_credits=3, seed=73846087)
+        self.assertTrue(result.get_status() == 'ERROR')
 
     @requires_qe_access
     def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL):
@@ -1867,7 +1662,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         # Run.
         result = Q_program.execute(circuits, backend=backend, shots=shots,
-                                   max_credits=3, wait=10, timeout=240)
+                                   max_credits=3, timeout=240)
 
         self.assertEqual({'000': 1024}, result.get_counts('pqm'))
 
@@ -1941,14 +1736,9 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'local_dummy_simulator'
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88)
-        out = q_program.run(qobj, wait=0.1, timeout=0.01)
-        has_timeout = False
-        try:
-            out.get_counts("qc2")
-        except QISKitError as ex:
-            has_timeout = True if ex.message == 'Dummy backend has timed out!' else False
-
-        self.assertTrue(has_timeout, "The simulator didn't time out!!, but it should have to")
+        from concurrent import futures
+        self.assertRaises(futures.TimeoutError, q_program.run, qobj,
+                          timeout=0.01)
 
     @requires_qe_access
     def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL):

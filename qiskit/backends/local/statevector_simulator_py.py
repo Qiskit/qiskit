@@ -29,6 +29,7 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
 import logging
 from qiskit._result import Result
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
 from .qasm_simulator_py import QasmSimulatorPy
 
@@ -52,6 +53,17 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job (QuantumJob): QuantumJob object
+
+        Returns:
+            LocalJob: derived from BaseJob
+        """
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
         self._validate(qobj)
@@ -60,7 +72,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = super().run(q_job)._result
+        result = super()._run_job(q_job)._result
         # Replace backend name with current backend
         result['backend'] = self._configuration['name']
         # Extract final state snapshot and move to 'statevector' data field

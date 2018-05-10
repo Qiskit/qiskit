@@ -55,7 +55,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circ.load(1)
 
         sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim)
+        result = execute(circ, sim).result()
         statevector = result.get_statevector()
         target = [0.70710678 + 0.j, 0.70710678 + 0.j, 0. + 0.j, 0. + 0.j]
         fidelity = state_fidelity(statevector, target)
@@ -75,7 +75,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circ.h(q[1])
 
         sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim)
+        result = execute(circ, sim).result()
         snapshot = result.get_snapshot(slot='3')
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
         fidelity = state_fidelity(snapshot, target)
@@ -102,7 +102,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         }
         sim = 'local_qasm_simulator_cpp'
         shots = 1000
-        result = execute(circ, sim, {'config': config, 'shots': shots})
+        result = execute(circ, sim, {'config': config, 'shots': shots}).result()
         counts = result.get_counts()
         target = {'101': shots}
         self.assertEqual(counts, target)

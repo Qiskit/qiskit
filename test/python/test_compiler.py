@@ -92,7 +92,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     def test_compile_two_run(self):
@@ -111,7 +112,8 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     def test_execute(self):
@@ -127,7 +129,8 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        results = qiskit._compiler.execute(qc, backend)
+        job = qiskit._compiler.execute(qc, backend)
+        results = job.result()
         self.assertIsInstance(results, Result)
 
     def test_execute_two(self):
@@ -145,8 +148,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit._compiler.execute([qc, qc_extra], backend)
-
+        job = qiskit._compiler.execute([qc, qc_extra], backend)
+        results = job.result()
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
@@ -209,7 +212,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                               preformatted=True)).result()
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
@@ -229,7 +233,9 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend, preformatted=True))
+        job = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                            preformatted=True))
+        result = job.result()
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
@@ -247,7 +253,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        results = qiskit._compiler.execute(qc, backend)
+        job = qiskit._compiler.execute(qc, backend)
+        results = job.result()
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
@@ -266,8 +273,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        results = qiskit._compiler.execute([qc, qc_extra], backend)
-
+        job = qiskit._compiler.execute([qc, qc_extra], backend)
+        results = job.result()
         self.assertIsInstance(results, Result)
 
 

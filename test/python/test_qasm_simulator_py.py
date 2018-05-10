@@ -64,9 +64,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
                           'basis_gates': 'u1,u2,u3,cx,id',
                           'layout': None,
                           'seed': self.seed}
-        resources = {'max_credits': 3,
-                     'wait': 5,
-                     'timeout': 120}
+        resources = {'max_credits': 3}
         self.qobj = {'id': 'test_sim_single_shot',
                      'config': {
                          'max_credits': resources['max_credits'],
@@ -95,12 +93,12 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj['config']['shots'] = shots
-        result = QasmSimulatorPy().run(self.q_job)
+        result = QasmSimulatorPy().run(self.q_job).result()
         self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = QasmSimulatorPy().run(self.q_job)
+        result = QasmSimulatorPy().run(self.q_job).result()
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts('test')
@@ -176,7 +174,7 @@ class TestLocalQasmSimulatorPyPy(QiskitTestCase):
             ]
         }
         q_job = QuantumJob(qobj, backend=QasmSimulatorPy(), preformatted=True)
-        result = QasmSimulatorPy().run(q_job)
+        result = QasmSimulatorPy().run(q_job).result()
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
         self.log.info(circuit_if_true.qasm())

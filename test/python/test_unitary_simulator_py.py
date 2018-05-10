@@ -20,10 +20,8 @@ import cProfile
 import io
 import pstats
 import unittest
-
 import numpy as np
 
-import qiskit._jobprocessor as jobprocessor
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
                     QuantumRegister, ClassicalRegister)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
@@ -87,7 +85,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                            backend=UnitarySimulatorPy(),
                            preformatted=True)
 
-        result = UnitarySimulatorPy().run(q_job)
+        result = UnitarySimulatorPy().run(q_job).result()
         self.assertTrue(np.allclose(result.get_data('test')['unitary'],
                                     expected,
                                     rtol=1e-3))
@@ -106,9 +104,9 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
         backend = UnitarySimulatorPy()
-        quantum_job = QuantumJob(circuits, do_compile=True,
+        quantum_job = QuantumJob(circuits, do_compile=False,
                                  backend=backend)
-        result = jobprocessor.run_backend(quantum_job)
+        result = backend.run(quantum_job).result()
         unitary1 = result[0]['data']['unitary']
         unitary2 = result[1]['data']['unitary']
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],

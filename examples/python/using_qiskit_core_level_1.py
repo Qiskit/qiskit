@@ -140,7 +140,7 @@ try:
 
         # Runing the job
         q_job = QuantumJob(qobj, preformatted=True, resources={
-            'max_credits': qobj['config']['max_credits'], 'wait': 5, 'timeout': 300})
+            'max_credits': qobj['config']['max_credits']})
 
         exp_result = my_backend.run(q_job)
         # ideally
