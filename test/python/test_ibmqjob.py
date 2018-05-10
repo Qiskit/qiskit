@@ -73,7 +73,7 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     def test_run_device(self):
         backend = self._provider.available_backends({'simulator': False})[0]
-        self.log.info(job.backend_name)
+        self.log.info(backend.name)
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
