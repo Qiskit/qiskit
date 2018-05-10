@@ -37,8 +37,15 @@ class DummyProvider(BaseProvider):
     def get_backend(self, name):
         return DummySimulator()
 
-    def available_backends(self, *args, **kwargs):
-        return [DummySimulator()]
+    def available_backends(self, filters=None):
+        # pylint: disable=arguments-differ
+        backends = {DummySimulator.name: DummySimulator()}
+
+        filters = filters or {}
+        for key, value in filters.items():
+            backends = {name: instance for name, instance in backends.items()
+                        if instance.configuration.get(key) == value}
+        return list(backends.values())
 
 
 class DummySimulator(BaseBackend):
