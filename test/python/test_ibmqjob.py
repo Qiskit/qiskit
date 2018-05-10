@@ -78,9 +78,11 @@ class TestIBMQJob(QiskitTestCase):
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
-        while not job.done:
+        while not (job.done or job.exception):
             self.log.info(job.status)
-            time.sleep(5)
+            time.sleep(4)
+        if job.exception:
+            raise job.exception
         self.log.info(job.status)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])

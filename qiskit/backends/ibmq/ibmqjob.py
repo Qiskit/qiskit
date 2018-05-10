@@ -25,7 +25,7 @@ import time
 import logging
 import pprint
 
-from IBMQuantumExperience import RegisterSizeError
+from IBMQuantumExperience import ApiError
 from qiskit._compiler import compile_circuit
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
@@ -129,7 +129,7 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.DONE
         elif self.cancelled:
             self._status = JobStatus.CANCELLED
-        elif self.exception or self._future_submit.exception:
+        elif self.exception:
             self._status = JobStatus.ERROR
             if self._future_submit.exception():
                 self._exception = self._future_submit.exception()
@@ -262,12 +262,12 @@ class IBMQJob(BaseJob):
                                             max_credits=qobj['config']['max_credits'],
                                             seed=seed0,
                                             hpc=hpc)
-        except RegisterSizeError as reg_err:
+        except ApiError as err:
             self._status = JobStatus.ERROR
-            self._exception = reg_err
-            raise
+            self._exception = err
         if 'error' in submit_info:
-            raise ResultError(submit_info['error'])
+            self._status = JobStatus.ERROR
+            self._exception = IBMQJobError(str(submit_info['error']))
         self._job_id = submit_info.get('id')
         self._status = JobStatus.QUEUED
         return submit_info
