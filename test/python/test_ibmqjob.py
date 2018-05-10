@@ -54,11 +54,12 @@ class TestIBMQJob(QiskitTestCase):
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
+        shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
-        counts_ex = {'00': 512, '11': 512}
+        counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
@@ -71,16 +72,19 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_device(self):
-        backend = self._provider.get_backend('ibmqx4')
+        backend = self._provider.available_backends({'simulator': False})[0]
+        self.log.info(job.backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
+        shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         while not job.done:
-            print(job.status)
+            self.log.info(job.status)
             time.sleep(5)
+        self.log.info(job.status)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
-        counts_ex = {'00': 512, '11': 512}
+        counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
@@ -89,7 +93,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('ctable: %s', str(ctable))
         contingency = chi2_contingency(ctable)
         self.log.info('chi2_contingency: %s', str(contingency))
-        self.assertDictAlmostEqual(counts_qx, counts_ex, 1024*0.1)
+        self.assertDictAlmostEqual(counts_qx, counts_ex, shots*0.1)
 
     def test_run_async_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
