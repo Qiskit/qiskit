@@ -23,12 +23,14 @@ import time
 import itertools
 import operator
 import random
+import uuid
 import logging
 import warnings
 from collections import OrderedDict, Counter
 import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
 try:
     from projectq.backends._sim._cppsim import Simulator as CppSim
@@ -92,8 +94,10 @@ class QasmSimulatorProjectQ(BaseBackend):
         self._sim = None
 
     def run(self, q_job):
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run circuits in q_job"""
-        # Generating a string id for the job
         result_list = []
         qobj = q_job.qobj
         self._validate(qobj)
@@ -108,8 +112,10 @@ class QasmSimulatorProjectQ(BaseBackend):
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
+        job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
                   'id': qobj['id'],
+                  'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
                   'success': True,

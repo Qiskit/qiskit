@@ -80,6 +80,7 @@ The simulator is run using
 
 """
 import random
+import uuid
 import time
 import logging
 import warnings
@@ -89,9 +90,9 @@ import numpy as np
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
-
 logger = logging.getLogger(__name__)
 
 
@@ -270,6 +271,17 @@ class QasmSimulatorPy(BaseBackend):
                                                   []).append(np.copy(self._statevector))
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job (QuantumJob): QuantumJob object
+
+        Returns:
+            LocalJob: derived from BaseJob
+        """
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run circuits in q_job"""
         qobj = q_job.qobj
         self._validate(qobj)
@@ -279,8 +291,10 @@ class QasmSimulatorPy(BaseBackend):
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
+        job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
                   'id': qobj['id'],
+                  'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
                   'success': True,

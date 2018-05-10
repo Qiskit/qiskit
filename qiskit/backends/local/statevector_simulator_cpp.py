@@ -22,9 +22,9 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 
-from qiskit._result import Result
 from .qasm_simulator_cpp import QasmSimulatorCpp
 from ._simulatorerror import SimulatorError
+from .localjob import LocalJob
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,10 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
     def run(self, q_job):
+        """Run a QuantumJob on the the backend."""
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run a QuantumJob on the backend."""
         qobj = q_job.qobj
         self._validate(qobj)
@@ -54,9 +58,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = super().run(q_job)._result
+        result = super()._run_job(q_job)
         # Extract final state snapshot and move to 'statevector' data field
-        for res in result['result']:
+        for res in result._result['result']:
             snapshots = res['data']['snapshots']
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
@@ -68,7 +72,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
             # Remove snapshot dict if empty
             if snapshots == {}:
                 res['data'].pop('snapshots', None)
-        return Result(result, qobj)
+        return result
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

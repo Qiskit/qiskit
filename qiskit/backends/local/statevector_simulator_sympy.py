@@ -63,6 +63,7 @@ from sympy.physics.quantum.represent import represent
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import compute_ugate_matrix
 
@@ -156,6 +157,18 @@ class StatevectorSimulatorSympy(BaseBackend):
         return im(com)**2 + re(com)**2
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job (QuantumJob): QuantumJob object
+
+        Returns:
+            LocalJob: derived from BaseJob
+        """
+        q_job.job_id = str(uuid.uuid4())
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run circuits in q_job and return the result
             Args:
                 q_job (QuantumJob): all the information necessary
@@ -171,7 +184,6 @@ class StatevectorSimulatorSympy(BaseBackend):
                         'status': 'DONE'
                         }]
         """
-        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         shots = qobj['config']['shots']
@@ -179,7 +191,8 @@ class StatevectorSimulatorSympy(BaseBackend):
             logger.info("No need for multiple shots. A single execution will be performed.")
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
+        return Result({'job_id': q_job.job_id, 'result': result_list,
+                       'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return object

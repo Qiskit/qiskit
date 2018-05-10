@@ -42,6 +42,7 @@ from sympy.physics.quantum import TensorProduct
 
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
+from qiskit.backends.local.localjob import LocalJob
 from ._simulatortools import compute_ugate_matrix, index2
 from ._simulatorerror import SimulatorError
 
@@ -168,6 +169,17 @@ class UnitarySimulatorSympy(BaseBackend):
         self._unitary_state = unitaty_add*self._unitary_state
 
     def run(self, q_job):
+        """Run q_job asynchronously.
+
+        Args:
+            q_job (QuantumJob): QuantumJob object
+
+        Returns:
+            LocalJob: derived from BaseJob
+        """
+        return LocalJob(self._run_job, q_job)
+
+    def _run_job(self, q_job):
         """Run q_job
 
         Args:
@@ -185,13 +197,13 @@ class UnitarySimulatorSympy(BaseBackend):
                     ]
 
         """
-        # Generating a string id for the job
-        job_id = str(uuid.uuid4())
         qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
-        return Result({'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'}, qobj)
+        job_id = str(uuid.uuid4())
+        return Result({'job_id': job_id, 'result': result_list,
+                       'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
         """Run a circuit and return the results.
