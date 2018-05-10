@@ -38,6 +38,7 @@ class DummyProvider(BaseProvider):
         return DummySimulator()
 
     def available_backends(self, filters=None):
+        # pylint: disable=arguments-differ
         backends = {DummySimulator.name: DummySimulator()}
 
         filters = filters or {}
