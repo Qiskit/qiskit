@@ -10,8 +10,8 @@
             "name": "save_command",
             "compiled_circuit": {
                 "header": {
-                    "clbit_labels": [],
-                    "number_of_clbits": 0,
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
                     "number_of_qubits": 1,
                     "qubit_labels": [["q", 0]]
                 },
@@ -24,7 +24,12 @@
                     {"name": "load", "params": [0]},
                     {"name": "snapshot", "params": [1]},
                     {"name": "load", "params": [1]},
-                    {"name": "snapshot", "params": [11]}
+                    {"name": "snapshot", "params": [11]},
+                    {
+                    	"name": "measure", 
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         }

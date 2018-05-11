@@ -10,14 +10,19 @@
             "name": "reset",
             "compiled_circuit": {
                 "header": {
-                    "clbit_labels": [],
-                    "number_of_clbits": 0,
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
                     "number_of_qubits": 1,
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
                     {"name": "reset", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure",
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         },
@@ -25,15 +30,20 @@
             "name": "x reset",
             "compiled_circuit": {
                 "header": {
-                    "clbit_labels": [],
-                    "number_of_clbits": 0,
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
                     "number_of_qubits": 1,
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
                     {"name": "x", "qubits": [0]},
                     {"name": "reset", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure",
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         },
@@ -41,15 +51,20 @@
             "name": "y reset",
             "compiled_circuit": {
                 "header": {
-                    "clbit_labels": [],
-                    "number_of_clbits": 0,
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
                     "number_of_qubits": 1,
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
                     {"name": "y", "qubits": [0]},
                     {"name": "reset", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure",
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         },
@@ -57,15 +72,20 @@
             "name": "h reset",
             "compiled_circuit": {
                 "header": {
-                    "clbit_labels": [],
-                    "number_of_clbits": 0,
+                    "clbit_labels": [["c0", 1]],
+                    "number_of_clbits": 1,
                     "number_of_qubits": 1,
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
                     {"name": "h", "qubits": [0]},
                     {"name": "reset", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure",
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         }
