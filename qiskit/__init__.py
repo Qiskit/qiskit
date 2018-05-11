@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=wrong-import-order
+# pylint: disable=redefined-builtin
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -40,6 +41,7 @@ import qiskit.extensions.quantum_initializer
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
+from .wrapper._wrapper import available_backends, execute, register, get_backend, compile
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

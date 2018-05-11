@@ -24,10 +24,11 @@ Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
+import time
+
 # Import the QISKit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit.wrapper import available_backends, execute, register, get_backend
-
+from qiskit import available_backends, execute, register, get_backend
 
 try:
     import Qconfig
@@ -71,7 +72,8 @@ try:
     print(available_backends({'local': True}))
 
     # runing the job
-    sim_result = execute([qc1, qc2], "local_qasm_simulator")
+    job_sim = execute([qc1, qc2], "local_qasm_simulator")
+    sim_result = job_sim.result()
 
     # Show the results
     print("simulation: ", sim_result)
@@ -89,8 +91,18 @@ try:
         print("Running on current least busy device: ", best_device)
 
         # running the job
-        exp_result = execute([qc1, qc2], backend_name=best_device,
-                             shots=1024, max_credits=10)
+        job_exp = execute([qc1, qc2], backend=best_device, shots=1024, max_credits=10)
+
+        print('JOB ID: {}'.format(job_exp.status['job_id']))
+        lapse = 0
+        interval = 10
+        while not job_exp.done:
+            print('Status @ {} seconds'.format(interval * lapse))
+            print(job_exp.status)
+            time.sleep(interval)
+            lapse += 1
+        print(job_exp.status)
+        exp_result = job_exp.result()
 
         # Show the results
         print("experiment: ", exp_result)
