@@ -170,13 +170,16 @@ class StatevectorSimulatorSympy(BaseBackend):
 
     def _run_job(self, q_job):
         """Run circuits in q_job and return the result
+
             Args:
                 q_job (QuantumJob): all the information necessary
                     (e.g., circuit, backend and resources) for running a circuit
+
             Returns:
                 Result: Result is a class including the information to be returned to users.
                     Specifically, result_list in the return contains the essential information,
                     which looks like this::
+
                         [{'data':
                         {
                           'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object),
@@ -195,16 +198,19 @@ class StatevectorSimulatorSympy(BaseBackend):
                        'status': 'COMPLETED'}, qobj)
 
     def run_circuit(self, circuit):
-        """Run a circuit and return object
+        """Run a circuit and return object.
+
         Args:
             circuit (dict): JSON that describes the circuit
         Returns:
             dict: A dictionary of results which looks something like::
+
                 {
                 "data":{
                         'statevector': array([sqrt(2)/2, 0, 0, sqrt(2)/2], dtype=object)},
                 "status": --status (string)--
                 }
+
         Raises:
             SimulatorError: if an error occurred.
         """

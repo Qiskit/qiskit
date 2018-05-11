@@ -78,9 +78,9 @@ This is a simple example that makes an entangled state.
 ```python
 # Import the QISKit SDK
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.wrapper import available_backends, execute
+from qiskit import available_backends, execute
 
-# Create a Quantum Register with 2 qubits
+# Create a Quantum Register with 2 qubits.
 q = QuantumRegister(2)
 # Create a Classical Register with 2 bits.
 c = ClassicalRegister(2)
@@ -99,7 +99,8 @@ qc.measure(q, c)
 print("Local backends: ", available_backends({'local': True}))
 
 # Compile and run the Quantum circuit on a simulator backend
-sim_result = execute(qc, 'local_qasm_simulator')
+job_sim = execute(qc, "local_qasm_simulator")
+sim_result = job_sim.result()
 
 # Show the results
 print("simulation: ", sim_result)

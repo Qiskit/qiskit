@@ -687,7 +687,7 @@ class QuantumProgram(object):
 
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
-            "Use register(token, url) instead.", DeprecationWarning)
+            "Using qiskit.register() instead is recommended.", DeprecationWarning)
         qiskit.wrapper.register(token, url,
                                 hub, group, project, proxies, verify,
                                 provider_name='qiskit')
@@ -724,7 +724,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "set_api_hubs_config() will be deprecated in upcoming versions (>0.5.0). "
-            "Use register(token, url, hub, group, project).", DeprecationWarning)
+            "Using qiskit.register(token, url, hub, group, project) "
+            "instead is recommended.", DeprecationWarning)
         config_dict = {
             'hub': hub,
             'group': group,
@@ -744,7 +745,7 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_api_config() will be deprecated in upcoming versions (>0.5.0). "
-            "Using the API object instead is recommended.", DeprecationWarning)
+            "Using qiskit.register() instead is recommended.", DeprecationWarning)
 
         return self.__api_config
 
@@ -757,7 +758,7 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_api() will be deprecated in upcoming versions (>0.5.0). "
-            "Using the API object instead is recommended.", DeprecationWarning)
+            "Using qiskit.register() instead is recommended.", DeprecationWarning)
 
         return self.__api
 
@@ -769,8 +770,8 @@ class QuantumProgram(object):
             qiskit.backends family of functions instead is recommended.
         """
         warnings.warn(
-            "QuantumProgram.available_backends() will be deprecated in upcoming versions (>0.5.0)."
-            "Using available_backends() with optional filter arguments is recommended instead.",
+            "available_backends() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.available_backends() instead is recommended.",
             DeprecationWarning)
 
         return qiskit.wrapper.available_backends(compact=compact)
@@ -793,8 +794,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "online_backends() will be deprecated in upcoming versions (>0.5.0). "
-            "Using available_backends({'local': False}) is recommended instead.",
-            DeprecationWarning)
+            "Using qiskit.available_backends({'local': False}) is recommended "
+            "instead.", DeprecationWarning)
 
         return qiskit.wrapper.remote_backends()
 
@@ -813,8 +814,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "online_simulators() will be deprecated in upcoming versions (>0.5.0). "
-            "Using available_backends({'local': False, 'simulator': True}) is recommended.",
-            DeprecationWarning)
+            "Using qiskit.available_backends({'local': False, 'simulator': True}) "
+            "is recommended.", DeprecationWarning)
 
         return qiskit.wrapper.available_backends({'local': False,
                                                   'simulator': True})
@@ -834,8 +835,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "online_devices() will be deprecated in upcoming versions (>0.5.0). "
-            "Using available_backends({'local': False, 'simulator': False}) is recommended.",
-            DeprecationWarning)
+            "Using qiskit.available_backends({'local': False, 'simulator': False}) "
+            "is recommended.", DeprecationWarning)
 
         return qiskit.wrapper.available_backends({'local': False,
                                                   'simulator': False})
@@ -862,7 +863,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_backend_status() will be deprecated in upcoming versions (>0.5.0). "
-            "Using get_backend('name').status is recommended instead.", DeprecationWarning)
+            "Using qiskit.get_backend('name').status "
+            "instead is recommended.", DeprecationWarning)
 
         my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.status
@@ -889,7 +891,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_backend_configuration() will be deprecated in upcoming versions (>0.5.0). "
-            "Using get_backend('name').configuration is recommended instead.", DeprecationWarning)
+            "Using qiskit.get_backend('name').configuration "
+            "instead is recommended.", DeprecationWarning)
 
         my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.configuration
@@ -916,7 +919,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_backend_calibration() will be deprecated in upcoming versions (>0.5.0). "
-            "Using get_backend('name').calibration is recommended instead.", DeprecationWarning)
+            "Using qiskit.get_backend('name').calibration "
+            "instead is recommended.", DeprecationWarning)
 
         my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.calibration
@@ -943,7 +947,8 @@ class QuantumProgram(object):
         """
         warnings.warn(
             "get_backend_parameters() will be deprecated in upcoming versions (>0.5.0). "
-            "Using get_backend('name').parameters is recommended instead.", DeprecationWarning)
+            "Using qiskit.get_backend('name').parameters"
+            "instead is recommended.", DeprecationWarning)
 
         my_backend = qiskit.wrapper.get_backend(backend)
         return my_backend.parameters
