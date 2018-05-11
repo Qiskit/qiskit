@@ -43,7 +43,7 @@ COMPILE_CONFIG_DEFAULT = {
     'initial_layout': None,
     'shots': 1024,
     'max_credits': 10,
-    'seed': 1,
+    'seed': None,
     'qobj_id': None,
     'hpc': None
 }

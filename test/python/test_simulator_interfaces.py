@@ -137,8 +137,8 @@ class TestCrossSimulation(QiskitTestCase):
         # sim_ibmq = 'ibmq_qasm_simulator'
         # sim_hpc = 'ibmq_qasm_simulator_hpc'
         shots = 1000
-        result_cpp = execute(circ, sim_cpp, {'shots': shots}).result()
-        result_py = execute(circ, sim_py, {'shots': shots}).result()
+        result_cpp = execute(circ, sim_cpp, {'shots': shots, 'seed': 1}).result()
+        result_py = execute(circ, sim_py, {'shots': shots, 'seed': 1}).result()
         # result_ibmq = execute(circ, sim_ibmq, {'shots': shots}).result()
         # result_hpc = execute(circ, sim_hpc, {'shots': shots}).result()
         counts_cpp = result_cpp.get_counts()
