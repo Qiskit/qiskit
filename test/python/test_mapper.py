@@ -58,7 +58,7 @@ class MapperTest(QiskitTestCase):
                                  seed=self.seed, shots=shots)
         counts = result.get_counts("test")
         target = {'0001': shots / 2, '0101':  shots / 2}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
@@ -127,7 +127,7 @@ class MapperTest(QiskitTestCase):
             '11111': 0.017684822659235985
         }
         target = {key: shots * val for key, val in expected_probs.items()}
-        threshold = 0.025 * shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):

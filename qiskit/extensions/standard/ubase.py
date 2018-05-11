@@ -21,7 +21,9 @@ Element of SU(2).
 """
 from qiskit import CompositeGate
 from qiskit import Gate
+from qiskit import InstructionSet
 from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -38,7 +40,7 @@ class UBase(Gate):
         lamb = self.param[2]
         qubit = self.arg[0]
         return self._qasmif("U(%s,%s,%s) %s[%d];" % (
-            theta, phi, lamb, qubit[0].openqasm_name, qubit[1]))
+            theta, phi, lamb, qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate.
@@ -59,6 +61,12 @@ class UBase(Gate):
 
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
+    if isinstance(q, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(q.size):
+            gs.add(self.u_base(theta, phi, lam, (q, j)))
+        return gs
+
     self._check_qubit(q)
     return self._attach(UBase(theta, phi, lam, q, self))
 

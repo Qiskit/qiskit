@@ -1,0 +1,28 @@
+{
+    "backend_name": "local_qasm_simulator_cpp",
+    "backend_version": "1.0.3",
+    "job_id": "XC1323XG2",
+    "id": "Experiment1",
+    "date": "2018-04-02 15:00:00Z",
+    "status": "COMPLETED",
+    "success": true,
+    "header": {"description": "Bell state unitary simulator test"},
+    "results": [
+        {
+            "header": {
+                "exp_descrip": "Bell state circuit (h q[0]; cx q[0], q[1];)"
+            },
+            "shots": 1,
+            "status": "DONE",
+            "success": true,
+            "data": {
+                "unitary": [
+                    [[[0.70710678, 0.0], [0.70710678, 0.0], [0.0, 0.0], [0.0, 0.0]],
+                     [[0.0, 0.0], [0.0, 0.0], [0.70710678, 0.0], [-0.70710678, 0.0]],
+                     [[0.0, 0.0], [0.0, 0.0], [0.70710678, 0.0], [0.70710678, 0.0]],
+                     [[0.70710678, 0.0], [-0.70710678, 0.0], [0.0, 0.0], [0.0, 0.0]]]
+                ]
+            }
+        }     
+    ]
+}

@@ -1,0 +1,162 @@
+{
+    "id": "test_measure_opt_flag",
+    "config": {
+        "shots": 5,
+        "seed": 1,
+        "backend_name": "local_qasm_simulator_cpp"
+    },
+    "circuits": [
+        {
+            "name": "measure (sampled)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]}
+                ]
+            }
+        },
+        {
+            "name": "trivial (sampled)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure", 
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "reset1 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "reset", "qubits": [0]},
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]}
+                ]
+            }
+        },
+        {
+            "name": "reset2 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]},
+                    {"name": "reset", "qubits": [0]}
+                ]
+            }
+        },
+        {
+            "name": "reset3 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "reset", "qubits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]}
+                ]
+            }
+        },
+        {
+            "name": "gate1 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]}
+                ]
+            }
+        },
+        {
+            "name": "gate2 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]},
+                    {"name": "snapshot", "params": [0]}
+                ]
+            }
+        },
+        {
+            "name": "gate3 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "u1", "qubits": [0], "params": [0.0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]}
+                ]
+            }
+        },
+        {
+            "name": "gate4 (shots)",
+            "compiled_circuit": {
+                "header": {
+                    "clbit_labels": [["c", 2]],
+                    "number_of_clbits": 2,
+                    "number_of_qubits": 1,
+                    "qubit_labels": [["q", 0]]
+                },
+                "operations": [
+                    {"name": "snapshot", "params": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [0]},
+                    {"name": "measure", "qubits": [0], "clbits": [1]},
+                    {"name": "u1", "qubits": [0], "params": [0.0]}
+                ]
+            }
+        }
+    ]
+}

@@ -61,7 +61,12 @@ class JsonBackend(UnrollerBackend):
         super().__init__(basis)
         self.circuit = {}
         self.circuit['operations'] = []
-        self.circuit['header'] = {}
+        self.circuit['header'] = {
+            'number_of_qubits': 0,
+            'number_of_clbits': 0,
+            'qubit_labels': [],
+            'clbit_labels': []
+        }
         self._number_of_qubits = 0
         self._number_of_cbits = 0
         self._qubit_order = []
@@ -153,7 +158,7 @@ class JsonBackend(UnrollerBackend):
                               arg[1].latex(prec=8, nested_scope=nested_scope),
                               arg[2].latex(prec=8, nested_scope=nested_scope)],
                 'qubits': qubit_indices
-                })
+            })
             self._add_condition()
 
     def _add_condition(self):
@@ -191,7 +196,7 @@ class JsonBackend(UnrollerBackend):
             self.circuit['operations'].append({
                 'name': 'CX',
                 'qubits': qubit_indices,
-                })
+            })
             self._add_condition()
 
     def measure(self, qubit, bit):
@@ -208,7 +213,7 @@ class JsonBackend(UnrollerBackend):
             'name': 'measure',
             'qubits': qubit_indices,
             'clbits': clbit_indices
-            })
+        })
         self._add_condition()
 
     def barrier(self, qubitlists):
@@ -226,7 +231,7 @@ class JsonBackend(UnrollerBackend):
             self.circuit['operations'].append({
                 'name': 'barrier',
                 'qubits': qubit_indices,
-                })
+            })
             # no conditions on barrier, even when it appears
             # in body of conditioned gate
 
@@ -241,7 +246,7 @@ class JsonBackend(UnrollerBackend):
         self.circuit['operations'].append({
             'name': 'reset',
             'qubits': qubit_indices,
-            })
+        })
         self._add_condition()
 
     def set_condition(self, creg, cval):
@@ -268,7 +273,7 @@ class JsonBackend(UnrollerBackend):
         to Node expression objects in order of increasing nesting depth.
         """
         if self.listen and name not in self.basis \
-           and self.gates[name]["opaque"]:
+                and self.gates[name]["opaque"]:
             raise BackendError("opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             self.in_gate = name
@@ -285,7 +290,7 @@ class JsonBackend(UnrollerBackend):
                                               nested_scope=nested_scope),
                                       args)),
                 'qubits': qubit_indices,
-                })
+            })
             self._add_condition()
 
     def end_gate(self, name, args, qubits, nested_scope=None):

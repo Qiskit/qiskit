@@ -37,7 +37,7 @@ class HGate(Gate):
     def qasm(self):
         """Return OPENQASM string."""
         qubit = self.arg[0]
-        return self._qasmif("h %s[%d];" % (qubit[0].openqasm_name, qubit[1]))
+        return self._qasmif("h %s[%d];" % (qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -54,6 +54,12 @@ def h(self, q):
         instructions = InstructionSet()
         for j in range(q.size):
             instructions.add(self.h((q, j)))
+        return instructions
+
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.h(q))
         return instructions
 
     self._check_qubit(q)

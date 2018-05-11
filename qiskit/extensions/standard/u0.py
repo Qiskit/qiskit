@@ -38,7 +38,7 @@ class U0Gate(Gate):
         qubit = self.arg[0]
         m = self.param[0]
         return self._qasmif("u0(%f) %s[%d];" % (m,
-                                                qubit[0].openqasm_name,
+                                                qubit[0].name,
                                                 qubit[1]))
 
     def inverse(self):

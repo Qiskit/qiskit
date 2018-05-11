@@ -1,0 +1,28 @@
+{
+    "id": "Set of Experiments 1",
+    "type": "QASM",
+    "header": {
+        "backend_name": "ibmqx2",
+        "clbit_labels": [["c1", 1],["c2",2]],
+        "qubit_labels": [["q", 0],null,["q",1]]},
+    "config": {
+        "shots": 1024,
+        "register_slots": 3
+        },
+    "experiments": [
+        {
+        "header": {},
+        "config": {},
+        "instructions": [
+            {"name": "u1", "qubits": [1], "params": [0.4]},
+            {"name": "u2", "qubits": [1], "params": [0.4,0.2]},
+            {"name": "u3", "qubits": [1], "params": [0.4,0.2,-0.3]},
+            {"name": "#snapshot", "params": ["1", "statevector"]},
+            {"name": "cx", "qubits": [1,2]},
+            {"name": "barrier", "qubits": [1]},
+            {"name": "measure", "qubits": [1], "register": [2]}
+            ]
+        }
+        ]    
+}
+

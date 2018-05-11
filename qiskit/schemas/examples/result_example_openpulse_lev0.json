@@ -1,0 +1,43 @@
+{
+    "backend_name": "ibmqx2",
+    "backend_version": "1.1.11",
+    "job_id": "XC1323XG2",
+    "id": "Experiment1",
+    "date": "2018-04-02 15:00:00Z",
+    "status": "COMPLETED",
+    "success": true,
+    "header": {"description": "T1 with cals"},
+    "results": [
+        {"header": {"exp_descrip": "Ground state calibration"},
+        "shots": 1024,
+        "status": "DONE",
+        "success": true,
+        "meas_return": "avg",
+        "data": {
+            "register": [[[0,0],[0.75,0],[1.0,0],[1.5,0],[1.5,0],[1.5,0]]]
+        }
+        },
+        {"header": {"exp_descrip": "Excited state calibration"},
+        "shots": 1024,
+        "status": "DONE",
+        "success": true,
+        "meas_return": "avg",
+        "data": {
+            "register": [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]]
+        }
+        },
+        {"header": {"exp_descrip": "T1", "t1_time": 0},
+        "shots": [1020,1024],
+        "status": "DONE",
+        "success": true,
+        "meas_return": "single",
+        "data": {
+            "register": [[[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]],
+                        [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]],
+                        [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]],
+                        [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]],
+                        [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]]]
+        }
+        }         
+    ]
+}

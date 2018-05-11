@@ -22,12 +22,12 @@ from distutils.command.build import build
 from multiprocessing import cpu_count
 from subprocess import call
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.dist import Distribution
 
 
 requirements = [
-    "IBMQuantumExperience>=1.8.29",
+    "IBMQuantumExperience>=1.9.0",
     "matplotlib>=2.1,<2.2",
     "networkx>=2.0,<2.1",
     "numpy>=1.13,<1.15",
@@ -38,25 +38,8 @@ requirements = [
 ]
 
 
-packages = ["qiskit",
-            "qiskit.backends",
-            "qiskit.dagcircuit",
-            "qiskit.extensions",
-            "qiskit.extensions.standard",
-            "qiskit.extensions.qiskit_simulator",
-            "qiskit.extensions.quantum_initializer",
-            "qiskit.mapper",
-            "qiskit.qasm",
-            "qiskit.qasm._node",
-            "qiskit.unroll",
-            "qiskit.tools",
-            "qiskit.tools.apps",
-            "qiskit.tools.qcvv",
-            "qiskit.tools.qi"]
-
-
 # C++ components compilation
-class QiskitSimulatorBuild(build):
+class QasmSimulatorCppBuild(build):
     def run(self):
         super().run()
         # Store the current working directory, as invoking cmake involves
@@ -82,7 +65,7 @@ class QiskitSimulatorBuild(build):
                 cmd_cmake.append("-GMinGW Makefiles")
             cmd_cmake.append('..')
 
-            cmd_make = ['make', 'pypi_package_copy_qiskit_simulator']
+            cmd_make = ['make', 'pypi_package_copy_qasm_simulator_cpp']
 
             try:
                 cmd_make.append('-j%d' % cpu_count())
@@ -95,7 +78,7 @@ class QiskitSimulatorBuild(build):
                 call(cmd_cmake)
                 call(cmd_make)
 
-            self.execute(compile_simulator, [], 'Compiling QISKit C++ Simulator')
+            self.execute(compile_simulator, [], 'Compiling C++ QASM Simulator')
         except Exception as e:
             print(str(e))
             print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
@@ -135,12 +118,12 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    packages=packages,
+    packages=find_packages(exclude=['test*']),
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
     cmdclass={
-        'build': QiskitSimulatorBuild,
+        'build': QasmSimulatorCppBuild,
     },
     distclass=BinaryDistribution,
     extras_require={

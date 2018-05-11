@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=wrong-import-order
-# pylint: disable=wrong-import-position
+# pylint: disable=redefined-builtin
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -22,8 +22,6 @@
 # First, check for required Python and API version
 from . import _util
 
-from IBMQuantumExperience import RegisterSizeError
-
 from ._qiskiterror import QISKitError
 from ._classicalregister import ClassicalRegister
 from ._quantumregister import QuantumRegister
@@ -40,11 +38,12 @@ from ._measure import Measure
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-from ._jobprocessor import JobProcessor
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
+from .wrapper._wrapper import available_backends, execute, register, get_backend, compile
 
-from . import backends
+# Import the wrapper, to make it available when doing "import qiskit".
+from . import wrapper
 
 __version__ = '0.4.15'

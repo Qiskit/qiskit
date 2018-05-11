@@ -34,10 +34,13 @@ class Path(Enum):
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
     EXAMPLES = os.path.join(SDK, '../examples')
+    # Schemas path:     qiskit/schemas
+    SCHEMAS = os.path.join(SDK, 'schemas')
 
 
 class QiskitTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
+
     @classmethod
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
@@ -83,7 +86,6 @@ class QiskitTestCase(unittest.TestCase):
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
-    # pylint: disable=invalid-name
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):
         """
@@ -93,7 +95,7 @@ class QiskitTestCase(unittest.TestCase):
         comparing that the difference between values with the same key are
         not greater than delta (default 1e-8), or that difference rounded
         to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword arugment
+        dictionary is not in the other the default_value keyword argument
         will be used for the missing value (default 0). If the two objects
         compare equal then they will automatically compare almost equal.
 
@@ -108,7 +110,7 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-
+        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -201,6 +203,26 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
             self._raiseFailure(msg)
 
 
+def slow_test(func):
+    """
+    Decorator that signals that the test takes minutes to run.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _(*args, **kwargs):
+        if SKIP_SLOW_TESTS:
+            raise unittest.SkipTest('Skipping slow tests')
+        return func(*args, **kwargs)
+
+    return _
+
+
 def requires_qe_access(func):
     """
     Decorator that signals that the test uses the online API:
@@ -216,6 +238,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
+
     @functools.wraps(func)
     def _(*args, **kwargs):
         # pylint: disable=invalid-name
@@ -255,8 +278,7 @@ def _is_ci_fork_pull_request():
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.
-        if (os.getenv('TRAVIS_REPO_SLUG') !=
-                os.getenv('TRAVIS_PULL_REQUEST_SLUG')):
+        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
             return True
     elif os.getenv('APPVEYOR'):
         # Using AppVeyor CI.
@@ -266,3 +288,4 @@ def _is_ci_fork_pull_request():
 
 
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
+SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']

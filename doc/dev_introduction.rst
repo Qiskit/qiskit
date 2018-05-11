@@ -22,7 +22,7 @@ The :py:mod:`extensions <qiskit.extensions>` directory extends quantum circuits
 as needed to support other gate sets and algorithms. Currently there is a
 :py:mod:`standard <qiskit.extensions.standard>` extension defining some typical
 quantum gates, and two additional extensions:
-:py:mod:`qiskit_simulator <qiskit.extensions.qiskit_simulator>` and
+:py:mod:`qasm_simulator_cpp <qiskit.extensions.simulator>` and
 :py:mod:`quantum_initializer <qiskit.extensions.quantum_initializer>`.
 
 Internal modules
@@ -196,4 +196,6 @@ Windows:
     C:\..\> python -m unittest test/python/test_apps.py
 
 Additionally, an environment variable ``SKIP_ONLINE_TESTS`` can be used for
-toggling the execution of the tests that require network access to the API.
+toggling the execution of the tests that require network access to the API and
+``SKIP_SLOW_TESTS`` can be used to toggling execution of tests that are
+particularly slow (default is ``True``).

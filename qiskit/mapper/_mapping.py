@@ -456,7 +456,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         raise MapperError("Not enough qubits in CouplingGraph")
 
     # Schedule the input circuit
-    layerlist = circuit_graph.layers()
+    layerlist = list(circuit_graph.layers())
     logger.debug("schedule:")
     for i, v in enumerate(layerlist):
         logger.debug("    %d: %s", i, v["partition"])
@@ -520,7 +520,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         if not success_flag:
             logger.debug("swap_mapper: failed, layer %d, "
                          "retrying sequentially", i)
-            serial_layerlist = layer["graph"].serial_layers()
+            serial_layerlist = list(layer["graph"].serial_layers())
 
             # Go through each gate in the layer
             for j, serial_layer in enumerate(serial_layerlist):

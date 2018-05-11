@@ -32,7 +32,6 @@ HAS_GROUP_VARS = False
 try:
     import Qconfig
     QE_TOKEN = Qconfig.APItoken
-    print(Qconfig.config)
     QE_URL = Qconfig.config['url']
     QE_HUB = Qconfig.config['hub']
     QE_GROUP = Qconfig.config['group']
@@ -58,7 +57,7 @@ class TestApiHub(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = 'ibmqx_qasm_simulator'
+        self.backend = 'ibmq_qasm_simulator'
 
     @staticmethod
     def _set_api(token, config):

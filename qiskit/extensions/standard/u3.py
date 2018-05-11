@@ -41,7 +41,7 @@ class U3Gate(Gate):
         phi = self.param[1]
         lam = self.param[2]
         return self._qasmif("u3(%s,%s,%s) %s[%d];" % (theta, phi, lam,
-                                                      qubit[0].openqasm_name,
+                                                      qubit[0].name,
                                                       qubit[1]))
 
     def inverse(self):
