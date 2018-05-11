@@ -21,6 +21,7 @@
 import sys
 import unittest
 from concurrent import futures
+import time
 
 import numpy
 from scipy.stats import chi2_contingency
@@ -69,8 +70,15 @@ class TestLocalJob(QiskitTestCase):
         self.assertGreater(contingency[1], 0.01)
 
     def test_run_async(self):
-        backend = self._provider.get_backend('local_qasm_simulator_py')
-        num_qubits = 5
+        if sys.platform == 'darwin':
+            LocalJob._executor = futures.ThreadPoolExecutor(max_workers=2)
+        else:
+            LocalJob._executor = futures.ProcessPoolExecutor(max_workers=2)
+        try:
+            backend = self._provider.get_backend('local_qasm_simulator_cpp')
+        except KeyError:
+            backend = self._provider.get_backend('local_qasm_simulator_py')
+        num_qubits = 15
         qr = QuantumRegister(num_qubits, 'q')
         cr = ClassicalRegister(num_qubits, 'c')
         qc = QuantumCircuit(qr, cr)
@@ -81,13 +89,23 @@ class TestLocalJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-
-        # Wait for all the results.
-        result_array = [job.result() for job in job_array]
-
-        # Ensure all jobs have finished.
-        self.assertTrue(all([job.done for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        found_async_jobs = False
+        timeout = 30
+        start_time = time.time()
+        while not found_async_jobs:
+            check = sum([job.running for job in job_array])
+            if check >= 2:
+                found_async_jobs = True
+            if all([job.done for job in job_array]):
+                # done too soon? don't generate error
+                break 
+            for job in job_array:
+                print(job.status['status'], job.running, check)
+            self.log.info('-'*20, time.time()-start_time)
+            if time.time() - start_time > timeout:
+                raise TimeoutError('failed to see multiple running jobs after '
+                                   '{0} s'.format(timeout))
+            time.sleep(0.2)
 
     def test_cancel(self):
         """Test the cancelation of jobs.
