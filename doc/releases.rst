@@ -99,7 +99,21 @@ some design changes accordingly:
   The names of the local simulators have been homogenized in order to follow
   the same pattern: ``PROVIDERNAME_TYPE_simulator_LANGUAGEORPROJECT`` -
   for example, the C++ simulator previously named ``local_qiskit_simulator``
-  is now ``local_qasm_simulator_cpp``.
+  is now ``local_qasm_simulator_cpp``. An overview of the current
+  simulators:
+
+  * ``QASM`` simulator is supposed to be like an experiment. You apply a
+    circuit on some qubits, and observe measurement results - and you repeat
+    for many shots to get a histogram of counts via ``result.get_counts()``.
+  * ``Statevector`` simulator is to get the full statevector (:math:`2^n`
+    amplitudes) after evolving the zero state through the circuit, and can be
+    obtained via ``result.get_statevector()``.
+  * ``Unitary`` simulator is to get the unitary matrix equivalent of the
+    circuit, returned via ``result.get_unitary()``.
+  * In addition, you can get intermediate states from a simulator by applying
+    a ``snapshot(slot)`` instruction at various spots in the circuit. This will
+    save the current state of the simulator in a given slot, which can later
+    be retrieved via ``result.get_snapshot(slot)``.
 
 * **backend aliases**:
 
