@@ -32,7 +32,12 @@
                     "qubit_labels": [["q", 0]]
                 },
                 "operations": [
-                    {"name": "snapshot", "params": [0]}
+                    {"name": "snapshot", "params": [0]},
+                    {
+                    	"name": "measure", 
+                    	"qubits": [0],
+                    	"clbits": [0]
+                    }
                 ]
             }
         },
