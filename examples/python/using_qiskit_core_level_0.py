@@ -85,8 +85,7 @@ try:
     print(available_backends({'local': False}))
 
     # Compile and run on a real device backend
-    #try:
-    if 0==0:
+    try:
         # select least busy available device and execute.
         best_device = lowest_pending_jobs()
         print("Running on current least busy device: ", best_device)
@@ -109,7 +108,7 @@ try:
         print("experiment: ", exp_result)
         print(exp_result.get_counts(qc1))
         print(exp_result.get_counts(qc2))
-    #except:
+    except:
         print("All devices are currently unavailable.")
 except QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

@@ -125,10 +125,10 @@ try:
         # a backend is optional
         qobj = compile([qc1, qc2], backend=my_backend, shots=1024, max_credits=10)
 
-        # Runing the job. 
+        # Runing the job.
         q_job = QuantumJob(qobj, backend=my_backend, preformatted=True, resources={
             'max_credits': qobj['config']['max_credits']})
-        # Note as above this will be removed in the near future. 
+        # Note as above this will be removed in the near future.
 
         exp_job = my_backend.run(q_job)
         # Note: in the near future the quantumjob class will be removed and this will become
