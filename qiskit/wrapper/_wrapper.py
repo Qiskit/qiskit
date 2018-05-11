@@ -20,6 +20,7 @@ import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit import QuantumJob
 
 # Default provider used by the rest of the functions on this module. Please
 # note that this is a global object.
@@ -136,13 +137,12 @@ def get_backend(name):
 # Functions for compiling and executing.
 
 
-def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
+def compile(circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-        backend (BaseBackend): a backend to use as the default compiling
-            option.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile.
+        backend (BaseBackend or str): a backend to compile for.
         compile_config (dict or None): a dictionary of compile configurations.
             If `None`, the default compile configuration will be used.
         skip_translation (bool): If True, bypass most of the compilation process and
@@ -151,22 +151,28 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    return qiskit._compiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    if isinstance(backend, str):
+        backend = _DEFAULT_PROVIDER.get_backend(backend)
+    return qiskit._compiler.compile(circuits, backend, compile_config, skip_translation)
 
 
-def execute(list_of_circuits, backend_name, compile_config=None,
+def execute(circuits, backend, compile_config=None,
             skip_translation=False):
     """Executes a set of circuits.
 
     Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits.
-        backend_name (str): the name of the backend to execute the circuits on.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute.
+        backend (BaseBackend or str): a backend to execute the circuits on.
         compile_config (dict or None): a dictionary of compile configurations.
         skip_translation (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
-    backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    skip_translation)
+    if isinstance(backend, str):
+        backend = _DEFAULT_PROVIDER.get_backend(backend)
+    qobj = compile(circuits, backend, compile_config, skip_translation)
+    # XXX When qobj is done this should replace q_job
+    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
+        'max_credits': qobj['config']['max_credits']})
+    return backend.run(q_job)
