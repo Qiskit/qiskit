@@ -169,7 +169,7 @@ class TestIBMQJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 3
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
@@ -206,7 +206,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_cancel(self):
         backend = self._provider.get_backend('ibmqx4')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         job.cancel()
         self.assertTrue(job.cancelled)
@@ -214,7 +214,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_job_id(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         while job.status['status'] == JobStatus.INITIALIZING:
             time.sleep(0.1)
@@ -225,7 +225,7 @@ class TestIBMQJob(QiskitTestCase):
         backend_name = 'ibmqx_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         self.assertTrue(job.backend_name == backend_name)
 
