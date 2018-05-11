@@ -25,9 +25,11 @@ from .common import requires_qe_access, QiskitTestCase, slow_test
 
 def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
-    by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: get_backend(x).status['pending_jobs'])
-    return by_pending_jobs[0]
+    backends = [get_backend(name) for name in list_of_backends]
+    backends = filter(lambda x: x.status.get('available', False), backends)
+    by_pending_jobs = sorted(backends,
+                             key=lambda x: x.status['pending_jobs'])
+    return by_pending_jobs[0].name
 
 
 class TestBitReordering(QiskitTestCase):
@@ -41,7 +43,8 @@ class TestBitReordering(QiskitTestCase):
     def test_basic_reordering(self, QE_TOKEN, QE_URL):
         """a simple reordering within a 2-qubit register"""
         sim, real = self._get_backends(QE_TOKEN, QE_URL)
-        unittest.skipIf(not real, 'no remote device available.')
+        if not sim or not real:
+            raise unittest.SkipTest('no remote device available')
 
         q = qiskit.QuantumRegister(2)
         c = qiskit.ClassicalRegister(2)
@@ -63,7 +66,8 @@ class TestBitReordering(QiskitTestCase):
     def test_multi_register_reordering(self, QE_TOKEN, QE_URL):
         """a more complicated reordering across 3 registers of different sizes"""
         sim, real = self._get_backends(QE_TOKEN, QE_URL)
-        unittest.skipIf(not real, 'no remote device available.')
+        if not sim or not real:
+            raise unittest.SkipTest('no remote device available')
 
         q0 = qiskit.QuantumRegister(2)
         q1 = qiskit.QuantumRegister(2)
