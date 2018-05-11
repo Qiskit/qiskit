@@ -101,7 +101,7 @@ class TestLocalJob(QiskitTestCase):
             if all([job.done for job in job_array]):
                 self.log.warning('all jobs completed before simultaneous jobs '
                                  'could be detected')
-                break 
+                break
             for job in job_array:
                 self.log.info('{0} {1} {2}'.format(job.status['status'],
                                                    job.running, check))
@@ -145,13 +145,13 @@ class TestLocalJob(QiskitTestCase):
         found_cancelled = False
         while not found_cancelled:
             check = sum([job.cancelled for job in job_array])
-            if check >= 1: 
+            if check >= 1:
                 self.log.info('found %d cancelled jobs', check)
                 found_cancelled = True
             if all([job.done for job in job_array]):
                 self.log.warning('all jobs completed before simultaneous jobs '
                                  'could be detected')
-                break 
+                break
             for job in job_array:
                 self.log.info('{0} {1} {2}'.format(job.status['status'],
                                                    job.cancelled, check))
