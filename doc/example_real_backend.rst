@@ -6,10 +6,9 @@ Quantum device:
 
 .. code-block:: python
 
-    from qiskit import QuantumProgram
-    
-    # Creating Programs create your first QuantumProgram object instance.
-    Q_program = QuantumProgram()
+    # Import the QISKit SDK
+    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+    from qiskit import execute, register
 
     # Set your API Token
     # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
@@ -17,31 +16,32 @@ Quantum device:
     QX_TOKEN = "API_TOKEN"
     QX_URL = "https://quantumexperience.ng.bluemix.net/api"
 
-    # Set up the API and execute the program.
-    # You need the API Token and the QX URL. 
-    Q_program.set_api(QX_TOKEN, QX_URL)
+    # Authenticate with the IBM Q API in order to use online devices.
+    # You need the API Token and the QX URL.
+    register(QX_TOKEN, QX_URL)
 
-    # Creating Registers create your first Quantum Register called "qr" with 2 qubits
-    qr = Q_program.create_quantum_register("qr", 2)
-    # create your first Classical Register called "cr" with 2 bits
-    cr = Q_program.create_classical_register("cr", 2)
-    # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
-    # and your Classical Register "cr"
-    qc = Q_program.create_circuit("superposition", [qr], [cr])
+    # Create a Quantum Register with 2 qubits.
+    q = QuantumRegister(2)
+    # Create a Classical Register with 2 bits.
+    c = ClassicalRegister(2)
+    # Create a Quantum Circuit
+    qc = QuantumCircuit(q, c)
 
-    # add the H gate in the Qubit 0, we put this Qubit in superposition
-    qc.h(qr[0])
+    # Add a H gate on qubit 0, putting this qubit in superposition.
+    qc.h(q[0])
+    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+    # the qubits in a Bell state.
+    qc.cx(q[0], q[1])
+    # Add a Measure gate to see the state.
+    qc.measure(q, c)
 
-    # add measure to see the state
-    qc.measure(qr, cr)
-
-    # Compiled  and execute in the local_qasm_simulator
-
-    result = Q_program.execute(["superposition"], backend='ibmqx4', shots=1024)
+    # Compile and run the Quantum Program on a real device backend
+    job = execute(qc, 'ibmqx4')
+    result = job.result()
 
     # Show the results
     print(result)
-    print(result.get_data("superposition"))
+    print(result.get_data())
 
 
 Example Real Chip Backend using IBMQ
@@ -53,13 +53,12 @@ the IBM Q features:
 
 .. code-block:: python
 
-    from qiskit import QuantumProgram
+    # Import the QISKit SDK
+    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+    from qiskit import execute, register
 
-    # Creating Programs create your first QuantumProgram object instance.
-    Q_program = QuantumProgram()
-
-    # Set your API Token and credentials.
-    # You can get them from https://quantumexperience.ng.bluemix.net/qx/account,
+    # Set your API Token
+    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
     # looking for "Personal Access Token" section.
     QX_TOKEN = "API_TOKEN"
     QX_URL = "https://quantumexperience.ng.bluemix.net/api"
@@ -67,35 +66,35 @@ the IBM Q features:
     QX_GROUP = "MY_GROUP"
     QX_PROJECT = "MY_PROJECT"
 
-    # Set up the API and execute the program.
-    # You need the API Token, the QX URL, and your hub/group/project details.
-    Q_program.set_api(QX_TOKEN, QX_URL,
-                      hub=QX_HUB,
-                      group=QX_GROUP,
-                      project=QX_PROJECT)
+    # Authenticate with the IBM Q API in order to use online devices.
+    # You need the API Token and the QX URL.
+    register(QX_TOKEN, QX_URL,
+             hub=QX_HUB,
+             group=QX_GROUP,
+             project=QX_PROJECT)
 
-    # Creating Registers create your first Quantum Register called "qr" with 2 qubits
-    qr = Q_program.create_quantum_register("qr", 2)
-    # create your first Classical Register called "cr" with 2 bits
-    cr = Q_program.create_classical_register("cr", 2)
-    # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
-    # and your Classical Register "cr"
-    qc = Q_program.create_circuit("superposition", [qr], [cr])
+    # Create a Quantum Register with 2 qubits.
+    q = QuantumRegister(2)
+    # Create a Classical Register with 2 bits.
+    c = ClassicalRegister(2)
+    # Create a Quantum Circuit
+    qc = QuantumCircuit(q, c)
 
-    # add the H gate in the Qubit 0, we put this Qubit in superposition
-    qc.h(qr[0])
+    # Add a H gate on qubit 0, putting this qubit in superposition.
+    qc.h(q[0])
+    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
+    # the qubits in a Bell state.
+    qc.cx(q[0], q[1])
+    # Add a Measure gate to see the state.
+    qc.measure(q, c)
 
-    # add measure to see the state
-    qc.measure(qr, cr)
-
-    # Compiled  and execute in the local_qasm_simulator
-
-    result = Q_program.execute(["superposition"], backend='ibmqx4', shots=1024)
+    # Compile and run the Quantum Program on a real device backend
+    job = execute(qc, 'ibmqx4')
+    result = job.result()
 
     # Show the results
     print(result)
-    print(result.get_data("superposition"))
-
+    print(result.get_data())
 
 Please check the Installation :ref:`qconfig-setup` section for more details on
 how to setup your IBM Q credentials.
@@ -110,19 +109,19 @@ parameters:
 - ``multi_shot_optimization``: boolean (True or False)
 - ``omp_num_threads``: integer between 1 and 16.
 
-The parameters can be specified to ``QuantumProgram.compile()`` and
-``QuantumProgram.execute()`` via the ``hpc`` parameter. For example:
+The parameters can be specified to :func:`qiskit.compile` and
+:func:`qiskit.execute` via the ``hpc`` parameter. For example:
 
 .. code-block:: python
 
-    QP_program.compile(circuits,
-                       backend=backend,
-                       shots=shots,
-                       seed=88,
-                       hpc={
-                           'multi_shot_optimization': True,
-                           'omp_num_threads': 16
-                       })
+    qiskit.compile(circuits,
+                   backend=backend,
+                   shots=shots,
+                   seed=88,
+                   hpc={
+                       'multi_shot_optimization': True,
+                       'omp_num_threads': 16
+                   })
 
 If the ``ibmq_qasm_simulator_hpc`` backend is used and the ``hpc`` parameter
 is not specified, the following values will be used by default:
