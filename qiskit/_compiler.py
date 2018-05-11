@@ -36,30 +36,28 @@ from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mappe
 
 logger = logging.getLogger(__name__)
 
-COMPILE_CONFIG_DEFAULT = {
-    'config': None,
-    'basis_gates': None,
-    'coupling_map': None,
-    'initial_layout': None,
-    'shots': 1024,
-    'max_credits': 10,
-    'seed': None,
-    'qobj_id': None,
-    'hpc': None
-}
 
-
-def compile(circuits, backend, compile_config=None, skip_translation=False):
+def compile(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
+            skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
     of circuit->dag, transpiler (dag -> dag) and dags-> qobj
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile.
-        backend (BaseBackend): a backend to compile for.
-        compile_config (dict or None): a dictionary of compile configurations.
-            If `None`, the default compile configuration will be used.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
+        backend (BaseBackend): a backend to compile for
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
 
@@ -72,18 +70,6 @@ def compile(circuits, backend, compile_config=None, skip_translation=False):
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
-
-    compile_config = compile_config or {}
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    config = compile_config['config']
-    basis_gates = compile_config['basis_gates']
-    coupling_map = compile_config['coupling_map']
-    initial_layout = compile_config['initial_layout']
-    shots = compile_config['shots']
-    max_credits = compile_config['max_credits']
-    seed = compile_config['seed']
-    qobj_id = compile_config['qobj_id']
-    hpc = compile_config['hpc']
 
     backend_conf = backend.configuration
     backend_name = backend_conf['name']

@@ -181,8 +181,7 @@ class TestInitialize(QiskitTestCase):
         # statevector simulator does not support reset
         shots = 2000
         threshold = 0.04 * shots
-        job = wrapper.execute(qc, 'local_qasm_simulator',
-                              compile_config={'shots': shots})
+        job = wrapper.execute(qc, 'local_qasm_simulator', shots=shots)
         result = job.result()
         counts = result.get_counts()
         target = {'00': shots / 4, '01': shots / 4, '10': shots / 4, '11': shots / 4}

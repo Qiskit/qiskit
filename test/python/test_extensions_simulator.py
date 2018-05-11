@@ -102,7 +102,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         }
         sim = 'local_qasm_simulator_cpp'
         shots = 1000
-        result = execute(circ, sim, {'config': config, 'shots': shots}).result()
+        result = execute(circ, sim, config=config, shots=shots).result()
         counts = result.get_counts()
         target = {'101': shots}
         self.assertEqual(counts, target)
