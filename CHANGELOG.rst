@@ -1,10 +1,7 @@
-Release history
-###############
-
 QISKit SDK 0.5.0
 ================
 
-2018/05/14
+2018/05/11
 
 Improvements
 ------------
@@ -58,7 +55,7 @@ Bug Fixes
 - Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
 - Fix the order and format of result bits obtained from device backends (#430)
 - Fix support for noises in the idle gate of ``local_clifford_simulator_cpp`` (#440)
-- Fix JobProcessor modifying input qobj (#392)
+- Fix JobProcessor modifying input qobj (#392) (and removed JobProcessor during #403)
 - Fix ability to apply all gates on register (#369)
 
 Backward-incompatible changes
