@@ -134,8 +134,8 @@ class TestIBMQJob(QiskitTestCase):
                 break
             if all([job.done for job in job_array]):
                 # done too soon? don't generate error
-                self.log.warn('all jobs completed before simultaneous jobs '
-                              'could be detected')
+                self.log.warning('all jobs completed before simultaneous jobs '
+                                 'could be detected')
                 break 
             for job in job_array:
                 self.log.info(str(job.status['status']) + ' ' + repr(job.running) +

@@ -56,7 +56,7 @@ class TestLocalJob(QiskitTestCase):
     def test_run(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
@@ -86,26 +86,30 @@ class TestLocalJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
         found_async_jobs = False
         timeout = 30
         start_time = time.time()
+        self.log.info('testing with simulator: {0}'.format(backend.name))
         while not found_async_jobs:
             check = sum([job.running for job in job_array])
             if check >= 2:
+                self.log.info('found %d simultaneous jobs', check)
                 found_async_jobs = True
             if all([job.done for job in job_array]):
-                # done too soon? don't generate error
+                self.log.warning('all jobs completed before simultaneous jobs '
+                                 'could be detected')
                 break 
             for job in job_array:
-                print(job.status['status'], job.running, check)
-            self.log.info('-'*20, time.time()-start_time)
+                self.log.info('{0} {1} {2}'.format(job.status['status'],
+                                                   job.running, check))
+            self.log.info('{0} {1}'.format('-'*20, time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))
-            time.sleep(0.2)
+            time.sleep(1)
 
     def test_cancel(self):
         """Test the cancelation of jobs.
@@ -130,24 +134,37 @@ class TestLocalJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
-        num_jobs = 50
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        num_jobs = 10
+        timeout = 10
+        start_time = time.time()
+        self.log.info('testing with simulator: {0}'.format(backend.name))
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-
-        # Try to cancel them in the reverse order they were launched: the
-        # most recent job is the one with more chances of still being in the
-        # queue.
-        for job in reversed(job_array):
+        for job in job_array:
             job.cancel()
-        num_cancelled = sum([job.cancelled for job in job_array])
-        self.log.info('number of successfully cancelled jobs: %d/%d',
-                      num_cancelled, num_jobs)
-        self.assertTrue(num_cancelled > 0)
+        found_cancelled = False
+        while not found_cancelled:
+            check = sum([job.cancelled for job in job_array])
+            if check >= 1: 
+                self.log.info('found %d cancelled jobs', check)
+                found_cancelled = True
+            if all([job.done for job in job_array]):
+                self.log.warning('all jobs completed before simultaneous jobs '
+                                 'could be detected')
+                break 
+            for job in job_array:
+                self.log.info('{0} {1} {2}'.format(job.status['status'],
+                                                   job.cancelled, check))
+            self.log.info('{0} {1:0.2f}'.format('-'*20, time.time()-start_time))
+            if time.time() - start_time > timeout:
+                raise TimeoutError('failed to see multiple running jobs after '
+                                   '{0} s'.format(timeout))
+            time.sleep(1)
 
     def test_done(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         job.result()
         self.assertTrue(job.done)
@@ -156,7 +173,7 @@ class TestLocalJob(QiskitTestCase):
         backend_name = 'local_qasm_simulator_py'
         backend = self._provider.get_backend(backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         self.assertTrue(job.backend_name == backend_name)
 
