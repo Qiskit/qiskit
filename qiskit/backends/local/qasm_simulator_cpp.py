@@ -94,7 +94,8 @@ class QasmSimulatorCpp(BaseBackend):
         if qobj['config']['shots'] == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
-                          'Use the local_statevector_simulator instead.',
+                          'Use the local_statevector_simulator instead, or place '
+                          'explicit snapshot instructions.',
                           DeprecationWarning)
         for circ in qobj['circuits']:
             if 'measure' not in [op['name'] for

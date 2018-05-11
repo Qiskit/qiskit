@@ -36,7 +36,7 @@ from .common import QiskitTestCase
 do_profiling = False
 
 
-class TestLocalQasmSimulatorPyPy(QiskitTestCase):
+class TestLocalQasmSimulatorPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
 
     @classmethod
