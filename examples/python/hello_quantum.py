@@ -65,11 +65,7 @@ try:
         print("Running on current least busy device: ", best_device)
 
         #runing the job
-        compile_config = {
-            'shots': 1024,
-            'max_credits': 10
-            }
-        exp_result = execute(qc, best_device, compile_config, wait=5, timeout=300)
+        exp_result = execute(qc, best_device, shots=1024, max_credits=10)
 
         # Show the results
         print("experiment: ", exp_result)

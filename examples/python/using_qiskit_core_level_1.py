@@ -128,14 +128,9 @@ try:
         pprint.pprint(my_backend.parameters)
 
         # Compiling the job
-        compile_config = {
-            'shots': 1024,
-            'max_credits': 10
-            }
-
         # I want to make it so the compile is only done once and the needing
         # a backend is optional
-        qobj = compile([qc1, qc2], backend=my_backend, compile_config=compile_config)
+        qobj = compile([qc1, qc2], backend=my_backend, shots=1024, max_credits=10)
         # I think we need to make a qobj into a class
 
         # Runing the job

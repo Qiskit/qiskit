@@ -76,10 +76,10 @@ class TestCrossSimulation(QiskitTestCase):
         sim_ibmq = 'ibmq_qasm_simulator'
         sim_hpc = 'ibmq_qasm_simulator_hpc'
         shots = 2000
-        result_cpp = execute(circ, sim_cpp, {'shots': shots}).result()
-        result_py = execute(circ, sim_py, {'shots': shots}).result()
-        result_ibmq = execute(circ, sim_ibmq, {'shots': shots}).result()
-        result_hpc = execute(circ, sim_hpc, {'shots': shots}).result()
+        result_cpp = execute(circ, sim_cpp, shots=shots).result()
+        result_py = execute(circ, sim_py, shots=shots).result()
+        result_ibmq = execute(circ, sim_ibmq, shots=shots).result()
+        result_hpc = execute(circ, sim_hpc, shots=shots).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
         counts_ibmq = result_ibmq.get_counts()
@@ -103,8 +103,8 @@ class TestCrossSimulation(QiskitTestCase):
 
         sim_cpp = 'local_qasm_simulator_cpp'
         sim_py = 'local_qasm_simulator_py'
-        result_cpp = execute(circ, sim_cpp, {'shots': 2}).result()
-        result_py = execute(circ, sim_py, {'shots': 2}).result()
+        result_cpp = execute(circ, sim_cpp, shots=2).result()
+        result_py = execute(circ, sim_py, shots=2).result()
         snapshots_cpp = result_cpp.get_snapshots()
         snapshots_py = result_py.get_snapshots()
         self.assertEqual(snapshots_cpp.keys(), snapshots_py.keys())
@@ -137,8 +137,8 @@ class TestCrossSimulation(QiskitTestCase):
         # sim_ibmq = 'ibmq_qasm_simulator'
         # sim_hpc = 'ibmq_qasm_simulator_hpc'
         shots = 1000
-        result_cpp = execute(circ, sim_cpp, {'shots': shots}).result()
-        result_py = execute(circ, sim_py, {'shots': shots}).result()
+        result_cpp = execute(circ, sim_cpp, shots=shots, seed=1).result()
+        result_py = execute(circ, sim_py, shots=shots, seed=1).result()
         # result_ibmq = execute(circ, sim_ibmq, {'shots': shots}).result()
         # result_hpc = execute(circ, sim_hpc, {'shots': shots}).result()
         counts_cpp = result_cpp.get_counts()

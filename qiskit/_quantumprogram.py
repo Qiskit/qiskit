@@ -980,20 +980,10 @@ class QuantumProgram(object):
                 self.__quantum_program[name].name = name
                 list_of_circuits.append(self.__quantum_program[name])
 
-        compile_config = {
-            'backend': backend,
-            'config': config,
-            'basis_gates': basis_gates,
-            'coupling_map': coupling_map,
-            'initial_layout': initial_layout,
-            'shots': shots,
-            'max_credits': max_credits,
-            'seed': seed,
-            'qobj_id': qobj_id,
-            'hpc': hpc
-        }
         my_backend = qiskit.wrapper.get_backend(backend)
-        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend, compile_config,
+        qobj = qiskit.wrapper.compile(list_of_circuits, my_backend,
+                                      config, basis_gates, coupling_map, initial_layout,
+                                      shots, max_credits, seed, qobj_id, hpc,
                                       skip_translation)
         return qobj
 
@@ -1222,7 +1212,8 @@ class QuantumProgram(object):
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
-        qobj = self.compile(name_of_circuits=name_of_circuits, backend=backend, config=config,
+        qobj = self.compile(name_of_circuits=name_of_circuits, backend=backend,
+                            config=config,
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,

@@ -22,7 +22,7 @@ import unittest
 import qiskit
 import qiskit._compiler
 from qiskit import Result
-from qiskit.wrapper import get_backend
+from qiskit.wrapper import get_backend, execute
 from qiskit.backends.ibmq import IBMQProvider
 
 from .common import requires_qe_access, QiskitTestCase
@@ -129,7 +129,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        job = qiskit._compiler.execute(qc, backend)
+        job = qiskit.wrapper.execute(qc, backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -148,7 +148,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = qiskit._compiler.execute([qc, qc_extra], backend)
+        job = execute([qc, qc_extra], backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -253,7 +253,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        job = qiskit._compiler.execute(qc, backend)
+        job = execute(qc, backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -273,7 +273,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = qiskit._compiler.execute([qc, qc_extra], backend)
+        job = execute([qc, qc_extra], backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
