@@ -10,7 +10,7 @@ Quantum device:
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import execute, register
 
-    # Set your API Token
+    # Set your API Token.
     # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
     # looking for "Personal Access Token" section.
     QX_TOKEN = "API_TOKEN"
@@ -36,7 +36,7 @@ Quantum device:
     qc.measure(q, c)
 
     # Compile and run the Quantum Program on a real device backend
-    job = execute(qc, 'ibmqx4')
+    job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
     result = job.result()
 
     # Show the results
@@ -57,7 +57,7 @@ the IBM Q features:
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import execute, register
 
-    # Set your API Token
+    # Set your API Token and credentials.
     # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
     # looking for "Personal Access Token" section.
     QX_TOKEN = "API_TOKEN"
@@ -89,7 +89,7 @@ the IBM Q features:
     qc.measure(q, c)
 
     # Compile and run the Quantum Program on a real device backend
-    job = execute(qc, 'ibmqx4')
+    job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
     result = job.result()
 
     # Show the results
