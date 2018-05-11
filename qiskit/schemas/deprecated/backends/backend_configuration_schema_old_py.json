@@ -1,0 +1,71 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://qiskit.org/backend/configuration-01/schema#",
+    "description": "QISKit device backend configuration",
+    "type": "object",
+    "required": [
+        "name",
+        "coupling_map",
+        "basis_gates",
+        "simulator",
+        "local"
+    ],
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "version": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string",
+            "format": "uri"
+        },
+        "simulator": {
+            "type": "boolean",
+            "default": false
+        },
+        "local": {
+            "type": "boolean",
+            "default": false
+        },
+        "description": {
+            "type": "string"
+        },
+        "n_qubits": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "coupling_map": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "all-to-all"
+                    ]
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "item": "integer",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "uniqueItems": true
+                    },
+                    "uniqueItems": true
+                }
+            ]
+        },
+        "basis_gates": {
+            "type": "string"
+        },
+        "online_date": {
+            "type": "string",
+            "format": "date"
+        },
+        "chip_name": {
+            "type": "string"
+        }
+    }
+}
