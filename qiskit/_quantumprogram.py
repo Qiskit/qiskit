@@ -690,7 +690,7 @@ class QuantumProgram(object):
             "Using qiskit.register() instead is recommended.", DeprecationWarning)
         qiskit.wrapper.register(token, url,
                                 hub, group, project, proxies, verify,
-                                provider_name='qiskit')
+                                provider_name='ibmq')
 
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
