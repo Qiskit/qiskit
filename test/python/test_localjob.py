@@ -18,15 +18,17 @@
 
 """LocalJob Test."""
 
+import sys
 import unittest
-import time
+from concurrent import futures
+
 import numpy
 from scipy.stats import chi2_contingency
 
+import qiskit._compiler
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
-import qiskit._compiler
-from qiskit.backends.local import LocalProvider
+from qiskit.backends.local import LocalProvider, LocalJob
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -79,10 +81,28 @@ class TestLocalJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        time.sleep(0.1)  # give time for jobs to start (better way?)
-        self.assertTrue(all([job.running for job in job_array]))
+
+        # Wait for all the results.
+        result_array = [job.result() for job in job_array]
+
+        # Ensure all jobs have finished.
+        self.assertTrue(all([job.done for job in job_array]))
+        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
     def test_cancel(self):
+        """Test the cancelation of jobs.
+
+        Since only Jobs that are still in the executor queue pending to be
+        executed can be cancelled, this test launches a lot of jobs, passing
+        if some of them can be cancelled.
+        """
+        # Force the number of workers to 1, as only Jobs that are still in
+        # the executor queue can be canceled.
+        if sys.platform == 'darwin':
+            LocalJob._executor = futures.ThreadPoolExecutor(max_workers=1)
+        else:
+            LocalJob._executor = futures.ProcessPoolExecutor(max_workers=1)
+
         backend = self._provider.get_backend('local_qasm_simulator_py')
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'q')
@@ -95,8 +115,11 @@ class TestLocalJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
         num_jobs = 50
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        time.sleep(0.1)
-        for job in job_array:
+
+        # Try to cancel them in the reverse order they were launched: the
+        # most recent job is the one with more chances of still being in the
+        # queue.
+        for job in reversed(job_array):
             job.cancel()
         num_cancelled = sum([job.cancelled for job in job_array])
         self.log.info('number of successfully cancelled jobs: %d/%d',

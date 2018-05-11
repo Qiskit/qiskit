@@ -31,6 +31,14 @@ from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
+def lowest_pending_jobs(backends):
+    """Returns the backend with lowest pending jobs."""
+    backends = filter(lambda x: x.status.get('available', False), backends)
+    by_pending_jobs = sorted(backends,
+                             key=lambda x: x.status['pending_jobs'])
+    return by_pending_jobs[0]
+
+
 class TestIBMQJob(QiskitTestCase):
     """
     Test ibmqjob module.
@@ -72,7 +80,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_device(self):
-        backend = self._provider.available_backends({'simulator': False})[0]
+        backends = self._provider.available_backends({'simulator': False})
+        backend = lowest_pending_jobs(backends)
         self.log.info(backend.name)
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
@@ -143,7 +152,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_async_device(self):
-        backend = self._provider.available_backends({'simulator': False})[0]
+        backends = self._provider.available_backends({'simulator': False})
+        backend = lowest_pending_jobs(backends)
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
