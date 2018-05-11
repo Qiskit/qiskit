@@ -24,10 +24,11 @@ Note: if you have only cloned the QISKit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
+import time
+
 # Import the QISKit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
 from qiskit import available_backends, execute, register, get_backend
-
 
 try:
     import Qconfig
@@ -84,22 +85,31 @@ try:
     print(available_backends({'local': False}))
 
     # Compile and run on a real device backend
-    try:
+    #try:
+    if 0==0:
         # select least busy available device and execute.
         best_device = lowest_pending_jobs()
         print("Running on current least busy device: ", best_device)
 
         # running the job
-        job_exp = execute([qc1, qc2], backend_name=best_device,
-                             shots=1024, max_credits=10)
-                             
+        job_exp = execute([qc1, qc2], backend=best_device, shots=1024, max_credits=10)
+
+        print('JOB ID: {}'.format(job_exp.status['job_id']))
+        lapse = 0
+        interval = 10
+        while not job_exp.done:
+            print('Status @ {} seconds'.format(interval * lapse))
+            print(job_exp.status)
+            time.sleep(interval)
+            lapse += 1
+        print(job_exp.status)
         exp_result = job_exp.result()
 
         # Show the results
         print("experiment: ", exp_result)
         print(exp_result.get_counts(qc1))
         print(exp_result.get_counts(qc2))
-    except:
+    #except:
         print("All devices are currently unavailable.")
 except QISKitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
