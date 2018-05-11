@@ -137,14 +137,24 @@ def get_backend(name):
 # Functions for compiling and executing.
 
 
-def compile(circuits, backend, compile_config=None, skip_translation=False):
+def compile(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
+            skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile.
-        backend (BaseBackend or str): a backend to compile for.
-        compile_config (dict or None): a dictionary of compile configurations.
-            If `None`, the default compile configuration will be used.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
+        backend (BaseBackend or str): a backend to compile for
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
     Returns:
@@ -153,17 +163,30 @@ def compile(circuits, backend, compile_config=None, skip_translation=False):
     # pylint: disable=redefined-builtin
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
-    return qiskit._compiler.compile(circuits, backend, compile_config, skip_translation)
+    return qiskit._compiler.compile(circuits, backend,
+                                    config, basis_gates, coupling_map, initial_layout,
+                                    shots, max_credits, seed, qobj_id, hpc,
+                                    skip_translation)
 
 
-def execute(circuits, backend, compile_config=None,
+def execute(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
             skip_translation=False):
     """Executes a set of circuits.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute.
-        backend (BaseBackend or str): a backend to execute the circuits on.
-        compile_config (dict or None): a dictionary of compile configurations.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
+        backend (BaseBackend or str): a backend to execute the circuits on
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
@@ -171,7 +194,10 @@ def execute(circuits, backend, compile_config=None,
     """
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
-    qobj = compile(circuits, backend, compile_config, skip_translation)
+    qobj = compile(circuits, backend,
+                   config, basis_gates, coupling_map, initial_layout,
+                   shots, max_credits, seed, qobj_id, hpc,
+                   skip_translation)
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits']})

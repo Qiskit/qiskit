@@ -30,7 +30,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit.wrapper import get_backend
 import qiskit._compiler
-from qiskit._compiler import compile_circuit, COMPILE_CONFIG_DEFAULT
+from qiskit._compiler import compile_circuit
 from ._random_circuit_generator import RandomCircuitGenerator
 from .common import QiskitTestCase
 
@@ -80,10 +80,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         qc = QuantumCircuit(qr, cr, name='test_gate_x')
         qc.x(qr[0])
         qc.measure(qr, cr)
-        cconfig = COMPILE_CONFIG_DEFAULT
-        cconfig['shots'] = shots
-        qobj = qiskit._compiler.compile([qc], pq_simulator,
-                                        compile_config=cconfig)
+        qobj = qiskit._compiler.compile([qc], pq_simulator, shots=shots)
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
                            resources={'max_credits': qobj['config']['max_credits']})
         job = pq_simulator.run(q_job)
@@ -92,6 +89,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
                          {'1': shots})
 
     def test_entangle(self):
+        shots = 100
         N = 5
         qr = QuantumRegister(N)
         cr = ClassicalRegister(N)
@@ -101,10 +99,7 @@ class TestQasmSimulatorProjectQ(QiskitTestCase):
         for i in range(1, N):
             qc.cx(qr[0], qr[i])
         qc.measure(qr, cr)
-        cconfig = COMPILE_CONFIG_DEFAULT
-        cconfig['shots'] = 100
-        qobj = qiskit._compiler.compile([qc], pq_simulator,
-                                        compile_config=cconfig)
+        qobj = qiskit._compiler.compile([qc], pq_simulator, shots=shots)
         timeout = 30
         q_job = QuantumJob(qobj, pq_simulator, preformatted=True,
                            resources={'max_credits': qobj['config']['max_credits']})
