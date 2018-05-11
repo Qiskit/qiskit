@@ -20,7 +20,6 @@
 
 import unittest
 import time
-import sys
 from concurrent import futures
 import numpy
 from scipy.stats import chi2_contingency
@@ -136,16 +135,16 @@ class TestIBMQJob(QiskitTestCase):
                 # done too soon? don't generate error
                 self.log.warning('all jobs completed before simultaneous jobs '
                                  'could be detected')
-                break 
+                break
             for job in job_array:
-                self.log.info(str(job.status['status']) + ' ' + repr(job.running) +
-                              ' ' + repr(check) + ' ' + repr(job.job_id))
+                self.log.info('{0} {1} {2} {3}'.format(
+                    job.status['status'], job.running, check, job.job_id))
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))
             time.sleep(0.2)
-            
+
         result_array = [job.result() for job in job_array]
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
