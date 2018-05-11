@@ -17,9 +17,9 @@ this project, one can do,
 
     # Import the QISKit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit.wrapper import available_backends, execute
+    from qiskit import available_backends, execute
 
-    # Create a Quantum Register with 2 qubits
+    # Create a Quantum Register with 2 qubits.
     q = QuantumRegister(2)
     # Create a Classical Register with 2 bits.
     c = ClassicalRegister(2)
@@ -38,13 +38,14 @@ this project, one can do,
     print("Local backends: ", available_backends({'local': True}))
 
     # Compile and run the Quantum circuit on a simulator backend
-    sim_result = execute(qc, 'local_qasm_simulator')
+    job_sim = execute(qc, "local_qasm_simulator")
+    sim_result = job_sim.result()
 
     # Show the results
     print("simulation: ", sim_result)
     print(sim_result.get_counts(qc))
 
-The :func:`~qiskit.Result.get_counts>` method outputs a dictionary of
+The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
 ``state:counts`` pairs;
 
 .. code-block:: python
@@ -57,11 +58,13 @@ Quantum Chips
 You can execute your QASM circuits on a real chip by using the IBM Q experience (QX) cloud platform. 
 Currently through QX you can use the following chips:
 
--   ibmqx2: `5-qubit backend <https://ibm.biz/qiskit-ibmqx2>`_
+-   ``ibmqx4``: `5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`_
 
--   ibmqx3: `16-qubit backend <https://ibm.biz/qiskit-ibmqx3>`_
+-   ``ibmqx5``: `16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`_
 
-For chip details visit the `IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
+For chip details and realtime information about availability visit the
+`IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
+and the `IBM Q experience devices page <https://quantumexperience.ng.bluemix.net/qx/devices>`_.
 
 .. include:: example_real_backend.rst
 
