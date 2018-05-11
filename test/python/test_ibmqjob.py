@@ -20,13 +20,15 @@
 
 import unittest
 import time
+import sys
+from concurrent import futures
 import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
 import qiskit._compiler
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.ibmq import IBMQProvider, IBMQJob
 from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
@@ -106,10 +108,12 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertDictAlmostEqual(counts_qx, counts_ex, shots*0.1)
 
+    @slow_test
     def test_run_async_simulator(self):
+        IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)        
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
-        num_qubits = 5
+        num_qubits = 16
         qr = QuantumRegister(num_qubits, 'qr')
         cr = ClassicalRegister(num_qubits, 'cr')
         qc = QuantumCircuit(qr, cr)
@@ -120,28 +124,30 @@ class TestIBMQJob(QiskitTestCase):
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-        time.sleep(3)  # give time for jobs to start (better way?)
-        job_status = [job.status['status'] for job in job_array]
-        num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
-        num_queued = sum([status == JobStatus.QUEUED for status in job_status])
-        num_running = sum([status == JobStatus.RUNNING for status in job_status])
-        num_done = sum([status == JobStatus.DONE for status in job_status])
-        num_error = sum([status == JobStatus.ERROR for status in job_status])
-        self.log.info('number of currently initializing jobs: %d/%d',
-                      num_init, num_jobs)
-        self.log.info('number of currently queued jobs: %d/%d',
-                      num_queued, num_jobs)
-        self.log.info('number of currently running jobs: %d/%d',
-                      num_running, num_jobs)
-        self.log.info('number of currently done jobs: %d/%d',
-                      num_done, num_jobs)
-        self.log.info('number of errored jobs: %d/%d',
-                      num_error, num_jobs)
-        self.assertTrue(num_jobs - num_error - num_done > 0)
-
-        # Wait for all the results.
+        found_async_jobs = False
+        timeout = 30
+        start_time = time.time()
+        while not found_async_jobs:
+            check = sum([job.running for job in job_array])
+            if check >= 2:
+                self.log.info('found %d simultaneous jobs', check)
+                break
+            if all([job.done for job in job_array]):
+                # done too soon? don't generate error
+                self.log.warn('all jobs completed before simultaneous jobs '
+                              'could be detected')
+                break 
+            for job in job_array:
+                self.log.info(str(job.status['status']) + ' ' + repr(job.running) +
+                              ' ' + repr(check) + ' ' + repr(job.job_id))
+            self.log.info('-'*20 + ' ' + str(time.time()-start_time))
+            if time.time() - start_time > timeout:
+                raise TimeoutError('failed to see multiple running jobs after '
+                                   '{0} s'.format(timeout))
+            time.sleep(0.2)
+            
         result_array = [job.result() for job in job_array]
-
+        self.log.info('got back all job results')
         # Ensure all jobs have finished.
         self.assertTrue(all([job.done for job in job_array]))
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
