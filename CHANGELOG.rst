@@ -22,11 +22,8 @@ Improvements
     - Introduce the DefaultQISKitProvider, which acts as a context manager for the current session
       (e.g. providing easy access to all ``available_backends``).
     - Avoid relying on QuantumProgram (eventual deprecation).
-- Introduce the QISKit Transpiler (#)
-    - ``PassManager`` class.
-    - ``BasePass`` class.
-    - ``CXCancellation`` pass to cancel consecutive runs of cx gates.
-    - Optional ``passmanager`` argument to ``transpiler.compile``.
+    - The functions are also available as top-level functions (for example,
+      ``qiskit.get_backend()``).
 - Introduce ``BaseJob`` class and asynchronous jobs (#403).
     - Return ``BaseJob`` after ``run()``.
     - Mechanisms for querying ``status`` and ``results``, or to ``cancel`` a job
@@ -67,9 +64,12 @@ Bug Fixes
 Backward-incompatible changes
 -----------------------------
 
+- Some methods of ``QuantumProgram`` are soon to be deprecated. Please use the
+  top-level functions instead.
+- The ``Register`` instantiation now expects ``size, name``. Using
+  ``name, size`` is still supported but will be deprecated in the future.
 - Simulators no longer return wavefunction by setting shots=1. Instead,
   use the ``local_statevector_simulator``, or explicitly ask for ``snapshot``.
-- Remove the QuantumJob class.
 - Return ``job`` instance after ``run()``, rather than ``result``.
 - Rename simulators according to ``PROVIDERNAME_SIMPLEALIAS_simulator_LANGUAGEORPROJECT``
 - Move simulator extensions to ``qiskit/extensions/simulator``
