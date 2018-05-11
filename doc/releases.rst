@@ -7,9 +7,9 @@ Release notes
 QISKit SDK 0.5.0
 ================
 
-This release brings a number of improvements to QISKit, both for end users and
-under the hood. Please refer to the full changelog for a detailed description
-of the changes - the highlights are:
+This release brings a number of improvements to QISKit, both for the user
+experience and under the hood. Please refer to the full changelog for a
+detailed description of the changes - the highlights are:
 
 * new ``statevector`` :mod:`simulators <qiskit.backends.local>` and feature and
   performance improvements to the existing ones (in particular to the C++
@@ -45,8 +45,8 @@ to being deprecated:
   :func:`qiskit.register` method provides the equivalent of the previous
   :func:`qiskit.QuantumProgram.set_api` call. In a similar vein, there is a new
   :func:`qiskit.available_backends`, :func:`qiskit.get_backend` and related
-  functions for querying the available backends directly, and they now return
-  ``Backend`` instances. For example, the following snippet for version 0.4::
+  functions for querying the available backends directly. For example, the
+  following snippet for version 0.4::
 
     from qiskit import QuantumProgram
 
@@ -109,10 +109,44 @@ some design changes accordingly:
 
     from qiskit import get_backend
 
-    backend = get_backend('local_unitary_simulator')
+    backend = get_backend('local_statevector_simulator')
 
-  the backend will be the C++ unitary simulator if available, falling back to
-  the Python unitary simulator if not present.
+  the backend will be the C++ statevector simulator if available, falling back to
+  the Python statevector simulator if not present.
+
+More flexible names and parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Several functions of the SDK have been made more flexible and user-friendly:
+
+* **automatic circuit and register names**
+
+  :class:`qiskit.ClassicalRegister`, :class:`qiskit.QuantumRegister` and
+  :class:`qiskit.QuantumCircuit` can now be instantiated without explicitly
+  giving them a name - a new autonaming feature will automatically assign them
+  an identifier::
+
+    q = QuantumRegister(2)
+
+  Please note as well that the order of the parameters have been swapped
+  ``QuantumRegister(size, name)``.
+
+* **methods accepting names or instances**
+
+  In combination with the autonaming changes, several methods such as
+  :func:`qiskit.Result.get_data` now accept both names and instances for
+  convenience. For example, when retrieving the results for a job that has a
+  single circuit such as::
+
+    qc = QuantumCircuit(..., name='my_circuit')
+    job = execute(qc, ...)
+    result = job.result()
+
+  The following calls are equivalent::
+
+    data = result.get_data('my_circuit')
+    data = result.get_data(qc)
+    data = result.get_data()
 
 
 Changelog
