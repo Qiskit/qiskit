@@ -29,7 +29,7 @@ _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 def register(token, url,
              hub=None, group=None, project=None, proxies=None, verify=True,
-             provider_name='qiskit'):
+             provider_name='ibmq'):
     """
     Authenticate against an online backend provider.
 
@@ -45,11 +45,11 @@ def register(token, url,
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
             provider_name (str): the unique name for the online backend
-                provider (for example, 'qiskit' for the IBM Quantum Experience).
+                provider (for example, 'ibmq' for the IBM Quantum Experience).
     Raises:
         QISKitError: if the provider name is not recognized.
     """
-    if provider_name == 'qiskit':
+    if provider_name == 'ibmq':
         provider = IBMQProvider(token, url,
                                 hub, group, project, proxies, verify)
         _DEFAULT_PROVIDER.add_provider(provider)
