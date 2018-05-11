@@ -93,11 +93,11 @@ class TestLocalJob(QiskitTestCase):
         """Test the cancelation of jobs.
 
         Since only Jobs that are still in the executor queue pending to be
-        executed can be cancelled, this tests launches a lot of jobs, passing
+        executed can be cancelled, this test launches a lot of jobs, passing
         if some of them can be cancelled.
         """
         # Force the number of workers to 1, as only Jobs that are still in
-        # the executor queue can be queue.
+        # the executor queue can be canceled.
         if sys.platform == 'darwin':
             LocalJob._executor = futures.ThreadPoolExecutor(max_workers=1)
         else:
@@ -116,7 +116,7 @@ class TestLocalJob(QiskitTestCase):
         num_jobs = 50
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
 
-        # Try to cancel them in the reversed order they were launched: the
+        # Try to cancel them in the reverse order they were launched: the
         # most recent job is the one with more chances of still being in the
         # queue.
         for job in reversed(job_array):
