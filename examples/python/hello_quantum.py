@@ -6,8 +6,9 @@ used `pip install`, the examples only work from the root directory.
 """
 
 # Import the QISKit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit.wrapper import available_backends, execute, register, get_backend
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit import QISKitError, available_backends, execute, register, get_backend
+
 
 # Authenticate for access to remote backends
 try:
@@ -49,7 +50,8 @@ try:
     print("Local backends: ", available_backends({'local': True}))
 
     # Compile and run the Quantum circuit on a simulator backend
-    sim_result = execute(qc, "local_qasm_simulator")
+    job_sim = execute(qc, "local_qasm_simulator")
+    sim_result = job_sim.result()
 
     # Show the results
     print("simulation: ", sim_result)
@@ -65,7 +67,8 @@ try:
         print("Running on current least busy device: ", best_device)
 
         #runing the job
-        exp_result = execute(qc, best_device, shots=1024, max_credits=10)
+        job_exp = execute(qc, best_device, shots=1024, max_credits=10)
+        exp_result = job_exp.result()
 
         # Show the results
         print("experiment: ", exp_result)
