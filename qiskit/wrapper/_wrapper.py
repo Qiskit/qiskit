@@ -20,6 +20,7 @@ import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit import QuantumJob
 
 # Default provider used by the rest of the functions on this module. Please
 # note that this is a global object.
@@ -136,37 +137,68 @@ def get_backend(name):
 # Functions for compiling and executing.
 
 
-def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
+def compile(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
+            skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-        backend (BaseBackend): a backend to use as the default compiling
-            option.
-        compile_config (dict or None): a dictionary of compile configurations.
-            If `None`, the default compile configuration will be used.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
+        backend (BaseBackend or str): a backend to compile for
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
     Returns:
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
-    return qiskit._compiler.compile(list_of_circuits, backend, compile_config, skip_translation)
+    if isinstance(backend, str):
+        backend = _DEFAULT_PROVIDER.get_backend(backend)
+    return qiskit._compiler.compile(circuits, backend,
+                                    config, basis_gates, coupling_map, initial_layout,
+                                    shots, max_credits, seed, qobj_id, hpc,
+                                    skip_translation)
 
 
-def execute(list_of_circuits, backend_name, compile_config=None,
+def execute(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
             skip_translation=False):
     """Executes a set of circuits.
 
     Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits.
-        backend_name (str): the name of the backend to execute the circuits on.
-        compile_config (dict or None): a dictionary of compile configurations.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
+        backend (BaseBackend or str): a backend to execute the circuits on
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
-    backend = _DEFAULT_PROVIDER.get_backend(backend_name)
-    return qiskit._compiler.execute(list_of_circuits, backend, compile_config,
-                                    skip_translation)
+    if isinstance(backend, str):
+        backend = _DEFAULT_PROVIDER.get_backend(backend)
+    qobj = compile(circuits, backend,
+                   config, basis_gates, coupling_map, initial_layout,
+                   shots, max_credits, seed, qobj_id, hpc,
+                   skip_translation)
+    # XXX When qobj is done this should replace q_job
+    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
+        'max_credits': qobj['config']['max_credits']})
+    return backend.run(q_job)

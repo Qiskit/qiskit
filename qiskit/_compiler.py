@@ -33,59 +33,31 @@ from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
-from ._quantumjob import QuantumJob
 
 logger = logging.getLogger(__name__)
 
-COMPILE_CONFIG_DEFAULT = {
-    'config': None,
-    'basis_gates': None,
-    'coupling_map': None,
-    'initial_layout': None,
-    'shots': 1024,
-    'max_credits': 10,
-    'seed': 1,
-    'qobj_id': None,
-    'hpc': None
-}
 
-
-def execute(list_of_circuits, backend, compile_config=None,
+def compile(circuits, backend,
+            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
             skip_translation=False):
-    """Executes a set of circuits.
-
-    Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-
-        backend (BaseBackend): A string for the backend name to use
-        compile_config (dict or None): a dictionary of compile configurations.
-        skip_translation (bool): skip most of the compile steps and produce qobj directly
-
-    Returns:
-        BaseJob: returns job instance derived from BaseJob
-    """
-    compile_config = compile_config or {}
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    qobj = compile(list_of_circuits, backend, compile_config, skip_translation)
-
-    # XXX When qobj is done this should replace q_job
-    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits']})
-    return backend.run(q_job)
-
-
-def compile(list_of_circuits, backend, compile_config=None, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
     of circuit->dag, transpiler (dag -> dag) and dags-> qobj
 
     Args:
-        list_of_circuits (list[QuantumCircuits]): list of circuits
-        backend (BaseBackend): a backend object to use as the default compiling
-            option
-        compile_config (dict or None): a dictionary of compile configurations.
-            If `None`, the default compile configuration will be used.
+        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
+        backend (BaseBackend): a backend to compile for
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
+        hpc (dict): HPC simulator parameters
         skip_translation (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
 
@@ -96,20 +68,8 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
         QISKitError: if any of the circuit names cannot be found on the
             Quantum Program.
     """
-    if isinstance(list_of_circuits, QuantumCircuit):
-        list_of_circuits = [list_of_circuits]
-
-    compile_config = compile_config or {}
-    compile_config = {**COMPILE_CONFIG_DEFAULT, **compile_config}
-    config = compile_config['config']
-    basis_gates = compile_config['basis_gates']
-    coupling_map = compile_config['coupling_map']
-    initial_layout = compile_config['initial_layout']
-    shots = compile_config['shots']
-    max_credits = compile_config['max_credits']
-    seed = compile_config['seed']
-    qobj_id = compile_config['qobj_id']
-    hpc = compile_config['hpc']
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
 
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
@@ -156,7 +116,7 @@ def compile(list_of_circuits, backend, compile_config=None, skip_translation=Fal
     if not coupling_map:
         coupling_map = backend_conf['coupling_map']
 
-    for circuit in list_of_circuits:
+    for circuit in circuits:
         num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
         # TODO: A better solution is to have options to enable/disable optimizations
         if num_qubits == 1:
