@@ -100,7 +100,7 @@ class TestBackends(QiskitTestCase):
         backend = local_provider.get_backend(name='local_qasm_simulator')
         status = backend.status
         schema_path = self._get_resource_path(
-            'backends/backend_status_schema_py.json', path=Path.SCHEMAS)
+            'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
@@ -118,7 +118,7 @@ class TestBackends(QiskitTestCase):
         for backend in remotes:
             status = backend.status
             schema_path = self._get_resource_path(
-                'backends/backend_status_schema_py.json', path=Path.SCHEMAS)
+                'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(status, schema)
@@ -133,7 +133,7 @@ class TestBackends(QiskitTestCase):
         for backend in local_backends:
             configuration = backend.configuration
             schema_path = self._get_resource_path(
-                'backends/backend_configuration_schema_old_py.json',
+                'deprecated/backends/backend_configuration_schema_old_py.json',
                 path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
@@ -151,7 +151,7 @@ class TestBackends(QiskitTestCase):
         for backend in remotes:
             configuration = backend.configuration
             schema_path = self._get_resource_path(
-                'backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
+                'deprecated/backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(configuration, schema)
