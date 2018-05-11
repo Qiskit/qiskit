@@ -22,7 +22,7 @@ Methods to assist with compiling tasks.
 import math
 
 import numpy as np
-from scipy.linalg import expm
+import scipy.linalg as la
 
 from ._mappererror import MapperError
 
@@ -40,7 +40,7 @@ def euler_angles_1q(unitary_matrix):
     small = 1e-10
     if unitary_matrix.shape != (2, 2):
         raise MapperError("compiling.euler_angles_1q expected 2x2 matrix")
-    phase = np.linalg.det(unitary_matrix)**(-1.0/2.0)
+    phase = la.det(unitary_matrix)**(-1.0/2.0)
     U = phase * unitary_matrix  # U in SU(2)
     # OpenQASM SU(2) parameterization:
     # U[0, 0] = exp(-i(phi+lambda)/2) * cos(theta/2)
@@ -78,7 +78,7 @@ def euler_angles_1q(unitary_matrix):
     Rzlambda = np.array([[np.exp(-1j*lamb/2.0), 0],
                          [0, np.exp(1j*lamb/2.0)]], dtype=complex)
     V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
-    if np.linalg.norm(V - U) > small:
+    if la.norm(V - U) > small:
         raise MapperError("compiling.euler_angles_1q incorrect result")
     return theta, phi, lamb, "U(%.15f,%.15f,%.15f)" % (theta, phi, lamb)
 
@@ -159,14 +159,14 @@ def two_qubit_kak(unitary_matrix):
     """
     if unitary_matrix.shape != (4, 4):
         raise MapperError("compiling.two_qubit_kak expected 4x4 matrix")
-    phase = np.linalg.det(unitary_matrix)**(-1.0/4.0)
+    phase = la.det(unitary_matrix)**(-1.0/4.0)
     # Make it in SU(4), correct phase at the end
     U = phase * unitary_matrix
     # B changes to the Bell basis
-    B = (1.0/math.sqrt(2)) * np.array([[1, 1j, 0, 0],
-                                       [0, 0, 1j, 1],
-                                       [0, 0, 1j, -1],
-                                       [1, -1j, 0, 0]], dtype=complex)
+    B = (1.0/np.sqrt(2)) * np.array([[1, 1j, 0, 0],
+                                     [0, 0, 1j, 1],
+                                     [0, 0, 1j, -1],
+                                     [1, -1j, 0, 0]], dtype=complex)
     # U' = Bdag . U . B
     Uprime = np.dot(np.transpose(B.conjugate()), np.dot(U, B))
     # M^2 = trans(U') . U'
@@ -174,9 +174,9 @@ def two_qubit_kak(unitary_matrix):
     # Diagonalize M2
     # Must use diagonalization routine which finds a real orthogonal matrix P
     # when M2 is real.
-    D, P = np.linalg.eig(M2)
+    D, P = la.eig(M2)
     # If det(P) == -1, apply a swap to make P in SO(4)
-    if abs(np.linalg.det(P)+1) < 1e-5:
+    if abs(la.det(P)+1) < 1e-5:
         swap = np.array([[1, 0, 0, 0],
                          [0, 0, 1, 0],
                          [0, 1, 0, 0],
@@ -185,15 +185,15 @@ def two_qubit_kak(unitary_matrix):
         D = np.diag(np.dot(swap, np.dot(np.diag(D), swap)))
     Q = np.diag(np.sqrt(D))  # array from elementwise sqrt
     # Want to take square root so that Q has determinant 1
-    if abs(np.linalg.det(Q)+1) < 1e-5:
+    if abs(la.det(Q)+1) < 1e-5:
         Q[0, 0] = -Q[0, 0]
-    Kprime = np.dot(Uprime, np.dot(P, np.dot(np.linalg.inv(Q),
+    Kprime = np.dot(Uprime, np.dot(P, np.dot(la.inv(Q),
                                              np.transpose(P))))
     K1 = np.dot(B, np.dot(Kprime, np.dot(P, np.transpose(B.conjugate()))))
     A = np.dot(B, np.dot(Q, np.transpose(B.conjugate())))
     K2 = np.dot(B, np.dot(np.transpose(P), np.transpose(B.conjugate())))
     KAK = np.dot(K1, np.dot(A, K2))
-    if np.linalg.norm(KAK - U, 2) > 1e-6:
+    if la.norm(KAK - U, 2) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
                           "unknown error in KAK decomposition")
     # Compute parameters alpha, beta, gamma so that
@@ -210,9 +210,9 @@ def two_qubit_kak(unitary_matrix):
     # K1 = kron(U1, U2) and K2 = kron(V1, V2)
     # Find the matrices U1, U2, V1, V2
     L = K1[0:2, 0:2]
-    if np.linalg.norm(L) < 1e-9:
+    if la.norm(L) < 1e-9:
         L = K1[0:2, 2:4]
-        if np.linalg.norm(L) < 1e-9:
+        if la.norm(L) < 1e-9:
             L = K1[2:4, 2:4]
     Q = np.dot(L, np.transpose(L.conjugate()))
     U2 = L / np.sqrt(Q[0, 0])
@@ -223,9 +223,9 @@ def two_qubit_kak(unitary_matrix):
     U1[1, 0] = R[2, 0]
     U1[1, 1] = R[2, 2]
     L = K2[0:2, 0:2]
-    if np.linalg.norm(L) < 1e-9:
+    if la.norm(L) < 1e-9:
         L = K2[0:2, 2:4]
-        if np.linalg.norm(L) < 1e-9:
+        if la.norm(L) < 1e-9:
             L = K2[2:4, 2:4]
     Q = np.dot(L, np.transpose(L.conjugate()))
     V2 = L / np.sqrt(Q[0, 0])
@@ -235,12 +235,12 @@ def two_qubit_kak(unitary_matrix):
     V1[0, 1] = R[0, 2]
     V1[1, 0] = R[2, 0]
     V1[1, 1] = R[2, 2]
-    if np.linalg.norm(np.kron(U1, U2) - K1) > 1e-4 or \
-       np.linalg.norm(np.kron(V1, V2) - K2) > 1e-4:
+    if la.norm(np.kron(U1, U2) - K1) > 1e-4 or \
+       la.norm(np.kron(V1, V2) - K2) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
                           "error in SU(2) x SU(2) part")
-    test = expm(1j*(alpha * xx + beta * yy + gamma * zz))
-    if np.linalg.norm(A - test) > 1e-4:
+    test = la.expm(1j*(alpha * xx + beta * yy + gamma * zz))
+    if la.norm(A - test) > 1e-4:
         raise MapperError("compiling.two_qubit_kak: " +
                           "error in A part")
     # Circuit that implements K1 * A * K2 (up to phase), using
@@ -286,7 +286,7 @@ def two_qubit_kak(unitary_matrix):
     V = np.dot(g6, V)
     V = np.dot(g7, V)
 
-    if np.linalg.norm(V - U*phase.conjugate()) > 1e-6:
+    if la.norm(V - U*phase.conjugate()) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
                           "sequence incorrect, unknown error")
 
@@ -387,11 +387,11 @@ def two_qubit_kak(unitary_matrix):
                 V = np.dot(np.kron(np.identity(2),
                                    rz_array(gate["params"][1])), V)
     # Put V in SU(4) and test up to global phase
-    V = np.linalg.det(V)**(-1.0/4.0) * V
-    if np.linalg.norm(V - U) > 1e-6 and \
-       np.linalg.norm(1j*V - U) > 1e-6 and \
-       np.linalg.norm(-1*V - U) > 1e-6 and \
-       np.linalg.norm(-1j*V - U) > 1e-6:
+    V = la.det(V)**(-1.0/4.0) * V
+    if la.norm(V - U) > 1e-6 and \
+       la.norm(1j*V - U) > 1e-6 and \
+       la.norm(-1*V - U) > 1e-6 and \
+       la.norm(-1j*V - U) > 1e-6:
         raise MapperError("compiling.two_qubit_kak: " +
                           "sequence incorrect, unknown error")
 

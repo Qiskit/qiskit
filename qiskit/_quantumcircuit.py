@@ -31,6 +31,8 @@ from ._instructionset import InstructionSet
 
 class QuantumCircuit(object):
     """Quantum circuit."""
+    instances = 0
+    prefix = 'circuit'
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
@@ -48,13 +50,46 @@ class QuantumCircuit(object):
     definitions = OrderedDict()
 
     def __init__(self, *regs, name=None):
-        """Create a new circuit."""
+        """Create a new circuit.
+
+        Args:
+            *regs (Registers): registers to include in the circuit.
+            name (str or None): the name of the quantum circuit. If
+                None, an automatically generated identifier will be
+                assigned.
+
+        Raises:
+            QISKitError: if the circuit name, if given, is not valid.
+        """
+        self._increment_instances()
+        if name is None:
+            name = self.cls_prefix() + str(self.cls_instances())
+
+        if not isinstance(name, str):
+            raise QISKitError("The circuit name should be a string "
+                              "(or None for autogenerate a name).")
+
         self.name = name
         # Data contains a list of instructions in the order they were applied.
         self.data = []
         # This is a map of registers bound to this circuit, by name.
         self.regs = OrderedDict()
         self.add(*regs)
+
+    @classmethod
+    def _increment_instances(cls):
+        cls.instances += 1
+
+    @classmethod
+    def cls_instances(cls):
+        """Return the current number of instances of this class,
+        useful for auto naming."""
+        return cls.instances
+
+    @classmethod
+    def cls_prefix(cls):
+        """Return the prefix to use for auto naming."""
+        return cls.prefix
 
     def has_register(self, register):
         """
@@ -74,7 +109,7 @@ class QuantumCircuit(object):
 
     def get_qregs(self):
         """Get the qregs from the registers."""
-        qregs = {}
+        qregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, QuantumRegister):
                 qregs[name] = register
@@ -82,7 +117,7 @@ class QuantumCircuit(object):
 
     def get_cregs(self):
         """Get the cregs from the registers."""
-        cregs = {}
+        cregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, ClassicalRegister):
                 cregs[name] = register
@@ -182,6 +217,14 @@ class QuantumCircuit(object):
 
     def _check_qubit(self, qubit):
         """Raise exception if qubit is not in this circuit or bad format."""
+        if not isinstance(qubit, tuple):
+            raise QISKitError("%s is not a tuple."
+                              "A qubit should be formated as a tuple." % str(qubit))
+        if not len(qubit) == 2:
+            raise QISKitError("%s is not a tuple with two elements, but %i instead" % len(qubit))
+        if not isinstance(qubit[1], int):
+            raise QISKitError("The second element of a tuple defining a qubit should be an int:"
+                              "%s was found instead" % type(qubit[1]).__name__)
         self._check_qreg(qubit[0])
         qubit[0].check_range(qubit[1])
 
@@ -213,20 +256,20 @@ class QuantumCircuit(object):
         if self.definitions[name]["opaque"]:
             out += ";"
         else:
-            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}"
+            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}\n"
         return out
 
     def qasm(self):
         """Return OPENQASM string."""
-        string = self.header + "\n"
+        string_temp = self.header + "\n"
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
-                string += self._gate_string(gate_name)
+                string_temp += self._gate_string(gate_name)
         for register in self.regs.values():
-            string += register.qasm() + "\n"
+            string_temp += register.qasm() + "\n"
         for instruction in self.data:
-            string += instruction.qasm() + "\n"
-        return string
+            string_temp += instruction.qasm() + "\n"
+        return string_temp
 
     def measure(self, qubit, cbit):
         """Measure quantum bit into classical bit (tuples).

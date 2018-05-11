@@ -38,8 +38,8 @@ class CyGate(Gate):
         """Return OPENQASM string."""
         ctl = self.arg[0]
         tgt = self.arg[1]
-        return self._qasmif("cy %s[%d],%s[%d];" % (ctl[0].openqasm_name, ctl[1],
-                                                   tgt[0].openqasm_name, tgt[1]))
+        return self._qasmif("cy %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
+                                                   tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -58,6 +58,18 @@ def cy(self, ctl, tgt):
         for i in range(ctl.size):
             instructions.add(self.cy((ctl, i), (tgt, i)))
         return instructions
+
+    if isinstance(ctl, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(ctl.size):
+            gs.add(self.cy((ctl, j), tgt))
+        return gs
+
+    if isinstance(tgt, QuantumRegister):
+        gs = InstructionSet()
+        for j in range(tgt.size):
+            gs.add(self.cy(ctl, (tgt, j)))
+        return gs
 
     self._check_qubit(ctl)
     self._check_qubit(tgt)

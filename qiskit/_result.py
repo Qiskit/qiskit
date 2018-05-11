@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=no-else-return
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -19,7 +20,8 @@
 
 import copy
 import numpy
-from qiskit._qiskiterror import QISKitError
+from ._qiskiterror import QISKitError
+from ._quantumcircuit import QuantumCircuit
 
 
 class Result(object):
@@ -80,7 +82,15 @@ class Result(object):
         Raises:
             QISKitError: if the Results cannot be combined.
         """
-        if self._qobj['config'] == other._qobj['config']:
+        # TODO: reevaluate if moving equality to Backend themselves (part of
+        # a bigger problem - backend instances will not persist between
+        # sessions)
+        my_config = copy.deepcopy(self._qobj['config'])
+        other_config = copy.deepcopy(other._qobj['config'])
+        my_backend = my_config.pop('backend_name')
+        other_backend = other_config.pop('backend_name')
+
+        if my_config == other_config and my_backend == other_backend:
             if isinstance(self._qobj['id'], str):
                 self._qobj['id'] = [self._qobj['id']]
             self._qobj['id'].append(other._qobj['id'])
@@ -159,7 +169,7 @@ class Result(object):
             pass
         raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
-    def get_data(self, name=None):
+    def get_data(self, circuit_name=None):
         """Get the data of circuit name.
 
         The data format will depend on the backend. For a real device it
@@ -170,7 +180,7 @@ class Result(object):
 
         for the qasm simulators of 1 shot::
 
-            'quantum_state': array([ XXX,  ..., XXX]),
+            'statevector': array([ XXX,  ..., XXX]),
             'classical_state': 0
 
         for the qasm simulators of n shots::
@@ -188,7 +198,9 @@ class Result(object):
                                    XX + XXj]]
 
         Args:
-            name (str): the name of the quantum circuit.
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
 
         Returns:
             dict: A dictionary of data for the different backends.
@@ -204,32 +216,36 @@ class Result(object):
                 raise exception
             else:
                 raise QISKitError(str(exception))
+        if isinstance(circuit_name, QuantumCircuit):
+            circuit_name = circuit_name.name
 
-        if name is None:
+        if circuit_name is None:
             circuits = list([i['name'] for i in self._qobj['circuits']])
             if len(circuits) == 1:
-                name = circuits[0]
+                circuit_name = circuits[0]
             else:
                 raise QISKitError("You have to select a circuit when there is more than"
                                   "one available")
 
+        if not isinstance(circuit_name, str):
+            circuit_name = str(circuit_name)
         try:
             qobj = self._qobj
             for index in range(len(qobj['circuits'])):
-                if qobj['circuits'][index]['name'] == name:
+                if qobj['circuits'][index]['name'] == circuit_name:
                     return self._result['result'][index]['data']
         except (KeyError, TypeError):
             pass
-        raise QISKitError('No data for circuit "{0}"'.format(name))
+        raise QISKitError('No data for circuit "{0}"'.format(circuit_name))
 
-    def get_counts(self, name=None):
+    def get_counts(self, circuit_name=None):
         """Get the histogram data of circuit name.
 
         The data from the a qasm circuit is dictionary of the format
         {'00000': XXXX, '00001': XXXXX}.
 
         Args:
-            name (hashable or None): the name of the quantum circuit.
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
                 If None and there is only one circuit available, returns
                 that one.
 
@@ -240,9 +256,94 @@ class Result(object):
             QISKitError: if there are no counts for the circuit.
         """
         try:
-            return self.get_data(name)['counts']
+            return self.get_data(circuit_name)['counts']
         except KeyError:
-            raise QISKitError('No counts for circuit "{0}"'.format(name))
+            raise QISKitError('No counts for circuit "{0}"'.format(circuit_name))
+
+    def get_statevector(self, circuit_name=None):
+        """Get the final statevector of circuit name.
+
+        The data is a list of complex numbers
+        [1.+0.j, 0.+0.j].
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            list[complex]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no statevector for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['statevector']
+        except KeyError:
+            raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
+
+    def get_snapshots(self, circuit_name=None):
+        """Get snapshots recorded during the run.
+
+        The data is a dictionary:
+        where keys are requested snapshot slots.
+        and values are a dictionary of the snapshots themselves.
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there are no snapshots for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['snapshots']
+        except KeyError:
+            raise QISKitError('No snapshots for circuit "{0}"'.format(circuit_name))
+
+    def get_snapshot(self, circuit_name=None, slot=None):
+        """Get snapshot at a specific slot.
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+            slot (str): snapshot slot to retrieve
+
+        Returns:
+            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no snapshot at all, or in this slot
+        """
+        try:
+            snapshots_dict = self.get_snapshots(circuit_name)
+
+            if slot is None:
+                slots = list(snapshots_dict.keys())
+                if len(slots) == 1:
+                    slot = slots[0]
+                else:
+                    raise QISKitError("You have to select a slot when there"
+                                      "is more than one available")
+            snapshot_dict = snapshots_dict[slot]
+
+            snapshot_types = list(snapshot_dict.keys())
+            if len(snapshot_types) == 1:
+                snapshot_list = snapshot_dict[snapshot_types[0]]
+                if len(snapshot_list) == 1:
+                    return snapshot_list[0]
+                else:
+                    return snapshot_list
+            else:
+                return snapshot_dict
+        except KeyError:
+            raise QISKitError('No snapshot at slot {0} for '
+                              'circuit "{1}"'.format(slot, circuit_name))
 
     def get_names(self):
         """Get the circuit names of the results.

@@ -38,8 +38,8 @@ class Cu1Gate(Gate):
         ctl = self.arg[0]
         tgt = self.arg[1]
         theta = self.param[0]
-        return self._qasmif("cu1(%s) %s[%d],%s[%d];" % (theta, ctl[0].openqasm_name, ctl[1],
-                                                        tgt[0].openqasm_name, tgt[1]))
+        return self._qasmif("cu1(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
+                                                        tgt[0].name, tgt[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -58,6 +58,18 @@ def cu1(self, theta, ctl, tgt):
         instructions = InstructionSet()
         for i in range(ctl.size):
             instructions.add(self.cu1(theta, (ctl, i), (tgt, i)))
+        return instructions
+
+    if isinstance(ctl, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(ctl.size):
+            instructions.add(self.cu1(theta, (ctl, j), tgt))
+        return instructions
+
+    if isinstance(tgt, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(tgt.size):
+            instructions.add(self.cu1(theta, ctl, (tgt, j)))
         return instructions
 
     self._check_qubit(ctl)

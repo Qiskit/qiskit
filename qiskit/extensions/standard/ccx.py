@@ -38,11 +38,11 @@ class ToffoliGate(Gate):
         ctl1 = self.arg[0]
         ctl2 = self.arg[1]
         tgt = self.arg[2]
-        return self._qasmif("ccx %s[%d],%s[%d],%s[%d];" % (ctl1[0].openqasm_name,
+        return self._qasmif("ccx %s[%d],%s[%d],%s[%d];" % (ctl1[0].name,
                                                            ctl1[1],
-                                                           ctl2[0].openqasm_name,
+                                                           ctl2[0].name,
                                                            ctl2[1],
-                                                           tgt[0].openqasm_name,
+                                                           tgt[0].name,
                                                            tgt[1]))
 
     def inverse(self):

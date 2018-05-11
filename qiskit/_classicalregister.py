@@ -18,15 +18,22 @@
 """
 Classical register reference object.
 """
+import itertools
+
 from ._register import Register
 
 
 class ClassicalRegister(Register):
     """Implement a classical register."""
 
+    # Counter for the number of instances in this class.
+    instances_counter = itertools.count()
+    # Prefix to use for auto naming.
+    prefix = 'c'
+
     def qasm(self):
         """Return OPENQASM string for this register."""
-        return "creg %s[%d];" % (self.openqasm_name, self.size)
+        return "creg %s[%d];" % (self.name, self.size)
 
     def __str__(self):
         """Return a string representing the register."""

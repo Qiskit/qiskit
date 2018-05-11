@@ -16,11 +16,10 @@
 # =============================================================================
 
 """
-Exception for errors raised by the JobProcessor when there's an error
-in the result
+Exception for errors when there's an error in the Result
 """
 
-from qiskit import QISKitError
+from ._qiskiterror import QISKitError
 
 
 class ResultError(QISKitError):

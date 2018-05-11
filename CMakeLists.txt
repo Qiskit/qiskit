@@ -12,7 +12,7 @@ if (ENABLE_TARGETS_NON_PYTHON)
     include(cmake/toolchain-utils.cmake)
 
     # Add C++ Qiskit Simulator
-    add_subdirectory(${PROJECT_SOURCE_DIR}/src/qiskit-simulator)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/src/qasm-simulator-cpp)
 
     # Add Python distributable package generator
     include(cmake/python-build.cmake)

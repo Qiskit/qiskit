@@ -38,6 +38,7 @@ install:
     # Install the rest of dependencies via pip.
     - pip.exe install -r requirements.txt
     - pip.exe install pytest
+    - pip.exe install jsonschema
 
 # Use py.test for output of xunit test results.
 test_script:

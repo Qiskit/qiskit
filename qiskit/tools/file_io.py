@@ -26,6 +26,7 @@ from sympy import Basic
 
 import qiskit
 from qiskit._qiskiterror import QISKitError
+from qiskit.backends import BaseBackend
 
 
 def convert_qobj_to_json(in_item):
@@ -171,6 +172,10 @@ class ResultEncoder(json.JSONEncoder):
             if o.is_Float:
                 return float(o)
             return str(o)
+        elif isinstance(o, BaseBackend):
+            # TODO: replace when the deprecation is completed (see also note in
+            # Result.__iadd__).
+            return o.configuration['name']
 
         return json.JSONEncoder.default(self, o)
 
