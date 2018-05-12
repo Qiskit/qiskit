@@ -109,7 +109,7 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_async_simulator(self):
-        IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)        
+        IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 16
