@@ -249,12 +249,17 @@ def requires_qe_access(func):
         try:
             import Qconfig
             QE_TOKEN = Qconfig.APItoken
-            QE_URL = Qconfig.config["url"]
+            QE_URL = Qconfig.config['url']
+            QE_HUB = Qconfig.hub if hasattr(Qconfig, 'hub') else None
+            QE_GROUP = Qconfig.group if hasattr(Qconfig, 'group') else None
+            QE_PROJECT = Qconfig.project if hasattr(Qconfig, 'project') else None
         except ImportError:
             # Try to read them from environment variables (ie. Travis).
             QE_TOKEN = os.getenv('QE_TOKEN')
             QE_URL = os.getenv('QE_URL')
-
+            QE_HUB = os.getenv('QE_URL')
+            QE_GROUP = os.getenv('QE_GROUP')
+            QE_PROJECT = os.getenv('QE_PROJECT')
         if not QE_TOKEN or not QE_URL:
             raise Exception(
                 'Could not locate a valid "Qconfig.py" file nor read the QE '
@@ -262,6 +267,9 @@ def requires_qe_access(func):
 
         kwargs['QE_TOKEN'] = QE_TOKEN
         kwargs['QE_URL'] = QE_URL
+        kwargs['hub'] = QE_HUB
+        kwargs['group'] = QE_GROUP
+        kwargs['project'] = QE_PROJECT
         return func(*args, **kwargs)
 
     return _
