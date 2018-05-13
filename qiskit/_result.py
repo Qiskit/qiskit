@@ -294,7 +294,7 @@ class Result(object):
                 that one.
 
         Returns:
-            list[list[complex][: list of 2^n_qubits x 2^n_qubits complex amplitudes.
+            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex amplitudes.
 
         Raises:
             QISKitError: if there is no unitary for the circuit.
