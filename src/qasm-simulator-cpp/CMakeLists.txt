@@ -39,35 +39,40 @@ set_target_properties(qasm_simulator_cpp PROPERTIES LINKER_LANGUAGE CXX)
 # Toolchain options
 set_property(TARGET qasm_simulator_cpp PROPERTY CXX_STANDARD 11)
 
-# Compiler flags
-enable_cxx_compiler_flag_if_supported("-O3")
-enable_cxx_compiler_flag_if_supported("-march=native")
-enable_cxx_compiler_flag_if_supported("-fopenmp")
-
-# We force static linking on Windows
-if(STATIC_LINKING OR MINGW)
+if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
 	# working on MacOS, when a flag is not supported, it cascades errors
 	# to the rest of the flags being tested... and -static compilation on Mac
 	# with gcc is failing...
-	if(NOT APPLE)
-		enable_cxx_compiler_flag_if_supported("-static")
-    	enable_cxx_compiler_flag_if_supported("-static-libgcc")        
+	if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	    message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
+	else()
+	    # MacOS compilers don't support -static flag either
+	    if(NOT APPLE)
+	        enable_cxx_compiler_flag_if_supported("-static")
+	    endif()
+	    # This is enough to build a semi-static executable on Mac
+	    enable_cxx_compiler_flag_if_supported("-static-libgcc")
+	    enable_cxx_compiler_flag_if_supported("-static-libstdc++")
 	endif()
-	enable_cxx_compiler_flag_if_supported("-static-libstdc++")
 endif()
 
-# Warnings and Errors
-enable_cxx_compiler_flag_if_supported("-pedantic")
-enable_cxx_compiler_flag_if_supported("-Wall")
-enable_cxx_compiler_flag_if_supported("-Wfloat-equal")
-enable_cxx_compiler_flag_if_supported("-Wundef")
-enable_cxx_compiler_flag_if_supported("-Wcast-align")
-enable_cxx_compiler_flag_if_supported("-Wwrite-strings")
-enable_cxx_compiler_flag_if_supported("-Wmissing-declarations")
-enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
-enable_cxx_compiler_flag_if_supported("-Wshadow")
-enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+if(NOT MSVC)
+	# Compiler flags
+	enable_cxx_compiler_flag_if_supported("-O3")
+	enable_cxx_compiler_flag_if_supported("-march=native")
+	# Warnings and Errors
+	enable_cxx_compiler_flag_if_supported("-pedantic")
+	enable_cxx_compiler_flag_if_supported("-Wall")
+	enable_cxx_compiler_flag_if_supported("-Wfloat-equal")
+	enable_cxx_compiler_flag_if_supported("-Wundef")
+	enable_cxx_compiler_flag_if_supported("-Wcast-align")
+	enable_cxx_compiler_flag_if_supported("-Wwrite-strings")
+	enable_cxx_compiler_flag_if_supported("-Wmissing-declarations")
+	enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
+	enable_cxx_compiler_flag_if_supported("-Wshadow")
+	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+endif()
 
 target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR})
 target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/backends)
@@ -76,12 +81,21 @@ target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_D
 target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/headers)
 
 # For header only libraries
-SET(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "")
+SET(CMAKE_FIND_LIBRARY_PREFIXES "" ${CMAKE_FIND_LIBRARY_PREFIXES})
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES} .hpp)
 
-# We force static linking on Windows
-if(STATIC_LINKING OR MINGW)
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
+if(STATIC_LINKING)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    if(WIN32)
+        SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
+endif()
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
 # Looking for external libraries
@@ -94,44 +108,33 @@ if(NOT LIB_JSON)
     message(FATAL_ERROR "JSON library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
 endif()
 
-find_library(LIB_LAPACK
-	NAMES lapack
+find_library(BLAS_LIB
+	NAMES openblas mkl blas
 	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
-if(NOT LIB_LAPACK)
-    message(FATAL_ERROR "LAPACK library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
+if(NOT BLAS_LIB)
+	message(FATAL_ERROR "BLAS library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
 endif()
 
-find_library(LIB_BLAS
-	NAMES blas
-	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
-if(NOT LIB_BLAS)
-    message(FATAL_ERROR "BLAS library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
-endif()
-
-find_library(LIB_THREADS
-	NAMES pthread
-	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
-if(NOT LIB_THREADS)
-    message(FATAL_ERROR "Pthreads library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
-endif()
-
-set(LIBRARIES PRIVATE ${LIB_BLAS}
-                      ${LIB_LAPACK}
-					  ${LIB_THREADS})
-
+set(LIBRARIES PRIVATE ${BLAS_LIB})
+				  
 # Linking
 target_link_libraries(qasm_simulator_cpp ${LIBRARIES})
 
 set(QASM_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:qasm_simulator_cpp>
 	CACHE INTERNAL "Output directory for building QISKit C++ Simulator")
 
-if(MINGW)
-	set(QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS
-		"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/dll/libblas.dll"
-		"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/dll/libgfortran_64-3.dll"
-		"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/dll/libquadmath_64-0.dll"
-		CACHE INTERNAL "Third-party C++ Simulator DLLs")
+# TODO Windows 32 bits builds are not supported yet
+set(ARCH_BITS "64")
+if(ARCH32)
+	set(ARCH_BITS "32")
+endif()
 
+# Copying necessary .dll files to output
+# TODO look into "install()" CMake function
+if(WIN32) # Windows 64 bits is also true here
+	set(QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS
+		"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win${ARCH_BITS}/dll/openblas.dll"
+		CACHE INTERNAL "Third-party C++ Simulator DLLs")
 	foreach(dll_file ${QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS})
 		add_custom_command(
 			TARGET qasm_simulator_cpp
@@ -146,7 +149,7 @@ if(MINGW)
 				${QASM_SIMULATOR_CPP_OUTPUT_DIR}/${FINAL_FILE})
 	endforeach()
 endif()
-
+	
 # Tests
 # TODO: Enable them when ready
 #add_subdirectory(${QASM_SIMULATOR_CPP_DIR}/test)

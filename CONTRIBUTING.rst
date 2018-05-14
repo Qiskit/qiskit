@@ -83,6 +83,65 @@ more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
+Useful CMake flags
+------------------
+
+There are some useful flags that can be set during cmake command invocation and
+will help you change some default behavior. To make use of them, you just need to
+pass them right after ``-D`` cmake argument. Example:
+.. code::
+
+    qiskit-sdk-py/out$ cmake -DUSEFUL_FLAG=Value ..
+
+Flags:
+
+USER_LIB_PATH
+    This flag tells CMake to look for libraries that are needed by some of the native
+    components to be built, but they are not in a common place where CMake could find
+    it automatically.
+    Values: An absolute path with file included.
+    Default: No value.
+    Example: ``cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a ..``
+
+STATIC_LINKING
+    Tells the build system whether to create static versions of the programs being built or not.
+    Notes: On MacOS static linking is not fully working for all versions of GNU G++/Clang
+    compilers, so enable this flag in this platform could cause errors.
+    Values: True|False
+    Default: False
+    Example: ``cmake -DSTATIC_LINKING=True ..``
+
+CMAKE_BUILD_TYPE
+    Tells the build system to create executables/libraries for debugging purposes
+    or highly optimized binaries ready for distribution.
+    Values: Debug|Release
+    Default: "Release"
+    Example: ``cmake -DCMAKE_BUILD_TYPE="Debug" ..``
+
+ENABLE_TARGETS_NON_PYTHON
+    We can enable or disable non-python code generation by setting this flag to True or False
+    respectively. This is mostly used in our CI systems so they can launch some fast tests
+    for the Python code (which is currently a majority).
+    Values: True|False
+    Default: True
+    Example: ``cmake -DENABLE_TARGETS_NON_PYTHON=True ..``
+
+ENABLE_TARGETS_QA
+    We can enable or disable QA stuff (lintering, styling and testing) by setting this flag to
+    True or False respectively. This is mostly used in our CI systems so they can run light
+    stages pretty fast, and fail fast if they found any issues within the code.
+    Values: True|False
+    Default: True
+    Example: ``cmake -DENABLE_TARGETS_QA=True ..``
+
+WHEEL_TAG
+    This is used to force platform specific tag name generation when creating wheels package
+    for Pypi.
+    Values: "-pWhateverTagName"
+    Default: No value.
+    Example: ``cmake -DWHEEL_TAG="-pmanylinux1_x86_64" ..``
+
+
 Test
 ~~~~
 
