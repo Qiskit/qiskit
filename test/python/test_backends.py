@@ -54,7 +54,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         self.log.info(remotes)
@@ -66,7 +66,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remote = ibmq_provider.available_backends({'local': False, 'simulator': False})
         self.log.info(remote)
         self.assertTrue(remote)
@@ -77,7 +77,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remote = ibmq_provider.available_backends({'local': False, 'simulator': True})
         self.log.info(remote)
         self.assertTrue(remote)
@@ -112,7 +112,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -145,7 +145,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -175,7 +175,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -206,22 +206,26 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
+            self.log.info(backend.name)
             parameters = backend.parameters
             # FIXME test against schema and decide what parameters
             # is for a simulator
             if backend.configuration['simulator']:
                 self.assertEqual(len(parameters), 0)
             else:
-                self.assertEqual(len(parameters), 4)
+                self.assertTrue(all(key in parameters for key in (
+                    'last_update_date',
+                    'qubits',
+                    'backend')))
 
     @requires_qe_access
     def test_wrapper_register_ok(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test wrapper.register()."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub=None, group=None, project=None, provider_name='ibmq')
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project, provider_name='ibmq')
         backends = qiskit.wrapper.available_backends()
         backends = remove_backends_from_list(backends)
         self.log.info(backends)
@@ -230,7 +234,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_wrapper_available_backends_with_filter(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test wrapper.available_backends(filter=...)."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub=None, group=None, project=None, provider_name='ibmq')
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project, provider_name='ibmq')
         backends = qiskit.wrapper.available_backends({'local': False, 'simulator': True})
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)

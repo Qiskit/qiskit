@@ -51,7 +51,7 @@ class TestLocalJob(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
         cls._qc = qc
-        cls._provider = LocalProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        cls._provider = LocalProvider(QE_TOKEN, QE_URL, hub, group, project)
 
     def test_run(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')

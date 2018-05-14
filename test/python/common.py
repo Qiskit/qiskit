@@ -250,14 +250,14 @@ def requires_qe_access(func):
             import Qconfig
             QE_TOKEN = Qconfig.APItoken
             QE_URL = Qconfig.config['url']
-            QE_HUB = Qconfig.hub if hasattr(Qconfig, 'hub') else None
-            QE_GROUP = Qconfig.group if hasattr(Qconfig, 'group') else None
-            QE_PROJECT = Qconfig.project if hasattr(Qconfig, 'project') else None
+            QE_HUB = Qconfig.config.get('hub')
+            QE_GROUP = Qconfig.config.get('group')
+            QE_PROJECT = Qconfig.config.get('project')
         except ImportError:
             # Try to read them from environment variables (ie. Travis).
             QE_TOKEN = os.getenv('QE_TOKEN')
             QE_URL = os.getenv('QE_URL')
-            QE_HUB = os.getenv('QE_URL')
+            QE_HUB = os.getenv('QE_HUB')
             QE_GROUP = os.getenv('QE_GROUP')
             QE_PROJECT = os.getenv('QE_PROJECT')
         if not QE_TOKEN or not QE_URL:

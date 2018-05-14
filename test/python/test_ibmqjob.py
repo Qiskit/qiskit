@@ -58,7 +58,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
         cls._qc = qc
-        cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmqx_qasm_simulator')
@@ -82,8 +82,9 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     def test_run_device(self):
         backends = self._provider.available_backends({'simulator': False})
+        self.log.info('devices: {}'.format([b.name for b in backends]))
         backend = lowest_pending_jobs(backends)
-        self.log.info(backend.name)
+        self.log.info('using backend: {}'.format(backend.name))
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)

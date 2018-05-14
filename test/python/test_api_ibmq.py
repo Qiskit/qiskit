@@ -100,7 +100,7 @@ class TestApiHub(QiskitTestCase):
 
             # Get the first parameter of the `run_job` POST call.
             url = mocked_post.call_args_list[-1][0][0]
-            self.assertEqual('/Jobs', url)
+            self.assertTrue(url.endswith('/jobs'))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_execute_api_parameters(self):

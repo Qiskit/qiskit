@@ -42,7 +42,7 @@ class TestBitReordering(QiskitTestCase):
     @requires_qe_access
     def test_basic_reordering(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """a simple reordering within a 2-qubit register"""
-        sim, real = self._get_backends(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        sim, real = self._get_backends(QE_TOKEN, QE_URL, hub, group, project)
         if not sim or not real:
             raise unittest.SkipTest('no remote device available')
 
@@ -58,6 +58,8 @@ class TestBitReordering(QiskitTestCase):
         result_sim = execute(circ, sim, {"shots": shots}).result()
         counts_real = result_real.get_counts()
         counts_sim = result_sim.get_counts()
+        self.log.info(counts_real)
+        self.log.info(counts_sim)
         threshold = 0.1 * shots
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
@@ -65,7 +67,7 @@ class TestBitReordering(QiskitTestCase):
     @requires_qe_access
     def test_multi_register_reordering(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """a more complicated reordering across 3 registers of different sizes"""
-        sim, real = self._get_backends(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+        sim, real = self._get_backends(QE_TOKEN, QE_URL, hub, group, project)
         if not sim or not real:
             raise unittest.SkipTest('no remote device available')
 
@@ -99,7 +101,7 @@ class TestBitReordering(QiskitTestCase):
     def _get_backends(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         sim_backend = 'local_qasm_simulator'
         try:
-            register(QE_TOKEN, QE_URL, hub=None, group=None, project=None)
+            register(QE_TOKEN, QE_URL, hub, group, project)
             real_backends = available_backends({'simulator': False})
             real_backend = lowest_pending_jobs(real_backends)
         except Exception:
