@@ -82,9 +82,9 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     def test_run_device(self):
         backends = self._provider.available_backends({'simulator': False})
-        self.log.info('devices: {}'.format([b.name for b in backends]))
+        self.log.info('devices: %s', [b.name for b in backends])
         backend = lowest_pending_jobs(backends)
-        self.log.info('using backend: {}'.format(backend.name))
+        self.log.info('using backend: %s', backend.name)
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
@@ -138,8 +138,8 @@ class TestIBMQJob(QiskitTestCase):
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('{0} {1} {2} {3}'.format(
-                    job.status['status'], job.running, check, job.job_id))
+                self.log.info('%s %s %s %s', job.status['status'], job.running,
+                              check, job.job_id)
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '

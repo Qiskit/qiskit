@@ -24,7 +24,6 @@ from sys import version_info
 
 import numpy as np
 
-import qiskit
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
 from qiskit.tools import file_io
@@ -560,7 +559,8 @@ class TestQuantumProgram(QiskitTestCase):
     ###############################################################
 
     @requires_qe_access
-    def test_setup_api(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_setup_api(self, QE_TOKEN, QE_URL,
+                       hub=None, group=None, project=None):
         """Check the api is set up.
 
         If all correct is should be true.
@@ -571,7 +571,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(config)
 
     @requires_qe_access
-    def test_available_backends_exist(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_available_backends_exist(self, QE_TOKEN, QE_URL,
+                                      hub=None, group=None, project=None):
         """Test if there are available backends.
 
         If all correct some should exists (even if offline).
@@ -582,7 +583,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(available_backends)
 
     @requires_qe_access
-    def test_online_backends_exist(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_online_backends_exist(self, QE_TOKEN, QE_URL,
+                                   hub=None, group=None, project=None):
         """Test if there are online backends.
 
         If all correct some should exists.
@@ -594,7 +596,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(online_backends)
 
     @requires_qe_access
-    def test_online_simulators(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_online_simulators(self, QE_TOKEN, QE_URL,
+                               hub=None, group=None, project=None):
         """Test if there are online backends (which are simulators).
 
         If all correct some should exists. NEED internet connection for this.
@@ -606,7 +609,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(isinstance(online_simulators, list))
 
     @requires_qe_access
-    def test_online_devices(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_online_devices(self, QE_TOKEN, QE_URL,
+                            hub=None, group=None, project=None):
         """Test if there are online backends (which are devices).
 
         If all correct some should exists. NEED internet connection for this.
@@ -647,7 +651,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(config_keys < backend_config.keys())
 
     @requires_qe_access
-    def test_get_backend_configuration_online(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_get_backend_configuration_online(self, QE_TOKEN, QE_URL,
+                                              hub=None, group=None, project=None):
         """Test configuration.
 
         If all correct should return configuration for the
@@ -675,7 +680,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertRaises(LookupError, qp.get_backend_configuration, "fail")
 
     @requires_qe_access
-    def test_get_backend_calibration(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_get_backend_calibration(self, QE_TOKEN, QE_URL,
+                                     hub=None, group=None, project=None):
         """Test get_backend_calibration.
 
         If all correct should return dictionary on length 4.
@@ -690,7 +696,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(len(result), 4)
 
     @requires_qe_access
-    def test_get_backend_parameters(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_get_backend_parameters(self, QE_TOKEN, QE_URL,
+                                    hub=None, group=None, project=None):
         """Test get_backend_parameters.
 
         If all correct should return dictionary on length 4.
@@ -1124,7 +1131,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertAlmostEqual(mean_iz, 0, places=1)
 
     @requires_qe_access
-    def test_execute_one_circuit_simulator_online(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_execute_one_circuit_simulator_online(self, QE_TOKEN, QE_URL,
+                                                  hub=None, group=None, project=None):
         """Test execute_one_circuit_simulator_online.
 
         If all correct should return the data.
@@ -1147,7 +1155,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     @requires_qe_access
-    def test_simulator_online_size(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_simulator_online_size(self, QE_TOKEN, QE_URL,
+                                   hub=None, group=None, project=None):
         """Test test_simulator_online_size.
 
         If all correct should return the data.
@@ -1163,11 +1172,11 @@ class TestQuantumProgram(QiskitTestCase):
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
         result = q_program.execute(['qc'], backend=backend_name, shots=shots,
                                    max_credits=3, seed=73846087)
-        self.log.info(result.get_data('qc'))
-        self.assertTrue(result.get_status() == 'ERROR')
+        self.assertRaises(QISKitError, result.get_data, 'qc')
 
     @requires_qe_access
-    def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL,
+                                                       hub=None, group=None, project=None):
         """Test execute_several_circuits_simulator_online.
 
         If all correct should return the data.
@@ -1200,7 +1209,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertDictAlmostEqual(counts2, target2, threshold)
 
     @requires_qe_access
-    def test_execute_one_circuit_real_online(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_execute_one_circuit_real_online(self, QE_TOKEN, QE_URL,
+                                             hub=None, group=None, project=None):
         """Test execute_one_circuit_real_online.
 
         If all correct should return a result object
@@ -1258,7 +1268,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result2, {'10 00': 1024})
 
     @requires_qe_access
-    def test_online_qasm_simulator_two_registers(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_online_qasm_simulator_two_registers(self, QE_TOKEN, QE_URL,
+                                                 hub=None, group=None, project=None):
         """Test online_qasm_simulator_two_registers.
 
         If all correct should the data.
@@ -1743,7 +1754,8 @@ class TestQuantumProgram(QiskitTestCase):
                           timeout=0.01)
 
     @requires_qe_access
-    def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL,
+                                      hub=None, group=None, project=None):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmq_qasm_simulator_hpc.
         It will warn the user if the parameter is passed correctly but the
@@ -1768,7 +1780,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertTrue(qobj)
 
     @requires_qe_access
-    def test_hpc_parameter_is_incorrect(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_hpc_parameter_is_incorrect(self, QE_TOKEN, QE_URL,
+                                        hub=None, group=None, project=None):
         """Test for checking HPC parameter in compile() method.
         It must be only used when the backend is ibmq_qasm_simulator_hpc.
         If the parameter format is incorrect, it will raise a QISKitError.

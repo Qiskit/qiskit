@@ -177,4 +177,3 @@ class TestApiHub(QiskitTestCase):
             backend = qiskit.get_backend(backend_name)
             self.log.info(backend.parameters)
             self.log.info(backend.calibration)
-

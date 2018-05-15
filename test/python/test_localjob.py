@@ -92,7 +92,7 @@ class TestLocalJob(QiskitTestCase):
         found_async_jobs = False
         timeout = 30
         start_time = time.time()
-        self.log.info('testing with simulator: {0}'.format(backend.name))
+        self.log.info('testing with simulator: %s', backend.name)
         while not found_async_jobs:
             check = sum([job.running for job in job_array])
             if check >= 2:
@@ -103,9 +103,9 @@ class TestLocalJob(QiskitTestCase):
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('{0} {1} {2}'.format(job.status['status'],
-                                                   job.running, check))
-            self.log.info('{0} {1}'.format('-'*20, time.time()-start_time))
+                self.log.info('%s %s %s', job.status['status'],
+                              job.running, check)
+            self.log.info('%s %.4f', '-'*20, time.time()-start_time)
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))
@@ -138,7 +138,7 @@ class TestLocalJob(QiskitTestCase):
         num_jobs = 10
         timeout = 10
         start_time = time.time()
-        self.log.info('testing with simulator: {0}'.format(backend.name))
+        self.log.info('testing with simulator: %s', backend.name)
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
         for job in job_array:
             job.cancel()
@@ -153,8 +153,8 @@ class TestLocalJob(QiskitTestCase):
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('{0} {1} {2}'.format(job.status['status'],
-                                                   job.cancelled, check))
+                self.log.info('%s %s %s', job.status['status'], job.cancelled,
+                              check)
             self.log.info('{0} {1:0.2f}'.format('-'*20, time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
