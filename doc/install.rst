@@ -88,11 +88,11 @@ users would look like:
 Install Jupyter-based tutorials
 ===============================
 
-The QISKit project provides you a collection of tutorials in the form of Jupyter 
-notebooks, which are essentially web pages that contain "cells" of embedded 
+The QISKit project provides you a collection of tutorials in the form of Jupyter
+notebooks, which are essentially web pages that contain "cells" of embedded
 Python code. Please refer to the `tutorials repository`_ for detailed
 instructions.
-    
+
 
 Troubleshooting
 ===============
@@ -116,5 +116,5 @@ on the project's GitHub wiki.
 
 .. _tutorials: https://github.com/QISKit/qiskit-tutorial
 .. _tutorials repository: https://github.com/QISKit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTING.rst
+.. _documentation for contributors: https://github.com/QISKit/qiskit-sdk-py/blob/master/.github/CONTRIBUTING.rst
 .. _Qconfig.py.default: https://github.com/QISKit/qiskit-sdk-py/blob/stable/Qconfig.py.default

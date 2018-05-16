@@ -12,7 +12,7 @@
 **我们使用 GitHub issues 来追踪需求和错误。详见**
 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **中的提问和讨论。**
 **如果您有意对 QISKit 做出贡献，请参见我们的**
-[contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTING.rst)。
+[contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/.github/CONTRIBUTING.rst)。
 
 链接索引:
 
@@ -83,7 +83,7 @@ qc.cx(qr[0], qr[1])
 # (Omitting the index applies an operation on all qubits of the register(s))
 qc.measure(qr, cr)
 
-# Create a Quantum Program for execution 
+# Create a Quantum Program for execution
 qp = qiskit.QuantumProgram()
 # Add the circuit you created to it, and call it the "bell" circuit.
 # (You can add multiple circuits to the same program, for batch execution)
@@ -183,7 +183,7 @@ QISKit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
 [IBM-Q](http://www.research.ibm.com/ibm-q/) 团队的研究人员和开发人员开发的，
 旨在提供一个与量子计算机配套的高水平的开发工具包。
 
-欲知更多有关 QISKit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 QISKit 做出贡献，请参见我们的 [contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/CONTRIBUTING.rst)。
+欲知更多有关 QISKit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 QISKit 做出贡献，请参见我们的 [contribution guidelines](https://github.com/QISKit/qiskit-sdk-py/blob/master/.github/CONTRIBUTING.rst)。
 
 ## 多语言指导
 
