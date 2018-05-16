@@ -19,11 +19,14 @@
 """Compiler Test."""
 
 import unittest
+import numpy as np
+import scipy.linalg as la
 import qiskit
 import qiskit._compiler
 from qiskit import Result
 from qiskit.wrapper import get_backend, execute
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.mapper import two_qubit_kak
 
 from .common import requires_qe_access, QiskitTestCase
 
@@ -276,6 +279,83 @@ class TestCompiler(QiskitTestCase):
         job = execute([qc, qc_extra], backend)
         results = job.result()
         self.assertIsInstance(results, Result)
+
+    @requires_qe_access
+    def test_mapping_correction(self, QE_TOKEN, QE_URL):
+        """Test mapping works in previous failed case.
+        """
+        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        backend = provider.get_backend('ibmqx5')
+        circuit = build_model_circuits(n=11, depth=2, num_circ=1)
+        try:
+            qobj = qiskit._compiler.compile(circuit, backend)
+        except Exception:
+            self.assertTrue(False)
+        else:
+            self.assertTrue(True)
+
+
+# Helper functions for QV
+def random_SU(n):
+    """Return an n x n Haar distributed unitary matrix,
+    using QR-decomposition on a random n x n.
+    """
+    X = (np.random.randn(n, n) + 1j * np.random.randn(n, n))
+    Q, _ = la.qr(X)           # Q is a unitary matrix
+    Q /= pow(la.det(Q), 1/n)  # make Q a special unitary
+    return Q
+
+
+def build_model_circuits(n, depth, num_circ=1):
+    """Create a quantum program containing model circuits.
+    The model circuits consist of layers of Haar random
+    elements of SU(4) applied between corresponding pairs
+    of qubits in a random bipartition.
+    Args:
+        n (int): number of qubits
+        depth (int): ideal depth of each model circuit (over SU(4))
+        num_circ (int): number of model circuits to construct
+    Returns:
+        list(QuantumCircuit): list of quantum volume circuits
+    """
+    # Create quantum/classical registers of size n
+    q = qiskit.QuantumRegister(name='qr', size=n)
+    c = qiskit.ClassicalRegister(name='qc', size=n)
+    # For each sample number, build the model circuits
+    circuits = []
+    for _ in range(num_circ):
+        # Initialize empty circuit
+        circuit = qiskit.QuantumCircuit(q, c)
+        # For each layer
+        for _ in range(depth):
+            # Generate uniformly random permutation Pj of [0...n-1]
+            perm = np.random.permutation(n)
+            # For each consecutive pair in Pj, generate Haar random SU(4)
+            # Decompose each SU(4) into CNOT + SU(2) and add to Ci
+            for k in range(int(np.floor(n/2))):
+                qubits = [int(perm[2*k]), int(perm[2*k+1])]
+                SU = random_SU(4)
+                decomposed_SU = two_qubit_kak(SU)
+                for gate in decomposed_SU:
+                    i0 = qubits[gate["args"][0]]
+                    if gate["name"] == "cx":
+                        i1 = qubits[gate["args"][1]]
+                        circuit.cx(q[i0], q[i1])
+                    elif gate["name"] == "u1":
+                        circuit.u1(gate["params"][2], q[i0])
+                    elif gate["name"] == "u2":
+                        circuit.u2(gate["params"][1], gate["params"][2], q[i0])
+                    elif gate["name"] == "u3":
+                        circuit.u3(gate["params"][0], gate["params"][1],
+                                   gate["params"][2], q[i0])
+                    elif gate["name"] == "id":
+                        pass
+        # Barrier before measurement to prevent reordering, then measure
+        circuit.barrier(q)
+        circuit.measure(q, c)
+        # Save sample circuit
+        circuits.append(circuit)
+    return circuits
 
 
 if __name__ == '__main__':
