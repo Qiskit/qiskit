@@ -27,7 +27,7 @@ from qiskit import Result
 from qiskit.wrapper import get_backend, execute
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.mapper import two_qubit_kak
-
+from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -289,10 +289,10 @@ class TestCompiler(QiskitTestCase):
         circuit = build_model_circuits(n=11, depth=2, num_circ=1)
         try:
             qobj = qiskit._compiler.compile(circuit, backend)
-        except Exception:
-            self.assertTrue(False)
-        else:
-            self.assertTrue(True)
+        except QISKitError:
+            qobj = None
+        self.assertIsInstance(qobj, dict)
+
 
 
 # Helper functions for QV
