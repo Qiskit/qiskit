@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-builtin
-# pylint: disable=C0103
-# pylint: disable=W9006
+#pylint: disable = C0103
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -305,6 +304,9 @@ def best_subset(backend, n_qubits):
     Returns:
         ndarray: Array of qubits to use for best
                 connectivity mapping.
+
+    Raises:
+        ValueError: Wrong number of qubits given.
     """
     device_qubits = backend.configuration['n_qubits']
     cmap = np.asarray(backend.configuration['coupling_map'])
