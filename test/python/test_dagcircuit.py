@@ -53,7 +53,7 @@ class TestDagCircuit(QiskitTestCase):
         dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
         dag.apply_operation_back('h', [('q', 2)])
 
-        named_nodes = list(dag.get_named_nodes('cx'))
+        named_nodes = dag.get_named_nodes('cx')
         self.assertEqual(3, len(named_nodes))
         # Since the ordering is not assured, we sort to make it certain.
         # We have asserted here that lower node id implies that it was applied earlier.
