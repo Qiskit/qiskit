@@ -1163,8 +1163,8 @@ class TestQuantumProgram(QiskitTestCase):
         """
         backend_name = 'ibmq_qasm_simulator'
         q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("q", 25)
-        cr = q_program.create_classical_register("c", 25)
+        qr = q_program.create_quantum_register("q", 31)
+        cr = q_program.create_classical_register("c", 31)
         qc = q_program.create_circuit("qc", [qr], [cr])
         qc.h(qr)
         qc.measure(qr, cr)
