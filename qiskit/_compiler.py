@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-builtin
-# pylint: disable = C0103
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -324,18 +323,18 @@ def best_subset(backend, n_qubits):
     best = 0
     best_map = None
     # do bfs with each node as starting point
-    for kk in range(sp_cmap.shape[0]):
-        bfs = cs.breadth_first_order(sp_cmap, i_start=kk, directed=False,
+    for k in range(sp_cmap.shape[0]):
+        bfs = cs.breadth_first_order(sp_cmap, i_start=k, directed=False,
                                      return_predecessors=False)
 
         connection_count = 0
-        for ii in range(n_qubits):
-            node_idx = bfs[ii]
-            for jj in range(sp_cmap.indptr[node_idx],
-                            sp_cmap.indptr[node_idx + 1]):
-                node = sp_cmap.indices[jj]
-                for mm in range(n_qubits):
-                    if node == bfs[mm]:
+        for i in range(n_qubits):
+            node_idx = bfs[i]
+            for j in range(sp_cmap.indptr[node_idx],
+                           sp_cmap.indptr[node_idx + 1]):
+                node = sp_cmap.indices[j]
+                for counter in range(n_qubits):
+                    if node == bfs[counter]:
                         connection_count += 1
                         break
 
