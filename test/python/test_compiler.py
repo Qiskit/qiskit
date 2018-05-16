@@ -153,12 +153,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
-    def test_compile_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test Compiler remote.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = lowest_pending_jobs(
             provider.available_backends({'local': False, 'simulator': False}))
 
@@ -175,12 +175,12 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(len(qobj), 3)
 
     @requires_qe_access
-    def test_compile_two_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_two_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test Compiler remote on two circuits.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = lowest_pending_jobs(
             provider.available_backends({'local': False, 'simulator': False}))
 
@@ -198,12 +198,12 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(len(qobj), 3)
 
     @requires_qe_access
-    def test_compile_run_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_run_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test Compiler and run remote.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -217,12 +217,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
-    def test_compile_two_run_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_two_run_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test Compiler and run two circuits.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -239,12 +239,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
-    def test_execute_remote(self, QE_TOKEN, QE_URL):
+    def test_execute_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test Execute remote.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
@@ -258,12 +258,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
-    def test_execute_two_remote(self, QE_TOKEN, QE_URL):
+    def test_execute_two_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test execute two remote.
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = provider.available_backends({'simulator': True})[0]
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)

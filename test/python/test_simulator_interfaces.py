@@ -60,9 +60,9 @@ class TestCrossSimulation(QiskitTestCase):
             "cpp vs. py statevector has low fidelity{0:.2g}.".format(fidelity))
 
     @requires_qe_access
-    def test_qasm(self, QE_TOKEN, QE_URL):
+    def test_qasm(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """counts from a GHZ state"""
-        register(QE_TOKEN, QE_URL)
+        register(QE_TOKEN, QE_URL, hub, group, project)
         q = qiskit.QuantumRegister(3)
         c = qiskit.ClassicalRegister(3)
         circ = qiskit.QuantumCircuit(q, c)
@@ -115,9 +115,9 @@ class TestCrossSimulation(QiskitTestCase):
         self.assertGreater(fidelity, self._desired_fidelity)
 
     @requires_qe_access
-    def test_qasm_reset_measure(self, QE_TOKEN, QE_URL):
+    def test_qasm_reset_measure(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """counts from a qasm program with measure and reset in the middle"""
-        register(QE_TOKEN, QE_URL)
+        register(QE_TOKEN, QE_URL, hub, group, project)
         q = qiskit.QuantumRegister(3)
         c = qiskit.ClassicalRegister(3)
         circ = qiskit.QuantumCircuit(q, c)
