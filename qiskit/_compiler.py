@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-builtin
-#pylint: disable = C0103
+# pylint: disable = C0103
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
