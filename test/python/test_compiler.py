@@ -19,14 +19,11 @@
 """Compiler Test."""
 
 import unittest
-import numpy as np
-import scipy.linalg as la
 import qiskit
 import qiskit._compiler
 from qiskit import Result
 from qiskit.wrapper import get_backend, execute
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.mapper import two_qubit_kak
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
 
@@ -286,7 +283,63 @@ class TestCompiler(QiskitTestCase):
         """
         provider = IBMQProvider(QE_TOKEN, QE_URL)
         backend = provider.get_backend('ibmqx5')
-        circuit = build_model_circuits(n=11, depth=2, num_circ=1)
+
+        q = qiskit.QuantumRegister(name='qr', size=11)
+        c = qiskit.ClassicalRegister(name='qc', size=11)
+        circuit = qiskit.QuantumCircuit(q, c)
+        circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, q[3])
+        circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, q[5])
+        circuit.cx(q[5], q[3])
+        circuit.u1(0.856768317675967, q[3])
+        circuit.u3(-3.3911273825190915, 0.0, 0.0, q[5])
+        circuit.cx(q[3], q[5])
+        circuit.u3(2.159209321625547, 0.0, 0.0, q[5])
+        circuit.cx(q[5], q[3])
+        circuit.u3(0.30949966910232335, 1.1706201763833217, 1.738408691990081, q[3])
+        circuit.u3(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, q[5])
+        circuit.u3(1.330181833806101, 0.6003162754946363, -3.181264980452862, q[7])
+        circuit.u3(0.4885914820775024, 3.133297443244865, -2.794457469189904, q[8])
+        circuit.cx(q[8], q[7])
+        circuit.u1(2.2196187596178616, q[7])
+        circuit.u3(-3.152367609631023, 0.0, 0.0, q[8])
+        circuit.cx(q[7], q[8])
+        circuit.u3(1.2646005789809263, 0.0, 0.0, q[8])
+        circuit.cx(q[8], q[7])
+        circuit.u3(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, q[7])
+        circuit.u3(0.9267400575390405, 2.0526277839695153, 2.034202361069533, q[8])
+        circuit.u3(2.550304293455634, 3.8250017126569698, -2.1351609599720054, q[1])
+        circuit.u3(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, q[4])
+        circuit.cx(q[4], q[1])
+        circuit.u1(2.1899329069137394, q[1])
+        circuit.u3(-1.8371715243173294, 0.0, 0.0, q[4])
+        circuit.cx(q[1], q[4])
+        circuit.u3(0.4717053496327104, 0.0, 0.0, q[4])
+        circuit.cx(q[4], q[1])
+        circuit.u3(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, q[1])
+        circuit.u3(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, q[4])
+        circuit.u3(2.4204244021892807, -2.211701932616922, 3.8297006565735883, q[10])
+        circuit.u3(0.36660280497727255, 3.273119149343493, -1.8003362351299388, q[6])
+        circuit.cx(q[6], q[10])
+        circuit.u1(1.067395863586385, q[10])
+        circuit.u3(-0.7044917541291232, 0.0, 0.0, q[6])
+        circuit.cx(q[10], q[6])
+        circuit.u3(2.1830003849921527, 0.0, 0.0, q[6])
+        circuit.cx(q[6], q[10])
+        circuit.u3(2.1538343756723917, 2.2653381826084606, -3.550087952059485, q[10])
+        circuit.u3(1.307627685019188, -0.44686656993522567, -2.3238098554327418, q[6])
+        circuit.u3(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, q[9])
+        circuit.u3(2.1665254613904126, -1.281337664694577, -1.2424905413631209, q[0])
+        circuit.cx(q[0], q[9])
+        circuit.u1(2.6209599970201007, q[9])
+        circuit.u3(0.04680566321901303, 0.0, 0.0, q[0])
+        circuit.cx(q[9], q[0])
+        circuit.u3(1.7728411151289603, 0.0, 0.0, q[0])
+        circuit.cx(q[0], q[9])
+        circuit.u3(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, q[9])
+        circuit.u3(1.7369112924273789, -4.239660866163805, 1.0623389015296005, q[0])
+        circuit.barrier(q)
+        circuit.measure(q, c)
+
         try:
             qobj = qiskit._compiler.compile(circuit, backend)
         except QISKitError:
@@ -295,67 +348,6 @@ class TestCompiler(QiskitTestCase):
 
 
 
-# Helper functions for QV
-def random_SU(n):
-    """Return an n x n Haar distributed unitary matrix,
-    using QR-decomposition on a random n x n.
-    """
-    X = (np.random.randn(n, n) + 1j * np.random.randn(n, n))
-    Q, _ = la.qr(X)           # Q is a unitary matrix
-    Q /= pow(la.det(Q), 1/n)  # make Q a special unitary
-    return Q
-
-
-def build_model_circuits(n, depth, num_circ=1):
-    """Create a quantum program containing model circuits.
-    The model circuits consist of layers of Haar random
-    elements of SU(4) applied between corresponding pairs
-    of qubits in a random bipartition.
-    Args:
-        n (int): number of qubits
-        depth (int): ideal depth of each model circuit (over SU(4))
-        num_circ (int): number of model circuits to construct
-    Returns:
-        list(QuantumCircuit): list of quantum volume circuits
-    """
-    # Create quantum/classical registers of size n
-    q = qiskit.QuantumRegister(name='qr', size=n)
-    c = qiskit.ClassicalRegister(name='qc', size=n)
-    # For each sample number, build the model circuits
-    circuits = []
-    for _ in range(num_circ):
-        # Initialize empty circuit
-        circuit = qiskit.QuantumCircuit(q, c)
-        # For each layer
-        for _ in range(depth):
-            # Generate uniformly random permutation Pj of [0...n-1]
-            perm = np.random.permutation(n)
-            # For each consecutive pair in Pj, generate Haar random SU(4)
-            # Decompose each SU(4) into CNOT + SU(2) and add to Ci
-            for k in range(int(np.floor(n/2))):
-                qubits = [int(perm[2*k]), int(perm[2*k+1])]
-                SU = random_SU(4)
-                decomposed_SU = two_qubit_kak(SU)
-                for gate in decomposed_SU:
-                    i0 = qubits[gate["args"][0]]
-                    if gate["name"] == "cx":
-                        i1 = qubits[gate["args"][1]]
-                        circuit.cx(q[i0], q[i1])
-                    elif gate["name"] == "u1":
-                        circuit.u1(gate["params"][2], q[i0])
-                    elif gate["name"] == "u2":
-                        circuit.u2(gate["params"][1], gate["params"][2], q[i0])
-                    elif gate["name"] == "u3":
-                        circuit.u3(gate["params"][0], gate["params"][1],
-                                   gate["params"][2], q[i0])
-                    elif gate["name"] == "id":
-                        pass
-        # Barrier before measurement to prevent reordering, then measure
-        circuit.barrier(q)
-        circuit.measure(q, c)
-        # Save sample circuit
-        circuits.append(circuit)
-    return circuits
 
 
 if __name__ == '__main__':
