@@ -151,7 +151,7 @@ def compile(circuits, backend,
                 DAGCircuit.fromQuantumCircuit(circuit),
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
-             # Pick good initial layout if None is given and not simulator
+            # Pick good initial layout if None is given and not simulator
             if initial_layout is None and not backend.configuration['simulator']:
                 best_sub = best_subset(backend, num_qubits)
                 qreg_list = []
@@ -321,7 +321,7 @@ def best_subset(backend, n_qubits):
                             shape=(device_qubits, device_qubits)).tocsr()
     best = 0
     best_map = None
-    #do bfs with each node as starting point
+    # do bfs with each node as starting point
     for kk in range(sp_cmap.shape[0]):
         bfs = cs.breadth_first_order(sp_cmap, i_start=kk, directed=False,
                                      return_predecessors=False)
