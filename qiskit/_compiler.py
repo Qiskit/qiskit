@@ -306,18 +306,18 @@ def best_subset(backend, n_qubits):
                 connectivity mapping.
 
     Raises:
-        ValueError: Wrong number of qubits given.
+        QISKitError: Wrong number of qubits given.
     """
-    device_qubits = backend.configuration['n_qubits']
-    cmap = np.asarray(backend.configuration['coupling_map'])
-
-    if n_qubits > device_qubits:
-        raise ValueError('Number of qubits greater than device.')
-    elif n_qubits <= 0:
-        raise ValueError('Number of qubits <= 0.')
     if n_qubits == 1:
         return np.array([0])
+    elif n_qubits <= 0:
+        raise QISKitError('Number of qubits <= 0.')
 
+    device_qubits = backend.configuration['n_qubits']
+    if n_qubits > device_qubits:
+        raise QISKitError('Number of qubits greater than device.')
+
+    cmap = np.asarray(backend.configuration['coupling_map'])
     data = np.ones_like(cmap[:, 0])
     sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
                             shape=(device_qubits, device_qubits)).tocsr()
@@ -328,18 +328,19 @@ def best_subset(backend, n_qubits):
         bfs = cs.breadth_first_order(sp_cmap, i_start=kk, directed=False,
                                      return_predecessors=False)
 
-        con = 0
+        connection_count = 0
         for ii in range(n_qubits):
-            ss = bfs[ii]
-            for jj in range(sp_cmap.indptr[ss], sp_cmap.indptr[ss + 1]):
+            node_idx = bfs[ii]
+            for jj in range(sp_cmap.indptr[node_idx],
+                            sp_cmap.indptr[node_idx + 1]):
                 node = sp_cmap.indices[jj]
                 for mm in range(n_qubits):
                     if node == bfs[mm]:
-                        con += 1
+                        connection_count += 1
                         break
 
-        if con > best:
-            best = con
+        if connection_count > best:
+            best = connection_count
             best_map = bfs[0:n_qubits]
     return best_map
 
