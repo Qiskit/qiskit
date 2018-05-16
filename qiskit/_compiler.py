@@ -104,11 +104,10 @@ def compile(circuits, backend,
         hpc = None
 
     qobj['circuits'] = []
-
     if not basis_gates:
         if 'basis_gates' in backend_conf:
             basis_gates = backend_conf['basis_gates']
-    elif len(basis_gates.split(',')) < 2:
+    if len(basis_gates.split(',')) < 2:
         # catches deprecated basis specification like 'SU2+CNOT'
         logger.warning('encountered deprecated basis specification: '
                        '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
@@ -139,7 +138,7 @@ def compile(circuits, backend,
         else:
             job["config"]["seed"] = seed
 
-        if skip_translation:  # Just return the qobj, wihtout any transformation or analysis
+        if skip_translation:  # Just return the qobj, without any transformation or analysis
             job["config"]["layout"] = None
             job["compiled_circuit_qasm"] = circuit.qasm()
             job["compiled_circuit"] = DagUnroller(

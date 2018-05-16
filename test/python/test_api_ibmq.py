@@ -57,12 +57,16 @@ class TestApiHub(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = 'ibmq_qasm_simulator'
+        qiskit.register(QE_TOKEN, QE_URL, hub=QE_HUB, group=QE_GROUP,
+                        project=QE_PROJECT)
+        self.backend = 'ibmqx_qasm_simulator'
 
     @staticmethod
     def _set_api(token, config):
         api = IBMQuantumExperience(token=token, config=config)
-        _ = qiskit.backends.update_backends(api)
+        qiskit.register(token=token, url=config.get('url'),
+                        hub=config.get('hub'), group=config.get('group'),
+                        project=config.get('project'))
         return api
 
     @staticmethod
@@ -82,7 +86,10 @@ class TestApiHub(QiskitTestCase):
         quantum_program = self._get_quantum_program()
 
         # Invoke with no hub, group or project parameters.
-        api = self._set_api(QE_TOKEN, {'url': QE_URL})
+        api = self._set_api(QE_TOKEN, {'url': QE_URL,
+                                       'hub': QE_HUB,
+                                       'group': QE_GROUP,
+                                       'project': QE_PROJECT})
 
         # Store the original post() method.
         post_original = api.req.post
@@ -93,7 +100,7 @@ class TestApiHub(QiskitTestCase):
 
             # Get the first parameter of the `run_job` POST call.
             url = mocked_post.call_args_list[-1][0][0]
-            self.assertEqual('/Jobs', url)
+            self.assertTrue(url.endswith('/jobs'))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_execute_api_parameters(self):
@@ -132,7 +139,8 @@ class TestApiHub(QiskitTestCase):
         # are invalid, login will work, but all the API calls will be made
         # against invalid URLS that return 400, ie:
         # /api/Network/FAKE_HUB/Groups/FAKE_GROUP/Projects/FAKE_PROJECT/devices
-        self.assertEqual([], qiskit.backends.remote_backends())
+        self.assertEqual([],
+                         qiskit.available_backends(filters={'local': False}))
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_no_parameters(self):
@@ -144,9 +152,12 @@ class TestApiHub(QiskitTestCase):
         # Invoke with no hub, group or project parameters.
         _ = self._set_api(QE_TOKEN, {'url': QE_URL})
 
-        self.log.info(qiskit.backends.remote_backends())
-        self.log.info(qiskit.backends.parameters(self.backend))
-        self.log.info(qiskit.backends.calibration(self.backend))
+        self.log.info(qiskit.available_backends(filters={'local': False}))
+        all_backend_names = qiskit.available_backends()
+        for backend_name in all_backend_names:
+            backend = qiskit.get_backend(backend_name)
+            self.log.info(backend.parameters)
+            self.log.info(backend.calibration)
 
     @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
     def test_api_calls_parameters(self):
@@ -161,6 +172,8 @@ class TestApiHub(QiskitTestCase):
                                      'group': QE_GROUP,
                                      'project': QE_PROJECT})
 
-        self.log.info(qiskit.backends.remote_backends())
-        self.log.info(qiskit.backends.parameters(self.backend))
-        self.log.info(qiskit.backends.calibration(self.backend))
+        all_backend_names = qiskit.available_backends()
+        for backend_name in all_backend_names:
+            backend = qiskit.get_backend(backend_name)
+            self.log.info(backend.parameters)
+            self.log.info(backend.calibration)
