@@ -22,6 +22,9 @@ import logging
 import random
 import string
 import copy
+import numpy as np
+import scipy.sparse as sp
+import scipy.sparse.csgraph as cs
 
 # Stable Modules
 from ._qiskiterror import QISKitError
@@ -145,6 +148,16 @@ def compile(circuits, backend,
                 DAGCircuit.fromQuantumCircuit(circuit),
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
+            # Pick good initial layout if None is given and not simulator
+            if initial_layout is None and not backend.configuration['simulator']:
+                best_sub = best_subset(backend, num_qubits)
+                qreg_list = []
+                for key, value in circuit.get_qregs().items():
+                    qreg_list += [key]*len(value)
+
+                initial_layout = {(rr, kk): ('q', best_sub[kk])
+                                  for rr in qreg_list
+                                  for kk in range(len(qreg_list))}
             dag_circuit, final_layout = compile_circuit(
                 circuit,
                 basis_gates=basis_gates,
@@ -276,6 +289,58 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled
+
+
+def best_subset(backend, n_qubits):
+    """Computes the qubit mapping with the best
+    connectivity.
+
+    Parameters:
+        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        n_qubits (int): Number of subset qubits to consider.
+
+    Returns:
+        ndarray: Array of qubits to use for best
+                connectivity mapping.
+
+    Raises:
+        QISKitError: Wrong number of qubits given.
+    """
+    if n_qubits == 1:
+        return np.array([0])
+    elif n_qubits <= 0:
+        raise QISKitError('Number of qubits <= 0.')
+
+    device_qubits = backend.configuration['n_qubits']
+    if n_qubits > device_qubits:
+        raise QISKitError('Number of qubits greater than device.')
+
+    cmap = np.asarray(backend.configuration['coupling_map'])
+    data = np.ones_like(cmap[:, 0])
+    sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
+                            shape=(device_qubits, device_qubits)).tocsr()
+    best = 0
+    best_map = None
+    # do bfs with each node as starting point
+    for k in range(sp_cmap.shape[0]):
+        bfs = cs.breadth_first_order(sp_cmap, i_start=k, directed=False,
+                                     return_predecessors=False)
+
+        connection_count = 0
+        for i in range(n_qubits):
+            node_idx = bfs[i]
+            for j in range(sp_cmap.indptr[node_idx],
+                           sp_cmap.indptr[node_idx + 1]):
+                node = sp_cmap.indices[j]
+                for counter in range(n_qubits):
+                    if node == bfs[counter]:
+                        connection_count += 1
+                        break
+
+        if connection_count > best:
+            best = connection_count
+            best_map = bfs[0:n_qubits]
+    return best_map
 
 
 class QISKitCompilerError(QISKitError):
