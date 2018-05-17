@@ -302,7 +302,7 @@ class Result(object):
         try:
             return self.get_data(circuit_name)['unitary']
         except KeyError:
-            raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
+            raise QISKitError('No unitary for circuit "{0}"'.format(circuit_name))
 
     def get_snapshots(self, circuit_name=None):
         """Get snapshots recorded during the run.
