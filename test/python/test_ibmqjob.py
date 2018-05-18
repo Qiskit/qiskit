@@ -23,6 +23,8 @@ from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
+USING_HUB = False
+
 
 def lowest_pending_jobs(backends):
     """Returns the backend with lowest pending jobs."""
