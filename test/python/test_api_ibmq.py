@@ -59,6 +59,7 @@ class TestApiHub(QiskitTestCase):
         super().setUp()
         qiskit.register(QE_TOKEN, QE_URL, hub=QE_HUB, group=QE_GROUP,
                         project=QE_PROJECT)
+        # TODO: FIXME: Change this backend name when changed in IBM-Q
         self.backend = 'ibmqx_qasm_simulator'
 
     @staticmethod

@@ -86,25 +86,9 @@ def compile(circuits, backend,
                       'shots': shots,
                       'backend_name': backend_name}
 
-    # TODO This backend needs HPC parameters to be passed in order to work
-    if 'hpc' in backend_name:
-        if hpc is None:
-            logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
-                        'parameter. Setting defaults to hpc.multi_shot_optimization '
-                        '= true and hpc.omp_num_threads = 16')
-            hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
-
-        if not all(key in hpc for key in
-                   ('multi_shot_optimization', 'omp_num_threads')):
-            raise QISKitError('Unknown HPC parameter format!')
-
-        qobj['config']['hpc'] = hpc
-    elif hpc is not None:
-        logger.info('HPC parameter is only available for '
-                    'ibmq_qasm_simulator_hpc. You are passing an HPC parameter '
-                    'but you are not using ibmq_qasm_simulator_hpc, so we will '
-                    'ignore it.')
-        hpc = None
+    if hpc is not None and \
+            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
+        raise QISKitError('Unknown HPC parameter format!')
 
     qobj['circuits'] = []
     if not basis_gates:

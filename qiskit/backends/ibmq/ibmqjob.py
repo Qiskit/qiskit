@@ -249,8 +249,7 @@ class IBMQJob(BaseJob):
 
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
-        if (qobj['config']['backend_name'] == 'ibmq_qasm_simulator_hpc' and
-                'hpc' in qobj['config']):
+        if 'hpc' in qobj['config']:
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
                 hpc = {
