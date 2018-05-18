@@ -278,10 +278,10 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
-    def test_mapping_correction(self, QE_TOKEN, QE_URL):
+    def test_mapping_correction(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test mapping works in previous failed case.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend = provider.get_backend('ibmqx5')
 
         q = qiskit.QuantumRegister(name='qr', size=11)
