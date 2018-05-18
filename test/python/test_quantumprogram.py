@@ -663,8 +663,7 @@ class TestQuantumProgram(QiskitTestCase):
                        'coupling_map', 'basis_gates'}
         qp.set_api(QE_TOKEN, QE_URL, hub, group, project)
         backend_list = qp.available_backends()
-        backend_list.remove('ibmqx_hpc_qasm_simulator')
-        backend_list.remove('ibmqx_qasm_simulator')
+        backend_list.remove('ibmq_qasm_simulator')
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
@@ -1757,9 +1756,9 @@ class TestQuantumProgram(QiskitTestCase):
     def test_hpc_parameter_is_correct(self, QE_TOKEN, QE_URL,
                                       hub=None, group=None, project=None):
         """Test for checking HPC parameter in compile() method.
-        It must be only used when the backend is ibmq_qasm_simulator_hpc.
+        It must be only used when the backend is ibmq_qasm_simulator (HPC).
         It will warn the user if the parameter is passed correctly but the
-        backend is not ibmq_qasm_simulator_hpc.
+        backend is not ibmq_qasm_simulator (HPC).
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")
@@ -1771,7 +1770,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = ['qc2']
         shots = 1
-        backend = 'ibmq_qasm_simulator_hpc'
+        backend = 'ibmq_qasm_simulator'
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88,
@@ -1783,7 +1782,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_hpc_parameter_is_incorrect(self, QE_TOKEN, QE_URL,
                                         hub=None, group=None, project=None):
         """Test for checking HPC parameter in compile() method.
-        It must be only used when the backend is ibmq_qasm_simulator_hpc.
+        It must be only used when the backend is ibmq_qasm_simulator (HPC).
         If the parameter format is incorrect, it will raise a QISKitError.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
@@ -1796,7 +1795,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = ['qc2']
         shots = 1
-        backend = 'ibmq_qasm_simulator_hpc'
+        backend = 'ibmq_qasm_simulator'
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
         self.assertRaises(QISKitError, q_program.compile, circuits,
                           backend=backend, shots=shots, seed=88,
