@@ -61,7 +61,7 @@ class TestIBMQJob(QiskitTestCase):
         cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
 
     def test_run_simulator(self):
-        backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
@@ -111,7 +111,7 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     def test_run_async_simulator(self):
         IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
-        backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 16
         qr = QuantumRegister(num_qubits, 'qr')
@@ -212,7 +212,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.cancelled)
 
     def test_job_id(self):
-        backend = self._provider.get_backend('ibmqx_qasm_simulator')
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
@@ -222,7 +222,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.job_id is not None)
 
     def test_get_backend_name(self):
-        backend_name = 'ibmqx_qasm_simulator'
+        backend_name = 'ibmq_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, preformatted=True)

@@ -1195,16 +1195,13 @@ class QuantumProgram(object):
             max_credits (int): the max credits to use 3, or 5
             seed (int): the initial seed the simulators use
             hpc (dict): This will setup some parameter for
-                        ibmq_qasm_simulator_hpc, using a JSON-like format like::
+                        ibmq_qasm_simulator, using a JSON-like format like::
 
                             {
                                 'multi_shot_optimization': Boolean,
                                 'omp_num_threads': Numeric
                             }
 
-                        This parameter MUST be used only with
-                        ibmq_qasm_simulator_hpc, otherwise the SDK will warn
-                        the user via logging, and set the value to None.
             skip_translation (bool): If True, bypass most of the compilation process and
                 creates a qobj with minimal check nor translation
         Returns:
