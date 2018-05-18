@@ -1202,9 +1202,6 @@ class QuantumProgram(object):
                                 'omp_num_threads': Numeric
                             }
 
-                        This parameter MUST be used only with
-                        ibmq_qasm_simulator, otherwise the SDK will warn
-                        the user via logging, and set the value to None.
             skip_translation (bool): If True, bypass most of the compilation process and
                 creates a qobj with minimal check nor translation
         Returns:
