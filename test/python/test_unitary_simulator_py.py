@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=invalid-name,missing-docstring
+# pylint: disable=redefined-builtin
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -23,7 +24,7 @@ import unittest
 import numpy as np
 
 from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
-                    QuantumRegister, ClassicalRegister)
+                    QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
@@ -86,7 +87,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                            preformatted=True)
 
         result = UnitarySimulatorPy().run(q_job).result()
-        self.assertTrue(np.allclose(result.get_data('test')['unitary'],
+        self.assertTrue(np.allclose(result.get_unitary('test'),
                                     expected,
                                     rtol=1e-3))
 
@@ -96,19 +97,17 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         This test is similar to one in test_quantumprogram but doesn't use
         multiprocessing.
         """
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
         qc1 = QuantumCircuit(qr, cr)
         qc2 = QuantumCircuit(qr, cr)
         qc1.h(qr)
         qc2.cx(qr[0], qr[1])
-        circuits = [qc1, qc2]
         backend = UnitarySimulatorPy()
-        quantum_job = QuantumJob(circuits, do_compile=False,
-                                 backend=backend)
-        result = backend.run(quantum_job).result()
-        unitary1 = result[0]['data']['unitary']
-        unitary2 = result[1]['data']['unitary']
+        qobj = compile([qc1, qc2], backend=backend)
+        job = backend.run(QuantumJob(qobj, backend=backend, preformatted=True))
+        unitary1 = job.result().get_unitary(qc1)
+        unitary2 = job.result().get_unitary(qc2)
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
                                  [0.5, 0.5, -0.5, -0.5],
                                  [0.5, -0.5, -0.5, 0.5]])

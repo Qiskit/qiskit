@@ -23,11 +23,11 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 
 	if(PACKAGE_TYPE STREQUAL "both")
 		set(PIP_PACKAGE_SOURCE_DIST sdist --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
-		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel -p manylinux1_x86_64 --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
+		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel ${WHEEL_TAG} --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	elseif(PACKAGE_TYPE STREQUAL "sdist")
 		set(PIP_PACKAGE_SOURCE_DIST sdist --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	elseif(PACKAGE_TYPE STREQUAL "bdist_wheel")
-		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel -p manylinux1_x86_64 --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
+		set(PIP_PACKAGE_PLATFORM_WHEELS bdist_wheel ${WHEEL_TAG} --dist-dir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 	endif()
 
 	# For ' make clean' target

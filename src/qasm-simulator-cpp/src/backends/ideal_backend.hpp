@@ -28,6 +28,8 @@ limitations under the License.
 #include <complex>
 #include <string>
 #include <vector>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include "base_backend.hpp"
 #include "qubit_vector.hpp"
