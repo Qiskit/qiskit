@@ -130,12 +130,6 @@ class DefaultQISKitProvider(BaseProvider):
             resolved_name = deprecated[name]
             logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
 
-        # FIXME: remove after API fix: online simulator names should change
-        if name == 'ibmq_qasm_simulator':
-            resolved_name = 'ibmqx_qasm_simulator'
-        if name == 'ibmq_qasm_simulator_hpc':
-            resolved_name = 'ibmqx_hpc_qasm_simulator'
-
         if resolved_name not in available:
             raise LookupError('backend "{}" not found.'.format(name))
 

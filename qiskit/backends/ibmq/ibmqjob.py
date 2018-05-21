@@ -72,7 +72,10 @@ class IBMQJob(BaseJob):
         this_result = self._wait_for_job(timeout=timeout, wait=wait)
         if self._is_device and self.done:
             _reorder_bits(this_result)  # TODO: remove this after Qobj
-        self._status = JobStatus.DONE
+        if this_result.get_status() == 'ERROR':
+            self._status = JobStatus.ERROR
+        else:
+            self._status = JobStatus.DONE
         return this_result
 
     def cancel(self):
@@ -98,6 +101,7 @@ class IBMQJob(BaseJob):
                 self._cancelled = True
                 return True
         else:
+            self._cancelled = False
             return False
 
     @property
@@ -134,10 +138,15 @@ class IBMQJob(BaseJob):
             if self._future_submit.exception():
                 self._exception = self._future_submit.exception()
             self._status_msg = str(self.exception)
+        elif 'ERROR' in job_result['status']:
+            # ERROR_CREATING_JOB or ERROR_RUNNING_JOB
+            self._status = JobStatus.ERROR
+            self._status_msg = job_result['status']
         else:
             self._status = JobStatus.ERROR
-            raise IBMQJobError('Unexpected behavior of {0}'.format(
-                self.__class__.__name__))
+            raise IBMQJobError('Unexpected behavior of {0}\n{1}'.format(
+                self.__class__.__name__,
+                pprint.pformat(job_result)))
         stats['status'] = self._status
         stats['status_msg'] = _status_msg
         return stats
@@ -190,6 +199,8 @@ class IBMQJob(BaseJob):
         Returns:
             Exception: exception raised by job
         """
+        if isinstance(self._exception, Exception):
+            self._status_msg = str(self._exception)
         return self._exception
 
     @property
@@ -238,8 +249,7 @@ class IBMQJob(BaseJob):
 
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
-        if (qobj['config']['backend_name'] == 'ibmq_qasm_simulator_hpc' and
-                'hpc' in qobj['config']):
+        if 'hpc' in qobj['config']:
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
                 hpc = {
@@ -256,6 +266,7 @@ class IBMQJob(BaseJob):
             raise QISKitError("inconsistent qobj backend "
                               "name ({0} != {1})".format(backend_name,
                                                          self._backend_name))
+        submit_info = {}
         try:
             submit_info = self._api.run_job(api_jobs, backend_name,
                                             shots=qobj['config']['shots'],

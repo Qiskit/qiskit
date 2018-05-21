@@ -17,7 +17,7 @@ to connect to the IBM Q Experience.
 questions and discussion.**
 
 **If you'd like to contribute to QISKit, please take a look at our**
-[contribution guidelines](CONTRIBUTING.rst).
+[contribution guidelines](.github/CONTRIBUTING.rst).
 
 Links to Sections:
 
@@ -205,7 +205,7 @@ with the aim of offering a high level development kit to work with quantum compu
 
 Visit the [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) for
 questions and discussions on QISKit and quantum computing more broadly. If you'd like to
-contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
+contribute to QISKit, please take a look at our [contribution guidelines](.github/CONTRIBUTING.rst).
 
 ## Multilanguage guide
 
