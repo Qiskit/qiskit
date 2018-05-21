@@ -51,6 +51,7 @@ class IBMQProvider(BaseProvider):
 
     def aliased_backend_names(self):
         return {
+            # TODO: Review the comment below. Is still true?
             # FIXME: uncomment after API fix: online simulator names should change
             # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
             #                         'ibmq_qasm_simulator_hpc']
@@ -58,9 +59,8 @@ class IBMQProvider(BaseProvider):
 
     def deprecated_backend_names(self):
         return {
-            # FIXME: uncomment after API fix: online simulator names should change
-            # 'ibmq_qasm_simulator': 'ibmq_qasm_simulator',
-            # 'ibmq_qasm_simulator_hpc': 'ibmq_qasm_simulator_hpc',
+            'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+            'ibmqx_qasm_simulator_hpc': 'ibmq_qasm_simulator',
             'real': 'ibmqx1'
             }
 

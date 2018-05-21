@@ -1,4 +1,4 @@
-pylint>=1.8
+pylint>=1.8,<1.9
 pycodestyle
 Sphinx>=1.6,<1.7
 better-apidoc==0.1.2
