@@ -21,6 +21,7 @@
 import sys
 import unittest
 from concurrent import futures
+import time
 
 import numpy
 from scipy.stats import chi2_contingency
@@ -39,7 +40,7 @@ class TestLocalJob(QiskitTestCase):
 
     @classmethod
     @requires_qe_access
-    def setUpClass(cls, QE_TOKEN, QE_URL):
+    def setUpClass(cls, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         # pylint: disable=arguments-differ
         super().setUpClass()
         # create QuantumCircuit
@@ -50,12 +51,12 @@ class TestLocalJob(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
         cls._qc = qc
-        cls._provider = LocalProvider(QE_TOKEN, QE_URL)
+        cls._provider = LocalProvider(QE_TOKEN, QE_URL, hub, group, project)
 
     def test_run(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
@@ -69,8 +70,15 @@ class TestLocalJob(QiskitTestCase):
         self.assertGreater(contingency[1], 0.01)
 
     def test_run_async(self):
-        backend = self._provider.get_backend('local_qasm_simulator_py')
-        num_qubits = 5
+        if sys.platform == 'darwin':
+            LocalJob._executor = futures.ThreadPoolExecutor(max_workers=2)
+        else:
+            LocalJob._executor = futures.ProcessPoolExecutor(max_workers=2)
+        try:
+            backend = self._provider.get_backend('local_qasm_simulator_cpp')
+        except KeyError:
+            backend = self._provider.get_backend('local_qasm_simulator_py')
+        num_qubits = 15
         qr = QuantumRegister(num_qubits, 'q')
         cr = ClassicalRegister(num_qubits, 'c')
         qc = QuantumCircuit(qr, cr)
@@ -78,16 +86,30 @@ class TestLocalJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 5
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-
-        # Wait for all the results.
-        result_array = [job.result() for job in job_array]
-
-        # Ensure all jobs have finished.
-        self.assertTrue(all([job.done for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        found_async_jobs = False
+        timeout = 30
+        start_time = time.time()
+        self.log.info('testing with simulator: %s', backend.name)
+        while not found_async_jobs:
+            check = sum([job.running for job in job_array])
+            if check >= 2:
+                self.log.info('found %d simultaneous jobs', check)
+                found_async_jobs = True
+            if all([job.done for job in job_array]):
+                self.log.warning('all jobs completed before simultaneous jobs '
+                                 'could be detected')
+                break
+            for job in job_array:
+                self.log.info('%s %s %s', job.status['status'],
+                              job.running, check)
+            self.log.info('%s %.4f', '-'*20, time.time()-start_time)
+            if time.time() - start_time > timeout:
+                raise TimeoutError('failed to see multiple running jobs after '
+                                   '{0} s'.format(timeout))
+            time.sleep(1)
 
     def test_cancel(self):
         """Test the cancelation of jobs.
@@ -112,24 +134,37 @@ class TestLocalJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1e5, preformatted=True)
-        num_jobs = 50
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        num_jobs = 10
+        timeout = 10
+        start_time = time.time()
+        self.log.info('testing with simulator: %s', backend.name)
         job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
-
-        # Try to cancel them in the reverse order they were launched: the
-        # most recent job is the one with more chances of still being in the
-        # queue.
-        for job in reversed(job_array):
+        for job in job_array:
             job.cancel()
-        num_cancelled = sum([job.cancelled for job in job_array])
-        self.log.info('number of successfully cancelled jobs: %d/%d',
-                      num_cancelled, num_jobs)
-        self.assertTrue(num_cancelled > 0)
+        found_cancelled = False
+        while not found_cancelled:
+            check = sum([job.cancelled for job in job_array])
+            if check >= 1:
+                self.log.info('found %d cancelled jobs', check)
+                found_cancelled = True
+            if all([job.done for job in job_array]):
+                self.log.warning('all jobs completed before simultaneous jobs '
+                                 'could be detected')
+                break
+            for job in job_array:
+                self.log.info('%s %s %s', job.status['status'], job.cancelled,
+                              check)
+            self.log.info('{0} {1:0.2f}'.format('-'*20, time.time()-start_time))
+            if time.time() - start_time > timeout:
+                raise TimeoutError('failed to see multiple running jobs after '
+                                   '{0} s'.format(timeout))
+            time.sleep(1)
 
     def test_done(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         job.result()
         self.assertTrue(job.done)
@@ -138,7 +173,7 @@ class TestLocalJob(QiskitTestCase):
         backend_name = 'local_qasm_simulator_py'
         backend = self._provider.get_backend(backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, shots=1024, preformatted=True)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         self.assertTrue(job.backend_name == backend_name)
 

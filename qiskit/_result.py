@@ -282,6 +282,28 @@ class Result(object):
         except KeyError:
             raise QISKitError('No statevector for circuit "{0}"'.format(circuit_name))
 
+    def get_unitary(self, circuit_name=None):
+        """Get the final unitary of circuit name.
+
+        The data is a matrix of complex numbers
+        [[1.+0.j, 0.+0.j], .. ].
+
+        Args:
+            circuit_name (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex amplitudes.
+
+        Raises:
+            QISKitError: if there is no unitary for the circuit.
+        """
+        try:
+            return self.get_data(circuit_name)['unitary']
+        except KeyError:
+            raise QISKitError('No unitary for circuit "{0}"'.format(circuit_name))
+
     def get_snapshots(self, circuit_name=None):
         """Get snapshots recorded during the run.
 
