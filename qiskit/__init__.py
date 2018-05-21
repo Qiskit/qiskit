@@ -46,4 +46,4 @@ from .wrapper._wrapper import available_backends, execute, register, get_backend
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
