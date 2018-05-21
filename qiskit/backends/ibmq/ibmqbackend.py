@@ -11,6 +11,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
+from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
     """
-
+    
     def __init__(self, configuration, api=None):
         """Initialize remote backend for IBM Quantum Experience.
 
@@ -155,9 +156,25 @@ class IBMQBackend(BaseBackend):
         base_index = 0
         job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
         while len(job_list) < limit or len(job_info_list) < limit:
-            base_index += skip
+            base_index += limit
             job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
             for job_info in job_info_list:
                 if job_info.get('backend').get('name') == backend_name:
-                    job_list.append(IBMQJob.from_api(job_info))
+                    is_device = not bool(self._configuration.get('simulator'))
+                    job = IBMQJob.from_api(job_info, self._api, is_device)
+                    if len(job_list) < limit:
+                        job_list.append(job)
         return job_list
+
+    def retrieve_job(self, job_id):
+        """Attempt to get the specified job by job_id"""
+        job_info = self._api.get_job(job_id)
+        if 'error' in job_info:
+            raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
+        is_device = not bool(self._configuration.get('simulator'))
+        job = IBMQJob.from_api(job_info, self._api, is_device)
+        return job
+
+class IBMQBackendError(QISKitError):
+    """IBM Q Backend Errors"""
+    pass

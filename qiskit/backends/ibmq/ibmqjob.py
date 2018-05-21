@@ -18,11 +18,13 @@ import pprint
 
 from IBMQuantumExperience import ApiError
 from qiskit._compiler import compile_circuit
+from qiskit import QuantumJob
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
+from forkable import ForkablePdb
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,9 @@ class IBMQJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
     _executor = futures.ThreadPoolExecutor()
+
+    def __init__(self, arg, api, is_device):
+        pass
 
     def __init__(self, q_job, api, is_device):
         """IBMQJob init function.
@@ -57,7 +62,7 @@ class IBMQJob(BaseJob):
         self._is_device = is_device
 
     @classmethod
-    def from_api(self, job_info, api, is_device):
+    def from_api(cls, job_info, api, is_device):
         """Instantiates job using information returned from
         IBMQuantumExperience about a particular job.
 
@@ -80,21 +85,25 @@ class IBMQJob(BaseJob):
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
-        super().__init__()
-        self._status = JobStatus.QUEUED
-        self._backend_name = job_info.get('backend').get('name')
-        self._api = api
-        self._job_id = job_info.get('id')
+        job_instance = cls.__new__(cls)
+        job_instance._status = JobStatus.QUEUED
+        job_instance._backend_name = job_info.get('backend').get('name')
+        job_instance._api = api
+        job_instance._job_id = job_info.get('id')
         # update status (need _api and _job_id)
-        self.status
-        self._status_msg = None
-        self._cancelled = False
-        self._exception = None
-        self._is_device = is_device
+        job_instance.status
+        job_instance._status_msg = None
+        job_instance._cancelled = False
+        job_instance._exception = None
+        job_instance._is_device = is_device
+        return job_instance
 
     def result(self, timeout=None, wait=5):
         # pylint: disable=arguments-differ
         while self._status == JobStatus.INITIALIZING:
+            if self._future_submit.exception():
+                raise IBMQJobError('error submitting job: {}'.format(
+                    repr(self._future_submit.exception())))
             time.sleep(0.1)
         this_result = self._wait_for_job(timeout=timeout, wait=wait)
         if self._is_device and self.done:
@@ -286,7 +295,6 @@ class IBMQJob(BaseJob):
                 }
             except (KeyError, TypeError):
                 hpc = None
-
         backend_name = qobj['config']['backend_name']
         if backend_name != self._backend_name:
             raise QISKitError("inconsistent qobj backend "
@@ -294,11 +302,7 @@ class IBMQJob(BaseJob):
                                                          self._backend_name))
         submit_info = {}
         try:
-            submit_info = self._api.run_job(api_jobs, backend_name,
-                                            shots=qobj['config']['shots'],
-                                            max_credits=qobj['config']['max_credits'],
-                                            seed=seed0,
-                                            hpc=hpc)
+            submit_info = self._api.run_job(api_jobs, backend=backend_name)
         except ApiError as err:
             self._status = JobStatus.ERROR
             self._exception = err

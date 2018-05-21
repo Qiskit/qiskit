@@ -20,10 +20,9 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
 import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
-
-USING_HUB = False
 
 
 def lowest_pending_jobs(backends):
@@ -252,6 +251,28 @@ class TestIBMQJob(QiskitTestCase):
         job = backend.run(quantum_job)
         self.assertTrue(job.backend_name == backend_name)
 
+    def test_get_jobs_from_backend(self):
+        backends = self._provider.available_backends({'simulator': False})
+        backend = lowest_pending_jobs(backends)
+        job_list = backend.jobs(limit=5, skip=0)
+        self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
+        for job in job_list:
+            self.log.info('status: %s', job.status)
+        self.assertTrue(job_list)
 
+    def test_retrieve_job(self):
+        backends = self._provider.available_backends({'simulator': False})
+        backend = lowest_pending_jobs(backends)
+        job_list = backend.jobs(limit=1, skip=0)
+        job_id = job_list[0].job_id
+        job = backend.retrieve_job(job_id)
+        self.assertTrue(job_id == job.job_id)
+
+    def test_retrieve_job_error(self):
+        backends = self._provider.available_backends({'simulator': False})
+        backend = lowest_pending_jobs(backends)
+        self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
+
+        
 if __name__ == '__main__':
     unittest.main(verbosity=2)
