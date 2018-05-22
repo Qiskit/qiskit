@@ -23,8 +23,7 @@ import itertools
 import json
 import logging
 import os
-import random
-import string
+import uuid
 import warnings
 
 import qiskit.wrapper
@@ -453,8 +452,7 @@ class QuantumProgram(object):
         node_circuit = Qasm(data=qasm_string).parse()  # Node (AST)
         if not name:
             # Get a random name if none is given
-            name = "".join([random.choice(string.ascii_letters + string.digits)
-                            for n in range(10)])
+            name = str(uuid.uuid4())
         logger.info("circuit name: %s", name)
         logger.info("******************************")
         logger.info(node_circuit.qasm())

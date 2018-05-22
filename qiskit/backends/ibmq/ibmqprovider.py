@@ -18,7 +18,7 @@
 """Provider for remote IbmQ backends."""
 from IBMQuantumExperience import IBMQuantumExperience
 
-from qiskit._util import _snake_case_to_camel_case
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
@@ -117,7 +117,7 @@ class IBMQProvider(BaseProvider):
         }
 
         for key in config.keys():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id',
                                'status']:
                 edited_config[new_key] = config[key]

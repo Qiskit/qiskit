@@ -19,9 +19,9 @@
 """Tools for compiling a batch of quantum circuits."""
 import logging
 
-import random
-import string
 import copy
+import uuid
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -78,9 +78,7 @@ def compile(circuits, backend,
     backend_name = backend_conf['name']
 
     qobj = {}
-    if not qobj_id:
-        qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
-                           for n in range(30)])
+    qobj_id = qobj_id or str(uuid.uuid4())
     qobj['id'] = qobj_id
     qobj['config'] = {'max_credits': max_credits,
                       'shots': shots,
