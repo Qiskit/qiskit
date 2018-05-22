@@ -346,6 +346,27 @@ class TestCompiler(QiskitTestCase):
             qobj = None
         self.assertIsInstance(qobj, dict)
 
+    @requires_qe_access
+    def test_mapping_multi_qreg(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        """Test mapping works for multiple qregs.
+        """
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backend = provider.get_backend('ibmqx5')
+
+        q = qiskit.QuantumRegister(2, name='qr')
+        q2 = qiskit.QuantumRegister(2, name='qr2')
+        c = qiskit.ClassicalRegister(2, name='cr')
+        qc = qiskit.QuantumCircuit(q, q2, c)
+        qc.h(q[0])
+        qc.cx(q[0], q2[1])
+        qc.measure(q, c)
+
+        try:
+            qobj = qiskit._compiler.compile(qc, backend)
+        except QISKitError:
+            qobj = None
+        self.assertIsInstance(qobj, dict)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

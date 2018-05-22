@@ -135,13 +135,13 @@ def compile(circuits, backend,
             # Pick good initial layout if None is given and not simulator
             if initial_layout is None and not backend.configuration['simulator']:
                 best_sub = best_subset(backend, num_qubits)
-                qreg_list = []
+                initial_layout = {}
+                map_iter = 0
                 for key, value in circuit.get_qregs().items():
-                    qreg_list += [key]*len(value)
+                    for i in range(value.size):
+                        initial_layout[(key, i)] = ('q', best_sub[map_iter])
+                        map_iter += 1
 
-                initial_layout = {(rr, kk): ('q', best_sub[kk])
-                                  for rr in qreg_list
-                                  for kk in range(len(qreg_list))}
             dag_circuit, final_layout = compile_circuit(
                 circuit,
                 basis_gates=basis_gates,
