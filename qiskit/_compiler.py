@@ -169,7 +169,7 @@ def compile(circuits, backend,
 
 
 def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layout=None, get_layout=False, format='dag'):
+                    initial_layout=None, get_layout=False, format='dag', seed=None):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -204,6 +204,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         get_layout (bool): flag for returning the layout.
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
+        seed (int): random seed for simulators
 
     Returns:
         object: If get_layout == False, the compiled circuit in the specified
@@ -227,7 +228,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         coupling = Coupling(coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=seed)
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
