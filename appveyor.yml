@@ -42,7 +42,7 @@ install:
 
 # Use py.test for output of xunit test results.
 test_script:
-    - py.test -v --junit-xml=test_results.xml
+    - py.test -v --tb=short --junit-xml=test_results.xml
 
 # Upload the test results to appveyor so they are shown on the "Tests" tab.
 on_finish:
