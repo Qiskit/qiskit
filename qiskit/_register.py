@@ -69,9 +69,10 @@ class Register(object):
         if size <= 0:
             raise QISKitError("register size must be positive")
 
-    def __str__(self):
-        """Return a string representing the register."""
-        return "Register(%s,%d)" % (self.name, self.size)
+    def __repr__(self):
+        """Return the official string representing the register."""
+        return "%s(%d, '%s')" % (self.__class__.__qualname__,
+                                 self.size, self.name)
 
     def __len__(self):
         """Return register size"""
