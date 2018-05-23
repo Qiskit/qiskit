@@ -1,14 +1,23 @@
-# Where component owners are known, add them here.
+# Default owners for everything in the repo. Further rules in the file may
+# (and should) override the notifications they get - but still be able to act
+# as code owners if needed
+* @jaygambetta @ismaelfaro
 
-qiskit/core/* @ewinston @awcross1 @pacomf @jaygambetta @ismaelfaro
-qiskit/core/simulators/* @ewinston @chriseclectic
-qiskit/doc/* @ewinston @pacomf
+# Files on root directory. This pattern is actually the one that will apply
+# unless specialized by a later rule
+/* @ajavadia @ewinston @atilag @diego-plan9
 
-qiskit/tools/qcvv/* @chriseclectic
-qiskit/tools/qi/* @chriseclectic
-qiskit/tools/apps/* @antoniomezzacapo
+# Individual folders on root directory
+/cmake     @atilag
+/doc       @diego-plan9
+/examples  @jaygambetta
+/src       @chriseclectic
 
-# other repository
-
-qiskit-tutorial @ewinston @awcross1 @jaygambetta @antoniomezzacapo
-qiskit-api-py @pacomf
+# qiskit folder
+qiskit/*             @ajavadia @ewinston @awcross1 @1ucian0 @atilag @diego-plan9 @delapuente
+qiskit/**/*.py       @ajavadia @ewinston @atilag @diego-plan9
+qiskit/mapper/*      @ajavadia
+qiskit/qasm/*        @1ucian0
+qiskit/tools/qcvv/*  @chriseclectic
+qiskit/tools/qi/*    @chriseclectic
+qiskit/tools/apps/*  @antoniomezzacapo
