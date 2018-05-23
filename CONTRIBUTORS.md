@@ -25,5 +25,5 @@ involved in the project:
 * Erick Winston
 * Chris Wood
 
-If you [contribute to the project](CONTRIBUTING.rst), you are welcome to include
+If you [contribute to the project](.github/CONTRIBUTING.rst), you are welcome to include
 your name in this list.
