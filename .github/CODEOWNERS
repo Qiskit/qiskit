@@ -1,23 +1,22 @@
-# Default owners for everything in the repo. Further rules in the file may
-# (and should) override the notifications they get - but still be able to act
-# as code owners if needed
-* @jaygambetta @ismaelfaro
+# This file defines the persons that will be assigned as reviewers for PRs that
+# modify a particular file in the repo. Please note it is just a convention
+# for the GitHub interface, and any member of the QISKit team can (and should!)
+# review as well.
 
-# Files on root directory. This pattern is actually the one that will apply
-# unless specialized by a later rule
-/* @ajavadia @ewinston @atilag @diego-plan9
+# Real code owners.
+#* @jaygambetta @ismaelfaro
+
+# Generic rule for the repository. This pattern is actually the one that will
+# apply unless specialized by a later rule
+* @ajavadia @ewinston @atilag @delapuente @diego-plan9
 
 # Individual folders on root directory
-/cmake     @atilag
-/doc       @diego-plan9
-/examples  @jaygambetta
-/src       @chriseclectic
+/cmake     @ajavadia @atilag @diego-plan9
+/doc       @jaygambetta @ajavadia @atilag @diego-plan9
+/examples  @jaygambetta @ajavadia @atilag @diego-plan9
+/src       @chriseclectic @ajavadia @atilag @diego-plan9
 
-# qiskit folder
-qiskit/*             @ajavadia @ewinston @awcross1 @1ucian0 @atilag @diego-plan9 @delapuente
-qiskit/**/*.py       @ajavadia @ewinston @atilag @diego-plan9
-qiskit/mapper/*      @ajavadia
-qiskit/qasm/*        @1ucian0
-qiskit/tools/qcvv/*  @chriseclectic
-qiskit/tools/qi/*    @chriseclectic
-qiskit/tools/apps/*  @antoniomezzacapo
+# qiskit folders
+qiskit/qasm/*        @1ucian0 @ajavadia @ewinston @atilag @delapuente @diego-plan9
+qiskit/tools/*       @antoniomezzacapo @chriseclectic @ajavadia @ewinston @atilag @delapuente @diego-plan9
+qiskit/schemas/*     @jaygambetta @ajavadia @ewinston @atilag @delapuente @diego-plan9
