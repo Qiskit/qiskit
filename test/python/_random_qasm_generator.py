@@ -17,7 +17,7 @@
 # =============================================================================
 
 import random
-import string
+import uuid
 
 import numpy
 
@@ -69,8 +69,7 @@ class RandomQasmGenerator(object):
         self.depth_list = numpy.random.choice(
             range(self.min_depth, self.max_depth + 1), size=n_circuits)
         for i in range(n_circuits):
-            circuit_name = ''.join(numpy.random.choice(
-                list(string.ascii_letters + string.digits), size=10))
+            circuit_name = str(uuid.uuid4())
             self.circuit_name_list.append(circuit_name)
             n_qubits = self.n_qubit_list[i]
             depth = self.depth_list[i]

@@ -20,7 +20,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from qiskit._util import _snake_case_to_camel_case
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 
@@ -44,7 +44,7 @@ class IBMQBackend(BaseBackend):
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():
-                new_key = _snake_case_to_camel_case(key)
+                new_key = _camel_case_to_snake_case(key)
                 configuration_edit[new_key] = vals
             self._configuration = configuration_edit
             # FIXME: This is a hack to make sure that the
@@ -87,7 +87,7 @@ class IBMQBackend(BaseBackend):
 
         calibrations_edit = {}
         for key, vals in calibrations.items():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             calibrations_edit[new_key] = vals
 
         return calibrations_edit
@@ -115,7 +115,7 @@ class IBMQBackend(BaseBackend):
 
         parameters_edit = {}
         for key, vals in parameters.items():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             parameters_edit[new_key] = vals
 
         return parameters_edit
