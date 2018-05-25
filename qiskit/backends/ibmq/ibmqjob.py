@@ -81,7 +81,6 @@ class IBMQJob(BaseJob):
     def cancel(self):
         """Attempt to cancel job. Currently this is only possible on
         commercial systems.
-
         Returns:
             bool: True if job can be cancelled, else False.
 
@@ -131,7 +130,7 @@ class IBMQJob(BaseJob):
                     stats['queue_position'] = job_result['infoQueue']['position']
         elif job_result['status'] == 'COMPLETED':
             self._status = JobStatus.DONE
-        elif self.cancelled:
+        elif job_result['status'] == 'CANCELLED':
             self._status = JobStatus.CANCELLED
         elif self.exception:
             self._status = JobStatus.ERROR
@@ -207,7 +206,7 @@ class IBMQJob(BaseJob):
     def _is_commercial(self):
         config = self._api.config
         # this check may give false positives so should probably be improved
-        return config['hub'] and config['group'] and config['project']
+        return config.get('hub') and config.get('group') and config.get('project')
 
     @property
     def job_id(self):

@@ -27,7 +27,8 @@ from scipy.stats import chi2_contingency
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
 import qiskit._compiler
-from qiskit.backends.ibmq import IBMQProvider, IBMQJob
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
@@ -59,6 +60,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.measure(qr, cr)
         cls._qc = qc
         cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        cls._using_hub = bool(hub and group and project)
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
@@ -202,14 +204,42 @@ class TestIBMQJob(QiskitTestCase):
         job_ids = [job.job_id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
-    @unittest.skip('cancel is not currently possible on IBM Q')
     def test_cancel(self):
-        backend = self._provider.get_backend('ibmqx4')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        if not self._using_hub:
+            self.skipTest('job cancellation currently only available on hubs')
+        backends = self._provider.available_backends({'simulator': False})
+        self.log.info('devices: %s', [b.name for b in backends])
+        backend = backends[0]
+        self.log.info('using backend: %s', backend.name)
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(num_qubits, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        for i in range(num_qubits-1):
+            qc.cx(qr[i], qr[i+1])
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile(qc, backend)
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
-        job.cancel()
-        self.assertTrue(job.cancelled)
+        num_jobs = 3
+        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        success = False
+        self.log.info('jobs submitted: %s', num_jobs)
+        while any([job.status['status'] == JobStatus.INITIALIZING for job in job_array]):
+            self.log.info('jobs initializing')
+            time.sleep(1)
+        for job in job_array:
+            job.cancel()
+        while not success:
+            job_status = [job.status for job in job_array]
+            for status in job_status:
+                self.log.info(status)
+            if any([status['status'] == JobStatus.CANCELLED for status in job_status]):
+                success = True
+            if all([status['status'] == JobStatus.DONE for status in job_status]):
+                raise IBMQJobError('all jobs completed before any could be cancelled')
+            self.log.info('-' * 20)
+            time.sleep(2)
+        self.assertTrue(success)
 
     def test_job_id(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
