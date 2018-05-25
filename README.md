@@ -151,18 +151,16 @@ your IBM Q Experience account:
    `config` variable with the values you can find on your IBM Q account
    page.
 
-Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with the `set_api()` function. For example:
+Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with the `register()` function. For example:
 
 ```python
-from qiskit import QuantumProgram
+from qiskit import register
 import Qconfig
 
-# Creating Programs create your first QuantumProgram object instance.
-qp = QuantumProgram()
-qp.set_api(Qconfig.APItoken, Qconfig.config["url"],
-           hub=Qconfig.config["hub"],
-           group=Qconfig.config["group"],
-           project=Qconfig.config["project"])
+register(Qconfig.APItoken, Qconfig.config["url"],
+         hub=Qconfig.config["hub"],
+         group=Qconfig.config["group"],
+         project=Qconfig.config["project"])
 ```
 
 For more details on this and more information see
@@ -174,7 +172,7 @@ For more details on this and more information see
 Now you're set up and ready to check out some of the other examples from our
 [Tutorial](https://github.com/QISKit/qiskit-tutorial) repository. Start with the
 [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to
-the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb).
+the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/master/reference/tools/getting_started.ipynb).
 If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html),
 you can copy and modify the notebooks to create your own experiments.
 

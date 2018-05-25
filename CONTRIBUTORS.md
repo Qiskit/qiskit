@@ -11,6 +11,7 @@ involved in the project:
 * Vincent Dwyer
 * Mark Everitt
 * Ismael Faro
+* Albert Frisch
 * Jay Gambetta
 * Juan Gomez
 * Ali Javadi-Abhari
