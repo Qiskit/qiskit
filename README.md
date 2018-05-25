@@ -172,7 +172,7 @@ For more details on this and more information see
 Now you're set up and ready to check out some of the other examples from our
 [Tutorial](https://github.com/QISKit/qiskit-tutorial) repository. Start with the
 [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to
-the [‘Getting Started’ example](https://github.com/alfrisch/qiskit-tutorial/blob/master/reference/tools/getting_started.ipynb).
+the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/master/reference/tools/getting_started.ipynb).
 If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html),
 you can copy and modify the notebooks to create your own experiments.
 
