@@ -14,11 +14,13 @@ involved in the project:
 * Jay Gambetta
 * Juan Gomez
 * Ali Javadi-Abhari
+* Peng Liu
 * Yunho Maeng
 * Paco Martin
 * Antonio Mezzacapo
 * Diego Moreda
 * Jesus Perez
+* Marco Pistoia
 * Russell Rundle
 * Todd Tilma
 * John Smolin
