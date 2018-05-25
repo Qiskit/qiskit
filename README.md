@@ -158,9 +158,9 @@ from qiskit import register
 import Qconfig
 
 register(Qconfig.APItoken, Qconfig.config["url"],
-           hub=Qconfig.config["hub"],
-           group=Qconfig.config["group"],
-           project=Qconfig.config["project"])
+         hub=Qconfig.config["hub"],
+         group=Qconfig.config["group"],
+         project=Qconfig.config["project"])
 ```
 
 For more details on this and more information see
