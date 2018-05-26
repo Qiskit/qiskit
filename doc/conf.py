@@ -79,7 +79,7 @@ author = 'IBM Research'
 
 # Add description
 html_context = {
-    'description': 'Quantum Information Software Kit'
+    'description': 'Quantum Information Science Kit'
 }
 
 # The version info for the project you're documenting, acts as replacement for

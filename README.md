@@ -1,9 +1,9 @@
-# Quantum Information Software Kit (QISKit)
+# Quantum Information Science Kit (QISKit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
 
-The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for
+The Quantum Information Science Kit (**QISKit** for short) is a software development kit (SDK) for
 working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the
 [IBM Q Experience (QX)](https://quantumexperience.ng.bluemix.net/).
 

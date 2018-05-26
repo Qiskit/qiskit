@@ -7,7 +7,7 @@
 QISKit マニュアル
 =================
 
-Quantum Information Software Kit (QISKit, 量子情報ソフトウェアキット)は
+Quantum Information Science Kit (QISKit, 量子情報ソフトウェアキット)は
 `OpenQASM <https://github.com/QISKit/openqasm>`_ とIBM Q Experience(QX)
 を利用してプログラミングをするためのPythonソフトウェア開発キット(SDK)です。
 

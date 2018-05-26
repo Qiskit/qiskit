@@ -7,7 +7,7 @@
 QISKit Documentation
 ====================
 
-Quantum Information Software Kit (QISKit), SDK Python version for working
+Quantum Information Science Kit (QISKit), SDK Python version for working
 with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience
 (QX).
 
