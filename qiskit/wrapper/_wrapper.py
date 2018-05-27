@@ -227,6 +227,8 @@ def load_qasm_text(qasm_string, name=None,
     node_circuit = Qasm(data=qasm_string).parse()
     unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = unrolled_circuit.execute()
+    if name:
+        circuit_unrolled.name = name
     return circuit_unrolled
 
 
@@ -254,4 +256,6 @@ def load_qasm_file(qasm_file, name=None,
     node_circuit = Qasm(filename=qasm_file).parse()
     unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = unrolled_circuit.execute()
-    return name
+    if name:
+        circuit_unrolled.name = name
+    return circuit_unrolled
