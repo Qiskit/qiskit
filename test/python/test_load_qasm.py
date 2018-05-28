@@ -83,17 +83,17 @@ measure b[3] -> d[3];
                           load_qasm_file, "", name=None)
 
     def test_fail_load_qasm_string(self):
-            """Test fail_load_qasm_string.
+        """Test fail_load_qasm_string.
 
-            If all is correct we should get a QISKitError
+        If all is correct we should get a QISKitError
 
-            Previously:
-                Libraries:
-                    from qiskit import QISKitError
-                    from qiskit.wrapper import load_qasm_string
-            """
-            self.assertRaises(QISKitError,
-                              load_qasm_string, "", name=None)
+        Previously:
+            Libraries:
+                from qiskit import QISKitError
+                from qiskit.wrapper import load_qasm_string
+        """
+        self.assertRaises(QISKitError,
+                          load_qasm_string, "", name=None)
 
     def test_load_qasm_text(self):
         """Test load_qasm_text and get_circuit.
