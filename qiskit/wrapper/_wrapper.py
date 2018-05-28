@@ -31,7 +31,7 @@ from qiskit.unroll import Unroller, CircuitBackend
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
-def register(token, url,
+def register(token, url='https://quantumexperience.ng.bluemix.net/api',
              hub=None, group=None, project=None, proxies=None, verify=True,
              provider_name='ibmq'):
     """
@@ -211,13 +211,13 @@ def execute(circuits, backend,
 # Functions for importing qasm
 
 
-def load_qasm_text(qasm_string, name=None,
-                   basis_gates="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"):
+def load_qasm_string(qasm_string, name=None,
+                     basis_gates="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"):
     """Construct a quantum circuit from a qasm representation (string).
 
     Args:
-        qasm (str): a string of qasm, or a filename containing qasm.
+        qasm_string (str): a string of qasm, or a filename containing qasm.
         basis_gates (str): basis gates for the quantum circuit.
         name (str or None): the name of the quantum circuit after loading qasm
             text into it. If no name given, assign automatically.
@@ -248,7 +248,7 @@ def load_qasm_file(qasm_file, name=None,
         quantum program and returns the name to be used to get this circuit
     Raises:
         QISKitError: if the file cannot be read.
-    """    
+    """
     if not os.path.exists(qasm_file):
         raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
     if not name:

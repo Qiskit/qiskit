@@ -25,4 +25,4 @@ refer to the documentation of each component and use them separately.
 
 from ._wrapper import (available_backends, local_backends, remote_backends,
                        get_backend, compile, execute, register,
-                       load_qasm_text, load_qasm_file)
+                       load_qasm_string, load_qasm_file)

@@ -22,8 +22,6 @@ Qasm Program Class
 import itertools
 import json
 import logging
-import os
-import uuid
 import warnings
 
 import qiskit.wrapper
@@ -36,7 +34,6 @@ from ._quantumjob import QuantumJob
 from ._quantumregister import QuantumRegister
 from .mapper import coupling_dict2list
 from .qasm import Qasm
-from .unroll import CircuitBackend, Unroller
 
 logger = logging.getLogger(__name__)
 
@@ -425,7 +422,7 @@ class QuantumProgram(object):
         warnings.warn(
             "QuantumProgram.load_qasm_file() will be deprecated in upcoming versions (>0.5.0). "
             "Using qiskit.load_qasm_file() instead is recommended.", DeprecationWarning)
-        circuit_unrolled = qiskit.wrapper.load_qasm_file(qasm_file, name, basis_gates)        
+        circuit_unrolled = qiskit.wrapper.load_qasm_file(qasm_file, name, basis_gates)
         self.add_circuit(name, circuit_unrolled)
         return name
 
@@ -445,7 +442,7 @@ class QuantumProgram(object):
         warnings.warn(
             "QuantumProgram.load_qasm_text() will be deprecated in upcoming versions (>0.5.0). "
             "Using qiskit.load_qasm_text() instead is recommended.", DeprecationWarning)
-        circuit_unrolled = qiskit.wrapper.load_qasm_text(qasm_string, name, basis_gates)
+        circuit_unrolled = qiskit.wrapper.load_qasm_string(qasm_string, name, basis_gates)
         self.add_circuit(name, circuit_unrolled)
         return name
 
