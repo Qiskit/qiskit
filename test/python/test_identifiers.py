@@ -50,7 +50,7 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         }
 
     ###############################################################
-    # Tests to initiate an build a quantum program with anonymous ids
+    # Tests to initiate and build a quantum program with anonymous ids
     ###############################################################
 
     def test_create_program_with_specsnonames(self):
@@ -354,26 +354,6 @@ class TestQobj(QiskitTestCase):
     @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
     def test_local_qasm_simulator_cpp(self):
         backend = wrapper.get_backend('local_qasm_simulator_cpp')
-        qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj['circuits'][0]['compiled_circuit']
-        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
-        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
-        self.assertIn(self.qr_name, ccq)
-        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
-        self.assertIn(self.cr_name, ccq)
-
-    def test_local_statevector_simulator_sympy(self):
-        backend = wrapper.get_backend('local_statevector_simulator_sympy')
-        qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj['circuits'][0]['compiled_circuit']
-        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
-        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
-        self.assertIn(self.qr_name, ccq)
-        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
-        self.assertIn(self.cr_name, ccq)
-
-    def test_local_unitary_simulator_sympy(self):
-        backend = wrapper.get_backend('local_unitary_simulator_sympy')
         qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']

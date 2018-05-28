@@ -26,9 +26,7 @@ from .qasm_simulator_py import QasmSimulatorPy
 from .qasm_simulator_projectq import QasmSimulatorProjectQ
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
-from .statevector_simulator_sympy import StatevectorSimulatorSympy
 from .unitary_simulator_py import UnitarySimulatorPy
-from .unitary_simulator_sympy import UnitarySimulatorSympy
 
 
 logger = logging.getLogger(__name__)
@@ -39,8 +37,6 @@ SDK_STANDARD_BACKENDS = [
     QasmSimulatorProjectQ,
     StatevectorSimulatorCpp,
     StatevectorSimulatorPy,
-    StatevectorSimulatorSympy,
-    UnitarySimulatorSympy,
     UnitarySimulatorPy,
     CliffordSimulatorCpp,
 ]
@@ -74,11 +70,9 @@ class LocalProvider(BaseProvider):
                                      'local_qasm_simulator_py'],
             'local_statevector_simulator': ['local_statevector_simulator_cpp',
                                             'local_statevector_simulator_projectq',
-                                            'local_statevector_simulator_py',
-                                            'local_statevector_simulator_sympy'],
+                                            'local_statevector_simulator_py'],
             'local_unitary_simulator': ['local_unitary_simulator_cpp',
-                                        'local_unitary_simulator_py',
-                                        'local_unitary_simulator_sympy'],
+                                        'local_unitary_simulator_py'],
             'local_clifford_simulator': ['local_clifford_simulator_cpp']
             }
 
