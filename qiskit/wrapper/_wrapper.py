@@ -223,6 +223,8 @@ def load_qasm_string(qasm_string, name=None,
             text into it. If no name given, assign automatically.
     Returns:
         QuantumCircuit: circuit constructed from qasm.
+    Raises:
+        QISKitError: if the string is not valid QASM
     """
     node_circuit = Qasm(data=qasm_string).parse()
     unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
@@ -244,8 +246,7 @@ def load_qasm_file(qasm_file, name=None,
             the text file.
         basis_gates (str): basis gates for the quantum circuit.
     Returns:
-        str: Adds a quantum circuit with the gates given in the qasm file to the
-        quantum program and returns the name to be used to get this circuit
+         QuantumCircuit: circuit constructed from qasm.
     Raises:
         QISKitError: if the file cannot be read.
     """
@@ -253,9 +254,8 @@ def load_qasm_file(qasm_file, name=None,
         raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
     if not name:
         name = os.path.splitext(os.path.basename(qasm_file))[0]
-    node_circuit = Qasm(filename=qasm_file).parse()
-    unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-    circuit_unrolled = unrolled_circuit.execute()
-    if name:
-        circuit_unrolled.name = name
-    return circuit_unrolled
+
+    with open(qasm_file) as file:
+        qasm_data = file.read()
+
+    return load_qasm_string(qasm_data, name=name, basis_gates=basis_gates)
