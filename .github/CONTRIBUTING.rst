@@ -204,30 +204,29 @@ All platforms:
 
 .. code:: sh
 
-        $> cd out
-        out$> make lint
-        out$> make style
+    $> cd out
+    out$> make lint
+    out$> make style
 
 
 Good first contributions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 You are welcome to contribute wherever in the code you want to, of course, but
-we recommend taking a look at the "Good first contribution" label into the issues and
-pick one. We would love to mentor you!
+we recommend taking a look at the "Good first contribution" label into the
+issues and pick one. We would love to mentor you!
 
 Doc
 ~~~
 
-Review the parts of the documentation regarding the new changes and
-update it if it's needed.
+Review the parts of the documentation regarding the new changes and update it
+if it's needed.
 
 Pull requests
 ~~~~~~~~~~~~~
 
-We use `GitHub pull requests
-<https://help.github.com/articles/about-pull-requests>`_ to accept the
-contributions.
+We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
+to accept the contributions.
 
 A friendly reminder! We'd love to have a previous discussion about the best way to
 implement the feature/bug you are contributing with. This is a good way to
@@ -251,13 +250,13 @@ you are ready to start coding (yay!). We have two options here:
 
 Please follow the next rules for the commit messages:
 
--  It should include a reference to the issue ID in the first line of the
-   commit, **and** a brief description of the issue, so everybody knows what
-   this ID actually refers to without wasting to much time on following the
-   link to the issue.
+- It should include a reference to the issue ID in the first line of the commit,
+  **and** a brief description of the issue, so everybody knows what this ID
+  actually refers to without wasting to much time on following the link to the
+  issue.
 
--  It should provide enough information for a reviewer to understand the
-   changes and their relation to the rest of the code.
+- It should provide enough information for a reviewer to understand the changes
+  and their relation to the rest of the code.
 
 A good example:
 
@@ -272,6 +271,83 @@ A (really) bad example:
 .. code::
 
     Fixes #190
+
+Development cycle
+-----------------
+
+Our development cycle is straightforward, we define a roadmap with milestones
+for releases, and features that we want to include in these releases. The
+roadmap is not public at the moment, but it's a committed project in our
+community and we are working to make parts of it public in a way that can be
+beneficial for everyone. Whenever a new release is close to be launched, we'll
+announce it and detail what has changed since the latest version.
+The channels we'll use to announce new releases are still being discussed, but
+for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
+
+Branch model
+~~~~~~~~~~~~
+
+There are two main branches in the repository:
+
+- ``master``
+
+  - This is the development branch.
+  - Next release is going to be developed here. For example, if the current
+    latest release version is r1.0.3, the master branch version will point to
+    r1.1.0 (or r2.0.0).
+  - You should expect this branch to be updated very frequently.
+  - Even though we are always doing our best to not push code that breaks
+    things, is more likely to eventually push code that breaks something...
+    we will fix it ASAP, promise :).
+  - This should not be considered as a stable branch to use in production
+    environments.
+  - The API of the SDK could change without prior notice.
+
+- ``stable``
+
+  - This is our stable release branch.
+  - It's always synchronized with the latest distributed package, as for now,
+    the package you can download from pip.
+  - The code in this branch is well tested and should be free of errors
+    (unfortunately sometimes it's not).
+  - This is a stable branch (as the name suggest), meaning that you can expect
+    stable software ready for production environments.
+  - All the tags from the release versions are created from this branch.
+
+Release cycle
+~~~~~~~~~~~~~
+
+From time to time, we will release brand new versions of the QISKit SDK. These
+are well-tested versions of the software.
+
+When the time for a new release has come, we will:
+
+1. Merge the ``master`` branch with the ``stable`` branch.
+2. Create a new tag with the version number in the ``stable`` branch.
+3. Crate and distribute the pip package.
+4. Change the ``master`` version to the next release version.
+5. Announce the new version to the world!
+
+The ``stable`` branch should only receive changes in the form of bug fixes, so the
+third version number (the maintenance number: [major].[minor].[maintenance])
+will increase on every new change.
+
+What version should I use: development or stable?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It depends on your needs as a user.
+
+If you want to use QISKit for building Apps which goal is to run Quantum
+programs, we encourage you to use the latest released version, installing it via
+Pip.
+
+.. code:: sh
+
+    $ pip install qiskit`
+
+If you found out that the release version doesn't fit your needs, and you are
+thinking about extending the functionality of the SDK, you are more likely to
+use the ``master`` branch and thinking seriously about contributing with us :)
 
 Documentation
 -------------
@@ -298,5 +374,5 @@ All platforms:
 
 .. code:: sh
 
-        $> cd out
-        doc$> make doc
+    $> cd out
+    doc$> make doc

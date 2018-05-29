@@ -111,9 +111,16 @@ def _enable_deprecation_warnings():
     warnings._add_filter(*deprecation_filter, append=False)
 
 
-def _snake_case_to_camel_case(name):
-    """Return a snake case string from a camelcase string."""
-    string_1 = FIRST_CAP_RE.sub(r'\1_\2', name)
+def _camel_case_to_snake_case(identifier):
+    """Return a `snake_case` string from a `camelCase` string.
+
+    Args:
+        identifier (str): a `camelCase` string.
+
+    Returns:
+        str: a `snake_case` string.
+    """
+    string_1 = FIRST_CAP_RE.sub(r'\1_\2', identifier)
     return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
 
 

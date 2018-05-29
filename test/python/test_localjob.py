@@ -30,7 +30,7 @@ import qiskit._compiler
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     QuantumJob)
 from qiskit.backends.local import LocalProvider, LocalJob
-from .common import requires_qe_access, QiskitTestCase
+from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
 class TestLocalJob(QiskitTestCase):
@@ -53,6 +53,14 @@ class TestLocalJob(QiskitTestCase):
         cls._qc = qc
         cls._provider = LocalProvider(QE_TOKEN, QE_URL, hub, group, project)
 
+    def setUp(self):
+        # Store the original executor, for restoring later.
+        self._original_executor = LocalJob._executor
+
+    def tearDown(self):
+        # Restore the original executor.
+        LocalJob._executor = self._original_executor
+
     def test_run(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')
         qobj = qiskit._compiler.compile(self._qc, backend)
@@ -69,6 +77,7 @@ class TestLocalJob(QiskitTestCase):
         self.log.info('chi2_contingency: %s', str(contingency))
         self.assertGreater(contingency[1], 0.01)
 
+    @slow_test
     def test_run_async(self):
         if sys.platform == 'darwin':
             LocalJob._executor = futures.ThreadPoolExecutor(max_workers=2)
@@ -110,6 +119,15 @@ class TestLocalJob(QiskitTestCase):
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))
             time.sleep(1)
+
+        # Wait for all the jobs to finish.
+        # TODO: this causes the test to wait until the 15 qubit jobs are
+        # finished, which might take long (hence the @slow_test). Waiting for
+        # the result is needed as otherwise the jobs would still be running
+        # once the test is completed, causing failures in subsequent tests as
+        # the executor's queue might be overloaded.
+
+        _ = [job.result() for job in job_array]
 
     def test_cancel(self):
         """Test the cancelation of jobs.
@@ -160,6 +178,9 @@ class TestLocalJob(QiskitTestCase):
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))
             time.sleep(1)
+
+        # Wait for all the jobs to finish.
+        _ = [job.result() for job in job_array if not job.cancelled]
 
     def test_done(self):
         backend = self._provider.get_backend('local_qasm_simulator_py')

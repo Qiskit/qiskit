@@ -1,4 +1,4 @@
-﻿# Quantum Information Software Kit (QISKit)
+﻿# Quantum Information Science Kit (QISKit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
