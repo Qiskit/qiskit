@@ -273,15 +273,18 @@ class IBMQJob(BaseJob):
         qobj = self._qobj
         api_jobs = []
         for circuit in qobj['circuits']:
+            job = {}
             if (('compiled_circuit_qasm' not in circuit) or
                     (circuit['compiled_circuit_qasm'] is None)):
                 compiled_circuit = compile_circuit(circuit['circuit'])
                 circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
             if isinstance(circuit['compiled_circuit_qasm'], bytes):
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm'].decode()})
+                job['qasm'] = circuit['compiled_circuit_qasm'].decode()
             else:
-                api_jobs.append({'qasm': circuit['compiled_circuit_qasm']})
-
+                job['qasm'] = circuit['compiled_circuit_qasm']
+            if 'name' in circuit:
+                job['name'] = circuit['name']
+            api_jobs.append(job)
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
         if 'hpc' in qobj['config']:
