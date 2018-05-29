@@ -20,7 +20,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from qiskit._util import _snake_case_to_camel_case
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 
@@ -44,7 +44,7 @@ class IBMQBackend(BaseBackend):
         if self._configuration:
             configuration_edit = {}
             for key, vals in self._configuration.items():
-                new_key = _snake_case_to_camel_case(key)
+                new_key = _camel_case_to_snake_case(key)
                 configuration_edit[new_key] = vals
             self._configuration = configuration_edit
             # FIXME: This is a hack to make sure that the
@@ -79,11 +79,7 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_hpc_qasm_simulator':
-                calibrations = {}
-            # FIXME a hack to remove calibration data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmqx_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator':
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -91,7 +87,7 @@ class IBMQBackend(BaseBackend):
 
         calibrations_edit = {}
         for key, vals in calibrations.items():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             calibrations_edit[new_key] = vals
 
         return calibrations_edit
@@ -111,11 +107,7 @@ class IBMQBackend(BaseBackend):
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmqx_hpc_qasm_simulator':
-                parameters = {}
-            # FIXME a hack to remove parameters data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmqx_qasm_simulator':
+            if backend_name == 'ibmq_qasm_simulator':
                 parameters = {}
         except Exception as ex:
             raise LookupError(
@@ -123,7 +115,7 @@ class IBMQBackend(BaseBackend):
 
         parameters_edit = {}
         for key, vals in parameters.items():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             parameters_edit[new_key] = vals
 
         return parameters_edit

@@ -19,9 +19,12 @@
 """Tools for compiling a batch of quantum circuits."""
 import logging
 
-import random
-import string
 import copy
+import uuid
+
+import numpy as np
+import scipy.sparse as sp
+import scipy.sparse.csgraph as cs
 
 # Stable Modules
 from ._qiskiterror import QISKitError
@@ -75,40 +78,21 @@ def compile(circuits, backend,
     backend_name = backend_conf['name']
 
     qobj = {}
-    if not qobj_id:
-        qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
-                           for n in range(30)])
+    qobj_id = qobj_id or str(uuid.uuid4())
     qobj['id'] = qobj_id
     qobj['config'] = {'max_credits': max_credits,
                       'shots': shots,
                       'backend_name': backend_name}
 
-    # TODO This backend needs HPC parameters to be passed in order to work
-    if 'hpc' in backend_name:
-        if hpc is None:
-            logger.info('ibmq_qasm_simulator_hpc backend needs HPC '
-                        'parameter. Setting defaults to hpc.multi_shot_optimization '
-                        '= true and hpc.omp_num_threads = 16')
-            hpc = {'multi_shot_optimization': True, 'omp_num_threads': 16}
-
-        if not all(key in hpc for key in
-                   ('multi_shot_optimization', 'omp_num_threads')):
-            raise QISKitError('Unknown HPC parameter format!')
-
-        qobj['config']['hpc'] = hpc
-    elif hpc is not None:
-        logger.info('HPC parameter is only available for '
-                    'ibmq_qasm_simulator_hpc. You are passing an HPC parameter '
-                    'but you are not using ibmq_qasm_simulator_hpc, so we will '
-                    'ignore it.')
-        hpc = None
+    if hpc is not None and \
+            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
+        raise QISKitError('Unknown HPC parameter format!')
 
     qobj['circuits'] = []
-
     if not basis_gates:
         if 'basis_gates' in backend_conf:
             basis_gates = backend_conf['basis_gates']
-    elif len(basis_gates.split(',')) < 2:
+    if len(basis_gates.split(',')) < 2:
         # catches deprecated basis specification like 'SU2+CNOT'
         logger.warning('encountered deprecated basis specification: '
                        '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
@@ -139,13 +123,23 @@ def compile(circuits, backend,
         else:
             job["config"]["seed"] = seed
 
-        if skip_translation:  # Just return the qobj, wihtout any transformation or analysis
+        if skip_translation:  # Just return the qobj, without any transformation or analysis
             job["config"]["layout"] = None
             job["compiled_circuit_qasm"] = circuit.qasm()
             job["compiled_circuit"] = DagUnroller(
                 DAGCircuit.fromQuantumCircuit(circuit),
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
+            # Pick good initial layout if None is given and not simulator
+            if initial_layout is None and not backend.configuration['simulator']:
+                best_sub = best_subset(backend, num_qubits)
+                initial_layout = {}
+                map_iter = 0
+                for key, value in circuit.get_qregs().items():
+                    for i in range(value.size):
+                        initial_layout[(key, i)] = ('q', best_sub[map_iter])
+                        map_iter += 1
+
             dag_circuit, final_layout = compile_circuit(
                 circuit,
                 basis_gates=basis_gates,
@@ -173,7 +167,7 @@ def compile(circuits, backend,
 
 
 def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layout=None, get_layout=False, format='dag'):
+                    initial_layout=None, get_layout=False, format='dag', seed=None):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -208,6 +202,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         get_layout (bool): flag for returning the layout.
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
+        seed (int): random seed for simulators
 
     Returns:
         object: If get_layout == False, the compiled circuit in the specified
@@ -231,7 +226,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         coupling = Coupling(coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=seed)
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
@@ -277,6 +272,58 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
     circuit_unrolled = node_unroller.execute()
     return circuit_unrolled
+
+
+def best_subset(backend, n_qubits):
+    """Computes the qubit mapping with the best
+    connectivity.
+
+    Parameters:
+        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        n_qubits (int): Number of subset qubits to consider.
+
+    Returns:
+        ndarray: Array of qubits to use for best
+                connectivity mapping.
+
+    Raises:
+        QISKitError: Wrong number of qubits given.
+    """
+    if n_qubits == 1:
+        return np.array([0])
+    elif n_qubits <= 0:
+        raise QISKitError('Number of qubits <= 0.')
+
+    device_qubits = backend.configuration['n_qubits']
+    if n_qubits > device_qubits:
+        raise QISKitError('Number of qubits greater than device.')
+
+    cmap = np.asarray(backend.configuration['coupling_map'])
+    data = np.ones_like(cmap[:, 0])
+    sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
+                            shape=(device_qubits, device_qubits)).tocsr()
+    best = 0
+    best_map = None
+    # do bfs with each node as starting point
+    for k in range(sp_cmap.shape[0]):
+        bfs = cs.breadth_first_order(sp_cmap, i_start=k, directed=False,
+                                     return_predecessors=False)
+
+        connection_count = 0
+        for i in range(n_qubits):
+            node_idx = bfs[i]
+            for j in range(sp_cmap.indptr[node_idx],
+                           sp_cmap.indptr[node_idx + 1]):
+                node = sp_cmap.indices[j]
+                for counter in range(n_qubits):
+                    if node == bfs[counter]:
+                        connection_count += 1
+                        break
+
+        if connection_count > best:
+            best = connection_count
+            best_map = bfs[0:n_qubits]
+    return best_map
 
 
 class QISKitCompilerError(QISKitError):
