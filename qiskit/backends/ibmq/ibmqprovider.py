@@ -18,7 +18,7 @@
 """Provider for remote IbmQ backends."""
 from IBMQuantumExperience import IBMQuantumExperience
 
-from qiskit._util import _snake_case_to_camel_case
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
@@ -50,17 +50,12 @@ class IBMQProvider(BaseProvider):
         return list(backends.values())
 
     def aliased_backend_names(self):
-        return {
-            # TODO: Review the comment below. Is still true?
-            # FIXME: uncomment after API fix: online simulator names should change
-            # 'ibmq_qasm_simulator': ['ibmq_qasm_simulator',
-            #                         'ibmq_qasm_simulator_hpc']
-            }
+        return {}
 
     def deprecated_backend_names(self):
         return {
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-            'ibmqx_qasm_simulator_hpc': 'ibmq_qasm_simulator',
+            'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
             'real': 'ibmqx1'
             }
 
@@ -117,7 +112,7 @@ class IBMQProvider(BaseProvider):
         }
 
         for key in config.keys():
-            new_key = _snake_case_to_camel_case(key)
+            new_key = _camel_case_to_snake_case(key)
             if new_key not in ['id', 'serial_number', 'topology_id',
                                'status']:
                 edited_config[new_key] = config[key]

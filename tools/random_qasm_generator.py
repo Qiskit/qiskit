@@ -23,12 +23,11 @@
 # (CX and U3 gates), 16 Qubits, and a seed of 169
 # ./random_qasm_generator.py -s 169 -d 100 -q 16 > circuit.qasm
 
-import os
-import sys
-import random
-import string
 import argparse
-import numpy
+import os
+import random
+import sys
+import uuid
 
 try:
     import qiskit
@@ -37,6 +36,7 @@ except ImportError as ierr:
     import qiskit
 
 from qiskit import QuantumProgram
+
 
 class RandomQasmGenerator():
     """
@@ -72,8 +72,7 @@ class RandomQasmGenerator():
         Returns:
             A string representing the QASM circuit
         """
-        circuit_name = ''.join(numpy.random.choice(
-            list(string.ascii_letters + string.digits)))
+        circuit_name = str(uuid.uuid4())
         circuit = self.quantum_program.create_circuit(circuit_name, 
                                                       [self.quantum_register], 
                                                       [self.classical_register])
