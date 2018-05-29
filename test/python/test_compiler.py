@@ -288,7 +288,6 @@ class TestCompiler(QiskitTestCase):
         results = job.result()
         self.assertIsInstance(results, Result)
 
-
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
@@ -354,7 +353,6 @@ class TestCompiler(QiskitTestCase):
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
-
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
