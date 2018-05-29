@@ -4,14 +4,14 @@
     "description": "OpenQuantum backend status schema",
     "type": "object",
     "required": [
-        "available",
+        "operational",
         "pending_jobs",
         "status_msg"
     ],
     "properties": {
-        "available": {
+        "operational": {
             "type": "boolean",
-            "description": "Backend is available true/false"
+            "description": "Backend operational and accepting jobs (true/false)"
             },
         "pending_jobs": {
             "type": "integer", "minimum": 0,
