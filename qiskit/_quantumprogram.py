@@ -22,9 +22,6 @@ Qasm Program Class
 import itertools
 import json
 import logging
-import os
-import random
-import string
 import warnings
 
 import qiskit.wrapper
@@ -37,7 +34,6 @@ from ._quantumjob import QuantumJob
 from ._quantumregister import QuantumRegister
 from .mapper import coupling_dict2list
 from .qasm import Qasm
-from .unroll import CircuitBackend, Unroller
 
 logger = logging.getLogger(__name__)
 
@@ -423,17 +419,10 @@ class QuantumProgram(object):
         Raises:
             QISKitError: if the file cannot be read.
         """
-        if not os.path.exists(qasm_file):
-            raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
-        if not name:
-            name = os.path.splitext(os.path.basename(qasm_file))[0]
-        node_circuit = Qasm(filename=qasm_file).parse()  # Node (AST)
-        logger.info("circuit name: %s", name)
-        logger.info("******************************")
-        logger.info(node_circuit.qasm())
-        # current method to turn it a DAG quantum circuit.
-        unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-        circuit_unrolled = unrolled_circuit.execute()
+        warnings.warn(
+            "QuantumProgram.load_qasm_file() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.load_qasm_file() instead is recommended.", DeprecationWarning)
+        circuit_unrolled = qiskit.wrapper.load_qasm_file(qasm_file, name, basis_gates)
         self.add_circuit(name, circuit_unrolled)
         return name
 
@@ -450,17 +439,10 @@ class QuantumProgram(object):
             str: Adds a quantum circuit with the gates given in the qasm string to
             the quantum program.
         """
-        node_circuit = Qasm(data=qasm_string).parse()  # Node (AST)
-        if not name:
-            # Get a random name if none is given
-            name = "".join([random.choice(string.ascii_letters + string.digits)
-                            for n in range(10)])
-        logger.info("circuit name: %s", name)
-        logger.info("******************************")
-        logger.info(node_circuit.qasm())
-        # current method to turn it a DAG quantum circuit.
-        unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-        circuit_unrolled = unrolled_circuit.execute()
+        warnings.warn(
+            "QuantumProgram.load_qasm_text() will be deprecated in upcoming versions (>0.5.0). "
+            "Using qiskit.load_qasm_text() instead is recommended.", DeprecationWarning)
+        circuit_unrolled = qiskit.wrapper.load_qasm_string(qasm_string, name, basis_gates)
         self.add_circuit(name, circuit_unrolled)
         return name
 

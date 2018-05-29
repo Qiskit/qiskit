@@ -19,9 +19,9 @@
 """Tools for compiling a batch of quantum circuits."""
 import logging
 
-import random
-import string
 import copy
+import uuid
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -78,9 +78,7 @@ def compile(circuits, backend,
     backend_name = backend_conf['name']
 
     qobj = {}
-    if not qobj_id:
-        qobj_id = "".join([random.choice(string.ascii_letters + string.digits)
-                           for n in range(30)])
+    qobj_id = qobj_id or str(uuid.uuid4())
     qobj['id'] = qobj_id
     qobj['config'] = {'max_credits': max_credits,
                       'shots': shots,
@@ -135,13 +133,13 @@ def compile(circuits, backend,
             # Pick good initial layout if None is given and not simulator
             if initial_layout is None and not backend.configuration['simulator']:
                 best_sub = best_subset(backend, num_qubits)
-                qreg_list = []
+                initial_layout = {}
+                map_iter = 0
                 for key, value in circuit.get_qregs().items():
-                    qreg_list += [key]*len(value)
+                    for i in range(value.size):
+                        initial_layout[(key, i)] = ('q', best_sub[map_iter])
+                        map_iter += 1
 
-                initial_layout = {(rr, kk): ('q', best_sub[kk])
-                                  for rr in qreg_list
-                                  for kk in range(len(qreg_list))}
             dag_circuit, final_layout = compile_circuit(
                 circuit,
                 basis_gates=basis_gates,
@@ -169,7 +167,7 @@ def compile(circuits, backend,
 
 
 def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layout=None, get_layout=False, format='dag'):
+                    initial_layout=None, get_layout=False, format='dag', seed=None):
     """Compile the circuit.
 
     This builds the internal "to execute" list which is list of quantum
@@ -204,6 +202,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         get_layout (bool): flag for returning the layout.
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
+        seed (int): random seed for simulators
 
     Returns:
         object: If get_layout == False, the compiled circuit in the specified
@@ -227,7 +226,7 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
         coupling = Coupling(coupling_list2dict(coupling_map))
         logger.info("initial layout: %s", initial_layout)
         compiled_dag_circuit, final_layout = swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=13)
+            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=seed)
         logger.info("final layout: %s", final_layout)
         # Expand swaps
         dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
