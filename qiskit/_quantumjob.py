@@ -17,8 +17,7 @@
 # =============================================================================
 
 """Quantum Job class"""
-import random
-import string
+import uuid
 
 # stable modules
 from ._quantumcircuit import QuantumCircuit
@@ -64,7 +63,7 @@ class QuantumJob():
         if names is None:
             self.names = []
             for _ in range(len(self.circuits)):
-                self.names.append(self._generate_job_id(length=10))
+                self.names.append(str(uuid.uuid4()))
         elif isinstance(names, list):
             self.names = names
         else:
@@ -132,14 +131,10 @@ class QuantumJob():
             }
             circuit_records.append(record)
 
-        return {'id': self._generate_job_id(length=10),
+        return {'id': str(uuid.uuid4()),
                 'config': {
                     'max_credits': resources['max_credits'],
                     'shots': shots,
                     'backend_name': backend.configuration['name']
                 },
                 'circuits': circuit_records}
-
-    def _generate_job_id(self, length=10):
-        return ''.join([random.choice(
-            string.ascii_letters + string.digits) for i in range(length)])

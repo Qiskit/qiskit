@@ -30,6 +30,9 @@ package manager):
 
 This will install the latest stable release along with all the dependencies.
 
+.. note::
+    Some packages may be downgraded to meet requirements.
+
 .. _qconfig-setup:
 
 3. Configure your API token and QE credentials

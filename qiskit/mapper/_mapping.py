@@ -19,7 +19,6 @@
 """
 Layout module to assist with mapping circuit qubits onto physical qubits.
 """
-import copy
 import logging
 import pprint
 import sys
@@ -211,8 +210,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     for trial in range(trials):
 
         logger.debug("layer_permutation: trial %s", trial)
-        trial_layout = copy.deepcopy(layout)
-        rev_trial_layout = copy.deepcopy(rev_layout)
+        trial_layout = layout.copy()
+        rev_trial_layout = rev_layout.copy()
         # SWAP circuit constructed this trial
         trial_circ = DAGCircuit()
         trial_circ.add_qreg('q', layout_max_index)
@@ -256,10 +255,10 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
-                        new_layout = copy.deepcopy(trial_layout)
+                        new_layout = trial_layout.copy()
                         new_layout[rev_trial_layout[e[0]]] = e[1]
                         new_layout[rev_trial_layout[e[1]]] = e[0]
-                        rev_new_layout = copy.deepcopy(rev_trial_layout)
+                        rev_new_layout = rev_trial_layout.copy()
                         rev_new_layout[e[0]] = rev_trial_layout[e[1]]
                         rev_new_layout[e[1]] = rev_trial_layout[e[0]]
                         # Compute the objective function
@@ -482,7 +481,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                           zip(circuit_graph.get_qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit
-    layout = copy.deepcopy(initial_layout)
+    layout = initial_layout.copy()
     layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
 
     # Construct an empty DAGCircuit with one qreg "q"
