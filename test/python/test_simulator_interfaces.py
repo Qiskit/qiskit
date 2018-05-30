@@ -73,7 +73,10 @@ class TestCrossSimulation(QiskitTestCase):
 
         sim_cpp = 'local_qasm_simulator_cpp'
         sim_py = 'local_qasm_simulator_py'
-        sim_ibmq = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            sim_ibmq = 'ibmqx_qasm_simulator'
+        else:
+            sim_ibmq = 'ibmq_qasm_simulator'
         shots = 2000
         result_cpp = execute(circ, sim_cpp, shots=shots).result()
         result_py = execute(circ, sim_py, shots=shots).result()
