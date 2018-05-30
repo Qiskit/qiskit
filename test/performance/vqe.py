@@ -99,8 +99,10 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
 
     cost = partial(cost_function, H, n_qubits, depth, entangler_map, shots, device)
 
-    SPSA_params, circuits_cal = SPSA_calibration(cost, initial_theta, initial_c, target_update, stat=25)
-    output, circuits_opt = SPSA_optimization(cost, initial_theta, SPSA_params, max_trials, save_step, last_avg=1)
+    SPSA_params, circuits_cal = SPSA_calibration(cost, initial_theta, initial_c,
+                                                 target_update, stat=25)
+    output, circuits_opt = SPSA_optimization(cost, initial_theta, SPSA_params, max_trials,
+                                             save_step, last_avg=1)
 
     return circuits_cal + circuits_opt
 

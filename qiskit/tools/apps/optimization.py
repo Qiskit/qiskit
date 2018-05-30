@@ -296,7 +296,7 @@ def eval_hamiltonian(hamiltonian, input_circuit, shots, device):
     circuits = []
 
     if 'statevector' in device:
-        circuits.append(input_circuit)        
+        circuits.append(input_circuit)
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
             result = execute(circuits, device, shots=shots).result()
@@ -311,7 +311,6 @@ def eval_hamiltonian(hamiltonian, input_circuit, shots, device):
                                   np.dot(hamiltonian, statevector))
         # Hamiltonian represented by a Pauli list
         else:
-            # Trial circuit w/o the final rotations
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
             n_qubits = input_circuit.regs['q'].size
@@ -332,14 +331,13 @@ def eval_hamiltonian(hamiltonian, input_circuit, shots, device):
             statevector_0 = result.get_statevector(circuits[0])
             i = 1
             for p in hamiltonian:
-                statevector_i = result.get_statevectpr(circuits[i])
+                statevector_i = result.get_statevector(circuits[i])
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(statevector_0),
                                           statevector_i)
                 i += 1
     # finite number of shots and hamiltonian grouped in tpb sets
     else:
-        circuits = []
         n = int(len(hamiltonian[0][0][1].v))
         q = QuantumRegister(n, "q")
         c = ClassicalRegister(n, "c")

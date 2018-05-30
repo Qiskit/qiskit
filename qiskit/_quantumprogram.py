@@ -400,6 +400,8 @@ class QuantumProgram(object):
             else:
                 name = self._create_id('qc', self.__quantum_program.keys())
                 quantum_circuit.name = name
+        else:
+            quantum_circuit.name = name
 
         self.__quantum_program[name] = quantum_circuit
 

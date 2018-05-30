@@ -31,7 +31,6 @@ from qiskit.tools.apps.optimization import make_Hamiltonian, Hamiltonian_from_fi
 from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermionic_maps, \
     two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
-from qiskit import QuantumProgram
 
 from .common import QiskitTestCase
 
@@ -89,14 +88,11 @@ class TestQuantumOptimization(QiskitTestCase):
         self.log.info('The exact ground state energy is: %s', exact)
         self.assertEqual(exact, -1.8572746704950902)
 
-        # Optimization
-        Q_program = QuantumProgram()
-
-        def cost_function(Q_program, H, n, m, entangler_map, shots, device, theta):
+        def cost_function(H, n, m, entangler_map, shots, device, theta):
             # pylint: disable=missing-docstring
-            return eval_hamiltonian(Q_program, H,
-                                    trial_circuit_ryrz(n, m, theta, entangler_map, None, False),
-                                    shots, device).real
+            energy, circuits = eval_hamiltonian(H, trial_circuit_ryrz(n, m, theta, entangler_map,
+                                                                      None, False), shots, device)
+            return energy.real, circuits
 
         initial_c = 0.01
         target_update = 2 * np.pi * 0.1
@@ -104,9 +100,9 @@ class TestQuantumOptimization(QiskitTestCase):
         expected_stout = ("calibration step # 0 of 1\n"
                           "calibrated SPSA_parameters[0] is 2.5459894")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
-            SPSA_params = SPSA_calibration(partial(cost_function, Q_program, H, n, m, entangler_map,
-                                                   shots, device), initial_theta, initial_c,
-                                           target_update, 1)
+            SPSA_params, _ = SPSA_calibration(partial(cost_function, H, n, m, entangler_map,
+                                                      shots, device),
+                                              initial_theta, initial_c, target_update, 1)
         self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
 
         expected_stout = ("objective function at theta+ for step # 0\n"
@@ -115,9 +111,9 @@ class TestQuantumOptimization(QiskitTestCase):
                           "-1.0675805\n"
                           "Final objective function is: -1.2619548")
         with patch('sys.stdout', new=StringIO()) as fakeOutput:
-            output = SPSA_optimization(
-                partial(cost_function, Q_program, H, n, m, entangler_map, shots, device),
-                initial_theta, SPSA_params, max_trials)
+            output, _ = SPSA_optimization(partial(cost_function, H, n, m, entangler_map,
+                                                  shots, device),
+                                          initial_theta, SPSA_params, max_trials)
 
         self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
 
@@ -203,10 +199,10 @@ class TestQuantumOptimization(QiskitTestCase):
                           0.293494154438, 0.108950311827, 0.031726785859, 1.27263986303])
         entangler_map = {0: [1]}
 
-        energy = eval_hamiltonian(QuantumProgram(), pauli_list,
-                                  trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
-                                  device)
-        np.testing.assert_almost_equal(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
+        energy, _ = eval_hamiltonian(pauli_list,
+                                     trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
+                                     device)
+        np.testing.assert_almost_equal(energy.real, -0.06429335446749282)
 
 
 class TestHamiltonian(QiskitTestCase):
