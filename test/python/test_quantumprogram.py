@@ -32,7 +32,7 @@ from .common import requires_qe_access, QiskitTestCase, Path
 
 class TestQuantumProgram(QiskitTestCase):
     """QISKit QuantumProgram Object Tests."""
-
+    
     def setUp(self):
         self.QASM_FILE_PATH = self._get_resource_path(
             'qasm/entangled_registers.qasm', Path.EXAMPLES)
@@ -663,7 +663,10 @@ class TestQuantumProgram(QiskitTestCase):
                        'coupling_map', 'basis_gates'}
         qp.set_api(QE_TOKEN, QE_URL, hub, group, project)
         backend_list = qp.available_backends()
-        backend_list.remove('ibmq_qasm_simulator')
+        if 'q-console' in QE_URL:
+            backend_list.remove('ibmqx_qasm_simulator')
+        else:
+            backend_list.remove('ibmq_qasm_simulator')
         if backend_list:
             backend = backend_list[0]
         backend_config = qp.get_backend_configuration(backend)
@@ -1144,7 +1147,10 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         shots = 1024
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         result = q_program.execute(['qc'], backend=backend,
                                    shots=shots, max_credits=3,
                                    seed=73846087)
@@ -1160,7 +1166,10 @@ class TestQuantumProgram(QiskitTestCase):
 
         If all correct should return the data.
         """
-        backend_name = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend_name = 'ibmqx_qasm_simulator'
+        else:
+            backend_name = 'ibmq_qasm_simulator'
         q_program = QuantumProgram()
         qr = q_program.create_quantum_register("q", 31)
         cr = q_program.create_classical_register("c", 31)
@@ -1195,7 +1204,10 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc1', 'qc2']
         shots = 1024
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    max_credits=3, seed=1287126141)
         counts1 = result.get_counts('qc1')
@@ -1221,7 +1233,10 @@ class TestQuantumProgram(QiskitTestCase):
         qc.h(qr)
         qc.measure(qr[0], cr[0])
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         shots = 1
         status = q_program.get_backend_status(backend)
         if not status.get('available', False):
@@ -1294,7 +1309,10 @@ class TestQuantumProgram(QiskitTestCase):
         circuits = ['qc1', 'qc2']
         shots = 1024
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         result = q_program.execute(circuits, backend=backend, shots=shots,
                                    seed=8458)
         result1 = result.get_counts('qc1')
@@ -1770,7 +1788,10 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = ['qc2']
         shots = 1
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
         qobj = q_program.compile(circuits, backend=backend, shots=shots,
                                  seed=88,
@@ -1795,7 +1816,10 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = ['qc2']
         shots = 1
-        backend = 'ibmq_qasm_simulator'
+        if 'q-console' in QE_URL:
+            backend = 'ibmqx_qasm_simulator'
+        else:
+            backend = 'ibmq_qasm_simulator'
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
         self.assertRaises(QISKitError, q_program.compile, circuits,
                           backend=backend, shots=shots, seed=88,
