@@ -18,13 +18,11 @@ import pprint
 
 from IBMQuantumExperience import ApiError
 from qiskit._compiler import compile_circuit
-from qiskit import QuantumJob
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-from forkable import ForkablePdb
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +34,6 @@ class IBMQJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
     _executor = futures.ThreadPoolExecutor()
-
-    def __init__(self, arg, api, is_device):
-        pass
 
     def __init__(self, q_job, api, is_device):
         """IBMQJob init function.
@@ -84,6 +79,9 @@ class IBMQJob(BaseJob):
                  'userId': 'user id'}
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
+
+        Returns:
+            IBMQJob: an instance of this class
         """
         job_instance = cls.__new__(cls)
         job_instance._status = JobStatus.QUEUED
@@ -91,6 +89,7 @@ class IBMQJob(BaseJob):
         job_instance._api = api
         job_instance._job_id = job_info.get('id')
         # update status (need _api and _job_id)
+        # pylint: disable=pointless-statement
         job_instance.status
         job_instance._status_msg = None
         job_instance._cancelled = False
@@ -375,10 +374,15 @@ class IBMQJob(BaseJob):
             return Result(job_result, qobj)
         api_result = self._api.get_job(job_id)
         job_result_return = []
-        for index in range(len(api_result['qasms'])):
-            job_result_return.append({'data': api_result['qasms'][index]['data'],
-                                      'status': api_result['qasms'][index]['status']})
-        job_result = {'job_id': job_id, 'status': api_result['status'],
+        for circuit_result in api_result['qasms']:
+            job_result_return.append(
+                {'data': circuit_result['data'],
+                 'name': circuit_result.get('name'),
+                 'compiled_circuit_qasm': circuit_result.get('qasm'),
+                 'status': circuit_result['status']})
+        job_result = {'job_id': job_id,
+                      'status': api_result['status'],
+                      'used_credits': api_result.get('usedCredits'),
                       'result': job_result_return}
         logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
                     qobj["id"], qobj['config']['backend_name'],

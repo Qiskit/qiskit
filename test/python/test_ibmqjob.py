@@ -56,22 +56,38 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        qc = QuantumCircuit(qr, cr, name='hadamard')
+        qc.h(qr)
+        qc.measure(qr, cr)
+        qobj = qiskit._compiler.compile([self._qc, qc], backend)
         shots = qobj['config']['shots']
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
         result = job.result()
-        counts_qx = result.get_counts(result.get_names()[0])
-        counts_ex = {'00': shots/2, '11': shots/2}
-        states = counts_qx.keys() | counts_ex.keys()
+        counts_qx1 = result.get_counts(result.get_names()[0])
+        counts_qx2 = result.get_counts('hadamard')
+        counts_ex1 = {'00': shots/2, '11': shots/2}
+        counts_ex2 = {'00': shots/4, '11': shots/4, '10': shots/4,
+                      '01': shots/4}
+        states1 = counts_qx1.keys() | counts_ex1.keys()
+        states2 = counts_qx2.keys() | counts_ex2.keys()
         # contingency table
-        ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
-                              [counts_ex.get(key, 0) for key in states]])
-        self.log.info('states: %s', str(states))
-        self.log.info('ctable: %s', str(ctable))
-        contingency = chi2_contingency(ctable)
-        self.log.info('chi2_contingency: %s', str(contingency))
-        self.assertGreater(contingency[1], 0.01)
+        ctable1 = numpy.array([[counts_qx1.get(key, 0) for key in states1],
+                               [counts_ex1.get(key, 0) for key in states1]])
+        ctable2 = numpy.array([[counts_qx2.get(key, 0) for key in states2],
+                               [counts_ex2.get(key, 0) for key in states2]])
+        self.log.info('states1: %s', str(states1))
+        self.log.info('states2: %s', str(states2))
+        self.log.info('ctable1: %s', str(ctable1))
+        self.log.info('ctable2: %s', str(ctable2))
+        contingency1 = chi2_contingency(ctable1)
+        contingency2 = chi2_contingency(ctable2)
+        self.log.info('chi2_contingency1: %s', str(contingency1))
+        self.log.info('chi2_contingency2: %s', str(contingency2))
+        self.assertGreater(contingency1[1], 0.01)
+        self.assertGreater(contingency2[1], 0.01)
 
     @slow_test
     def test_run_device(self):
@@ -271,6 +287,6 @@ class TestIBMQJob(QiskitTestCase):
         backend = lowest_pending_jobs(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
 
-        
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

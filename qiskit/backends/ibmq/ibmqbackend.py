@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
     """
-    
+
     def __init__(self, configuration, api=None):
         """Initialize remote backend for IBM Quantum Experience.
 
@@ -148,12 +148,12 @@ class IBMQBackend(BaseBackend):
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
 
-        Return:
+        Returns:
             list(IBMQJob): list of IBMQJob instances
         """
         backend_name = self.configuration['name']
         job_list = []
-        base_index = 0
+        base_index = skip
         job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
         while len(job_list) < limit or len(job_info_list) < limit:
             base_index += limit
@@ -167,13 +167,24 @@ class IBMQBackend(BaseBackend):
         return job_list
 
     def retrieve_job(self, job_id):
-        """Attempt to get the specified job by job_id"""
+        """Attempt to get the specified job by job_id
+
+        Args:
+            job_id (str): the job id of the job to retrieve
+
+        Returns:
+            IBMQJob: class instance
+
+        Raises:
+            IBMQBackendError: if retrieval failed
+        """
         job_info = self._api.get_job(job_id)
         if 'error' in job_info:
             raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
         is_device = not bool(self._configuration.get('simulator'))
         job = IBMQJob.from_api(job_info, self._api, is_device)
         return job
+
 
 class IBMQBackendError(QISKitError):
     """IBM Q Backend Errors"""
