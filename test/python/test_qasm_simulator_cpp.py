@@ -17,6 +17,8 @@
 
 # =============================================================================
 
+from test.python.common import QiskitTestCase
+
 import json
 import unittest
 import numpy as np
@@ -31,7 +33,6 @@ from qiskit import QuantumRegister
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
-from .common import QiskitTestCase
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -205,13 +206,17 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
-            self.assertEqual(len(snapshots['0']), 1,
+            self.assertEqual(len(snapshots['0']), 3,
                              msg=name + ' snapshot length')
             state = snapshots['0']['statevector'][0]
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
+            rho = snapshots['0']['density_matrix']
+            self.assertAlmostEqual(np.trace(rho), 1)
+            prob = snapshots['0']['probabilities']
+            self.assertAlmostEqual(np.sum(prob), 1)
 
     def test_qobj_measure_opt_flag(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
