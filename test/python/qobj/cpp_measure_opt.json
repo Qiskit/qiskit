@@ -4,7 +4,7 @@
         "shots": 2000,
         "seed": 1,
         "backend_name": "local_qasm_simulator_cpp",
-	"data" : ["density_matrix", "probabilities"]
+        "data" : ["density_matrix", "probabilities"]
     },
     "circuits": [
         {
