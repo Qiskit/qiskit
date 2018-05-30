@@ -249,6 +249,9 @@ class IBMQJob(BaseJob):
         """
         Return backend determined job_id (also available in status method).
         """
+        while not self._job_id:
+            # job is initializing and hasn't gotten a job_id yet.
+            time.sleep(0.1)
         return self._job_id
 
     @property
@@ -305,7 +308,11 @@ class IBMQJob(BaseJob):
                                                          self._backend_name))
         submit_info = {}
         try:
-            submit_info = self._api.run_job(api_jobs, backend=backend_name)
+            submit_info = self._api.run_job(api_jobs, backend=backend_name,
+                                            shots=qobj['config']['shots'],
+                                            max_credits=qobj['config']['max_credits'],
+                                            seed=seed0,
+                                            hpc=hpc)
         except ApiError as err:
             self._status = JobStatus.ERROR
             self._exception = err

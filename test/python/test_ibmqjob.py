@@ -238,8 +238,6 @@ class TestIBMQJob(QiskitTestCase):
         qobj = qiskit._compiler.compile(self._qc, backend)
         quantum_job = QuantumJob(qobj, backend, preformatted=True)
         job = backend.run(quantum_job)
-        while job.status['status'] == JobStatus.INITIALIZING:
-            time.sleep(0.1)
         self.log.info('job_id: %s', job.job_id)
         self.assertTrue(job.job_id is not None)
 
@@ -261,12 +259,12 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job_list)
 
     def test_retrieve_job(self):
-        backends = self._provider.available_backends({'simulator': False})
-        backend = lowest_pending_jobs(backends)
-        job_list = backend.jobs(limit=1, skip=0)
-        job_id = job_list[0].job_id
-        job = backend.retrieve_job(job_id)
-        self.assertTrue(job_id == job.job_id)
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        qobj = qiskit._compiler.compile(self._qc, backend)
+        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        job = backend.run(quantum_job)
+        rjob = backend.retrieve_job(job.job_id)
+        self.assertTrue(job.job_id == rjob.job_id)
 
     def test_retrieve_job_error(self):
         backends = self._provider.available_backends({'simulator': False})
