@@ -156,10 +156,6 @@ class DAGCircuit:
         for n in nlist:
             self._remove_op_node(n)
 
-    def deepcopy(self):
-        """Return a deep copy of self."""
-        return copy.deepcopy(self)
-
     def fs(self, number):
         """Format a float f as a string with self.prec digits."""
         fmt = "{0:0.%snumber}" % self.prec
@@ -429,7 +425,7 @@ class DAGCircuit:
         new elements of input_circuit.basis added.
         input_circuit is a DAGCircuit
         """
-        union_basis = copy.deepcopy(self.basis)
+        union_basis = self.basis.copy()
         for g in input_circuit.basis:
             if g not in union_basis:
                 union_basis[g] = input_circuit.basis[g]
@@ -458,11 +454,6 @@ class DAGCircuit:
                union_gates[k]["n_bits"] != input_circuit.gates[k]["n_bits"] or\
                union_gates[k]["args"] != input_circuit.gates[k]["args"] or\
                union_gates[k]["bits"] != input_circuit.gates[k]["bits"]:
-                raise DAGCircuitError("inequivalent gate definitions for %s"
-                                      % k)
-            if not union_gates[k]["opaque"] and \
-               union_gates[k]["body"].qasm() != \
-               input_circuit.gates[k]["body"].qasm():
                 raise DAGCircuitError("inequivalent gate definitions for %s"
                                       % k)
         return union_gates
@@ -1168,7 +1159,7 @@ class DAGCircuit:
         """
         # node_map contains an input node or previous layer node for
         # each wire in the circuit.
-        node_map = copy.deepcopy(self.input_map)
+        node_map = self.input_map.copy()
         # wires_with_ops_remaining is a set of wire names that have
         # operations we still need to assign to layers
         wires_with_ops_remaining = sorted(set(self.input_map.keys()))
@@ -1180,8 +1171,8 @@ class DAGCircuit:
                 new_layer.add_qreg(k, v)
             for k, v in self.cregs.items():
                 new_layer.add_creg(k, v)
-            new_layer.basis = copy.deepcopy(self.basis)
-            new_layer.gates = copy.deepcopy(self.gates)
+            new_layer.basis = self.basis.copy()
+            new_layer.gates = self.gates.copy()
             # Save the support of each operation we add to the layer
             support_list = []
             # Determine what operations to add in this layer
@@ -1259,8 +1250,8 @@ class DAGCircuit:
                     new_layer.add_qreg(k, v)
                 for k, v in self.cregs.items():
                     new_layer.add_creg(k, v)
-                new_layer.basis = copy.deepcopy(self.basis)
-                new_layer.gates = copy.deepcopy(self.gates)
+                new_layer.basis = self.basis.copy()
+                new_layer.gates = self.gates.copy()
                 # Save the support of the operation we add to the layer
                 support_list = []
                 # Operation data
