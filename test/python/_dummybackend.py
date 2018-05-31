@@ -66,14 +66,14 @@ class DummySimulator(BaseBackend):
     def run(self, q_job):
         return DummyJob(self.run_job, q_job)
 
+    # pylint: disable=unused-argument
     def run_job(self, q_job):
         """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
 
         time.sleep(self.time_alive)
 
-        return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'}, qobj)
+        return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
 class DummyJob(BaseJob):

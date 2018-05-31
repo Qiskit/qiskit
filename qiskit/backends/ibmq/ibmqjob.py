@@ -286,6 +286,8 @@ class IBMQJob(BaseJob):
                 job['qasm'] = circuit['compiled_circuit_qasm']
             if 'name' in circuit:
                 job['name'] = circuit['name']
+            # n_qubits = circuit['compiled_circuit']['header']['number_of_qubits']
+            # job['number_of_qubits'] = n_qubits
             api_jobs.append(job)
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
@@ -336,18 +338,18 @@ class IBMQJob(BaseJob):
         Raises:
             QISKitError: job didn't return status or reported error in status
         """
-        qobj = self._q_job.qobj
+        # qobj = self._q_job.qobj
         job_id = self.job_id
-        logger.info('Running qobj: %s on remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'],
-                    job_id)
+        # logger.info('Running qobj: %s on remote backend %s with job id: %s',
+        #             qobj["id"], qobj['config']['backend_name'],
+        #             job_id)
         timer = 0
         api_result = self._api.get_job(job_id)
         while not (self.done or self.cancelled or self.exception):
             if timeout is not None and timer >= timeout:
                 job_result = {'job_id': job_id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
-                return Result(job_result, qobj)
+                return Result(job_result)
             time.sleep(wait)
             timer += wait
             logger.info('status = %s (%d seconds)', api_result['status'], timer)
@@ -362,16 +364,16 @@ class IBMQJob(BaseJob):
                     api_result['status'] == 'ERROR_RUNNING_JOB'):
                 job_result = {'job_id': job_id, 'status': 'ERROR',
                               'result': api_result['status']}
-                return Result(job_result, qobj)
+                return Result(job_result)
 
         if self.cancelled:
             job_result = {'job_id': job_id, 'status': 'CANCELLED',
                           'result': 'job cancelled'}
-            return Result(job_result, qobj)
+            return Result(job_result)
         elif self.exception:
             job_result = {'job_id': job_id, 'status': 'ERROR',
                           'result': str(self.exception)}
-            return Result(job_result, qobj)
+            return Result(job_result)
         api_result = self._api.get_job(job_id)
         job_result_return = []
         for circuit_result in api_result['qasms']:
@@ -384,12 +386,11 @@ class IBMQJob(BaseJob):
                       'status': api_result['status'],
                       'used_credits': api_result.get('usedCredits'),
                       'result': job_result_return}
-        logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-                    qobj["id"], qobj['config']['backend_name'],
-                    job_id)
-        job_result['name'] = qobj['id']
-        job_result['backend'] = qobj['config']['backend_name']
-        return Result(job_result, qobj)
+        # logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
+        #             qobj["id"], qobj['config']['backend_name'],
+        #             job_id)
+        job_result['backend_name'] = self.backend_name
+        return Result(job_result)
 
 
 class IBMQJobError(QISKitError):
@@ -401,8 +402,8 @@ def _reorder_bits(result):
     """temporary fix for ibmq backends.
     for every ran circuit, get reordering information from qobj
     and apply reordering on result"""
-    for idx, circ in enumerate(result._qobj['circuits']):
-
+    import pdb;pdb.set_trace()
+    for idx, circ in enumerate(result._result['result']['qasms']):
         # device_qubit -> device_clbit (how it should have been)
         measure_dict = {op['qubits'][0]: op['clbits'][0]
                         for op in circ['compiled_circuit']['operations']

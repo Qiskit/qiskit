@@ -266,13 +266,15 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.backend_name == backend_name)
 
     def test_get_jobs_from_backend(self):
-        backends = self._provider.available_backends({'simulator': False})
+        backends = self._provider.available_backends()
         backend = lowest_pending_jobs(backends)
         job_list = backend.jobs(limit=5, skip=0)
         self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
         for job in job_list:
             self.log.info('status: %s', job.status)
-        self.assertTrue(job_list)
+            result = job.result()
+            for circuit_name in result.get_names():
+                self.log.info(result.get_data(circuit_name=circuit_name))
 
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
@@ -281,6 +283,7 @@ class TestIBMQJob(QiskitTestCase):
         job = backend.run(quantum_job)
         rjob = backend.retrieve_job(job.job_id)
         self.assertTrue(job.job_id == rjob.job_id)
+        self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
     def test_retrieve_job_error(self):
         backends = self._provider.available_backends({'simulator': False})
