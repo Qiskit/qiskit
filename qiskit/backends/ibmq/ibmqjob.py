@@ -17,12 +17,12 @@ import logging
 import pprint
 
 from IBMQuantumExperience import ApiError
-from qiskit._compiler import compile_circuit
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
+from qiskit._compiler import compile_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ class IBMQJob(BaseJob):
         self._cancelled = False
         self._exception = None
         self._is_device = is_device
+        self._from_api = False
 
     @classmethod
     def from_api(cls, job_info, api, is_device):
@@ -88,16 +89,31 @@ class IBMQJob(BaseJob):
         job_instance._backend_name = job_info.get('backend').get('name')
         job_instance._api = api
         job_instance._job_id = job_info.get('id')
+        job_instance._exception = None  # needs to be before status call below
         # update status (need _api and _job_id)
         # pylint: disable=pointless-statement
         job_instance.status
         job_instance._status_msg = None
         job_instance._cancelled = False
-        job_instance._exception = None
         job_instance._is_device = is_device
+        job_instance._from_api = True
         return job_instance
 
-    def result(self, timeout=None, wait=5):
+    def result(self, timeout=None, wait=5, qobj=None):
+        """Return the result from the job.
+
+        Args:
+           timeout (int): number of seconds to wait for job
+           wait (int): time between queries to IBM Q server
+           qobj (dict): temporarily used to correct bit ordering until we
+               have Qobj object
+
+        Returns:
+            Result: Result object
+
+        Raises:
+            IBMQJobError: exception raised during job initialization
+        """
         # pylint: disable=arguments-differ
         while self._status == JobStatus.INITIALIZING:
             if self._future_submit.exception():
@@ -106,7 +122,11 @@ class IBMQJob(BaseJob):
             time.sleep(0.1)
         this_result = self._wait_for_job(timeout=timeout, wait=wait)
         if self._is_device and self.done:
-            _reorder_bits(this_result)  # TODO: remove this after Qobj
+            if qobj:
+                reorder_bits(this_result, qobj)  # TODO: remove this after Qobj
+            else:
+                logger.warning('possible bit reordering cannot be applied '
+                               'without qobj dictionary in call to "result()"')
         if this_result.get_status() == 'ERROR':
             self._status = JobStatus.ERROR
         else:
@@ -345,7 +365,8 @@ class IBMQJob(BaseJob):
         #             job_id)
         timer = 0
         api_result = self._api.get_job(job_id)
-        while not (self.done or self.cancelled or self.exception):
+        while not (self.done or self.cancelled or self.exception or
+                   self._status == JobStatus.ERROR):
             if timeout is not None and timer >= timeout:
                 job_result = {'job_id': job_id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
@@ -398,12 +419,12 @@ class IBMQJobError(QISKitError):
     pass
 
 
-def _reorder_bits(result):
+def reorder_bits(result, qobj):
     """temporary fix for ibmq backends.
     for every ran circuit, get reordering information from qobj
     and apply reordering on result"""
-    import pdb;pdb.set_trace()
-    for idx, circ in enumerate(result._result['result']['qasms']):
+    for idx, circ in enumerate(qobj['circuits']):
+
         # device_qubit -> device_clbit (how it should have been)
         measure_dict = {op['qubits'][0]: op['clbits'][0]
                         for op in circ['compiled_circuit']['operations']

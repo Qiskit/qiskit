@@ -141,28 +141,31 @@ class IBMQBackend(BaseBackend):
                 "Couldn't get backend status: {0}".format(ex))
         return status
 
-    def jobs(self, limit=50, skip=0):
+    def jobs(self, limit=50, skip=0, status=None):
         """Attempt to get the jobs submitted to the backend
 
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
-
+            status (None or JobStatus): only get jobs with this status.
         Returns:
             list(IBMQJob): list of IBMQJob instances
         """
         backend_name = self.configuration['name']
         job_list = []
         base_index = skip
-        job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
+        job_info_list = self._api.get_jobs(limit=limit, skip=base_index,
+                                           backend=backend_name)
         while len(job_list) < limit or len(job_info_list) < limit:
             base_index += limit
             job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
             for job_info in job_info_list:
-                if job_info.get('backend').get('name') == backend_name:
-                    is_device = not bool(self._configuration.get('simulator'))
-                    job = IBMQJob.from_api(job_info, self._api, is_device)
-                    if len(job_list) < limit:
+                is_device = not bool(self._configuration.get('simulator'))
+                job = IBMQJob.from_api(job_info, self._api, is_device)
+                if len(job_list) < limit:
+                    if status is None:
+                        job_list.append(job)
+                    elif job.status.get('status') == status:
                         job_list.append(job)
         return job_list
 

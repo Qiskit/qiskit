@@ -105,7 +105,7 @@ class TestIBMQJob(QiskitTestCase):
         if job.exception:
             raise job.exception
         self.log.info(job.status)
-        result = job.result()
+        result = job.result(qobj=qobj)
         counts_qx = result.get_counts(result.get_names()[0])
         counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()
@@ -156,7 +156,7 @@ class TestIBMQJob(QiskitTestCase):
                                    '{0} s'.format(timeout))
             time.sleep(0.2)
 
-        result_array = [job.result() for job in job_array]
+        result_array = [job.result(qobj=qobj) for job in job_array]
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
         self.assertTrue(all([job.done for job in job_array]))
@@ -202,7 +202,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(num_jobs - num_error - num_done > 0)
 
         # Wait for all the results.
-        result_array = [job.result() for job in job_array]
+        result_array = [job.result(qobj=qobj) for job in job_array]
 
         # Ensure all jobs have finished.
         self.assertTrue(all([job.done for job in job_array]))
@@ -272,9 +272,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
         for job in job_list:
             self.log.info('status: %s', job.status)
-            result = job.result()
-            for circuit_name in result.get_names():
-                self.log.info(result.get_data(circuit_name=circuit_name))
+            self.assertTrue(isinstance(job.job_id, str))
 
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
