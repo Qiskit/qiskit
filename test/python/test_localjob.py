@@ -86,9 +86,9 @@ class TestLocalJob(QiskitTestCase):
             job = LocalJob(lambda: None, FakeQJob())
             job.cancel()
 
-        executor.submit.assert_called_once()
+        self.assertCalledOnce(executor.submit)
         mockedFuture = executor.submit.return_value
-        mockedFuture.cancel.assert_called_once()
+        self.assertCalledOnce(mockedFuture.cancel)
 
     def test_done(self):
         # Like before.
@@ -97,9 +97,17 @@ class TestLocalJob(QiskitTestCase):
             job = LocalJob(lambda: None, FakeQJob())
             _ = job.done
 
-        executor.submit.assert_called_once()
+        self.assertCalledOnce(executor.submit)
         mockedFuture = executor.submit.return_value
-        mockedFuture.done.assert_called_once()
+        self.assertCalledOnce(mockedFuture.done)
+
+    def assertCalledOnce(self, mockedCallable):
+        """Assert a mocked callable has been called once."""
+        call_count = mockedCallable.call_count
+        self.assertEqual(
+            call_count, 1,
+            'Callable object has been called more than once ({})'.format(
+                call_count))
 
 
 class FakeQJob():
