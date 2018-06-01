@@ -172,10 +172,14 @@ void VectorEngine::execute(const Circuit &prog, BaseBackend<QubitVector> *be,
   // Check to see if circuit is ideal and allows for measurement optimization
   if (prog.opt_meas && prog.noise.ideal) {
 
+    // This optimization replaces the shots by a single shot + sampling
+    // We need to subtract the additional shots added by BaseEngine class
+    total_shots -= (nshots-1);
+
     // Find position of first measurement operation
     uint_t pos = 0;
-    while (prog.operations[pos].id != gate_t::Measure &&
-           pos < prog.operations.size()) {
+    while (pos < prog.operations.size() &&
+           prog.operations[pos].id != gate_t::Measure) {
       pos++;
     }
     // Execute operations before measurements
