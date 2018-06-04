@@ -35,6 +35,19 @@ def lowest_pending_jobs(list_of_backends):
     return by_pending_jobs[0]
 
 
+class FakeBackEnd(object):
+    """A fake backend.
+    """
+    def __init__(self):
+        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [
+                        9, 10], [11, 10], [12, 5], [12, 11],
+                    [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+        self.configuration = {'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
+                              'simulator': False, 'n_qubits': 16,
+                              'coupling_map': qx5_cmap}
+
+
 class TestCompiler(QiskitTestCase):
     """QISKit Compiler Tests."""
 
@@ -277,13 +290,10 @@ class TestCompiler(QiskitTestCase):
         results = job.result()
         self.assertIsInstance(results, Result)
 
-    @requires_qe_access
-    def test_mapping_correction(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.get_backend('ibmqx5')
-
+        backend = FakeBackEnd()
         q = qiskit.QuantumRegister(name='qr', size=11)
         c = qiskit.ClassicalRegister(name='qc', size=11)
         circuit = qiskit.QuantumCircuit(q, c)
@@ -346,13 +356,10 @@ class TestCompiler(QiskitTestCase):
             qobj = None
         self.assertIsInstance(qobj, dict)
 
-    @requires_qe_access
-    def test_mapping_multi_qreg(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.get_backend('ibmqx5')
-
+        backend = FakeBackEnd()
         q = qiskit.QuantumRegister(3, name='qr')
         q2 = qiskit.QuantumRegister(1, name='qr2')
         q3 = qiskit.QuantumRegister(4, name='qr3')
