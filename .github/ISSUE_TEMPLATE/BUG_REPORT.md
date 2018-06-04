@@ -1,7 +1,10 @@
+---
+name: 🐛 Bug report
+about: Create a report to help us improve 🤔.
+---
+
 <!-- ⚠️ If you do not respect this template your issue will be closed. -->
 <!-- ⚠️ Make sure to browse the opened and closed issues  -->
-
-*BUG TEMPLATE* <!-- Delete this header from your issue. -->
 
 <!-- ⚠️ Before writing your issue make sure you are using: -->
 <!-- QISKit-sdk-py ^0.5.x -->
@@ -10,8 +13,8 @@
 **Informations**
 
 - **QISKit (Python SDK) version**:
-- **Python version**:
 - **Operating system**:
+- **Python version**:
 
 **What is the current behavior?**
 
@@ -26,21 +29,5 @@
 
 
 **Suggested solutions**
-
-
-
----
-
-*FEATURE REQUEST TEMPLATE*  <!-- Delete this header from your issue. -->
-
-**What is the expected behavior?**
-
-
-
----
-
-*ENHANCEMENT REQUEST TEMPLATE*  <!-- Delete this header from your issue. -->
-
-**What is the expected enhancement?**
 
 
