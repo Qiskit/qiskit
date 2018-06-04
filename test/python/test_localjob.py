@@ -51,10 +51,11 @@ class TestLocalJob(QiskitTestCase):
                           autospec=True):
 
             for backendConstructor in self._backends:
-                self.log.info('Backend under test: %s', backendConstructor)
-                backend = backendConstructor()
-                job = backend.run(FakeQJob())
-                self.assertIsInstance(job, LocalJob)
+                with self.subTest(backend=backendConstructor):
+                    self.log.info('Backend under test: %s', backendConstructor)
+                    backend = backendConstructor()
+                    job = backend.run(FakeQJob())
+                    self.assertIsInstance(job, LocalJob)
 
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors
@@ -91,7 +92,9 @@ class TestLocalJob(QiskitTestCase):
         self.assertCalledOnce(mockedFuture.cancel)
 
     def test_done(self):
-        # Like before.
+        # Once more, testing that reading the `done` property delegates into
+        # the proper future API.
+
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_LocalJob() as (LocalJob, executor):
             job = LocalJob(lambda: None, FakeQJob())
