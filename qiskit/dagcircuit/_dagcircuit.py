@@ -1160,14 +1160,11 @@ class DAGCircuit:
 
         def nodes_data(nodes):
             """Construct full nodes from just node ids."""
-            return (
-                (node_id, self.multi_graph.nodes[node_id]) for node_id in nodes
-                )
+            return ((node_id, self.multi_graph.nodes[node_id]) for node_id in nodes)
 
         for graph_layer in graph_layers:
             # Get the op nodes from the layer, removing any input and ouput nodes.
-            op_nodes = list(filter(lambda node: node[1]["type"] == "op",
-                                   nodes_data(graph_layer)))
+            op_nodes = [node for node in nodes_data(graph_layer) if node[1]["type"] == "op"]
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
@@ -1183,7 +1180,8 @@ class DAGCircuit:
             # The quantum registers that have an operation in this layer.
             support_list = [
                 op_node[1]["qargs"]
-                for op_node in op_nodes if op_node[1]["name"] != "barrier"
+                for op_node in op_nodes
+                if op_node[1]["name"] not in {"barrier", "snapshot", "save", "load", "noise"}
                 ]
             new_layer.multi_graph.add_nodes_from(op_nodes)
 
@@ -1195,7 +1193,7 @@ class DAGCircuit:
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node[1]["condition"]) \
                        + op_node[1]["cargs"] + op_node[1]["qargs"]
-                arg_ids = map(lambda arg: self.input_map[arg], args)  # map from ("q",0) to node id.
+                arg_ids = (self.input_map[arg] for arg in args)  # map from ("q",0) to node id.
                 for arg_id in arg_ids:
                     wires[arg_id], wires[op_node[0]] = op_node[0], wires[arg_id]
 
