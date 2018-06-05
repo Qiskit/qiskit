@@ -54,7 +54,7 @@ class QasmSimulatorCpp(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_qasm_simulator_cpp',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'url': 'https://github.com/QISKit/qiskit-core/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'description': 'A C++ realistic noise simulator for qobj files',
@@ -110,7 +110,7 @@ class CliffordSimulatorCpp(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_clifford_simulator_cpp',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'url': 'https://github.com/QISKit/qiskit-core/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'description': 'A C++ Clifford simulator with approximate noise',
