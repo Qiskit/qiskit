@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### ✏️ Changed
 
+- New Changelog based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+- Rename repository to `qiskit-core`.
+- Update the issue templates.
 
 ## [0.5.3] - 2018-05-29
 
