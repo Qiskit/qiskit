@@ -123,22 +123,9 @@ def compile(circuits, backend,
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
             if initial_layout is None and not backend.configuration['simulator']:
-                # compare circuit coupling graph to backend coupling graph
-                already_satisfied = True
-                for item in circuit.data:
-                    if len(item.arg) == 2 and isinstance(item, Gate):
-                        if [x[1] for x in item.arg] not in backend.configuration['coupling_map']:
-                            already_satisfied = False
-                            break
-                # pick good initial layout if not already_satisfied, otherwise leave as q[i]->q[i]
-                if not already_satisfied:
-                    best_sub = best_subset(backend, num_qubits)
-                    initial_layout = {}
-                    map_iter = 0
-                    for key, value in circuit.get_qregs().items():
-                        for i in range(value.size):
-                            initial_layout[(key, i)] = ('q', best_sub[map_iter])
-                            map_iter += 1
+                # pick good initial layout, otherwise leave as q[i]->q[i]
+                if not _matches_coupling_map(circuit.data, backend.configuration['coupling_map']):
+                    initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
 
             dag_circuit, final_layout = compile_circuit(
                 circuit,
@@ -274,7 +261,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     return circuit_unrolled
 
 
-def best_subset(backend, n_qubits):
+def _best_subset(backend, n_qubits):
     """Computes the qubit mapping with the best
     connectivity.
 
@@ -324,6 +311,52 @@ def best_subset(backend, n_qubits):
             best = connection_count
             best_map = bfs[0:n_qubits]
     return best_map
+
+
+def _matches_coupling_map(instructions, coupling_map):
+    """ Iterate over circuit instructions set to check if multi-qubit instructions coupling
+        graphs are equal to backend qubits coupling graph.
+
+    Parameters:
+            instructions (List): List of circuit instructions. Noy all instructions
+                                 are Gates, hence not multi-qubit.
+            coupling_map (List): Backend coupling map, represented as an
+                                          adjacency list.
+
+    Returns:
+            True: If there's at least one instruction that uses multiple qubits and
+                  these qubits coupling matches one of the backend couplings.
+
+            False: If there's no match between any of the instructions multiple qubits
+                   coupling, and one of the couplings from the backend.
+    """
+    for instruction in instructions:
+        if isinstance(instruction, Gate) and instruction.is_multi_qubit():
+            if instruction.get_qubit_coupling() not in coupling_map:
+                return False
+    return True
+
+
+def _pick_best_layout(backend, num_qubits, qregs):
+    """ Pick a convenient layout depending on the best matching qubit connectivity
+
+    Parameters:
+        backend (BaseBackend) : The backend with the coupling_map for searching
+        num_qubits (int): Number of qubits
+        qregs (List): The list of quantum registers
+
+    Returns:
+        initial_layout: A special ordered layout
+
+    """
+    best_sub = _best_subset(backend, num_qubits)
+    layout = {}
+    map_iter = 0
+    for key, value in qregs.items():
+        for i in range(value.size):
+            layout[(key, i)] = ('q', best_sub[map_iter])
+            map_iter += 1
+    return layout
 
 
 class QISKitCompilerError(QISKitError):
