@@ -21,7 +21,7 @@ Project Overview
 ----------------
 The QISKit project comprises:
 
-* `QISKit SDK <https://github.com/QISKit/qiskit-sdk-py>`_: Python software 
+* `QISKit SDK <https://github.com/QISKit/qiskit-core>`_: Python software 
   development kit for writing quantum computing experiments, programs, and 
   applications.
 
