@@ -12,7 +12,7 @@ Issue reporting
 ~~~~~~~~~~~~~~~
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/QISKit/qiskit-sdk-py/issues>`_.
+it to the `issue tracker <https://github.com/QISKit/qiskit-core/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
@@ -63,10 +63,10 @@ Linux and Mac
 
 .. code::
 
-    qiskit-sdk-py$ mkdir out
-    qiskit-sdk-py$ cd out
-    qiskit-sdk-py/out$ cmake ..
-    qiskit-sdk-py/out$ make
+    qiskit-core$ mkdir out
+    qiskit-core$ cd out
+    qiskit-core/out$ cmake ..
+    qiskit-core/out$ make
 
 Windows
 
