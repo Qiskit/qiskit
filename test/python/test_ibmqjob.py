@@ -105,7 +105,7 @@ class TestIBMQJob(QiskitTestCase):
         if job.exception:
             raise job.exception
         self.log.info(job.status)
-        result = job.result(qobj=qobj)
+        result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
         counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()

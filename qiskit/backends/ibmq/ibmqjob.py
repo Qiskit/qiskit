@@ -15,8 +15,9 @@ from concurrent import futures
 import time
 import logging
 import pprint
+import json
+import numpy
 
-from IBMQuantumExperience import ApiError
 from qiskit.backends import BaseJob
 from qiskit.backends.basejob import JobStatus
 from qiskit._qiskiterror import QISKitError
@@ -99,14 +100,12 @@ class IBMQJob(BaseJob):
         job_instance._from_api = True
         return job_instance
 
-    def result(self, timeout=None, wait=5, qobj=None):
+    def result(self, timeout=None, wait=5):
         """Return the result from the job.
 
         Args:
            timeout (int): number of seconds to wait for job
            wait (int): time between queries to IBM Q server
-           qobj (dict): temporarily used to correct bit ordering until we
-               have Qobj object
 
         Returns:
             Result: Result object
@@ -122,11 +121,7 @@ class IBMQJob(BaseJob):
             time.sleep(0.1)
         this_result = self._wait_for_job(timeout=timeout, wait=wait)
         if self._is_device and self.done:
-            if qobj:
-                reorder_bits(this_result, qobj)  # TODO: remove this after Qobj
-            else:
-                logger.warning('possible bit reordering cannot be applied '
-                               'without qobj dictionary in call to "result()"')
+            _reorder_bits(this_result)
         if this_result.get_status() == 'ERROR':
             self._status = JobStatus.ERROR
         else:
@@ -187,7 +182,7 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.DONE
         elif job_result['status'] == 'CANCELLED':
             self._status = JobStatus.CANCELLED
-        elif self.exception:
+        elif self.exception or self._future_submit.exception():
             self._status = JobStatus.ERROR
             if self._future_submit.exception():
                 self._exception = self._future_submit.exception()
@@ -306,8 +301,11 @@ class IBMQJob(BaseJob):
                 job['qasm'] = circuit['compiled_circuit_qasm']
             if 'name' in circuit:
                 job['name'] = circuit['name']
-            # n_qubits = circuit['compiled_circuit']['header']['number_of_qubits']
-            # job['number_of_qubits'] = n_qubits
+            # convert numpy types for json serialization
+            compiled_circuit = json.loads(
+                json.dumps(circuit['compiled_circuit'],
+                           default=_numpy_type_converter))
+            job['metadata'] = {'compiled_circuit': compiled_circuit}
             api_jobs.append(job)
         seed0 = qobj['circuits'][0]['config']['seed']
         hpc = None
@@ -334,7 +332,8 @@ class IBMQJob(BaseJob):
                                             max_credits=qobj['config']['max_credits'],
                                             seed=seed0,
                                             hpc=hpc)
-        except ApiError as err:
+        # pylint: disable=broad-except
+        except Exception as err:
             self._status = JobStatus.ERROR
             self._exception = err
         if 'error' in submit_info:
@@ -396,17 +395,19 @@ class IBMQJob(BaseJob):
                           'result': str(self.exception)}
             return Result(job_result)
         api_result = self._api.get_job(job_id)
-        job_result_return = []
+        job_result_list = []
         for circuit_result in api_result['qasms']:
-            job_result_return.append(
-                {'data': circuit_result['data'],
-                 'name': circuit_result.get('name'),
-                 'compiled_circuit_qasm': circuit_result.get('qasm'),
-                 'status': circuit_result['status']})
+            this_result = {'data': circuit_result['data'],
+                           'name': circuit_result.get('name'),
+                           'compiled_circuit_qasm': circuit_result.get('qasm'),
+                           'status': circuit_result['status']}
+            if 'metadata' in circuit_result:
+                this_result['metadata'] = circuit_result['metadata']
+            job_result_list.append(this_result)
         job_result = {'job_id': job_id,
                       'status': api_result['status'],
                       'used_credits': api_result.get('usedCredits'),
-                      'result': job_result_return}
+                      'result': job_result_list}
         # logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
         #             qobj["id"], qobj['config']['backend_name'],
         #             job_id)
@@ -419,20 +420,21 @@ class IBMQJobError(QISKitError):
     pass
 
 
-def reorder_bits(result, qobj):
+def _reorder_bits(result):
     """temporary fix for ibmq backends.
     for every ran circuit, get reordering information from qobj
     and apply reordering on result"""
-    for idx, circ in enumerate(qobj['circuits']):
-
+    for circuit_result in result._result['result']:
+        if 'metadata' in circuit_result:
+            circ = circuit_result['metadata'].get('compiled_circuit')
+        else:
+            raise QISKitError('result object missing metadata for reordering bits')
         # device_qubit -> device_clbit (how it should have been)
         measure_dict = {op['qubits'][0]: op['clbits'][0]
-                        for op in circ['compiled_circuit']['operations']
+                        for op in circ['operations']
                         if op['name'] == 'measure'}
-
-        res = result._result['result'][idx]
         counts_dict_new = {}
-        for item in res['data']['counts'].items():
+        for item in circuit_result['data']['counts'].items():
             # fix clbit ordering to what it should have been
             bits = list(item[0])
             bits.reverse()  # lsb in 0th position
@@ -445,13 +447,13 @@ def reorder_bits(result, qobj):
             reordered_bits.reverse()
 
             # only keep the clbits specified by circuit, not everything on device
-            num_clbits = circ['compiled_circuit']['header']['number_of_clbits']
+            num_clbits = circ['header']['number_of_clbits']
             compact_key = reordered_bits[-num_clbits:]
             compact_key = "".join([b if b != 'x' else '0'
                                    for b in compact_key])
 
             # insert spaces to signify different classical registers
-            cregs = circ['compiled_circuit']['header']['clbit_labels']
+            cregs = circ['header']['clbit_labels']
             if sum([creg[1] for creg in cregs]) != num_clbits:
                 raise ResultError("creg sizes don't add up in result header.")
             creg_begin_pos = []
@@ -471,4 +473,13 @@ def reorder_bits(result, qobj):
             else:
                 counts_dict_new[compact_key] += count
 
-        res['data']['counts'] = counts_dict_new
+        circuit_result['data']['counts'] = counts_dict_new
+
+
+def _numpy_type_converter(obj):
+    if isinstance(obj, numpy.integer):
+        return int(obj)
+    elif isinstance(obj, numpy.floating):  # pylint: disable=no-member
+        return float(obj)
+    elif isinstance(obj, numpy.ndarray):
+        return obj.tolist()
