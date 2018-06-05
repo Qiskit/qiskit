@@ -217,7 +217,7 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_combiner(self):
-        desired_vector = [1, 0]
+        desired_vector = [0, 1]
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         qc1 = QuantumCircuit(qr, cr)
