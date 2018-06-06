@@ -50,10 +50,10 @@ class TestLocalJob(QiskitTestCase):
              patch.object(LocalJob, '__init__', return_value=None,
                           autospec=True):
 
-            for backendConstructor in self._backends:
-                with self.subTest(backend=backendConstructor):
-                    self.log.info('Backend under test: %s', backendConstructor)
-                    backend = backendConstructor()
+            for backend_constructor in self._backends:
+                with self.subTest(backend=backend_constructor):
+                    self.log.info('Backend under test: %s', backend_constructor)
+                    backend = backend_constructor()
                     job = backend.run(FakeQJob())
                     self.assertIsInstance(job, LocalJob)
 
@@ -66,7 +66,7 @@ class TestLocalJob(QiskitTestCase):
         target_tasks = [lambda: None for _ in range(taskcount)]
 
         # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_LocalJob() as (LocalJob, executor):
+        with intercepted_executor_for_localjob() as (LocalJob, executor):
             for index in range(taskcount):
                 LocalJob(target_tasks[index], FakeQJob())
 
@@ -83,26 +83,26 @@ class TestLocalJob(QiskitTestCase):
         # future object.
 
         # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_LocalJob() as (LocalJob, executor):
+        with intercepted_executor_for_localjob() as (LocalJob, executor):
             job = LocalJob(lambda: None, FakeQJob())
             job.cancel()
 
         self.assertCalledOnce(executor.submit)
-        mockedFuture = executor.submit.return_value
-        self.assertCalledOnce(mockedFuture.cancel)
+        mocked_future = executor.submit.return_value
+        self.assertCalledOnce(mocked_future.cancel)
 
     def test_done(self):
         # Once more, testing that reading the `done` property delegates into
         # the proper future API.
 
         # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_LocalJob() as (LocalJob, executor):
+        with intercepted_executor_for_localjob() as (LocalJob, executor):
             job = LocalJob(lambda: None, FakeQJob())
             _ = job.done
 
         self.assertCalledOnce(executor.submit)
-        mockedFuture = executor.submit.return_value
-        self.assertCalledOnce(mockedFuture.done)
+        mocked_future = executor.submit.return_value
+        self.assertCalledOnce(mocked_future.done)
 
     def assertCalledOnce(self, mockedCallable):
         """Assert a mocked callable has been called once."""
@@ -139,7 +139,7 @@ class FakeBackend():
 
 
 @contextmanager
-def intercepted_executor_for_LocalJob():
+def intercepted_executor_for_localjob():
     """Context that patches the derived executor classes to return the same
     executor object. Also patches the future object returned by executor's
     submit()."""
