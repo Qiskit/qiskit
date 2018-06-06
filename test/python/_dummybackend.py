@@ -56,7 +56,7 @@ class DummySimulator(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_dummy_simulator',
-        'url': 'https://github.com/IBM/qiskit-sdk-py',
+        'url': 'https://github.com/QISKit/qiskit-core',
         'simulator': True,
         'local': True,
         'description': 'A dummy simulator for testing purposes',

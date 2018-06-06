@@ -34,7 +34,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_statevector_simulator_cpp',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py/src/qasm-simulator-cpp',
+        'url': 'https://github.com/QISKit/qiskit-core/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'description': 'A C++ statevector simulator for qobj files',
