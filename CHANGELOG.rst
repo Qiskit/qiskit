@@ -33,6 +33,10 @@ Improvements
     - backend_config_schema
     - backend_props_schema
     - backend_status_schema
+- Introduce circuit drawing via ``circuit_drawer()`` and ``plot_circuit()`` (#295, #414)      
+- Introduce more robust probability testing via assertDictAlmostEqual (#390)  
+- Introduce benchmark suite for performance testing (``test/performance``) (#277)      
+- Improve compilation speed by an average of 7X on compile-heavy tasks (#273, #485, #523)
 - Improve C++ simulator (#386)
     - Add ``tensor_index.hpp`` for multi-partite qubit vector indexing.
     - Add ``qubit_vector.hpp`` for multi-partite qubit vector algebra.
@@ -43,9 +47,6 @@ Improvements
     - Introduce optional ``compact`` flag to query backend names only by unique function.
     - Introduce result convenience functions ``get_statevector``, ``get_unitary``
     - Add ``snapshot`` command for caching a copy of the current simulator state.
-- Introduce circuit drawing via ``circuit_drawer()`` and ``plot_circuit()`` (#295, #414)
-- Introduce benchmark suite for performance testing (``test/performance``) (#277)
-- Introduce more robust probability testing via assertDictAlmostEqual (#390)
 - Allow combining circuits across both depth and width (#389)
 - Enforce string token names (#395)
 
