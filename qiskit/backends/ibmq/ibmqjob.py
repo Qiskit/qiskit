@@ -484,5 +484,4 @@ def _numpy_type_converter(obj):
         return float(obj)
     elif isinstance(obj, numpy.ndarray):
         return obj.tolist()
-    else:
-        return obj
+    return obj
