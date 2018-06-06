@@ -34,6 +34,7 @@ class LocalJob(BaseJob):
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
+
     if sys.platform == 'darwin':
         _executor = futures.ThreadPoolExecutor()
     else:
