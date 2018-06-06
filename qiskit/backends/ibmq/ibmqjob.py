@@ -362,17 +362,18 @@ class IBMQJob(BaseJob):
         # logger.info('Running qobj: %s on remote backend %s with job id: %s',
         #             qobj["id"], qobj['config']['backend_name'],
         #             job_id)
-        timer = 0
+        start_time = time.time()
         api_result = self._api.get_job(job_id)
         while not (self.done or self.cancelled or self.exception or
                    self._status == JobStatus.ERROR):
-            if timeout is not None and timer >= timeout:
+            elapsed_time = time.time() - start_time
+            if timeout is not None and elapsed_time >= timeout:
                 job_result = {'job_id': job_id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
                 return Result(job_result)
             time.sleep(wait)
-            timer += wait
-            logger.info('status = %s (%d seconds)', api_result['status'], timer)
+            logger.info('status = %s (%d seconds)', api_result['status'],
+                        elapsed_time)
             api_result = self._api.get_job(job_id)
 
             if 'status' not in api_result:
@@ -483,3 +484,5 @@ def _numpy_type_converter(obj):
         return float(obj)
     elif isinstance(obj, numpy.ndarray):
         return obj.tolist()
+    else:
+        return obj
