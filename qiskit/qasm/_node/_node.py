@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright (c) 2017, IBM. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 """
 Base node object for the OPENQASM syntax tree.
 """
-
 
 class Node(object):
     """Base node object for the OPENQASM syntax tree."""

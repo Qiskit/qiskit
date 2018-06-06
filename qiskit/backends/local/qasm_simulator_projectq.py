@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=unused-import
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright (c) 2017, IBM. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +15,9 @@
 # limitations under the License.
 # =============================================================================
 
-"""Backend for the Project Q C++ simulator."""
+# pylint: disable=unused-import
 
+"""Backend for the Project Q C++ simulator."""
 
 import time
 import itertools
