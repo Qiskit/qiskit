@@ -112,7 +112,7 @@ class UnitarySimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_unitary_simulator_py',
-        'url': 'https://github.com/QISKit/qiskit-sdk-py',
+        'url': 'https://github.com/QISKit/qiskit-core',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for unitary matrix',

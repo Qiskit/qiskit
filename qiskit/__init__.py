@@ -41,7 +41,8 @@ import qiskit.extensions.quantum_initializer
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-from .wrapper._wrapper import available_backends, execute, register, get_backend, compile
+from .wrapper._wrapper import (available_backends, execute, register, get_backend, compile,
+                               load_qasm_string, load_qasm_file)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
