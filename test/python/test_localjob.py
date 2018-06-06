@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,broad-except
+# pylint: disable=invalid-name,missing-docstring
 
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -26,8 +26,7 @@ from qiskit.backends.local import QasmSimulatorCpp, QasmSimulatorProjectQ
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
-from qiskit.backends.local import StatevectorSimulatorSympy
-from qiskit.backends.local import UnitarySimulatorPy, UnitarySimulatorSympy
+from qiskit.backends.local import UnitarySimulatorPy
 from .common import QiskitTestCase
 
 
@@ -40,9 +39,7 @@ class TestLocalJob(QiskitTestCase):
         QasmSimulatorPy,
         StatevectorSimulatorCpp,
         StatevectorSimulatorPy,
-        StatevectorSimulatorSympy,
-        UnitarySimulatorPy,
-        UnitarySimulatorSympy
+        UnitarySimulatorPy
     ]
 
     def test_run(self):
@@ -104,9 +101,9 @@ class TestLocalJob(QiskitTestCase):
         mocked_future = executor.submit.return_value
         self.assertCalledOnce(mocked_future.done)
 
-    def assertCalledOnce(self, mockedCallable):
+    def assertCalledOnce(self, mocked_callable):
         """Assert a mocked callable has been called once."""
-        call_count = mockedCallable.call_count
+        call_count = mocked_callable.call_count
         self.assertEqual(
             call_count, 1,
             'Callable object has been called more than once ({})'.format(
