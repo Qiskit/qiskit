@@ -12,6 +12,7 @@ import logging
 
 import copy
 import uuid
+import warnings
 
 import numpy as np
 import scipy.sparse as sp
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False):
+            skip_transpiler=False, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
@@ -63,6 +64,13 @@ def compile(circuits, backend,
         QISKitError: if any of the circuit names cannot be found on the
             Quantum Program.
     """
+    # pylint: disable=missing-param-doc, missing-type-doc
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
@@ -123,7 +131,8 @@ def compile(circuits, backend,
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
             if initial_layout is None and not backend.configuration['simulator']:
-                # pick good initial layout, otherwise leave as q[i]->q[i]
+                # if coupling_map is not already satisfied, pick a good initial layout
+                # otherwise leave as q[i]->q[i]
                 if not _matches_coupling_map(circuit.data, backend.configuration['coupling_map']):
                     initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
 
@@ -314,11 +323,11 @@ def _best_subset(backend, n_qubits):
 
 
 def _matches_coupling_map(instructions, coupling_map):
-    """ Iterate over circuit instructions set to check if multi-qubit instructions coupling
-        graphs are equal to backend qubits coupling graph.
+    """ Iterate over circuit instructions set to check if multi-qubit instruction coupling
+        graphs match the qubit coupling graph in the backend.
 
     Parameters:
-            instructions (List): List of circuit instructions. Noy all instructions
+            instructions (List): List of circuit instructions. Not all instructions
                                  are Gates, hence not multi-qubit.
             coupling_map (List): Backend coupling map, represented as an
                                           adjacency list.

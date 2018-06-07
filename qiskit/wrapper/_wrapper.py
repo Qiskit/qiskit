@@ -8,6 +8,7 @@
 """Helper module for simplified QISKit usage."""
 
 import os
+import warnings
 import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
@@ -135,7 +136,7 @@ def get_backend(name):
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False):
+            skip_transpiler=False, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -155,6 +156,13 @@ def compile(circuits, backend,
     Returns:
         obj: the qobj to be run on the backends
     """
+    # pylint: disable=missing-param-doc, missing-type-doc
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     # pylint: disable=redefined-builtin
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
@@ -167,7 +175,7 @@ def compile(circuits, backend,
 def execute(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False):
+            skip_transpiler=False, skip_translation=False):
     """Executes a set of circuits.
 
     Args:
@@ -187,6 +195,13 @@ def execute(circuits, backend,
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
+    # pylint: disable=missing-param-doc, missing-type-doc
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
     qobj = compile(circuits, backend,
