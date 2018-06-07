@@ -14,7 +14,7 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-`UNRELEASED`_
+`Unreleased`_
 =============
 
 Added
@@ -75,8 +75,8 @@ Changed
 Deprecated
 ----------
 
-- Deprecating ibmqx_hpc_qasm_simulator and ibmqx_qasm_simulator in
-  favor of: ibmq_qasm_simulator.
+- Deprecating ``ibmqx_hpc_qasm_simulator`` and ``ibmqx_qasm_simulator`` in favor
+  of ``ibmq_qasm_simulator``.
 
 Fixed
 -----
@@ -106,9 +106,9 @@ Improvements
     - Split backends into ``local`` and ``ibmq``.
     - Each provider derives from the following classes for its specific
       requirements.
-      - ``BaseProvider`` class.
-      - ``BaseBackend`` class.
-      - ``BaseJob`` class.
+          - ``BaseProvider`` class.
+          - ``BaseBackend`` class.
+          - ``BaseJob`` class.
     - Allow querying result by both circuit name and QuantumCircuit instance.
 - Introduce the QISKit ``wrapper`` (#376).
     - Introduce convenience wrapper functions around commonly used QISKit
@@ -121,7 +121,8 @@ Improvements
       ``qiskit.get_backend()``).
 - Introduce ``BaseJob`` class and asynchronous jobs (#403).
     - Return ``BaseJob`` after ``run()``.
-    - Mechanisms for querying ``status`` and ``results``, or to ``cancel`` a job
+    - Mechanisms for querying ``status`` and ``results``, or to ``cancel`` a
+      job.
 - Introduce a ``skip_transpiler`` flag for ``compile()`` (#411).
 - Introduce schemas for validating interfaces between qiskit and backends (#434)
     - qobj_schema
@@ -180,16 +181,13 @@ Deprecated
 - Move simulator extensions to ``qiskit/extensions/simulator``
 - Move Rzz and CSwap to standard extension library
 
-
 `0.4.15`_ - 2018-05-07
 ======================
 
 Fixed
 -----
 
-- Fixed an issue with legacy code that was affecting Developers
-  Challenge
-
+- Fixed an issue with legacy code that was affecting Developers Challenge.
 
 `0.4.14`_ - 2018-04-18
 ======================
@@ -198,8 +196,7 @@ Fixed
 -----
 
 - Fixed an issue about handling Basis Gates parameters on backend
-   configurations
-
+  configurations.
 
 `0.4.13`_ - 2018-04-16
 ======================
@@ -207,13 +204,12 @@ Fixed
 Changed
 -------
 
-- OpenQuantumCompiler.dag2json() restored for backward compatibility
+- OpenQuantumCompiler.dag2json() restored for backward compatibility.
 
 Fixed
 -----
 
-- Fixes an issue regarding barrier gate misuse in some circumstances
-
+- Fixes an issue regarding barrier gate misuse in some circumstances.
 
 `0.4.12`_ - 2018-03-11
 ======================
@@ -223,13 +219,12 @@ Changed
 
 - Improved circuit visualization.
 - Improvements in infrastructure code, mostly tests and build system.
-- Better documentation regarding contributors
+- Better documentation regarding contributors.
 
 Fixed
 -----
 
 - A bunch of minor bugs have been fixed.
-
 
 `0.4.11`_ - 2018-03-13
 ======================
@@ -242,14 +237,13 @@ Added
 Changed
 -------
 
-- Stabilizing code related to external dependencies
+- Stabilizing code related to external dependencies.
 
 Fixed
 -----
 
 - Fixed bug in circuit drawing where some gates in the standard library
-  were not plotting correctly
-
+  were not plotting correctly.
 
 `0.4.10`_ - 2018-03-06
 ======================
@@ -257,22 +251,20 @@ Fixed
 Added
 -----
 
-- Chinese translation of README
+- Chinese translation of README.
 
 Changed
 -------
 
 - Changes related with infrastructure (linter, tests, automation)
-  enhancement
+  enhancement.
 
 Fixed
 -----
 
-- Fix installation issue when simulator cannot be built
-- Fix bug with auto-generated CNOT coherent error matrix in C++
-  simulator
-- Fix a bug in the async code
-
+- Fix installation issue when simulator cannot be built.
+- Fix bug with auto-generated CNOT coherent error matrix in C++ simulator.
+- Fix a bug in the async code.
 
 `0.4.9`_ - 2018-02-12
 =====================
@@ -280,15 +272,14 @@ Fixed
 Changed
 -------
 
-- CMake integration
-- QASM improvements
-- Mapper optimizer improvements
+- CMake integration.
+- QASM improvements.
+- Mapper optimizer improvements.
 
 Fixed
 -----
 
-- Some minor C++ Simulator bug-fixes
-
+- Some minor C++ Simulator bug-fixes.
 
 `0.4.8`_ - 2018-01-29
 =====================
@@ -296,9 +287,8 @@ Fixed
 Fixed
 -----
 
-- Fix parsing U_error matrix in C++ Simulator python helper class
-- Fix display of code-blocks on .rst pages
-
+- Fix parsing U_error matrix in C++ Simulator python helper class.
+- Fix display of code-blocks on ``.rst`` pages.
 
 `0.4.7`_ - 2018-01-26
 =====================
@@ -307,14 +297,13 @@ Changed
 -------
 
 - Changes some naming conventions for ``amp_error`` noise parameters to
-  ``calibration_error``
+  ``calibration_error``.
 
 Fixed
 -----
 
 - Fixes several bugs with noise implementations in the simulator.
 - Fixes many spelling mistakes in simulator README.
-
 
 `0.4.6`_ - 2018-01-22
 =====================
@@ -332,20 +321,18 @@ Changed
    -  Sphinx>=1.6,<1.7
    -  sympy>=1.0
 
-
 `0.4.4`_ - 2018-01-09
 =====================
 
 Changed
 -------
 
-- Update dependencies to more recent versions
+- Update dependencies to more recent versions.
 
 Fixed
 -----
 
-- Fix bug with process tomography reversing qubit preparation order
-
+- Fix bug with process tomography reversing qubit preparation order.
 
 `0.4.3`_ - 2018-01-08
 =====================
@@ -353,9 +340,8 @@ Fixed
 Removed
 -------
 
-- Static compilation has been removed because it seems to be failing
-  while installing Qiskit via pip on Mac.
-
+- Static compilation has been removed because it seems to be failing while
+  installing Qiskit via pip on Mac.
 
 `0.4.2`_ - 2018-01-08
 =====================
@@ -364,7 +350,6 @@ Fixed
 -----
 
 - Minor bug fixing related to pip installation process.
-
 
 `0.4.0`_ - 2018-01-08
 =====================
@@ -377,10 +362,11 @@ Added
     - New JobProcessor class: utilizes concurrent.futures.
     - New QuantumJob class: job description.
 - Modularize circuit "compilation".
-    Takes quantum circuit and information about backend to transform
-    circuit into one which can run on the backend.
+    Takes quantum circuit and information about backend to transform circuit
+    into one which can run on the backend.
 - Standardize job description.
-    All backends take QuantumJob objects which wraps ``qobj`` program description.
+    All backends take QuantumJob objects which wraps ``qobj`` program
+    description.
 - Simplify addition of backends, where circuits are run/simulated.
     - ``qiskit.backends`` package added.
     - Real devices and simulators are considered "backends" which inherent from
