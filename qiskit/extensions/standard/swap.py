@@ -25,6 +25,7 @@ from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cswap import FredkinGate
 
 
 class SwapGate(Gate):
@@ -48,6 +49,12 @@ class SwapGate(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.swap(self.arg[0], self.arg[1]))
+
+    def q_if(self, *qregs):
+        """Add controls to this gate."""
+        if not qregs:
+            return self
+        return FredkinGate(qregs[0], self.arg[0], self.arg[1], self._get_circuit()).q_if(*qregs[1:])
 
 
 def swap(self, ctl, tgt):

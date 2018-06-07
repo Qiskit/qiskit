@@ -25,6 +25,7 @@ from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cy import CyGate
 
 
 class YGate(Gate):
@@ -46,6 +47,12 @@ class YGate(Gate):
     def reapply(self, circuit):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circuit.y(self.arg[0]))
+
+    def q_if(self, *qregs):
+        """Add controls to this gate."""
+        if not qregs:
+            return self
+        return CyGate(qregs[0], self.arg[0], self._get_circuit()).q_if(*qregs[1:])
 
 
 def y(self, q):

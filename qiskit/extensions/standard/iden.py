@@ -47,6 +47,8 @@ class IdGate(Gate):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.iden(self.arg[0]))
 
+    def q_if(self, *qregs):
+        return self
 
 def iden(self, q):
     """Apply Identity to q."""

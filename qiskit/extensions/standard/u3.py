@@ -25,6 +25,7 @@ from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cu3 import Cu3Gate
 
 
 class U3Gate(Gate):
@@ -59,6 +60,13 @@ class U3Gate(Gate):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.u3(self.param[0], self.param[1], self.param[2],
                                 self.arg[0]))
+
+    def q_if(self, *qregs):
+        """Add controls to this gate."""
+        if not qregs:
+            return self
+        return Cu3Gate(self.param[0], self.param[1], self.param[2], qregs[0],
+                       self.arg[0], self._get_circuit()).q_if(*qregs[1:])
 
 
 def u3(self, theta, phi, lam, q):

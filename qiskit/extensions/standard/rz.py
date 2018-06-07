@@ -25,6 +25,7 @@ from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.crz import CrzGate
 
 
 class RZGate(Gate):
@@ -51,6 +52,12 @@ class RZGate(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.rz(self.param[0], self.arg[0]))
+
+    def q_if(self, *qregs):
+        """Add controls to this gate."""
+        if not qregs:
+            return self
+        return CrzGate(self.param[0], qregs[0], self.arg[0], self._get_circuit()).q_if(*qregs[1:])
 
 
 def rz(self, phi, q):

@@ -24,6 +24,7 @@ from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.x import XGate
 
 
 class CzGate(Gate):
@@ -48,6 +49,17 @@ class CzGate(Gate):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.cz(self.arg[0], self.arg[1]))
 
+    def q_if(self, *qregs):
+        if not qregs:
+            return self
+        # Dynamically create the class
+        class CzGateWithCx(CompositeGate):
+            def __init__(self, target, *controls):
+                self.h(target)
+                self._attach(XGate(target, self).q_if(*controls))
+                self.h(target)
+
+        return CzGateWithCx(self.arg[1], [self.arg[1]] + qregs)
 
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
