@@ -3,10 +3,6 @@
 
 *BUG TEMPLATE* <!-- Delete this header from your issue -->
 
-<!-- ⚠️ Before writing your issue make sure you are using: -->
-<!-- QISKit-sdk-py ^0.5.x -->
-<!-- Python ^3.5.x. -->
-
 ### Informations
 
 - **QISKit (Python SDK) version**:
