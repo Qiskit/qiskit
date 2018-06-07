@@ -12,7 +12,7 @@ from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from qiskit import QuantumJob
-from qiskit import QuantumCircuit
+from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
 # Default provider used by the rest of the functions on this module. Please
@@ -215,7 +215,7 @@ def load_qasm_string(qasm_string, name=None,
     Raises:
         QISKitError: if the string is not valid QASM
     """
-    return QuantumCircuit.from_qasm_string(qasm_string, name, basis_gates)
+    return circuit_from_qasm_string(qasm_string, name, basis_gates)
 
 
 def load_qasm_file(qasm_file, name=None,
@@ -234,4 +234,4 @@ def load_qasm_file(qasm_file, name=None,
     Raises:
         QISKitError: if the file cannot be read.
     """
-    return QuantumCircuit.from_qasm_file(qasm_file, name, basis_gates)
+    return circuit_from_qasm_file(qasm_file, name, basis_gates)
