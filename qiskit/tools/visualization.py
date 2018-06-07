@@ -192,11 +192,11 @@ def plot_state_city(rho, title=""):
     ly = len(datareal[:, 0])
     xpos = np.arange(0, lx, 1)    # Set up a mesh of positions
     ypos = np.arange(0, ly, 1)
-    xpos, ypos = np.meshgrid(xpos+0.25, ypos+0.25)
+    xpos, ypos = np.meshgrid(xpos + 0.25, ypos + 0.25)
 
     xpos = xpos.flatten()
     ypos = ypos.flatten()
-    zpos = np.zeros(lx*ly)
+    zpos = np.zeros(lx * ly)
 
     dx = 0.5 * np.ones_like(zpos)  # width of bars
     dy = dx.copy()
@@ -209,8 +209,8 @@ def plot_state_city(rho, title=""):
     ax2 = fig.add_subplot(2, 1, 2, projection='3d')
     ax2.bar3d(xpos, ypos, zpos, dx, dy, dzi, color="g", alpha=0.5)
 
-    ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
-    ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax1.set_xticks(np.arange(0.5, lx + 0.5, 1))
+    ax1.set_yticks(np.arange(0.5, ly + 0.5, 1))
     ax1.axes.set_zlim3d(-1.0, 1.0001)
     ax1.set_zticks(np.arange(-1, 1, 0.5))
     ax1.w_xaxis.set_ticklabels(row_names, fontsize=12, rotation=45)
@@ -219,8 +219,8 @@ def plot_state_city(rho, title=""):
     # ax1.set_ylabel('basis state', fontsize=12)
     ax1.set_zlabel("Real[rho]")
 
-    ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
-    ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax2.set_xticks(np.arange(0.5, lx + 0.5, 1))
+    ax2.set_yticks(np.arange(0.5, ly + 0.5, 1))
     ax2.axes.set_zlim3d(-1.0, 1.0001)
     ax2.set_zticks(np.arange(-1, 1, 0.5))
     ax2.w_xaxis.set_ticklabels(row_names, fontsize=12, rotation=45)
@@ -315,7 +315,7 @@ def phase_to_color_wheel(complex_number):
     [0, 2pi] and then to a color wheel with blue at zero phase.
     """
     angles = np.angle(complex_number)
-    angle_round = int(((angles + 2 * np.pi) % (2 * np.pi))/np.pi*6)
+    angle_round = int(((angles + 2 * np.pi) % (2 * np.pi)) / np.pi * 6)
     color_map = {
         0: (0, 0, 1),  # blue,
         1: (0.5, 0, 1),  # blue-violet
@@ -356,10 +356,10 @@ def plot_state_qsphere(rho):
                     break
             # remove the global phase
             angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-            angleset = np.exp(-1j*angles)
+            angleset = np.exp(-1j * angles)
             # print(state)
             # print(angles)
-            state = angleset*state
+            state = angleset * state
             # print(state)
             state.flatten()
             # start the plotting
@@ -487,7 +487,7 @@ def plot_wigner_function(state, res=100):
     num = int(np.log2(len(state)))  # number of qubits
     phi_vals = np.linspace(0, np.pi, num=res,
                            dtype=np.complex_)
-    theta_vals = np.linspace(0, 0.5*np.pi, num=res,
+    theta_vals = np.linspace(0, 0.5 * np.pi, num=res,
                              dtype=np.complex_)  # phi and theta values for WF
     w = np.empty([res, res])
     harr = np.sqrt(3)
@@ -495,31 +495,31 @@ def plot_wigner_function(state, res=100):
 
     # create the spin Wigner function
     for theta in range(res):
-        costheta = harr*np.cos(2*theta_vals[theta])
-        sintheta = harr*np.sin(2*theta_vals[theta])
+        costheta = harr * np.cos(2 * theta_vals[theta])
+        sintheta = harr * np.sin(2 * theta_vals[theta])
 
         for phi in range(res):
-            delta_su2[0, 0] = 0.5*(1+costheta)
-            delta_su2[0, 1] = -0.5*(np.exp(2j*phi_vals[phi])*sintheta)
-            delta_su2[1, 0] = -0.5*(np.exp(-2j*phi_vals[phi])*sintheta)
-            delta_su2[1, 1] = 0.5*(1-costheta)
+            delta_su2[0, 0] = 0.5 * (1 + costheta)
+            delta_su2[0, 1] = -0.5 * (np.exp(2j * phi_vals[phi]) * sintheta)
+            delta_su2[1, 0] = -0.5 * (np.exp(-2j * phi_vals[phi]) * sintheta)
+            delta_su2[1, 1] = 0.5 * (1 - costheta)
             kernel = 1
             for _ in range(num):
                 kernel = np.kron(kernel,
                                  delta_su2)  # creates phase point kernel
 
-            w[phi, theta] = np.real(np.trace(state*kernel))  # Wigner function
+            w[phi, theta] = np.real(np.trace(state * kernel))  # Wigner function
 
     # Plot a sphere (x,y,z) with Wigner function facecolor data stored in Wc
     fig = plt.figure(figsize=(11, 9))
     ax = fig.gca(projection='3d')
     w_max = np.amax(w)
     # Color data for plotting
-    w_c = cm.seismic_r((w+w_max)/(2*w_max))  # color data for sphere
-    w_c2 = cm.seismic_r((w[0:res, int(res/2):res]+w_max)/(2*w_max))  # bottom
-    w_c3 = cm.seismic_r((w[int(res/4):int(3*res/4), 0:res]+w_max) /
-                        (2*w_max))  # side
-    w_c4 = cm.seismic_r((w[int(res/2):res, 0:res]+w_max)/(2*w_max))  # back
+    w_c = cm.seismic_r((w + w_max) / (2 * w_max))  # color data for sphere
+    w_c2 = cm.seismic_r((w[0:res, int(res / 2):res] + w_max) / (2 * w_max))  # bottom
+    w_c3 = cm.seismic_r((w[int(res / 4):int(3 * res / 4), 0:res] + w_max) /
+                        (2 * w_max))  # side
+    w_c4 = cm.seismic_r((w[int(res / 2):res, 0:res] + w_max) / (2 * w_max))  # back
 
     u = np.linspace(0, 2 * np.pi, res)
     v = np.linspace(0, np.pi, res)
@@ -533,30 +533,30 @@ def plot_wigner_function(state, res=100):
                     linewidth=0, zorder=0.5,
                     antialiased=False)  # plots Wigner Bloch sphere
 
-    ax.plot_surface(x[0:res, int(res/2):res],
-                    y[0:res, int(res/2):res],
-                    -1.5*np.ones((res, int(res/2))),
+    ax.plot_surface(x[0:res, int(res / 2):res],
+                    y[0:res, int(res / 2):res],
+                    -1.5 * np.ones((res, int(res / 2))),
                     facecolors=w_c2,
                     vmin=-w_max, vmax=w_max,
-                    rcount=res/2, ccount=res/2,
+                    rcount=res / 2, ccount=res / 2,
                     linewidth=0, zorder=0.5,
                     antialiased=False)  # plots bottom reflection
 
-    ax.plot_surface(-1.5*np.ones((int(res/2), res)),
-                    y[int(res/4):int(3*res/4), 0:res],
-                    z[int(res/4):int(3*res/4), 0:res],
+    ax.plot_surface(-1.5 * np.ones((int(res / 2), res)),
+                    y[int(res / 4):int(3 * res / 4), 0:res],
+                    z[int(res / 4):int(3 * res / 4), 0:res],
                     facecolors=w_c3,
                     vmin=-w_max, vmax=w_max,
-                    rcount=res/2, ccount=res/2,
+                    rcount=res / 2, ccount=res / 2,
                     linewidth=0, zorder=0.5,
                     antialiased=False)  # plots side reflection
 
-    ax.plot_surface(x[int(res/2):res, 0:res],
-                    1.5*np.ones((int(res/2), res)),
-                    z[int(res/2):res, 0:res],
+    ax.plot_surface(x[int(res / 2):res, 0:res],
+                    1.5 * np.ones((int(res / 2), res)),
+                    z[int(res / 2):res, 0:res],
                     facecolors=w_c4,
                     vmin=-w_max, vmax=w_max,
-                    rcount=res/2, ccount=res/2,
+                    rcount=res / 2, ccount=res / 2,
                     linewidth=0, zorder=0.5,
                     antialiased=False)  # plots back reflection
 
@@ -588,7 +588,7 @@ def plot_wigner_curve(wigner_data, xaxis=None):
         xaxis (np.array):  the range of the x axis
     """
     if not xaxis:
-        xaxis = np.linspace(0, len(wigner_data)-1, num=len(wigner_data))
+        xaxis = np.linspace(0, len(wigner_data) - 1, num=len(wigner_data))
 
     plt.plot(xaxis, wigner_data)
     plt.show()
@@ -621,21 +621,21 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
 
     cmap = plt.cm.get_cmap('seismic_r')
 
-    xax = dim[1]-0.5
-    yax = dim[0]-0.5
+    xax = dim[1] - 0.5
+    yax = dim[0] - 0.5
     norm = np.amax(dim)
 
-    fig = plt.figure(figsize=((xax+0.5)*6/norm, (yax+0.5)*6/norm))
+    fig = plt.figure(figsize=((xax + 0.5) * 6 / norm, (yax + 0.5) * 6 / norm))
     ax = fig.gca()
 
     for x in range(int(dim[1])):
         for y in range(int(dim[0])):
             circle = plt.Circle(
-                (x, y), 0.49, color=cmap((wigner_data[y, x]+w_max)/(2*w_max)))
+                (x, y), 0.49, color=cmap((wigner_data[y, x] + w_max) / (2 * w_max)))
             ax.add_artist(circle)
 
-    ax.set_xlim(-1, xax+0.5)
-    ax.set_ylim(-1, yax+0.5)
+    ax.set_xlim(-1, xax + 0.5)
+    ax.set_ylim(-1, yax + 0.5)
     ax.set_xticks([], [])
     ax.set_yticks([], [])
     m = cm.ScalarMappable(cmap=cm.seismic_r)
@@ -674,7 +674,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
         plot_wigner_function(wigner_data)
     elif method == 'point':
         plot_wigner_plaquette(wigner_data)
-        print('point in phase space is '+str(wigner_data))
+        print('point in phase space is ' + str(wigner_data))
     else:
         print("No method given")
 
@@ -741,7 +741,7 @@ def circuit_drawer(circuit,
             try:
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                pngfile=os.path.join(tmpdirname, "{0}.png".format(filename))
+                pngfile = os.path.join(tmpdirname, "{0}.png".format(filename))
                 im = Image.open(pngfile)
                 im = trim(im)
                 os.remove(pngfile)
@@ -808,6 +808,7 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
+
     def __init__(self, circuit, scale):
         """
         Args:
@@ -935,7 +936,7 @@ class QCircuitImage(object):
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r'\\'+'\n')
+                    output.write(r'\\' + '\n')
         output.write('\t }\n')
         output.write('\end{equation*}\n\n')
         output.write('\end{document}')
@@ -1185,7 +1186,7 @@ class QCircuitImage(object):
         # the qubit/cbit labels plus initial states is 2 more
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
-        return columns+1, math.ceil(sum_column_widths)+4
+        return columns + 1, math.ceil(sum_column_widths) + 4
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
@@ -1460,8 +1461,8 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
+                            self._latex[pos_1][columns - 1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
                                 "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
@@ -1514,8 +1515,8 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
+                            self._latex[pos_1][columns - 1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
                                 "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
