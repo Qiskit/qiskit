@@ -14,7 +14,8 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-`Unreleased`_
+
+`UNRELEASED`_
 =============
 
 Added
@@ -45,6 +46,7 @@ Fixed
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
 
+
 `0.5.3`_ - 2018-05-29
 =====================
 
@@ -63,6 +65,7 @@ Fixed
 
 - Crash in the cpp simulator for some linux platforms
 - Fixed some minor bugs
+
 
 `0.5.2`_ - 2018-05-21
 =====================
@@ -84,6 +87,7 @@ Fixed
 - Fixing a Mapper issue.
 - Fixing Windows 7 builds.
 
+
 `0.5.1`_ - 2018-05-15
 =====================
 
@@ -96,19 +100,17 @@ Fixed
   Pypi forces us to bump up the version number if we want to upload a new
   package, so this is basically what have changed.
 
+
 `0.5.0`_ - 2018-05-11
 =====================
 
 Improvements
-============
+------------
 
 - Introduce providers and rework backends (#376).
     - Split backends into ``local`` and ``ibmq``.
     - Each provider derives from the following classes for its specific
-      requirements.
-          - ``BaseProvider`` class.
-          - ``BaseBackend`` class.
-          - ``BaseJob`` class.
+      requirements (``BaseProvider``, ``BaseBackend``, ``BaseJob``).
     - Allow querying result by both circuit name and QuantumCircuit instance.
 - Introduce the QISKit ``wrapper`` (#376).
     - Introduce convenience wrapper functions around commonly used QISKit
@@ -157,7 +159,7 @@ Improvements
 - Enforce string token names (#395)
 
 Fixed
-=====
+-----
 
 - Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
 - Fix the order and format of result bits obtained from device backends (#430)
@@ -168,7 +170,7 @@ Fixed
 - Fix ability to apply all gates on register (#369)
 
 Deprecated
-==========
+----------
 
 - Some methods of ``QuantumProgram`` are soon to be deprecated. Please use the
   top-level functions instead.
@@ -181,6 +183,7 @@ Deprecated
 - Move simulator extensions to ``qiskit/extensions/simulator``
 - Move Rzz and CSwap to standard extension library
 
+
 `0.4.15`_ - 2018-05-07
 ======================
 
@@ -188,6 +191,7 @@ Fixed
 -----
 
 - Fixed an issue with legacy code that was affecting Developers Challenge.
+
 
 `0.4.14`_ - 2018-04-18
 ======================
@@ -197,6 +201,7 @@ Fixed
 
 - Fixed an issue about handling Basis Gates parameters on backend
   configurations.
+
 
 `0.4.13`_ - 2018-04-16
 ======================
@@ -210,6 +215,7 @@ Fixed
 -----
 
 - Fixes an issue regarding barrier gate misuse in some circumstances.
+
 
 `0.4.12`_ - 2018-03-11
 ======================
@@ -225,6 +231,7 @@ Fixed
 -----
 
 - A bunch of minor bugs have been fixed.
+
 
 `0.4.11`_ - 2018-03-13
 ======================
@@ -244,6 +251,7 @@ Fixed
 
 - Fixed bug in circuit drawing where some gates in the standard library
   were not plotting correctly.
+
 
 `0.4.10`_ - 2018-03-06
 ======================
@@ -266,6 +274,7 @@ Fixed
 - Fix bug with auto-generated CNOT coherent error matrix in C++ simulator.
 - Fix a bug in the async code.
 
+
 `0.4.9`_ - 2018-02-12
 =====================
 
@@ -281,6 +290,7 @@ Fixed
 
 - Some minor C++ Simulator bug-fixes.
 
+
 `0.4.8`_ - 2018-01-29
 =====================
 
@@ -289,6 +299,7 @@ Fixed
 
 - Fix parsing U_error matrix in C++ Simulator python helper class.
 - Fix display of code-blocks on ``.rst`` pages.
+
 
 `0.4.7`_ - 2018-01-26
 =====================
@@ -304,6 +315,7 @@ Fixed
 
 - Fixes several bugs with noise implementations in the simulator.
 - Fixes many spelling mistakes in simulator README.
+
 
 `0.4.6`_ - 2018-01-22
 =====================
@@ -321,6 +333,7 @@ Changed
    -  Sphinx>=1.6,<1.7
    -  sympy>=1.0
 
+
 `0.4.4`_ - 2018-01-09
 =====================
 
@@ -334,6 +347,7 @@ Fixed
 
 - Fix bug with process tomography reversing qubit preparation order.
 
+
 `0.4.3`_ - 2018-01-08
 =====================
 
@@ -343,6 +357,7 @@ Removed
 - Static compilation has been removed because it seems to be failing while
   installing Qiskit via pip on Mac.
 
+
 `0.4.2`_ - 2018-01-08
 =====================
 
@@ -350,6 +365,7 @@ Fixed
 -----
 
 - Minor bug fixing related to pip installation process.
+
 
 `0.4.0`_ - 2018-01-08
 =====================
@@ -439,7 +455,7 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _Unreleased: https://github.com/QISKit/qiskit-core/compare/0.5.3...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.3...HEAD
 .. _0.5.3: https://github.com/QISKit/qiskit-core/compare/0.5.2...0.5.3
 .. _0.5.2: https://github.com/QISKit/qiskit-core/compare/0.5.1...0.5.2
 .. _0.5.1: https://github.com/QISKit/qiskit-core/compare/0.5.0...0.5.1
