@@ -24,6 +24,4 @@ from .qasm_simulator_py import QasmSimulatorPy
 from .qasm_simulator_projectq import QasmSimulatorProjectQ
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
-from .statevector_simulator_sympy import StatevectorSimulatorSympy
 from .unitary_simulator_py import UnitarySimulatorPy
-from .unitary_simulator_sympy import UnitarySimulatorSympy
