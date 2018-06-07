@@ -741,9 +741,10 @@ def circuit_drawer(circuit,
             try:
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                im = Image.open("{0}.png".format(filename))
+                pngfile = os.path.join(tmpdirname, "{0}.png".format(filename))
+                im = Image.open(pngfile)
                 im = trim(im)
-                os.remove("{0}.png".format(filename))
+                os.remove(pngfile)
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
