@@ -2,7 +2,7 @@
 
 ## A C++ quantum circuit simulator with realistic noise
 
-Copyright (c) 2017, IBM. All Rights Reserved.
+Copyright (c) 2017, IBM.
 
 ### Authors
 
