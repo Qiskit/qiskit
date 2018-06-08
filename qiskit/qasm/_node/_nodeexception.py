@@ -9,6 +9,7 @@
 Exception for errors raised while interpreting nodes.
 """
 
+
 class NodeException(Exception):
     """Base class for errors raised while interpreting nodes."""
 

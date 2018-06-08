@@ -9,6 +9,7 @@
 Base node object for the OPENQASM syntax tree.
 """
 
+
 class Node(object):
     """Base node object for the OPENQASM syntax tree."""
 
