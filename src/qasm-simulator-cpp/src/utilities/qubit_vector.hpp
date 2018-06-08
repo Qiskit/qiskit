@@ -1,18 +1,9 @@
-/*
-Copyright (c) 2018 IBM Corporation. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/**
+ * Copyright 2018, IBM.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 found in
+ * the LICENSE.txt file in the root directory of this source tree.
+ */
 
 /**
  * @file    qubit_vector.hpp
@@ -113,7 +104,7 @@ public:
   void apply_matrix(const std::vector<uint_t> &qubits, const cvector_t &mat);
   template <size_t N>
   void apply_matrix(const std::array<uint_t, N> &qubits, const cvector_t &mat);
-  
+
   // Specialized gates
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
   void apply_cz(const uint_t q0, const uint_t q1);
@@ -129,7 +120,7 @@ public:
   double norm(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
   template <size_t N>
   double norm(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
-  
+
   /************************
    * Expectation Values
    ************************/
@@ -151,7 +142,7 @@ public:
   // Element access
   complex_t &operator[](uint_t element);
   complex_t operator[](uint_t element) const;
-  
+
   // Scalar multiplication
   QubitVector &operator*=(const complex_t &lambda);
   QubitVector &operator*=(const double &lambda);
@@ -159,11 +150,11 @@ public:
   friend QubitVector operator*(const double &lambda, const QubitVector &qv);
   friend QubitVector operator*(const QubitVector &qv, const complex_t &lambda);
   friend QubitVector operator*(const QubitVector &qv, const double &lambda);
-  
+
   // Vector addition
   QubitVector &operator+=(const QubitVector &qv);
   QubitVector operator+(const QubitVector &qv) const;
-  
+
   // Vector subtraction
   QubitVector &operator-=(const QubitVector &qv);
   QubitVector operator-(const QubitVector &qv) const;
@@ -307,7 +298,7 @@ complex_t &QubitVector::operator[](uint_t element) {
   #endif
   return state_vector[element];
 }
-  
+
 
 complex_t QubitVector::operator[](uint_t element) const {
   // Error checking
@@ -321,16 +312,16 @@ complex_t QubitVector::operator[](uint_t element) const {
   #endif
   return state_vector[element];
 }
-  
+
 // Equal operators
 QubitVector &QubitVector::operator=(const cvector_t &vec) {
-  
+
   num_states = vec.size();
   // Get qubit number
   uint_t size = num_states;
   num_qubits = 0;
   while (size >>= 1) ++num_qubits;
-  
+
   // Error handling
   #ifdef DEBUG
     if (num_states != 1ULL << num_qubits) {
@@ -345,13 +336,13 @@ QubitVector &QubitVector::operator=(const cvector_t &vec) {
 }
 
 QubitVector &QubitVector::operator=(const rvector_t &vec) {
-  
+
   num_states = vec.size();
   // Get qubit number
   uint_t size = num_states;
   num_qubits = 0;
   while (size >>= 1) ++num_qubits;
-  
+
   // Error handling
   #ifdef DEBUG
     if (num_states != 1ULL << num_qubits) {
@@ -560,7 +551,7 @@ void QubitVector::apply_matrix(const uint_t qubit, const cvector_t &mat) {
 }
 
 void QubitVector::apply_matrix_col_major(const uint_t qubit, const cvector_t &mat) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2);
@@ -589,13 +580,13 @@ void QubitVector::apply_matrix_col_major(const uint_t qubit, const cvector_t &ma
 }
 
 void QubitVector::apply_matrix_diagonal(const uint_t qubit, const cvector_t &diag) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(diag, 1);
   check_qubit(qubit);
   #endif
-  
+
   const omp_int_t end1 = num_states;    // end for k1 loop
   const omp_int_t end2 = 1LL << qubit; // end for k2 loop
   const omp_int_t step1 = end2 << 1;    // step for k1 loop
@@ -617,7 +608,7 @@ void QubitVector::apply_matrix_diagonal(const uint_t qubit, const cvector_t &dia
 }
 
 void QubitVector::apply_x(const uint_t qubit) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_qubit(qubit);
@@ -675,12 +666,12 @@ void QubitVector::apply_y(const uint_t qubit) {
 }
 
 void QubitVector::apply_z(const uint_t qubit) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_qubit(qubit);
   #endif
-  
+
   // Optimized ideal Pauli-Z gate
   const omp_int_t end1 = num_states;    // end for k1 loop
   const omp_int_t end2 = 1LL << qubit; // end for k2 loop
@@ -900,7 +891,7 @@ void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t 
 template <size_t N>
 void QubitVector::apply_matrix_col_major(const std::array<uint_t, N> &qs,
                                const cvector_t &mat) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
@@ -937,7 +928,7 @@ void QubitVector::apply_matrix_col_major(const std::array<uint_t, N> &qs,
 template <size_t N>
 void QubitVector::apply_matrix_diagonal(const std::array<uint_t, N> &qs,
                                const cvector_t &diag) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(diag, N);
@@ -963,7 +954,7 @@ void QubitVector::apply_matrix_diagonal(const std::array<uint_t, N> &qs,
 }
 
 void QubitVector::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-  
+
   // Error checking
   #ifdef DEBUG
   check_qubit(qubit_ctrl);
@@ -1028,7 +1019,7 @@ double QubitVector::norm(const std::array<uint_t, N> &qs, const cvector_t &mat) 
 
 template <size_t N>
 double QubitVector::norm_matrix(const std::array<uint_t, N> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
@@ -1063,7 +1054,7 @@ double QubitVector::norm_matrix(const std::array<uint_t, N> &qs, const cvector_t
 
 template <size_t N>
 double QubitVector::norm_matrix_diagonal(const std::array<uint_t, N> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, N);
@@ -1106,7 +1097,7 @@ complex_t QubitVector::expectation_value(const std::array<uint_t, N> &qs, const 
 
 template <size_t N>
 complex_t QubitVector::expectation_value_matrix(const std::array<uint_t, N> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
@@ -1143,7 +1134,7 @@ complex_t QubitVector::expectation_value_matrix(const std::array<uint_t, N> &qs,
 
 template <size_t N>
 complex_t QubitVector::expectation_value_matrix_diagonal(const std::array<uint_t, N> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, N);
@@ -1223,7 +1214,7 @@ void QubitVector::apply_matrix_col_major(const std::vector<uint_t> &qubits, cons
   #endif
 
   const omp_int_t end = num_states >> N;
-  
+
   auto qss = qubits;
   std::sort(qss.begin(), qss.end());
   const auto &qubits_sorted = qss;
@@ -1250,7 +1241,7 @@ void QubitVector::apply_matrix_col_major(const std::vector<uint_t> &qubits, cons
 
 void QubitVector::apply_matrix_diagonal(const std::vector<uint_t> &qubits,
                                const cvector_t &diag) {
-  
+
   const auto N = qubits.size();
   const uint_t dim = 1ULL << N;
   // Error checking
@@ -1303,7 +1294,7 @@ double QubitVector::norm(const std::vector<uint_t> &qs, const cvector_t &mat) co
 }
 
 double QubitVector::norm_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   const uint_t N = qs.size();
   #ifdef DEBUG
@@ -1337,7 +1328,7 @@ double QubitVector::norm_matrix(const std::vector<uint_t> &qs, const cvector_t &
 }
 
 double QubitVector::norm_matrix_diagonal(const std::vector<uint_t> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   const uint_t N = qs.size();
   #ifdef DEBUG
@@ -1394,7 +1385,7 @@ complex_t QubitVector::expectation_value(const std::vector<uint_t> &qs, const cv
 }
 
 complex_t QubitVector::expectation_value_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   const uint_t N = qs.size();
   #ifdef DEBUG
@@ -1430,7 +1421,7 @@ complex_t QubitVector::expectation_value_matrix(const std::vector<uint_t> &qs, c
 }
 
 complex_t QubitVector::expectation_value_matrix_diagonal(const std::vector<uint_t> &qs, const cvector_t &mat) const {
-  
+
   // Error checking
   const uint_t N = qs.size();
   #ifdef DEBUG
@@ -1507,14 +1498,14 @@ rvector_t QubitVector::probabilities(const uint_t qubit) const {
         const auto k = k1 | k2;
         p0 += probability(k);
         p1 += probability(k | end2);
-      } 
+      }
   } // end omp parallel
   return rvector_t({p0, p1});
 }
 
 template <size_t N>
 rvector_t QubitVector::probabilities(const std::array<uint_t, N> &qs) const {
-  
+
   // Error checking
   #ifdef DEBUG
   for (const auto &qubit : qs)
@@ -1523,7 +1514,7 @@ rvector_t QubitVector::probabilities(const std::array<uint_t, N> &qs) const {
 
   if (N == 0)
     return rvector_t({norm()});
-  
+
   const uint_t dim = 1ULL << N;
   const uint_t end = (1ULL << num_qubits) >> N;
   auto qss = qs;
@@ -1632,7 +1623,7 @@ double QubitVector::probability(const uint_t qubit, const uint_t outcome) const 
 template <size_t N>
 double QubitVector::probability(const std::array<uint_t, N> &qs,
                                 const uint_t outcome) const {
-  
+
   // Error checking
   #ifdef DEBUG
   for (const auto &qubit : qs)
@@ -1656,7 +1647,7 @@ double QubitVector::probability(const std::array<uint_t, N> &qs,
 
 double QubitVector::probability(const std::vector<uint_t> &qs,
                                 const uint_t outcome) const {
-  
+
   // Special cases using faster static indexing
   const uint_t N = qs.size();
   switch (N) {
