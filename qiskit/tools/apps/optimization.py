@@ -19,11 +19,10 @@
 These are tools that are used in the classical optimization and chemistry
 tutorials
 """
-import uuid
 import copy
 import numpy as np
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
 from qiskit.tools.qi.pauli import Pauli, label_to_pauli
 
@@ -169,7 +168,7 @@ def measure_pauli_z(data, pauli):
     return observable
 
 
-def Energy_Estimate(data, pauli_list):
+def energy_estimate(data, pauli_list):
     """Compute expectation value of a list of diagonal Paulis with
     coefficients given measurement data. If somePaulis are non-diagonal
     appropriate post-rotations had to be performed in the collection of data
@@ -269,13 +268,11 @@ def print_pauli_list_grouped(pauli_list_grouped):
         print('\n')
 
 
-def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
+def eval_hamiltonian(hamiltonian, input_circuit, shots, device):
     """Calculates the average value of a Hamiltonian on a state created by the
      input circuit
 
     Args:
-        Q_program (QuantumProgram): QuantumProgram object used to run the
-            input circuit.
         hamiltonian (array or matrix or list): a representation of the
             Hamiltonian or observables to be measured. If it is a list, it is
             a list of Pauli operators grouped into tpb sets.
@@ -291,14 +288,12 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
     if 'statevector' in device:
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
-            circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
-            Q_program.add_circuit(circuit[0], input_circuit)
-            result = Q_program.execute(circuit, device, shots=shots,
-                                       config={"data": ["statevector"]})
-            statevector = result.get_data(circuit[0]).get('statevector')
+            job = execute([input_circuit], device, shots=shots,
+                          config={"data": ["statevector"]})
+            result = job.result()
+            statevector = result.get_data(input_circuit).get('statevector')
             if statevector is None:
-                statevector = result.get_data(
-                    circuit[0]).get('statevector')
+                statevector = result.get_data(input_circuit).get('statevector')
                 if statevector:
                     statevector = statevector[0]
             # Diagonal Hamiltonian represented by 1D array
@@ -309,14 +304,11 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
             elif hamiltonian.shape[0] == hamiltonian.shape[1]:
                 energy = np.inner(np.conjugate(statevector),
                                   np.dot(hamiltonian, statevector))
-        # Hamiltonian represented by a Pauli list
+        # Hamiltonian represented by a Pauli list - FIX THIS
         else:
             circuits = []
-            circuits_labels = []
-            circuits.append(input_circuit)
             # Trial circuit w/o the final rotations
-            circuits_labels.append('circuit_label0' + str(uuid.uuid4()))
-            Q_program.add_circuit(circuits_labels[0], circuits[0])
+            circuits.append(input_circuit)
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
             n_qubits = input_circuit.regs['q'].size
@@ -331,33 +323,27 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                         circuits[i].z(q[j])
                     elif p[1].v[j] == 1 and p[1].w[j] == 1:
                         circuits[i].y(q[j])
-
-                circuits_labels.append('circuit_label' + str(i) + str(uuid.uuid4()))
-                Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
-            result = Q_program.execute(circuits_labels, device, shots=shots)
+            job = execute([circuits], device, shots=shots)
+            result = job.result()
             # no Pauli final rotations
-            statevector_0 = result.get_data(
-                circuits_labels[0])['statevector']
+            statevector_0 = result.get_data(circuits[0])['statevector']
             i = 1
             for p in hamiltonian:
-                statevector_i = result.get_data(
-                    circuits_labels[i])['statevector']
+                statevector_i = result.get_data(circuits[i])['statevector']
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(statevector_0),
                                           statevector_i)
                 i += 1
-    # finite number of shots and hamiltonian grouped in tpb sets
+    # finite number of shots and hamiltonian grouped in tpb sets - FIX THIS
     else:
         circuits = []
-        circuits_labels = []
         n = int(len(hamiltonian[0][0][1].v))
         q = QuantumRegister(n, "q")
         c = ClassicalRegister(n, "c")
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
-            circuits_labels.append('tpb_circuit_' + str(i) + str(uuid.uuid4()))
             for j in range(n):
                 # Measure X
                 if tpb_set[0][1].v[j] == 0 and tpb_set[0][1].w[j] == 1:
@@ -367,14 +353,14 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                     circuits[i].s(q[j]).inverse()
                     circuits[i].h(q[j])
                 circuits[i].measure(q[j], c[j])
-            Q_program.add_circuit(circuits_labels[i], circuits[i])
             i += 1
-        result = Q_program.execute(circuits_labels, device, shots=shots)
+        job = execute([circuits], device, shots=shots)
+        result = job.result()
         for j, _ in enumerate(hamiltonian):
             for k, _ in enumerate(hamiltonian[j]):
                 energy += hamiltonian[j][k][0] *\
                     measure_pauli_z(result.get_counts(
-                        circuits_labels[j]), hamiltonian[j][k][1])
+                        circuits[j]), hamiltonian[j][k][1])
 
     return energy
 
@@ -466,7 +452,7 @@ def trial_circuit_ryrz(n, m, theta, entangler_map, meas_string=None,
     return trial_circuit
 
 
-def make_Hamiltonian(pauli_list):
+def make_hamiltonian(pauli_list):
     """Creates a matrix operator out of a list of Paulis.
 
     Args:
@@ -480,7 +466,7 @@ def make_Hamiltonian(pauli_list):
     return Hamiltonian
 
 
-def Hamiltonian_from_file(file_name):
+def hamiltonian_from_file(file_name):
     """Creates a matrix operator out of a file with a list
     of Paulis.
 
