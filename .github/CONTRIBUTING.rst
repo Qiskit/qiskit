@@ -248,6 +248,27 @@ you are ready to start coding (yay!). We have two options here:
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
 
+Pull request checklist
+""""""""""""""""""""""
+
+When submitting a pull request and you feel it is ready for review, please
+double check that:
+
+* the code follows the code style of the project. For convenience, you can
+  execute ``make style`` and ``make lint`` locally, which will print potential
+  style warnings and fixes.
+* the documentation has been updated accordingly. In particular, if a function
+  or class has been modified during the PR, please update the docstring
+  accordingly.
+* your contribution passes the existing tests, and if developing a new feature,
+  that you have added new tests that cover those changes.
+* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
+  section, with the title of your pull request and its identifier (for example,
+  "``Replace OldComponent with FluxCapacitor (#123)``".
+
+Commit messages
+"""""""""""""""
+
 Please follow the next rules for the commit messages:
 
 - It should include a reference to the issue ID in the first line of the commit,
