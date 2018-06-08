@@ -1,18 +1,9 @@
-/*
-Copyright (c) 2017 IBM Corporation. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/**
+ * Copyright 2017, IBM.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 found in
+ * the LICENSE.txt file in the root directory of this source tree.
+ */
 
 /**
  * @file    default_engine.hpp
@@ -36,7 +27,7 @@ namespace QISKIT {
  * This base class implements basic computation of simulator results for the
  * BaseBackend class and subclasses. This includes getting the bitstring values
  * from the classical register and basic functions for recording the final
- * quantum state, classical state, and snapshots of the quantum state, for each 
+ * quantum state, classical state, and snapshots of the quantum state, for each
  * shot of the simulation.
  *
  * This is done using default JSON conversion for the StateType, so if no such
@@ -83,7 +74,7 @@ public:
 
   // Quantum state snapshots
   std::map<std::string, std::vector<StateType>> snapshots;   // final qreg state for each shot
-  
+
   // Classical states
   std::vector<std::string> output_creg; // creg string for each shot
 
@@ -259,7 +250,7 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     js["classical_state"] = engine.output_creg;
 
   if (engine.show_snapshots && engine.snapshots.empty() == false) {
-    
+
     try {
       // use try incase state class doesn't have json conversion method
       for (const auto& pair: engine.snapshots)
