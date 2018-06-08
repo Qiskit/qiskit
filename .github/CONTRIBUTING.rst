@@ -29,6 +29,20 @@ If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
 
+Contributor License Agreement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We'd love to accept your code! Before we can, we have to get a few legal
+requirements sorted out.
+
+Before we can accept a pull request from you, you'll need to sign a Contributor
+License Agreement (CLA). It is an automated process and you only need to do it
+once.
+
+NOTE: If you work for a company that wants to allow you to contribute your work,
+then you'll need to sign a corporate CLA (link to download file) and email it
+to us at qiskit@us.ibm.com.
+
 Code
 ----
 
