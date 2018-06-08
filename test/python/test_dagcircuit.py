@@ -53,16 +53,15 @@ class TestDagCircuit(QiskitTestCase):
         dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
         dag.apply_operation_back('h', [('q', 2)])
 
+        # The ordering is not assured, so we only compare the output (unordered) sets.
+        # We use tuples because lists aren't hashable.
         named_nodes = dag.get_named_nodes('cx')
-        self.assertEqual(3, len(named_nodes))
-        # Since the ordering is not assured, we sort to make it certain.
-        # We have asserted here that lower node id implies that it was applied earlier.
-        named_nodes = list(sorted(named_nodes))
-        node_qargs = [dag.multi_graph.node[node_id]["qargs"] for node_id in named_nodes]
-        self.assertEqual([
-            [('q', 0), ('q', 1)],
-            [('q', 2), ('q', 1)],
-            [('q', 0), ('q', 2)]], node_qargs)
+        node_qargs = {tuple(dag.multi_graph.node[node_id]["qargs"]) for node_id in named_nodes}
+        expected_gates = {
+            (('q', 0), ('q', 1)),
+            (('q', 2), ('q', 1)),
+            (('q', 0), ('q', 2))}
+        self.assertEqual(expected_gates, node_qargs)
 
 
 if __name__ == '__main__':

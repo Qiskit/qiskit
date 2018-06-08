@@ -1072,7 +1072,7 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_named_nodes(self, name):
-        """Returns a list of "op" node ids with the given name."""
+        """Returns a list of "op" node ids with the given name in arbitrary order."""
         if name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations"
                                   % name)
