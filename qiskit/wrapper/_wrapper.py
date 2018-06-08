@@ -153,17 +153,17 @@ def compile(circuits, backend,
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
+        skip_translation (bool): DEPRECATED. Use skip_transpiler instead.
     Returns:
         obj: the qobj to be run on the backends
     """
-    # pylint: disable=missing-param-doc, missing-type-doc
+    # pylint: disable=redefined-builtin
     if skip_translation:
         warnings.warn(
             "skip_translation will be called skip_transpiler in future versions.",
             DeprecationWarning)
         skip_transpiler = True
 
-    # pylint: disable=redefined-builtin
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
     return qiskit._compiler.compile(circuits, backend,

@@ -56,6 +56,7 @@ def compile(circuits, backend,
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
+        skip_translation (bool): DEPRECATED. Use skip_transpiler instead.
 
     Returns:
         obj: the qobj to be run on the backends
@@ -64,7 +65,6 @@ def compile(circuits, backend,
         QISKitError: if any of the circuit names cannot be found on the
             Quantum Program.
     """
-    # pylint: disable=missing-param-doc, missing-type-doc
     if skip_translation:
         warnings.warn(
             "skip_translation will be called skip_transpiler in future versions.",
