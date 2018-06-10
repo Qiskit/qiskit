@@ -37,6 +37,7 @@ Removed
 -------
 
 - Remove Sympy simulators for moving to new repository (#514)
+- Remove Clifford simulator from default available_backends, until its stable release (#555).
 
 Fixed
 -----
