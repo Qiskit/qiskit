@@ -37,6 +37,8 @@ Removed
 -------
 
 - Remove Sympy simulators for moving to new repository (#514)
+- Remove ProjectQ simulators for moving to new repository (#553)
+
 
 Fixed
 -----
