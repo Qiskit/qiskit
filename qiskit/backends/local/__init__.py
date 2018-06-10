@@ -11,7 +11,6 @@ from .localprovider import LocalProvider
 from .localjob import LocalJob
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
-from .qasm_simulator_projectq import QasmSimulatorProjectQ
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
 from .unitary_simulator_py import UnitarySimulatorPy
