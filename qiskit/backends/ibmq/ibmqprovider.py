@@ -49,7 +49,12 @@ class IBMQProvider(BaseProvider):
         return list(self.backends.values())
 
     def aliased_backend_names(self):
-        return {}
+        return {
+            'ibmqx2': ['Yorktown', 'yorktown'],
+            'ibmqx4': ['Tenerife', 'tenerife'],
+            'ibmqx5': ['Rueschlikon', 'rueschlikon'],
+            'QS1_1': ['Austin', 'austin']
+            }
 
     def deprecated_backend_names(self):
         return {
