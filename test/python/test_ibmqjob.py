@@ -21,7 +21,7 @@ import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -156,7 +156,7 @@ class TestIBMQJob(QiskitTestCase):
                                    '{0} s'.format(timeout))
             time.sleep(0.2)
 
-        result_array = [job.result(qobj=qobj) for job in job_array]
+        result_array = [job.result() for job in job_array]
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
         self.assertTrue(all([job.done for job in job_array]))
@@ -202,7 +202,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(num_jobs - num_error - num_done > 0)
 
         # Wait for all the results.
-        result_array = [job.result(qobj=qobj) for job in job_array]
+        result_array = [job.result() for job in job_array]
 
         # Ensure all jobs have finished.
         self.assertTrue(all([job.done for job in job_array]))

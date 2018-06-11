@@ -71,17 +71,19 @@ class Result(object):
         Raises:
             QISKitError: if the Results cannot be combined.
         """
-        # TODO: reevaluate if moving equality to Backend themselves (part of
+        # todo: reevaluate if moving equality to Backend themselves (part of
         # a bigger problem - backend instances will not persist between
         # sessions)
-        self._result['result'] += other._result['result']
-        return self
+        this_backend = self._result.get('backend_name')
+        other_backend = other._result.get('backend_name')
+        if this_backend == other_backend:
+            self._result['result'] += other._result['result']
+            return self
+        else:
+            raise QISKitError('Result objects from different backends cannot be combined.')
 
     def __add__(self, other):
         """Combine Result objects.
-
-        Note that the qobj id of the returned result will be the same as the
-        first result.
 
         Arg:
             other (Result): a Result object to combine.

@@ -19,7 +19,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)

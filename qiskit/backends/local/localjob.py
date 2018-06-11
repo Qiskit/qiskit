@@ -12,7 +12,7 @@ import logging
 import sys
 
 from qiskit.backends import BaseJob
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends import JobStatus
 from qiskit import QISKitError
 
 logger = logging.getLogger(__name__)

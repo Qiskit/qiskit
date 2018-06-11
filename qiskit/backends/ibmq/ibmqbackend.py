@@ -147,7 +147,8 @@ class IBMQBackend(BaseBackend):
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
-            status (None or JobStatus): only get jobs with this status.
+            status (None or JobStatus or str): only get jobs with this status,
+                where status is e.g. JobStatus.RUNNING or 'RUNNING'.
         Returns:
             list(IBMQJob): list of IBMQJob instances
         """
@@ -156,6 +157,8 @@ class IBMQBackend(BaseBackend):
         base_index = skip
         job_info_list = self._api.get_jobs(limit=limit, skip=base_index,
                                            backend=backend_name)
+        if isinstance(status, str):
+            status = JobStatus[status]
         while len(job_list) < limit or len(job_info_list) < limit:
             base_index += limit
             job_info_list = self._api.get_jobs(limit=limit, skip=base_index)
