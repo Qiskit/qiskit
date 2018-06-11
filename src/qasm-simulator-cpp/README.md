@@ -2,7 +2,7 @@
 
 ## A C++ quantum circuit simulator with realistic noise
 
-Copyright (c) 2017 IBM Corporation. All Rights Reserved.
+Copyright 2017, IBM.
 
 ### Authors
 
@@ -11,7 +11,7 @@ Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 
 ### Description
 
-*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-sdk-py).
+*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-core).
 
 ## Contents
 
@@ -19,7 +19,7 @@ Copyright (c) 2017 IBM Corporation. All Rights Reserved.
 * [Using the simulator](#using-the-simulator)
   * [Running from the command line](#running-from-the-command-line)
   * [Running in Python](#running-in-python)
-  * [Running as a backend for qiskit-sdk-py](#running-as-a-backend-for-qiskit-sdk-py)
+  * [Running as a backend for qiskit-core](#running-as-a-backend-for-qiskit-core)
   * [Simulator output](#simulator-output)
 * [Config Settings](#config-settings)
   * [Using parallelization](#using-parallelization)
@@ -62,7 +62,7 @@ This script installs the following platform specific dependencies:
 
 ### Building with Make
 
-The simulator can be build with *Make*. By default this will build the simulator executable `qasm_simulator_cpp` at  `qiskit-sdk-py/out/qasm-simulator-cpp/qasm_simulator_cpp`. This may be done from the base `qiskit-sdk-py` folder, or the source folder `qiskit-sdk-py/src/qasm-simulator-cpp` by running:
+The simulator can be build with *Make*. By default this will build the simulator executable `qasm_simulator_cpp` at  `qiskit-core/out/qasm-simulator-cpp/qasm_simulator_cpp`. This may be done from the base `qiskit-core` folder, or the source folder `qiskit-core/src/qasm-simulator-cpp` by running:
 
 ```bash
 > make sim
@@ -70,10 +70,10 @@ The simulator can be build with *Make*. By default this will build the simulator
 
 ### Building with CMake
 
-CMake may also be used to build the simulator. To do this from the `qiskit-sdk-py` directory run
+CMake may also be used to build the simulator. To do this from the `qiskit-core` directory run
 
 ```bash
-qiskit-sdk-py> mkdir out; cd out; cmake ..; make
+qiskit-core> mkdir out; cd out; cmake ..; make
 ```
 
 To build with CMake on MacOS follow the specific instructions:
@@ -98,13 +98,13 @@ This will install GCC7 without overriding Apples XCode compiler. It can be invok
 If building with CMake using the Apple XCode compiler for building you must add an additional flag to disable static linking:
 
 ```bash
-qiskit-sdk-py> mkdir out; cd out; cmake -DSTATIC_LINKING=False ..; make
+qiskit-core> mkdir out; cd out; cmake -DSTATIC_LINKING=False ..; make
 ```
 
 To enable OpenMP support by using the GCC7 compiler installed with Homebrew run:
 
 ```bash
-qiskit-sdk-py> mkdir out; cd out; cmake -DCMAKE_CXX_COMPILER=g++-7 ..; make
+qiskit-core> mkdir out; cd out; cmake -DCMAKE_CXX_COMPILER=g++-7 ..; make
 ```
 
 #### Installation on Ubuntu 16.04 LTS
@@ -161,7 +161,7 @@ qobj = {...}  # qobj as a Python dictionary
 result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 ```
 
-### Running as a backend for qiskit-sdk-py
+### Running as a backend for qiskit-core
 
 This simulator can also be used as a backend for the QISKit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
 
@@ -208,7 +208,7 @@ By default the simulator prints a JSON file to the standard output. If called th
 
 The `"result"` key is a list of the output of each circuit in the qobj: If the qobj contains *n* circuits, `"result"` will be a length *n* list. The results for each individual circuit are obtained by the `"data"` key in the circuit result object. Be default this will be a dictionary `"counts"` of measurement counts. Additional simulation data may be returned by using config settings discussed in the config settings section.
 
-#### qiskit-sdk-py output
+#### qiskit-core output
 
 If the simulator is called though the Python QISKit SDK the input qobj will only contain a single circuit, and only the values in the `"data"` field will be accessible in the `Results` object. The dictionary of this data may be accessed using the `Results.get_data('name')` method.
 
@@ -589,15 +589,3 @@ An example of a configuration file for a 2-qubit circuit using all options is gi
 ## Acknowledgements
 
 The development and implementation of approximate noise models in this software was funded by the Intelligence Advanced Research Projects Activity (IARPA), via the Army Research Office contract W911NF-16-1-0114.
-
-## License
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.

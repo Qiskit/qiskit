@@ -1,7 +1,7 @@
 # Quantum Information Science Kit (QISKit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
-[![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
+[![Build Status](https://travis-ci.org/QISKit/qiskit-core.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-core)
 
 The Quantum Information Science Kit (**QISKit** for short) is a software development kit (SDK) for
 working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the
@@ -218,7 +218,3 @@ Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chr
 
 And continues to grow with the help and work of [many people](CONTRIBUTORS.md) who contribute
 to the project at different levels.
-
-## License
-
-This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
