@@ -7,7 +7,6 @@
 
 """Helper module for simplified QISKit usage."""
 
-import os
 import warnings
 import qiskit._compiler
 from qiskit import QISKitError
