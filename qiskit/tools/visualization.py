@@ -731,12 +731,12 @@ def circuit_drawer(circuit,
                                'Skipping circuit drawing...')
         else:
             try:
+                base = os.path.join(tmpdirname, filename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                pngfile = os.path.join(tmpdirname, "{0}.png".format(filename))
-                im = Image.open(pngfile)
+                                base + '.pdf', base])
+                im = Image.open(base + '.png')
                 im = trim(im)
-                os.remove(pngfile)
+                os.remove(base + '.png')
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
