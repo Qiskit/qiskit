@@ -19,7 +19,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
 
     def test_simple_compile(self):
         """
-        Compares with and without skip_translation
+        Compares with and without skip_transpiler
         """
         name = 'test_simple'
         qp = QuantumProgram()
@@ -31,9 +31,9 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.measure(qr, cr)
 
         rtrue = qp.compile([name], backend='local_qasm_simulator', shots=1024,
-                           skip_translation=True)
+                           skip_transpiler=True)
         rfalse = qp.compile([name], backend='local_qasm_simulator', shots=1024,
-                            skip_translation=False)
+                            skip_transpiler=False)
         self.assertEqual(rtrue['config'], rfalse['config'])
         self.assertEqual(rtrue['circuits'], rfalse['circuits'])
 
@@ -48,8 +48,8 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
 
-        rtrue = qp.execute(name, seed=seed, skip_translation=True)
-        rfalse = qp.execute(name, seed=seed, skip_translation=False)
+        rtrue = qp.execute(name, seed=seed, skip_transpiler=True)
+        rfalse = qp.execute(name, seed=seed, skip_transpiler=False)
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 
