@@ -42,7 +42,7 @@ class Save(Instruction):
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.save(self.param[0], *self.arg))
+        self._modifiers(circ.save(self.param[0]))
 
 
 def save(self, slot):
