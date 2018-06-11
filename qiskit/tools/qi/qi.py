@@ -250,7 +250,7 @@ def choi_to_rauli(choi, order=1):
     Note that this function assumes that the Choi-matrix
     is defined in the standard column-stacking converntion
     and is normalized to have trace 1. For a channel E this
-    is defined as: choi = (I \otimes E)(bell_state).
+    is defined as: choi = (I \\otimes E)(bell_state).
 
     The resulting 'rauli' R acts on input states as
     |rho_out>_p = R.|rho_in>_p
@@ -514,7 +514,7 @@ def shannon_entropy(pvec, base=2):
     Compute the Shannon entropy of a probability vector.
 
     The shannon entropy of a probability vector pv is defined as
-    $H(pv) = - \sum_j pv[j] log_b (pv[j])$ where $0 log_b 0 = 0$.
+    $H(pv) = - \\sum_j pv[j] log_b (pv[j])$ where $0 log_b 0 = 0$.
 
     Args:
         pvec (array_like): a probability vector.
