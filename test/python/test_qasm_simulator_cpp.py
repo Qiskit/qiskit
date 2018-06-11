@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
+
+# Copyright 2017, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 # pylint: disable=invalid-name,missing-docstring
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# =============================================================================
+from test.python.common import QiskitTestCase
 
 import json
 import unittest
@@ -31,7 +23,6 @@ from qiskit import QuantumRegister
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
-from .common import QiskitTestCase
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -205,13 +196,17 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
             snapshots = result.get_snapshots(name)
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
-            self.assertEqual(len(snapshots['0']), 1,
+            self.assertEqual(len(snapshots['0']), 3,
                              msg=name + ' snapshot length')
             state = snapshots['0']['statevector'][0]
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
+            rho = snapshots['0']['density_matrix']
+            self.assertAlmostEqual(np.trace(rho), 1)
+            prob = snapshots['0']['probabilities']
+            self.assertAlmostEqual(np.sum(prob), 1)
 
     def test_qobj_measure_opt_flag(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
