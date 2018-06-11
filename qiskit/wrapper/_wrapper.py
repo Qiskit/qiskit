@@ -7,15 +7,13 @@
 
 """Helper module for simplified QISKit usage."""
 
-import os
 import warnings
 import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from qiskit import QuantumJob
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, CircuitBackend
+from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
 # Default provider used by the rest of the functions on this module. Please
@@ -232,12 +230,7 @@ def load_qasm_string(qasm_string, name=None,
     Raises:
         QISKitError: if the string is not valid QASM
     """
-    node_circuit = Qasm(data=qasm_string).parse()
-    unrolled_circuit = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-    circuit_unrolled = unrolled_circuit.execute()
-    if name:
-        circuit_unrolled.name = name
-    return circuit_unrolled
+    return circuit_from_qasm_string(qasm_string, name, basis_gates)
 
 
 def load_qasm_file(qasm_file, name=None,
@@ -256,12 +249,4 @@ def load_qasm_file(qasm_file, name=None,
     Raises:
         QISKitError: if the file cannot be read.
     """
-    if not os.path.exists(qasm_file):
-        raise QISKitError('qasm file "{0}" not found'.format(qasm_file))
-    if not name:
-        name = os.path.splitext(os.path.basename(qasm_file))[0]
-
-    with open(qasm_file) as file:
-        qasm_data = file.read()
-
-    return load_qasm_string(qasm_data, name=name, basis_gates=basis_gates)
+    return circuit_from_qasm_file(qasm_file, name, basis_gates)

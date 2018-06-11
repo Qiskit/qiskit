@@ -32,6 +32,7 @@ Changed
   (#531).
 - Renamed the specification schemas (#464).
 - Convert ``LocalJob`` tests into unit-tests. (#526)
+- Move wrapper ``load_qasm_*`` methods to a submodule (#533).
 
 Removed
 -------
