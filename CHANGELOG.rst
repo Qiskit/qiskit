@@ -45,6 +45,7 @@ Fixed
 - Fix hardcoded backend mapping tests (#521)
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
+- Fix incorrect unrolling of t to tdg in CircuitBackend (#557)
 
 
 `0.5.3`_ - 2018-05-29
