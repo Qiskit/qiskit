@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,broad-except
 
-# Copyright 2018 IBM RESEARCH. All Rights Reserved.
+# Copyright 2018, IBM.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name,missing-docstring,broad-except
 
 """Non-string identifiers for circuit and record identifiers test"""
 
@@ -50,7 +41,7 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         }
 
     ###############################################################
-    # Tests to initiate an build a quantum program with anonymous ids
+    # Tests to initiate and build a quantum program with anonymous ids
     ###############################################################
 
     def test_create_program_with_specsnonames(self):
@@ -354,26 +345,6 @@ class TestQobj(QiskitTestCase):
     @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
     def test_local_qasm_simulator_cpp(self):
         backend = wrapper.get_backend('local_qasm_simulator_cpp')
-        qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj['circuits'][0]['compiled_circuit']
-        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
-        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
-        self.assertIn(self.qr_name, ccq)
-        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
-        self.assertIn(self.cr_name, ccq)
-
-    def test_local_statevector_simulator_sympy(self):
-        backend = wrapper.get_backend('local_statevector_simulator_sympy')
-        qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj['circuits'][0]['compiled_circuit']
-        ccq = qobj['circuits'][0]['compiled_circuit_qasm']
-        self.assertIn(self.qr_name, map(lambda x: x[0], cc['header']['qubit_labels']))
-        self.assertIn(self.qr_name, ccq)
-        self.assertIn(self.cr_name, map(lambda x: x[0], cc['header']['clbit_labels']))
-        self.assertIn(self.cr_name, ccq)
-
-    def test_local_unitary_simulator_sympy(self):
-        backend = wrapper.get_backend('local_unitary_simulator_sympy')
         qobj = wrapper.compile(self.circuits, backend=backend)
         cc = qobj['circuits'][0]['compiled_circuit']
         ccq = qobj['circuits'][0]['compiled_circuit_qasm']
