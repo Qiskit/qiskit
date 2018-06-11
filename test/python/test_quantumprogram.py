@@ -1222,8 +1222,9 @@ class TestQuantumProgram(QiskitTestCase):
                                        shots=shots, max_credits=3)
             self.assertIsInstance(result, Result)
 
-    @unittest.skipIf(version_info.minor == 5, "Due to gate ordering issues with Python 3.5 \
-                                             we have to disable this test until fixed")
+    @unittest.skipIf(version_info.minor == 5,
+                     "Due to gate ordering issues with Python 3.5 "
+                     "we have to disable this test until fixed")
     def test_local_qasm_simulator_two_registers(self):
         """Test local_qasm_simulator_two_registers.
 
