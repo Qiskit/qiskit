@@ -47,7 +47,7 @@ class Instruction(object):
             raise QISKitError("Instruction's circuit not assigned")
 
     def c_if(self, classical, val):
-        """Add classical control on register clasical and value val."""
+        """Add classical control on register classical and value val."""
         self.check_circuit()
         self.circuit._check_creg(classical)
         if val < 0:
