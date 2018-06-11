@@ -14,6 +14,7 @@ import logging
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
+from qiskit.backends import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 
 logger = logging.getLogger(__name__)
