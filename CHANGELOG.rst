@@ -46,6 +46,7 @@ Fixed
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
 - Change initial qubit layout only if the backend coupling map is not satisfied (#527)
+- Fix incorrect unrolling of t to tdg in CircuitBackend (#557)
 - Fix issue with simulator extension commands not reapplying correctly (#556)
 
 
