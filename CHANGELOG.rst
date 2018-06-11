@@ -14,9 +14,24 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-
 `UNRELEASED`_
 =============
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+
+
+`0.5.4`_ - 2018-06-11
+=====================
 
 Added
 -----
