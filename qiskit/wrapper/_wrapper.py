@@ -8,6 +8,7 @@
 """Helper module for simplified QISKit usage."""
 
 import os
+import warnings
 import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
@@ -135,7 +136,7 @@ def get_backend(name):
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_translation=False):
+            skip_transpiler=False, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -150,24 +151,31 @@ def compile(circuits, backend,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
-        skip_translation (bool): If True, bypass most of the compilation process and
+        skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
+        skip_translation (bool): DEPRECATED. Use skip_transpiler instead.
     Returns:
         obj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
     return qiskit._compiler.compile(circuits, backend,
                                     config, basis_gates, coupling_map, initial_layout,
                                     shots, max_credits, seed, qobj_id, hpc,
-                                    skip_translation)
+                                    skip_transpiler)
 
 
 def execute(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_translation=False):
+            skip_transpiler=False, skip_translation=False):
     """Executes a set of circuits.
 
     Args:
@@ -182,17 +190,24 @@ def execute(circuits, backend,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
-        skip_translation (bool): skip most of the compile steps and produce qobj directly
+        skip_transpiler (bool): skip most of the compile steps and produce qobj directly
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
+    # pylint: disable=missing-param-doc, missing-type-doc
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,
-                   skip_translation)
+                   skip_transpiler)
     # XXX When qobj is done this should replace q_job
     q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
         'max_credits': qobj['config']['max_credits']})

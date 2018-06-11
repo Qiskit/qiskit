@@ -12,6 +12,7 @@ import logging
 
 import copy
 import uuid
+import warnings
 
 import numpy as np
 import scipy.sparse as sp
@@ -27,6 +28,7 @@ from .dagcircuit import DAGCircuit
 from .unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
 from .mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                      cx_cancellation, direction_mapper)
+from ._gate import Gate
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_translation=False):
+            skip_transpiler=False, skip_translation=False):
     """Compile a list of circuits into a qobj.
 
     FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
@@ -52,8 +54,9 @@ def compile(circuits, backend,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
-        skip_translation (bool): If True, bypass most of the compilation process and
+        skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
+        skip_translation (bool): DEPRECATED. Use skip_transpiler instead.
 
     Returns:
         obj: the qobj to be run on the backends
@@ -62,6 +65,12 @@ def compile(circuits, backend,
         QISKitError: if any of the circuit names cannot be found on the
             Quantum Program.
     """
+    if skip_translation:
+        warnings.warn(
+            "skip_translation will be called skip_transpiler in future versions.",
+            DeprecationWarning)
+        skip_transpiler = True
+
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
@@ -114,22 +123,18 @@ def compile(circuits, backend,
         else:
             job["config"]["seed"] = seed
 
-        if skip_translation:  # Just return the qobj, without any transformation or analysis
+        if skip_transpiler:  # Just return the qobj, without any transformation or analysis
             job["config"]["layout"] = None
             job["compiled_circuit_qasm"] = circuit.qasm()
             job["compiled_circuit"] = DagUnroller(
                 DAGCircuit.fromQuantumCircuit(circuit),
                 JsonBackend(job['config']['basis_gates'].split(','))).execute()
         else:
-            # Pick good initial layout if None is given and not simulator
             if initial_layout is None and not backend.configuration['simulator']:
-                best_sub = best_subset(backend, num_qubits)
-                initial_layout = {}
-                map_iter = 0
-                for key, value in circuit.get_qregs().items():
-                    for i in range(value.size):
-                        initial_layout[(key, i)] = ('q', best_sub[map_iter])
-                        map_iter += 1
+                # if coupling_map is not already satisfied, pick a good initial layout
+                # otherwise leave as q[i]->q[i]
+                if not _matches_coupling_map(circuit.data, backend.configuration['coupling_map']):
+                    initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
 
             dag_circuit, final_layout = compile_circuit(
                 circuit,
@@ -265,7 +270,7 @@ def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
     return circuit_unrolled
 
 
-def best_subset(backend, n_qubits):
+def _best_subset(backend, n_qubits):
     """Computes the qubit mapping with the best
     connectivity.
 
@@ -315,6 +320,52 @@ def best_subset(backend, n_qubits):
             best = connection_count
             best_map = bfs[0:n_qubits]
     return best_map
+
+
+def _matches_coupling_map(instructions, coupling_map):
+    """ Iterate over circuit instructions set to check if multi-qubit instruction coupling
+        graphs match the qubit coupling graph in the backend.
+
+    Parameters:
+            instructions (List): List of circuit instructions. Not all instructions
+                                 are Gates, hence not multi-qubit.
+            coupling_map (List): Backend coupling map, represented as an
+                                          adjacency list.
+
+    Returns:
+            True: If there's at least one instruction that uses multiple qubits and
+                  these qubits coupling matches one of the backend couplings.
+
+            False: If there's no match between any of the instructions multiple qubits
+                   coupling, and one of the couplings from the backend.
+    """
+    for instruction in instructions:
+        if isinstance(instruction, Gate) and instruction.is_multi_qubit():
+            if instruction.get_qubit_coupling() not in coupling_map:
+                return False
+    return True
+
+
+def _pick_best_layout(backend, num_qubits, qregs):
+    """ Pick a convenient layout depending on the best matching qubit connectivity
+
+    Parameters:
+        backend (BaseBackend) : The backend with the coupling_map for searching
+        num_qubits (int): Number of qubits
+        qregs (List): The list of quantum registers
+
+    Returns:
+        initial_layout: A special ordered layout
+
+    """
+    best_sub = _best_subset(backend, num_qubits)
+    layout = {}
+    map_iter = 0
+    for key, value in qregs.items():
+        for i in range(value.size):
+            layout[(key, i)] = ('q', best_sub[map_iter])
+            map_iter += 1
+    return layout
 
 
 class QISKitCompilerError(QISKitError):
