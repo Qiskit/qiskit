@@ -13,7 +13,7 @@ import unittest
 import qiskit
 from qiskit import QuantumJob
 from qiskit.wrapper import register, available_backends, get_backend
-from qiskit.wrapper import compile
+import qiskit._compiler
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -50,8 +50,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q[1], c[0])
 
         shots = 2000
-        qobj_real = compile(circ, real, shots=shots)
-        qobj_sim = compile(circ, sim, shots=shots)
+        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
+        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
         q_job_real = QuantumJob(qobj_real, backend=real, preformatted=True,
                                 shots=shots)
         q_job_sim = QuantumJob(qobj_sim, backend=sim, preformatted=True,
@@ -97,8 +97,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q2[0], c1[1])
 
         shots = 4000
-        qobj_real = compile(circ, real, shots=shots)
-        qobj_sim = compile(circ, sim, shots=shots)
+        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
+        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
         q_job_real = QuantumJob(qobj_real, backend=real, preformatted=True,
                                 shots=shots)
         q_job_sim = QuantumJob(qobj_sim, backend=sim, preformatted=True,
