@@ -932,14 +932,19 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None, hpc=None, skip_translation=False):
+                qobj_id=None, hpc=None, skip_transpiler=False, skip_translation=False):
         """Compile the circuits into the execution list.
 
         .. deprecated:: 0.5
             The `coupling_map` parameter as a dictionary will be deprecated in
             upcoming versions. Using the coupling_map as a list is recommended.
         """
-
+        # pylint: disable=missing-param-doc, missing-type-doc
+        if skip_translation:
+            warnings.warn(
+                "skip_translation will be called skip_transpiler in future versions.",
+                DeprecationWarning)
+            skip_transpiler = True
         if isinstance(coupling_map, dict):
             coupling_map = coupling_dict2list(coupling_map)
             warnings.warn(
@@ -961,7 +966,7 @@ class QuantumProgram(object):
         qobj = qiskit.wrapper.compile(list_of_circuits, my_backend,
                                       config, basis_gates, coupling_map, initial_layout,
                                       shots, max_credits, seed, qobj_id, hpc,
-                                      skip_translation)
+                                      skip_transpiler)
         return qobj
 
     def reconfig(self, qobj, backend=None, config=None, shots=None, max_credits=None, seed=None):
@@ -1126,7 +1131,7 @@ class QuantumProgram(object):
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None, hpc=None, skip_translation=False):
+                max_credits=3, seed=None, hpc=None, skip_transpiler=False, skip_translation=False):
         """Execute, compile, and run an array of quantum circuits).
 
         This builds the internal "to execute" list which is list of quantum
@@ -1174,7 +1179,7 @@ class QuantumProgram(object):
                                 'omp_num_threads': Numeric
                             }
 
-            skip_translation (bool): If True, bypass most of the compilation process and
+            skip_transpiler (bool): If True, bypass most of the compilation process and
                 creates a qobj with minimal check nor translation
         Returns:
             Result: status done and populates the internal __quantum_program with the data.
@@ -1183,6 +1188,12 @@ class QuantumProgram(object):
             The `coupling_map` parameter as a dictionary will be deprecated in
             upcoming versions. Using the coupling_map as a list is recommended.
         """
+        # pylint: disable=missing-param-doc, missing-type-doc
+        if skip_translation:
+            warnings.warn(
+                "skip_translation will be called skip_transpiler in future versions.",
+                DeprecationWarning)
+            skip_transpiler = True
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config
@@ -1191,7 +1202,7 @@ class QuantumProgram(object):
                             basis_gates=basis_gates,
                             coupling_map=coupling_map, initial_layout=initial_layout,
                             shots=shots, max_credits=max_credits, seed=seed,
-                            hpc=hpc, skip_translation=skip_translation)
+                            hpc=hpc, skip_transpiler=skip_transpiler)
         result = self.run(qobj, timeout=timeout)
         return result
 

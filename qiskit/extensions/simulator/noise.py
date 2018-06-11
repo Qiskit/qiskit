@@ -42,7 +42,7 @@ class Noise(Instruction):
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.noise(self.param[0], *self.arg))
+        self._modifiers(circ.noise(self.param[0]))
 
 
 def noise(self, switch):
