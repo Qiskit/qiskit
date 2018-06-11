@@ -45,6 +45,7 @@ Fixed
 - Fix hardcoded backend mapping tests (#521)
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
+- Change initial qubit layout only if the backend coupling map is not satisfied (#527)
 
 
 `0.5.3`_ - 2018-05-29
