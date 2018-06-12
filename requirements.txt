@@ -1,6 +1,6 @@
 IBMQuantumExperience>=1.9.2
 matplotlib>=2.1,<2.3
-networkx>=2.0,<2.1
+networkx>=2.0,<2.2
 numpy>=1.13,<1.15
 ply==3.10
 scipy>=0.19,<1.2
