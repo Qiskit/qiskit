@@ -21,8 +21,27 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+Changed
+-------
+
+Removed
+-------
+- Remove Clifford simulator from default available_backends, until its stable
+  release (#555).
+- Remove ProjectQ simulators for moving to new repository (#553).
+
+Fixed
+-----
+
+
+`0.5.4`_ - 2018-06-11
+=====================
+
+Added
+-----
+
 - Performance improvements:
-    - remove deepcopies from dagcircuit, and extra check on qasm() (#523)
+    - remove deepcopies from dagcircuit, and extra check on qasm() (#523).
 
 Changed
 -------
@@ -38,7 +57,6 @@ Removed
 -------
 
 - Remove Sympy simulators for moving to new repository (#514)
-- Remove Clifford simulator from default available_backends, until its stable release (#555).
 
 Fixed
 -----
@@ -460,7 +478,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.3...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.4...HEAD
+.. _0.5.4: https://github.com/QISKit/qiskit-core/compare/0.5.3...0.5.4
 .. _0.5.3: https://github.com/QISKit/qiskit-core/compare/0.5.2...0.5.3
 .. _0.5.2: https://github.com/QISKit/qiskit-core/compare/0.5.1...0.5.2
 .. _0.5.1: https://github.com/QISKit/qiskit-core/compare/0.5.0...0.5.1
