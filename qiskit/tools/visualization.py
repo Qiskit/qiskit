@@ -793,9 +793,9 @@ def latex_drawer(circuit, filename=None,
 
 
 class QCircuitImage(object):
-    """This class contains methods to create \LaTeX circuit images.
+    """This class contains methods to create \\LaTeX circuit images.
 
-    The class targets the \LaTeX package Q-circuit
+    The class targets the \\LaTeX package Q-circuit
     (https://arxiv.org/pdf/quant-ph/0406003).
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
@@ -824,7 +824,7 @@ class QCircuitImage(object):
         # Map from registers to the list they appear in the image
         self.img_regs = {}
 
-        # Array to hold the \LaTeX commands to generate a circuit image.
+        # Array to hold the \\LaTeX commands to generate a circuit image.
         self._latex = []
 
         # Variable to hold image depth (width)
@@ -929,8 +929,8 @@ class QCircuitImage(object):
                 else:
                     output.write(r'\\'+'\n')
         output.write('\t }\n')
-        output.write('\end{equation*}\n\n')
-        output.write('\end{document}')
+        output.write('\\end{equation*}\n\n')
+        output.write('\\end{document}')
         contents = output.getvalue()
         output.close()
         return contents
@@ -1238,7 +1238,7 @@ class QCircuitImage(object):
         raise ValueError('qubit index lies outside range of qubit registers')
 
     def _build_latex_array(self, aliases=None):
-        """Returns an array of strings containing \LaTeX for this circuit.
+        """Returns an array of strings containing \\LaTeX for this circuit.
 
         If aliases is not None, aliases contains a dict mapping
         the current qubits in the circuit to new qubit names.
@@ -1387,7 +1387,7 @@ class QCircuitImage(object):
                                 op["texparams"][0])
                         elif nm == "reset":
                             self._latex[pos_1][columns] = \
-                                "\\push{\\rule{.6em}{0em}\ket{0}\\rule{.2em}{0em}} \qw"
+                                "\\push{\\rule{.6em}{0em}\\ket{0}\\rule{.2em}{0em}} \\qw"
 
                 elif len(qarglist) == 2:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]

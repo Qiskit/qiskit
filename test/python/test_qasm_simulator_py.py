@@ -178,8 +178,9 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         self.assertTrue(result_if_true['counts']['111'] == 100)
         self.assertTrue(result_if_false['counts']['001'] == 100)
 
-    @unittest.skipIf(version_info.minor == 5, "Due to gate ordering issues with Python 3.5 \
-                                         we have to disable this test until fixed")
+    @unittest.skipIf(version_info.minor == 5,
+                     "Due to gate ordering issues with Python 3.5 "
+                     "we have to disable this test until fixed")
     def test_teleport(self):
         """test teleportation as in tutorials"""
 
