@@ -14,7 +14,6 @@ from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
-from .qasm_simulator_projectq import QasmSimulatorProjectQ
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
 from .unitary_simulator_py import UnitarySimulatorPy
@@ -25,7 +24,6 @@ logger = logging.getLogger(__name__)
 SDK_STANDARD_BACKENDS = [
     QasmSimulatorCpp,
     QasmSimulatorPy,
-    QasmSimulatorProjectQ,
     StatevectorSimulatorCpp,
     StatevectorSimulatorPy,
     UnitarySimulatorPy,
@@ -57,11 +55,8 @@ class LocalProvider(BaseProvider):
     def aliased_backend_names(self):
         return {
             'local_qasm_simulator': ['local_qasm_simulator_cpp',
-                                     'local_qasm_simulator_projectq',
-                                     'local_qasm_simulator_py',
-                                     'local_clifford_simulator_cpp'],
+                                     'local_qasm_simulator_py'],
             'local_statevector_simulator': ['local_statevector_simulator_cpp',
-                                            'local_statevector_simulator_projectq',
                                             'local_statevector_simulator_py'],
             'local_unitary_simulator': ['local_unitary_simulator_cpp',
                                         'local_unitary_simulator_py']

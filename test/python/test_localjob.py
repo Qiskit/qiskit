@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 from contextlib import contextmanager
 from qiskit.backends.local import LocalJob
-from qiskit.backends.local import QasmSimulatorCpp, QasmSimulatorProjectQ
+from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
@@ -27,7 +27,6 @@ class TestLocalJob(QiskitTestCase):
 
     _backends = [
         QasmSimulatorCpp,
-        QasmSimulatorProjectQ,
         QasmSimulatorPy,
         StatevectorSimulatorCpp,
         StatevectorSimulatorPy,
@@ -150,10 +149,8 @@ def intercepted_executor_for_localjob():
 def mocked_simulator_binaries():
     """Context to force binary-based simulators to think the simulators exist.
     """
-    from qiskit.backends.local import qasm_simulator_projectq
     with patch.object(path, 'exists', return_value=True, autospec=True),\
-            patch.object(path, 'getsize', return_value=1000, autospec=True),\
-            patch.object(qasm_simulator_projectq, 'CppSim', {}):
+            patch.object(path, 'getsize', return_value=1000, autospec=True):
         yield
 
 
