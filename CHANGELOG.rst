@@ -32,6 +32,7 @@ Removed
 
 Fixed
 -----
+- Fix issue with skip_transpiler causing some gates to be ignored silently.
 
 
 `0.5.4`_ - 2018-06-11
