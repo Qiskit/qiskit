@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, bad-continuation
 
 """Provider for local backends."""
 import logging
@@ -59,8 +59,9 @@ class LocalProvider(BaseProvider):
             'local_statevector_simulator': ['local_statevector_simulator_cpp',
                                             'local_statevector_simulator_py'],
             'local_unitary_simulator': ['local_unitary_simulator_cpp',
-                                        'local_unitary_simulator_py'],
-            'local_clifford_simulator': ['local_clifford_simulator_cpp']
+                                        'local_unitary_simulator_py']
+            # TODO: restore after clifford simulator release
+            # 'local_clifford_simulator': ['local_clifford_simulator_cpp']
             }
 
     def deprecated_backend_names(self):
