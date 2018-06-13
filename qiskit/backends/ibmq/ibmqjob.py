@@ -57,6 +57,7 @@ class IBMQJob(BaseJob):
         self._exception = None
         self._is_device = is_device
         self._from_api = False
+        self.creation_date = None
 
     @classmethod
     def from_api(cls, job_info, api, is_device):
@@ -99,7 +100,7 @@ class IBMQJob(BaseJob):
         job_instance._cancelled = False
         job_instance._is_device = is_device
         job_instance._from_api = True
-        job_instance.creationDate = job_info.get('creationDate')
+        job_instance.creation_date = job_info.get('creationDate')
         return job_instance
 
     def result(self, timeout=None, wait=5):
@@ -342,7 +343,7 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.ERROR
             self._exception = IBMQJobError(str(submit_info['error']))
         self._job_id = submit_info.get('id')
-        self.creationDate = submit_info.get('creationDate')
+        self.creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         return submit_info
 
