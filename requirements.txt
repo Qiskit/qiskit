@@ -1,9 +1,9 @@
 IBMQuantumExperience>=1.9.2
-matplotlib>=2.1,<2.2
-networkx>=2.0,<2.1
-numpy>=1.13,<1.15
-ply==3.10
-scipy>=0.19,<1.2
-sympy>=1.0,<1.2
-pillow>=4.2.1,<5.2
-cmake>=3.11,<3.12
+matplotlib>=2.1
+networkx>=2.0
+numpy>=1.13,
+ply>=3.10
+scipy>=0.19
+sympy>=1.0
+pillow>=4.2.1
+cmake>=3.11
