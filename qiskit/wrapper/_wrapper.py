@@ -124,7 +124,7 @@ def available_backends(filters=None, compact=True):
                 aliases.add(alias)
         backend_names = list(aliases)
 
-    return backend_names
+    return sorted(backend_names)
 
 
 def local_backends(compact=True):
