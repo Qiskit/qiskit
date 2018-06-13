@@ -78,6 +78,7 @@ class IBMQJob(BaseJob):
                  'shots': 1024,
                  'status': 'status string',
                  'usedCredits': 3,
+                 'creationDate': '2018-06-13T04:31:13.175Z'
                  'userId': 'user id'}
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
@@ -98,6 +99,7 @@ class IBMQJob(BaseJob):
         job_instance._cancelled = False
         job_instance._is_device = is_device
         job_instance._from_api = True
+        job_instance.creationDate = job_info.get('creationDate')
         return job_instance
 
     def result(self, timeout=None, wait=5):
@@ -340,6 +342,7 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.ERROR
             self._exception = IBMQJobError(str(submit_info['error']))
         self._job_id = submit_info.get('id')
+        self.creationDate = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         return submit_info
 
@@ -429,7 +432,9 @@ def _reorder_bits(result):
         if 'metadata' in circuit_result:
             circ = circuit_result['metadata'].get('compiled_circuit')
         else:
-            raise QISKitError('result object missing metadata for reordering bits')
+            logger.warning('result object missing metadata for reordering'
+                           ' bits: bits may be out of order')
+            return
         # device_qubit -> device_clbit (how it should have been)
         measure_dict = {op['qubits'][0]: op['clbits'][0]
                         for op in circ['operations']
