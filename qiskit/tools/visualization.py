@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
+
+# Copyright 2017, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 # pylint: disable=invalid-name,anomalous-backslash-in-string
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
 """
 Visualization functions for quantum states.
 """
@@ -739,12 +731,12 @@ def circuit_drawer(circuit,
                                'Skipping circuit drawing...')
         else:
             try:
+                base = os.path.join(tmpdirname, filename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                "{}".format(os.path.join(tmpdirname, filename + '.pdf'))])
-                pngfile = os.path.join(tmpdirname, "{0}.png".format(filename))
-                im = Image.open(pngfile)
+                                base + '.pdf', base])
+                im = Image.open(base + '.png')
                 im = trim(im)
-                os.remove(pngfile)
+                os.remove(base + '.png')
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
@@ -801,9 +793,9 @@ def latex_drawer(circuit, filename=None,
 
 
 class QCircuitImage(object):
-    """This class contains methods to create \LaTeX circuit images.
+    """This class contains methods to create \\LaTeX circuit images.
 
-    The class targets the \LaTeX package Q-circuit
+    The class targets the \\LaTeX package Q-circuit
     (https://arxiv.org/pdf/quant-ph/0406003).
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
@@ -832,7 +824,7 @@ class QCircuitImage(object):
         # Map from registers to the list they appear in the image
         self.img_regs = {}
 
-        # Array to hold the \LaTeX commands to generate a circuit image.
+        # Array to hold the \\LaTeX commands to generate a circuit image.
         self._latex = []
 
         # Variable to hold image depth (width)
@@ -937,8 +929,8 @@ class QCircuitImage(object):
                 else:
                     output.write(r'\\'+'\n')
         output.write('\t }\n')
-        output.write('\end{equation*}\n\n')
-        output.write('\end{document}')
+        output.write('\\end{equation*}\n\n')
+        output.write('\\end{document}')
         contents = output.getvalue()
         output.close()
         return contents
@@ -1246,7 +1238,7 @@ class QCircuitImage(object):
         raise ValueError('qubit index lies outside range of qubit registers')
 
     def _build_latex_array(self, aliases=None):
-        """Returns an array of strings containing \LaTeX for this circuit.
+        """Returns an array of strings containing \\LaTeX for this circuit.
 
         If aliases is not None, aliases contains a dict mapping
         the current qubits in the circuit to new qubit names.
@@ -1395,7 +1387,7 @@ class QCircuitImage(object):
                                 op["texparams"][0])
                         elif nm == "reset":
                             self._latex[pos_1][columns] = \
-                                "\\push{\\rule{.6em}{0em}\ket{0}\\rule{.2em}{0em}} \qw"
+                                "\\push{\\rule{.6em}{0em}\\ket{0}\\rule{.2em}{0em}} \\qw"
 
                 elif len(qarglist) == 2:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -1651,9 +1643,6 @@ class QCircuitImage(object):
 def _get_register_specs(bit_labels):
     """
     Get the number and size of unique registers from bit_labels list.
-
-    TODO: this function also appears in projectq_simulator.py. Perhaps it
-    should be placed in _quantumcircuit.py or tools.
 
     Args:
         bit_labels (list): this list is of the form::

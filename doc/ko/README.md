@@ -144,9 +144,3 @@ Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chr
 
 And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-core/tree/master/CONTRIBUTORS.md) who contribute
 to the project at different levels.
-
-## License
-
-본 프로젝트는 다음의 라이센스가 적용됩니다. [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
-
-

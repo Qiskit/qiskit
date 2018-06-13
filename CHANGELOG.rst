@@ -21,8 +21,27 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+Changed
+-------
+
+Removed
+-------
+- Remove Clifford simulator from default available_backends, until its stable
+  release (#555).
+- Remove ProjectQ simulators for moving to new repository (#553).
+
+Fixed
+-----
+
+
+`0.5.4`_ - 2018-06-11
+=====================
+
+Added
+-----
+
 - Performance improvements:
-    - remove deepcopies from dagcircuit, and extra check on qasm() (#523)
+    - remove deepcopies from dagcircuit, and extra check on qasm() (#523).
 
 Changed
 -------
@@ -32,6 +51,7 @@ Changed
   (#531).
 - Renamed the specification schemas (#464).
 - Convert ``LocalJob`` tests into unit-tests. (#526)
+- Move wrapper ``load_qasm_*`` methods to a submodule (#533).
 
 Removed
 -------
@@ -45,6 +65,9 @@ Fixed
 - Fix hardcoded backend mapping tests (#521)
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
+- Change initial qubit layout only if the backend coupling map is not satisfied (#527)
+- Fix incorrect unrolling of t to tdg in CircuitBackend (#557)
+- Fix issue with simulator extension commands not reapplying correctly (#556)
 
 
 `0.5.3`_ - 2018-05-29
@@ -455,7 +478,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.3...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.4...HEAD
+.. _0.5.4: https://github.com/QISKit/qiskit-core/compare/0.5.3...0.5.4
 .. _0.5.3: https://github.com/QISKit/qiskit-core/compare/0.5.2...0.5.3
 .. _0.5.2: https://github.com/QISKit/qiskit-core/compare/0.5.1...0.5.2
 .. _0.5.1: https://github.com/QISKit/qiskit-core/compare/0.5.0...0.5.1
