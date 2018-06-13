@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Updated matplotlib and networkx version dependencies (#561).
 
 Removed
 -------
