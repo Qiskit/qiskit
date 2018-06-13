@@ -50,6 +50,7 @@ class IdGate(Gate):
     def q_if(self, *qregs):
         return self
 
+
 def iden(self, q):
     """Apply Identity to q."""
     if isinstance(q, QuantumRegister):

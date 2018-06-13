@@ -52,14 +52,22 @@ class CzGate(Gate):
     def q_if(self, *qregs):
         if not qregs:
             return self
-        # Dynamically create the class
-        class CzGateWithCx(CompositeGate):
-            def __init__(self, target, *controls):
+
+        # Dynamically create the Gate that will perform
+        # a multi-controlled Z gate by using a multi-controlled
+        # X gate and 2 H gates.
+        class _MultiControlledZGateWithCx(CompositeGate):
+            def __init__(self, circuit, target, *controls):
+                super().__init__(self.__class__.__name__,  # name
+                                 [],                       # parameters
+                                 [target] + controls,      # qubits
+                                 circuit)                  # circuit
                 self.h(target)
                 self._attach(XGate(target, self).q_if(*controls))
                 self.h(target)
 
-        return CzGateWithCx(self.arg[1], [self.arg[1]] + qregs)
+        return _MultiControlledZGateWithCx(self._get_circuit(), self.arg[1], [self.arg[1]] + qregs)
+
 
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
