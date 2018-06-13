@@ -156,12 +156,12 @@ class IBMQBackend(BaseBackend):
         backend_name = self.configuration['name']
         job_list = []
         base_index = skip
-        job_info_list = self._api.get_jobs(limit=limit, skip=base_index,
-                                           backend=backend_name)
+        job_info_list = []
         if isinstance(status, str):
             status = JobStatus[status]
         while len(job_list) < limit or len(job_info_list) < limit:
-            base_index += limit
+            job_info_list = self._api.get_jobs(limit=limit, skip=base_index,
+                                               backend=backend_name)
             for job_info in job_info_list:
                 is_device = not bool(self._configuration.get('simulator'))
                 job = IBMQJob.from_api(job_info, self._api, is_device)
@@ -170,8 +170,7 @@ class IBMQBackend(BaseBackend):
                         job_list.append(job)
                     elif job.status.get('status') == status:
                         job_list.append(job)
-            job_info_list = self._api.get_jobs(limit=limit, skip=base_index,
-                                               backend=backend_name)
+            base_index += limit
         return job_list
 
     def retrieve_job(self, job_id):
