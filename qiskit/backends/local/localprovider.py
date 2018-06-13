@@ -52,7 +52,7 @@ class LocalProvider(BaseProvider):
         # pylint: disable=arguments-differ
         return list(self.backends.values())
 
-    def aliased_backend_names(self):
+    def grouped_backend_names(self):
         return {
             'local_qasm_simulator': ['local_qasm_simulator_cpp',
                                      'local_qasm_simulator_py',
@@ -69,6 +69,10 @@ class LocalProvider(BaseProvider):
         return {
             'local_qiskit_simulator': 'local_qasm_simulator_cpp',
             'wood_simulator': 'local_qasm_simulator_cpp',
+            }
+
+    def aliased_backend_names(self):
+        return {
             }
 
     @classmethod

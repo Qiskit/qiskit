@@ -112,17 +112,20 @@ def available_backends(filters=None, compact=True):
     backend_names = [str(backend)
                      for backend in _DEFAULT_PROVIDER.available_backends(filters)]
 
+    alias_dict = {v: k for k, v in _DEFAULT_PROVIDER.aliased_backend_names().items()}
+    backend_names = [alias_dict[name] if name in alias_dict else name for name in backend_names]
+
     if compact:
-        alias_dict = _DEFAULT_PROVIDER.aliased_backend_names()
-        aliases = set()
+        group_dict = _DEFAULT_PROVIDER.grouped_backend_names()
+        groups = set()
         for name in backend_names:
-            backend_alias = set(k for k, v in alias_dict.items() if name in v)
-            if not backend_alias:
-                aliases.add(name)
-            elif len(backend_alias) == 1:
-                (alias,) = backend_alias
-                aliases.add(alias)
-        backend_names = list(aliases)
+            backend_group = set(k for k, v in group_dict.items() if name in v)
+            if not backend_group:
+                groups.add(name)
+            elif len(backend_group) == 1:
+                (group,) = backend_group
+                groups.add(group)
+        backend_names = list(groups)
 
     return sorted(backend_names)
 
