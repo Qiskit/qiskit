@@ -332,7 +332,7 @@ def _matches_coupling_map(instructions, coupling_map):
 
     Returns:
             True: If all instructions readily fit the backend coupling graph.
-    
+
             False: If there's at least one instruction that uses multiple qubits
                    which does not match the backend couplings.
     """
