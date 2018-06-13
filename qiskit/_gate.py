@@ -20,19 +20,14 @@ class Gate(Instruction):
         """Create a new composite gate.
 
         name = instruction name string
-        param = list of real parameters (will converted to symbolic)
-        arg = list of pairs (Register, index)
+        param = list of real parameters (will be converted to symbolic)
+        args = list of pairs (Register, index)
         circuit = QuantumCircuit or CompositeGate containing this gate
         """
         self._is_multi_qubit = False
-        self._qubit_coupling = []
-        number_of_arguments = 0
+        self._qubit_coupling = [arg[1] for arg in args]
+        self._is_multi_qubit = (len(args) > 1)
         for argument in args:
-            number_of_arguments += 1
-            if number_of_arguments > 1:
-                self._qubit_coupling.append(argument)
-                self._is_multi_qubit = True
-
             if not isinstance(argument[0], QuantumRegister):
                 raise QISKitError("argument not (QuantumRegister, int) "
                                   + "tuple")
@@ -49,7 +44,7 @@ class Gate(Instruction):
         raise QISKitError("control not implemented")
 
     def is_multi_qubit(self):
-        """Returns True if this Gate is uses multiple qubits as arguments"""
+        """Returns True if this Gate uses multiple qubits as arguments"""
         return self._is_multi_qubit
 
     def get_qubit_coupling(self):
