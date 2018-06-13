@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright 2017, IBM.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name
 
 """Compiler Test."""
 
@@ -33,6 +24,19 @@ def lowest_pending_jobs(list_of_backends):
     by_pending_jobs = sorted(list_of_backends,
                              key=lambda x: x.status['pending_jobs'])
     return by_pending_jobs[0]
+
+
+class FakeBackEnd(object):
+    """A fake backend.
+    """
+    def __init__(self):
+        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [
+                        9, 10], [11, 10], [12, 5], [12, 11],
+                    [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+        self.configuration = {'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
+                              'simulator': False, 'n_qubits': 16,
+                              'coupling_map': qx5_cmap}
 
 
 class TestCompiler(QiskitTestCase):
@@ -277,13 +281,10 @@ class TestCompiler(QiskitTestCase):
         results = job.result()
         self.assertIsInstance(results, Result)
 
-    @requires_qe_access
-    def test_mapping_correction(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.get_backend('ibmqx5')
-
+        backend = FakeBackEnd()
         q = qiskit.QuantumRegister(name='qr', size=11)
         c = qiskit.ClassicalRegister(name='qc', size=11)
         circuit = qiskit.QuantumCircuit(q, c)
@@ -346,13 +347,10 @@ class TestCompiler(QiskitTestCase):
             qobj = None
         self.assertIsInstance(qobj, dict)
 
-    @requires_qe_access
-    def test_mapping_multi_qreg(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.get_backend('ibmqx5')
-
+        backend = FakeBackEnd()
         q = qiskit.QuantumRegister(3, name='qr')
         q2 = qiskit.QuantumRegister(1, name='qr2')
         q3 = qiskit.QuantumRegister(4, name='qr3')

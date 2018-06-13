@@ -12,7 +12,7 @@ Issue reporting
 ~~~~~~~~~~~~~~~
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/QISKit/qiskit-sdk-py/issues>`_.
+it to the `issue tracker <https://github.com/QISKit/qiskit-core/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
@@ -28,6 +28,23 @@ Improvement proposal
 If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
+
+Contributor License Agreement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We'd love to accept your code! Before we can, we have to get a few legal
+requirements sorted out. By signing a contributor license agreement (CLA), we
+ensure that the community is free to use your contributions.
+
+When you contribute to the QISKit project with a new pull request, a bot will
+evaluate whether you have signed the CLA. If required, the bot will comment on
+the pull request,  including a link to accept the agreement. The
+`individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
+available for review as a PDF.
+
+NOTE: If you work for a company that wants to allow you to contribute your work,
+then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
+and email it to us at qiskit@us.ibm.com.
 
 Code
 ----
@@ -63,10 +80,10 @@ Linux and Mac
 
 .. code::
 
-    qiskit-sdk-py$ mkdir out
-    qiskit-sdk-py$ cd out
-    qiskit-sdk-py/out$ cmake ..
-    qiskit-sdk-py/out$ make
+    qiskit-core$ mkdir out
+    qiskit-core$ cd out
+    qiskit-core/out$ cmake ..
+    qiskit-core/out$ make
 
 Windows
 
@@ -247,6 +264,27 @@ you are ready to start coding (yay!). We have two options here:
    reviewing and coming changes pretty difficult to accomplish. The reviewer
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
+
+Pull request checklist
+""""""""""""""""""""""
+
+When submitting a pull request and you feel it is ready for review, please
+double check that:
+
+* the code follows the code style of the project. For convenience, you can
+  execute ``make style`` and ``make lint`` locally, which will print potential
+  style warnings and fixes.
+* the documentation has been updated accordingly. In particular, if a function
+  or class has been modified during the PR, please update the docstring
+  accordingly.
+* your contribution passes the existing tests, and if developing a new feature,
+  that you have added new tests that cover those changes.
+* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
+  section, with the title of your pull request and its identifier (for example,
+  "``Replace OldComponent with FluxCapacitor (#123)``".
+
+Commit messages
+"""""""""""""""
 
 Please follow the next rules for the commit messages:
 

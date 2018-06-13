@@ -1,19 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright 2017, IBM.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
 
 """
 Unitary gate.
@@ -34,10 +24,19 @@ class Gate(Instruction):
         arg = list of pairs (Register, index)
         circuit = QuantumCircuit or CompositeGate containing this gate
         """
+        self._is_multi_qubit = False
+        self._qubit_coupling = []
+        number_of_arguments = 0
         for argument in args:
+            number_of_arguments += 1
+            if number_of_arguments > 1:
+                self._qubit_coupling.append(argument)
+                self._is_multi_qubit = True
+
             if not isinstance(argument[0], QuantumRegister):
                 raise QISKitError("argument not (QuantumRegister, int) "
                                   + "tuple")
+
         super().__init__(name, param, args, circuit)
 
     def inverse(self):
@@ -48,3 +47,13 @@ class Gate(Instruction):
         """Add controls to this gate."""
         # pylint: disable=unused-argument
         raise QISKitError("control not implemented")
+
+    def is_multi_qubit(self):
+        """Returns True if this Gate is uses multiple qubits as arguments"""
+        return self._is_multi_qubit
+
+    def get_qubit_coupling(self):
+        """Gets the coupling graph of the qubits in case this is a multi-qubit gate"""
+        if not self.is_multi_qubit():
+            raise QISKitError("Can't get the qubit coupling of non multi-qubit gates!")
+        return self._qubit_coupling

@@ -1,23 +1,12 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018 IBM RESEARCH. All Rights Reserved.
+
+# Copyright 2018, IBM.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
 
 """
 Created on Sat Apr 21 01:58:06 2018
-
-@author: dcmckay
 
 Test the schemas against the examples as a batch file.
 Run as `python test_schemas.py'
@@ -38,22 +27,22 @@ cur_file_path = os.path.join(cur_file_path, 'qiskit', 'schemas')
 print(cur_file_path)
 
 """List the schemas and their examples."""
-schema_tests.append({"schema": "backend_config_schema.json",
+schema_tests.append({"schema": "backend_configuration_schema.json",
                      "examples": [
-                         "backend_config_example_openpulse.json",
-                         "backend_config_example_openqasm.json"
+                         "backend_configuration_openpulse_example.json",
+                         "backend_configuration_openqasm_example.json"
                          ]})
-schema_tests.append({"schema": "backend_props_schema.json",
+schema_tests.append({"schema": "backend_properties_schema.json",
                      "examples": [
-                         "backend_props_example.json"
+                         "backend_properties_example.json"
                          ]})
 schema_tests.append({"schema": "backend_status_schema.json",
                      "examples": [
                          "backend_status_example.json"
                          ]})
-schema_tests.append({"schema": "default_pulse_config_schema.json",
+schema_tests.append({"schema": "default_pulse_configuration_schema.json",
                      "examples": [
-                         "default_pulse_config_example.json"
+                         "default_pulse_configuration_example.json"
                          ]})
 schema_tests.append({"schema": "job_status_schema.json",
                      "examples": [
@@ -61,17 +50,17 @@ schema_tests.append({"schema": "job_status_schema.json",
                          ]})
 schema_tests.append({"schema": "qobj_schema.json",
                      "examples": [
-                         "qobj_example_openpulse.json",
-                         "qobj_example_openqasm.json"
+                         "qobj_openpulse_example.json",
+                         "qobj_openqasm_example.json"
                          ]})
 schema_tests.append({"schema": "result_schema.json",
                      "examples": [
-                         "result_example_openqasm.json",
-                         "result_example_openpulse_lev0.json",
-                         "result_example_openpulse_lev1.json",
-                         "result_example_snapshots.json",
-                         "result_example_statevector_simulator.json",
-                         "result_example_unitary_simulator.json"
+                         "result_openqasm_example.json",
+                         "result_openpulse_level_0_example.json",
+                         "result_openpulse_level_1_example.json",
+                         "result_snapshots_example.json",
+                         "result_statevector_simulator_example.json",
+                         "result_unitary_simulator_example.json"
                          ]})
 
 """Run through each schema."""

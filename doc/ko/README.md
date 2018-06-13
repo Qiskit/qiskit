@@ -1,7 +1,7 @@
 # Quantum Information Science Kit (QISKit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
-[![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
+[![Build Status](https://travis-ci.org/QISKit/qiskit-core.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-core)
 
 **QISKit**은 [OpenQASM](https://github.com/QISKit/qiskit-openqasm)과 [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/)에서 사용할 수 있는 SDK(software development kit)입니다.
 
@@ -37,14 +37,14 @@ QISKit SDK 레파지토리를 여러분의 로컬 머신에 Clone하는 다른 �
 
 #### Manual download
 
-수동 다운로드 방법으로 이 웹페이지의 상단의 "Clone or download" 버튼을 누르세요 (혹은 git clone 커맨드 상에 보이는 URL을 통해), 만일 필요하다면 압축을 풀고 폴더 이름을 터미널 상에서 다음과 같이 바꾸세요. **qiskit-sdk-py folder**
+수동 다운로드 방법으로 이 웹페이지의 상단의 "Clone or download" 버튼을 누르세요 (혹은 git clone 커맨드 상에 보이는 URL을 통해), 만일 필요하다면 압축을 풀고 폴더 이름을 터미널 상에서 다음과 같이 바꾸세요. **qiskit-core folder**
 
 #### Git download
 
 혹은, 만일 여러분이 이미 Git을 설치했다면, 다음의 커맨드를 실행하세요:
 ```
-    git clone https://github.com/QISKit/qiskit-sdk-py
-    cd qiskit-sdk-py
+    git clone https://github.com/QISKit/qiskit-core
+    cd qiskit-core
 ```
 
 #### Setup your enviroment
@@ -134,7 +134,7 @@ QISKit은 본래 [IBM Research](http://www.research.ibm.com/)연구팀과 [IBM-Q
 
 ## Multilanguage guide
 
-* **[Korean Translation](https://github.com/QISKit/qiskit-sdk-py/tree/master/doc/ko/README-ko.md)**, 한글 기본 가이드 라인
+* **[Korean Translation](https://github.com/QISKit/qiskit-core/tree/master/doc/ko/README-ko.md)**, 한글 기본 가이드 라인
 
 ## Authors (alphabetical)
 
@@ -142,11 +142,5 @@ QISKit was originally authored by
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-sdk-py/tree/master/CONTRIBUTORS.md) who contribute
+And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-core/tree/master/CONTRIBUTORS.md) who contribute
 to the project at different levels.
-
-## License
-
-본 프로젝트는 다음의 라이센스가 적용됩니다. [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
-
-

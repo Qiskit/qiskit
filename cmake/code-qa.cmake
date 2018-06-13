@@ -34,8 +34,7 @@ function(add_code_style_target)
     else()
         add_custom_target(style)
         add_custom_command(TARGET style
-            COMMAND ${PYCODESTYLE} --exclude=qiskit/tools --max-line-length=100
-                qiskit test
+            COMMAND ${PYCODESTYLE} --max-line-length=100 qiskit test
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
 endfunction()
