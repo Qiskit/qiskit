@@ -42,14 +42,30 @@ class LocalProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, filters=None):
+    def available_backends(self, *filters):
+        """Get a list of available backend instances from the IBMQ provider.
+        Filters can be applied to get a subset of available backends.
+
+        Args:
+            filters (dict): dictionary of filtering conditions.
+
+        Returns:
+            list[BaseBackend]: a list of backend names available from all the
+                providers.
+        """
         # pylint: disable=arguments-differ
         backends = self.backends
 
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
+        if isinstance(filters, dict):
+            filters = [filters]
+
+        for filter_ in filters:
+            if isinstance(filter_, dict):
+                for key, value in filter_.items():
+                    backends = {name: instance for name, instance in backends.items()
+                                if instance.configuration.get(key) == value}
+            else:
+                raise QISKitError('backend filters must be dict.')
         return list(backends.values())
 
     def aliased_backend_names(self):

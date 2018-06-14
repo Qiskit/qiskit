@@ -34,10 +34,10 @@ class DefaultQISKitProvider(BaseProvider):
                 pass
         raise KeyError(name)
 
-    def available_backends(self, filters=None):
+    def available_backends(self, *filters):
         """
         Args:
-            filters (dict): dictionary of filtering conditions.
+            filters (dict or callable): filtering conditions.
 
         Returns:
             list[BaseBackend]: a list of backend names available from all the
@@ -106,7 +106,7 @@ class DefaultQISKitProvider(BaseProvider):
             regular available names, nor aliases, nor deprecated names
         """
         resolved_name = ""
-        available = [b.name for b in self.available_backends(filters=None)]
+        available = [b.name for b in self.available_backends()]
         aliased = self.aliased_backend_names()
         deprecated = self.deprecated_backend_names()
 

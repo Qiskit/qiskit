@@ -16,5 +16,5 @@ refer to the documentation of each component and use them separately.
 """
 
 from ._wrapper import (available_backends, local_backends, remote_backends,
-                       get_backend, compile, execute, register,
+                       get_backend, compile, execute, register, least_busy,
                        load_qasm_string, load_qasm_file)

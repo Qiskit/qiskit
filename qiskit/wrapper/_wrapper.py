@@ -54,7 +54,7 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
 # Functions for inspecting and retrieving backends.
 
 
-def available_backends(filters=None, compact=True):
+def available_backends(compact=True, *filters):
     """
     Return the backends that are available in the SDK, optionally filtering
     them based on their capabilities.
@@ -64,7 +64,7 @@ def available_backends(filters=None, compact=True):
         an online backend provider needs to be established by calling the
         `register()` function.
     Args:
-        filters (dict): dictionary of filtering conditions.
+        *filters (dict or callable): dictionary of filtering conditions.
         compact (bool): group backend names based on aliases
 
     Returns:
@@ -114,6 +114,24 @@ def remote_backends(compact=True):
         list[str]: the names of the available remote backends.
     """
     return available_backends({'local': False}, compact=compact)
+
+
+def least_busy(names):
+    """
+    Return the least busy available backend for those that
+    have a `pending_jobs` in their `status`. Backends such as
+    local backends that do not have this are not considered.
+    Args:
+        names(str): backend names to choose from
+    Returns:
+        str: the name of the least busy backend
+    """
+    backends = [get_backend(name) for name in names]
+    try:
+        return min([b for b in backends if b.status['available'] and 'pending_jobs' in b.status],
+                   key=lambda b: b.status['pending_jobs'])
+    except (ValueError, TypeError):
+        assert False, "Error: can only find least_busy backend from a non-empty list."
 
 
 def get_backend(name):

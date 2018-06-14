@@ -15,15 +15,6 @@ from qiskit.wrapper import register, available_backends, get_backend, execute
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
-def lowest_pending_jobs(list_of_backends):
-    """Returns the backend with lowest pending jobs."""
-    backends = [get_backend(name) for name in list_of_backends]
-    backends = filter(lambda x: x.status.get('available', False), backends)
-    by_pending_jobs = sorted(backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0].name
-
-
 class TestBitReordering(QiskitTestCase):
     """Test QISKit's fix for the ibmq hardware reordering bug.
 
@@ -95,7 +86,7 @@ class TestBitReordering(QiskitTestCase):
         try:
             register(QE_TOKEN, QE_URL, hub, group, project)
             real_backends = available_backends({'simulator': False})
-            real_backend = lowest_pending_jobs(real_backends)
+            real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None
 
