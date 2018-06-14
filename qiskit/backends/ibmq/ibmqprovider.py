@@ -19,6 +19,14 @@ class IBMQProvider(BaseProvider):
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
+        self._token = token
+        self._url = url
+        self._hub = hub
+        self._group = group
+        self._project = project
+        self._proxies = proxies
+        self._verify = verify
+
         # Get a connection to IBMQuantumExperience.
         self._api = self._authenticate(token, url,
                                        hub, group, project, proxies, verify)
@@ -124,3 +132,12 @@ class IBMQProvider(BaseProvider):
             ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret
+
+    def __eq__(self, other):
+        try:
+            equality = (self._token == other._token and self._url == other._url and
+                        self._hub == other._hub and self._group == other._group and
+                        self._project == other._project)
+        except AttributeError:
+            equality = False
+        return equality

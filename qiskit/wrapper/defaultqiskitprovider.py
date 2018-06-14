@@ -85,10 +85,15 @@ class DefaultQISKitProvider(BaseProvider):
         """
         Add a new provider to the list of known providers.
 
+        If the same provider (same credentials etc.) has been previously
+        added, skip.
+
         Args:
             provider (BaseProvider): Provider instance.
         """
-        self.providers.append(provider)
+        already_added = any([provider == p for p in self.providers])
+        if not already_added:
+            self.providers.append(provider)
 
     def resolve_backend_name(self, name):
         """Resolve backend name from a possible short alias or a deprecated name.
