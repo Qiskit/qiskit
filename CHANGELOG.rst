@@ -32,7 +32,7 @@ Removed
 
 Fixed
 -----
-
+- Fix possible double registeration of same provider with same credentials (#566)
 
 `0.5.4`_ - 2018-06-11
 =====================
