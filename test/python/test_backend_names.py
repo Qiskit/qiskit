@@ -47,7 +47,7 @@ class TestBackendNames(QiskitTestCase):
     @requires_qe_access
     def test_ibmq_deprecated(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """test deprecated ibmq backends are resolved correctly"""
-        register(QE_TOKEN, QE_URL)
+        register(QE_TOKEN, QE_URL, hub, group, project)
         old_name_1 = "ibmqx_qasm_simulator"
         old_name_2 = "ibmqx_hpc_qasm_simulator"
         new_name = "ibmq_qasm_simulator"
