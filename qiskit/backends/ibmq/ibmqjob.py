@@ -95,9 +95,6 @@ class IBMQJob(BaseJob):
         job_instance._api = api
         job_instance._id = job_info.get('id')
         job_instance._exception = None  # needs to be before status call below
-        # update status (need _api and _id)
-        # pylint: disable=pointless-statement
-        #job_instance.status(job_info=job_info)
         job_instance._status_msg = None
         job_instance._cancelled = False
         job_instance._is_device = is_device
