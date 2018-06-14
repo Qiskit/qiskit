@@ -17,6 +17,7 @@ import logging
 import pprint
 import json
 import numpy
+import datetime
 
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus
@@ -48,7 +49,7 @@ class IBMQJob(BaseJob):
         self._q_job = q_job
         self._qobj = q_job.qobj
         self._api = api
-        self._job_id = None  # this must be before creating the future
+        self._id = None  # this must be before creating the future
         self._backend_name = self._qobj.get('config').get('backend_name')
         self._status = JobStatus.INITIALIZING
         self._future_submit = self._executor.submit(self._submit)
@@ -57,7 +58,8 @@ class IBMQJob(BaseJob):
         self._exception = None
         self._is_device = is_device
         self._from_api = False
-        self.creation_date = None
+        self.creation_date = datetime.datetime.utcnow().replace(
+            tzinfo=datetime.timezone.utc).isoformat()
 
     @classmethod
     def from_api(cls, job_info, api, is_device):
@@ -91,11 +93,11 @@ class IBMQJob(BaseJob):
         job_instance._status = JobStatus.QUEUED
         job_instance._backend_name = job_info.get('backend').get('name')
         job_instance._api = api
-        job_instance._job_id = job_info.get('id')
+        job_instance._id = job_info.get('id')
         job_instance._exception = None  # needs to be before status call below
-        # update status (need _api and _job_id)
+        # update status (need _api and _id)
         # pylint: disable=pointless-statement
-        job_instance.status
+        #job_instance.status(job_info=job_info)
         job_instance._status_msg = None
         job_instance._cancelled = False
         job_instance._is_device = is_device
@@ -144,7 +146,7 @@ class IBMQJob(BaseJob):
             hub = self._api.config['hub']
             group = self._api.config['group']
             project = self._api.config['project']
-            response = self._api.cancel_job(self._job_id, hub, group, project)
+            response = self._api.cancel_job(self._id, hub, group, project)
             if 'error' in response:
                 err_msg = response.get('error', '')
                 self._exception = QISKitError('Error cancelling job: %s' % err_msg)
@@ -159,12 +161,12 @@ class IBMQJob(BaseJob):
     @property
     def status(self):
         if self._status == JobStatus.INITIALIZING:
-            stats = {'job_id': None,
+            stats = {'id': None,
                      'status': self._status,
-                     'status_msg': 'job is begin initialized please wait a moment'}
+                     'status_msg': 'job is being initialized please wait a moment'}
             return stats
-        job_result = self._api.get_job(self._job_id)
-        stats = {'job_id': self._job_id}
+        job_result = self._api.get_job(self._id)
+        stats = {'id': self._id}
         self._status = None
         _status_msg = None
         if 'status' not in job_result:
@@ -262,14 +264,14 @@ class IBMQJob(BaseJob):
         return config.get('hub') and config.get('group') and config.get('project')
 
     @property
-    def job_id(self):
+    def id(self):
         """
-        Return backend determined job_id (also available in status method).
+        Return backend determined id (also available in status method).
         """
-        while not self._job_id:
-            # job is initializing and hasn't gotten a job_id yet.
+        while not self._id:
+            # job is initializing and hasn't gotten a id yet.
             time.sleep(0.1)
-        return self._job_id
+        return self._id
 
     @property
     def backend_name(self):
@@ -342,7 +344,7 @@ class IBMQJob(BaseJob):
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
             self._exception = IBMQJobError(str(submit_info['error']))
-        self._job_id = submit_info.get('id')
+        self._id = submit_info.get('id')
         self.creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         return submit_info
@@ -362,23 +364,23 @@ class IBMQJob(BaseJob):
             QISKitError: job didn't return status or reported error in status
         """
         # qobj = self._q_job.qobj
-        job_id = self.job_id
+        id = self.id
         # logger.info('Running qobj: %s on remote backend %s with job id: %s',
         #             qobj["id"], qobj['config']['backend_name'],
-        #             job_id)
+        #             id)
+        api_result = None
         start_time = time.time()
-        api_result = self._api.get_job(job_id)
         while not (self.done or self.cancelled or self.exception or
                    self._status == JobStatus.ERROR):
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                job_result = {'job_id': job_id, 'status': 'ERROR',
+                job_result = {'id': id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
                 return Result(job_result)
+            api_result = self._api.get_job(id)
             time.sleep(wait)
             logger.info('status = %s (%d seconds)', api_result['status'],
                         elapsed_time)
-            api_result = self._api.get_job(job_id)
 
             if 'status' not in api_result:
                 self._exception = QISKitError("get_job didn't return status: %s" %
@@ -387,19 +389,20 @@ class IBMQJob(BaseJob):
                                   (pprint.pformat(api_result)))
             if (api_result['status'] == 'ERROR_CREATING_JOB' or
                     api_result['status'] == 'ERROR_RUNNING_JOB'):
-                job_result = {'job_id': job_id, 'status': 'ERROR',
+                job_result = {'id': id, 'status': 'ERROR',
                               'result': api_result['status']}
                 return Result(job_result)
 
         if self.cancelled:
-            job_result = {'job_id': job_id, 'status': 'CANCELLED',
+            job_result = {'id': id, 'status': 'CANCELLED',
                           'result': 'job cancelled'}
             return Result(job_result)
         elif self.exception:
-            job_result = {'job_id': job_id, 'status': 'ERROR',
+            job_result = {'id': id, 'status': 'ERROR',
                           'result': str(self.exception)}
             return Result(job_result)
-        api_result = self._api.get_job(job_id)
+        if api_result is None:
+            api_result = self._api.get_job(id)
         job_result_list = []
         for circuit_result in api_result['qasms']:
             this_result = {'data': circuit_result['data'],
@@ -409,13 +412,13 @@ class IBMQJob(BaseJob):
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
             job_result_list.append(this_result)
-        job_result = {'job_id': job_id,
+        job_result = {'id': id,
                       'status': api_result['status'],
                       'used_credits': api_result.get('usedCredits'),
                       'result': job_result_list}
         # logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
         #             qobj["id"], qobj['config']['backend_name'],
-        #             job_id)
+        #             id)
         job_result['backend_name'] = self.backend_name
         return Result(job_result)
 
