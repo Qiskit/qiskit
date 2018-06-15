@@ -433,7 +433,7 @@ class IBMQJob(BaseJob):
 
         if api_result is None:
             api_result = self._api.get_job(self.id)
-            
+
         job_result_list = []
         for circuit_result in api_result['qasms']:
             this_result = {'data': circuit_result['data'],
