@@ -17,48 +17,50 @@ Deshalb empfehlen wir die Installation der `Anaconda 3  <https://www
 .continuum.io/downloads>`__ Python Distribution, die alle Abhängigkeiten
 vorinstalliert mitliefert.
 
+
 2. Installation
 ---------------
 
 Die empfohlene Methode, um QISKit zu installieren, ist durch die Verwendung des
-PIP Tools (Python Packetmanager):
+PIP Tools (Python Paketmanager):
 
 .. code:: sh
 
     pip install qiskit
 
-
 Dieser Befehl wird den neuesten stabilen Release mitsamt allen Abhängigkeiten
- installieren.
+installieren.
 
 .. note::
-    Manche Packete werden eventuell downgegraded um alle Abhängigkeiten
-    erfüllen zu können.
 
+    Manche Pakete werden eventuell downgegraded um alle Abhängigkeiten
+    erfüllen zu können.
 
 .. _qconfig-setup:
 
 3. API Token und QE Anmeldedaten konfigurieren
 ----------------------------------------------
 
--  Erstellen Sie einen `IBM Q experience <https://quantumexperience.ng
-.bluemix.net>`__ Account falls Sie nicht bereits einen besitzen.
+-  Erstellen Sie einen `IBM Q experience
+   <https://quantumexperience.ng.bluemix.net>`__ Account falls Sie nicht bereits
+   einen besitzen.
 -  Holen Sie sich einen API Token von der IBM Q experience Webseite unter “My
- Account” > “Personal Access Token”
+   Account” > “Personal Access Token”
 -  Der API Token muss in einer Datei gespeichert werden mit dem Namen
-``Qconfig.py``. Als Beispiel haben wir eine Standardversion dieser Datei
-angelegt, die Sie als Referenz verwenden können: `Qconfig.py.default`_. Nach
-dem Herunterladen dieser Datei kopieren Sie diese in den Ordner von dem Sie
-das QISKit SDK aufrufen werden (unter Windows ersetzen Sie ``cp`` mit ``copy``):
+   ``Qconfig.py``. Als Beispiel haben wir eine Standardversion dieser Datei
+   angelegt, die Sie als Referenz verwenden können: `Qconfig.py.default`_. Nach
+   dem Herunterladen dieser Datei kopieren Sie diese in den Ordner von dem Sie
+   das QISKit SDK aufrufen werden (unter Windows ersetzen Sie ``cp`` mit
+   ``copy``):
 
 .. code:: sh
 
     cp Qconfig.py.default Qconfig.py
 
 -  Öffnen Sie die Datei ``Qconfig.py``, entfernen Sie das ``#`` Symbol am
-Zeilenanfang des API Tokens und kopieren und fügen Sie den API Token zwischen
- den Anführungszeichen in dieser Zeile ein. Speichern und schließen Sie
- diese Datei.
+   Zeilenanfang des API Tokens und kopieren und fügen Sie den API Token zwischen
+   den Anführungszeichen in dieser Zeile ein. Speichern und schließen Sie
+   diese Datei.
 
 Eine korrekte und voll konfigurierte ``Qconfig.py`` Datei würde
 beispielsweise so aussehen:
