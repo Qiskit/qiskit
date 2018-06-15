@@ -37,7 +37,7 @@ Quantum device:
 
     # Compile and run the Quantum Program on a real device backend
     job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
-    result = job.result()
+    result = job_exp.result()
 
     # Show the results
     print(result)
@@ -90,7 +90,7 @@ the IBM Q features:
 
     # Compile and run the Quantum Program on a real device backend
     job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
-    result = job.result()
+    result = job_exp.result()
 
     # Show the results
     print(result)
