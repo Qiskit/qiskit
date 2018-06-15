@@ -16,8 +16,8 @@ import time
 import logging
 import pprint
 import json
-import numpy
 import datetime
+import numpy
 
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus
@@ -180,7 +180,7 @@ class IBMQJob(BaseJob):
         """Query the API to update the status."""
         if (self._status in self._final_states or
                 self._status == JobStatus.INITIALIZING):
-            return
+            return None
 
         try:
             api_job = self._api.get_job(self.id)
@@ -192,7 +192,7 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.ERROR
             self._exception = err
             self._status_msg = '{}'.format(err)
-            return
+            return None
 
         if api_job['status'] == 'RUNNING':
             self._status = JobStatus.RUNNING
@@ -300,6 +300,7 @@ class IBMQJob(BaseJob):
         """
         Return backend determined id (also available in status method).
         """
+        # pylint: disable=invalid-name
         while not self._id:
             # job is initializing and hasn't gotten a id yet.
             time.sleep(0.1)
