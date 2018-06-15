@@ -194,7 +194,7 @@ class IBMQJob(BaseJob):
             self._status_msg = '{}'.format(err)
             return
 
-        if 'RUNNING' == api_job['status']:
+        if api_job['status'] == 'RUNNING':
             self._status = JobStatus.RUNNING
             queued, queue_position = self._is_job_queued(api_job)
             if queued:
@@ -202,10 +202,10 @@ class IBMQJob(BaseJob):
             if queue_position:
                 self._queue_position = queue_position
 
-        elif 'COMPLETED' == api_job['status']:
+        elif api_job['status'] == 'COMPLETED':
             self._status = JobStatus.DONE
 
-        elif 'CANCELLED' == api_job['status']:
+        elif api_job['status'] == 'CANCELLED':
             self._status = JobStatus.CANCELLED
 
         elif 'ERROR' in api_job['status']:
