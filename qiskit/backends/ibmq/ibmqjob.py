@@ -57,7 +57,6 @@ class IBMQJob(BaseJob):
         self._cancelled = False
         self._exception = None
         self._is_device = is_device
-        self._from_api = False
         self.creation_date = datetime.datetime.utcnow().replace(
             tzinfo=datetime.timezone.utc).isoformat()
 
@@ -98,7 +97,6 @@ class IBMQJob(BaseJob):
         job_instance._status_msg = None
         job_instance._cancelled = False
         job_instance._is_device = is_device
-        job_instance._from_api = True
         job_instance.creation_date = job_info.get('creationDate')
         return job_instance
 
@@ -162,45 +160,55 @@ class IBMQJob(BaseJob):
                      'status': self._status,
                      'status_msg': 'job is being initialized please wait a moment'}
             return stats
-        job_result = self._api.get_job(self._id)
+        api_job = self._api.get_job(self._id)
         stats = {'id': self._id}
         self._status = None
         _status_msg = None
-        if 'status' not in job_result:
+        if 'status' not in api_job:
             self._exception = QISKitError("get_job didn't return status: %s" %
-                                          (pprint.pformat(job_result)))
+                                          (pprint.pformat(api_job)))
             raise QISKitError("get_job didn't return status: %s" %
-                              (pprint.pformat(job_result)))
-        elif job_result['status'] == 'RUNNING':
+                              (pprint.pformat(api_job)))
+        elif api_job['status'] == 'RUNNING':
             self._status = JobStatus.RUNNING
             # we may have some other information here
-            if 'infoQueue' in job_result:
-                if 'status' in job_result['infoQueue']:
-                    if job_result['infoQueue']['status'] == 'PENDING_IN_QUEUE':
+            if 'infoQueue' in api_job:
+                if 'status' in api_job['infoQueue']:
+                    if api_job['infoQueue']['status'] == 'PENDING_IN_QUEUE':
                         self._status = JobStatus.QUEUED
-                if 'position' in job_result['infoQueue']:
-                    stats['queue_position'] = job_result['infoQueue']['position']
-        elif job_result['status'] == 'COMPLETED':
+                if 'position' in api_job['infoQueue']:
+                    stats['queue_position'] = api_job['infoQueue']['position']
+        elif api_job['status'] == 'COMPLETED':
             self._status = JobStatus.DONE
-        elif job_result['status'] == 'CANCELLED':
+        elif api_job['status'] == 'CANCELLED':
             self._status = JobStatus.CANCELLED
         elif self.exception or self._future_submit.exception():
             self._status = JobStatus.ERROR
             if self._future_submit.exception():
                 self._exception = self._future_submit.exception()
             self._status_msg = str(self.exception)
-        elif 'ERROR' in job_result['status']:
+        elif 'ERROR' in api_job['status']:
             # ERROR_CREATING_JOB or ERROR_RUNNING_JOB
             self._status = JobStatus.ERROR
-            self._status_msg = job_result['status']
+            self._status_msg = api_job['status']
         else:
             self._status = JobStatus.ERROR
             raise IBMQJobError('Unexpected behavior of {0}\n{1}'.format(
                 self.__class__.__name__,
-                pprint.pformat(job_result)))
+                pprint.pformat(api_job)))
         stats['status'] = self._status
         stats['status_msg'] = _status_msg
         return stats
+
+    def _is_job_queued(self, api_job):
+        is_queued, position = False, None
+        if 'infoQueue' in api_job:
+            if 'status' in api_job['infoQueue']:
+                queue_status = api_job['infoQueue']['status']
+                is_queued = queue_status == 'PENDING_IN_QUEUE'
+            if 'position' in api_job['infoQueue']:
+                position = api_job['infoQueue']['position']
+        return is_queued, position
 
     @property
     def queued(self):
@@ -360,11 +368,7 @@ class IBMQJob(BaseJob):
         Raises:
             QISKitError: job didn't return status or reported error in status
         """
-        # qobj = self._q_job.qobj
         id = self.id
-        # logger.info('Running qobj: %s on remote backend %s with job id: %s',
-        #             qobj["id"], qobj['config']['backend_name'],
-        #             id)
         api_result = None
         start_time = time.time()
         while not (self.done or self.cancelled or self.exception or
@@ -413,9 +417,6 @@ class IBMQJob(BaseJob):
                       'status': api_result['status'],
                       'used_credits': api_result.get('usedCredits'),
                       'result': job_result_list}
-        # logger.info('Got a result for qobj: %s from remote backend %s with job id: %s',
-        #             qobj["id"], qobj['config']['backend_name'],
-        #             id)
         job_result['backend_name'] = self.backend_name
         return Result(job_result)
 
