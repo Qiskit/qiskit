@@ -1,25 +1,18 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+
+# Copyright 2017, IBM.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
 
 # This tool will print on the standard output a QASM program which instructions
 # were generated randonmly. The program is valid from the point of view of
-# QASM syntax but it has no valid logic. The main purpose of this tool is to 
+# QASM syntax but it has no valid logic. The main purpose of this tool is to
 # help in benchmarking and testing Quantum simulators.
 # Usage example:
-# Creates a QASM circuit file called circuit.qasm with ~100 operations 
+# Creates a QASM circuit file called circuit.qasm with ~100 operations
 # (CX and U3 gates), 16 Qubits, and a seed of 169
 # ./random_qasm_generator.py -s 169 -d 100 -q 16 > circuit.qasm
 
@@ -58,7 +51,7 @@ class RandomQasmGenerator():
             'cr', qubits)
         if seed is not None:
             random.seed(a=seed)
-            
+
     def create_circuit(self, do_measure=True):
         """Creates a circuit
 
@@ -73,8 +66,8 @@ class RandomQasmGenerator():
             A string representing the QASM circuit
         """
         circuit_name = str(uuid.uuid4())
-        circuit = self.quantum_program.create_circuit(circuit_name, 
-                                                      [self.quantum_register], 
+        circuit = self.quantum_program.create_circuit(circuit_name,
+                                                      [self.quantum_register],
                                                       [self.classical_register])
 
         for j in range(self.depth):
@@ -88,16 +81,16 @@ class RandomQasmGenerator():
                            self.quantum_register[qind])
             elif op_ind == 1: # CX
                 source, target = random.sample(range(self.qubits), 2)
-                circuit.cx(self.quantum_register[source], 
+                circuit.cx(self.quantum_register[source],
                            self.quantum_register[target])
 
         if do_measure:
-            nmeasure = random.randint(1, self.qubits)            
+            nmeasure = random.randint(1, self.qubits)
             for j in range(nmeasure):
                 qind = random.randint(0, self.qubits - 1)
                 # doing this if here keeps the RNG from depending on
                 # whether measurements are done.
-                circuit.measure(self.quantum_register[qind], 
+                circuit.measure(self.quantum_register[qind],
                                 self.classical_register[qind])
 
         return circuit.qasm()
@@ -107,7 +100,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='''
                     Generates a random QASM circuit program.
                     This is useful for profiling/benchmarking.''')
-    parser.add_argument('-s', '--seed', type=int, 
+    parser.add_argument('-s', '--seed', type=int,
                     help='an integer for the seed')
     parser.add_argument('-d', '--depth', type=int,
                     help='an integer for the number of opertions present in'

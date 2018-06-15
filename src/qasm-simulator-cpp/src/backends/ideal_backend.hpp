@@ -1,18 +1,9 @@
-/*
-Copyright (c) 2017 IBM Corporation. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/**
+ * Copyright 2017, IBM.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 found in
+ * the LICENSE.txt file in the root directory of this source tree.
+ */
 
 /**
  * @file    ideal_backend.hpp
@@ -303,7 +294,7 @@ const gateset_t IdealBackend::gateset({// Core gates
                                        {"wait", gate_t::Wait},
                                        {"snapshot", gate_t::Snapshot},
                                        {"noise", gate_t::Noise},
-                                       {"save", gate_t::Save},          
+                                       {"save", gate_t::Save},
                                        {"load", gate_t::Load}});
 
 //------------------------------------------------------------------------------
@@ -452,7 +443,7 @@ void IdealBackend::qc_measure(const uint_t qubit, const uint_t cbit) {
   const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);
   creg[cbit] = meas.first; // Update register outcome
 
-  // Implement measurement                                            
+  // Implement measurement
   cvector_t mdiag(2, 0.);
   mdiag[meas.first] = 1. / std::sqrt(meas.second);
   qreg.apply_matrix(qubit, mdiag);
@@ -464,7 +455,7 @@ std::pair<uint_t, double> IdealBackend::qc_measure_outcome(const uint_t qubit) {
   double p0 = qreg.probability(qubit, 0);
   rvector_t probs = {p0, 1. - p0};
   // randomly pick outcome
-  const uint_t n = rng.rand_int(probs); 
+  const uint_t n = rng.rand_int(probs);
   return std::pair<uint_t, double>(n, probs[n]);
 }
 
@@ -479,7 +470,7 @@ void IdealBackend::qc_reset(const uint_t qubit, const uint_t state) {
   std::clog << ss.str() << std::endl;
 #endif
   // Simulate unobserved measurement
-  const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);                                          
+  const std::pair<uint_t, double> meas = qc_measure_outcome(qubit);
   cvector_t mdiag(2, 0.);
   mdiag[meas.first] = 1. / std::sqrt(meas.second);
   qreg.apply_matrix(qubit, mdiag);

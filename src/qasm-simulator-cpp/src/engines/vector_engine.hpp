@@ -1,18 +1,9 @@
-/*
-Copyright (c) 2017 IBM Corporation. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/**
+ * Copyright 2017, IBM.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 found in
+ * the LICENSE.txt file in the root directory of this source tree.
+ */
 
 /**
  * @file    state_vector_engine.hpp
@@ -48,7 +39,7 @@ namespace QISKIT {
  *   shot
  * - The inner product with a set of target states of the snapshoted quantum states
  *   of the system for each shot.
- * - The expectation values of a set  of target states of the snapshoted quantum 
+ * - The expectation values of a set  of target states of the snapshoted quantum
  *   states of the system averaged over shots.
  *
  ******************************************************************************/
@@ -201,7 +192,7 @@ void VectorEngine::execute(const Circuit &prog, BaseBackend<QubitVector> *be,
       meas_qubits.push_back(op.qubits[0]);
 
     // sort the qubits and delete duplicates
-    sort(meas_qubits.begin(),meas_qubits.end()); 
+    sort(meas_qubits.begin(),meas_qubits.end());
     meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end() ), meas_qubits.end());
 
     // Allow option to get probabilities in place be overwriting QubitVector
@@ -227,7 +218,7 @@ void VectorEngine::execute(const Circuit &prog, BaseBackend<QubitVector> *be,
 // Templated so works for real or complex probability vector
 template<class T>
 void VectorEngine::sample_counts(const Circuit &prog, BaseBackend<QubitVector> *be, uint_t nshots,
-                                 const std::vector<T> &probs, const std::vector<operation> &meas, 
+                                 const std::vector<T> &probs, const std::vector<operation> &meas,
                                  const std::vector<uint_t> &meas_qubits) {
   // Map to store measured outcome after
   std::map<uint_t, uint_t> outcomes;

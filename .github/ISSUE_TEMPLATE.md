@@ -1,46 +1,42 @@
-<!-- ⚠️ If you do not respect this template your issue will be closed. -->
-<!-- ⚠️ Make sure to browse the opened and closed issues  -->
+<!-- ⚠️ If you do not respect this template, your issue will be closed -->
+<!-- ⚠️ Make sure to browse the opened and closed issues -->
 
-*BUG TEMPLATE* <!-- Delete this header from your issue. -->
+*BUG TEMPLATE* <!-- Delete this header from your issue -->
 
-<!-- ⚠️ Before writing your issue make sure you are using: -->
-<!-- QISKit-sdk-py ^0.5.x -->
-<!-- Python ^3.5.x. -->
-
-**Informations**
+### Informations
 
 - **QISKit (Python SDK) version**:
 - **Python version**:
 - **Operating system**:
 
-**What is the current behavior?**
+### What is the current behavior?
 
 
 
-**Steps to reproduce the problem**
+### Steps to reproduce the problem
 
 
 
-**What is the expected behavior?**
+### What is the expected behavior?
 
 
 
-**Suggested solutions**
-
-
-
----
-
-*FEATURE REQUEST TEMPLATE*  <!-- Delete this header from your issue. -->
-
-**What is the expected behavior?**
+### Suggested solutions
 
 
 
 ---
 
-*ENHANCEMENT REQUEST TEMPLATE*  <!-- Delete this header from your issue. -->
+*FEATURE REQUEST TEMPLATE*  <!-- Delete this header from your issue -->
 
-**What is the expected enhancement?**
+### What is the expected behavior?
+
+
+
+---
+
+*ENHANCEMENT REQUEST TEMPLATE*  <!-- Delete this header from your issue -->
+
+### What is the expected enhancement?
 
 

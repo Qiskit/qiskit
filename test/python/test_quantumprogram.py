@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring,broad-except
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# Copyright 2017, IBM.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name,missing-docstring,broad-except
 
 """Quantum Program QISKit Test."""
 
@@ -1231,8 +1222,9 @@ class TestQuantumProgram(QiskitTestCase):
                                        shots=shots, max_credits=3)
             self.assertIsInstance(result, Result)
 
-    @unittest.skipIf(version_info.minor == 5, "Due to gate ordering issues with Python 3.5 \
-                                             we have to disable this test until fixed")
+    @unittest.skipIf(version_info.minor == 5,
+                     "Due to gate ordering issues with Python 3.5 "
+                     "we have to disable this test until fixed")
     def test_local_qasm_simulator_two_registers(self):
         """Test local_qasm_simulator_two_registers.
 
@@ -1305,132 +1297,6 @@ class TestQuantumProgram(QiskitTestCase):
     ###############################################################
     # More test cases for interesting examples
     ###############################################################
-
-    def test_combine_circuit_common(self):
-        """Test combining two circuits with same registers.
-
-        If all correct should return the data
-        """
-        q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("qr", 2)
-        cr = q_program.create_classical_register("cr", 2)
-        qc1 = q_program.create_circuit("qc1", [qr], [cr])
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc1.h(qr[0])
-        qc1.measure(qr[0], cr[0])
-        qc2.measure(qr[1], cr[1])
-        new_circuit = qc1 + qc2
-        name = 'test_circuit'
-        q_program.add_circuit(name, new_circuit)
-        backend = 'local_qasm_simulator'
-        shots = 1024
-        result = q_program.execute(name, backend=backend, shots=shots,
-                                   seed=78)
-        counts = result.get_counts(name)
-        target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.04 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_combine_circuit_different(self):
-        """Test combining two circuits with different registers.
-
-        If all correct should return the data
-        """
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-
-        qp = QuantumProgram()
-        name = 'test'
-        qp.add_circuit(name, qc1 + qc2)
-        backend = 'local_qasm_simulator'
-        shots = 1024
-        result = qp.execute(name, backend=backend, shots=shots, seed=78)
-        counts = result.get_counts(name)
-        target = {'11': shots}
-        self.assertEqual(counts, target)
-
-    def test_combine_circuit_fail(self):
-        """Test combining two circuits fails if registers incompatible.
-
-        If two circuits have samed name register of different size or type
-        it should raise a QISKitError.
-        """
-        q1 = QuantumRegister(1, "q")
-        q2 = QuantumRegister(2, "q")
-        c1 = QuantumRegister(1, "q")
-        qc1 = QuantumCircuit(q1)
-        qc2 = QuantumCircuit(q2)
-        qc3 = QuantumCircuit(c1)
-
-        self.assertRaises(QISKitError, qc1.__add__, qc2)
-        self.assertRaises(QISKitError, qc1.__add__, qc3)
-
-    def test_extend_circuit(self):
-        """Test extending a circuit with same registers.
-
-        If all correct should return the data
-        """
-        q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("qr", 2)
-        cr = q_program.create_classical_register("cr", 2)
-        qc1 = q_program.create_circuit("qc1", [qr], [cr])
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc1.h(qr[0])
-        qc1.measure(qr[0], cr[0])
-        qc2.measure(qr[1], cr[1])
-        qc1 += qc2
-        name = 'test_circuit'
-        q_program.add_circuit(name, qc1)
-        backend = 'local_qasm_simulator'
-        shots = 1024
-        result = q_program.execute(name, backend=backend, shots=shots,
-                                   seed=78)
-        counts = result.get_counts(name)
-        target = {'00': shots / 2, '01': shots / 2}
-        threshold = 0.04 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_extend_circuit_different_registers(self):
-        """Test extending a circuit with different registers.
-
-        If all correct should return the data
-        """
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-        qc1 += qc2
-        qp = QuantumProgram()
-        name = 'test_circuit'
-        qp.add_circuit(name, qc1)
-        backend = 'local_qasm_simulator'
-        shots = 1024
-        result = qp.execute(name, backend=backend, shots=shots, seed=78)
-        counts = result.get_counts(name)
-        target = {'11': shots}
-        self.assertEqual(counts, target)
-
-    def test_extend_circuit_fail(self):
-        """Test extending a circuits fails if registers incompatible.
-
-        If two circuits have samed name register of different size or type
-        it should raise a QISKitError.
-        """
-        q1 = QuantumRegister(1, "q")
-        q2 = QuantumRegister(2, "q")
-        c1 = QuantumRegister(1, "q")
-        qc1 = QuantumCircuit(q1)
-        qc2 = QuantumCircuit(q2)
-        qc3 = QuantumCircuit(c1)
-
-        self.assertRaises(QISKitError, qc1.__iadd__, qc2)
-        self.assertRaises(QISKitError, qc1.__iadd__, qc3)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
