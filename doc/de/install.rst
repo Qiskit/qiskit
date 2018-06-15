@@ -10,7 +10,7 @@ Installation
 
 Um QISKit verwenden zu können benötigt man mindestens `Python 3.5 oder höher
 <https://www.python.org/downloads/>`__. `Jupyter Notebooks <https://jupyter
-.readthedocs.io/en/latest/install.html>`__ ist weiters empfohlen für die
+.readthedocs.io/de/latest/install.html>`__ wird weiters empfohlen für die
 Verwendung von den Beispielen in `tutorials`_.
 
 Deshalb empfehlen wir die Installation der `Anaconda 3  <https://www
@@ -20,12 +20,13 @@ vorinstalliert mitliefert.
 2. Installation
 ---------------
 
-Die empfohlene Methode QISKit zu installieren ist durch die Verwendung des
+Die empfohlene Methode, um QISKit zu installieren, ist durch die Verwendung des
 PIP Tools (Python Packetmanager):
 
 .. code:: sh
 
     pip install qiskit
+
 
 Dieser Befehl wird den neuesten stabilen Release mitsamt allen Abhängigkeiten
  installieren.
@@ -33,6 +34,7 @@ Dieser Befehl wird den neuesten stabilen Release mitsamt allen Abhängigkeiten
 .. note::
     Manche Packete werden eventuell downgegraded um alle Abhängigkeiten
     erfüllen zu können.
+
 
 .. _qconfig-setup:
 
