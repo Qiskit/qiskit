@@ -74,9 +74,9 @@ beispielsweise so aussehen:
     }
 
 -  Wenn Sie Zugriff auf die IBM Q Features haben, müssen Sie auch die Werte
-für hub, group und project konfigurieren. Dies können Sie durch Anfügen der
-Werte von der Webseite Ihres IBM Q Kontos an die ``config`` Variable
-bewerkstelligen.
+   für ``hub``, ``group`` und ``project`` konfigurieren. Dies können Sie durch
+   Anfügen der Werte von der Webseite Ihres IBM Q Kontos an die ``config``
+   Variable bewerkstelligen.
 
 Eine korrekte und voll konfigurierte ``Qconfig.py`` Datei würde für IBM Q
 Benutzer so aussehen:
@@ -98,7 +98,7 @@ Jupyter basierte Tutorials installieren
 
 Das QISKit Projekt stellt eine Sammlung an Tutorials in Form von Jupyter
 Notebooks zur Verfügung. Dabei handelt es sich um Webseiten, die Zellen von
-eingebundenem Python Code beinhalten. Nähere Informationen finden Sie dazu im
+eingebundenem Python Code beinhalten. Nähere Informationen finden Sie dazu in
 `tutorials repository`_.
 
 
@@ -110,7 +110,7 @@ die Python Umgebung und Ihrem individuellem Setup voraus (zum Beispiel eine
 Standard Python Installation, ``virtualenv`` oder Anaconda). Bitte verwenden
 Sie die jeweilige Dokumentation für Anleitungen ihrem Setup betreffend.
 
-Abhängig von Ihrem System und Setup kann ein angefügtes "sudo -H" vor ``pip
+Abhängig von Ihrem System und Setup kann ein angefügtes ``sudo -H`` vor ``pip
 install`` notewndig sein.
 
 Um auf die neueste QISKit Version upzudaten verwenden Sie bitte folgenden
