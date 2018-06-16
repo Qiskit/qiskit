@@ -32,6 +32,7 @@ Removed
 
 Fixed
 -----
+- Fix issue with unintended inversion of initializer gates (#573).
 
 
 `0.5.4`_ - 2018-06-11
