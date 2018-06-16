@@ -31,9 +31,9 @@ class FakeBackEnd(object):
     """
     def __init__(self):
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [
-                        9, 10], [11, 10], [12, 5], [12, 11],
-                    [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
+                    [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
+                    [15, 2], [15, 14]]
         self.configuration = {'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
                               'simulator': False, 'n_qubits': 16,
                               'coupling_map': qx5_cmap}
@@ -366,6 +366,28 @@ class TestCompiler(QiskitTestCase):
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
+
+    def test_mapping_already_satisfied(self):
+        """Test compiler doesn't change circuit already matching backend coupling
+        """
+        backend = FakeBackEnd()
+        q = qiskit.QuantumRegister(16)
+        c = qiskit.ClassicalRegister(16)
+        qc = qiskit.QuantumCircuit(q, c)
+        qc.h(q[1])
+        qc.x(q[2])
+        qc.x(q[3])
+        qc.x(q[4])
+        qc.cx(q[1], q[2])
+        qc.cx(q[2], q[3])
+        qc.cx(q[3], q[4])
+        qc.cx(q[3], q[14])
+        qc.measure(q, c)
+        qobj = qiskit._compiler.compile(qc, backend)
+        compiled_ops = qobj['circuits'][0]['compiled_circuit']['operations']
+        for op in compiled_ops:
+            if op['name'] == 'cx':
+                self.assertIn(op['qubits'], backend.configuration['coupling_map'])
 
 
 if __name__ == '__main__':
