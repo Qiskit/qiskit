@@ -325,21 +325,18 @@ def _best_subset(backend, n_qubits):
 
 
 def _matches_coupling_map(instructions, coupling_map):
-    """ Iterate over circuit instructions set to check if multi-qubit instruction coupling
-        graphs match the qubit coupling graph in the backend.
+    """Iterate over circuit instructions to check if all multi-qubit couplings
+    match the qubit coupling graph in the backend.
 
     Parameters:
-            instructions (List): List of circuit instructions. Not all instructions
-                                 are Gates, hence not multi-qubit.
-            coupling_map (List): Backend coupling map, represented as an
-                                          adjacency list.
+            instructions (list): List of circuit instructions.
+            coupling_map (list): Backend coupling map, represented as an adjacency list.
 
     Returns:
-            True: If there's at least one instruction that uses multiple qubits and
-                  these qubits coupling matches one of the backend couplings.
+            True: If all instructions readily fit the backend coupling graph.
 
-            False: If there's no match between any of the instructions multiple qubits
-                   coupling, and one of the couplings from the backend.
+            False: If there's at least one instruction that uses multiple qubits
+                   which does not match the backend couplings.
     """
     for instruction in instructions:
         if isinstance(instruction, Gate) and instruction.is_multi_qubit():
@@ -354,7 +351,7 @@ def _pick_best_layout(backend, num_qubits, qregs):
     Parameters:
         backend (BaseBackend) : The backend with the coupling_map for searching
         num_qubits (int): Number of qubits
-        qregs (List): The list of quantum registers
+        qregs (list): The list of quantum registers
 
     Returns:
         initial_layout: A special ordered layout
