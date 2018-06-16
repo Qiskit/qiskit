@@ -54,9 +54,9 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
 # Functions for inspecting and retrieving backends.
 
 
-def available_backends(compact=True, *filters):
+def available_backends(filters=None, compact=True):
     """
-    Return the backends that are available in the SDK, optionally filtering
+    Return names of backends that are available in the SDK, optionally filtering
     them based on their capabilities.
 
     Note:
@@ -64,8 +64,8 @@ def available_backends(compact=True, *filters):
         an online backend provider needs to be established by calling the
         `register()` function.
     Args:
-        *filters (dict or callable): dictionary of filtering conditions.
-        compact (bool): group backend names based on aliases
+        filters (dict or callable): filtering conditions.
+        compact (bool): group backend names based on compact group names.
 
     Returns:
         list[str]: the names of the available backends.

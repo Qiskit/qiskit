@@ -30,50 +30,15 @@ class IBMQProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, *filters):
-        """Get a list of available backend instances from the IBMQ provider.
-        Filters can be applied to get a subset of available backends.
-
-        Args:
-            filters (dict or callable):
-                one or more filters to apply to each backend instance.
-                each filter can be of the following type:
-                    dict: {'criteria': value}
-                        the criteria can be over backend's `configuration` or `status`
-                        example: {'local': False, 'simulator': True}
-                    callable: IBMQBackend -> bool
-                        example: lambda x: x.configuration['n_qubits'] > 5
+    def available_backends(self):
+        """Get a list of available backends from the IBMQ provider.
 
         Returns:
-            list[IBMQBackend]: available backends from this provider (after filtering)
-
-        Raises:
-            QISKitError: if filter(s) is neither dict nor callable
+            list[IBMQBackend]: a list of backend instances available
+            from the IBMQ provider.
         """
         # pylint: disable=arguments-differ
-        backends = self.backends
-
-
-        if isinstance(filters, dict) or callable(filters):
-            filters = [filters]
-
-        for filter_ in filters:
-            if isinstance(filter_, dict):
-                # exact match filter:
-                # e.g. {'n_qubits': 5, 'local': False, 'available': True}
-                for key, value in filter_.items():
-                    backends = {name: instance for name, instance in backends.items()
-                                if instance.configuration.get(key) == value
-                                or instance.status.get(key) == value}
-            elif callable(filter_):
-                # acceptor filter: accept or reject a specific backend
-                # e.g. lambda x: x.configuration['n_qubits'] > 5
-                backends = {name: instance for name, instance in backends.items()
-                            if filter_(instance) is True}
-            else:
-                raise QISKitError('backend filters must be either dict or callable.')
-
-        return list(backends.values())
+        return list(self.backends.values())
 
     def aliased_backend_names(self):
         return {}
