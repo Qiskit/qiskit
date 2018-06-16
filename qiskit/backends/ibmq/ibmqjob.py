@@ -305,7 +305,10 @@ class IBMQJob(BaseJob):
         Return backend determined id (also available in status method).
         """
         # pylint: disable=invalid-name
-        while not self._id:
+        while self._id is None and self._status not in self._final_states:
+            if self._future_submit.exception():
+                self._status = JobStatus.ERROR
+                self._exception = self._future_submit.exception()
             # job is initializing and hasn't gotten a id yet.
             time.sleep(0.1)
         return self._id
@@ -377,10 +380,14 @@ class IBMQJob(BaseJob):
         # pylint: disable=broad-except
         except Exception as err:
             self._status = JobStatus.ERROR
+            self._status_msg = str(err)
             self._exception = err
+            return None
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
-            self._exception = IBMQJobError(str(submit_info['error']))
+            self._status_msg = str(submit_info['error'])
+            self._exception = IBMQJobError(self._status_msg)
+            return submit_info
         self._id = submit_info.get('id')
         self.creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
@@ -405,7 +412,7 @@ class IBMQJob(BaseJob):
         while self._status not in self._final_states:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                job_result = {'id': self.id, 'status': 'ERROR',
+                job_result = {'id': self._id, 'status': 'ERROR',
                               'result': 'QISkit Time Out'}
                 return Result(job_result)
             logger.info('status = %s (%d seconds)', api_result['status'],
@@ -419,7 +426,7 @@ class IBMQJob(BaseJob):
 
             if (api_result['status'] == 'ERROR_CREATING_JOB' or
                     api_result['status'] == 'ERROR_RUNNING_JOB'):
-                job_result = {'id': self.id, 'status': 'ERROR',
+                job_result = {'id': self._id, 'status': 'ERROR',
                               'result': api_result['status']}
                 return Result(job_result)
 
@@ -427,17 +434,17 @@ class IBMQJob(BaseJob):
             api_result = self._update_status()
 
         if self.cancelled:
-            job_result = {'id': self.id, 'status': 'CANCELLED',
+            job_result = {'id': self._id, 'status': 'CANCELLED',
                           'result': 'job cancelled'}
             return Result(job_result)
 
         elif self.exception:
-            job_result = {'id': self.id, 'status': 'ERROR',
+            job_result = {'id': self._id, 'status': 'ERROR',
                           'result': str(self.exception)}
             return Result(job_result)
 
         if api_result is None:
-            api_result = self._api.get_job(self.id)
+            api_result = self._api.get_job(self._id)
 
         job_result_list = []
         for circuit_result in api_result['qasms']:
@@ -448,7 +455,7 @@ class IBMQJob(BaseJob):
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
             job_result_list.append(this_result)
-        job_result = {'id': self.id,
+        job_result = {'id': self._id,
                       'status': api_result['status'],
                       'used_credits': api_result.get('usedCredits'),
                       'result': job_result_list}
