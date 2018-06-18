@@ -41,10 +41,10 @@ class BasePass(ABC):
 
     @property
     def requires(self):
-        """Return `requires` list"""
+        """Return ``requires`` list"""
         return self._requires
 
     @property
     def preserves(self):
-        """Return `preserves` list"""
+        """Return ``preserves`` list"""
         return self._preserves
