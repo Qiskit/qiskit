@@ -120,7 +120,7 @@ def remote_backends(compact=True):
     warnings.warn(
         "remote_backends() will be deprecated in upcoming versions (>0.5). "
         "using filters instead is recommended (i.e. available_backends({'local': False}).",
-        DeprecationWarning)   
+        DeprecationWarning)
     return available_backends({'local': False}, compact=compact)
 
 

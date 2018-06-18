@@ -14,7 +14,6 @@ import qiskit
 import qiskit._compiler
 from qiskit import Result
 from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
-from qiskit.backends.ibmq import IBMQProvider
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
 
