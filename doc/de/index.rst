@@ -17,12 +17,12 @@ Inhaltsverzeichnis
 .. toctree::
    :maxdepth: 2
 
-   install
+   Installierung <install>
    Getting started <quickstart>
    QISKit Überblick <qiskit>
-   Developer documentation <dev_introduction>
+   Dokumentation für Entwickler <dev_introduction>
    SDK Referenz <_autodoc/qiskit>
-   Release history <releases>
+   Versionsgeschichte <releases>
 
 Python Module
 =============
@@ -43,5 +43,6 @@ Autoren (alphabetisch)
 
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
 Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
-Erick Winston and Chris Wood,
-along with `many contributors <https://github.com/QISKit/qiskit-core/blob/master/CONTRIBUTORS.md>`_.
+Erick Winston und Chris Wood,
+zusammen mit vielen `weiteren Mitwirkenden <https://github
+.com/QISKit/qiskit-core/blob/master/CONTRIBUTORS.md>`_.
