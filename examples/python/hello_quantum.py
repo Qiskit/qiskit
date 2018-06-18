@@ -7,7 +7,7 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import QISKitError, available_backends, execute, register, get_backend
+from qiskit import QISKitError, available_backends, execute, register, get_backend, least_busy
 
 
 # Authenticate for access to remote backends

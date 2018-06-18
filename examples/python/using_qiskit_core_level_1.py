@@ -18,7 +18,7 @@ import pprint
 
 # Import the QISKit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError, QuantumJob
-from qiskit import available_backends, compile, register, get_backend
+from qiskit import available_backends, compile, register, get_backend, least_busy
 
 try:
     import Qconfig

@@ -18,7 +18,7 @@ import time
 
 # Import the QISKit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import available_backends, execute, register
+from qiskit import available_backends, execute, register, least_busy
 
 try:
     import Qconfig
@@ -70,7 +70,6 @@ try:
         # running the job
         job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
-        print('JOB ID: {}'.format(job_exp.status['job_id']))
         lapse = 0
         interval = 10
         while not job_exp.done:
