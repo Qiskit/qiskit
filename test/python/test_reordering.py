@@ -11,7 +11,7 @@
 
 import unittest
 import qiskit
-from qiskit.wrapper import register, available_backends, get_backend, execute
+from qiskit.wrapper import register, available_backends, execute, least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 

@@ -11,7 +11,6 @@ from IBMQuantumExperience import IBMQuantumExperience
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit import QISKitError
 
 
 class IBMQProvider(BaseProvider):

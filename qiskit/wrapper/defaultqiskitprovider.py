@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=broad-except
+
 """Meta-provider that aggregates several providers."""
 import logging
 
@@ -40,8 +42,7 @@ class DefaultQISKitProvider(BaseProvider):
 
         Args:
             filters (dict or callable): filtering conditions.
-                one or more filters to apply to each backend instance (each will either
-                pass through, or be filtered out).
+                each will either pass through, or be filtered out.
                 1) dict: {'criteria': value}
                     the criteria can be over backend's `configuration` or `status`
                     e.g. {'local': False, 'simulator': False, 'available': True}
@@ -51,6 +52,9 @@ class DefaultQISKitProvider(BaseProvider):
         Returns:
             list[BaseBackend]: a list of backend instances available
                 from all the providers.
+
+        Raises:
+            QISKitError: if passing filters that is neither dict nor callable
         """
         # pylint: disable=arguments-differ
         backends = []
@@ -61,15 +65,21 @@ class DefaultQISKitProvider(BaseProvider):
             if isinstance(filters, dict):
                 # exact match filter:
                 # e.g. {'n_qubits': 5, 'available': True}
-                for key, value in filter_.items():
-                    backends = {name: instance for name, instance in backends.items()
+                for key, value in filters.items():
+                    backends = [instance for instance in backends
                                 if instance.configuration.get(key) == value
-                                or instance.status.get(key) == value}
+                                or instance.status.get(key) == value]
             elif callable(filters):
                 # acceptor filter: accept or reject a specific backend
                 # e.g. lambda x: x.configuration['n_qubits'] > 5
-                backends = {name: instance for name, instance in backends.items()
-                            if filter_(instance) is True}
+                accepted_backends = []
+                for backend in backends:
+                    try:
+                        if filters(backend) is True:
+                            accepted_backends.append(backend)
+                    except Exception:
+                        pass
+                backends = accepted_backends
             else:
                 raise QISKitError('backend filters must be either dict or callable.')
 
