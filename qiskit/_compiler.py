@@ -125,12 +125,11 @@ def compile(circuits, backend,
 
         if skip_transpiler:  # Just return the qobj, without any transformation or analysis
             job["config"]["layout"] = None
-            job["compiled_circuit_qasm"] = circuit.qasm()
-            basis_all = "id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz," \
-                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"
-            job["compiled_circuit"] = DagUnroller(
-                DAGCircuit.fromQuantumCircuit(circuit),
-                JsonBackend(basis_all.split(','))).execute()
+            dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                            eval_symbols=True)
+            job["compiled_circuit"] = DagUnroller(dag_circuit,
+                                                  JsonBackend(dag_circuit.basis)).execute()
         else:
             if initial_layout is None and not backend.configuration['simulator']:
                 # if coupling_map is not already satisfied, pick a good initial layout
