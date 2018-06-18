@@ -8,7 +8,7 @@
 """Helper module for simplified QISKit usage."""
 
 import warnings
-import qiskit._compiler
+from qiskit import transpiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
@@ -163,10 +163,10 @@ def compile(circuits, backend,
 
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
-    return qiskit._compiler.compile(circuits, backend,
-                                    config, basis_gates, coupling_map, initial_layout,
-                                    shots, max_credits, seed, qobj_id, hpc,
-                                    skip_transpiler)
+    return transpiler.compile(circuits, backend,
+                              config, basis_gates, coupling_map, initial_layout,
+                              shots, max_credits, seed, qobj_id, hpc,
+                              skip_transpiler)
 
 
 def execute(circuits, backend,

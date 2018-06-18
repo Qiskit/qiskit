@@ -19,12 +19,12 @@ import json
 import datetime
 import numpy
 
+from qiskit.transpiler import compile_circuit
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-from qiskit._compiler import compile_circuit
 
 logger = logging.getLogger(__name__)
 
