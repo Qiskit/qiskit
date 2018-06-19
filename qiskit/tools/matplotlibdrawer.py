@@ -185,7 +185,8 @@ class MatplotlibDrawer:
 
         self._ast = None
         if ',' not in basis:
-            logger.warning('Warning: basis is not comma separated: "%s". Perhaps you set `filename` to `basis`.', basis)
+            logger.warning('Warning: basis is not comma separated: "%s". '
+                           'Perhaps you set `filename` to `basis`.', basis)
         self._basis = basis.split(',')
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
@@ -300,8 +301,9 @@ class MatplotlibDrawer:
         self.ax.plot([xpos, xpos + 0.35 * WID], [yqpos - 0.15 * HIG, yqpos + 0.20 * HIG],
                      color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         # arrow
-        self.ax.arrow(x=xpos, y=yqpos, dx=0, dy=ycpos - yqpos, width=0.01, head_width=0.2, head_length=0.2,
-                      length_includes_head=True, color=self._style.cc, zorder=PORDER_LINE)
+        self.ax.arrow(x=xpos, y=yqpos, dx=0, dy=ycpos - yqpos, width=0.01, head_width=0.2,
+                      head_length=0.2, length_includes_head=True, color=self._style.cc,
+                      zorder=PORDER_LINE)
         # target
         if self._style.bundle:
             self.ax.text(xpos + .25, ycpos + .1, str(cid), ha='left', va='bottom',
@@ -533,7 +535,8 @@ class MatplotlibDrawer:
                 param = None
 
             if 'conditional' in op.keys():
-                yc_cnds = [self._linefeed_y(self._creg_dict[v]['y'], this_anc) for v in self._creg_dict.keys()]
+                yc_cnds = [self._linefeed_y(self._creg_dict[v]['y'], this_anc)
+                           for v in self._creg_dict.keys()]
                 if self._style.bundle:
                     yc_cnds = list(set(yc_cnds))
                     for y in yc_cnds:
@@ -603,7 +606,8 @@ class MatplotlibDrawer:
                     disp = op['name'].replace('c', '')
                     self._ctrl_qubit(xpos, yqs[0])
                     if param:
-                        self._gate(xpos, yqs[1], wide=_iswide, text=disp, subtext='{}'.format(param))
+                        self._gate(xpos, yqs[1], wide=_iswide, text=disp,
+                                   subtext='{}'.format(param))
                     else:
                         self._gate(xpos, yqs[1], wide=_iswide, text=disp)
                     self.ax.plot([xpos, xpos], [yqs[0], yqs[1]],
@@ -617,7 +621,8 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(xpos, yqs[1])
                         self._subtext(xpos, min(yqs), param)
                     else:
-                        self._gate(xpos, yqs[1], wide=_iswide, text=disp, subtext='{}'.format(param))
+                        self._gate(xpos, yqs[1], wide=_iswide, text=disp,
+                                   subtext='{}'.format(param))
                     self.ax.plot([xpos, xpos], [yqs[0], yqs[1]],
                                  color=self._style.lc,
                                  linewidth=1.0,
