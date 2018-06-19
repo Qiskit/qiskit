@@ -365,8 +365,8 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
         self._draw_ops(verbose)
-        self.ax.set_xlim([-1, self._cond['xmax'] + 1])
-        self.ax.set_ylim([self._cond['ymax'] - 1, 1])
+        self.ax.set_xlim(-1, self._cond['xmax'] + 1)
+        self.ax.set_ylim(self._cond['ymax'] - 1, 1)
         # update figure size
         fig_w = abs(self._cond['xmax']) + 2
         fig_h = abs(self._cond['ymax']) + 2
@@ -428,12 +428,12 @@ class MatplotlibDrawer:
                                        zorder=PORDER_LINE)
         # classical register
         this_creg_dict = {}
-        for ii in self._creg_dict.keys():
+        for v in self._creg_dict.values():
             if self._cond['n_linefeeds'] == 0:
-                label = self._creg_dict[ii]['label'] + ' :  0 '
+                label = v['label'] + ' :  0 '
             else:
-                label = self._creg_dict[ii]['label']
-            y = self._linefeed_y(self._creg_dict[ii]['y'])
+                label = v['label']
+            y = self._linefeed_y(v['y'])
             if y not in this_creg_dict.keys():
                 this_creg_dict[y] = {'val': 1, 'label': label}
             else:
@@ -458,7 +458,7 @@ class MatplotlibDrawer:
         if self._cond['n_linefeeds'] > 0:
             self._linefeed_mark(0.1)
 
-        del pl_cxl[ii + 1:]
+        del pl_cxl[len(this_creg_dict):]
 
         return pl_qxl, pl_cxl
 
@@ -469,7 +469,9 @@ class MatplotlibDrawer:
 
         anchors = np.ones(len(self._qreg_dict))
         gate_occupied = {key: [] for key in self._qreg_dict.keys()}
-
+        this_anc = 0
+        yqs = []
+        ycs = []
         next_ops = self._ops.copy()
         next_ops.pop(0)
 
@@ -500,10 +502,8 @@ class MatplotlibDrawer:
                 else:
                     gidxs = op['qubits']
                 for gidx in gidxs:
-                    footprint = []
-                    for ii in range(dx):
-                        footprint.append(this_anc + ii)
-                    if True in list(map(lambda n: n in footprint, gate_occupied[gidx])):
+                    footprint = {this_anc + i for i in range(dx)}
+                    if any(n in footprint for n in gate_occupied[gidx]):
                         is_locatable = False
                         this_anc += 1
                         break
@@ -732,7 +732,7 @@ class MatplotlibDrawer:
             buf = ''
             for k in z:
                 val = MatplotlibDrawer.parse_numeric(k, pimode)
-                if isinstance(val, int) or isinstance(val, float):
+                if isinstance(val, (int, float)):
                     if pimode:
                         buf += MatplotlibDrawer.format_pi(val)
                     else:
@@ -804,8 +804,7 @@ class MatplotlibDrawer:
             return str(int(val))
         elif 0.1 <= abs_val < 100.0:
             return '{:.2f}'.format(val)
-        else:
-            return '{:.1e}'.format(val)
+        return '{:.1e}'.format(val)
 
     @staticmethod
     def fraction(val, base=np.pi, n=100, tol=1e-5):
