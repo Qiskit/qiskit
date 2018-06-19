@@ -21,7 +21,7 @@ Exception for errors raised by the transpiler.
 from qiskit import QISKitError
 
 
-class QISKitTranspilerError(QISKitError):
+class TranspilerError(QISKitError):
     """Exceptions raised during transpilation"""
     def __init__(self, *msg):
         """Set the error message."""

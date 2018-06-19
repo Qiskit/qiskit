@@ -8,5 +8,5 @@
 """Utils for transpiler."""
 
 from ._passmanager import PassManager
-from ._transpilererror import QISKitTranspilerError
+from ._transpilererror import TranspilerError
 from ._transpiler import compile, transpile

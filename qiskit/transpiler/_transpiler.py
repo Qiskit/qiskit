@@ -107,7 +107,15 @@ def compile(circuits, backend, pass_manager=None,
         # step 3: populate the circuit `instructions` after compilation
         # step 3a: circuit -> dag
         dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-        
+
+        # TODO: move this inside the mapper pass
+        # pick a good initial layout if coupling_map is not already satisfied
+        # otherwise keep it as q[i]->q[i]
+        if (initial_layout is None and
+            coupling_map is not None and
+            not _matches_coupling_map(circuit.data, coupling_map)):
+            initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
+
         # step 3b: transpile (dag -> dag)
         dag_circuit, final_layout = transpile(
             dag_circuit,
@@ -124,7 +132,7 @@ def compile(circuits, backend, pass_manager=None,
         # we assume that transpile() has already expanded gates
         # to the target basis, so we just need to generate json
         list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-        job["config"]["layout"] = list_layout        
+        job["config"]["layout"] = list_layout
         json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
         job["compiled_circuit"] = json_circuit
 
@@ -187,41 +195,51 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         TranspilerError: if the format is not valid.
     """
-    basis = basis_gates.split(',') if basis_gates else []
-
-    dag_unroller = DagUnroller(dag_circuit, DAGBackend(basis))
-    compiled_dag_circuit = dag_unroller.expand_gates()
     final_layout = None
-    # if a coupling map is given compile to the map
-    if coupling_map:
-        logger.info("pre-mapping properties: %s",
-                    compiled_dag_circuit.property_summary())
-        # Insert swap gates
-        coupling = Coupling(coupling_list2dict(coupling_map))
-        logger.info("initial layout: %s", initial_layout)
-        compiled_dag_circuit, final_layout = swap_mapper(
-            compiled_dag_circuit, coupling, initial_layout, trials=20, seed=seed)
-        logger.info("final layout: %s", final_layout)
-        # Expand swaps
-        dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
-        compiled_dag_circuit = dag_unroller.expand_gates()
-        # Change cx directions
-        compiled_dag_circuit = direction_mapper(compiled_dag_circuit, coupling)
-        # Simplify cx gates
-        cx_cancellation(compiled_dag_circuit)
-        # Simplify single qubit gates
-        compiled_dag_circuit = optimize_1q_gates(compiled_dag_circuit)
-        logger.info("post-mapping properties: %s",
-                    compiled_dag_circuit.property_summary())
+
+    if pass_manager:
+        # run the passes specified by the pass manager
+        for pass_ in pass_manager.passes():
+            pass_.run(dag_circuit)
+
+    else:
+        # default set of passes
+        # TODO: move each step here to a pass, and use a default passmanager below
+        basis = basis_gates.split(',') if basis_gates else []
+        dag_unroller = DagUnroller(dag_circuit, DAGBackend(basis))
+        dag_circuit = dag_unroller.expand_gates()
+        # if a coupling map is given compile to the map
+        if coupling_map:
+            logger.info("pre-mapping properties: %s",
+                        dag_circuit.property_summary())
+            # Insert swap gates
+            coupling = Coupling(coupling_list2dict(coupling_map))
+            logger.info("initial layout: %s", initial_layout)
+            dag_circuit, final_layout = swap_mapper(
+                dag_circuit, coupling, initial_layout, trials=20, seed=seed)
+            logger.info("final layout: %s", final_layout)
+            # Expand swaps
+            dag_unroller = DagUnroller(dag_circuit, DAGBackend(basis))
+            dag_circuit = dag_unroller.expand_gates()
+            # Change cx directions
+            dag_circuit = direction_mapper(dag_circuit, coupling)
+            # Simplify cx gates
+            cx_cancellation(dag_circuit)
+            # Simplify single qubit gates
+            dag_circuit = optimize_1q_gates(dag_circuit)
+            logger.info("post-mapping properties: %s",
+                        dag_circuit.property_summary())
+
     # choose output format
+    # TODO: do we need all of these formats, or just the dag?
     if format == 'dag':
-        compiled_circuit = compiled_dag_circuit
+        compiled_circuit = dag_circuit
     elif format == 'json':
-        dag_unroller = DagUnroller(compiled_dag_circuit,
-                                   JsonBackend(list(compiled_dag_circuit.basis.keys())))
+        dag_unroller = DagUnroller(dag_circuit,
+                                   JsonBackend(list(dag_circuit.basis.keys())))
         compiled_circuit = dag_unroller.execute()
     elif format == 'qasm':
-        compiled_circuit = compiled_dag_circuit.qasm()
+        compiled_circuit = dag_circuit.qasm()
     else:
         raise TranspilerError('unrecognized circuit format')
 
