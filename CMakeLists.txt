@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
-project (QISKit VERSION 0.6.0 LANGUAGES CXX)
+project (QISKit LANGUAGES CXX)
+
 
 # Verbose!!
 set(CMAKE_VERBOSE_MAKEFILE True)
+file (STRINGS "VERSION.txt" PROJECT_VERSION)
 set(QISKIT_VERSION ${PROJECT_VERSION} CACHE INTERNAL "VERSION OF QISKIT")
 
 include(cmake/defaults.cmake)

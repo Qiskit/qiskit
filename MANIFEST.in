@@ -6,3 +6,4 @@ include qiskit/backends/local/*.dll
 include CMakeLists.txt
 include cmake/*.cmake
 include setup.py.in
+include VERSION.txt
