@@ -36,7 +36,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QISKitError
 from qiskit.qasm import Qasm
 from qiskit.unroll import Unroller, JsonBackend
 
@@ -657,7 +657,7 @@ class MatplotlibDrawer:
                                      zorder=PORDER_LINE)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise RuntimeError('invalid gate {}'.format(op))
+                raise QISKitError('invalid gate {}'.format(op))
 
             # gate alignment
             if self._style.compress:
