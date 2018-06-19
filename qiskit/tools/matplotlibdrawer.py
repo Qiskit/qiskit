@@ -184,6 +184,8 @@ class MatplotlibDrawer:
                  scale=1.0, style=None):
 
         self._ast = None
+        if ',' not in basis:
+            logger.warning('Warning: basis is not comma separated: "%s". Perhaps you set `filename` to `basis`.', basis)
         self._basis = basis.split(',')
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
