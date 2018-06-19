@@ -163,10 +163,14 @@ def compile(circuits, backend,
 
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
-    return transpiler.compile(circuits, backend,
+
+    pass_manager = None  # default pass manager which executes predetermined passes
+    if skip_transpiler:  # empty pass manager which does nothing
+        pass_manager = transpiler.PassManager()
+
+    return transpiler.compile(circuits, backend, pass_manager,
                               config, basis_gates, coupling_map, initial_layout,
-                              shots, max_credits, seed, qobj_id, hpc,
-                              skip_transpiler)
+                              shots, max_credits, seed, qobj_id, hpc)
 
 
 def execute(circuits, backend,

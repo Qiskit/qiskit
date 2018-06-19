@@ -5,27 +5,20 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tools for compiling a batch of quantum circuits."""
 import logging
-
 import copy
 import uuid
-import warnings
 
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-# Stable Modules
+from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumcircuit import QuantumCircuit
-from qiskit.qasm import Qasm
-
-# Beta Modules
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend, Unroller, CircuitBackend
+from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper)
 from qiskit._gate import Gate
@@ -33,6 +26,7 @@ from qiskit._gate import Gate
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=redefined-builtin
 def compile(circuits, backend, pass_manager=None,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None):
@@ -77,7 +71,7 @@ def compile(circuits, backend, pass_manager=None,
 
     if hpc is not None and \
             not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise QISKitError('Unknown HPC parameter format!')
+        raise TranspilerError('Unknown HPC parameter format!')
 
     # step 3: populate the `circuits` in qobj, after compiling each circuit
     qobj['circuits'] = []
@@ -112,8 +106,8 @@ def compile(circuits, backend, pass_manager=None,
         # pick a good initial layout if coupling_map is not already satisfied
         # otherwise keep it as q[i]->q[i]
         if (initial_layout is None and
-            coupling_map is not None and
-            not _matches_coupling_map(circuit.data, coupling_map)):
+                not backend_conf['simulator'] and
+                not _matches_coupling_map(circuit.data, coupling_map)):
             initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
 
         # step 3b: transpile (dag -> dag)
@@ -201,7 +195,6 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # run the passes specified by the pass manager
         for pass_ in pass_manager.passes():
             pass_.run(dag_circuit)
-
     else:
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below

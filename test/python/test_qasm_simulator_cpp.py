@@ -15,10 +15,11 @@ import numpy as np
 from numpy.linalg import norm
 
 import qiskit
-from qiskit import transpiler
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.transpiler import transpile
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
@@ -44,8 +45,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = transpiler.transpile(self.qc, format='json')
-        compiled_circuit2 = transpiler.transpile(self.qasm_circ, format='json')
+        compiled_circuit1 = transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json')
+        compiled_circuit2 = transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ), format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
