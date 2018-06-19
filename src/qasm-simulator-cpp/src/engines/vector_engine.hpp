@@ -264,8 +264,8 @@ void VectorEngine::snapshot_ketform(const std::map<std::string, QubitVector>& qr
         rket_t probs_ket;
         for (const auto &val : psi_ket) {
           probs_ket[val.first] = get_probs(val.second);
-        snapshots_probs_ket[psi.first] += probs_ket;
         }
+        snapshots_probs_ket[psi.first] += probs_ket;
       }
     }
   }
