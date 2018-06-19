@@ -44,8 +44,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = transpiler.compile_circuit(self.qc, format='json')
-        compiled_circuit2 = transpiler.compile_circuit(self.qasm_circ, format='json')
+        compiled_circuit1 = transpiler.transpile(self.qc, format='json')
+        compiled_circuit2 = transpiler.transpile(self.qasm_circ, format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,

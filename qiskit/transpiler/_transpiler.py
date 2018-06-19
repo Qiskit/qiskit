@@ -33,18 +33,15 @@ from qiskit._gate import Gate
 logger = logging.getLogger(__name__)
 
 
-def compile(circuits, backend,
+def compile(circuits, backend, pass_manager=None,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
-            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, skip_translation=False):
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None):
     """Compile a list of circuits into a qobj.
-
-    FIXME THIS FUNCTION WILL BE REWRITTEN IN VERSION 0.6. It will be a thin wrapper
-    of circuit->dag, transpiler (dag -> dag) and dags-> qobj
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
         backend (BaseBackend): a backend to compile for
+        pass_manager (PassManager): a pass_manager for the transpiler stage
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
@@ -54,23 +51,13 @@ def compile(circuits, backend,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
-        skip_transpiler (bool): If True, bypass most of the compilation process and
-            creates a qobj with minimal check nor translation
-        skip_translation (bool): DEPRECATED. Use skip_transpiler instead.
 
     Returns:
         obj: the qobj to be run on the backends
 
     Raises:
-        QISKitError: if any of the circuit names cannot be found on the
-            Quantum Program.
+        TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
-    if skip_translation:
-        warnings.warn(
-            "skip_translation will be called skip_transpiler in future versions.",
-            DeprecationWarning)
-        skip_transpiler = True
-
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
@@ -78,8 +65,12 @@ def compile(circuits, backend,
     backend_name = backend_conf['name']
 
     qobj = {}
+
+    # step 1: populate the qobj-level `id`
     qobj_id = qobj_id or str(uuid.uuid4())
     qobj['id'] = qobj_id
+
+    # step 2: populate the qobj-level `config`
     qobj['config'] = {'max_credits': max_credits,
                       'shots': shots,
                       'backend_name': backend_name}
@@ -88,92 +79,75 @@ def compile(circuits, backend,
             not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
         raise QISKitError('Unknown HPC parameter format!')
 
+    # step 3: populate the `circuits` in qobj, after compiling each circuit
     qobj['circuits'] = []
     if not basis_gates:
-        if 'basis_gates' in backend_conf:
-            basis_gates = backend_conf['basis_gates']
-    if len(basis_gates.split(',')) < 2:
-        # catches deprecated basis specification like 'SU2+CNOT'
-        logger.warning('encountered deprecated basis specification: '
-                       '"%s" substituting u1,u2,u3,cx,id', str(basis_gates))
-        basis_gates = 'u1,u2,u3,cx,id'
+        basis_gates = backend_conf['basis_gates']
     if not coupling_map:
         coupling_map = backend_conf['coupling_map']
 
     for circuit in circuits:
-        num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
-        # TODO: A better solution is to have options to enable/disable optimizations
-        if num_qubits == 1:
-            coupling_map = None
-        if coupling_map == 'all-to-all':
-            coupling_map = None
-
-        # making the job to be added to qobj
         job = {}
+
+        # step 1: populate the circuit-level `name`
         job["name"] = circuit.name
-        # config parameters used by the runner
+
+        # step 2: populate the circuit-level `config`
         if config is None:
-            config = {}  # default to empty config dict
+            config = {}
         job["config"] = copy.deepcopy(config)
+        # TODO: A better solution is to have options to enable/disable optimizations
+        num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+        if num_qubits == 1 or coupling_map == "all-to-all":
+            coupling_map = None
         job["config"]["coupling_map"] = coupling_map
-        # TODO: Jay: make config options optional for different backends
         job["config"]["basis_gates"] = basis_gates
-        if seed is None:
-            job["config"]["seed"] = None
-        else:
-            job["config"]["seed"] = seed
+        job["config"]["seed"] = seed
 
-        if skip_transpiler:  # Just return the qobj, without any transformation or analysis
-            job["config"]["layout"] = None
-            dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                            eval_symbols=True)
-            job["compiled_circuit"] = DagUnroller(dag_circuit,
-                                                  JsonBackend(dag_circuit.basis)).execute()
-        else:
-            if initial_layout is None and not backend.configuration['simulator']:
-                # if coupling_map is not already satisfied, pick a good initial layout
-                # otherwise leave as q[i]->q[i]
-                if not _matches_coupling_map(circuit.data, backend.configuration['coupling_map']):
-                    initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
+        # step 3: populate the circuit `instructions` after compilation
+        # step 3a: circuit -> dag
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+        
+        # step 3b: transpile (dag -> dag)
+        dag_circuit, final_layout = transpile(
+            dag_circuit,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            initial_layout=initial_layout,
+            get_layout=True,
+            pass_manager=pass_manager,
+            seed=seed)
 
-            dag_circuit, final_layout = compile_circuit(
-                circuit,
-                basis_gates=basis_gates,
-                coupling_map=coupling_map,
-                initial_layout=initial_layout,
-                get_layout=True)
-            # Map the layout to a format that can be json encoded
-            list_layout = None
-            if final_layout:
-                list_layout = [[k, v] for k, v in final_layout.items()]
-            job["config"]["layout"] = list_layout
+        # step 3c: dag -> json
+        # TODO: populate the Qobj object when Qobj class exists
+        # the compiled circuit to be run saved as a dag
+        # we assume that transpile() has already expanded gates
+        # to the target basis, so we just need to generate json
+        list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
+        job["config"]["layout"] = list_layout        
+        json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
+        job["compiled_circuit"] = json_circuit
 
-            # the compiled circuit to be run saved as a dag
-            # we assume that compile_circuit has already expanded gates
-            # to the target basis, so we just need to generate json
-            json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-            job["compiled_circuit"] = json_circuit
-            # set eval_symbols=True to evaluate each symbolic expression
-            # TODO after transition to qobj, we can drop this
-            job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                            eval_symbols=True)
+        # set eval_symbols=True to evaluate each symbolic expression
+        # TODO after transition to qobj, we can drop this
+        job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                        eval_symbols=True)
+
         # add job to the qobj
         qobj["circuits"].append(job)
+
     return qobj
 
 
-def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layout=None, get_layout=False, format='dag', seed=None):
-    """Compile the circuit.
-
-    This builds the internal "to execute" list which is list of quantum
-    circuits to run on different backends.
+def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+              initial_layout=None, get_layout=False, pass_manager=None,
+              format='dag', seed=None):
+    """Transcompile (transpile) a dag circuit to another dag circuit, through
+    consecutive passes on the dag.
 
     Args:
-        quantum_circuit (QuantumCircuit): circuit to compile
-        basis_gates (str): a comma seperated string and are the base gates,
-                           which by default are: u1,u2,u3,cx,id
+        dag_circuit (DAGCircuit): dag circuit to transform via transpilation
+        basis_gates (str): a comma seperated string for the target basis gates
         coupling_map (list): A graph of coupling::
 
             [
@@ -196,7 +170,11 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
-        get_layout (bool): flag for returning the layout.
+        get_layout (bool): flag for returning the layout
+        pass_manager (PassManager): pass manager instance for the tranpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
         seed (int): random seed for simulators
@@ -207,12 +185,11 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
             second element being the layout.
 
     Raises:
-        QISKitCompilerError: if the format is not valid.
+        TranspilerError: if the format is not valid.
     """
-    compiled_dag_circuit = DAGCircuit.fromQuantumCircuit(quantum_circuit)
     basis = basis_gates.split(',') if basis_gates else []
 
-    dag_unroller = DagUnroller(compiled_dag_circuit, DAGBackend(basis))
+    dag_unroller = DagUnroller(dag_circuit, DAGBackend(basis))
     compiled_dag_circuit = dag_unroller.expand_gates()
     final_layout = None
     # if a coupling map is given compile to the map
@@ -246,29 +223,11 @@ def compile_circuit(quantum_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=
     elif format == 'qasm':
         compiled_circuit = compiled_dag_circuit.qasm()
     else:
-        raise QISKitCompilerError('unrecognized circuit format')
+        raise TranspilerError('unrecognized circuit format')
 
     if get_layout:
         return compiled_circuit, final_layout
     return compiled_circuit
-
-
-def load_unroll_qasm_file(filename, basis_gates='u1,u2,u3,cx,id'):
-    """Load qasm file and return unrolled circuit
-
-    XXX HOW IS THIS FUNCTION USED. COPIED FROM OPENQUANTUMCOMPILER
-
-    Args:
-        filename (str): a string for the filename including its location.
-        basis_gates (str): basis to unroll circuit to.
-    Returns:
-        object: Returns a unrolled QuantumCircuit object
-    """
-    # create Program object Node (AST)
-    node_circuit = Qasm(filename=filename).parse()
-    node_unroller = Unroller(node_circuit, CircuitBackend(basis_gates.split(",")))
-    circuit_unrolled = node_unroller.execute()
-    return circuit_unrolled
 
 
 def _best_subset(backend, n_qubits):
@@ -364,8 +323,3 @@ def _pick_best_layout(backend, num_qubits, qregs):
             layout[(key, i)] = ('q', best_sub[map_iter])
             map_iter += 1
     return layout
-
-
-class QISKitCompilerError(QISKitError):
-    """Exceptions raised during compilation"""
-    pass
