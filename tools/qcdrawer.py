@@ -54,7 +54,7 @@ def main():
         with open(args.json, 'w') as outfile:
             json.dump(drawer.ast, outfile, sort_keys=True, indent=2)
     # draw quantum circuit
-    drawer.draw(args.out)
+    drawer.draw(args.out, verbose=args.verbose)
 
 
 if __name__ == '__main__':

@@ -726,12 +726,15 @@ class MatplotlibDrawer:
             z = e.split(',')
             buf = ''
             for k in z:
-                val = MatplotlibDrawer.parse_numeric(k)
+                val = MatplotlibDrawer.parse_numeric(k, pimode)
                 if isinstance(val, int) or isinstance(val, float):
                     if pimode:
                         buf += MatplotlibDrawer.format_pi(val)
                     else:
                         buf += MatplotlibDrawer.format_numeric(val)
+                elif '\\pi' in val:
+                    t = val.split()  # `val` is in a form '{coef} \\pi' or '- {coef} \\pi'
+                    buf += MatplotlibDrawer.format_numeric(''.join(t[:-1])) + t[-1]
                 else:
                     buf += val
             v[i] = buf
@@ -742,7 +745,7 @@ class MatplotlibDrawer:
         return param
 
     @staticmethod
-    def parse_numeric(k):
+    def parse_numeric(k, pimode=False):
         # parse a string and return number or string
         f = 0.0
         is_numeric = False
@@ -750,11 +753,16 @@ class MatplotlibDrawer:
             f = float(k)
             is_numeric = True
         except ValueError:
-            if '\\pi' in k:
+            if pimode and '\\pi' in k:
                 if k == '\\pi':
                     f = np.pi
+                    is_numeric = True
+                elif k == '- \\pi':
+                    f = -np.pi
+                    is_numeric = True
                 else:
-                    _k = re.sub(r'\\pi', '', k)
+                    _k = re.sub(r' ', '', k)
+                    _k = re.sub(r'\\pi', '', _k)
                     try:
                         f = float(_k) * np.pi
                         is_numeric = True
@@ -782,6 +790,10 @@ class MatplotlibDrawer:
 
     @staticmethod
     def format_numeric(val, tol=1e-5):
+        try:
+            val = float(val)
+        except ValueError:
+            return val
         abs_val = abs(val)
         if isclose(fmod(abs_val, 1.0), 0.0, abs_tol=tol) and 0.0 <= abs_val < 10000.0:
             return str(int(val))
