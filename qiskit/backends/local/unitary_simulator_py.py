@@ -141,26 +141,25 @@ class UnitarySimulatorPy(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q_0, q_1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run q_job. This is a blocking call.
+    def _run_job(self, qobj):
+        """Run qobj. This is a blocking call.
 
         Args:
-            q_job (QuantumJob): job to run
+            qobj (dict): job description
         Returns:
             Result: Result object
         """
-        qobj = q_job.qobj
         result_list = []
         for circuit in qobj['circuits']:
             result_list.append(self.run_circuit(circuit))
