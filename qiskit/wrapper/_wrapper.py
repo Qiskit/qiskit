@@ -12,7 +12,6 @@ import qiskit._compiler
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-from qiskit import QuantumJob
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
@@ -206,10 +205,7 @@ def execute(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,
                    skip_transpiler)
-    # XXX When qobj is done this should replace q_job
-    q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-        'max_credits': qobj['config']['max_credits']})
-    return backend.run(q_job)
+    return backend.run(qobj)
 
 
 # Functions for importing qasm

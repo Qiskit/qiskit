@@ -11,7 +11,6 @@
 
 import unittest
 import qiskit
-from qiskit import QuantumJob
 from qiskit.wrapper import register, available_backends, get_backend
 import qiskit._compiler
 from .common import requires_qe_access, QiskitTestCase, slow_test
@@ -52,12 +51,8 @@ class TestBitReordering(QiskitTestCase):
         shots = 2000
         qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
         qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
-        q_job_real = QuantumJob(qobj_real, backend=real, preformatted=True,
-                                shots=shots)
-        q_job_sim = QuantumJob(qobj_sim, backend=sim, preformatted=True,
-                               shots=shots)
-        result_real = real.run(q_job_real).result(timeout=600)
-        result_sim = sim.run(q_job_sim).result(timeout=600)
+        result_real = real.run(qobj_real).result(timeout=600)
+        result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
         counts_sim = result_sim.get_counts()
         self.log.info(counts_real)
@@ -99,12 +94,8 @@ class TestBitReordering(QiskitTestCase):
         shots = 4000
         qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
         qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
-        q_job_real = QuantumJob(qobj_real, backend=real, preformatted=True,
-                                shots=shots)
-        q_job_sim = QuantumJob(qobj_sim, backend=sim, preformatted=True,
-                               shots=shots)
-        result_real = real.run(q_job_real).result(timeout=600)
-        result_sim = sim.run(q_job_sim).result(timeout=600)
+        result_real = real.run(qobj_real).result(timeout=600)
+        result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
         counts_sim = result_sim.get_counts()
         threshold = 0.2 * shots

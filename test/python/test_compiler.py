@@ -22,7 +22,7 @@ from .common import requires_qe_access, QiskitTestCase
 def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
     by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: x.status['pending_jobs'])
+                             key=lambda x: x.status['pending_jobs'])	
     return by_pending_jobs[0]
 
 
@@ -96,8 +96,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
     def test_compile_two_run(self):
@@ -116,8 +115,7 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
     def test_execute(self):
@@ -216,8 +214,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile(qc, backend)
-        job = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                            preformatted=True))
+        job = backend.run(qobj)
         result = job.result(timeout=20)
         self.assertIsInstance(result, Result)
 
@@ -238,8 +235,7 @@ class TestCompiler(QiskitTestCase):
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        job = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                            preformatted=True))
+        job = backend.run(qobj)
         result = job.result()
         self.assertIsInstance(result, Result)
 

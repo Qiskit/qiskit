@@ -20,7 +20,6 @@ from ._classicalregister import ClassicalRegister
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
-from ._quantumjob import QuantumJob
 from ._quantumregister import QuantumRegister
 from .mapper import coupling_dict2list
 from .qasm import Qasm
@@ -1122,9 +1121,7 @@ class QuantumProgram(object):
         job_list = []
         for qobj in qobj_list:
             backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
-            q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-                'max_credits': qobj['config']['max_credits']})
-            job = backend.run(q_job)
+            job = backend.run(qobj)
             job_list.append(job)
         return job_list
 
