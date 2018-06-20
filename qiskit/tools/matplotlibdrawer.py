@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # -----------------------------------------------------------------------------
+# pylint: disable=invalid-name
+# -----------------------------------------------------------------------------
 #
 # Quantum circuit drawer based on matplotlib:
 # A drop-in replacement of latex_drawer.
@@ -468,7 +470,7 @@ class MatplotlibDrawer:
         _barriers = []
 
         anchors = np.ones(len(self._qreg_dict))
-        gate_occupied = {key: [] for key in self._qreg_dict.keys()}
+        gate_occupied = {key: [] for key in self._qreg_dict}
         this_anc = 0
         yqs = []
         ycs = []
@@ -481,7 +483,7 @@ class MatplotlibDrawer:
                 anc = [anchors[v] for v in op['qubits']]
             else:
                 continue
-            if len(_barriers) > 0:
+            if _barriers:
                 this_anc = max(this_anc, max(anc))
             else:
                 this_anc = max(anc)
@@ -536,7 +538,7 @@ class MatplotlibDrawer:
 
             if 'conditional' in op.keys():
                 yc_cnds = [self._linefeed_y(self._creg_dict[v]['y'], this_anc)
-                           for v in self._creg_dict.keys()]
+                           for v in self._creg_dict]
                 if self._style.bundle:
                     yc_cnds = list(set(yc_cnds))
                     for y in yc_cnds:
@@ -671,16 +673,14 @@ class MatplotlibDrawer:
                 for v in op['qubits']:
                     anchors[v] = this_anc + dx
                 if op['name'] in _force_next or 'conditional' in op.keys():
-                    for key in self._qreg_dict.keys():
-                        for ii in range(dx):
-                            gate_occupied[key].append(this_anc + ii)
+                    for key in self._qreg_dict:
+                        gate_occupied[key].extend([this_anc + ii for ii in range(dx)])
                 else:
                     for key, qdc in self._qreg_dict.items():
                         if min(yqs) <= self._linefeed_y(qdc['y'], this_anc) <= max(yqs):
-                            for ii in range(dx):
-                                gate_occupied[key].append(this_anc + ii)
+                            gate_occupied[key].extend([this_anc + ii for ii in range(dx)])
             else:
-                for v in range(len(anchors)):
+                for v in range(anchors.shape[0]):
                     anchors[v] = this_anc + dx
 
         if self._cond['n_linefeeds'] > 0:
