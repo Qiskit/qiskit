@@ -38,4 +38,5 @@ from .wrapper._wrapper import (available_backends, execute, register, get_backen
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
-__version__ = '0.6.0'
+with open("VERSION.txt", "r") as version_file:
+    __version__ = version_file.readlines()
