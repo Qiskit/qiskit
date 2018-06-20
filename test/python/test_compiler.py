@@ -216,8 +216,9 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
         qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        job = backend.run(qiskit.QuantumJob(qobj, backend=backend,
+                                            preformatted=True))
+        result = job.result(timeout=20)
         self.assertIsInstance(result, Result)
 
     @requires_qe_access

@@ -19,7 +19,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
@@ -66,14 +66,14 @@ class DummySimulator(BaseBackend):
     def run(self, q_job):
         return DummyJob(self.run_job, q_job)
 
+    # pylint: disable=unused-argument
     def run_job(self, q_job):
         """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
 
         time.sleep(self.time_alive)
 
-        return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'}, qobj)
+        return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
 class DummyJob(BaseJob):
