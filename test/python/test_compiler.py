@@ -22,7 +22,7 @@ from .common import requires_qe_access, QiskitTestCase
 def lowest_pending_jobs(list_of_backends):
     """Returns the backend with lowest pending jobs."""
     by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: x.status['pending_jobs'])	
+                             key=lambda x: x.status['pending_jobs'])
     return by_pending_jobs[0]
 
 
