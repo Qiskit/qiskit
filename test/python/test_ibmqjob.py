@@ -12,6 +12,7 @@
 import unittest
 import time
 from concurrent import futures
+import datetime
 import numpy
 from scipy.stats import chi2_contingency
 
@@ -281,6 +282,46 @@ class TestIBMQJob(QiskitTestCase):
         backends = self._provider.available_backends({'simulator': False})
         backend = lowest_pending_jobs(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
+
+    def test_get_jobs_filter_job_status(self):
+        backends = self._provider.available_backends()
+        backend = lowest_pending_jobs(backends)
+        job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.result()._result['status'])
+            self.assertTrue(job.status['status'] == JobStatus.DONE)
+
+    def test_get_jobs_filter_counts(self):
+        # TODO: consider generalizing backend name
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        my_filter = {'backend.name': 'ibmq_qasm_simulator',
+                     'shots': 1024,
+                     'qasms.result.data.counts.00': {'lt': 500}}
+        self.log.info('searching for at most 5 jobs with 1024 shots, a count '
+                      'for "00" of < 500, on the ibmq_qasm_simulator backend')
+        job_list = backend.jobs(limit=5, skip=0, filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d', i)
+            result = job.result()
+            self.assertTrue(any(cresult['data']['counts']['00'] < 500
+                                for cresult in result._result['result']))
+            for circuit_name in result.get_names():
+                self.log.info('\tcircuit_name: %s', circuit_name)
+                counts = result.get_counts(circuit_name)
+                self.log.info('\t%s', str(counts))
+
+    def test_get_jobs_filter_date(self):
+        backends = self._provider.available_backends()
+        backend = lowest_pending_jobs(backends)
+        past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
+        my_filter = {'creationDate': {'lt': past_day_30.isoformat()}}
+        job_list = backend.jobs(limit=5, filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.creation_date)
+            #self.assertTrue(job.status['status'] == JobStatus.DONE)
 
 
 if __name__ == '__main__':

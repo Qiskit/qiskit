@@ -15,6 +15,7 @@ from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends import JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -141,18 +142,50 @@ class IBMQBackend(BaseBackend):
                 "Couldn't get backend status: {0}".format(ex))
         return status
 
-    def jobs(self, limit=50, skip=0):
+    def jobs(self, limit=50, skip=0, status=None, filter=None):
         """Attempt to get the jobs submitted to the backend
 
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
+            status (None or JobStatus or str): only get jobs with this status,
+                where status is e.g. JobStatus.RUNNING or 'RUNNING'
+            filter (dict): Loopback REST filter. The format is described at 
+                https://loopback.io/doc/en/lb2/Querying-data.html#using-stringified-json-in-rest-queries        
         Returns:
             list(IBMQJob): list of IBMQJob instances
+
+        Raises:
+            ValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
+        api_filter = {}
+        if status:
+            if isinstance(status, str):
+                status = JobStatus[status]
+            if status == JobStatus.RUNNING:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue': {'exists': False}}
+                api_filter = {**api_filter, **this_filter}
+            elif status == JobStatus.QUEUED:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue.status': 'PENDING_IN_QUEUE'}
+                api_filter = {**api_filter, **this_filter}
+            elif status == JobStatus.CANCELLED:
+                this_filter = {'status': 'CANCELLED'}
+            elif status == JobStatus.DONE:
+                this_filter = {'status': 'COMPLETED'}
+            elif status == JobStatus.ERROR:
+                this_filter = {'status': {'regexp': '^ERROR'}}
+            else:
+                raise ValueError('unrecongized value for "status" keyword '
+                                 'in job filter')
+        if filter:
+            # status takes precendence over filter for same keys
+            api_filter = {**filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
-                                           backend=backend_name)
+                                           backend=backend_name,
+                                           filter=api_filter)
         job_list = []
         for job_info in job_info_list:
             is_device = not bool(self._configuration.get('simulator'))
