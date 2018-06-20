@@ -111,6 +111,7 @@ class TestBackends(QiskitTestCase):
         remotes = ibmq_provider.available_backends({'local': False})
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
+            self.log.info(backend.status)
             status = backend.status
             schema_path = self._get_resource_path(
                 'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)

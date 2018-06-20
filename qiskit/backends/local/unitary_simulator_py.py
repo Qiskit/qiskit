@@ -166,8 +166,7 @@ class UnitarySimulatorPy(BaseBackend):
             result_list.append(self.run_circuit(circuit))
         job_id = str(uuid.uuid4())
         return Result(
-            {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-            qobj)
+            {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'})
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
@@ -175,6 +174,7 @@ class UnitarySimulatorPy(BaseBackend):
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         result = {}
         result['data'] = {}
+        result['name'] = circuit.get('name')
         self._unitary_state = np.identity(2**(self._number_of_qubits),
                                           dtype=complex)
         for operation in ccircuit['operations']:
