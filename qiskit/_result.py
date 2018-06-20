@@ -24,7 +24,6 @@ class Result(object):
 
     Internal::
 
-        qobj =  { -- the quantum object that was complied --}
         result = {
             "job_id": --job-id (string),
                       #This string links the result with the job that computes it,
@@ -45,9 +44,8 @@ class Result(object):
             }
     """
 
-    def __init__(self, qobj_result, qobj):
+    def __init__(self, qobj_result):
         self._result = qobj_result
-        self._qobj = qobj
 
     def __str__(self):
         """Get the status of the run.
@@ -73,29 +71,19 @@ class Result(object):
         Raises:
             QISKitError: if the Results cannot be combined.
         """
-        # TODO: reevaluate if moving equality to Backend themselves (part of
+        # todo: reevaluate if moving equality to Backend themselves (part of
         # a bigger problem - backend instances will not persist between
         # sessions)
-        my_config = copy.deepcopy(self._qobj['config'])
-        other_config = copy.deepcopy(other._qobj['config'])
-        my_backend = my_config.pop('backend_name')
-        other_backend = other_config.pop('backend_name')
-
-        if my_config == other_config and my_backend == other_backend:
-            if isinstance(self._qobj['id'], str):
-                self._qobj['id'] = [self._qobj['id']]
-            self._qobj['id'].append(other._qobj['id'])
-            self._qobj['circuits'] += other._qobj['circuits']
+        this_backend = self._result.get('backend_name')
+        other_backend = other._result.get('backend_name')
+        if this_backend == other_backend:
             self._result['result'] += other._result['result']
             return self
         else:
-            raise QISKitError('Result objects have different configs and cannot be combined.')
+            raise QISKitError('Result objects from different backends cannot be combined.')
 
     def __add__(self, other):
         """Combine Result objects.
-
-        Note that the qobj id of the returned result will be the same as the
-        first result.
 
         Arg:
             other (Result): a Result object to combine.
@@ -110,7 +98,7 @@ class Result(object):
         return self._result['status'] == 'ERROR'
 
     def get_status(self):
-        """Return whole qobj result status."""
+        """Return whole result status."""
         return self._result['status']
 
     def circuit_statuses(self):
@@ -152,10 +140,9 @@ class Result(object):
             QISKitError: if the circuit was not found.
         """
         try:
-            qobj = self._qobj
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
+            for exp_result in self._result['result']:
+                if exp_result.get('name') == name:
+                    return exp_result['compiled_circuit_qasm']
         except KeyError:
             pass
         raise QISKitError('No  qasm for circuit "{0}"'.format(name))
@@ -211,9 +198,8 @@ class Result(object):
             circuit = circuit.name
 
         if circuit is None:
-            circuits = list([i['name'] for i in self._qobj['circuits']])
-            if len(circuits) == 1:
-                circuit = circuits[0]
+            if len(self._result['result']) == 1:
+                return self._result['result'][0]['data']
             else:
                 raise QISKitError("You have to select a circuit when there is more than"
                                   "one available")
@@ -221,10 +207,9 @@ class Result(object):
         if not isinstance(circuit, str):
             circuit = str(circuit)
         try:
-            qobj = self._qobj
-            for index in range(len(qobj['circuits'])):
-                if qobj['circuits'][index]['name'] == circuit:
-                    return self._result['result'][index]['data']
+            for circuit_result in self._result['result']:
+                if circuit_result.get('name') == circuit:
+                    return circuit_result['data']
         except (KeyError, TypeError):
             pass
         raise QISKitError('No data for circuit "{0}"'.format(circuit))
@@ -365,7 +350,7 @@ class Result(object):
         Returns:
             List: A list of circuit names.
         """
-        return [c['name'] for c in self._qobj['circuits']]
+        return [c.get('name') for c in self._result['result']]
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -390,12 +375,13 @@ class Result(object):
                 temp += counts[key] * observable[key] / tot
         return temp
 
-    def get_qubitpol_vs_xval(self, xvals_dict=None):
+    def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
         """Compute the polarization of each qubit for all circuits and pull out each circuits
         xval into an array. Assumes that each circuit has the same number of qubits and that
         all qubits are measured.
 
         Args:
+            nqubits (int): number of qubits
             xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
             is none then the xvals list is just left as an array of zeros
 
@@ -403,9 +389,8 @@ class Result(object):
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self._qobj['circuits'])
+        ncircuits = len(self._result['result'])
         # Is this the best way to get the number of qubits?
-        nqubits = self._qobj['circuits'][0]['compiled_circuit']['header']['number_of_qubits']
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
 
@@ -421,10 +406,11 @@ class Result(object):
 
         # go through each circuit and for eqch qubit and apply the operators using "average_data"
         for circuit_ind in range(ncircuits):
+            circuit_name = self._result['result'][circuit_ind]['name']
             if xvals_dict:
-                xvals[circuit_ind] = xvals_dict[self._qobj['circuits'][circuit_ind]['name']]
+                xvals[circuit_ind] = xvals_dict[circuit_name]
             for qubit_ind in range(nqubits):
                 qubitpol[circuit_ind, qubit_ind] = self.average_data(
-                    self._qobj['circuits'][circuit_ind]['name'], z_dicts[qubit_ind])
+                    circuit_name, z_dicts[qubit_ind])
 
         return qubitpol, xvals
