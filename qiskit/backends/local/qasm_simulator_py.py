@@ -290,7 +290,7 @@ class QasmSimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
-        return Result(result, qobj)
+        return Result(result)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.

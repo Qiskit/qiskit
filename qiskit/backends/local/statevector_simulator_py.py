@@ -79,7 +79,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             # Remove snapshot dict if empty
             if snapshots == {}:
                 res['data'].pop('snapshots', None)
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

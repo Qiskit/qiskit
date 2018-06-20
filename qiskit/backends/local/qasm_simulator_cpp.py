@@ -78,7 +78,7 @@ class QasmSimulatorCpp(BaseBackend):
         qobj = q_job.qobj
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
@@ -147,7 +147,7 @@ class CliffordSimulatorCpp(BaseBackend):
             qobj['config'] = {'simulator': 'clifford'}
 
         result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self):
         return
