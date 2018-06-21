@@ -89,7 +89,11 @@ class DefaultQISKitProvider(BaseProvider):
 
         Args:
             provider (BaseProvider): Provider instance.
-            provider_name (str): User name for the provider.
+            provider_name (str): User-provided name for the provider.
+
+        Returns:
+            BaseProvider: the provider instance.
+
         Raises:
             QISKitError: if a provider with the same name is already in the
                 list.
@@ -101,14 +105,16 @@ class DefaultQISKitProvider(BaseProvider):
 
         self.providers[provider_name] = provider
 
+        return provider
+
     def add_ibmq_provider(self, credentials_dict, provider_name=None):
         """
         Add a new IBMQProvider to the list of known providers.
 
         Args:
             credentials_dict (dict): dictionary of credentials for a provider.
-            provider_name (str): User name for the provider. A name will
-                automatically
+            provider_name (str): User-provided name for the provider. A name
+                will automatically be assigned if possible.
         Raises:
             QISKitError: if a provider with the same name is already in the
                 list; or if a provider name could not be assigned.

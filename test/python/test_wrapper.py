@@ -12,6 +12,7 @@
 import unittest
 
 import qiskit.wrapper
+from qiskit.wrapper import registered_providers
 from qiskit import QISKitError
 from .common import QiskitTestCase, requires_qe_access
 from .test_backends import remove_backends_from_list
@@ -49,44 +50,47 @@ class TestWrapper(QiskitTestCase):
     def test_register_twice(self, QE_TOKEN, QE_URL, hub, group, project):
         """Test double registration of the same credentials."""
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
+        initial_providers = registered_providers()
         with self.assertRaises(QISKitError):
             qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
+        self.assertCountEqual(initial_providers, registered_providers())
 
     @requires_qe_access
-    def test_register_twice_different_names(self, QE_TOKEN, QE_URL,
-                                            hub, group, project):
+    def test_register_twice_with_different_names(self, QE_TOKEN, QE_URL,
+                                                 hub, group, project):
         """Test double registration of same credentials but different names."""
+        initial_providers = registered_providers()
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project,
                                 provider_name='provider1')
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project,
                                 provider_name='provider2')
-        self.assertEqual(['local', 'provider1', 'provider2'],
-                         sorted(qiskit.wrapper.registered_providers()))
+        self.assertCountEqual(initial_providers + ['provider1', 'provider2'],
+                              registered_providers())
 
     def test_register_unknown_name(self):
         """Test registering a provider with not explicit name."""
+        initial_providers = registered_providers()
         with self.assertRaises(QISKitError):
             qiskit.wrapper.register('FAKE_TOKEN', 'http://unknown')
-        self.assertEqual(['local'],
-                         sorted(qiskit.wrapper.registered_providers()))
+        self.assertEqual(initial_providers, registered_providers())
 
     @requires_qe_access
     def test_unregister(self, QE_TOKEN, QE_URL, hub, group, project):
         """Test unregistering."""
+        initial_providers = registered_providers()
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project,
                                 provider_name='provider1')
-        self.assertEqual(['local', 'provider1'],
-                         sorted(qiskit.wrapper.registered_providers()))
+        self.assertCountEqual(initial_providers + ['provider1'],
+                              registered_providers())
         qiskit.wrapper.unregister('provider1')
-        self.assertEqual(['local'],
-                         sorted(qiskit.wrapper.registered_providers()))
+        self.assertEqual(initial_providers, registered_providers())
 
     def test_unregister_non_existent(self):
         """Test unregistering a non existent provider."""
+        initial_providers = registered_providers()
         with self.assertRaises(QISKitError):
             qiskit.wrapper.unregister('provider1')
-        self.assertEqual(['local'],
-                         sorted(qiskit.wrapper.registered_providers()))
+        self.assertEqual(initial_providers, registered_providers())
 
 
 if __name__ == '__main__':

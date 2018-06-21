@@ -37,7 +37,8 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
             proxies (dict): Proxy configuration for the API, as a dict with
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
-            provider_name (str): the user name for the registered provider.
+            provider_name (str): the user-provided name for the registered
+                provider.
     Raises:
         QISKitError: if the provider name is not recognized.
     """
@@ -63,7 +64,7 @@ def unregister(provider_name):
 
 def registered_providers():
     """Return the names of the currently registered providers."""
-    return _DEFAULT_PROVIDER.providers.keys()
+    return list(_DEFAULT_PROVIDER.providers.keys())
 
 
 # Functions for inspecting and retrieving backends.
