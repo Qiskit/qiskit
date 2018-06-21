@@ -126,13 +126,22 @@ class IBMQJob(BaseJob):
                 raise IBMQJobError('error submitting job: {}'.format(
                     repr(self._future_submit.exception())))
             time.sleep(0.1)
-        this_result = self._wait_for_job(timeout=timeout, wait=wait)
+        try:
+            this_result = self._wait_for_job(timeout=timeout, wait=wait)
+        except TimeoutError as err:
+            # A timeout error retrieving the results does not imply the job
+            # is failing. The job can be still running.
+            return Result({'id': self._id, 'status': 'ERROR',
+                           'result': str(err)})
+
         if self._is_device and self.done:
             _reorder_bits(this_result)
-        if this_result.get_status() == 'ERROR':
-            self._status = JobStatus.ERROR
-        else:
-            self._status = JobStatus.DONE
+
+        if self._status not in self._final_states:
+            if this_result.get_status() == 'ERROR':
+                self._status = JobStatus.ERROR
+            else:
+                self._status = JobStatus.DONE
         return this_result
 
     def cancel(self):
@@ -142,7 +151,7 @@ class IBMQJob(BaseJob):
             bool: True if job can be cancelled, else False.
 
         Raises:
-            QISKitError: if server returned error
+            IBMQJobError: if server returned error
         """
         if self._is_commercial:
             hub = self._api.config['hub']
@@ -151,8 +160,9 @@ class IBMQJob(BaseJob):
             response = self._api.cancel_job(self._id, hub, group, project)
             if 'error' in response:
                 err_msg = response.get('error', '')
-                self._exception = QISKitError('Error cancelling job: %s' % err_msg)
-                raise QISKitError('Error canceelling job: %s' % err_msg)
+                error = IBMQJobError('Error cancelling job: %s' % err_msg)
+                self._exception = error
+                raise error
             else:
                 self._cancelled = True
                 return True
@@ -210,6 +220,7 @@ class IBMQJob(BaseJob):
         elif api_job['status'] == 'CANCELLED':
             self._status = JobStatus.CANCELLED
             self._status_msg = self._status.value
+            self._cancelled = True
 
         elif 'ERROR' in api_job['status']:
             # ERROR_CREATING_JOB or ERROR_RUNNING_JOB
@@ -405,15 +416,15 @@ class IBMQJob(BaseJob):
 
         Raises:
             QISKitError: job didn't return status or reported error in status
+            TimeoutError: if the job does not return results before an
+            specified timeout.
         """
         start_time = time.time()
         api_result = self._update_status()
         while self._status not in self._final_states:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                job_result = {'id': self._id, 'status': 'ERROR',
-                              'result': 'QISkit Time Out'}
-                return Result(job_result)
+                raise TimeoutError('QISKit timed out')
             logger.info('status = %s (%d seconds)', api_result['status'],
                         elapsed_time)
 
