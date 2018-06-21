@@ -300,7 +300,7 @@ class TestIBMQJob(QiskitTestCase):
                      'qasms.result.data.counts.00': {'lt': 500}}
         self.log.info('searching for at most 5 jobs with 1024 shots, a count '
                       'for "00" of < 500, on the ibmq_qasm_simulator backend')
-        job_list = backend.jobs(limit=5, skip=0, filter=my_filter)
+        job_list = backend.jobs(limit=5, skip=0, db_filter=my_filter)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d', i)
@@ -317,11 +317,11 @@ class TestIBMQJob(QiskitTestCase):
         backend = lowest_pending_jobs(backends)
         past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
         my_filter = {'creationDate': {'lt': past_day_30.isoformat()}}
-        job_list = backend.jobs(limit=5, filter=my_filter)
+        job_list = backend.jobs(limit=5, db_filter=my_filter)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.creation_date)
-            #self.assertTrue(job.status['status'] == JobStatus.DONE)
+            self.assertTrue(job.creation_date < past_day_30.isoformat())
 
 
 if __name__ == '__main__':
