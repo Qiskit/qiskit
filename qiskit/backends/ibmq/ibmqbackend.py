@@ -43,16 +43,16 @@ class IBMQBackend(BaseBackend):
             # local : False is added to the online device
             self._configuration['local'] = False
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): description of job
+            qobj (dict): description of job
 
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(q_job, self._api, not self.configuration['simulator'])
+        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
 
     @property
     def calibration(self):
