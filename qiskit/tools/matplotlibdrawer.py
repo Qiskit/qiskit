@@ -214,7 +214,8 @@ class Anchor:
         else:
             _index = index
         for ii in range(gate_width):
-            self.__gate_placed.append(_index + ii)
+            if _index + ii not in self.__gate_placed:
+                self.__gate_placed.append(_index + ii)
         self.__gate_placed.sort()
 
     def get_index(self):
@@ -461,8 +462,6 @@ class MatplotlibDrawer:
             plt.show()
 
     def _draw_regs(self):
-        self._pl_qxl = [0] * len(self._qreg)
-        self._pl_cxl = [0] * len(self._creg)
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
@@ -565,9 +564,6 @@ class MatplotlibDrawer:
         # draw gates
         #
         for i, (op, op_next) in enumerate(zip_longest(self._ops, next_ops)):
-            # no-barrier
-            if op['name'] == 'barrier' and not self._style.barrier:
-                continue
             # wide gate
             if op['name'] in _wide_gate:
                 _iswide = True
@@ -594,7 +590,10 @@ class MatplotlibDrawer:
                     locs = [q_anchors[jj].is_locatable(this_anc, gw) for jj in q_list]
                     if all(locs):
                         for ii in q_list:
-                            q_anchors[ii].set_index(this_anc, gw)
+                            if op['name'] == 'barrier' and not self._style.barrier:
+                                q_anchors[ii].set_index(this_anc - 1, gw)
+                            else:
+                                q_anchors[ii].set_index(this_anc, gw)
                         break
                     else:
                         this_anc += 1
@@ -640,19 +639,17 @@ class MatplotlibDrawer:
                 vv = self._creg_dict[c_idxs[0]]['index']
                 self._measure(q_xy[0], c_xy[0], vv)
             elif op['name'] == 'barrier':
-                if self._style.barrier:
-                    q_group = self._qreg_dict[q_idxs[0]]['group']
-                    if q_group not in _barriers['group']:
-                        _barriers['group'].append(q_group)
-                    _barriers['coord'].append(q_xy[0])
-                    if op_next and op_next['name'] == 'barrier':
-                        continue
-                    else:
-                        self._barrier(_barriers, this_anc)
-                        _barriers['group'].clear()
-                        _barriers['coord'].clear()
-                else:
+                q_group = self._qreg_dict[q_idxs[0]]['group']
+                if q_group not in _barriers['group']:
+                    _barriers['group'].append(q_group)
+                _barriers['coord'].append(q_xy[0])
+                if op_next and op_next['name'] == 'barrier':
                     continue
+                else:
+                    if self._style.barrier:
+                        self._barrier(_barriers, this_anc)
+                    _barriers['group'].clear()
+                    _barriers['coord'].clear()
             #
             # draw single qubit gates
             #
