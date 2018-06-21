@@ -447,8 +447,8 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
         self._draw_ops(verbose)
-        self.ax.set_xlim(-1, self._cond['xmax'] + 1)
-        self.ax.set_ylim(self._cond['ymax'] - 1, 1)
+        self.ax.set_xlim(-1.5, self._cond['xmax'] + 1.5)
+        self.ax.set_ylim(self._cond['ymax'] - 1.5, 1.5)
         # update figure size
         fig_w = abs(self._cond['xmax']) + 2
         fig_h = abs(self._cond['ymax']) + 2
