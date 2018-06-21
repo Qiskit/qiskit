@@ -6,7 +6,7 @@ Den Startpunkt zum Schreiben von Code stellt der
 Sie bereits Erfahrungen mit der Quantum Experience haben) handelt es sich um
 eine Sammlung von :class:`~qiskit.ClassicalRegister` Objekten,
 :class:`~qiskit.QuantumRegister` Objekten und
-:mod:`Gattern <qiskit.extensions.standard>`. Durch die
+:mod:`gates <qiskit.extensions.standard>`. Durch die
 :ref:`Top-Level Funktion <qiskit_top_level_functions>` können Circuits zu
 einem entfernten Quantum Device oder einen lokalen Simulator Backend gesendet
 und die Resultate zur weiteren Auswerten gesammelt werden.

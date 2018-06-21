@@ -11,7 +11,7 @@ Objekte für die Programmierschnittstelle
 :py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
 und :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
 
-Am höchsten Level erzeugt der Anwender ein *QuantumProgram* zum Erstellen,
+Der Anwender erzeugt auf höchster Ebene ein *QuantumProgram* zum Erstellen,
 Übersetzen und Ausführen von Quantum Circuits. Jeder *QuantumCircuit*
 umfasst einen Satz an Datenregistern, vom Typ *QuantumRegister* oder
 *ClassicalRegister*. Methoden dieser Objekte werden verwendet, um durch
@@ -22,7 +22,7 @@ Ordner verarbeitet werden kann.
 Der Ordner :py:mod:`Erweiterungen <qiskit.extensions>` erweitert
 Quantum Circuits bei Bedarf, um andere Menge von Gattern und Algorithmen zu
 unterstützen. Zur Zeit definiert die Erweiterung
-:py:mod:`standard <qiskit.extensions.standard>` typische Quantengatter und
+:py:mod:`standard <qiskit.extensions.standard>` typische Quantengatter und es
 existieren die beiden zusätzlichen Erweiterungen
 :py:mod:`qasm_simulator_cpp <qiskit.extensions.simulator>` und
 :py:mod:`quantum_initializer <qiskit.extensions.quantum_initializer>`.
@@ -88,8 +88,8 @@ Protokollierung
 ---------------
 
 Das SDK verwendet die `Standard Python "logging" Bibliothek
-<https://docs.python.org/3/library/logging.html>`_ zur Ausgabe von mehreren
-Nachrichten mit Hilfe der Familie von "`qiskit.*`" Loggers, und hält sich
+<https://docs.python.org/3/library/logging.html>`_ zur Ausgabe von diversen
+Nachrichten mit Hilfe der Familie von "`qiskit.*`" Loggern, und hält sich
 an die Konventionen von Logging Level:
 
 .. tabularcolumns:: |l|L|
@@ -120,14 +120,14 @@ an die Konventionen von Logging Level:
 +--------------+----------------------------------------------+
 
 
-Zur bequemen Verwendung bietet
+Zur bequemeren Verwendung bietet
 :py:class:`QuantumProgram <qiskit.QuantumProgram>` zwei Methoden an
 (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` und
 :py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`), die den
 Handler und den Level vom `qiskit` Logger modifizieren. Das Verwenden dieser
-Methoden kann mit den globalen Einstellungen des Logging Setups Ihrer Python
-Umgebung interferieren. Bitte beachten Sie dies, wenn Sie eine Applikation
-auf dem SDK aufbauend entwickeln.
+Methoden kann Konflikte mit den globalen Einstellungen des Logging Setups Ihrer
+Python Umgebung erzeugen. Bitte beachten Sie dies, wenn Sie eine
+Applikation auf dem QISKit SDK aufbauend entwickeln.
 
 Die Konvention zur Ausgabe einer Logging Nachricht schreibt vor, im Modul
 eine globale Variable mit Namen **logger** zu deklarieren, die den Logger mit
@@ -149,7 +149,7 @@ Testen
 
 Das SDK verwendet das `standard Python "unittest" Framework
 <https://docs.python.org/3/library/unittest.html>`_ zum Testen von
-verschiednen Komponenten und Funktionalität.
+verschiednen Komponenten und Funktionalitäten.
 
 Da das QISKit Build-System auf CMake basiert, muss ein so genannter
 "out-of-source" Build vor dem Ausführen der Tests durchgeführt werden. Dies
@@ -176,8 +176,8 @@ Windows:
 Dies wird alle notwendigen Binärdateien für Ihre spezifische Platform
 generieren.
 
-Um die Tests auszuführen, ein ``make test`` Ziel ist definiert.
-Die Ausführung der Tests (durch das make Ziel genauso wie beim manuellen Aufruf)
+Um die Tests auszuführen, ist ein ``make test`` Ziel definiert. Die
+Ausführung der Tests (durch das make Ziel genauso wie beim manuellen Aufruf)
 berücksichtigt die ``LOG_LEVEL`` Umgebungsvariable. Wenn vorhanden, wird
 eine ``.log`` Datei im Test Ordner erzeugt mit der Ausgabe der Logging
 Aufrufe, die auch auf stdout ausgegeben werden. Sie können die Verbosität
