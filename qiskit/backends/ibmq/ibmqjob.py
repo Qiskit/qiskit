@@ -43,17 +43,16 @@ class IBMQJob(BaseJob):
         JobStatus.ERROR
     ]
 
-    def __init__(self, q_job, api, is_device):
+    def __init__(self, qobj, api, is_device):
         """IBMQJob init function.
 
         Args:
-            q_job (QuantumJob): job description
+            qobj (dict): job description
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
         super().__init__()
-        self._q_job = q_job
-        self._qobj = q_job.qobj
+        self._qobj = qobj
         self._api = api
         self._id = None  # this must be before creating the future
         self._backend_name = self._qobj.get('config').get('backend_name')

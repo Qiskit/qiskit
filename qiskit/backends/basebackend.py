@@ -38,8 +38,8 @@ class BaseBackend(ABC):
         self._configuration = configuration
 
     @abstractmethod
-    def run(self, q_job):
-        """Run a QuantumJob on the the backend."""
+    def run(self, qobj):
+        """Run a Qobj on the the backend."""
         pass
 
     @property
