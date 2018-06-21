@@ -136,25 +136,23 @@ class DummyJob(BaseJob):
         return self._future.exception(timeout=0)
 
 
-class FakeQJob():
-    """Fakes qiskit._quantumjob.QuantumJob instances."""
-    def __init__(self):
-        self.backend = FakeBackend()
-        self.qobj = {
-            'id': 'test-id',
+def new_fake_qobj():
+    """Creates a fake qobj dictionary."""
+    return {
+        'id': 'test-id',
+        'config': {
+            'backend_name': 'test-backend',
+            'shots': 1024,
+            'max_credits': 100
+        },
+        'circuits': [{
+            'compiled_circuit_qasm': 'fake-code',
             'config': {
-                'backend_name': self.backend.name,
-                'shots': 1024,
-                'max_credits': 100
+                'seed': 123456
             },
-            'circuits': [{
-                'compiled_circuit_qasm': 'fake-code',
-                'config': {
-                    'seed': 123456
-                },
-                'compiled_circuit': {}
-            }]
-        }
+            'compiled_circuit': {}
+        }]
+    }
 
 
 class FakeBackend():
