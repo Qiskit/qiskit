@@ -17,7 +17,7 @@ import unittest
 
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-from qiskit import qasm, unroll, QuantumProgram, QuantumJob
+from qiskit import qasm, unroll, QuantumProgram
 from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
 
 from ._random_qasm_generator import RandomQasmGenerator
@@ -70,12 +70,6 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                              'config': circuit_config
                          }
                      ]}
-        self.q_job = QuantumJob(self.qobj,
-                                backend=QasmSimulatorPy(),
-                                circuit_config=circuit_config,
-                                seed=self.seed,
-                                resources=resources,
-                                preformatted=True)
 
     def tearDown(self):
         pass
@@ -84,12 +78,12 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj['config']['shots'] = shots
-        result = QasmSimulatorPy().run(self.q_job).result()
+        result = QasmSimulatorPy().run(self.qobj).result()
         self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = QasmSimulatorPy().run(self.q_job).result()
+        result = QasmSimulatorPy().run(self.qobj).result()
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts('test')
@@ -164,8 +158,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                 }
             ]
         }
-        q_job = QuantumJob(qobj, backend=QasmSimulatorPy(), preformatted=True)
-        result = QasmSimulatorPy().run(q_job).result()
+        result = QasmSimulatorPy().run(qobj).result()
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
         self.log.info(circuit_if_true.qasm())
