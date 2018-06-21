@@ -37,7 +37,7 @@ coverage:
 	coverage3 report
 
 doc:
-	export PYTHONPATH=$(PWD); \
+	#	export PYTHONPATH=$(PWD); \
 	for LANGUAGE in "." "ja"; do \
 		better-apidoc -f -o doc/$$LANGUAGE/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
 		sphinx-autogen -t doc/_templates doc/$$LANGUAGE/_autodoc/*; \

@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Retreive IBM Q jobs from server (#563, #585).
 
 Changed
 -------

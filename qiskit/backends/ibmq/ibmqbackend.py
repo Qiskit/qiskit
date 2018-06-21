@@ -149,9 +149,27 @@ class IBMQBackend(BaseBackend):
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
             status (None or JobStatus or str): only get jobs with this status,
-                where status is e.g. JobStatus.RUNNING or 'RUNNING'
-            filter (dict): Loopback REST filter. The format is described at 
-                https://loopback.io/doc/en/lb2/Querying-data.html#using-stringified-json-in-rest-queries        
+                where status is e.g. `JobStatus.RUNNING` or `'RUNNING'`
+            filter (dict): `loopback-based filter <https://loopback.io/doc/en/lb2/Querying-data.html#using-stringified-json-in-rest-queries>`_. This is an interface to a database ``where`` filter. Some examples of its usage are
+
+                Filter last five jobs with errors::
+
+                   job_list = backend.jobs(limit=5, status=JobStatus.ERROR)
+
+                Filter last five jobs with counts=1024, and counts for
+                states ``00`` and ``11`` each exceeding 400::
+
+                  cnts_filter = {'shots': 1024,
+                                 'qasms.result.data.counts.00': {'gt': 400},
+                                 'qasms.result.data.counts.11': {'gt': 400}}
+                  job_list = backend.jobs(limit=5, filter=cnts_filter)
+
+                Filter last five jobs from 30 days ago::
+
+                   past_date = datetime.datetime.now() - datetime.timedelta(days=30)
+                   date_filter = {'creationDate': {'lt': past_date.isoformat()}}
+                   job_list = backend.jobs(limit=5, filter=date_filter)
+
         Returns:
             list(IBMQJob): list of IBMQJob instances
 
@@ -181,6 +199,8 @@ class IBMQBackend(BaseBackend):
                 raise ValueError('unrecongized value for "status" keyword '
                                  'in job filter')
         if filter:
+            # filter ignores backend_name filter so we need to set it
+            api_filter['backend.name'] = backend_name
             # status takes precendence over filter for same keys
             api_filter = {**filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
