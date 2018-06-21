@@ -190,6 +190,12 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
+    @unittest.expectedFailure
+    def test_cancel_while_initializing_does_not_fail(self):
+        job = self.run_with_api(CancellableAPI())
+        job.cancel()
+        self.assertStatus(job, JobStatus.CANCELLED)
+
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
         status."""
@@ -258,7 +264,7 @@ class BaseFakeAPI():
 
     def get_job(self, job_id):
         if not job_id:
-            return {'status': 'Error', 'error': 'Job ID not specidifed'}
+            return {'status': 'Error', 'error': 'Job ID not specified'}
         return self._job_status[self._state]
 
     def run_job(self, *_args, **_kwargs):
@@ -267,7 +273,7 @@ class BaseFakeAPI():
 
     def cancel_job(self, job_id, *_args, **_kwargs):
         if not job_id:
-            return {'status': 'Error', 'error': 'Job ID not specidifed'}
+            return {'status': 'Error', 'error': 'Job ID not specified'}
         return {} if self._can_cancel else {
             'error': 'testing fake API can not cancel'}
 
