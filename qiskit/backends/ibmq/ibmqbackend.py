@@ -208,7 +208,7 @@ class IBMQBackend(BaseBackend):
             api_filter = {**db_filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
                                            backend=backend_name,
-                                           db_filter=api_filter)
+                                           filter=api_filter)
         job_list = []
         for job_info in job_info_list:
             is_device = not bool(self._configuration.get('simulator'))
