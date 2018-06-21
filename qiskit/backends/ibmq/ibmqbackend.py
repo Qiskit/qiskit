@@ -43,16 +43,16 @@ class IBMQBackend(BaseBackend):
             # local : False is added to the online device
             self._configuration['local'] = False
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): description of job
+            qobj (dict): description of job
 
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(q_job, self._api, not self.configuration['simulator'])
+        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
 
     @property
     def calibration(self):
@@ -71,7 +71,7 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
+            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
                 calibrations = {}
         except Exception as ex:
             raise LookupError(

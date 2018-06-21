@@ -15,8 +15,7 @@ from concurrent import futures
 import numpy
 from scipy.stats import chi2_contingency
 
-from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
-                    QuantumJob)
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 import qiskit._compiler
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
@@ -63,8 +62,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile([self._qc, qc], backend)
         shots = qobj['config']['shots']
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         result = job.result()
         counts_qx1 = result.get_counts(result.get_names()[0])
         counts_qx2 = result.get_counts('hadamard')
@@ -97,8 +95,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('using backend: %s', backend.name)
         qobj = qiskit._compiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         while not (job.done or job.exception):
             self.log.info(job.status)
             time.sleep(4)
@@ -131,9 +128,8 @@ class TestIBMQJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile([qc]*10, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 5
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         found_async_jobs = False
         timeout = 30
         start_time = time.time()
@@ -179,9 +175,8 @@ class TestIBMQJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 3
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
         job_status = [job.status['status'] for job in job_array]
         num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
@@ -227,9 +222,8 @@ class TestIBMQJob(QiskitTestCase):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
         qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
         num_jobs = 3
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         success = False
         self.log.info('jobs submitted: %s', num_jobs)
         while any([job.status['status'] == JobStatus.INITIALIZING for job in job_array]):
@@ -252,8 +246,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_job_id(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         self.log.info('job_id: %s', job.id)
         self.assertTrue(job.id is not None)
 
@@ -261,8 +254,7 @@ class TestIBMQJob(QiskitTestCase):
         backend_name = 'ibmq_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         self.assertTrue(job.backend_name == backend_name)
 
     def test_get_jobs_from_backend(self):
@@ -280,8 +272,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         rjob = backend.retrieve_job(job.id)
         self.assertTrue(job.id == rjob.id)
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())

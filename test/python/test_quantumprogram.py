@@ -1597,7 +1597,7 @@ class TestQuantumProgram(QiskitTestCase):
             raise unittest.SkipTest('Test not supported in Windows')
 
         # TODO: use the backend directly when the deprecation is completed.
-        from ._dummybackend import DummyProvider
+        from ._mockutils import DummyProvider
         import qiskit.wrapper
         qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
 
