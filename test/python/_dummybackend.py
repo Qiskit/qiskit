@@ -63,11 +63,11 @@ class DummySimulator(BaseBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
 
-    def run(self, q_job):
-        return DummyJob(self.run_job, q_job)
+    def run(self, qobj):
+        return DummyJob(self.run_job, qobj)
 
     # pylint: disable=unused-argument
-    def run_job(self, q_job):
+    def run_job(self, qobj):
         """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
 
