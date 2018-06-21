@@ -543,9 +543,11 @@ class MatplotlibDrawer:
         _force_next = 'measure barrier'.split()
         _wide_gate = 'u2 u3 cu2 cu3'.split()
         _barriers = {'coord': [], 'group': []}
-
+        q_idxs = []
+        c_idxs = []
         next_ops = self._ops.copy()
         next_ops.pop(0)
+        this_anc = 0
 
         #
         # generate coordinate manager
@@ -572,12 +574,11 @@ class MatplotlibDrawer:
                 _iswide = False
                 gw = 1
             # get qreg index
-            q_idxs = op['qubits']
+            if 'qubits' in op.keys():
+                q_idxs = op['qubits']
             # get creg index
             if 'clbits' in op.keys():
                 c_idxs = op['clbits']
-            else:
-                c_idxs = []
             # find empty space to place gate
             if len(_barriers['group']) == 0:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
