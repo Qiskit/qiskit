@@ -515,7 +515,7 @@ class MatplotlibDrawer:
                 this_creg_dict[y] = {'val': 1, 'label': label}
             else:
                 this_creg_dict[y]['val'] += 1
-        for this_creg in this_creg_dict.values():
+        for y, this_creg in this_creg_dict.items():
             # bundle
             if this_creg['val'] > 1:
                 self.ax.plot([.6, .7], [y - .1, y + .1],
