@@ -71,7 +71,7 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
+            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
