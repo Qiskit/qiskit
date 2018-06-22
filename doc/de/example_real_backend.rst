@@ -45,7 +45,7 @@ auf einem echten Quantum Device:
 
 
 Beispiel für ein reales Chip Backend über IBMQ
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Wenn Sie Zugriff auf IBM Q Funktionalität haben, kann der folgende Code zum
 Ausführen des obigen Beispiels verwendet werden:
