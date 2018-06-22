@@ -67,7 +67,8 @@ Chips wählen:
 Für weitere Details zu den Chips und Echtzeit Informationen zur Verfügbarkeit
  besuchen Sie bitte die `IBM Q Experience Backend Information <https://github
  .com/QISKit/ibmqx-backend-information>`_ Seite sowie die `IBM Q
- Experience Geräte<https://quantumexperience.ng.bluemix.net/qx/devices>`_ Seite.
+ Experience Geräte <https://quantumexperience.ng.bluemix.net/qx/devices>`_
+ Seite.
 
 .. include:: example_real_backend.rst
 
