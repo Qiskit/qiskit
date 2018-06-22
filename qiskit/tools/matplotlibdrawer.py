@@ -789,7 +789,7 @@ class MatplotlibDrawer:
         abs_val = abs(val)
         if isclose(abs_val, 0.0, abs_tol=1e-100):
             return '0'
-        if isclose(fmod(abs_val, 1.0), 0.0, abs_tol=tol) and 0.0 <= abs_val < 10000.0:
+        if isclose(fmod(abs_val, 1.0), 0.0, abs_tol=tol) and 0.5 <= abs_val < 10000.5:
             return str(int(val))
         elif 0.1 <= abs_val < 100.0:
             return '{:.2f}'.format(val)
