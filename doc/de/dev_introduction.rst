@@ -72,14 +72,14 @@ Die Darstellung als Circuit und wie diese zur Zeit ineinander transformiert
 werden, sind in folgendem Diagramm zusammengefasst:
 
 
-.. image:: ../images/circuit_representations.png
+.. image:: ../../images/circuit_representations.png
     :width: 600px
     :align: center
 
 Mehrere *Unroller* Backends und deren Ausgaben sind hier zusammengefasst:
 
 
-.. image:: ../images/unroller_backends.png
+.. image:: ../../images/unroller_backends.png
     :width: 600px
     :align: center
 
