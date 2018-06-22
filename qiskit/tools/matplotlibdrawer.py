@@ -26,7 +26,6 @@ as well as a qasm file
 
 import json
 import logging
-import re
 from collections import namedtuple
 from fractions import Fraction
 from itertools import zip_longest
@@ -219,8 +218,7 @@ class Anchor:
     def get_index(self):
         if self.__gate_placed:
             return self.__gate_placed[-1] + 1
-        else:
-            return 0
+        return 0
 
 
 class MatplotlibDrawer:
@@ -613,8 +611,8 @@ class MatplotlibDrawer:
                 print(i, op)
 
             # rotation parameter
-            if 'texparams' in op.keys():
-                param = self.param_parse(op['texparams'], self._style.pimode)
+            if 'params' in op.keys():
+                param = self.param_parse(op['params'], self._style.pimode)
             else:
                 param = None
             # conditional gate
@@ -756,52 +754,14 @@ class MatplotlibDrawer:
     @staticmethod
     def param_parse(v, pimode=False):
         for i, e in enumerate(v):
-            z = e.split(',')
-            buf = ''
-            for k in z:
-                val = MatplotlibDrawer.parse_numeric(k, pimode)
-                if isinstance(val, (int, float)):
-                    if pimode:
-                        buf += MatplotlibDrawer.format_pi(val)
-                    else:
-                        buf += MatplotlibDrawer.format_numeric(val)
-                elif '\\pi' in val:
-                    t = val.split()  # `val` is in a form '{coef} \\pi' or '- {coef} \\pi'
-                    buf += MatplotlibDrawer.format_numeric(''.join(t[:-1])) + t[-1]
-                else:
-                    buf += val
-            v[i] = buf
-        param = re.sub(r'\\pi', '$\\pi$', ','.join(v))
-        param = re.sub(r' ', '', param)
-        param = re.sub(r',', ', ', param)
-        param = re.sub(r'-', '−', param)
+            if pimode:
+                v[i] = MatplotlibDrawer.format_pi(e)
+            else:
+                v[i] = MatplotlibDrawer.format_numeric(e)
+            if v[i].startswith('-'):
+                v[i] = '$-$' + v[i][1:]
+        param = ', '.join(v)
         return param
-
-    @staticmethod
-    def parse_numeric(k, pimode=False):
-        # parse a string and return number or string
-        f = 0.0
-        is_numeric = False
-        try:
-            f = float(k)
-            is_numeric = True
-        except ValueError:
-            if pimode and '\\pi' in k:
-                if k == '\\pi':
-                    f = np.pi
-                    is_numeric = True
-                elif k == '- \\pi':
-                    f = -np.pi
-                    is_numeric = True
-                else:
-                    _k = re.sub(r' ', '', k)
-                    _k = re.sub(r'\\pi', '', _k)
-                    try:
-                        f = float(_k) * np.pi
-                        is_numeric = True
-                    except ValueError:
-                        pass
-        return f if is_numeric else k
 
     @staticmethod
     def format_pi(val):
@@ -810,24 +770,25 @@ class MatplotlibDrawer:
         if fracvals:
             nmr, dnm = fracvals.numerator, fracvals.denominator
             if nmr == 1:
-                buf += '\\pi'
+                buf += '$\\pi$'
             elif nmr == -1:
-                buf += '-\\pi'
+                buf += '-$\\pi$'
             else:
-                buf += '{}\\pi'.format(nmr)
+                buf += '{}$\\pi$'.format(nmr)
             if dnm > 1:
                 buf += '/{}'.format(dnm)
             return buf
         else:
-            return MatplotlibDrawer.format_numeric(val)
+            coef = MatplotlibDrawer.format_numeric(val / np.pi)
+            if coef == '0':
+                return '0'
+            return '{}$\\pi$'.format(coef)
 
     @staticmethod
     def format_numeric(val, tol=1e-5):
-        try:
-            val = float(val)
-        except ValueError:
-            return val
         abs_val = abs(val)
+        if isclose(abs_val, 0.0, abs_tol=1e-100):
+            return '0'
         if isclose(fmod(abs_val, 1.0), 0.0, abs_tol=tol) and 0.0 <= abs_val < 10000.0:
             return str(int(val))
         elif 0.1 <= abs_val < 100.0:
