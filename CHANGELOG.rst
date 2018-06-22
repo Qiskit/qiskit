@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Add German introductory documentation (``doc/de``).
 
 Changed
 -------
