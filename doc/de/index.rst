@@ -20,9 +20,8 @@ Inhaltsverzeichnis
    Installation <install>
    Erste Schritte <quickstart>
    QISKit Überblick <qiskit>
-   Dokumentation für Entwickler <dev_introduction>
+   Entwickler Dokumentation <dev_introduction>
    SDK Referenz <_autodoc/qiskit>
-   Versionsgeschichte <releases>
 
 Python Module
 =============
