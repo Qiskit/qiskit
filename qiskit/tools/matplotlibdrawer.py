@@ -15,16 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # -----------------------------------------------------------------------------
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,missing-docstring
 # -----------------------------------------------------------------------------
-#
-# Quantum circuit drawer based on matplotlib:
-# A drop-in replacement of latex_drawer.
-# This module visualizes quantum circuit of qiskit.QuantumCircuit
-# as well as a qasm file
-#
-# Authors: Takashi Imamichi, Naoki Kanazawa
-# -----------------------------------------------------------------------------
+
+"""Quantum circuit drawer based on matplotlib:
+drop-in replacement of latex_drawer.
+This module visualizes quantum circuit of qiskit.QuantumCircuit
+as well as a qasm file
+"""
 
 import json
 import logging
@@ -219,7 +217,7 @@ class Anchor:
         self.__gate_placed.sort()
 
     def get_index(self):
-        if len(self.__gate_placed) > 0:
+        if self.__gate_placed:
             return self.__gate_placed[-1] + 1
         else:
             return 0
@@ -481,12 +479,14 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.name)
-                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index, 'group': reg.name}
+                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
+                                           'group': reg.name}
                     if not (not nreg or reg.name != nreg.name):
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.name, reg.index)
-                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index, 'group': reg.name}
+                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
+                                           'group': reg.name}
                 self._cond['n_lines'] += 1
                 idx += 1
 
@@ -582,10 +582,11 @@ class MatplotlibDrawer:
             else:
                 c_idxs = []
             # find empty space to place gate
-            if len(_barriers['group']) == 0:
+            if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
                 while True:
-                    if op['name'] in _force_next or 'conditional' in op.keys() or not self._style.compress:
+                    if op['name'] in _force_next or 'conditional' in op.keys() or \
+                            not self._style.compress:
                         occupied = self._qreg_dict.keys()
                     else:
                         occupied = q_idxs
@@ -605,8 +606,8 @@ class MatplotlibDrawer:
             # creg corrdinate
             c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in c_idxs]
             # bottom and top point of qreg
-            qreg_b = sorted(q_xy, key=lambda xy: xy[1])[0]
-            qreg_t = sorted(q_xy, key=lambda xy: xy[1])[-1]
+            qreg_b = min(q_xy, key=lambda xy: xy[1])
+            qreg_t = max(q_xy, key=lambda xy: xy[1])
 
             if verbose:
                 print(i, op)
@@ -618,7 +619,7 @@ class MatplotlibDrawer:
                 param = None
             # conditional gate
             if 'conditional' in op.keys():
-                c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in self._creg_dict.keys()]
+                c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in self._creg_dict]
                 if self._style.bundle:
                     c_xy = list(set(c_xy))
                     for xy in c_xy:
@@ -724,7 +725,7 @@ class MatplotlibDrawer:
         #
         # adjust window size and draw horizontal lines
         #
-        max_anc = max([q_anchors[ii].get_index() for ii in self._qreg_dict.keys()])
+        max_anc = max([q_anchors[ii].get_index() for ii in self._qreg_dict])
         n_fold = (max_anc - 1) // self._style.fold
         # window size
         if max_anc > self._style.fold > 0:
@@ -735,14 +736,8 @@ class MatplotlibDrawer:
             self._cond['ymax'] = - self._cond['n_lines']
         # add horizontal lines
         for ii in range(n_fold + 1):
-            if n_fold > 0 and n_fold > ii:
-                feedline_r = True
-            else:
-                feedline_r = False
-            if ii > 0:
-                feedline_l = True
-            else:
-                feedline_l = False
+            feedline_r = (n_fold > 0 and n_fold > ii)
+            feedline_l = (ii > 0)
             self._draw_regs_sub(ii, feedline_l, feedline_r)
         # draw gate number
         if self._style.index:
