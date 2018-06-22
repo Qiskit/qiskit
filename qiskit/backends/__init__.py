@@ -9,3 +9,4 @@
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
+from .jobstatus import JobStatus

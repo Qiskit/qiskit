@@ -32,7 +32,8 @@ Removed
 
 Fixed
 -----
-- Fix issue with skip_transpiler causing some gates to be ignored silently.
+- Fix issue with unintended inversion of initializer gates (#573).
+- Fix issue with skip_transpiler causing some gates to be ignored silently (#562).
 
 
 `0.5.4`_ - 2018-06-11

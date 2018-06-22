@@ -70,15 +70,14 @@ class QasmSimulatorCpp(BaseBackend):
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
 
-    def run(self, q_job):
-        """Run a QuantumJob on the the backend."""
-        return LocalJob(self._run_job, q_job)
+    def run(self, qobj):
+        """Run a qobj on the backend."""
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self, qobj):
         if qobj['config']['shots'] == 1:
@@ -126,19 +125,18 @@ class CliffordSimulatorCpp(BaseBackend):
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     self._configuration.get('exe', 'default locations'))
 
-    def run(self, q_job):
-        """Run a QuantumJob on the the backend.
+    def run(self, qobj):
+        """Run a Qobj on the backend.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
         self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj:
@@ -147,7 +145,7 @@ class CliffordSimulatorCpp(BaseBackend):
             qobj['config'] = {'simulator': 'clifford'}
 
         result = run(qobj, self._configuration['exe'])
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self):
         return

@@ -11,6 +11,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
+from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
@@ -42,16 +43,16 @@ class IBMQBackend(BaseBackend):
             # local : False is added to the online device
             self._configuration['local'] = False
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): description of job
+            qobj (dict): description of job
 
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(q_job, self._api, not self.configuration['simulator'])
+        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
 
     @property
     def calibration(self):
@@ -70,7 +71,7 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
+            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -139,3 +140,46 @@ class IBMQBackend(BaseBackend):
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
         return status
+
+    def jobs(self, limit=50, skip=0):
+        """Attempt to get the jobs submitted to the backend
+
+        Args:
+            limit (int): number of jobs to retrieve
+            skip (int): starting index of retrieval
+        Returns:
+            list(IBMQJob): list of IBMQJob instances
+        """
+        backend_name = self.configuration['name']
+        job_info_list = self._api.get_jobs(limit=limit, skip=skip,
+                                           backend=backend_name)
+        job_list = []
+        for job_info in job_info_list:
+            is_device = not bool(self._configuration.get('simulator'))
+            job = IBMQJob.from_api(job_info, self._api, is_device)
+            job_list.append(job)
+        return job_list
+
+    def retrieve_job(self, job_id):
+        """Attempt to get the specified job by job_id
+
+        Args:
+            job_id (str): the job id of the job to retrieve
+
+        Returns:
+            IBMQJob: class instance
+
+        Raises:
+            IBMQBackendError: if retrieval failed
+        """
+        job_info = self._api.get_job(job_id)
+        if 'error' in job_info:
+            raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
+        is_device = not bool(self._configuration.get('simulator'))
+        job = IBMQJob.from_api(job_info, self._api, is_device)
+        return job
+
+
+class IBMQBackendError(QISKitError):
+    """IBM Q Backend Errors"""
+    pass
