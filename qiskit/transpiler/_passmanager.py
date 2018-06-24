@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=redefined-builtin
 
 # Copyright 2018, IBM.
 #
@@ -10,19 +11,17 @@
 
 
 class PassManager():
-    """PassManager class for the transpiler."""
-    def __init__(self, configuration=None):
-        """Base class for backends.
+    """PassManager class for the transpiler.
 
-        This method should initialize the module and its configuration, and
-        raise an exception if a component of the module is
-        not available.
-
-        Args:
-            configuration (dict): configuration dictionary
+    A PassManager instance is responsible for launching the requisite
+    analysis and transformation passes on the quantum circuit, and to
+    do this correctly & efficiently
+    (i.e. keep track of dependencies between passes)
+    """
+    def __init__(self):
+        """Initialize an empty PassManager object
+        (with no passes scheduled).
         """
-        self._configuration = configuration
-        self._resources = {}
         self._passes = []
 
     def add_pass(self, pass_):
@@ -32,8 +31,3 @@ class PassManager():
     def passes(self):
         """Return list of passes scheduled."""
         return self._passes
-
-    @property
-    def configuration(self):
-        """Return passmanager configuration"""
-        return self._configuration

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=redefined-builtin
 
 # Copyright 2018, IBM.
 #
@@ -26,16 +27,15 @@ from qiskit._gate import Gate
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=redefined-builtin
-def compile(circuits, backend, pass_manager=None,
+def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
-            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None):
+            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
+            pass_manager=None):
     """Compile a list of circuits into a qobj.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
         backend (BaseBackend): a backend to compile for
-        pass_manager (PassManager): a pass_manager for the transpiler stage
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
@@ -45,6 +45,7 @@ def compile(circuits, backend, pass_manager=None,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
+        pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
         obj: the qobj to be run on the backends
@@ -117,8 +118,8 @@ def compile(circuits, backend, pass_manager=None,
             coupling_map=coupling_map,
             initial_layout=initial_layout,
             get_layout=True,
-            pass_manager=pass_manager,
-            seed=seed)
+            seed=seed,
+            pass_manager=pass_manager)
 
         # step 3c: dag -> json
         # TODO: populate the Qobj object when Qobj class exists
@@ -142,9 +143,9 @@ def compile(circuits, backend, pass_manager=None,
 
 
 def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-              initial_layout=None, get_layout=False, pass_manager=None,
-              format='dag', seed=None):
-    """Transcompile (transpile) a dag circuit to another dag circuit, through
+              initial_layout=None, get_layout=False,
+              format='dag', seed=None, pass_manager=None):
+    """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
     Args:
@@ -173,13 +174,13 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 3): ("q", 3)
                               }
         get_layout (bool): flag for returning the layout
+        format (str): The target format of the compilation:
+            {'dag', 'json', 'qasm'}
+        seed (int): random seed for simulators
         pass_manager (PassManager): pass manager instance for the tranpilation process
             If None, a default set of passes are run.
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
-        format (str): The target format of the compilation:
-            {'dag', 'json', 'qasm'}
-        seed (int): random seed for simulators
 
     Returns:
         object: If get_layout == False, the compiled circuit in the specified

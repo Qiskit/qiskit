@@ -271,7 +271,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         rjob = backend.retrieve_job(job.id)
         self.assertTrue(job.id == rjob.id)

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 # Copyright 2018, IBM.
 #
@@ -8,7 +9,7 @@
 
 """Tests for transpiler functionality"""
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import wrapper
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import CXCancellation

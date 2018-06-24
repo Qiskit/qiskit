@@ -14,8 +14,6 @@ class CXCancellation(BasePass):
     """Cancel back-to-back 'cx' gates in dag."""
     def __init__(self):
         super().__init__()
-        self._requires = []
-        self._preserves = []
 
     def run(self, dag):
         """
