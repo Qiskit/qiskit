@@ -228,8 +228,8 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if format == 'dag':
         compiled_circuit = dag_circuit
     elif format == 'json':
-        dag_unroller = DagUnroller(dag_circuit,
-                                   JsonBackend(list(dag_circuit.basis.keys())))
+        # FIXME: JsonBackend is wrongly taking an ordered dict as basis, not list
+        dag_unroller = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis))
         compiled_circuit = dag_unroller.execute()
     elif format == 'qasm':
         compiled_circuit = dag_circuit.qasm()

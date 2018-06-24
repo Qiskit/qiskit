@@ -40,7 +40,7 @@ compiled_standard = load_qasm_string(qobj_standard['circuits'][0]['compiled_circ
 plot_circuit(compiled_standard)
 
 # 2. custom compile -- customize PassManager to run specific circuit transformations
-from qiskit.transpiler.cx_cancellation import CXCancellation
+from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
 pm.add_pass(CXCancellation())
 qobj_custom = transpiler.compile(circ, backend_device, pass_manager=pm)
