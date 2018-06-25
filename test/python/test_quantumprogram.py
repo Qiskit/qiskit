@@ -1511,7 +1511,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         result = q_program.execute(circuits, backend='local_qasm_simulator')
 
-        yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
+        yvals, xvals = result.get_qubitpol_vs_xval(2, xvals_dict=xvals_dict)
 
         self.assertTrue(np.array_equal(yvals, [[-1, -1], [1, -1]]))
         self.assertTrue(np.array_equal(xvals, [0, 1]))
@@ -1597,7 +1597,7 @@ class TestQuantumProgram(QiskitTestCase):
             raise unittest.SkipTest('Test not supported in Windows')
 
         # TODO: use the backend directly when the deprecation is completed.
-        from ._dummybackend import DummyProvider
+        from ._mockutils import DummyProvider
         import qiskit.wrapper
         qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
 
