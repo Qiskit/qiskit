@@ -20,10 +20,10 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Add matplotlib-based circuit drawer (#579).
 
 Changed
 -------
-- Add matplotlib-based circuit drawer (#579).
 
 Removed
 -------

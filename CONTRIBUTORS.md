@@ -14,7 +14,9 @@ involved in the project:
 * Albert Frisch
 * Jay Gambetta
 * Juan Gomez
+* Takashi Imamichi
 * Ali Javadi-Abhari
+* Naoki Kanazawa
 * Peng Liu
 * Yunho Maeng
 * Paco Martin
@@ -27,8 +29,6 @@ involved in the project:
 * John Smolin
 * Erick Winston
 * Chris Wood
-* Takashi Imamichi
-* Naoki Kanazawa
 
 If you [contribute to the project](.github/CONTRIBUTING.rst), you are welcome to include
 your name in this list.
