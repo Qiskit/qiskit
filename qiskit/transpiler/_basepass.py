@@ -12,11 +12,6 @@ from abc import ABC, abstractmethod
 
 class BasePass(ABC):
     """Base class for transpiler passes."""
-    @abstractmethod
-    def __init__(self):
-        """Base class for passes.
-        """
-        pass
 
     @abstractmethod
     def run(self, dag):

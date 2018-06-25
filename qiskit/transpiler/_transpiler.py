@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=redefined-builtin
 
 # Copyright 2018, IBM.
 #
@@ -27,6 +26,7 @@ from qiskit._gate import Gate
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=redefined-builtin
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
@@ -142,6 +142,7 @@ def compile(circuits, backend,
     return qobj
 
 
+# pylint: disable=redefined-builtin
 def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
               initial_layout=None, get_layout=False,
               format='dag', seed=None, pass_manager=None):

@@ -9,4 +9,6 @@
 
 from ._passmanager import PassManager
 from ._transpilererror import TranspilerError
+
+# pylint: disable=redefined-builtin
 from ._transpiler import compile, transpile

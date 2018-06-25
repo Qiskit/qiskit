@@ -74,9 +74,9 @@ class TestTranspiler(QiskitTestCase):
         self.assertDictEqual(transpiler_json, compiler_json)
 
     def test_pass_cx_cancellation(self):
-        """Test passing an empty PassManager() to the transpiler.
+        """Test the cx cancellation pass.
 
-        It should perform no transformations on the circuit.
+        It should cancel consecutive cx pairs on same qubits.
         """
         q = QuantumRegister(2)
         circ = QuantumCircuit(q)
