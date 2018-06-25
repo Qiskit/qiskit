@@ -142,8 +142,7 @@ class DAGCircuit:
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
-        nlist = self.get_named_nodes(opname)
-        for n in nlist:
+        for n in self.get_named_nodes(opname):
             self._remove_op_node(n)
 
     def fs(self, number):
@@ -1073,18 +1072,15 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_named_nodes(self, name):
-        """Return a list of "op" nodes with the given name."""
-        nlist = []
+        """Get the set of "op" node ids with the given name."""
         if name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations"
                                   % name)
 
-        # Iterate through the nodes of self in topological order
-        for n in nx.topological_sort(self.multi_graph):
-            nd = self.multi_graph.node[n]
-            if nd["type"] == "op" and nd["name"] == name:
-                nlist.append(n)
-        return nlist
+        # We need to instantiate the full list now because the underlying multi_graph
+        # may change when users iterate over the named nodes.
+        return {node_id for node_id, data in self.multi_graph.nodes(data=True)
+                if data["type"] == "op" and data["name"] == name}
 
     def _remove_op_node(self, n):
         """Remove an operation node n.
