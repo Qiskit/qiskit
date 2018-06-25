@@ -31,11 +31,6 @@ PIP Tools (Python Paketmanager):
 Dieser Befehl wird den neuesten stabilen Release mitsamt allen Abhängigkeiten
 installieren.
 
-.. note::
-
-    Manche Pakete werden eventuell downgegraded um alle Abhängigkeiten
-    erfüllen zu können.
-
 .. _qconfig-setup:
 
 3. API Token und QE Anmeldedaten konfigurieren
