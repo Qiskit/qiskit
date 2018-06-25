@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Add matplotlib-based circuit drawer (#579).
 
 Removed
 -------

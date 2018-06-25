@@ -1,27 +1,15 @@
-#!/usr/bin/env python
-# coding: utf-8
-#
-# Copyright 2018 IBM RESEARCH. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# -----------------------------------------------------------------------------
-# pylint: disable=invalid-name,missing-docstring
-# -----------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
 
-"""Quantum circuit drawer based on matplotlib:
-drop-in replacement of latex_drawer.
-This module visualizes quantum circuit of qiskit.QuantumCircuit
-as well as a qasm file
+# Copyright 2017, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name,missing-docstring
+
+"""
+Quantum circuit drawer based on matplotlib, compatible with latex_drawer.
+This module visualizes quantum circuit of QuantumCircuit as well as a qasm file.
 """
 
 import json
@@ -69,7 +57,9 @@ def matplotlib_drawer(circuit,
                       basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                             'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
                       scale=1.0, style=None, filename=None):
-    """Draw a quantum circuit based on matplotlib
+    """Draw a quantum circuit based on matplotlib.
+    If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
+    We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
 
     Args:
         circuit (QuantumCircuit): a quantum circuit
@@ -78,6 +68,9 @@ def matplotlib_drawer(circuit,
         style (dict or str): dictionary of style or file name of style file
         filename (str): output filename of circuit drawing if filename is not None
     """
+    if ',' not in basis:
+        logger.warning('Warning: basis is not comma separated: "%s". '
+                       'Perhaps you set `filename` to `basis`.', basis)
     qcd = MatplotlibDrawer(basis=basis, scale=scale, style=style)
     qcd.parse_circuit(circuit)
     qcd.draw(filename)
@@ -228,9 +221,6 @@ class MatplotlibDrawer:
                  scale=1.0, style=None):
 
         self._ast = None
-        if ',' not in basis:
-            logger.warning('Warning: basis is not comma separated: "%s". '
-                           'Perhaps you set `filename` to `basis`.', basis)
         self._basis = basis.split(',')
         self._scale = DEFAULT_SCALE * scale
         self._creg = []

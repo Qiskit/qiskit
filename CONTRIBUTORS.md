@@ -27,6 +27,8 @@ involved in the project:
 * John Smolin
 * Erick Winston
 * Chris Wood
+* Takashi Imamichi
+* Naoki Kanazawa
 
 If you [contribute to the project](.github/CONTRIBUTING.rst), you are welcome to include
 your name in this list.
