@@ -45,7 +45,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
-# definitions
+# definitions for matplotlib_drawer
 # -----------------------------------------------------------------------------
 WID = 0.65
 HIG = 0.65
@@ -1172,6 +1172,71 @@ class QCStyle:
         self.compress = dic.get('compress', self.compress)
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
+
+
+def qx_color_scheme():
+    return {
+        "comment": "Style file for matplotlib_drawer (IBM QX Composer style)",
+        "textcolor": "#000000",
+        "gatetextcolor": "#000000",
+        "subtextcolor": "#000000",
+        "linecolor": "#000000",
+        "creglinecolor": "#b9b9b9",
+        "gatefacecolor": "#ffffff",
+        "barrierfacecolor": "#bdbdbd",
+        "backgroundcolor": "#ffffff",
+        "fold": 20,
+        "fontsize": 10,
+        "subfontsize": 6,
+        "figwidth": -1,
+        "dpi": 150,
+        "displaytext" : {
+            "id": "id",
+            "u0": "U_0",
+            "u1": "U_1",
+            "u2": "U_2",
+            "u3": "U_3",
+            "x": "X",
+            "y": "Y",
+            "z": "Z",
+            "h": "H",
+            "s": "S",
+            "sdg": "S^\\dagger",
+            "t": "T",
+            "tdg": "T^\\dagger",
+            "rx": "R_x",
+            "ry": "R_y",
+            "rz": "R_z",
+            "reset": "\\left|0\\right\\rangle"
+        },
+        "displaycolor" : {
+            "id": "#ffca64",
+            "u0": "#f69458",
+            "u1": "#f69458",
+            "u2": "#f69458",
+            "u3": "#f69458",
+            "x": "#a6ce38",
+            "y": "#a6ce38",
+            "z": "#a6ce38",
+            "h": "#00bff2",
+            "s": "#00bff2",
+            "sdg": "#00bff2",
+            "t": "#ff6666",
+            "tdg": "#ff6666",
+            "rx": "#ffca64",
+            "ry": "#ffca64",
+            "rz": "#ffca64",
+            "reset": "#d7ddda",
+            "target": "#00bff2",
+            "meas": "#f070aa"
+        },
+        "latexdrawerstyle": True,
+        "usepiformat": False,
+        "cregbundle": False,
+        "plotbarrier": False,
+        "showindex": False,
+        "compress": False
+    }
 
 
 class Anchor:
