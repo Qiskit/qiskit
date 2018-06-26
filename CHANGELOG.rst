@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Single source of version information (#581)
 
 Removed
 -------
