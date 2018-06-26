@@ -56,7 +56,7 @@ Die :func:`~qiskit.Result.get_counts` Methode gibt ein Dictionary von
 Quantum Chips
 -------------
 
-Man can QASM Circuits auf echter Hardware ausführen, indem man die IBM Q
+Man kann QASM Circuits auf echter Hardware ausführen, indem man die IBM Q
 Experience (QX) Cloud Platform verwendet. Zur Zeit können Sie aus folgenden
 Chips wählen:
 

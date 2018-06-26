@@ -12,8 +12,8 @@ Workflow setzt sich zusammen aus drei Stufen: Build, Compile und Run.
 Build erlaubt verschiedene Quantum Circuits aufzubauen, die das zu lösende
 Problem repräsentieren. Compile schreibt diese um, sodass sie auf
 unterschiedlichen Backends lauffähig sind (z.B. auf Simulatoren bzw.
-auf echten Quantenchips mit unterschiedlichem Volumen, Größe, Fidelity, usw.)
-. Run startet die eigentliche Berechnung als Job. Nachdem der Job
+auf echten Quantenchips mit unterschiedlichem Volumen, Größe, Fidelity, usw.).
+Run startet die eigentliche Berechnung als Job. Nachdem der Job
 durchgelaufen ist, werden die auszulesenden Daten gesammelt. Die Methoden,
 die zum Zusmmensetzen der Ausgabedaten verwendet werden, hängen vom
 jeweiligen Programm ab. Dies ergibt entweder die erwartete Antwort oder
