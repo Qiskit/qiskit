@@ -7,6 +7,7 @@
 
 """Main QISKit visualization methods."""
 
-from ._circuit_visualization import circuit_drawer, plot_circuit, latex_drawer, matplotlib_drawer, qx_color_scheme
+from ._circuit_visualization import circuit_drawer, plot_circuit, latex_drawer,\
+    matplotlib_drawer, qx_color_scheme
 from ._state_visualization import plot_state
 from ._counts_visualization import plot_histogram

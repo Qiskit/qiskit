@@ -1190,7 +1190,7 @@ def qx_color_scheme():
         "subfontsize": 6,
         "figwidth": -1,
         "dpi": 150,
-        "displaytext" : {
+        "displaytext": {
             "id": "id",
             "u0": "U_0",
             "u1": "U_1",
@@ -1209,7 +1209,7 @@ def qx_color_scheme():
             "rz": "R_z",
             "reset": "\\left|0\\right\\rangle"
         },
-        "displaycolor" : {
+        "displaycolor": {
             "id": "#ffca64",
             "u0": "#f69458",
             "u1": "#f69458",
