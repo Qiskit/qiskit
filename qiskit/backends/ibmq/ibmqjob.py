@@ -19,12 +19,12 @@ import json
 import datetime
 import numpy
 
+from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
-from qiskit._compiler import compile_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -348,7 +348,7 @@ class IBMQJob(BaseJob):
             job = {}
             if (('compiled_circuit_qasm' not in circuit) or
                     (circuit['compiled_circuit_qasm'] is None)):
-                compiled_circuit = compile_circuit(circuit['circuit'])
+                compiled_circuit = transpile(circuit['circuit'])
                 circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
             if isinstance(circuit['compiled_circuit_qasm'], bytes):
                 job['qasm'] = circuit['compiled_circuit_qasm'].decode()
