@@ -41,4 +41,8 @@ from .wrapper._wrapper import (
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
-__version__ = '0.6.0'
+import os
+
+ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
+    __version__ = version_file.readlines()
