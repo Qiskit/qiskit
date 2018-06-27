@@ -11,7 +11,7 @@
 
 import unittest
 import qiskit
-import qiskit._compiler
+from qiskit import transpiler
 from qiskit import Result
 from qiskit.wrapper import get_backend, execute
 from qiskit.backends.ibmq import IBMQProvider
@@ -56,7 +56,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -76,7 +76,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -95,7 +95,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
         result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
@@ -114,7 +114,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
         result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
@@ -171,7 +171,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -194,7 +194,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -213,7 +213,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
         job = backend.run(qobj)
         result = job.result(timeout=20)
         self.assertIsInstance(result, Result)
@@ -234,7 +234,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
         job = backend.run(qobj)
         result = job.result()
         self.assertIsInstance(result, Result)
@@ -339,7 +339,7 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(q, c)
 
         try:
-            qobj = qiskit._compiler.compile(circuit, backend)
+            qobj = transpiler.compile(circuit, backend)
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
@@ -359,7 +359,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(q, c)
 
         try:
-            qobj = qiskit._compiler.compile(qc, backend)
+            qobj = transpiler.compile(qc, backend)
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
@@ -380,7 +380,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(q[3], q[4])
         qc.cx(q[3], q[14])
         qc.measure(q, c)
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
         compiled_ops = qobj['circuits'][0]['compiled_circuit']['operations']
         for op in compiled_ops:
             if op['name'] == 'cx':

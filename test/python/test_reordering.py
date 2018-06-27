@@ -12,7 +12,7 @@
 import unittest
 import qiskit
 from qiskit.wrapper import register, available_backends, get_backend
-import qiskit._compiler
+from qiskit import transpiler
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -49,8 +49,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q[1], c[0])
 
         shots = 2000
-        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
-        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
+        qobj_real = transpiler.compile(circ, real, shots=shots)
+        qobj_sim = transpiler.compile(circ, sim, shots=shots)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
@@ -92,8 +92,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q2[0], c1[1])
 
         shots = 4000
-        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
-        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
+        qobj_real = transpiler.compile(circ, real, shots=shots)
+        qobj_sim = transpiler.compile(circ, sim, shots=shots)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
