@@ -102,18 +102,22 @@ class TestWrapper(QiskitTestCase):
                                 provider_name='provider1')
         initial_providers = registered_providers()
         initial_backends = qiskit.wrapper.available_backends()
-        with self.assertLogs(level=logging.WARNING) as context:
+        ibmqx4_backend = qiskit.wrapper.get_backend('ibmqx4')
+        with self.assertLogs(level=logging.WARNING) as logs:
             qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project,
                                     provider_name='provider2')
 
-        # Check that a warning has been issued.
-        self.assertEqual(len(context.output), 1)
+        # Check that one, and only one warning has been issued.
+        self.assertEqual(len(logs.records), 1)
         # Check that the provider has been registered.
         self.assertCountEqual(initial_providers + ['provider2'],
                               registered_providers())
         # Check that no new backends have been added.
         self.assertCountEqual(initial_backends,
                               qiskit.wrapper.available_backends())
+
+        # Check the name of the backend still refers to the previous one.
+        self.assertEqual(ibmqx4_backend, qiskit.wrapper.get_backend('ibmqx4'))
 
 
 if __name__ == '__main__':

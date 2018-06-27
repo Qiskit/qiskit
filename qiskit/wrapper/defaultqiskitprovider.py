@@ -89,10 +89,10 @@ class DefaultQISKitProvider(BaseProvider):
         Add a new provider to the list of known providers.
 
         Note:
-            If a backend from the new provider has a name that is in use by an
-            already registered provider, the backend will not be available
-            (as the name will always refer to the backend from the earlier
-            provider).
+            If some backend in the new provider has a name in use by an
+            already registered provider, the backend will not be available,
+            and the name of the backend will still refer to that previously
+            registered.
 
         Args:
             provider (BaseProvider): Provider instance.
@@ -117,7 +117,7 @@ class DefaultQISKitProvider(BaseProvider):
         if common_backends:
             logger.warning(
                 'The backend names "%s" (provided by "%s") are already in use. '
-                'Consider using unregister() for avoiding namespace conflicts.',
+                'Consider using unregister() for avoiding name conflicts.',
                 list(common_backends), provider_name)
 
         self.providers[provider_name] = provider
