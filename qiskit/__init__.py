@@ -43,6 +43,6 @@ from . import wrapper
 
 import os
 
-ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.readlines()
+    __version__ = version_file.read().strip()
