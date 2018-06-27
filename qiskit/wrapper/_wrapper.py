@@ -8,8 +8,7 @@
 """Helper module for simplified QISKit usage."""
 
 from qiskit import transpiler
-from qiskit import QISKitError
-from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
+
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
@@ -21,7 +20,7 @@ _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 def register(token, url='https://quantumexperience.ng.bluemix.net/api',
              hub=None, group=None, project=None, proxies=None, verify=True,
-             provider_name='ibmq'):
+             provider_name=None):
     """
     Authenticate against an online backend provider.
 
@@ -36,17 +35,34 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
             proxies (dict): Proxy configuration for the API, as a dict with
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
-            provider_name (str): the unique name for the online backend
-                provider (for example, 'ibmq' for the IBM Quantum Experience).
+            provider_name (str): the user-provided name for the registered
+                provider.
     Raises:
         QISKitError: if the provider name is not recognized.
     """
-    if provider_name == 'ibmq':
-        provider = IBMQProvider(token, url,
-                                hub, group, project, proxies, verify)
-        _DEFAULT_PROVIDER.add_provider(provider)
-    else:
-        raise QISKitError('provider name %s is not recognized' % provider_name)
+    # Convert the credentials to a dict.
+    credentials = {
+        'token': token, 'url': url, 'hub': hub, 'group': group,
+        'project': project, 'proxies': proxies, 'verify': verify
+    }
+    _DEFAULT_PROVIDER.add_ibmq_provider(credentials, provider_name)
+
+
+def unregister(provider_name):
+    """
+    Removes a provider of list of registered providers.
+
+    Args:
+        provider_name (str): The unique name for the online provider.
+    Raises:
+        QISKitError: if the provider name is not valid.
+    """
+    _DEFAULT_PROVIDER.remove_provider(provider_name)
+
+
+def registered_providers():
+    """Return the names of the currently registered providers."""
+    return list(_DEFAULT_PROVIDER.providers.keys())
 
 
 # Functions for inspecting and retrieving backends.
