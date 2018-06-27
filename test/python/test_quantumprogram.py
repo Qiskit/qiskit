@@ -41,8 +41,6 @@ class TestQuantumProgram(QiskitTestCase):
                     "size": 3}]
             }]
         }
-        self.qp_program_finished = False
-        self.qp_program_exception = Exception()
 
     ###############################################################
     # Tests to initiate an build a quantum program
@@ -1599,7 +1597,8 @@ class TestQuantumProgram(QiskitTestCase):
         # TODO: use the backend directly when the deprecation is completed.
         from ._mockutils import DummyProvider
         import qiskit.wrapper
-        qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
+        qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider(),
+                                                               'dummy')
 
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")
