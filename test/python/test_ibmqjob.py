@@ -16,7 +16,7 @@ import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-import qiskit._compiler
+from qiskit import transpiler
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
@@ -60,7 +60,7 @@ class TestIBMQJob(QiskitTestCase):
         qc = QuantumCircuit(qr, cr, name='hadamard')
         qc.h(qr)
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile([self._qc, qc], backend)
+        qobj = transpiler.compile([self._qc, qc], backend)
         shots = qobj['config']['shots']
         job = backend.run(qobj)
         result = job.result()
@@ -93,7 +93,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('devices: %s', [b.name for b in backends])
         backend = lowest_pending_jobs(backends)
         self.log.info('using backend: %s', backend.name)
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
         job = backend.run(qobj)
         while not (job.done or job.exception):
@@ -127,7 +127,7 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile([qc]*10, backend)
+        qobj = transpiler.compile([qc]*10, backend)
         num_jobs = 5
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         found_async_jobs = False
@@ -174,7 +174,7 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
         num_jobs = 3
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
@@ -221,7 +221,7 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
         num_jobs = 3
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         success = False
@@ -245,7 +245,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_job_id(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.log.info('job_id: %s', job.id)
         self.assertTrue(job.id is not None)
@@ -253,7 +253,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_get_backend_name(self):
         backend_name = 'ibmq_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.assertTrue(job.backend_name == backend_name)
 
@@ -271,7 +271,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         rjob = backend.retrieve_job(job.id)
         self.assertTrue(job.id == rjob.id)
