@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Add ``unregister()`` for removing previously registered providers (#584).
 
 Changed
 -------
