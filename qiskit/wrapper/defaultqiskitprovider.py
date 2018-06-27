@@ -7,6 +7,7 @@
 
 """Meta-provider that aggregates several providers."""
 import logging
+from collections import OrderedDict
 from itertools import combinations
 
 from qiskit import QISKitError
@@ -25,7 +26,7 @@ class DefaultQISKitProvider(BaseProvider):
         super().__init__()
 
         # Dict of providers.
-        self.providers = {'local': LocalProvider()}
+        self.providers = OrderedDict({'local': LocalProvider()})
 
     def get_backend(self, name):
         name = self.resolve_backend_name(name)
@@ -87,6 +88,12 @@ class DefaultQISKitProvider(BaseProvider):
         """
         Add a new provider to the list of known providers.
 
+        Note:
+            If a backend from the new provider has a name that is in use by an
+            already registered provider, the backend will not be available
+            (as the name will always refer to the backend from the earlier
+            provider).
+
         Args:
             provider (BaseProvider): Provider instance.
             provider_name (str): User-provided name for the provider.
@@ -102,6 +109,16 @@ class DefaultQISKitProvider(BaseProvider):
             raise QISKitError(
                 'A provider with name "%s" is already registered.'
                 % provider_name)
+
+        # Check for backend name clashes, emitting a warning.
+        current_backends = {str(backend) for backend in self.available_backends()}
+        added_backends = {str(backend) for backend in provider.available_backends()}
+        common_backends = added_backends.intersection(current_backends)
+        if common_backends:
+            logger.warning(
+                'The backend names "%s" (provided by "%s") are already in use. '
+                'Consider using unregister() for avoiding namespace conflicts.',
+                list(common_backends), provider_name)
 
         self.providers[provider_name] = provider
 
@@ -131,15 +148,9 @@ class DefaultQISKitProvider(BaseProvider):
                 raise QISKitError(
                     'Cannot parse provider name from credentials.')
 
-        if provider_name in self.providers.keys():
-            raise QISKitError(
-                'A provider with name "%s" is already registered.'
-                % provider_name)
-
         ibmq_provider = IBMQProvider(**credentials_dict)
-        self.providers[provider_name] = ibmq_provider
 
-        return ibmq_provider
+        return self.add_provider(ibmq_provider, provider_name)
 
     def remove_provider(self, provider_name):
         """
