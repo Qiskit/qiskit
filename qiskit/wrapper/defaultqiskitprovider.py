@@ -5,9 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=broad-except
-
 """Meta-provider that aggregates several providers."""
+
 import logging
 
 from itertools import combinations
@@ -78,6 +77,7 @@ class DefaultQISKitProvider(BaseProvider):
                         if filters(backend) is True:
                             accepted_backends.append(backend)
                     except Exception:
+                        # pylint: disable=broad-except
                         pass
                 backends = accepted_backends
             else:

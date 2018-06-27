@@ -7,8 +7,8 @@
 
 """Helper module for simplified QISKit usage."""
 
-from qiskit import transpiler
-from qiskit import QISKitError
+import warnings
+from qiskit import transpiler, QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
@@ -129,7 +129,7 @@ def least_busy(names):
     local backends that do not have this are not considered.
 
     Args:
-        names (str): backend names to choose from
+        names (list[str]): backend names to choose from
                     (e.g. output of ``available_backends()``)
 
     Returns:
