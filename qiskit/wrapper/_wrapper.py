@@ -24,9 +24,9 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
     Authenticate against an online backend provider.
 
     Args:
-        *args (list): position arguments for provider class initialization
+        args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
-        **kwargs (dict): keyword arguments passed to provider class initialization.
+        kwargs (dict): keyword arguments passed to provider class initialization.
             For the IBMQProvider default this can include things such as;
             token (str): The token used to register on the online backend such
                 as the quantum experience.
