@@ -12,17 +12,8 @@
 import unittest
 import qiskit
 from qiskit.wrapper import register, available_backends, get_backend
-import qiskit._compiler
+from qiskit import transpiler, least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
-
-
-def lowest_pending_jobs(list_of_backends):
-    """Returns the backend with lowest pending jobs."""
-    backends = [get_backend(name) for name in list_of_backends]
-    backends = filter(lambda x: x.status.get('available', False), backends)
-    by_pending_jobs = sorted(backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0].name
 
 
 class TestBitReordering(QiskitTestCase):
@@ -49,8 +40,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q[1], c[0])
 
         shots = 2000
-        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
-        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
+        qobj_real = transpiler.compile(circ, real, shots=shots)
+        qobj_sim = transpiler.compile(circ, sim, shots=shots)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
@@ -92,8 +83,8 @@ class TestBitReordering(QiskitTestCase):
         circ.measure(q2[0], c1[1])
 
         shots = 4000
-        qobj_real = qiskit._compiler.compile(circ, real, shots=shots)
-        qobj_sim = qiskit._compiler.compile(circ, sim, shots=shots)
+        qobj_real = transpiler.compile(circ, real, shots=shots)
+        qobj_sim = transpiler.compile(circ, sim, shots=shots)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
@@ -106,7 +97,7 @@ class TestBitReordering(QiskitTestCase):
         try:
             register(QE_TOKEN, QE_URL, hub, group, project)
             real_backends = available_backends({'simulator': False})
-            real_backend = lowest_pending_jobs(real_backends)
+            real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None
 

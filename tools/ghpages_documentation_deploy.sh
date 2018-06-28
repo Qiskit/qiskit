@@ -17,8 +17,10 @@
 TARGET_REPOSITORY_USER="QISKit"
 TARGET_REPOSITORY_NAME="qiskit.github.io"
 TARGET_DOC_DIR="documentation"
+TARGET_DOC_DIR_DE="documentation/de"
 TARGET_DOC_DIR_JA="documentation/ja"
 SOURCE_DOC_DIR="doc/_build/html"
+SOURCE_DOC_DIR_DE="doc/_build/de/html"
 SOURCE_DOC_DIR_JA="doc/_build/ja/html"
 SOURCE_DIR=`pwd`
 
@@ -33,6 +35,7 @@ cd $TARGET_REPOSITORY_NAME
 echo "Replacing $TARGET_DOC_DIR with the new contents ..."
 git rm -rf $TARGET_DOC_DIR
 cp -r $SOURCE_DIR/$SOURCE_DOC_DIR $TARGET_DOC_DIR
+cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_DE $TARGET_DOC_DIR_DE
 cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_JA $TARGET_DOC_DIR_JA
 git add $TARGET_DOC_DIR
 
