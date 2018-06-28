@@ -19,13 +19,14 @@ from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
-def register(*args, provider_class=IBMQProvider, **kwargs):
+def register(*args, provider_class=IBMQProvider, provider_name='ibmq', **kwargs):
     """
     Authenticate against an online backend provider.
 
     Args:
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
+        provider_name (str): name for provider
         kwargs (dict): keyword arguments passed to provider class initialization.
             For the IBMQProvider default this can include things such as;
             token (str): The token used to register on the online backend such
@@ -42,7 +43,8 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         QISKitError: if the provider name is not recognized.
     """
     provider = provider_class(*args, **kwargs)
-    _DEFAULT_PROVIDER.add_provider(provider)
+    _DEFAULT_PROVIDER.add_provider(provider, provider_name)
+
 
 
 def unregister(provider):
