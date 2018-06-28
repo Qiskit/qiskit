@@ -13,17 +13,9 @@ import unittest
 import qiskit
 from qiskit import transpiler
 from qiskit import Result
-from qiskit.wrapper import get_backend, execute
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
-
-
-def lowest_pending_jobs(list_of_backends):
-    """Returns the backend with lowest pending jobs."""
-    by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0]
 
 
 class FakeBackEnd(object):
@@ -131,7 +123,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        job = qiskit.wrapper.execute(qc, backend)
+        job = execute(qc, backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -160,9 +152,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = least_busy(available_backends())
+        backend = get_backend(backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -182,9 +174,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = least_busy(available_backends())
+        backend = get_backend(backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -205,8 +197,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -224,8 +217,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -245,8 +239,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -264,8 +259,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)

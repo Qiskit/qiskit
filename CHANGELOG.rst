@@ -21,9 +21,11 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 - Add ``unregister()`` for removing previously registered providers (#584).
+- Adding backend filtering by least busy (#575).
 
 Changed
 -------
+- Remove backend filtering in individual providers, keep only in wrapper (#575).
 - Single source of version information (#581)
 
 Removed

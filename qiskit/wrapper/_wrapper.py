@@ -7,7 +7,8 @@
 
 """Helper module for simplified QISKit usage."""
 
-from qiskit import transpiler
+import warnings
+from qiskit import transpiler, QISKitError
 
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
@@ -70,7 +71,7 @@ def registered_providers():
 
 def available_backends(filters=None, compact=True):
     """
-    Return the backends that are available in the SDK, optionally filtering
+    Return names of backends that are available in the SDK, optionally filtering
     them based on their capabilities.
 
     Note:
@@ -78,8 +79,8 @@ def available_backends(filters=None, compact=True):
         an online backend provider needs to be established by calling the
         `register()` function.
     Args:
-        filters (dict): dictionary of filtering conditions.
-        compact (bool): group backend names based on aliases
+        filters (dict or callable): filtering conditions.
+        compact (bool): group backend names based on compact group names.
 
     Returns:
         list[str]: the names of the available backends.
@@ -113,6 +114,10 @@ def local_backends(compact=True):
     Returns:
         list[str]: the names of the available remote backends.
     """
+    warnings.warn(
+        "local_backends() will be deprecated in upcoming versions (>0.5). "
+        "using filters instead is recommended (i.e. available_backends({'local': True}).",
+        DeprecationWarning)
     return available_backends({'local': True}, compact=compact)
 
 
@@ -127,7 +132,36 @@ def remote_backends(compact=True):
     Returns:
         list[str]: the names of the available remote backends.
     """
+    warnings.warn(
+        "remote_backends() will be deprecated in upcoming versions (>0.5). "
+        "using filters instead is recommended (i.e. available_backends({'local': False}).",
+        DeprecationWarning)
     return available_backends({'local': False}, compact=compact)
+
+
+def least_busy(names):
+    """
+    Return the least busy available backend for those that
+    have a `pending_jobs` in their `status`. Backends such as
+    local backends that do not have this are not considered.
+
+    Args:
+        names (list[str]): backend names to choose from
+                    (e.g. output of ``available_backends()``)
+
+    Returns:
+        str: the name of the least busy backend
+
+    Raises:
+        QISKitError: if passing a list of backend names that is
+            either empty or none have attribute ``pending_jobs``
+    """
+    backends = [get_backend(name) for name in names]
+    try:
+        return min([b for b in backends if b.status['available'] and 'pending_jobs' in b.status],
+                   key=lambda b: b.status['pending_jobs']).name
+    except (ValueError, TypeError):
+        raise QISKitError("Can only find least_busy backend from a non-empty list.")
 
 
 def get_backend(name):
