@@ -259,7 +259,7 @@ def requires_qe_access(func):
             QE_GROUP = os.getenv('QE_GROUP')
             QE_PROJECT = os.getenv('QE_PROJECT')
         if not QE_TOKEN or not QE_URL:
-            raise Exception(
+            raise unittest.SkipTest(
                 'Could not locate a valid "Qconfig.py" file nor read the QE '
                 'values from the environment')
 
