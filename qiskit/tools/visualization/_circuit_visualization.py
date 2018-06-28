@@ -44,18 +44,6 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# -----------------------------------------------------------------------------
-# definitions for matplotlib_drawer
-# -----------------------------------------------------------------------------
-WID = 0.65
-HIG = 0.65
-DEFAULT_SCALE = 3
-PORDER_GATE = 5
-PORDER_LINE = 2
-PORDER_GRAY = 3
-PORDER_TEXT = 6
-PORDER_SUBP = 4
-
 
 def plot_circuit(circuit,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
@@ -63,10 +51,6 @@ def plot_circuit(circuit,
                  scale=0.7):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
-    Requires pdflatex installed (to compile Latex)
-    Requires Qcircuit latex package (to compile latex)
-    Requires poppler installed (to convert pdf to png)
-    Requires pillow python package to handle images
     """
     im = circuit_drawer(circuit, basis, scale)
     if im:
@@ -77,6 +61,31 @@ def circuit_drawer(circuit,
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                    scale=0.7):
+    """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
+
+    1. latex: high-quality images, but heavy external software dependencies
+    2. matplotlib: purely in Python with no external dependencies
+
+    Defaults to an overcomplete basis, in order to not alter gates.
+
+    Args:
+        circuit (QuantumCircuit): the quantum circuit to draw
+        basis (str): the basis to unroll to prior to drawing
+        scale (float): scale of image to draw (shrink if < 1)
+
+    Returns:
+        PIL Image: when using latex circuit drawer
+    """
+    try:
+        return latex_circuit_drawer(circuit, basis, scale)
+    except (OSError, subprocess.CalledProcessError):
+        matplotlib_circuit_drawer(circuit, basis, scale)
+
+
+def latex_circuit_drawer(circuit,
+                         basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                         scale=0.7):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -117,7 +126,7 @@ def circuit_drawer(circuit,
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 base + '.pdf', base])
                 im = Image.open(base + '.png')
-                im = trim(im)
+                im = _trim(im)
                 os.remove(base + '.png')
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
@@ -129,10 +138,10 @@ def circuit_drawer(circuit,
             except AttributeError:
                 logger.warning('WARNING: `pillow` Python package not installed. '
                                'Skipping circuit drawing...')
-    return im
+        return im
 
 
-def trim(im):
+def _trim(im):
     """Trim image and remove white space
     """
     bg = Image.new(im.mode, im.size, im.getpixel((0, 0)))
@@ -1058,10 +1067,23 @@ def _truncate_float(matchobj, format_str='0.2g'):
     return ''
 
 
-def matplotlib_drawer(circuit,
-                      basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
-                            'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                      scale=1.0, style=None, filename=None):
+# -----------------------------------------------------------------------------
+# definitions for matplotlib_drawer
+# -----------------------------------------------------------------------------
+WID = 0.65
+HIG = 0.65
+DEFAULT_SCALE = 3
+PORDER_GATE = 5
+PORDER_LINE = 2
+PORDER_GRAY = 3
+PORDER_TEXT = 6
+PORDER_SUBP = 4
+
+
+def matplotlib_circuit_drawer(circuit,
+                              basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
+                                    'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
+                              scale=1.0, style=None, filename=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -1071,7 +1093,7 @@ def matplotlib_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         style (dict or str): dictionary of style or file name of style file
-        filename (str): output filename of circuit drawing if filename is not None
+        filename (str): file to save image to
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
