@@ -177,7 +177,7 @@ class IBMQBackend(BaseBackend):
             list(IBMQJob): list of IBMQJob instances
 
         Raises:
-            ValueError: status keyword value unrecognized
+            IBMQBackendValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
         api_filter = {}
@@ -197,8 +197,8 @@ class IBMQBackend(BaseBackend):
             elif status == JobStatus.ERROR:
                 this_filter = {'status': {'regexp': '^ERROR'}}
             else:
-                raise ValueError('unrecongized value for "status" keyword '
-                                 'in job filter')
+                raise IBMQBackendValueError('unrecongized value for "status" keyword '
+                                            'in job filter')
             api_filter.update(this_filter)
         if db_filter:
             # filter ignores backend_name filter so we need to set it
