@@ -291,10 +291,10 @@ class TestIBMQJob(QiskitTestCase):
                     if not backend.configuration['simulator']]
         backend = _least_busy(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
-        
+
     def test_get_jobs_filter_job_status(self):
         backends = self._provider.available_backends()
-        backend = _least_busy(backends) 
+        backend = _least_busy(backends)
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
