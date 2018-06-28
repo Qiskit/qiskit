@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Meta-provider that aggregates several providers."""
+
 import logging
 from collections import OrderedDict
 from itertools import combinations
@@ -38,18 +39,51 @@ class DefaultQISKitProvider(BaseProvider):
         raise KeyError(name)
 
     def available_backends(self, filters=None):
-        """
+        """Get a list of available backends from all providers (after filtering).
+
         Args:
-            filters (dict): dictionary of filtering conditions.
+            filters (dict or callable): filtering conditions.
+                each will either pass through, or be filtered out.
+                1) dict: {'criteria': value}
+                    the criteria can be over backend's `configuration` or `status`
+                    e.g. {'local': False, 'simulator': False, 'available': True}
+                2) callable: BaseBackend -> bool
+                    e.g. lambda x: x.configuration['n_qubits'] > 5
 
         Returns:
-            list[BaseBackend]: a list of backend names available from all the
-                providers.
+            list[BaseBackend]: a list of backend instances available
+                from all the providers.
+
+        Raises:
+            QISKitError: if passing filters that is neither dict nor callable
         """
         # pylint: disable=arguments-differ
         backends = []
         for provider in self.providers.values():
-            backends.extend(provider.available_backends(filters))
+            backends.extend(provider.available_backends())
+
+        if filters is not None:
+            if isinstance(filters, dict):
+                # exact match filter:
+                # e.g. {'n_qubits': 5, 'available': True}
+                for key, value in filters.items():
+                    backends = [instance for instance in backends
+                                if instance.configuration.get(key) == value
+                                or instance.status.get(key) == value]
+            elif callable(filters):
+                # acceptor filter: accept or reject a specific backend
+                # e.g. lambda x: x.configuration['n_qubits'] > 5
+                accepted_backends = []
+                for backend in backends:
+                    try:
+                        if filters(backend) is True:
+                            accepted_backends.append(backend)
+                    except Exception:  # pylint: disable=broad-except
+                        pass
+                backends = accepted_backends
+            else:
+                raise QISKitError('backend filters must be either dict or callable.')
+
         return backends
 
     def aliased_backend_names(self):
@@ -185,7 +219,7 @@ class DefaultQISKitProvider(BaseProvider):
             regular available names, nor aliases, nor deprecated names
         """
         resolved_name = ""
-        available = [b.name for b in self.available_backends(filters=None)]
+        available = [b.name for b in self.available_backends()]
         aliased = self.aliased_backend_names()
         deprecated = self.deprecated_backend_names()
 

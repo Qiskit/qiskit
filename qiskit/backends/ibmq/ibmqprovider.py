@@ -29,15 +29,15 @@ class IBMQProvider(BaseProvider):
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, filters=None):
-        # pylint: disable=arguments-differ
-        backends = self.backends
+    def available_backends(self):
+        """Get a list of available backends from the IBMQ provider.
 
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
-        return list(backends.values())
+        Returns:
+            list[IBMQBackend]: a list of backend instances available
+            from the IBMQ provider.
+        """
+        # pylint: disable=arguments-differ
+        return list(self.backends.values())
 
     def aliased_backend_names(self):
         return {}

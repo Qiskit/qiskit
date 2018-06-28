@@ -18,7 +18,7 @@ import pprint
 
 # Import the QISKit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import available_backends, compile, register, get_backend
+from qiskit import available_backends, compile, register, get_backend, least_busy
 
 try:
     import Qconfig
@@ -27,19 +27,6 @@ except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
-
-
-def lowest_pending_jobs():
-    """Returns the backend with lowest pending jobs."""
-    list_of_backends = available_backends(
-        {'local': False, 'simulator': False})
-    device_status = [get_backend(backend).status
-                     for backend in list_of_backends]
-
-    best = min([x for x in device_status if x['available'] is True],
-               key=lambda x: x['pending_jobs'])
-    return best['name']
-
 
 try:
     # Create a Quantum and Classical Register and giving a name.
@@ -97,10 +84,10 @@ try:
             print(s)
 
         # select least busy available device and execute.
-        best_device = lowest_pending_jobs()
-        print("Running on current least busy device: ", best_device)
+        least_busy_device = least_busy(available_backends())
+        print("Running on current least busy device: ", least_busy_device)
 
-        my_backend = get_backend(best_device)
+        my_backend = get_backend(least_busy_device)
 
         print("(with Configuration) ")
         pprint.pprint(my_backend.configuration)
