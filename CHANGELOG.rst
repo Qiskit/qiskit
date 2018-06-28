@@ -20,10 +20,12 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Add ``unregister()`` for removing previously registered providers (#584).
 - Add matplotlib-based circuit drawer (#579).
 
 Changed
 -------
+- Single source of version information (#581)
 
 Removed
 -------
