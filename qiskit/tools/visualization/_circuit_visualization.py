@@ -35,12 +35,7 @@ from qiskit import QuantumCircuit, QISKitError, load_qasm_file
 from qiskit.qasm import Qasm
 from qiskit.unroll import Unroller, JsonBackend
 
-try:
-    from PIL import Image, ImageChops
-except ImportError:
-    Image = None
-    ImageChops = None
-
+from PIL import Image, ImageChops
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +80,7 @@ def circuit_drawer(circuit,
 def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                         scale=0.7):
+                         scale=0.7, filename=None):
     """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     Requires pdflatex installed (to compile Latex)
@@ -93,14 +88,14 @@ def latex_circuit_drawer(circuit,
     Requires poppler installed (to convert pdf to png)
     Requires pillow python package to handle images
     """
-    filename = 'circuit'
+    tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
-        latex_drawer(circuit, filename=os.path.join(tmpdirname, filename + '.tex'),
-                     basis=basis, scale=scale)
+        tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
+        generate_latex_source(circuit, filename=tmppath, basis=basis, scale=scale)
         im = None
         try:
             subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
-                            "{}".format(filename + '.tex')],
+                            "{}".format(tmpfilename + '.tex')],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
@@ -122,12 +117,14 @@ def latex_circuit_drawer(circuit,
                                'Skipping circuit drawing...')
         else:
             try:
-                base = os.path.join(tmpdirname, filename)
+                base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 base + '.pdf', base])
                 im = Image.open(base + '.png')
                 im = _trim(im)
                 os.remove(base + '.png')
+                if filename:
+                    im.save(filename, 'PNG')
             except OSError as e:
                 if e.errno == os.errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
@@ -153,7 +150,7 @@ def _trim(im):
     return im
 
 
-def latex_drawer(circuit, filename=None,
+def generate_latex_source(circuit, filename=None,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                  scale=0.7):
