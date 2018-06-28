@@ -31,11 +31,11 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 
+from PIL import Image, ImageChops
+
 from qiskit import QuantumCircuit, QISKitError, load_qasm_file
 from qiskit.qasm import Qasm
 from qiskit.unroll import Unroller, JsonBackend
-
-from PIL import Image, ImageChops
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +69,12 @@ def circuit_drawer(circuit,
         scale (float): scale of image to draw (shrink if < 1)
 
     Returns:
-        PIL Image: when using latex circuit drawer
+        PIL.Image: an in-memory representation of the circuit diagram
     """
     try:
         return latex_circuit_drawer(circuit, basis, scale)
     except (OSError, subprocess.CalledProcessError):
-        matplotlib_circuit_drawer(circuit, basis, scale)
+        return matplotlib_circuit_drawer(circuit, basis, scale)
 
 
 def latex_circuit_drawer(circuit,
@@ -1097,7 +1097,7 @@ def matplotlib_circuit_drawer(circuit,
                        'Perhaps you set `filename` to `basis`.', basis)
     qcd = MatplotlibDrawer(basis=basis, scale=scale, style=style)
     qcd.parse_circuit(circuit)
-    qcd.draw(filename)
+    return qcd.draw(filename)
 
 
 Register = namedtuple('Register', 'name index')
@@ -1526,10 +1526,19 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-        if filename:
-            self.figure.savefig(filename, dpi=self._style.dpi, bbox_inches='tight')
-        else:
-            plt.show()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = os.path.join(tmpdir, 'circuit.png')
+            self.figure.savefig(tmppath, dpi=self._style.dpi, bbox_inches='tight')
+            im = Image.open(tmppath)
+            _trim(im)
+            if filename:
+                os.rename(tmppath, filename)
+            else:
+                os.remove(tmppath)
+                plt.show()
+
+        return im
 
     def _draw_regs(self):
         # quantum register
