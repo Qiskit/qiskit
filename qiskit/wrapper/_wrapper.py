@@ -9,7 +9,7 @@
 
 import warnings
 from qiskit import transpiler, QISKitError
-
+from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
@@ -19,13 +19,15 @@ from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
-def register(token, url='https://quantumexperience.ng.bluemix.net/api',
-             hub=None, group=None, project=None, proxies=None, verify=True,
-             provider_name=None):
+def register(*args, provider_class=IBMQProvider, **kwargs):
     """
     Authenticate against an online backend provider.
 
     Args:
+        *args (list): position arguments for provider class initialization
+        provider_class (BaseProvider): provider class
+        **kwargs (dict): keyword arguments passed to provider class initialization.
+            For the IBMQProvider default this can include things such as;
             token (str): The token used to register on the online backend such
                 as the quantum experience.
             url (str): The url used for online backend such as the quantum
@@ -36,29 +38,23 @@ def register(token, url='https://quantumexperience.ng.bluemix.net/api',
             proxies (dict): Proxy configuration for the API, as a dict with
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
-            provider_name (str): the user-provided name for the registered
-                provider.
     Raises:
         QISKitError: if the provider name is not recognized.
     """
-    # Convert the credentials to a dict.
-    credentials = {
-        'token': token, 'url': url, 'hub': hub, 'group': group,
-        'project': project, 'proxies': proxies, 'verify': verify
-    }
-    _DEFAULT_PROVIDER.add_ibmq_provider(credentials, provider_name)
+    provider = provider_class(*args, **kwargs)
+    _DEFAULT_PROVIDER.add_provider(provider)
 
 
-def unregister(provider_name):
+def unregister(provider):
     """
     Removes a provider of list of registered providers.
 
     Args:
-        provider_name (str): The unique name for the online provider.
+        provider (BaseProvider): the provider instance to unregister
     Raises:
-        QISKitError: if the provider name is not valid.
+        QISKitError: if the provider instance is not registered
     """
-    _DEFAULT_PROVIDER.remove_provider(provider_name)
+    _DEFAULT_PROVIDER.remove_provider(provider)
 
 
 def registered_providers():
