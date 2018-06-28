@@ -78,8 +78,7 @@ class DefaultQISKitProvider(BaseProvider):
                     try:
                         if filters(backend) is True:
                             accepted_backends.append(backend)
-                    except Exception:
-                        # pylint: disable=broad-except
+                    except Exception:  # pylint: disable=broad-except
                         pass
                 backends = accepted_backends
             else:

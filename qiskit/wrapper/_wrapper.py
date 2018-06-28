@@ -8,7 +8,7 @@
 """Helper module for simplified QISKit usage."""
 
 import warnings
-from qiskit import transpiler
+from qiskit import transpiler, QISKitError
 
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
