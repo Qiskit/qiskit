@@ -10,14 +10,12 @@
 """Backends Test."""
 
 import json
-import unittest
 
 import jsonschema
 
-import qiskit.wrapper
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-from .common import requires_qe_access, QiskitTestCase, Path
+from .common import Path, QiskitTestCase, requires_qe_access
 
 
 def remove_backends_from_list(backends):
@@ -220,32 +218,3 @@ class TestBackends(QiskitTestCase):
                     'last_update_date',
                     'qubits',
                     'backend')))
-
-    @requires_qe_access
-    def test_wrapper_register_ok(self, QE_TOKEN, QE_URL,
-                                 hub=None, group=None, project=None):
-        """Test wrapper.register()."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project, provider_name='ibmq')
-        backends = qiskit.wrapper.available_backends()
-        backends = remove_backends_from_list(backends)
-        self.log.info(backends)
-        self.assertTrue(len(backends) > 0)
-
-    @requires_qe_access
-    def test_wrapper_available_backends_with_filter(self, QE_TOKEN, QE_URL,
-                                                    hub=None, group=None, project=None):
-        """Test wrapper.available_backends(filter=...)."""
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project, provider_name='ibmq')
-        backends = qiskit.wrapper.available_backends({'local': False, 'simulator': True})
-        self.log.info(backends)
-        self.assertTrue(len(backends) > 0)
-
-    def test_wrapper_local_backends(self):
-        """Test wrapper.local_backends(filter=...)."""
-        local_backends = qiskit.wrapper.local_backends()
-        self.log.info(local_backends)
-        self.assertTrue(len(local_backends) > 0)
-
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
