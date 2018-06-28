@@ -55,7 +55,7 @@ def plot_circuit(circuit,
 def circuit_drawer(circuit,
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                   scale=0.7):
+                   scale=0.7, filename=None):
     """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
 
     1. latex: high-quality images, but heavy external software dependencies
@@ -67,14 +67,15 @@ def circuit_drawer(circuit,
         circuit (QuantumCircuit): the quantum circuit to draw
         basis (str): the basis to unroll to prior to drawing
         scale (float): scale of image to draw (shrink if < 1)
+        filename (str): file path to save image to
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
     """
     try:
-        return latex_circuit_drawer(circuit, basis, scale)
+        return latex_circuit_drawer(circuit, basis, scale, filename)
     except (OSError, subprocess.CalledProcessError):
-        return matplotlib_circuit_drawer(circuit, basis, scale)
+        return matplotlib_circuit_drawer(circuit, basis, scale, filename)
 
 
 def latex_circuit_drawer(circuit,
@@ -102,6 +103,7 @@ def latex_circuit_drawer(circuit,
                 logger.warning('WARNING: Unable to compile latex. '
                                'Is `pdflatex` installed? '
                                'Skipping circuit drawing...')
+            raise
         except subprocess.CalledProcessError as e:
             if "capacity exceeded" in str(e.stdout):
                 logger.warning('WARNING: Unable to compile latex. '
@@ -115,6 +117,7 @@ def latex_circuit_drawer(circuit,
                 logger.warning('WARNING: Unable to compile latex. '
                                'Is the `Qcircuit` latex package installed? '
                                'Skipping circuit drawing...')
+            raise
         else:
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
@@ -130,11 +133,7 @@ def latex_circuit_drawer(circuit,
                     logger.warning('WARNING: Unable to convert pdf to image. '
                                    'Is `poppler` installed? '
                                    'Skipping circuit drawing...')
-                else:
-                    raise
-            except AttributeError:
-                logger.warning('WARNING: `pillow` Python package not installed. '
-                               'Skipping circuit drawing...')
+                raise
         return im
 
 
@@ -1090,7 +1089,7 @@ def matplotlib_circuit_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         style (dict or str): dictionary of style or file name of style file
-        filename (str): file to save image to
+        filename (str): file path to save image to
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
