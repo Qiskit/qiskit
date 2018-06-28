@@ -187,11 +187,9 @@ class IBMQBackend(BaseBackend):
             if status == JobStatus.RUNNING:
                 this_filter = {'status': 'RUNNING',
                                'infoQueue': {'exists': False}}
-                api_filter = {**api_filter, **this_filter}
             elif status == JobStatus.QUEUED:
                 this_filter = {'status': 'RUNNING',
                                'infoQueue.status': 'PENDING_IN_QUEUE'}
-                api_filter = {**api_filter, **this_filter}
             elif status == JobStatus.CANCELLED:
                 this_filter = {'status': 'CANCELLED'}
             elif status == JobStatus.DONE:
@@ -201,10 +199,11 @@ class IBMQBackend(BaseBackend):
             else:
                 raise ValueError('unrecongized value for "status" keyword '
                                  'in job filter')
+            api_filter.update(this_filter)
         if db_filter:
             # filter ignores backend_name filter so we need to set it
             api_filter['backend.name'] = backend_name
-            # status takes precendence over filter for same keys
+            # status takes precendence over db_filter for same keys
             api_filter = {**db_filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
                                            backend=backend_name,
@@ -238,4 +237,9 @@ class IBMQBackend(BaseBackend):
 
 class IBMQBackendError(QISKitError):
     """IBM Q Backend Errors"""
+    pass
+
+
+class IBMQBackendValueError(IBMQBackendError, ValueError):
+    """ Value errors thrown within IBMQBackend """
     pass
