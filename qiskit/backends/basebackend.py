@@ -10,9 +10,10 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
-
 from abc import ABC, abstractmethod
+
 from qiskit._qiskiterror import QISKitError
+from qiskit._util import AvailableToOperationalDict
 
 
 class BaseBackend(ABC):
@@ -60,7 +61,8 @@ class BaseBackend(ABC):
     @property
     def status(self):
         """Return backend status"""
-        return {'name': self.name, 'available': True}
+        return AvailableToOperationalDict(
+            {'name': self.name, 'operational': True, 'pending_jobs': 0})
 
     @property
     def name(self):

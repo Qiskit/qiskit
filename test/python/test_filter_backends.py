@@ -28,7 +28,7 @@ class TestBackendFilters(QiskitTestCase):
     def test_filter_status_config_dict(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test filtering by dictionary of mixed status/configuration properties"""
         register(QE_TOKEN, QE_URL, hub, group, project)
-        filter_ = {'available': True, 'local': False, 'simulator': True}
+        filter_ = {'operational': True, 'local': False, 'simulator': True}
         filtered_backends = available_backends(filter_)
         self.assertTrue(filtered_backends)
 
