@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Retreive IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
 - Add ``unregister()`` for removing previously registered providers (#584).
 - Adding backend filtering by least busy (#575).
