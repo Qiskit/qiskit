@@ -15,6 +15,7 @@ from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends import JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -141,18 +142,72 @@ class IBMQBackend(BaseBackend):
                 "Couldn't get backend status: {0}".format(ex))
         return status
 
-    def jobs(self, limit=50, skip=0):
-        """Attempt to get the jobs submitted to the backend
+    def jobs(self, limit=50, skip=0, status=None, db_filter=None):
+        """Attempt to get the jobs submitted to the backend.
 
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
+            status (None or JobStatus or str): only get jobs with this status,
+                where status is e.g. `JobStatus.RUNNING` or `'RUNNING'`
+            db_filter (dict): `loopback-based filter
+                <https://loopback.io/doc/en/lb2/Querying-data.html>`_.
+                This is an interface to a database ``where`` filter. Some
+                examples of its usage are:
+
+                Filter last five jobs with errors::
+
+                   job_list = backend.jobs(limit=5, status=JobStatus.ERROR)
+
+                Filter last five jobs with counts=1024, and counts for
+                states ``00`` and ``11`` each exceeding 400::
+
+                  cnts_filter = {'shots': 1024,
+                                 'qasms.result.data.counts.00': {'gt': 400},
+                                 'qasms.result.data.counts.11': {'gt': 400}}
+                  job_list = backend.jobs(limit=5, db_filter=cnts_filter)
+
+                Filter last five jobs from 30 days ago::
+
+                   past_date = datetime.datetime.now() - datetime.timedelta(days=30)
+                   date_filter = {'creationDate': {'lt': past_date.isoformat()}}
+                   job_list = backend.jobs(limit=5, db_filter=date_filter)
+
         Returns:
             list(IBMQJob): list of IBMQJob instances
+
+        Raises:
+            IBMQBackendValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
+        api_filter = {}
+        if status:
+            if isinstance(status, str):
+                status = JobStatus[status]
+            if status == JobStatus.RUNNING:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue': {'exists': False}}
+            elif status == JobStatus.QUEUED:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue.status': 'PENDING_IN_QUEUE'}
+            elif status == JobStatus.CANCELLED:
+                this_filter = {'status': 'CANCELLED'}
+            elif status == JobStatus.DONE:
+                this_filter = {'status': 'COMPLETED'}
+            elif status == JobStatus.ERROR:
+                this_filter = {'status': {'regexp': '^ERROR'}}
+            else:
+                raise IBMQBackendValueError('unrecongized value for "status" keyword '
+                                            'in job filter')
+            api_filter.update(this_filter)
+        if db_filter:
+            # filter ignores backend_name filter so we need to set it
+            api_filter['backend.name'] = backend_name
+            # status takes precendence over db_filter for same keys
+            api_filter = {**db_filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
-                                           backend=backend_name)
+                                           backend=backend_name,
+                                           filter=api_filter)
         job_list = []
         for job_info in job_info_list:
             is_device = not bool(self._configuration.get('simulator'))
@@ -182,4 +237,9 @@ class IBMQBackend(BaseBackend):
 
 class IBMQBackendError(QISKitError):
     """IBM Q Backend Errors"""
+    pass
+
+
+class IBMQBackendValueError(IBMQBackendError, ValueError):
+    """ Value errors thrown within IBMQBackend """
     pass
