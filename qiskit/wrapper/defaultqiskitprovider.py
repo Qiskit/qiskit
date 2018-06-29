@@ -136,11 +136,13 @@ class DefaultQISKitProvider(BaseProvider):
         common_backends = added_backends.intersection(current_backends)
         if common_backends:
             logger.warning(
-                'The backend names "%s" of this provider are already in use.'
+                'The backend names "%s" of this provider are already in use. '
                 'Refer to documentation for `available_backends()` and `unregister()`.',
                 list(common_backends))
 
-        self.providers.append(provider)
+        # checks for equality of provider instances, based on the __eq__ method
+        if provider not in self.providers:
+            self.providers.append(provider)
 
         return provider
 
