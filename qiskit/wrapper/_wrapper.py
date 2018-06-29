@@ -19,14 +19,13 @@ from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 
-def register(*args, provider_class=IBMQProvider, provider_name='ibmq', **kwargs):
+def register(*args, provider_class=IBMQProvider, **kwargs):
     """
     Authenticate against an online backend provider.
 
     Args:
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
-        provider_name (str): name for provider
         kwargs (dict): keyword arguments passed to provider class initialization.
             For the IBMQProvider default this can include things such as;
             token (str): The token used to register on the online backend such
@@ -39,17 +38,20 @@ def register(*args, provider_class=IBMQProvider, provider_name='ibmq', **kwargs)
             proxies (dict): Proxy configuration for the API, as a dict with
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
-    Raises:
-        QISKitError: if the provider name is not recognized.
     """
     provider = provider_class(*args, **kwargs)
-    _DEFAULT_PROVIDER.add_provider(provider, provider_name)
-
+    provider = _DEFAULT_PROVIDER.add_provider(provider)
+    return provider
 
 
 def unregister(provider):
     """
-    Removes a provider of list of registered providers.
+    Removes a provider from list of registered providers.
+
+    Note:
+        If backend names from provider1 and provider2 were clashing,
+        `unregister(provider1)` removes the clash and makes the backends
+        from provider2 available.
 
     Args:
         provider (BaseProvider): the provider instance to unregister
@@ -60,8 +62,8 @@ def unregister(provider):
 
 
 def registered_providers():
-    """Return the names of the currently registered providers."""
-    return list(_DEFAULT_PROVIDER.providers.keys())
+    """Return the currently registered providers."""
+    return list(_DEFAULT_PROVIDER.providers)
 
 
 # Functions for inspecting and retrieving backends.
@@ -76,6 +78,18 @@ def available_backends(filters=None, compact=True):
         In order for this function to return online backends, a connection with
         an online backend provider needs to be established by calling the
         `register()` function.
+
+    Note:
+        If two or more providers have backends with the same name, those names
+        will be shown only once. To disambiguate and choose a backend from a
+        specific provider, get the backend from that specific provider.
+
+        Example:
+            p1 = register(token1)
+            p2 = register(token2)
+            execute(circuit, p1.get_backend('ibmq_5_tenerife'))
+            execute(circuit, p2.get_backend('ibmq_5_tenerife'))
+
     Args:
         filters (dict or callable): filtering conditions.
         compact (bool): group backend names based on compact group names.

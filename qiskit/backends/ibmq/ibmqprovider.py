@@ -15,7 +15,7 @@ from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
-    def __init__(self, token, url,
+    def __init__(self, token, url='https://quantumexperience.ng.bluemix.net/api',
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
