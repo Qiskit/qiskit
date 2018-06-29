@@ -25,5 +25,5 @@ bell_circuit = build_bell_circuit()
 # Provide a name to write the diagram to the filesystem
 diagram = circuit_drawer(bell_circuit, filename='./bell_circuit.png')
 
-# Use show to display the diagram
+# Use show() to display the diagram
 diagram.show()
