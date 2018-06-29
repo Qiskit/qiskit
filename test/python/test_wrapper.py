@@ -59,7 +59,7 @@ class TestWrapper(QiskitTestCase):
         """Test registering a provider with bad credentials."""
         initial_providers = registered_providers()
         with self.assertRaises(QISKitError):
-            qiskit.wrapper.register('FAKE_TOKEN')
+            qiskit.wrapper.register('FAKE_TOKEN', 'http://unknown')
         self.assertEqual(initial_providers, registered_providers())
 
     @requires_qe_access

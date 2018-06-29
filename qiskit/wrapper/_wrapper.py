@@ -48,7 +48,7 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         (e.g. due to conflict)
     """
     provider = provider_class(*args, **kwargs)
-    provider = _DEFAULT_PROVIDER.add_provider(provider)
+    _DEFAULT_PROVIDER.add_provider(provider)
     return provider
 
 
