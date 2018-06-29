@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name
+
 """Tests for comparing the outputs of visualization tools with expected ones.
 Useful for refactoring purposes."""
 
@@ -98,8 +100,8 @@ class TestVisualizationImplementation(QiskitTestCase):
         os.remove(filename)
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.01):
-        """Checks if both images are enough similar. Similarity is controlled
-        by the ```diff_tolerance``` argument."""
+        """Checks if both images are similar enough to be considered equal.
+        Similarity is controlled by the ```diff_tolerance``` argument."""
         from PIL import Image, ImageChops
 
         if isinstance(current, str):
@@ -121,6 +123,7 @@ def _get_black_pixels(image):
     black_and_white_version = image.convert('1')
     black_pixels = black_and_white_version.histogram()[0]
     return black_pixels
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

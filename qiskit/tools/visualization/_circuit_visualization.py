@@ -150,9 +150,9 @@ def _trim(im):
 
 
 def generate_latex_source(circuit, filename=None,
-                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                       "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                 scale=0.7):
+                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                          scale=0.7):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -1090,6 +1090,9 @@ def matplotlib_circuit_drawer(circuit,
         scale (float): scaling factor
         style (dict or str): dictionary of style or file name of style file
         filename (str): file path to save image to
+
+    Returns:
+        PIL.Image: an in-memory representation of the circuit diagram
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
