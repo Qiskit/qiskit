@@ -86,7 +86,7 @@ function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
     endif()
 
     add_custom_target(doc)
-    foreach(lang_dir "." "ja")
+    foreach(lang_dir "." "de" "ja")
         add_custom_command(TARGET doc
             COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}
                 ${BETTER_APIDOC} -f -o doc/${lang_dir}/_autodoc
