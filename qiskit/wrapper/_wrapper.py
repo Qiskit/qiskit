@@ -22,6 +22,7 @@ _DEFAULT_PROVIDER = DefaultQISKitProvider()
 def register(*args, provider_class=IBMQProvider, **kwargs):
     """
     Authenticate against an online backend provider.
+    This is a factory method that returns the provider that gets registered.
 
     Args:
         args (tuple): positional arguments passed to provider class initialization
@@ -38,6 +39,13 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
             proxies (dict): Proxy configuration for the API, as a dict with
                 'urls' and credential keys.
             verify (bool): If False, ignores SSL certificates errors.
+
+    Returns:
+        BaseProvider: the provider instance that was just registered.
+
+    Raises:
+        QISKitError: if the provider could not be registered
+        (e.g. due to conflict)
     """
     provider = provider_class(*args, **kwargs)
     provider = _DEFAULT_PROVIDER.add_provider(provider)

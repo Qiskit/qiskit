@@ -129,6 +129,9 @@ class DefaultQISKitProvider(BaseProvider):
 
         Returns:
             BaseProvider: the provider instance.
+
+        Raises:
+            QISKitError: if trying to add a provider identical to one already registered
         """
         # Check for backend name clashes, emitting a warning.
         current_backends = {str(backend) for backend in self.available_backends()}
@@ -143,6 +146,8 @@ class DefaultQISKitProvider(BaseProvider):
         # checks for equality of provider instances, based on the __eq__ method
         if provider not in self.providers:
             self.providers.append(provider)
+        else:
+            raise QISKitError("The same provider has already been registered!")
 
         return provider
 
@@ -159,8 +164,8 @@ class DefaultQISKitProvider(BaseProvider):
         if isinstance(provider, LocalProvider):
             raise QISKitError("Cannot unregister 'local' provider.")
         try:
-            self.providers.pop(provider)
-        except KeyError:
+            self.providers.remove(provider)
+        except ValueError:
             raise QISKitError("'%s' provider is not registered.")
 
     def resolve_backend_name(self, name):
