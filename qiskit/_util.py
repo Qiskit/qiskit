@@ -11,6 +11,7 @@ import logging
 import re
 import sys
 import warnings
+from collections import UserDict
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
@@ -99,7 +100,11 @@ def _enable_deprecation_warnings():
     # Instead of using warnings.simple_filter() directly, the internal
     # _add_filter() function is used for being able to match against the
     # module.
-    warnings._add_filter(*deprecation_filter, append=False)
+    try:
+        warnings._add_filter(*deprecation_filter, append=False)
+    except AttributeError:
+        # ._add_filter is internal and not available in some Python versions.
+        pass
 
 
 def _camel_case_to_snake_case(identifier):
@@ -118,3 +123,20 @@ def _camel_case_to_snake_case(identifier):
 _check_python_version()
 _check_ibmqx_version()
 _enable_deprecation_warnings()
+
+
+class AvailableToOperationalDict(UserDict):
+    """
+    TEMPORARY class for transitioning from `status['available']` to
+    `status['operational']`.
+
+    FIXME: Remove this class as soon as the API is updated, please.
+    """
+    def __getitem__(self, key):
+        if key == 'available':
+            warnings.warn(
+                "status['available'] has been renamed to status['operational'] "
+                " since 0.5.5. Please use status['operational'] accordingly.",
+                DeprecationWarning)
+
+        return super(AvailableToOperationalDict, self).__getitem__(key)

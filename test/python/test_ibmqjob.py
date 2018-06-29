@@ -34,7 +34,7 @@ def _least_busy(backends):
         BaseBackend: least busy backend instance.
     """
     return min([b for b in backends if
-                b.status['available'] and 'pending_jobs' in b.status],
+                b.status['operational'] and 'pending_jobs' in b.status],
                key=lambda b: b.status['pending_jobs'])
 
 
