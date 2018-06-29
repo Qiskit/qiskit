@@ -28,6 +28,7 @@ Changed
 - Remove backend filtering in individual providers, keep only in wrapper (#575).
 - Single source of version information (#581)
 - Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
+- For backend status, `status['available']` is now `status['operational']`.
 
 Removed
 -------
