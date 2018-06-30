@@ -47,7 +47,11 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         QISKitError: if the provider could not be registered
         (e.g. due to conflict)
     """
-    provider = provider_class(*args, **kwargs)
+    try:
+        provider = provider_class(*args, **kwargs)
+    except Exception as ex:
+        raise QISKitError("Couldn't instance provider!. Error: {0}".format(ex))
+
     _DEFAULT_PROVIDER.add_provider(provider)
     return provider
 
