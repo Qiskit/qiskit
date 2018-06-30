@@ -16,16 +16,8 @@ from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from .common import QiskitTestCase
 
-try:
-    from qiskit.tools.visualization import (latex_circuit_drawer,
+from qiskit.tools.visualization import (latex_circuit_drawer,
                                             matplotlib_circuit_drawer)
-    VALID_MATPLOTLIB = True
-except RuntimeError:
-    # Under some combinations (travis osx vms, or headless configurations)
-    # matplotlib might not be fully, raising:
-    # RuntimeError: Python is not installed as a framework.
-    # when importing. If that is the case, the full test is skipped.
-    VALID_MATPLOTLIB = False
 
 
 def _path_to_diagram_reference(filename):
@@ -36,7 +28,9 @@ def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+# TODO: Enable for refactoring purposes and enable by default when we can
+# decide if the backend is available or not.
+@unittest.skip('Useful for refactoring purposes, skipping by default.')
 class TestVisualizationImplementation(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
