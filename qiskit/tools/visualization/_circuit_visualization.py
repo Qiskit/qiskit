@@ -27,7 +27,6 @@ import logging
 import json
 import tempfile
 
-import matplotlib
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -95,8 +94,9 @@ def latex_circuit_drawer(circuit,
         PIL.Image: an in-memory representation of the circuit diagram
 
     Raises:
-        (OSError, CalledProcessError): if error occurs during any stage from
-            QuantumCircuit -> latex -> pdf -> png -> PIL.Image
+        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
+                 missing.
+        CalledProcessError: usually points errors during diagram creation.
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -111,21 +111,21 @@ def latex_circuit_drawer(circuit,
             if e.errno == os.errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
                                'Is `pdflatex` installed? '
-                               'Skipping circuit drawing...')
+                               'Skipping latex circuit drawing...')
             raise
         except subprocess.CalledProcessError as e:
             if "capacity exceeded" in str(e.stdout):
                 logger.warning('WARNING: Unable to compile latex. '
                                'Circuit too large for memory. '
-                               'Skipping circuit drawing...')
+                               'Skipping latex circuit drawing...')
             elif "Dimension too large." in str(e.stdout):
                 logger.warning('WARNING: Unable to compile latex. '
                                'Dimension too large for the beamer template. '
-                               'Skipping circuit drawing...')
+                               'Skipping latex circuit drawing...')
             else:
                 logger.warning('WARNING: Unable to compile latex. '
                                'Is the `Qcircuit` latex package installed? '
-                               'Skipping circuit drawing...')
+                               'Skipping latex circuit drawing...')
             raise
         else:
             try:
@@ -1538,20 +1538,22 @@ class MatplotlibDrawer:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
 
+        # self.figure.savefig is called twice because...
+        # ... this is needed to get the in-memory representation
         with tempfile.TemporaryDirectory() as tmpdir:
-            if filename:
-                outfile = filename
-            else:
-                outfile = os.path.join(tmpdir, 'circuit.png')
-            self.figure.savefig(outfile, dpi=self._style.dpi, bbox_inches='tight')
-            if matplotlib.get_backend() != 'module://ipykernel.pylab.backend_inline' and\
-                    (outfile.endswith('.png') or outfile.endswith('.PNG')):
-                im = Image.open(outfile)
-                _trim(im)
-            else:
-                im = None
-            if not filename:
-                os.remove(outfile)
+            tmpfile = os.path.join(tmpdir, 'circuit.png')
+            self.figure.savefig(tmpfile, dpi=self._style.dpi,
+                                bbox_inches='tight')
+            im = Image.open(tmpfile)
+            _trim(im)
+            os.remove(tmpfile)
+
+        # ... and this is needed to delegate in matplotlib the generation of
+        # the proper format.
+        if filename:
+            self.figure.savefig(filename, dpi=self._style.dpi,
+                                bbox_inches='tight')
+
         return im
 
     def _draw_regs(self):
