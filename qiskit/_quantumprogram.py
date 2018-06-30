@@ -822,7 +822,7 @@ class QuantumProgram(object):
             backend (str): The backend to check
 
         Returns:
-            dict: {'available': True}
+            dict: {'operational': True}
 
         Raises:
             ConnectionError: if the API call failed.

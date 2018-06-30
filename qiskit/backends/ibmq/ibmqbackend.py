@@ -12,7 +12,7 @@ This module is used for connecting to the Quantum Experience.
 import logging
 
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case
+from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends import JobStatus
@@ -137,10 +137,15 @@ class IBMQBackend(BaseBackend):
             if status['name'] == 'ibmqx_hpc_qasm_simulator':
                 status['available'] = True
 
+            # FIXME: this needs to be replaced at the API level - eventually
+            # it will.
+            if 'available' in status:
+                status['operational'] = status['available']
+                del status['available']
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return status
+        return AvailableToOperationalDict(status)
 
     def jobs(self, limit=50, skip=0, status=None, db_filter=None):
         """Attempt to get the jobs submitted to the backend.
