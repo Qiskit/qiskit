@@ -17,7 +17,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from .common import QiskitTestCase
 
 from qiskit.tools.visualization import (latex_circuit_drawer,
-                                            matplotlib_circuit_drawer)
+                                        matplotlib_circuit_drawer)
 
 
 def _path_to_diagram_reference(filename):

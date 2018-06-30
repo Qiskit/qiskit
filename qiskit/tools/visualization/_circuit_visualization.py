@@ -1540,9 +1540,9 @@ class MatplotlibDrawer:
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
 
         if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # self.draw returns an empty image when matplotlib is inline mode.
-            # matplotlib draws a figure directly.
-            im = Image.new('RGB', (1, 1), (255, 255, 255))
+            # returns None when matplotlib is inline mode to prevent Jupyter
+            # with matplotlib inlining enabled to draw the diagram twice.
+            im = None
         else:
             # when matplotlib is not inline mode,
             # self.figure.savefig is called twice because...
