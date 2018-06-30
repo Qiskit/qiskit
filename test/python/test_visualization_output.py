@@ -14,10 +14,9 @@ import os
 import unittest
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from .common import QiskitTestCase
-
 from qiskit.tools.visualization import (latex_circuit_drawer,
                                         matplotlib_circuit_drawer)
+from .common import QiskitTestCase
 
 
 def _path_to_diagram_reference(filename):
