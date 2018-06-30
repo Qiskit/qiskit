@@ -1125,8 +1125,8 @@ class QCStyle:
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
-        self.fs = 10
-        self.sfs = 6
+        self.fs = 13
+        self.sfs = 8
         self.disptex = {
             'id': 'id',
             'u0': 'U_0',
@@ -1217,8 +1217,8 @@ def qx_color_scheme():
         "barrierfacecolor": "#bdbdbd",
         "backgroundcolor": "#ffffff",
         "fold": 20,
-        "fontsize": 10,
-        "subfontsize": 6,
+        "fontsize": 13,
+        "subfontsize": 8,
         "figwidth": -1,
         "dpi": 150,
         "displaytext": {
