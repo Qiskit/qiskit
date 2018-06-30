@@ -27,6 +27,7 @@ import logging
 import json
 import tempfile
 
+from matplotlib import get_backend as get_matplotlib_backend
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1553,7 +1554,9 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-
+        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
+            # return an empty image when matplotlib is inline mode
+            im = Image.new('RGB', (1,1), (255, 255, 255))
         return im
 
     def _draw_regs(self):
