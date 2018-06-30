@@ -27,6 +27,7 @@ import logging
 import json
 import tempfile
 
+import matplotlib
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1076,7 +1077,7 @@ def _truncate_float(matchobj, format_str='0.2g'):
 # -----------------------------------------------------------------------------
 WID = 0.65
 HIG = 0.65
-DEFAULT_SCALE = 3
+DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 2
 PORDER_GRAY = 3
@@ -1087,7 +1088,7 @@ PORDER_SUBP = 4
 def matplotlib_circuit_drawer(circuit,
                               basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                                     'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                              scale=1.0, style=None, filename=None):
+                              scale=0.7, filename=None, style=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -1096,8 +1097,8 @@ def matplotlib_circuit_drawer(circuit,
         circuit (QuantumCircuit): a quantum circuit
         basis (str): comma separated list of gates
         scale (float): scaling factor
-        style (dict or str): dictionary of style or file name of style file
         filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -1538,15 +1539,19 @@ class MatplotlibDrawer:
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = os.path.join(tmpdir, 'circuit.png')
-            self.figure.savefig(tmppath, dpi=self._style.dpi, bbox_inches='tight')
-            im = Image.open(tmppath)
-            _trim(im)
             if filename:
-                os.rename(tmppath, filename)
+                outfile = filename
             else:
-                os.remove(tmppath)
-
+                outfile = os.path.join(tmpdir, 'circuit.png')
+            self.figure.savefig(outfile, dpi=self._style.dpi, bbox_inches='tight')
+            if matplotlib.get_backend() != 'module://ipykernel.pylab.backend_inline' and\
+                    (outfile.endswith('.png') or outfile.endswith('.PNG')):
+                im = Image.open(outfile)
+                _trim(im)
+            else:
+                im = None
+            if not filename:
+                os.remove(outfile)
         return im
 
     def _draw_regs(self):
