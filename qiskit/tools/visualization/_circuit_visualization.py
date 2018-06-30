@@ -1074,7 +1074,7 @@ def _truncate_float(matchobj, format_str='0.2g'):
 
 
 # -----------------------------------------------------------------------------
-# definitions for matplotlib_drawer
+# definitions for matplotlib_circuit_drawer
 # -----------------------------------------------------------------------------
 WID = 0.65
 HIG = 0.65
@@ -1207,7 +1207,7 @@ class QCStyle:
 
 def qx_color_scheme():
     return {
-        "comment": "Style file for matplotlib_drawer (IBM QX Composer style)",
+        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
         "textcolor": "#000000",
         "gatetextcolor": "#000000",
         "subtextcolor": "#000000",
@@ -1539,24 +1539,27 @@ class MatplotlibDrawer:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
 
-        # self.figure.savefig is called twice because...
-        # ... this is needed to get the in-memory representation
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpfile = os.path.join(tmpdir, 'circuit.png')
-            self.figure.savefig(tmpfile, dpi=self._style.dpi,
-                                bbox_inches='tight')
-            im = Image.open(tmpfile)
-            _trim(im)
-            os.remove(tmpfile)
+        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
+            # self.draw returns an empty image when matplotlib is inline mode.
+            # matplotlib draws a figure directly.
+            im = Image.new('RGB', (1, 1), (255, 255, 255))
+        else:
+            # when matplotlib is not inline mode,
+            # self.figure.savefig is called twice because...
+            # ... this is needed to get the in-memory representation
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmpfile = os.path.join(tmpdir, 'circuit.png')
+                self.figure.savefig(tmpfile, dpi=self._style.dpi,
+                                    bbox_inches='tight')
+                im = Image.open(tmpfile)
+                _trim(im)
+                os.remove(tmpfile)
 
         # ... and this is needed to delegate in matplotlib the generation of
         # the proper format.
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # return an empty image when matplotlib is inline mode
-            im = Image.new('RGB', (1,1), (255, 255, 255))
         return im
 
     def _draw_regs(self):
