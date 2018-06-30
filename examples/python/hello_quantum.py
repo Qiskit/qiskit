@@ -7,7 +7,7 @@ used `pip install`, the examples only work from the root directory.
 
 # Import the QISKit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import QISKitError, available_backends, execute, register, get_backend
+from qiskit import QISKitError, available_backends, execute, register, get_backend, least_busy
 
 
 # Authenticate for access to remote backends
@@ -18,17 +18,6 @@ except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
-
-
-def lowest_pending_jobs():
-    """Returns the backend with lowest pending jobs."""
-    list_of_backends = available_backends(
-        {'local': False, 'simulator': False})
-    device_status = [get_backend(backend).status for backend in list_of_backends]
-
-    best = min([x for x in device_status if x['available'] is True],
-               key=lambda x: x['pending_jobs'])
-    return best['name']
 
 try:
     # Create a Quantum Register with 2 qubits.
@@ -63,11 +52,11 @@ try:
     print("Remote backends: ", remote_backends)
     # Compile and run the Quantum Program on a real device backend
     try:
-        best_device = lowest_pending_jobs()
-        print("Running on current least busy device: ", best_device)
+        least_busy_device = least_busy(available_backends())
+        print("Running on current least busy device: ", least_busy_device)
 
         #runing the job
-        job_exp = execute(qc, best_device, shots=1024, max_credits=10)
+        job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
         exp_result = job_exp.result()
 
         # Show the results

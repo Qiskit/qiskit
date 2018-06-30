@@ -9,27 +9,34 @@
 
 """IBMQJob Test."""
 
-import unittest
 import time
+import unittest
 from concurrent import futures
+import datetime
+
 import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpiler
-from qiskit.backends.ibmq import IBMQProvider
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends import JobStatus
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
-def lowest_pending_jobs(backends):
-    """Returns the backend with lowest pending jobs."""
-    backends = filter(lambda x: x.status.get('available', False), backends)
-    by_pending_jobs = sorted(backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0]
+def _least_busy(backends):
+    """Helper version of `wrapper.least_busy()` that works on instances.
+    Args:
+        backends (list[BaseBackend]): list of backends.
+
+    Returns:
+        BaseBackend: least busy backend instance.
+    """
+    return min([b for b in backends if
+                b.status['operational'] and 'pending_jobs' in b.status],
+               key=lambda b: b.status['pending_jobs'])
 
 
 class TestIBMQJob(QiskitTestCase):
@@ -89,9 +96,10 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_device(self):
-        backends = self._provider.available_backends({'simulator': False})
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
-        backend = lowest_pending_jobs(backends)
+        backend = _least_busy(backends)
         self.log.info('using backend: %s', backend.name)
         qobj = transpiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
@@ -164,8 +172,9 @@ class TestIBMQJob(QiskitTestCase):
 
     @slow_test
     def test_run_async_device(self):
-        backends = self._provider.available_backends({'simulator': False})
-        backend = lowest_pending_jobs(backends)
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
+        backend = _least_busy(backends)
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
@@ -210,7 +219,8 @@ class TestIBMQJob(QiskitTestCase):
     def test_cancel(self):
         if not self._using_hub:
             self.skipTest('job cancellation currently only available on hubs')
-        backends = self._provider.available_backends({'simulator': False})
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
         backend = backends[0]
         self.log.info('using backend: %s', backend.name)
@@ -258,8 +268,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.backend_name == backend_name)
 
     def test_get_jobs_from_backend(self):
-        backends = self._provider.available_backends()
-        backend = lowest_pending_jobs(backends)
+        backend = _least_busy(self._provider.available_backends())
         start_time = time.time()
         job_list = backend.jobs(limit=5, skip=0)
         self.log.info('time to get jobs: %0.3f s', time.time() - start_time)
@@ -278,9 +287,50 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
     def test_retrieve_job_error(self):
-        backends = self._provider.available_backends({'simulator': False})
-        backend = lowest_pending_jobs(backends)
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
+        backend = _least_busy(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
+
+    def test_get_jobs_filter_job_status(self):
+        backends = self._provider.available_backends()
+        backend = _least_busy(backends)
+        job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.result()._result['status'])
+            self.assertTrue(job.status['status'] == JobStatus.DONE)
+
+    def test_get_jobs_filter_counts(self):
+        # TODO: consider generalizing backend name
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        my_filter = {'backend.name': 'ibmq_qasm_simulator',
+                     'shots': 1024,
+                     'qasms.result.data.counts.00': {'lt': 500}}
+        self.log.info('searching for at most 5 jobs with 1024 shots, a count '
+                      'for "00" of < 500, on the ibmq_qasm_simulator backend')
+        job_list = backend.jobs(limit=5, skip=0, db_filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d', i)
+            result = job.result()
+            self.assertTrue(any(cresult['data']['counts']['00'] < 500
+                                for cresult in result._result['result']))
+            for circuit_name in result.get_names():
+                self.log.info('\tcircuit_name: %s', circuit_name)
+                counts = result.get_counts(circuit_name)
+                self.log.info('\t%s', str(counts))
+
+    def test_get_jobs_filter_date(self):
+        backends = self._provider.available_backends()
+        backend = _least_busy(backends)
+        past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
+        my_filter = {'creationDate': {'lt': past_day_30.isoformat()}}
+        job_list = backend.jobs(limit=5, db_filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.creation_date)
+            self.assertTrue(job.creation_date < past_day_30.isoformat())
 
 
 if __name__ == '__main__':

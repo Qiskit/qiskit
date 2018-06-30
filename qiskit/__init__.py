@@ -36,7 +36,7 @@ from ._result import Result
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
     get_backend, compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file)
+    registered_providers, load_qasm_string, load_qasm_file, least_busy)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
