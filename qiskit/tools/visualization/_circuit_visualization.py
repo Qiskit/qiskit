@@ -82,12 +82,20 @@ def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                          scale=0.7, filename=None):
-    """Obtain the circuit in PIL Image format (output can be inlined in Jupyter)
-    Defaults to an overcomplete basis, in order to not alter gates.
-    Requires pdflatex installed (to compile Latex)
-    Requires Qcircuit latex package (to compile latex)
-    Requires poppler installed (to convert pdf to png)
-    Requires pillow python package to handle images
+    """Draw a quantum circuit based on latex (Qcircuit package)
+
+    Args:
+        circuit (QuantumCircuit): a quantum circuit
+        basis (str): comma separated list of gates
+        scale (float): scaling factor
+        filename (str): file path to save image to
+
+    Returns:
+        PIL.Image: an in-memory representation of the circuit diagram
+
+    Raises:
+        (OSError, CalledProcessError): if error occurs during any stage from
+            QuantumCircuit -> latex -> pdf -> png -> PIL.Image
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -1538,7 +1546,6 @@ class MatplotlibDrawer:
                 os.rename(tmppath, filename)
             else:
                 os.remove(tmppath)
-                plt.show()
 
         return im
 
