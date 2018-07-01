@@ -9,27 +9,34 @@
 
 """IBMQJob Test."""
 
-import unittest
 import time
+import unittest
 from concurrent import futures
+import datetime
+
 import numpy
 from scipy.stats import chi2_contingency
 
-from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
-                    QuantumJob)
-import qiskit._compiler
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import transpiler
+from qiskit.backends import JobStatus
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
-from qiskit.backends.basejob import JobStatus
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
-def lowest_pending_jobs(backends):
-    """Returns the backend with lowest pending jobs."""
-    backends = filter(lambda x: x.status.get('available', False), backends)
-    by_pending_jobs = sorted(backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0]
+def _least_busy(backends):
+    """Helper version of `wrapper.least_busy()` that works on instances.
+    Args:
+        backends (list[BaseBackend]): list of backends.
+
+    Returns:
+        BaseBackend: least busy backend instance.
+    """
+    return min([b for b in backends if
+                b.status['operational'] and 'pending_jobs' in b.status],
+               key=lambda b: b.status['pending_jobs'])
 
 
 class TestIBMQJob(QiskitTestCase):
@@ -55,33 +62,48 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        qc = QuantumCircuit(qr, cr, name='hadamard')
+        qc.h(qr)
+        qc.measure(qr, cr)
+        qobj = transpiler.compile([self._qc, qc], backend)
         shots = qobj['config']['shots']
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         result = job.result()
-        counts_qx = result.get_counts(result.get_names()[0])
-        counts_ex = {'00': shots/2, '11': shots/2}
-        states = counts_qx.keys() | counts_ex.keys()
+        counts_qx1 = result.get_counts(result.get_names()[0])
+        counts_qx2 = result.get_counts('hadamard')
+        counts_ex1 = {'00': shots/2, '11': shots/2}
+        counts_ex2 = {'00': shots/4, '11': shots/4, '10': shots/4,
+                      '01': shots/4}
+        states1 = counts_qx1.keys() | counts_ex1.keys()
+        states2 = counts_qx2.keys() | counts_ex2.keys()
         # contingency table
-        ctable = numpy.array([[counts_qx.get(key, 0) for key in states],
-                              [counts_ex.get(key, 0) for key in states]])
-        self.log.info('states: %s', str(states))
-        self.log.info('ctable: %s', str(ctable))
-        contingency = chi2_contingency(ctable)
-        self.log.info('chi2_contingency: %s', str(contingency))
-        self.assertGreater(contingency[1], 0.01)
+        ctable1 = numpy.array([[counts_qx1.get(key, 0) for key in states1],
+                               [counts_ex1.get(key, 0) for key in states1]])
+        ctable2 = numpy.array([[counts_qx2.get(key, 0) for key in states2],
+                               [counts_ex2.get(key, 0) for key in states2]])
+        self.log.info('states1: %s', str(states1))
+        self.log.info('states2: %s', str(states2))
+        self.log.info('ctable1: %s', str(ctable1))
+        self.log.info('ctable2: %s', str(ctable2))
+        contingency1 = chi2_contingency(ctable1)
+        contingency2 = chi2_contingency(ctable2)
+        self.log.info('chi2_contingency1: %s', str(contingency1))
+        self.log.info('chi2_contingency2: %s', str(contingency2))
+        self.assertGreater(contingency1[1], 0.01)
+        self.assertGreater(contingency2[1], 0.01)
 
     @slow_test
     def test_run_device(self):
-        backends = self._provider.available_backends({'simulator': False})
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
-        backend = lowest_pending_jobs(backends)
+        backend = _least_busy(backends)
         self.log.info('using backend: %s', backend.name)
-        qobj = qiskit._compiler.compile(self._qc, backend)
+        qobj = transpiler.compile(self._qc, backend)
         shots = qobj['config']['shots']
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        job = backend.run(qobj)
         while not (job.done or job.exception):
             self.log.info(job.status)
             time.sleep(4)
@@ -113,10 +135,9 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile([qc]*10, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        qobj = transpiler.compile([qc]*10, backend)
         num_jobs = 5
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         found_async_jobs = False
         timeout = 30
         start_time = time.time()
@@ -132,7 +153,7 @@ class TestIBMQJob(QiskitTestCase):
                 break
             for job in job_array:
                 self.log.info('%s %s %s %s', job.status['status'], job.running,
-                              check, job.job_id)
+                              check, job.id)
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
@@ -146,13 +167,14 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.job_id for job in job_array]
+        job_ids = [job.id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
     def test_run_async_device(self):
-        backends = self._provider.available_backends({'simulator': False})
-        backend = lowest_pending_jobs(backends)
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
+        backend = _least_busy(backends)
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
@@ -161,10 +183,9 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        qobj = transpiler.compile(qc, backend)
         num_jobs = 3
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
         job_status = [job.status['status'] for job in job_array]
         num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
@@ -192,13 +213,14 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.job_id for job in job_array]
+        job_ids = [job.id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     def test_cancel(self):
         if not self._using_hub:
             self.skipTest('job cancellation currently only available on hubs')
-        backends = self._provider.available_backends({'simulator': False})
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
         backend = backends[0]
         self.log.info('using backend: %s', backend.name)
@@ -209,10 +231,9 @@ class TestIBMQJob(QiskitTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = qiskit._compiler.compile(qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
+        qobj = transpiler.compile(qc, backend)
         num_jobs = 3
-        job_array = [backend.run(quantum_job) for _ in range(num_jobs)]
+        job_array = [backend.run(qobj) for _ in range(num_jobs)]
         success = False
         self.log.info('jobs submitted: %s', num_jobs)
         while any([job.status['status'] == JobStatus.INITIALIZING for job in job_array]):
@@ -234,21 +255,82 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_job_id(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
-        qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
-        while job.status['status'] == JobStatus.INITIALIZING:
-            time.sleep(0.1)
-        self.log.info('job_id: %s', job.job_id)
-        self.assertTrue(job.job_id is not None)
+        qobj = transpiler.compile(self._qc, backend)
+        job = backend.run(qobj)
+        self.log.info('job_id: %s', job.id)
+        self.assertTrue(job.id is not None)
 
     def test_get_backend_name(self):
         backend_name = 'ibmq_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
-        qobj = qiskit._compiler.compile(self._qc, backend)
-        quantum_job = QuantumJob(qobj, backend, preformatted=True)
-        job = backend.run(quantum_job)
+        qobj = transpiler.compile(self._qc, backend)
+        job = backend.run(qobj)
         self.assertTrue(job.backend_name == backend_name)
+
+    def test_get_jobs_from_backend(self):
+        backend = _least_busy(self._provider.available_backends())
+        start_time = time.time()
+        job_list = backend.jobs(limit=5, skip=0)
+        self.log.info('time to get jobs: %0.3f s', time.time() - start_time)
+        self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
+        for job in job_list:
+            self.log.info('status: %s', job.status)
+            self.assertTrue(isinstance(job.id, str))
+        self.log.info('time to get job statuses: %0.3f s', time.time() - start_time)
+
+    def test_retrieve_job(self):
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        qobj = transpiler.compile(self._qc, backend)
+        job = backend.run(qobj)
+        rjob = backend.retrieve_job(job.id)
+        self.assertTrue(job.id == rjob.id)
+        self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
+
+    def test_retrieve_job_error(self):
+        backends = [backend for backend in self._provider.available_backends()
+                    if not backend.configuration['simulator']]
+        backend = _least_busy(backends)
+        self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
+
+    def test_get_jobs_filter_job_status(self):
+        backends = self._provider.available_backends()
+        backend = _least_busy(backends)
+        job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.result()._result['status'])
+            self.assertTrue(job.status['status'] == JobStatus.DONE)
+
+    def test_get_jobs_filter_counts(self):
+        # TODO: consider generalizing backend name
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        my_filter = {'backend.name': 'ibmq_qasm_simulator',
+                     'shots': 1024,
+                     'qasms.result.data.counts.00': {'lt': 500}}
+        self.log.info('searching for at most 5 jobs with 1024 shots, a count '
+                      'for "00" of < 500, on the ibmq_qasm_simulator backend')
+        job_list = backend.jobs(limit=5, skip=0, db_filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d', i)
+            result = job.result()
+            self.assertTrue(any(cresult['data']['counts']['00'] < 500
+                                for cresult in result._result['result']))
+            for circuit_name in result.get_names():
+                self.log.info('\tcircuit_name: %s', circuit_name)
+                counts = result.get_counts(circuit_name)
+                self.log.info('\t%s', str(counts))
+
+    def test_get_jobs_filter_date(self):
+        backends = self._provider.available_backends()
+        backend = _least_busy(backends)
+        past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
+        my_filter = {'creationDate': {'lt': past_day_30.isoformat()}}
+        job_list = backend.jobs(limit=5, db_filter=my_filter)
+        self.log.info('found %s matching jobs', len(job_list))
+        for i, job in enumerate(job_list):
+            self.log.info('match #%d: %s', i, job.creation_date)
+            self.assertTrue(job.creation_date < past_day_30.isoformat())
 
 
 if __name__ == '__main__':

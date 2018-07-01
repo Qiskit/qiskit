@@ -43,27 +43,26 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run a QuantumJob on the backend."""
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
+        """Run a Qobj on the backend."""
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = super()._run_job(q_job)._result
+        result = super()._run_job(qobj)._result
         # Replace backend name with current backend
         result['backend'] = self._configuration['name']
         # Extract final state snapshot and move to 'statevector' data field
@@ -79,7 +78,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             # Remove snapshot dict if empty
             if snapshots == {}:
                 res['data'].pop('snapshots', None)
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

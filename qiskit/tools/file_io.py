@@ -138,7 +138,6 @@ def load_result_from_file(filename):
         master_dict = json.load(load_file)
 
     try:
-        qobj = master_dict['qobj']
         qresult_dict = master_dict['result']
         convert_json_to_qobj(qresult_dict)
         metadata = master_dict['metadata']
@@ -146,7 +145,7 @@ def load_result_from_file(filename):
         raise QISKitError('File %s does not have the proper dictionary '
                           'structure')
 
-    qresult = qiskit.Result(qresult_dict, qobj)
+    qresult = qiskit.Result(qresult_dict)
 
     return qresult, metadata
 
@@ -172,8 +171,7 @@ class ResultEncoder(json.JSONEncoder):
 
 
 def save_result_to_file(resultobj, filename, metadata=None):
-    """Save a result (qobj + result) and optional metatdata
-    to a single dictionary file.
+    """Save a result and optional metatdata to a single dictionary file.
 
     Args:
         resultobj (Result): Result to save
@@ -189,7 +187,6 @@ def save_result_to_file(resultobj, filename, metadata=None):
         String: full file path
     """
     master_dict = {
-        'qobj': copy.deepcopy(resultobj._qobj),
         'result': copy.deepcopy(resultobj._result)
     }
     if metadata is None:

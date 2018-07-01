@@ -36,20 +36,19 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
-    def run(self, q_job):
-        """Run a QuantumJob on the the backend."""
-        return LocalJob(self._run_job, q_job)
+    def run(self, qobj):
+        """Run a qobj on the the backend."""
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run a QuantumJob on the backend."""
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
+        """Run a Qobj on the backend."""
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
         for circuit in qobj['circuits']:
             circuit['compiled_circuit']['operations'].append(
                 {'name': 'snapshot', 'params': [final_state_key]})
-        result = super()._run_job(q_job)
+        result = super()._run_job(qobj)
         # Extract final state snapshot and move to 'statevector' data field
         for res in result._result['result']:
             snapshots = res['data']['snapshots']
