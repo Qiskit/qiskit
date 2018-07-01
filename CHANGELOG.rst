@@ -23,6 +23,7 @@ Added
 - Retreive IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
 - Add ``unregister()`` for removing previously registered providers (#584).
+- Add matplotlib-based circuit drawer (#579).
 - Adding backend filtering by least busy (#575).
 
 Changed
