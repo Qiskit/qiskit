@@ -66,7 +66,7 @@ stage_osx: &stage_osx
       brew link --overwrite gcc@6
       brew upgrade pyenv || brew install pyenv
       pyenv install 3.6.5
-      python3.6 -m venv venv
+      ~/.pyenv/versions/3.6.5/bin/python -m venv venv
       source venv/bin/activate
     fi
 
