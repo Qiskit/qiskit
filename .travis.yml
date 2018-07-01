@@ -65,10 +65,9 @@ stage_osx: &stage_osx
       brew install gcc@6
       brew link --overwrite gcc@6
       brew install pyenv
-      brew install pyenv-virtualenv
       pyenv install 3.6.5
-      pyenv virtualenv 3.6.5 env
-      pyenv activate env
+      python3.6 -m venv venv
+      source venv/bin/activate
     fi
 
 stage_linux_no_compile: &stage_linux_no_compile
