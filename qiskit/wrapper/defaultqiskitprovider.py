@@ -46,7 +46,7 @@ class DefaultQISKitProvider(BaseProvider):
                 each will either pass through, or be filtered out.
                 1) dict: {'criteria': value}
                     the criteria can be over backend's `configuration` or `status`
-                    e.g. {'local': False, 'simulator': False, 'available': True}
+                    e.g. {'local': False, 'simulator': False, 'operational': True}
                 2) callable: BaseBackend -> bool
                     e.g. lambda x: x.configuration['n_qubits'] > 5
 
@@ -65,7 +65,7 @@ class DefaultQISKitProvider(BaseProvider):
         if filters is not None:
             if isinstance(filters, dict):
                 # exact match filter:
-                # e.g. {'n_qubits': 5, 'available': True}
+                # e.g. {'n_qubits': 5, 'operational': True}
                 for key, value in filters.items():
                     backends = [instance for instance in backends
                                 if instance.configuration.get(key) == value

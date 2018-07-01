@@ -158,7 +158,7 @@ def least_busy(names):
     """
     backends = [get_backend(name) for name in names]
     try:
-        return min([b for b in backends if b.status['available'] and 'pending_jobs' in b.status],
+        return min([b for b in backends if b.status['operational'] and 'pending_jobs' in b.status],
                    key=lambda b: b.status['pending_jobs']).name
     except (ValueError, TypeError):
         raise QISKitError("Can only find least_busy backend from a non-empty list.")

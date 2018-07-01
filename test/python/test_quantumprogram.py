@@ -617,7 +617,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         out = q_program.get_backend_status("local_qasm_simulator")
-        self.assertIn(out['available'], [True])
+        self.assertIn(out['operational'], [True])
 
     def test_backend_status_fail(self):
         """Test backend_status.
@@ -1213,7 +1213,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmq_qasm_simulator'
         shots = 1
         status = q_program.get_backend_status(backend)
-        if not status.get('available', False):
+        if not status.get('operational', False):
             pass
         else:
             result = q_program.execute(['circuitName'], backend=backend,
