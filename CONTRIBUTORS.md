@@ -14,7 +14,9 @@ involved in the project:
 * Albert Frisch
 * Jay Gambetta
 * Juan Gomez
+* Takashi Imamichi
 * Ali Javadi-Abhari
+* Naoki Kanazawa
 * Peng Liu
 * Yunho Maeng
 * Paco Martin
