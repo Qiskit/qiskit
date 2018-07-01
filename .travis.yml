@@ -67,7 +67,7 @@ stage_osx: &stage_osx
       brew install pyenv
       brew install pyenv-virtualenv
       pyenv install 3.6.5
-      pyenv 3.6.5 env
+      pyenv virtualenv 3.6.5 env
       pyenv activate env
     fi
 
