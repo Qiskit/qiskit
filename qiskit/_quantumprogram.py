@@ -659,14 +659,14 @@ class QuantumProgram(object):
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using qiskit.register() instead is recommended.", DeprecationWarning)
-        qiskit.wrapper.register(token, url,
-                                hub, group, project, proxies, verify,
-                                provider_name='ibmq')
+        qiskit.wrapper.register(token, url=url,
+                                hub=hub, group=group, project=project,
+                                proxies=proxies, verify=verify)
 
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
         # pylint: disable=no-member
-        self.__api = qiskit.wrapper._wrapper._DEFAULT_PROVIDER.providers['ibmq']._api
+        self.__api = qiskit.wrapper._wrapper._DEFAULT_PROVIDER.providers[-1]._api
         config_dict = {
             'url': url,
         }
