@@ -125,7 +125,6 @@ _check_ibmqx_version()
 _enable_deprecation_warnings()
 
 
-# pylint: disable=too-many-ancestors
 class AvailableToOperationalDict(UserDict):
     """
     TEMPORARY class for transitioning from `status['available']` to
