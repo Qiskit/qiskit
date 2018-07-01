@@ -1449,7 +1449,7 @@ class TestQuantumProgram(QiskitTestCase):
             ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
         )
         # SDK will throw ConnectionError on every call that implies a connection
-        self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+        self.assertRaises(QISKitError, qp.set_api, FAKE_TOKEN, FAKE_URL)
 
     def test_results_save_load(self):
         """Test saving and loading the results of a circuit.
