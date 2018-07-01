@@ -20,9 +20,10 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-- Retreive IBM Q jobs from server (#563, #585).
+- Retrieve IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
 - Add ``unregister()`` for removing previously registered providers (#584).
+- Add matplotlib-based circuit drawer (#579).
 - Adding backend filtering by least busy (#575).
 
 Changed
@@ -30,7 +31,8 @@ Changed
 - Remove backend filtering in individual providers, keep only in wrapper (#575).
 - Single source of version information (#581)
 - Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
-- For backend status, `status['available']` is now `status['operational']`.
+- For backend status, `status['available']` is now `status['operational']` (#609).
+- Added support for registering third-party providers in `register()` (#602).
 
 Removed
 -------
