@@ -352,9 +352,8 @@ def direction_mapper(circuit_graph, coupling_graph):
     flipped_cx_circuit.apply_operation_back("h", [("q", 0)])
     flipped_cx_circuit.apply_operation_back("h", [("q", 1)])
 
-    cx_node_list = circuit_graph.get_named_nodes("cx")
     cg_edges = coupling_graph.get_edges()
-    for cx_node in cx_node_list:
+    for cx_node in circuit_graph.get_named_nodes("cx"):
         nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["qargs"])
         if cxedge in cg_edges:

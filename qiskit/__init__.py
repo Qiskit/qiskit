@@ -32,10 +32,17 @@ import qiskit.extensions.quantum_initializer
 from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
-from .wrapper._wrapper import (available_backends, execute, register, get_backend, compile,
-                               load_qasm_string, load_qasm_file)
+
+from .wrapper._wrapper import (
+    available_backends, local_backends, remote_backends,
+    get_backend, compile, execute, register, unregister,
+    registered_providers, load_qasm_string, load_qasm_file, least_busy)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
-__version__ = '0.5.4'
+import os
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
+    __version__ = version_file.read().strip()

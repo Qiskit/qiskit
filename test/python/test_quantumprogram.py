@@ -41,8 +41,6 @@ class TestQuantumProgram(QiskitTestCase):
                     "size": 3}]
             }]
         }
-        self.qp_program_finished = False
-        self.qp_program_exception = Exception()
 
     ###############################################################
     # Tests to initiate an build a quantum program
@@ -619,7 +617,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         out = q_program.get_backend_status("local_qasm_simulator")
-        self.assertIn(out['available'], [True])
+        self.assertIn(out['operational'], [True])
 
     def test_backend_status_fail(self):
         """Test backend_status.
@@ -1215,15 +1213,16 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmq_qasm_simulator'
         shots = 1
         status = q_program.get_backend_status(backend)
-        if not status.get('available', False):
+        if not status.get('operational', False):
             pass
         else:
             result = q_program.execute(['circuitName'], backend=backend,
                                        shots=shots, max_credits=3)
             self.assertIsInstance(result, Result)
 
-    @unittest.skipIf(version_info.minor == 5, "Due to gate ordering issues with Python 3.5 \
-                                             we have to disable this test until fixed")
+    @unittest.skipIf(version_info.minor == 5,
+                     "Due to gate ordering issues with Python 3.5 "
+                     "we have to disable this test until fixed")
     def test_local_qasm_simulator_two_registers(self):
         """Test local_qasm_simulator_two_registers.
 
@@ -1450,7 +1449,7 @@ class TestQuantumProgram(QiskitTestCase):
             ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
         )
         # SDK will throw ConnectionError on every call that implies a connection
-        self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+        self.assertRaises(QISKitError, qp.set_api, FAKE_TOKEN, FAKE_URL)
 
     def test_results_save_load(self):
         """Test saving and loading the results of a circuit.
@@ -1510,7 +1509,7 @@ class TestQuantumProgram(QiskitTestCase):
 
         result = q_program.execute(circuits, backend='local_qasm_simulator')
 
-        yvals, xvals = result.get_qubitpol_vs_xval(xvals_dict=xvals_dict)
+        yvals, xvals = result.get_qubitpol_vs_xval(2, xvals_dict=xvals_dict)
 
         self.assertTrue(np.array_equal(yvals, [[-1, -1], [1, -1]]))
         self.assertTrue(np.array_equal(xvals, [0, 1]))
@@ -1596,7 +1595,7 @@ class TestQuantumProgram(QiskitTestCase):
             raise unittest.SkipTest('Test not supported in Windows')
 
         # TODO: use the backend directly when the deprecation is completed.
-        from ._dummybackend import DummyProvider
+        from ._mockutils import DummyProvider
         import qiskit.wrapper
         qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
 

@@ -17,14 +17,14 @@ from setuptools.dist import Distribution
 
 
 requirements = [
-    "IBMQuantumExperience>=1.9.2",
-    "matplotlib>=2.1,<2.2",
-    "networkx>=2.0,<2.1",
-    "numpy>=1.13,<1.15",
-    "ply==3.10",
-    "scipy>=0.19,<1.2",
-    "sympy>=1.0,<1.2",
-    "pillow>=4.2.1,<5.2"
+    "IBMQuantumExperience>=1.9.6",
+    "matplotlib>=2.1",
+    "networkx>=2.0",
+    "numpy>=1.13",
+    "ply>=3.10",
+    "scipy>=0.19",
+    "sympy>=1.0",
+    "pillow>=4.2.1"
 ]
 
 
@@ -115,8 +115,5 @@ setup(
     cmdclass={
         'build': QasmSimulatorCppBuild,
     },
-    distclass=BinaryDistribution,
-    extras_require={
-        'ProjectQ':  ["projectq>=0.3.6"],
-    }
+    distclass=BinaryDistribution
 )
