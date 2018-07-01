@@ -65,6 +65,7 @@ stage_osx: &stage_osx
       brew upgrade python3
       brew install gcc@6
       brew link --overwrite gcc@6
+      brew install freetype pkg-config
       virtualenv env -p python3
       source env/bin/activate
     fi
