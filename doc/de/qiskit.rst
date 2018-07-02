@@ -24,8 +24,8 @@ Projekt Übersicht
 -----------------
 Das QISKit Projekt besteht aus:
 
-* `QISKit core <https://github.com/QISKit/qiskit-core>`_: Das Python
-  Software Development Kit dient zum Schreiben von Quantencomputer
+* `QISKit Terra <https://github.com/QISKit/qiskit-terra>`_: Das Python
+  Science Development Kit dient zum Schreiben von Quantencomputer
   Experimenten, Programmen und Anwendungen.
 
 * `QISKit API <https://github.com/QISKit/qiskit-api-py>`_: Ein kleiner

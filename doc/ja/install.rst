@@ -40,11 +40,11 @@ QISKitをインストールする最も簡単な方法はPIP tool(Pythonのパ�
 
 .. code:: sh
 
-    git clone https://github.com/QISKit/qiskit-core
-    cd qiskit-core
+    git clone https://github.com/QISKit/qiskit-terra
+    cd qiskit-terra
 
 - もしGitをインストールしていない場合は、
-  `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-core>`__ の
+  `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-terra>`__ の
   "Clone or download"ボタンをクリックして、
   その後ダウンロードしたファイルを展開し、そのディレクトリーに移動し作業を開始します。
 
