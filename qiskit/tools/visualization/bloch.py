@@ -67,59 +67,59 @@ class Arrow3D(FancyArrowPatch):
 class Bloch():
     """Class for plotting data on the Bloch sphere.  Valid data can be
     either points, vectors, or qobj objects.
-    Attributes
-    ----------
-    axes : instance {None}
-        User supplied Matplotlib axes for Bloch sphere animation.
-    fig : instance {None}
-        User supplied Matplotlib Figure instance for plotting Bloch sphere.
-    font_color : str {'black'}
-        Color of font used for Bloch sphere labels.
-    font_size : int {20}
-        Size of font used for Bloch sphere labels.
-    frame_alpha : float {0.1}
-        Sets transparency of Bloch sphere frame.
-    frame_color : str {'gray'}
-        Color of sphere wireframe.
-    frame_width : int {1}
-        Width of wireframe.
-    point_color : list {["b","r","g","#CC6600"]}
-        List of colors for Bloch sphere point markers to cycle through.
-        i.e. By default, points 0 and 4 will both be blue ('b').
-    point_marker : list {["o","s","d","^"]}
-        List of point marker shapes to cycle through.
-    point_size : list {[25,32,35,45]}
-        List of point marker sizes. Note, not all point markers look
-        the same size when plotted!
-    sphere_alpha : float {0.2}
-        Transparency of Bloch sphere itself.
-    sphere_color : str {'#FFDDDD'}
-        Color of Bloch sphere.
-    figsize : list {[7,7]}
-        Figure size of Bloch sphere plot.  Best to have both numbers the same;
-        otherwise you will have a Bloch sphere that looks like a football.
-    vector_color : list {["g","#CC6600","b","r"]}
-        List of vector colors to cycle through.
-    vector_width : int {5}
-        Width of displayed vectors.
-    vector_style : str {'-|>', 'simple', 'fancy', ''}
-        Vector arrowhead style (from matplotlib's arrow style).
-    vector_mutation : int {20}
-        Width of vectors arrowhead.
-    view : list {[-60,30]}
-        Azimuthal and Elevation viewing angles.
-    xlabel : list {["$x$",""]}
-        List of strings corresponding to +x and -x axes labels, respectively.
-    xlpos : list {[1.1,-1.1]}
-        Positions of +x and -x labels respectively.
-    ylabel : list {["$y$",""]}
-        List of strings corresponding to +y and -y axes labels, respectively.
-    ylpos : list {[1.2,-1.2]}
-        Positions of +y and -y labels respectively.
-    zlabel : list {[r'$\\left|1\\right>$',r'$\\left|0\\right>$']}
-        List of strings corresponding to +z and -z axes labels, respectively.
-    zlpos : list {[1.2,-1.2]}
-        Positions of +z and -z labels respectively.
+
+    Attributes:
+        axes (instance):
+            User supplied Matplotlib axes for Bloch sphere animation.
+        fig (instance):
+            User supplied Matplotlib Figure instance for plotting Bloch sphere.
+        font_color (str):
+            Color of font used for Bloch sphere labels.
+        font_size (int):
+            Size of font used for Bloch sphere labels.
+        frame_alpha (float):
+            Sets transparency of Bloch sphere frame.
+        frame_color (str):
+            Color of sphere wireframe.
+        frame_width (int):
+            Width of wireframe.
+        point_color (list):
+            List of colors for Bloch sphere point markers to cycle through.
+            i.e. By default, points 0 and 4 will both be blue ('b').
+        point_marker (list):
+            List of point marker shapes to cycle through.
+        point_size (list):
+            List of point marker sizes. Note, not all point markers look
+            the same size when plotted!
+        sphere_alpha (float):
+            Transparency of Bloch sphere itself.
+        sphere_color (str):
+            Color of Bloch sphere.
+        figsize (list):
+            Figure size of Bloch sphere plot.  Best to have both numbers the same;
+            otherwise you will have a Bloch sphere that looks like a football.
+        vector_color (list):
+            List of vector colors to cycle through.
+        vector_width (int):
+            Width of displayed vectors.
+        vector_style (str):
+            Vector arrowhead style (from matplotlib's arrow style).
+        vector_mutation (int):
+            Width of vectors arrowhead.
+        view (list):
+            Azimuthal and Elevation viewing angles.
+        xlabel (list):
+            List of strings corresponding to +x and -x axes labels, respectively.
+        xlpos (list):
+            Positions of +x and -x labels respectively.
+        ylabel (list):
+            List of strings corresponding to +y and -y axes labels, respectively.
+        ylpos (list):
+            Positions of +y and -y labels respectively.
+        zlabel (list):
+            List of strings corresponding to +z and -z axes labels, respectively.
+        zlpos (list):
+            Positions of +z and -z labels respectively.
     """
 
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
@@ -199,23 +199,21 @@ class Bloch():
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
-        Parameters
-        ----------
-        convention : string
-            One of the following:
-                - "original"
-                - "xyz"
-                - "sx sy sz"
-                - "01"
-                - "polarization jones"
-                - "polarization jones letters"
-                  see also: http://en.wikipedia.org/wiki/Jones_calculus
-                - "polarization stokes"
-                  see also: http://en.wikipedia.org/wiki/Stokes_parameters
-        Raises
-        ------
-        Exception
-            if convention is not valid.
+
+        Args:
+            convention (str):
+                One of the following:
+                    - "original"
+                    - "xyz"
+                    - "sx sy sz"
+                    - "01"
+                    - "polarization jones"
+                    - "polarization jones letters"
+                    see also: http://en.wikipedia.org/wiki/Jones_calculus
+                    - "polarization stokes"
+                    see also: http://en.wikipedia.org/wiki/Stokes_parameters
+        Raises:
+            Exception: If convention is not valid.
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -343,10 +341,9 @@ class Bloch():
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
 
-        Parameters
-        ----------
-        vectors : array_like
-            Array with vectors of unit length or smaller.
+        Args:
+            vectors (array_like):
+                Array with vectors of unit length or smaller.
         """
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
@@ -358,24 +355,21 @@ class Bloch():
         """Add a text or LaTeX annotation to Bloch sphere,
         parametrized by a qubit state or a vector.
 
-        Parameters
-        ----------
-        state_or_vector : Qobj/array/list/tuple
-            Position for the annotaion.
-            Qobj of a qubit or a vector of 3 elements.
-        text : str/unicode
-            Annotation text.
-            You can use LaTeX, but remember to use raw string
-            e.g. r"$\\langle x \\rangle$"
-            or escape backslashes
-            e.g. "$\\\\langle x \\\\rangle$".
-        **kwargs :
-            Options as for mplot3d.axes3d.text, including:
-            fontsize, color, horizontalalignment, verticalalignment.
-        Raises
-        ------
-        Exception
-            if input not array_like or tuple.
+        Args:
+            state_or_vector (array_like):
+                Position for the annotaion.
+                Qobj of a qubit or a vector of 3 elements.
+            text (str):
+                Annotation text.
+                You can use LaTeX, but remember to use raw string
+                e.g. r"$\\langle x \\rangle$"
+                or escape backslashes
+                e.g. "$\\\\langle x \\\\rangle$".
+            **kwargs:
+                Options as for mplot3d.axes3d.text, including:
+                fontsize, color, horizontalalignment, verticalalignment.
+        Raises:
+            Exception: If input not array_like or tuple.
         """
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
@@ -607,23 +601,19 @@ class Bloch():
         if self.fig:
             plt.show(self.fig)
 
-    def save(self, name=None, format='png', dirc=None):
+    def save(self, name=None, output='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
-        Parameters
-        ----------
-        name : str
-            Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
-            This overrides the 'format' and 'dirc' arguments.
-        format : str
-            Format of output image.
-        dirc : str
-            Directory for output images. Defaults to current working directory.
-        Returns
-        -------
-        File containing plot of Bloch sphere.
+        Args:
+            name (str):
+                Name of saved image. Must include path and format as well.
+                i.e. '/Users/Paul/Desktop/bloch.png'
+                This overrides the 'format' and 'dirc' arguments.
+            output (str):
+                Format of output image.
+            dirc (str):
+                Directory for output images. Defaults to current working directory.
         """
-        # pylint: disable=redefined-builtin,locally-disabled
+
         self.render(self.fig, self.axes)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
@@ -631,10 +621,10 @@ class Bloch():
         if name is None:
             if dirc:
                 self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                                 str(self.savenum) + '.' + format)
+                                 str(self.savenum) + '.' + output)
             else:
                 self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                                 '.' + format)
+                                 '.' + output)
         else:
             self.fig.savefig(name)
         self.savenum += 1
