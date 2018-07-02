@@ -19,6 +19,37 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Retrieve IBM Q jobs from server (#563, #585).
+- Add German introductory documentation (``doc/de``) (#592).
+- Add ``unregister()`` for removing previously registered providers (#584).
+- Add matplotlib-based circuit drawer (#579).
+- Adding backend filtering by least busy (#575).
+
+Changed
+-------
+- Remove backend filtering in individual providers, keep only in wrapper (#575).
+- Single source of version information (#581)
+- Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
+- For backend status, `status['available']` is now `status['operational']` (#609).
+- Added support for registering third-party providers in `register()` (#602).
+
+Removed
+-------
+- Remove Clifford simulator from default available_backends, until its stable
+  release (#555).
+- Remove ProjectQ simulators for moving to new repository (#553).
+
+Fixed
+-----
+- Fix issue with unintended inversion of initializer gates (#573).
+- Fix issue with skip_transpiler causing some gates to be ignored silently (#562).
+
+
+`0.5.4`_ - 2018-06-11
+=====================
+
+Added
+-----
 
 Changed
 -------
@@ -37,7 +68,7 @@ Added
 -----
 
 - Performance improvements:
-    - remove deepcopies from dagcircuit, and extra check on qasm() (#523)
+    - remove deepcopies from dagcircuit, and extra check on qasm() (#523).
 
 Changed
 -------

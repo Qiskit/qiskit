@@ -14,7 +14,7 @@ import pstats
 import unittest
 import numpy as np
 
-from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
+from qiskit import (qasm, unroll, QuantumProgram, QuantumCircuit,
                     QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
 from ._random_qasm_generator import RandomQasmGenerator
@@ -73,11 +73,8 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         # delimiter=',')
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
-        q_job = QuantumJob(qobj,
-                           backend=UnitarySimulatorPy(),
-                           preformatted=True)
 
-        result = UnitarySimulatorPy().run(q_job).result()
+        result = UnitarySimulatorPy().run(qobj).result()
         self.assertTrue(np.allclose(result.get_unitary('test'),
                                     expected,
                                     rtol=1e-3))
@@ -96,7 +93,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         backend = UnitarySimulatorPy()
         qobj = compile([qc1, qc2], backend=backend)
-        job = backend.run(QuantumJob(qobj, backend=backend, preformatted=True))
+        job = backend.run(qobj)
         unitary1 = job.result().get_unitary(qc1)
         unitary2 = job.result().get_unitary(qc2)
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],

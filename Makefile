@@ -38,7 +38,7 @@ coverage:
 
 doc:
 	export PYTHONPATH=$(PWD); \
-	for LANGUAGE in "." "ja"; do \
+	for LANGUAGE in "." "de" "ja"; do \
 		better-apidoc -f -o doc/$$LANGUAGE/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
 		sphinx-autogen -t doc/_templates doc/$$LANGUAGE/_autodoc/*; \
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
@@ -57,6 +57,7 @@ coverage_erase:
 
 clean: coverage_erase
 	make -C doc clean
+	make -C doc -e BUILDDIR="_build/de" -e SOURCEDIR="./de" clean
 	make -C doc -e BUILDDIR="_build/ja" -e SOURCEDIR="./ja" clean
 	make -C src/qasm-simulator-cpp/src clean
 	rm -f test/python/test_latex_drawer.tex test/python/test_qasm_python_simulator.pdf \

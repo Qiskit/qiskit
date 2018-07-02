@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 from contextlib import contextmanager
 from qiskit.backends.local import LocalJob
-from qiskit.backends.local import QasmSimulatorCpp, QasmSimulatorProjectQ
+from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
@@ -27,7 +27,6 @@ class TestLocalJob(QiskitTestCase):
 
     _backends = [
         QasmSimulatorCpp,
-        QasmSimulatorProjectQ,
         QasmSimulatorPy,
         StatevectorSimulatorCpp,
         StatevectorSimulatorPy,
@@ -43,7 +42,7 @@ class TestLocalJob(QiskitTestCase):
                 with self.subTest(backend=backend_constructor):
                     self.log.info('Backend under test: %s', backend_constructor)
                     backend = backend_constructor()
-                    job = backend.run(FakeQJob())
+                    job = backend.run(fake_qobj())
                     self.assertIsInstance(job, LocalJob)
 
     def test_multiple_execution(self):
@@ -57,7 +56,7 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
             for index in range(taskcount):
-                LocalJob(target_tasks[index], FakeQJob())
+                LocalJob(target_tasks[index], fake_qobj())
 
         self.assertEqual(executor.submit.call_count, taskcount)
         for index in range(taskcount):
@@ -73,7 +72,7 @@ class TestLocalJob(QiskitTestCase):
 
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
-            job = LocalJob(lambda: None, FakeQJob())
+            job = LocalJob(lambda: None, fake_qobj())
             job.cancel()
 
         self.assertCalledOnce(executor.submit)
@@ -86,7 +85,7 @@ class TestLocalJob(QiskitTestCase):
 
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
-            job = LocalJob(lambda: None, FakeQJob())
+            job = LocalJob(lambda: None, fake_qobj())
             _ = job.done
 
         self.assertCalledOnce(executor.submit)
@@ -102,23 +101,23 @@ class TestLocalJob(QiskitTestCase):
                 call_count))
 
 
-class FakeQJob():
-    def __init__(self):
-        self.backend = FakeBackend()
-        self.qobj = {
-            'id': 'test-id',
-            'config': {
-                'backend_name': self.backend.name,
-                'shots': 1024,
-                'max_credits': 100
+def fake_qobj():
+    backend = FakeBackend()
+    qobj = {
+        'id': 'test-id',
+        'config': {
+            'backend_name': backend.name,
+            'shots': 1024,
+            'max_credits': 100
             },
-            'circuits': [{
-                'compiled_circuit_qasm': 'fake-code',
-                'config': {
-                    'seed': 123456
-                }
-            }]
-        }
+        'circuits': [{
+            'compiled_circuit_qasm': 'fake-code',
+            'config': {
+                'seed': 123456
+            }
+        }]
+    }
+    return qobj
 
 
 class FakeBackend():
@@ -150,10 +149,8 @@ def intercepted_executor_for_localjob():
 def mocked_simulator_binaries():
     """Context to force binary-based simulators to think the simulators exist.
     """
-    from qiskit.backends.local import qasm_simulator_projectq
     with patch.object(path, 'exists', return_value=True, autospec=True),\
-            patch.object(path, 'getsize', return_value=1000, autospec=True),\
-            patch.object(qasm_simulator_projectq, 'CppSim', {}):
+            patch.object(path, 'getsize', return_value=1000, autospec=True):
         yield
 
 

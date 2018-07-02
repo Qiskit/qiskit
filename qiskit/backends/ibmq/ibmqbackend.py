@@ -11,9 +11,11 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from qiskit._util import _camel_case_to_snake_case
+from qiskit import QISKitError
+from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends import JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -42,16 +44,16 @@ class IBMQBackend(BaseBackend):
             # local : False is added to the online device
             self._configuration['local'] = False
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): description of job
+            qobj (dict): description of job
 
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(q_job, self._api, not self.configuration['simulator'])
+        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
 
     @property
     def calibration(self):
@@ -70,7 +72,7 @@ class IBMQBackend(BaseBackend):
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
+            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -135,7 +137,114 @@ class IBMQBackend(BaseBackend):
             if status['name'] == 'ibmqx_hpc_qasm_simulator':
                 status['available'] = True
 
+            # FIXME: this needs to be replaced at the API level - eventually
+            # it will.
+            if 'available' in status:
+                status['operational'] = status['available']
+                del status['available']
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return status
+        return AvailableToOperationalDict(status)
+
+    def jobs(self, limit=50, skip=0, status=None, db_filter=None):
+        """Attempt to get the jobs submitted to the backend.
+
+        Args:
+            limit (int): number of jobs to retrieve
+            skip (int): starting index of retrieval
+            status (None or JobStatus or str): only get jobs with this status,
+                where status is e.g. `JobStatus.RUNNING` or `'RUNNING'`
+            db_filter (dict): `loopback-based filter
+                <https://loopback.io/doc/en/lb2/Querying-data.html>`_.
+                This is an interface to a database ``where`` filter. Some
+                examples of its usage are:
+
+                Filter last five jobs with errors::
+
+                   job_list = backend.jobs(limit=5, status=JobStatus.ERROR)
+
+                Filter last five jobs with counts=1024, and counts for
+                states ``00`` and ``11`` each exceeding 400::
+
+                  cnts_filter = {'shots': 1024,
+                                 'qasms.result.data.counts.00': {'gt': 400},
+                                 'qasms.result.data.counts.11': {'gt': 400}}
+                  job_list = backend.jobs(limit=5, db_filter=cnts_filter)
+
+                Filter last five jobs from 30 days ago::
+
+                   past_date = datetime.datetime.now() - datetime.timedelta(days=30)
+                   date_filter = {'creationDate': {'lt': past_date.isoformat()}}
+                   job_list = backend.jobs(limit=5, db_filter=date_filter)
+
+        Returns:
+            list(IBMQJob): list of IBMQJob instances
+
+        Raises:
+            IBMQBackendValueError: status keyword value unrecognized
+        """
+        backend_name = self.configuration['name']
+        api_filter = {}
+        if status:
+            if isinstance(status, str):
+                status = JobStatus[status]
+            if status == JobStatus.RUNNING:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue': {'exists': False}}
+            elif status == JobStatus.QUEUED:
+                this_filter = {'status': 'RUNNING',
+                               'infoQueue.status': 'PENDING_IN_QUEUE'}
+            elif status == JobStatus.CANCELLED:
+                this_filter = {'status': 'CANCELLED'}
+            elif status == JobStatus.DONE:
+                this_filter = {'status': 'COMPLETED'}
+            elif status == JobStatus.ERROR:
+                this_filter = {'status': {'regexp': '^ERROR'}}
+            else:
+                raise IBMQBackendValueError('unrecongized value for "status" keyword '
+                                            'in job filter')
+            api_filter.update(this_filter)
+        if db_filter:
+            # filter ignores backend_name filter so we need to set it
+            api_filter['backend.name'] = backend_name
+            # status takes precendence over db_filter for same keys
+            api_filter = {**db_filter, **api_filter}
+        job_info_list = self._api.get_jobs(limit=limit, skip=skip,
+                                           backend=backend_name,
+                                           filter=api_filter)
+        job_list = []
+        for job_info in job_info_list:
+            is_device = not bool(self._configuration.get('simulator'))
+            job = IBMQJob.from_api(job_info, self._api, is_device)
+            job_list.append(job)
+        return job_list
+
+    def retrieve_job(self, job_id):
+        """Attempt to get the specified job by job_id
+
+        Args:
+            job_id (str): the job id of the job to retrieve
+
+        Returns:
+            IBMQJob: class instance
+
+        Raises:
+            IBMQBackendError: if retrieval failed
+        """
+        job_info = self._api.get_job(job_id)
+        if 'error' in job_info:
+            raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
+        is_device = not bool(self._configuration.get('simulator'))
+        job = IBMQJob.from_api(job_info, self._api, is_device)
+        return job
+
+
+class IBMQBackendError(QISKitError):
+    """IBM Q Backend Errors"""
+    pass
+
+
+class IBMQBackendValueError(IBMQBackendError, ValueError):
+    """ Value errors thrown within IBMQBackend """
+    pass

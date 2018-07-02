@@ -11,19 +11,11 @@
 
 import unittest
 import qiskit
-import qiskit._compiler
+from qiskit import transpiler
 from qiskit import Result
-from qiskit.wrapper import get_backend, execute
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
-
-
-def lowest_pending_jobs(list_of_backends):
-    """Returns the backend with lowest pending jobs."""
-    by_pending_jobs = sorted(list_of_backends,
-                             key=lambda x: x.status['pending_jobs'])
-    return by_pending_jobs[0]
 
 
 class FakeBackEnd(object):
@@ -31,9 +23,9 @@ class FakeBackEnd(object):
     """
     def __init__(self):
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [
-                        9, 10], [11, 10], [12, 5], [12, 11],
-                    [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
+                    [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
+                    [15, 2], [15, 14]]
         self.configuration = {'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
                               'simulator': False, 'n_qubits': 16,
                               'coupling_map': qx5_cmap}
@@ -56,7 +48,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -76,7 +68,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -95,9 +87,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        qobj = transpiler.compile(qc, backend)
+        result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
     def test_compile_two_run(self):
@@ -115,9 +106,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        qobj = transpiler.compile([qc, qc_extra], backend)
+        result = backend.run(qobj).result()
         self.assertIsInstance(result, Result)
 
     def test_execute(self):
@@ -133,7 +123,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        job = qiskit.wrapper.execute(qc, backend)
+        job = execute(qc, backend)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -162,9 +152,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = least_busy(available_backends())
+        backend = get_backend(backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -173,7 +163,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        qobj = qiskit._compiler.compile(qc, backend)
+        qobj = transpiler.compile(qc, backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -184,9 +174,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = lowest_pending_jobs(
-            provider.available_backends({'local': False, 'simulator': False}))
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = least_busy(available_backends())
+        backend = get_backend(backend)
 
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
@@ -196,7 +186,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
+        qobj = transpiler.compile([qc, qc_extra], backend)
 
         # FIXME should test against the qobj when defined
         self.assertEqual(len(qobj), 3)
@@ -207,17 +197,18 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile(qc, backend)
-        result = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                               preformatted=True)).result()
+        qobj = transpiler.compile(qc, backend)
+        job = backend.run(qobj)
+        result = job.result(timeout=20)
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
@@ -226,8 +217,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
         clbit_reg = qiskit.ClassicalRegister(2, name='c')
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
@@ -236,9 +228,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = qiskit._compiler.compile([qc, qc_extra], backend)
-        job = backend.run(qiskit.QuantumJob(qobj, backend=backend,
-                                            preformatted=True))
+        qobj = transpiler.compile([qc, qc_extra], backend)
+        job = backend.run(qobj)
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -248,8 +239,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -267,8 +259,9 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        backend = provider.available_backends({'simulator': True})[0]
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        backend = available_backends({'local': False, 'simulator': True})[0]
+        backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
         clbit_reg = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
@@ -342,7 +335,7 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(q, c)
 
         try:
-            qobj = qiskit._compiler.compile(circuit, backend)
+            qobj = transpiler.compile(circuit, backend)
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
@@ -362,10 +355,32 @@ class TestCompiler(QiskitTestCase):
         qc.measure(q, c)
 
         try:
-            qobj = qiskit._compiler.compile(qc, backend)
+            qobj = transpiler.compile(qc, backend)
         except QISKitError:
             qobj = None
         self.assertIsInstance(qobj, dict)
+
+    def test_mapping_already_satisfied(self):
+        """Test compiler doesn't change circuit already matching backend coupling
+        """
+        backend = FakeBackEnd()
+        q = qiskit.QuantumRegister(16)
+        c = qiskit.ClassicalRegister(16)
+        qc = qiskit.QuantumCircuit(q, c)
+        qc.h(q[1])
+        qc.x(q[2])
+        qc.x(q[3])
+        qc.x(q[4])
+        qc.cx(q[1], q[2])
+        qc.cx(q[2], q[3])
+        qc.cx(q[3], q[4])
+        qc.cx(q[3], q[14])
+        qc.measure(q, c)
+        qobj = transpiler.compile(qc, backend)
+        compiled_ops = qobj['circuits'][0]['compiled_circuit']['operations']
+        for op in compiled_ops:
+            if op['name'] == 'cx':
+                self.assertIn(op['qubits'], backend.configuration['coupling_map'])
 
 
 if __name__ == '__main__':
