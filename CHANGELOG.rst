@@ -24,6 +24,7 @@ Added
 Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
+- Update Bloch sphere to QuTiP version (#618).
 
 Removed
 -------
