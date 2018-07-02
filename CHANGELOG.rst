@@ -36,6 +36,7 @@ Changed
 
 Removed
 -------
+- Remove OpenQuantumCompiler (#610).
 - Remove Clifford simulator from default available_backends, until its stable
   release (#555).
 - Remove ProjectQ simulators for moving to new repository (#553).
