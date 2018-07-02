@@ -43,4 +43,4 @@ Autoren (alphabetisch)
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
 Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
 Erick Winston und Chris Wood, zusammen mit vielen `weiteren Mitwirkenden
-<https://github.com/QISKit/qiskit-core/blob/master/CONTRIBUTORS.md>`_.
+<https://github.com/QISKit/qiskit-terra/blob/master/CONTRIBUTORS.md>`_.

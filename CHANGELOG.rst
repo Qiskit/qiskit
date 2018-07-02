@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Rename repository to ``qiskit-terra`` (#606).
 
 Removed
 -------
