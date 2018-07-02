@@ -567,8 +567,7 @@ class Bloch():
             elif self.point_style[k] == 'm':
                 pnt_colors = np.array(self.point_color *
                                       int(np.ceil(num /
-                                                  float(len(self.point_color)
-                                                       ))))
+                                                  float(len(self.point_color)))))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
