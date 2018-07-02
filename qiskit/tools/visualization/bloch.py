@@ -286,22 +286,6 @@ class Bloch():
         string += "zlpos:           " + str(self.zlpos) + "\n"
         return string
 
-    def _repr_png_(self):
-        """png repr"""
-        from IPython.core.pylabtools import print_figure
-        self.render()
-        fig_data = print_figure(self.fig, 'png')
-        plt.close(self.fig)
-        return fig_data
-
-    def _repr_svg_(self):
-        """svg repr"""
-        from IPython.core.pylabtools import print_figure
-        self.render()
-        fig_data = print_figure(self.fig, 'svg').decode('utf-8')
-        plt.close(self.fig)
-        return fig_data
-
     def clear(self):
         """Resets Bloch sphere data sets to empty.
         """
