@@ -112,10 +112,10 @@ Depending on the system and setup, appending "sudo -H" before the
 
 
 For additional troubleshooting tips, see the `QISKit troubleshooting page
-<https://github.com/QISKit/qiskit-core/wiki/QISKit-Troubleshooting>`_
+<https://github.com/QISKit/qiskit-terra/wiki/QISKit-Troubleshooting>`_
 on the project's GitHub wiki.
 
 .. _tutorials: https://github.com/QISKit/qiskit-tutorial
 .. _tutorials repository: https://github.com/QISKit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/QISKit/qiskit-core/blob/master/.github/CONTRIBUTING.rst
-.. _Qconfig.py.default: https://github.com/QISKit/qiskit-core/blob/stable/Qconfig.py.default
+.. _documentation for contributors: https://github.com/QISKit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
+.. _Qconfig.py.default: https://github.com/QISKit/qiskit-terra/blob/stable/Qconfig.py.default

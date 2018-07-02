@@ -21,7 +21,7 @@ QISKitは、深さが限定的な量子回路を設計して直近の応用を�
 ----------------
 QISKitプロジェクトの構成は以下の通りです:
 
-* `QISKit SDK <https://github.com/QISKit/qiskit-core>`_:
+* `QISKit SDK <https://github.com/QISKit/qiskit-terra>`_:
   量子コンピューターのプログラムやアプリケーションを開発して実験を行うためのPythonソフトウェア開発キット
 
 * `QISKit API <https://github.com/IBM/qiskit-api-py>`_:
