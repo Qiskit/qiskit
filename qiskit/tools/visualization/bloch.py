@@ -39,8 +39,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-# pylint: disable=invalid-name, too-many-instance-attributes
-# pylint: disable=too-many-arguments, import-error
 
 """Bloch sphere"""
 
@@ -61,8 +59,8 @@ class Arrow3D(FancyArrowPatch):
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
 
@@ -434,43 +432,43 @@ class Bloch():
 
     def plot_back(self):
         """back half of sphere"""
-        u = np.linspace(0, np.pi, 25)
-        v = np.linspace(0, np.pi, 25)
-        x = np.outer(np.cos(u), np.sin(v))
-        y = np.outer(np.sin(u), np.sin(v))
-        z = np.outer(np.ones(u.shape[0]), np.cos(v))
-        self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
+        u_angle = np.linspace(0, np.pi, 25)
+        v_angle = np.linspace(0, np.pi, 25)
+        x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
+        y_dir = np.outer(np.sin(u_angle), np.sin(v_angle))
+        z_dir = np.outer(np.ones(u_angle.shape[0]), np.cos(v_angle))
+        self.axes.plot_surface(x_dir, y_dir, z_dir, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
         # wireframe
-        self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
+        self.axes.plot_wireframe(x_dir, y_dir, z_dir, rstride=5, cstride=5,
                                  color=self.frame_color,
                                  alpha=self.frame_alpha)
         # equator
-        self.axes.plot(1.0 * np.cos(u), 1.0 * np.sin(u), zs=0, zdir='z',
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle), zs=0, zdir='z',
                        lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(1.0 * np.cos(u), 1.0 * np.sin(u), zs=0, zdir='x',
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle), zs=0, zdir='x',
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
         """front half of sphere"""
-        u = np.linspace(-np.pi, 0, 25)
-        v = np.linspace(0, np.pi, 25)
-        x = np.outer(np.cos(u), np.sin(v))
-        y = np.outer(np.sin(u), np.sin(v))
-        z = np.outer(np.ones(u.shape[0]), np.cos(v))
-        self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
+        u_angle = np.linspace(-np.pi, 0, 25)
+        v_angle = np.linspace(0, np.pi, 25)
+        x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
+        y_dir = np.outer(np.sin(u_angle), np.sin(v_angle))
+        z_dir = np.outer(np.ones(u_angle.shape[0]), np.cos(v_angle))
+        self.axes.plot_surface(x_dir, y_dir, z_dir, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
         # wireframe
-        self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
+        self.axes.plot_wireframe(x_dir, y_dir, z_dir, rstride=5, cstride=5,
                                  color=self.frame_color,
                                  alpha=self.frame_alpha)
         # equator
-        self.axes.plot(1.0 * np.cos(u), 1.0 * np.sin(u),
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle),
                        zs=0, zdir='z', lw=self.frame_width,
                        color=self.frame_color)
-        self.axes.plot(1.0 * np.cos(u), 1.0 * np.sin(u),
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle),
                        zs=0, zdir='x', lw=self.frame_width,
                        color=self.frame_color)
 
@@ -499,15 +497,15 @@ class Bloch():
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
-        for a in (self.axes.w_xaxis.get_ticklines() +
-                  self.axes.w_xaxis.get_ticklabels()):
-            a.set_visible(False)
-        for a in (self.axes.w_yaxis.get_ticklines() +
-                  self.axes.w_yaxis.get_ticklabels()):
-            a.set_visible(False)
-        for a in (self.axes.w_zaxis.get_ticklines() +
-                  self.axes.w_zaxis.get_ticklabels()):
-            a.set_visible(False)
+        for item in (self.axes.w_xaxis.get_ticklines() +
+                     self.axes.w_xaxis.get_ticklabels()):
+            item.set_visible(False)
+        for item in (self.axes.w_yaxis.get_ticklines() +
+                     self.axes.w_yaxis.get_ticklabels()):
+            item.set_visible(False)
+        for item in (self.axes.w_zaxis.get_ticklines() +
+                     self.axes.w_zaxis.get_ticklabels()):
+            item.set_visible(False)
 
     def plot_vectors(self):
         """Plot vector"""
@@ -527,13 +525,13 @@ class Bloch():
                                lw=self.vector_width, color=color)
             else:
                 # decorated style, with arrow heads
-                a = Arrow3D(xs3d, ys3d, zs3d,
-                            mutation_scale=self.vector_mutation,
-                            lw=self.vector_width,
-                            arrowstyle=self.vector_style,
-                            color=color)
+                arr = Arrow3D(xs3d, ys3d, zs3d,
+                              mutation_scale=self.vector_mutation,
+                              lw=self.vector_width,
+                              arrowstyle=self.vector_style,
+                              color=color)
 
-                self.axes.add_artist(a)
+                self.axes.add_artist(arr)
 
     def plot_points(self):
         """Plot points"""
@@ -572,11 +570,11 @@ class Bloch():
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
                 marker = self.point_marker[np.mod(k, len(self.point_marker))]
-                s = self.point_size[np.mod(k, len(self.point_size))]
+                pnt_size = self.point_size[np.mod(k, len(self.point_size))]
                 self.axes.scatter(np.real(self.points[k][1][indperm]),
                                   -np.real(self.points[k][0][indperm]),
                                   np.real(self.points[k][2][indperm]),
-                                  s=s, alpha=1, edgecolor='none',
+                                  s=pnt_size, alpha=1, edgecolor='none',
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 
@@ -648,5 +646,5 @@ def _hide_tick_lines_and_labels(axis):
     '''
     Set visible property of ticklines and ticklabels of an axis to False
     '''
-    for a in axis.get_ticklines() + axis.get_ticklabels():
-        a.set_visible(False)
+    for item in axis.get_ticklines() + axis.get_ticklabels():
+        item.set_visible(False)
