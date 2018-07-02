@@ -103,7 +103,7 @@ class CompositeGate(Gate):
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
-        self.data = [gate.q_if(qregs) for gate in self.data]
+        self.data = [gate.q_if(*qregs) for gate in self.data]
         return self
 
     def c_if(self, classical, val):

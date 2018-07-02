@@ -16,6 +16,7 @@ from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.ccx import ToffoliGate
 
 
 class CnotGate(Gate):
@@ -39,6 +40,12 @@ class CnotGate(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.cx(self.arg[0], self.arg[1]))
+
+    def q_if(self, *qregs):
+        """Add controls to this gate."""
+        if not qregs:
+            return self
+        return ToffoliGate(qregs[0], self.arg[0], self.arg[1], self._get_circuit()).q_if(*qregs[1:])
 
 
 def cx(self, ctl, tgt):

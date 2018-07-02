@@ -40,7 +40,8 @@ class Gate(Instruction):
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
-        # pylint: disable=unused-argument
+        if not qregs:
+            return self
         raise QISKitError("control not implemented")
 
     def is_multi_qubit(self):

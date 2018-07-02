@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Implementation of the ``q_if`` method for controlled quantum gates.
 
 Changed
 -------

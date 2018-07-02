@@ -69,3 +69,6 @@ class Instruction(object):
         if self.control is None:
             return string
         return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+
+    def _get_circuit(self):
+        return self.circuit
