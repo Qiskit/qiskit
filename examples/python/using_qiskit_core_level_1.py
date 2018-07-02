@@ -17,8 +17,8 @@ used `pip install`, the examples only work from the root directory.
 import pprint
 
 # Import the QISKit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError, QuantumJob
-from qiskit import available_backends, compile, register, get_backend
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import available_backends, compile, register, get_backend, least_busy
 
 try:
     import Qconfig
@@ -27,19 +27,6 @@ except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
              For now, there's only access to local simulator backends...""")
-
-
-def lowest_pending_jobs():
-    """Returns the backend with lowest pending jobs."""
-    list_of_backends = available_backends(
-        {'local': False, 'simulator': False})
-    device_status = [get_backend(backend).status
-                     for backend in list_of_backends]
-
-    best = min([x for x in device_status if x['available'] is True],
-               key=lambda x: x['pending_jobs'])
-    return best['name']
-
 
 try:
     # Create a Quantum and Classical Register and giving a name.
@@ -77,10 +64,9 @@ try:
     # Note: in the near future qobj will become an object
 
     # Runing the job
-    sim_job = my_backend.run(QuantumJob(qobj, backend=my_backend, preformatted=True))
-    # Note: in the near future the quantumjob class will be removed and this will become
-    # sim_job = my_backend.run(qobj)
+    sim_job = my_backend.run(qobj)
 
+    # Getting the result
     sim_result=sim_job.result()
 
     # Show the results
@@ -98,10 +84,10 @@ try:
             print(s)
 
         # select least busy available device and execute.
-        best_device = lowest_pending_jobs()
-        print("Running on current least busy device: ", best_device)
+        least_busy_device = least_busy(available_backends())
+        print("Running on current least busy device: ", least_busy_device)
 
-        my_backend = get_backend(best_device)
+        my_backend = get_backend(least_busy_device)
 
         print("(with Configuration) ")
         pprint.pprint(my_backend.configuration)
@@ -116,13 +102,7 @@ try:
         qobj = compile([qc1, qc2], backend=my_backend, shots=1024, max_credits=10)
 
         # Runing the job.
-        q_job = QuantumJob(qobj, backend=my_backend, preformatted=True, resources={
-            'max_credits': qobj['config']['max_credits']})
-        # Note as above this will be removed in the near future.
-
-        exp_job = my_backend.run(q_job)
-        # Note: in the near future the quantumjob class will be removed and this will become
-        # exp_job = my_backend.run(qobj)
+        exp_job = my_backend.run(qobj)
 
         exp_result = exp_job.result()
 

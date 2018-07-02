@@ -3,6 +3,7 @@ recursive-include src/qasm-simulator-cpp *
 include qiskit/backends/local/qasm_simulator_cpp
 include qiskit/backends/local/qasm_simulator_cpp.exe
 include qiskit/backends/local/*.dll
+include qiskit/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
 include setup.py.in

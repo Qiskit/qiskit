@@ -20,7 +20,6 @@ from ._classicalregister import ClassicalRegister
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
-from ._quantumjob import QuantumJob
 from ._quantumregister import QuantumRegister
 from .mapper import coupling_dict2list
 from .qasm import Qasm
@@ -660,9 +659,9 @@ class QuantumProgram(object):
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using qiskit.register() instead is recommended.", DeprecationWarning)
-        qiskit.wrapper.register(token, url,
-                                hub, group, project, proxies, verify,
-                                provider_name='ibmq')
+        qiskit.wrapper.register(token, url=url,
+                                hub=hub, group=group, project=project,
+                                proxies=proxies, verify=verify)
 
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
@@ -823,7 +822,7 @@ class QuantumProgram(object):
             backend (str): The backend to check
 
         Returns:
-            dict: {'available': True}
+            dict: {'operational': True}
 
         Raises:
             ConnectionError: if the API call failed.
@@ -932,7 +931,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None, hpc=None, skip_transpiler=False, skip_translation=False):
+                qobj_id=None, hpc=None, skip_transpiler=False):
         """Compile the circuits into the execution list.
 
         .. deprecated:: 0.5
@@ -940,11 +939,6 @@ class QuantumProgram(object):
             upcoming versions. Using the coupling_map as a list is recommended.
         """
         # pylint: disable=missing-param-doc, missing-type-doc
-        if skip_translation:
-            warnings.warn(
-                "skip_translation will be called skip_transpiler in future versions.",
-                DeprecationWarning)
-            skip_transpiler = True
         if isinstance(coupling_map, dict):
             coupling_map = coupling_dict2list(coupling_map)
             warnings.warn(
@@ -1122,16 +1116,14 @@ class QuantumProgram(object):
         job_list = []
         for qobj in qobj_list:
             backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
-            q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-                'max_credits': qobj['config']['max_credits']})
-            job = backend.run(q_job)
+            job = backend.run(qobj)
             job_list.append(job)
         return job_list
 
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None, hpc=None, skip_transpiler=False, skip_translation=False):
+                max_credits=3, seed=None, hpc=None, skip_transpiler=False):
         """Execute, compile, and run an array of quantum circuits).
 
         This builds the internal "to execute" list which is list of quantum
@@ -1189,11 +1181,6 @@ class QuantumProgram(object):
             upcoming versions. Using the coupling_map as a list is recommended.
         """
         # pylint: disable=missing-param-doc, missing-type-doc
-        if skip_translation:
-            warnings.warn(
-                "skip_translation will be called skip_transpiler in future versions.",
-                DeprecationWarning)
-            skip_transpiler = True
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config

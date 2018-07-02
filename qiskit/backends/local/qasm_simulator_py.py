@@ -261,20 +261,19 @@ class QasmSimulatorPy(BaseBackend):
                                    {}).setdefault("statevector",
                                                   []).append(np.copy(self._statevector))
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run circuits in q_job"""
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
+        """Run circuits in qobj"""
         self._validate(qobj)
         result_list = []
         self._shots = qobj['config']['shots']
@@ -290,7 +289,7 @@ class QasmSimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
-        return Result(result, qobj)
+        return Result(result)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.

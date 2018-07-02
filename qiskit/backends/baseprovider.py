@@ -23,7 +23,8 @@ class BaseProvider(ABC):
     def available_backends(self, *args, **kwargs):
         """
         Returns:
-            list[BaseBackend]: a list of backend available from this provider.
+            list[BaseBackend]: a list of backend instances available
+            from this provider.
         """
         pass
 
@@ -67,3 +68,13 @@ class BaseProvider(ABC):
             dict[str: str]: {deprecated_name: backend_name}
         """
         return {}
+
+    def __eq__(self, other):
+        """
+        Assumes two providers with the same class name clash.
+        Derived providers can override this behavior
+        (e.g. IBMQProvider instances are equal if and only if
+        they have the same authentication attributes as well).
+        """
+        equality = (type(self).__name__ == type(other).__name__)
+        return equality
