@@ -39,6 +39,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+# pylint: import-error
 
 """Bloch sphere"""
 
