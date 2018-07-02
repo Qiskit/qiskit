@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Rename repository to ``qiskit-terra`` (#606).
 
 Removed
 -------
@@ -507,26 +508,26 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.5...HEAD
-.. _0.5.5: https://github.com/QISKit/qiskit-core/compare/0.5.4...0.5.5
-.. _0.5.4: https://github.com/QISKit/qiskit-core/compare/0.5.3...0.5.4
-.. _0.5.3: https://github.com/QISKit/qiskit-core/compare/0.5.2...0.5.3
-.. _0.5.2: https://github.com/QISKit/qiskit-core/compare/0.5.1...0.5.2
-.. _0.5.1: https://github.com/QISKit/qiskit-core/compare/0.5.0...0.5.1
-.. _0.5.0: https://github.com/QISKit/qiskit-core/compare/0.4.15...0.5.0
-.. _0.4.15: https://github.com/QISKit/qiskit-core/compare/0.4.14...0.4.15
-.. _0.4.14: https://github.com/QISKit/qiskit-core/compare/0.4.13...0.4.14
-.. _0.4.13: https://github.com/QISKit/qiskit-core/compare/0.4.12...0.4.13
-.. _0.4.12: https://github.com/QISKit/qiskit-core/compare/0.4.11...0.4.12
-.. _0.4.11: https://github.com/QISKit/qiskit-core/compare/0.4.10...0.4.11
-.. _0.4.10: https://github.com/QISKit/qiskit-core/compare/0.4.9...0.4.10
-.. _0.4.9: https://github.com/QISKit/qiskit-core/compare/0.4.8...0.4.9
-.. _0.4.8: https://github.com/QISKit/qiskit-core/compare/0.4.7...0.4.8
-.. _0.4.7: https://github.com/QISKit/qiskit-core/compare/0.4.6...0.4.7
-.. _0.4.6: https://github.com/QISKit/qiskit-core/compare/0.4.5...0.4.6
-.. _0.4.4: https://github.com/QISKit/qiskit-core/compare/0.4.3...0.4.4
-.. _0.4.3: https://github.com/QISKit/qiskit-core/compare/0.4.2...0.4.3
-.. _0.4.2: https://github.com/QISKit/qiskit-core/compare/0.4.1...0.4.2
-.. _0.4.0: https://github.com/QISKit/qiskit-core/compare/0.3.16...0.4.0
+.. _UNRELEASED: https://github.com/QISKit/qiskit-terra/compare/0.5.5...HEAD
+.. _0.5.5: https://github.com/QISKit/qiskit-terra/compare/0.5.4...0.5.5
+.. _0.5.4: https://github.com/QISKit/qiskit-terra/compare/0.5.3...0.5.4
+.. _0.5.3: https://github.com/QISKit/qiskit-terra/compare/0.5.2...0.5.3
+.. _0.5.2: https://github.com/QISKit/qiskit-terra/compare/0.5.1...0.5.2
+.. _0.5.1: https://github.com/QISKit/qiskit-terra/compare/0.5.0...0.5.1
+.. _0.5.0: https://github.com/QISKit/qiskit-terra/compare/0.4.15...0.5.0
+.. _0.4.15: https://github.com/QISKit/qiskit-terra/compare/0.4.14...0.4.15
+.. _0.4.14: https://github.com/QISKit/qiskit-terra/compare/0.4.13...0.4.14
+.. _0.4.13: https://github.com/QISKit/qiskit-terra/compare/0.4.12...0.4.13
+.. _0.4.12: https://github.com/QISKit/qiskit-terra/compare/0.4.11...0.4.12
+.. _0.4.11: https://github.com/QISKit/qiskit-terra/compare/0.4.10...0.4.11
+.. _0.4.10: https://github.com/QISKit/qiskit-terra/compare/0.4.9...0.4.10
+.. _0.4.9: https://github.com/QISKit/qiskit-terra/compare/0.4.8...0.4.9
+.. _0.4.8: https://github.com/QISKit/qiskit-terra/compare/0.4.7...0.4.8
+.. _0.4.7: https://github.com/QISKit/qiskit-terra/compare/0.4.6...0.4.7
+.. _0.4.6: https://github.com/QISKit/qiskit-terra/compare/0.4.5...0.4.6
+.. _0.4.4: https://github.com/QISKit/qiskit-terra/compare/0.4.3...0.4.4
+.. _0.4.3: https://github.com/QISKit/qiskit-terra/compare/0.4.2...0.4.3
+.. _0.4.2: https://github.com/QISKit/qiskit-terra/compare/0.4.1...0.4.2
+.. _0.4.0: https://github.com/QISKit/qiskit-terra/compare/0.3.16...0.4.0
 
 .. _Keep a Changelog: http://keepachangelog.com/en/1.0.0/
