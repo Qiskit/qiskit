@@ -20,6 +20,21 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+
+`0.5.5`_ - 2018-07-02
+=====================
+
+Added
+-----
 - Retrieve IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
 - Add ``unregister()`` for removing previously registered providers (#584).
