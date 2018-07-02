@@ -20,6 +20,23 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+
+Changed
+-------
+
+Removed
+-------
+- Remove OpenQuantumCompiler (#610).
+
+Fixed
+-----
+
+
+`0.5.5`_ - 2018-07-02
+=====================
+
+Added
+-----
 - Retrieve IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
 - Add ``unregister()`` for removing previously registered providers (#584).
@@ -36,7 +53,6 @@ Changed
 
 Removed
 -------
-- Remove OpenQuantumCompiler (#610).
 - Remove Clifford simulator from default available_backends, until its stable
   release (#555).
 - Remove ProjectQ simulators for moving to new repository (#553).
@@ -491,7 +507,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.4...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-core/compare/0.5.5...HEAD
+.. _0.5.5: https://github.com/QISKit/qiskit-core/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/QISKit/qiskit-core/compare/0.5.3...0.5.4
 .. _0.5.3: https://github.com/QISKit/qiskit-core/compare/0.5.2...0.5.3
 .. _0.5.2: https://github.com/QISKit/qiskit-core/compare/0.5.1...0.5.2
