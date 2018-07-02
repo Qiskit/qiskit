@@ -1,5 +1,5 @@
 OPENQASM 2.0;
-// https://github.com/QISKit/qiskit-core/issues/111
+// https://github.com/QISKit/qiskit-terra/issues/111
 include "qelib1.inc";
 qreg q[4];
 creg c[4];

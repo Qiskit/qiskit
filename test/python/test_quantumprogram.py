@@ -1517,7 +1517,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_ccx(self):
         """Checks a Toffoli gate.
 
-        Based on https://github.com/QISKit/qiskit-core/pull/172.
+        Based on https://github.com/QISKit/qiskit-terra/pull/172.
         """
         Q_program = QuantumProgram()
         q = Q_program.create_quantum_register('q', 3)
