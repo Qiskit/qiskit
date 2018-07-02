@@ -323,7 +323,17 @@ def plot_state_qsphere(rho):
 
 
 def plot_state(rho, method='city'):
-    """Plot the quantum state."""
+    """Plot the quantum state.
+
+    Args:
+        rho (ndarray): Density matrix representation
+            of a quantum state vector or mized state.
+        method (str): Plotting method to use.
+
+    Note:
+        If input is a state vector, you must first
+        convert to density matrix via `qiskit.tools.qi.qi.outer`.
+    """
     num = int(np.log2(len(rho)))
     # Need updating to check its a matrix
     if method == 'city':
