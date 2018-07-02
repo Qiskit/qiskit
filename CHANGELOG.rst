@@ -31,6 +31,7 @@ Removed
 
 Fixed
 -----
+- Fixed broken process error (#608) and simulator slowdown (#424) on Windows.
 
 
 `0.5.5`_ - 2018-07-02
