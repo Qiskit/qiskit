@@ -62,11 +62,12 @@ stage_osx: &stage_osx
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew upgrade python3
       brew install gcc@6
       brew link --overwrite gcc@6
-      virtualenv env -p python3
-      source env/bin/activate
+      brew upgrade pyenv || brew install pyenv
+      pyenv install 3.6.5
+      ~/.pyenv/versions/3.6.5/bin/python -m venv venv
+      source venv/bin/activate
     fi
 
 stage_linux_no_compile: &stage_linux_no_compile
@@ -134,7 +135,7 @@ jobs:
       <<: *stage_linux
       python: 3.6
 
-    # OSX, Python 3.latest (brew does not support versioning)
+    # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
 

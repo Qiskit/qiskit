@@ -17,7 +17,7 @@ import qiskit
 from .common import QiskitTestCase
 
 try:
-    from qiskit.tools.visualization import latex_drawer
+    from qiskit.tools.visualization import generate_latex_source
     VALID_MATPLOTLIB = True
 except RuntimeError:
     # Under some combinations (travis osx vms, or headless configurations)
@@ -28,8 +28,8 @@ except RuntimeError:
 
 
 @unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
-class TestLatexDrawer(QiskitTestCase):
-    """QISKit latex drawer tests."""
+class TestLatexSourceGenerator(QiskitTestCase):
+    """QISKit latex source generator tests."""
 
     def random_circuit(self, width=3, depth=3, max_operands=3):
         """Generate random circuit of arbitrary size.
@@ -81,7 +81,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_tiny.tex')
         qc = self.random_circuit(1, 1, 1)
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -91,7 +91,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_normal.tex')
         qc = self.random_circuit(5, 5, 3)
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -101,7 +101,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_wide.tex')
         qc = self.random_circuit(100, 1, 1)
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -111,7 +111,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_deep.tex')
         qc = self.random_circuit(1, 100, 1)
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -121,7 +121,7 @@ class TestLatexDrawer(QiskitTestCase):
         filename = self._get_resource_path('test_huge.tex')
         qc = self.random_circuit(40, 40, 1)
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -149,7 +149,7 @@ class TestLatexDrawer(QiskitTestCase):
         qc.x(q[2]).c_if(c, 2)
         qc.measure(q[2], c[2])
         try:
-            latex_drawer(qc, filename)
+            generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):

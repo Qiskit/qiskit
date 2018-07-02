@@ -617,7 +617,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         out = q_program.get_backend_status("local_qasm_simulator")
-        self.assertIn(out['available'], [True])
+        self.assertIn(out['operational'], [True])
 
     def test_backend_status_fail(self):
         """Test backend_status.
@@ -1213,7 +1213,7 @@ class TestQuantumProgram(QiskitTestCase):
         backend = 'ibmq_qasm_simulator'
         shots = 1
         status = q_program.get_backend_status(backend)
-        if not status.get('available', False):
+        if not status.get('operational', False):
             pass
         else:
             result = q_program.execute(['circuitName'], backend=backend,
@@ -1449,7 +1449,7 @@ class TestQuantumProgram(QiskitTestCase):
             ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
         )
         # SDK will throw ConnectionError on every call that implies a connection
-        self.assertRaises(ConnectionError, qp.set_api, FAKE_TOKEN, FAKE_URL)
+        self.assertRaises(QISKitError, qp.set_api, FAKE_TOKEN, FAKE_URL)
 
     def test_results_save_load(self):
         """Test saving and loading the results of a circuit.
@@ -1597,8 +1597,7 @@ class TestQuantumProgram(QiskitTestCase):
         # TODO: use the backend directly when the deprecation is completed.
         from ._mockutils import DummyProvider
         import qiskit.wrapper
-        qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider(),
-                                                               'dummy')
+        qiskit.wrapper._wrapper._DEFAULT_PROVIDER.add_provider(DummyProvider())
 
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")
