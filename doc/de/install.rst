@@ -117,10 +117,10 @@ Befehl:
 
 Für zusätzliche Tipps zur Problembehandlung, verwenden Sie bitte die `QISKit
 troubleshooting page <https://github
-.com/QISKit/qiskit-core/wiki/QISKit-Troubleshooting>`_ auf dem GitHub Wiki
+.com/QISKit/qiskit-terra/wiki/QISKit-Troubleshooting>`_ auf dem GitHub Wiki
 des Projektes.
 
 .. _tutorials: https://github.com/QISKit/qiskit-tutorial
 .. _tutorials repository: https://github.com/QISKit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/QISKit/qiskit-core/blob/master/.github/CONTRIBUTING.rst
-.. _Qconfig.py.default: https://github.com/QISKit/qiskit-core/blob/stable/Qconfig.py.default
+.. _documentation for contributors: https://github.com/QISKit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
+.. _Qconfig.py.default: https://github.com/QISKit/qiskit-terra/blob/stable/Qconfig.py.default
