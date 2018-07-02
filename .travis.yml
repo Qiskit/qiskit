@@ -144,7 +144,7 @@ jobs:
     # github pages documentation update (GNU/Linux, Python 3.5)
     - stage: deploy doc and pypi
       <<: *stage_linux_no_compile
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       script: cd ..
       deploy:
         <<: *deploy_ghpages
@@ -152,7 +152,7 @@ jobs:
     # GNU/Linux, Python 3.5
     - stage: deploy doc and pypi
       <<: *stage_linux
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:
@@ -161,7 +161,7 @@ jobs:
     # OSX, Python 3.latest (brew does not support versions)
     - stage: deploy doc and pypi
       <<: *stage_osx
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:
