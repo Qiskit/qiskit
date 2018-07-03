@@ -29,7 +29,6 @@ from ._measure import Measure
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-from ._quantumjob import QuantumJob
 from ._quantumprogram import QuantumProgram
 from ._result import Result
 
