@@ -22,6 +22,7 @@ import logging
 from qiskit._result import Result
 from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
+from qiskit.qobj import QObjItem
 from .qasm_simulator_py import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -59,9 +60,10 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
-        for circuit in qobj['circuits']:
-            circuit['compiled_circuit']['operations'].append(
-                {'name': 'snapshot', 'params': [final_state_key]})
+        for circuit in qobj.circuits:
+            circuit.compiled_circuit.operations.append(
+                QObjItem.from_dict({'name': 'snapshot', 'params': [final_state_key]})
+            )
         result = super()._run_job(qobj)._result
         # Replace backend name with current backend
         result['backend'] = self._configuration['name']
@@ -87,15 +89,16 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
-        if qobj['config']['shots'] != 1:
+        if qobj.config.shots != 1:
             logger.info("statevector simulator only supports 1 shot. "
                         "Setting shots=1.")
-            qobj['config']['shots'] = 1
-        for circuit in qobj['circuits']:
+            qobj.config.shots = 1
+        for circuit_qobj in qobj.circuits:
+            circuit = circuit_qobj.as_dict()
             if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
                 logger.info("statevector simulator only supports 1 shot. "
                             "Setting shots=1 for circuit %s.", circuit['name'])
-                circuit['config']['shots'] = 1
+                circuit_qobj.config.shots = 1
             for op in circuit['compiled_circuit']['operations']:
                 if op['name'] in ['measure', 'reset']:
                     raise SimulatorError("In circuit {}: statevector simulator does "

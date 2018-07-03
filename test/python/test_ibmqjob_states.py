@@ -15,6 +15,7 @@ import time
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.qobj import QObj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
 
@@ -227,7 +228,8 @@ class TestIBMQJobStates(QiskitTestCase):
         """Creates a new `IBMQJob` instance running with the provided API
         object."""
         self._current_api = api
-        self._current_qjob = IBMQJob(new_fake_qobj(), api, False)
+        self._current_qjob = IBMQJob(QObj.from_dict(new_fake_qobj()), api,
+                                     False)
         return self._current_qjob
 
 

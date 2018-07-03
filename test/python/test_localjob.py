@@ -9,16 +9,18 @@
 
 """LocalJob creation and test suite."""
 
+from contextlib import contextmanager
 from os import path
 import unittest
 from unittest.mock import patch
-from contextlib import contextmanager
+
 from qiskit.backends.local import LocalJob
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
 from qiskit.backends.local import UnitarySimulatorPy
+from qiskit.qobj import QObj
 from .common import QiskitTestCase
 
 
@@ -117,7 +119,7 @@ def fake_qobj():
             }
         }]
     }
-    return qobj
+    return QObj.from_dict(qobj)
 
 
 class FakeBackend():

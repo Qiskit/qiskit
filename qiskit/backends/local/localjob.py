@@ -33,7 +33,7 @@ class LocalJob(BaseJob):
     def __init__(self, fn, qobj):
         super().__init__()
         self._qobj = qobj
-        self._backend_name = qobj['config']['backend_name']
+        self._backend_name = qobj.config.backend_name
         self._future = self._executor.submit(fn, qobj)
 
     def result(self, timeout=None):

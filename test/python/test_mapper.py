@@ -194,9 +194,9 @@ class MapperTest(QiskitTestCase):
                         [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
                         [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
         qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
-        cx_qubits = [x["qubits"]
-                     for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
-                     if x["name"] == "cx"]
+        cx_qubits = [x.qubits
+                     for x in qobj.circuits[0].compiled_circuit.operations
+                     if x.name == "cx"]
 
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
