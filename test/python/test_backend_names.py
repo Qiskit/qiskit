@@ -9,9 +9,9 @@
 
 """Backend grouped/deprecated/aliased test."""
 
-from qiskit import register, get_backend, available_backends
+from qiskit import get_backend, available_backends
 from qiskit.backends.local import QasmSimulatorPy, QasmSimulatorCpp
-from .common import requires_qe_access, QiskitTestCase
+from .common import QiskitTestCase
 
 
 # Cpp backend required
@@ -44,36 +44,8 @@ class TestBackendNames(QiskitTestCase):
             new_backend = get_backend(old_name)
             self.assertIsInstance(new_backend, QasmSimulatorCpp)
 
-    @requires_qe_access
-    def test_ibmq_deprecated(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """test deprecated ibmq backends are resolved correctly"""
-        register(QE_TOKEN, QE_URL, hub, group, project)
-        old_name_1 = "ibmqx_qasm_simulator"
-        old_name_2 = "ibmqx_hpc_qasm_simulator"
-        new_name = "ibmq_qasm_simulator"
-        self.assertEqual(get_backend(old_name_1), get_backend(new_name))
-        self.assertEqual(get_backend(old_name_2), get_backend(new_name))
-
-    @requires_qe_access
-    def test_ibmq_aliases(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test display names of devices as aliases for backend name."""
-        register(QE_TOKEN, QE_URL)
-        backend_names = ['ibmqx2', 'ibmqx4', 'ibmqx5']
-        display_names = ['ibmq_5_yorktown', 'ibmq_5_tenerife', 'ibmq_16_rueschlikon']
-        if hub and group and project:
-            display_names.append('ibmq_20_austin')
-            backend_names.append('QS1_1')
-        for backend_name, display_name in zip(backend_names, display_names):
-            backend_status_backend = get_backend(backend_name).status
-            backend_status_display = get_backend(display_name).status
-            self.assertEqual(backend_status_backend['name'], backend_name)
-            self.assertEqual(backend_status_display['name'], backend_name)
-
-    def test_aliases_fail(self):
-        self.assertRaises(LookupError, get_backend, 'bad_name')
-
     def test_compact_flag(self):
-        """test the compact flag for available_backends works"""
+        """Test the compact flag for available_backends works"""
         compact_names = available_backends()
         expanded_names = available_backends(compact=False)
         self.assertIn('local_qasm_simulator', compact_names)

@@ -112,7 +112,7 @@ class DefaultQISKitProvider(BaseProvider):
         Aggregate deprecated names from all providers.
 
         Returns:
-            dict[str: list[str]]: aggregated dictionary of deprecated names
+            dict[str: str]: aggregated dictionary of deprecated names
         """
         deprecates = {}
         for provider in self.providers:

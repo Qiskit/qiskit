@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name,missing-docstring
+
+"""Test backend name resolution for functionality groups, deprecations and
+aliases."""
+
+from qiskit import register, get_backend
+from qiskit.wrapper._wrapper import _DEFAULT_PROVIDER
+from qiskit.backends.local import QasmSimulatorCpp
+from .common import requires_qe_access, QiskitTestCase
+
+
+# Cpp backend required
+try:
+    cpp_backend = QasmSimulatorCpp()
+except FileNotFoundError:
+    _skip_cpp = True
+else:
+    _skip_cpp = False
+
+
+class TestBackendNameResolution(QiskitTestCase):
+    """
+    Test backend resolution algorithms.
+    """
+
+    @requires_qe_access
+    def test_ibmq_deprecated(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        """Test deprecated ibmq backends are resolved correctly"""
+        register(QE_TOKEN, QE_URL, hub, group, project)
+        deprecated_names = _DEFAULT_PROVIDER.deprecated_backend_names()
+        for oldname, newname in deprecated_names.items():
+            if newname == 'local_qasm_simulator_cpp' and _skip_cpp:
+                continue
+
+            with self.subTest(oldname=oldname, newname=newname):
+                self.assertEqual(get_backend(oldname), get_backend(newname))
+
+    @requires_qe_access
+    # pylint: disable=unused-argument
+    def test_ibmq_aliases(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        """Test display names of devices as aliases for backend name."""
+        register(QE_TOKEN, QE_URL)
+        aliased_names = _DEFAULT_PROVIDER.aliased_backend_names()
+        for display_name, backend_name in aliased_names.items():
+            with self.subTest(display_name=display_name,
+                              backend_name=backend_name):
+                backend_by_name = get_backend(backend_name)
+                backend_by_display_name = get_backend(display_name)
+                self.assertEqual(backend_by_name, backend_by_display_name)
+                self.assertEqual(backend_by_display_name['name'], backend_name)
+
+    def test_aliases_fail(self):
+        self.assertRaises(LookupError, get_backend, 'bad_name')
