@@ -24,7 +24,7 @@ class MapperTest(QiskitTestCase):
     def test_mapper_overoptimization(self):
         """
         The mapper should not change the semantics of the input. An overoptimization introduced
-        the issue #81: https://github.com/QISKit/qiskit-core/issues/81
+        the issue #81: https://github.com/QISKit/qiskit-terra/issues/81
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'), name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
@@ -39,7 +39,7 @@ class MapperTest(QiskitTestCase):
         """
         The math library operates over floats and introduce floating point errors that should be
         avoided.
-        See: https://github.com/QISKit/qiskit-core/issues/111
+        See: https://github.com/QISKit/qiskit-terra/issues/111
         """
         self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
@@ -55,7 +55,7 @@ class MapperTest(QiskitTestCase):
     def test_optimize_1q_gates_issue159(self):
         """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
 
-        See: https://github.com/QISKit/qiskit-core/issues/159
+        See: https://github.com/QISKit/qiskit-terra/issues/159
         """
         self.qp = QuantumProgram()
         qr = self.qp.create_quantum_register('qr', 2)
@@ -124,7 +124,7 @@ class MapperTest(QiskitTestCase):
     def test_symbolic_unary(self):
         """Test symbolic math in DAGBackend and optimizer with a prefix.
 
-        See: https://github.com/QISKit/qiskit-core/issues/172
+        See: https://github.com/QISKit/qiskit-terra/issues/172
         """
         ast = qasm.Qasm(filename=self._get_resource_path(
             'qasm/issue172_unary.qasm')).parse()
@@ -136,7 +136,7 @@ class MapperTest(QiskitTestCase):
     def test_symbolic_binary(self):
         """Test symbolic math in DAGBackend and optimizer with a binary operation.
 
-        See: https://github.com/QISKit/qiskit-core/issues/172
+        See: https://github.com/QISKit/qiskit-terra/issues/172
         """
         ast = qasm.Qasm(filename=self._get_resource_path(
             'qasm/issue172_binary.qasm')).parse()
@@ -149,7 +149,7 @@ class MapperTest(QiskitTestCase):
     def test_symbolic_extern(self):
         """Test symbolic math in DAGBackend and optimizer with an external function.
 
-        See: https://github.com/QISKit/qiskit-core/issues/172
+        See: https://github.com/QISKit/qiskit-terra/issues/172
         """
         ast = qasm.Qasm(filename=self._get_resource_path(
             'qasm/issue172_extern.qasm')).parse()
@@ -161,7 +161,7 @@ class MapperTest(QiskitTestCase):
     def test_symbolic_power(self):
         """Test symbolic math in DAGBackend and optimizer with a power (^).
 
-        See: https://github.com/QISKit/qiskit-core/issues/172
+        See: https://github.com/QISKit/qiskit-terra/issues/172
         """
         ast = qasm.Qasm(data=QASM_SYMBOLIC_POWER).parse()
         unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
@@ -172,7 +172,7 @@ class MapperTest(QiskitTestCase):
     def test_already_mapped(self):
         """Test that if the circuit already matches the backend topology, it is not remapped.
 
-        See: https://github.com/QISKit/qiskit-core/issues/342
+        See: https://github.com/QISKit/qiskit-terra/issues/342
         """
         self.qp = QuantumProgram()
         qr = self.qp.create_quantum_register('qr', 16)
