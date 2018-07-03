@@ -9,6 +9,8 @@
 import logging
 import copy
 import uuid
+import concurrent.futures
+import multiprocessing
 
 import numpy as np
 import scipy.sparse as sp
@@ -25,6 +27,64 @@ from qiskit._gate import Gate
 
 logger = logging.getLogger(__name__)
 
+
+def compile_one_circuit(circuit, backend, backend_conf,
+                        config=None, basis_gates=None, coupling_map=None, initial_layout=None,
+                        seed=None, pass_manager=None):
+    job = {}
+    # step 1: populate the circuit-level `name`
+    job["name"] = circuit.name
+
+    # step 2: populate the circuit-level `config`
+    if config is None:
+        config = {}
+    job["config"] = copy.deepcopy(config)
+    # TODO: A better solution is to have options to enable/disable optimizations
+    num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
+    if num_qubits == 1 or coupling_map == "all-to-all":
+        coupling_map = None
+    job["config"]["coupling_map"] = coupling_map
+    job["config"]["basis_gates"] = basis_gates
+    job["config"]["seed"] = seed
+
+    # step 3: populate the circuit `instructions` after compilation
+    # step 3a: circuit -> dag
+    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+
+    # TODO: move this inside the mapper pass
+    # pick a good initial layout if coupling_map is not already satisfied
+    # otherwise keep it as q[i]->q[i]
+    if (initial_layout is None and
+            not backend_conf['simulator'] and
+            not _matches_coupling_map(circuit.data, coupling_map)):
+        initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
+
+    # step 3b: transpile (dag -> dag)
+    dag_circuit, final_layout = transpile(
+        dag_circuit,
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
+        initial_layout=initial_layout,
+        get_layout=True,
+        seed=seed,
+        pass_manager=pass_manager)
+
+    # step 3c: dag -> json
+    # TODO: populate the Qobj object when Qobj class exists
+    # the compiled circuit to be run saved as a dag
+    # we assume that transpile() has already expanded gates
+    # to the target basis, so we just need to generate json
+    list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
+    job["config"]["layout"] = list_layout
+    json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
+    job["compiled_circuit"] = json_circuit
+
+    # set eval_symbols=True to evaluate each symbolic expression
+    # TODO after transition to qobj, we can drop this
+    job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
+                                                    eval_symbols=True)
+
+    return job
 
 # pylint: disable=redefined-builtin
 def compile(circuits, backend,
@@ -81,63 +141,12 @@ def compile(circuits, backend,
     if not coupling_map:
         coupling_map = backend_conf['coupling_map']
 
-    for circuit in circuits:
-        job = {}
-
-        # step 1: populate the circuit-level `name`
-        job["name"] = circuit.name
-
-        # step 2: populate the circuit-level `config`
-        if config is None:
-            config = {}
-        job["config"] = copy.deepcopy(config)
-        # TODO: A better solution is to have options to enable/disable optimizations
-        num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
-        if num_qubits == 1 or coupling_map == "all-to-all":
-            coupling_map = None
-        job["config"]["coupling_map"] = coupling_map
-        job["config"]["basis_gates"] = basis_gates
-        job["config"]["seed"] = seed
-
-        # step 3: populate the circuit `instructions` after compilation
-        # step 3a: circuit -> dag
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-
-        # TODO: move this inside the mapper pass
-        # pick a good initial layout if coupling_map is not already satisfied
-        # otherwise keep it as q[i]->q[i]
-        if (initial_layout is None and
-                not backend_conf['simulator'] and
-                not _matches_coupling_map(circuit.data, coupling_map)):
-            initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
-
-        # step 3b: transpile (dag -> dag)
-        dag_circuit, final_layout = transpile(
-            dag_circuit,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=initial_layout,
-            get_layout=True,
-            seed=seed,
-            pass_manager=pass_manager)
-
-        # step 3c: dag -> json
-        # TODO: populate the Qobj object when Qobj class exists
-        # the compiled circuit to be run saved as a dag
-        # we assume that transpile() has already expanded gates
-        # to the target basis, so we just need to generate json
-        list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-        job["config"]["layout"] = list_layout
-        json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-        job["compiled_circuit"] = json_circuit
-
-        # set eval_symbols=True to evaluate each symbolic expression
-        # TODO after transition to qobj, we can drop this
-        job["compiled_circuit_qasm"] = dag_circuit.qasm(qeflag=True,
-                                                        eval_symbols=True)
-
-        # add job to the qobj
-        qobj["circuits"].append(job)
+    max_workers = min(4, multiprocessing.cpu_count() // 2)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(compile_one_circuit, circuit, backend, backend_conf, config, basis_gates,
+            coupling_map, initial_layout, seed, pass_manager) for circuit in circuits]
+        for future in concurrent.futures.as_completed(futures):
+            qobj["circuits"].append(future.result())
 
     return qobj
 
