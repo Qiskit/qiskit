@@ -7,5 +7,5 @@
 
 """Module for the QObj structure."""
 
-from ._qobj import (QObj, QObjConfig, QObjExperiment, QObjInstruction,
-                    QObjStructure)
+from ._qobj import (QObj, QObjCompiledCircuit, QObjConfig, QObjExperiment,
+                    QObjExperimentConfig, QObjInstruction, QObjItem)
