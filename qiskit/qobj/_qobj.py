@@ -31,18 +31,19 @@ class QObjItem(SimpleNamespace):
         Returns:
             dict: a dictionary.
         """
-        def expand_item(obj):
-            """
-            Return a valid representation of `obj` depending on its type.
-            """
-            if isinstance(obj, list):
-                return [expand_item(item) for item in obj]
-            if isinstance(obj, QObjItem):
-                return obj.as_dict()
-            return obj
-
-        return {key: expand_item(value) for key, value
+        return {key: self._expand_item(value) for key, value
                 in self.__dict__.items() if not key.startswith('_')}
+
+    @classmethod
+    def _expand_item(cls, obj):
+        """
+        Return a valid representation of `obj` depending on its type.
+        """
+        if isinstance(obj, list):
+            return [cls._expand_item(item) for item in obj]
+        if isinstance(obj, QObjItem):
+            return obj.as_dict()
+        return obj
 
     @classmethod
     def from_dict(cls, obj):
@@ -57,25 +58,26 @@ class QObjItem(SimpleNamespace):
             QObjValidationError: if the dictionary does not contain the
                 required attributes for that class.
         """
-        def qobjectify_item(obj):
-            """
-            Return a valid value for a QObjItem from a object.
-            """
-            if isinstance(obj, dict):
-                # TODO: should use the subclasses for finer control over the
-                # required arguments.
-                return QObjItem.from_dict(obj)
-            elif isinstance(obj, list):
-                return [qobjectify_item(item) for item in obj]
-            return obj
-
         if not all(key in obj.keys() for key in cls.REQUIRED_ARGS):
             raise QObjValidationError(
                 'The dict does not contain all required keys: missing "%s"' %
                 [key for key in cls.REQUIRED_ARGS if key not in obj.keys()])
 
-        return cls(**{key: qobjectify_item(value)
+        return cls(**{key: cls._qobjectify_item(value)
                       for key, value in obj.items()})
+
+    @classmethod
+    def _qobjectify_item(cls, obj):
+        """
+        Return a valid value for a QObjItem from a object.
+        """
+        if isinstance(obj, dict):
+            # TODO: should use the subclasses for finer control over the
+            # required arguments.
+            return QObjItem.from_dict(obj)
+        elif isinstance(obj, list):
+            return [cls._qobjectify_item(item) for item in obj]
+        return obj
 
     def __reduce__(self):
         """
@@ -169,6 +171,7 @@ class QObjInstruction(QObjItem):
         super().__init__(**kwargs)
 
 
+# TODO: Remove when new schema is in place?
 class QObjExperimentConfig(QObjItem):
     """Configuration for a experiment.
 
@@ -178,7 +181,6 @@ class QObjExperimentConfig(QObjItem):
         coupling_map (list): coupling map
         layout (list): layout
     """
-    # TODO: Remove when new schema is in place?
     REQUIRED_ARGS = ['seed', 'basis_gates', 'coupling_map', 'layout']
 
     def __init__(self, seed, basis_gates, coupling_map, layout, **kwargs):
@@ -190,6 +192,7 @@ class QObjExperimentConfig(QObjItem):
         super().__init__(**kwargs)
 
 
+# TODO: Remove when new schema is in place?
 class QObjCompiledCircuit(QObjItem):
     """Compiled circuit.
 
@@ -197,7 +200,6 @@ class QObjCompiledCircuit(QObjItem):
         header (QObjItem): header.
         operations (list[QObjInstruction]): list of instructions.
     """
-    # TODO: Remove when new schema is in place?
     REQUIRED_ARGS = ['header', 'operations']
 
     def __init__(self, header, operations, **kwargs):

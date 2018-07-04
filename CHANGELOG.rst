@@ -24,6 +24,7 @@ Added
 Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
+- Introduce a ``QObj`` class replacing the previous dictionaries (#589).
 
 Removed
 -------
