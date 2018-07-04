@@ -33,7 +33,7 @@ class DummyProvider(BaseProvider):
     def __init__(self):
         self._backend = DummySimulator()
 
-        super(DummyProvider, self).__init__()
+        super().__init__()
 
     def get_backend(self, name):
         return self._backend
