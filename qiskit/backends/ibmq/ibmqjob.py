@@ -73,21 +73,22 @@ class IBMQJob(BaseJob):
 
         Args:
             job_info (dict): This is the information about a job returned from
-                the API. It has the simplified structure:
+                the API. It has the simplified structure::
 
-                {'backend': {'id', 'backend id string',
-                             'name', 'ibmqx4'},
-                 'id': 'job id string',
-                 'qasms': [{'executionId': 'id string',
-                            'qasm': 'qasm string'},
-                          ]
-                 'status': 'status string',
-                 'seed': '1',
-                 'shots': 1024,
-                 'status': 'status string',
-                 'usedCredits': 3,
-                 'creationDate': '2018-06-13T04:31:13.175Z'
-                 'userId': 'user id'}
+                    {'backend': {'id', 'backend id string',
+                                 'name', 'ibmqx4'},
+                     'id': 'job id string',
+                     'qasms': [{'executionId': 'id string',
+                                'qasm': 'qasm string'},
+                              ]
+                     'status': 'status string',
+                     'seed': '1',
+                     'shots': 1024,
+                     'status': 'status string',
+                     'usedCredits': 3,
+                     'creationDate': '2018-06-13T04:31:13.175Z'
+                     'userId': 'user id'}
+
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
 
