@@ -20,12 +20,12 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-- Complie the circuits in parallel for speedup.
 
 Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
+- Complie the circuits in parallel for speedup (#).
 
 Removed
 -------
