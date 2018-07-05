@@ -54,7 +54,6 @@ class TestQuaternions(QiskitTestCase):
             mat = quat.to_matrix()
             self.assertTrue(np.allclose(la.det(mat), 1))
 
-
     def test_equiv_quaternions(self):
         """Different Euler rotations give same quaternion, up to sign."""
         # Check if euler angles from to_zyz return same quaternion
