@@ -28,17 +28,18 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
         kwargs (dict): keyword arguments passed to provider class initialization.
-            For the IBMQProvider default this can include things such as;
-            token (str): The token used to register on the online backend such
-                as the quantum experience.
-            url (str): The url used for online backend such as the quantum
-                experience.
-            hub (str): The hub used for online backend.
-            group (str): The group used for online backend.
-            project (str): The project used for online backend.
-            proxies (dict): Proxy configuration for the API, as a dict with
-                'urls' and credential keys.
-            verify (bool): If False, ignores SSL certificates errors.
+            For the IBMQProvider default this can include things such as:
+
+                * token (str): The token used to register on the online backend such
+                    as the quantum experience.
+                * url (str): The url used for online backend such as the quantum
+                    experience.
+                * hub (str): The hub used for online backend.
+                * group (str): The group used for online backend.
+                * project (str): The project used for online backend.
+                * proxies (dict): Proxy configuration for the API, as a dict with
+                    'urls' and credential keys.
+                * verify (bool): If False, ignores SSL certificates errors.
 
     Returns:
         BaseProvider: the provider instance that was just registered.
