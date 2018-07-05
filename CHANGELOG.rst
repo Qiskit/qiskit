@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Complie the circuits in parallel for speedup.
 
 Changed
 -------
