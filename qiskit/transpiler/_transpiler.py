@@ -141,7 +141,7 @@ def compile(circuits, backend,
     if not coupling_map:
         coupling_map = backend_conf['coupling_map']
 
-    max_workers = min(4, multiprocessing.cpu_count() // 2)
+    max_workers = max(1, multiprocessing.cpu_count() // 2)
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(_compile_one_circuit, circuit, backend, backend_conf, config, basis_gates,
             coupling_map, initial_layout, seed, pass_manager) for circuit in circuits]
