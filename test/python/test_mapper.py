@@ -10,7 +10,17 @@
 import unittest
 import qiskit.wrapper
 from qiskit import (QuantumProgram, qasm, unroll, mapper, load_qasm_string)
-from .common import QiskitTestCase, requires_qe_access
+from .common import QiskitTestCase
+
+
+class FakeQX4BackEnd(object):
+    """A fake QX4 backend.
+    """
+    def __init__(self):
+        qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+        self.configuration = {'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
+                              'simulator': False, 'n_qubits': 5,
+                              'coupling_map': qx4_cmap}
 
 
 class MapperTest(QiskitTestCase):
@@ -199,19 +209,12 @@ class MapperTest(QiskitTestCase):
 
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
-    @requires_qe_access
-    def test_yzy_zyz_cases(self, QE_TOKEN, QE_URL, hub, group, project):
+    def test_yzy_zyz_cases(self):
         """Test mapper function yzy_to_zyz works in previously failed cases.
 
         See: https://github.com/QISKit/qiskit-terra/issues/607
         """
-        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
-        if 'ibmqx4' in qiskit.wrapper.available_backends():
-            backend = 'ibmqx4'
-        elif 'ibmq_20_tokyo' in qiskit.wrapper.available_backends():
-            backend = 'ibmq_20_tokyo'
-        else:
-            raise unittest.SkipTest('Do not have the required backend.')
+        backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(yzy_zyz_1)
         qobj1 = qiskit.wrapper.compile(circ1, backend)
         self.assertIsInstance(qobj1, dict)
