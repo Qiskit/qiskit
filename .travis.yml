@@ -70,7 +70,7 @@ stage_osx: &stage_osx
       source venv/bin/activate
     fi
 
-stage_osx: &stage_osx_python3_7
+stage_osx_python3_7: &stage_osx_python3_7
   <<: *stage_osx
   before_install:
     # Last line drops cmake from the list of requirements since it is not
