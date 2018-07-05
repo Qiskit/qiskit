@@ -606,7 +606,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     P = quaternion_from_euler(euler, 'zyz')
     # output order different than rotation order
     out_angles = (euler[1], euler[0], euler[2])
-    abs_inner = np.allclose(abs(P.data.dot(Q.data)), 1, eps)
+    abs_inner = abs(P.data.dot(Q.data))
     if not np.allclose(abs_inner, 1, eps):
         logger.debug("xi=%s", xi)
         logger.debug("theta1=%s", theta1)
