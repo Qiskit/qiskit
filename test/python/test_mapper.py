@@ -8,10 +8,9 @@
 # pylint: disable=invalid-name,missing-docstring
 
 import unittest
-
-from qiskit import QuantumProgram
-from qiskit import qasm, unroll, mapper
-from .common import QiskitTestCase
+import qiskit.wrapper
+from qiskit import (QuantumProgram, qasm, unroll, mapper, load_qasm_string)
+from .common import QiskitTestCase, requires_qe_access
 
 
 class MapperTest(QiskitTestCase):
@@ -200,6 +199,26 @@ class MapperTest(QiskitTestCase):
 
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
+    @requires_qe_access
+    def test_yzy_zyz_cases(self, QE_TOKEN, QE_URL, hub, group, project):
+        """Test mapper function yzy_to_zyz works in previously failed cases.
+
+        See: https://github.com/QISKit/qiskit-terra/issues/607
+        """
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
+        if 'ibmqx4' in qiskit.wrapper.available_backends():
+            backend = 'ibmqx4'
+        elif 'ibmq_20_tokyo' in qiskit.wrapper.available_backends():
+            backend = 'ibmq_20_tokyo'
+        else:
+            raise unittest.SkipTest('Do not have the required backend.')
+        circ1 = load_qasm_string(yzy_zyz_1)
+        qobj1 = qiskit.wrapper.compile(circ1, backend)
+        self.assertIsInstance(qobj1, dict)
+        circ2 = load_qasm_string(yzy_zyz_2)
+        qobj2 = qiskit.wrapper.compile(circ2, backend)
+        self.assertIsInstance(qobj2, dict)
+
 
 # QASMs expected by the tests.
 EXPECTED_QASM_SYMBOLIC_BINARY = """OPENQASM 2.0;
@@ -265,6 +284,23 @@ creg cr[1];
 u1(pi) qr[0];
 u1((0.3+(-pi))^2) qr[0];
 measure qr[0] -> cr[0];"""
+
+yzy_zyz_1 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[2];
+cx qr[0],qr[1];
+rz(0.7) qr[1];
+rx(1.570796) qr[1];
+"""
+
+yzy_zyz_2 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[2];
+y qr[0];
+h qr[0];
+s qr[0];
+h qr[0];
+"""
 
 
 if __name__ == '__main__':
