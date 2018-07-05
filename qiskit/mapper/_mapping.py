@@ -588,34 +588,6 @@ def swap_mapper(circuit_graph, coupling_graph,
     return dagcircuit_output, initial_layout
 
 
-def test_trig_solution(theta, phi, lamb, xi, theta1, theta2):
-    r"""Test if arguments are a solution to a system of equations.
-
-    .. math::
-       \cos(\phi+\lambda) \cos(\\theta) = \cos(xi) * \cos(\\theta1+\\theta2)
-
-       \sin(\phi+\lambda) \cos(\\theta) = \sin(xi) * \cos(\\theta1-\\theta2)
-
-       \cos(\phi-\lambda) \sin(\\theta) = \cos(xi) * \sin(\\theta1+\\theta2)
-
-       \sin(\phi-\lambda) \sin(\\theta) = \sin(xi) * \sin(-\\theta1+\\theta2)
-
-    Returns the maximum absolute difference between right and left hand sides
-    as a Max symbol. See:
-    http://docs.sympy.org/latest/modules/functions/elementary.html?highlight=max
-    """
-    delta1 = sympy.Abs(sympy.cos(phi + lamb) * sympy.cos(theta) -
-                       sympy.cos(xi) * sympy.cos(theta1 + theta2))
-    delta2 = sympy.Abs(sympy.sin(phi + lamb) * sympy.cos(theta) -
-                       sympy.sin(xi) * sympy.cos(theta1 - theta2))
-    delta3 = sympy.Abs(sympy.cos(phi - lamb) * sympy.sin(theta) -
-                       sympy.cos(xi) * sympy.sin(theta1 + theta2))
-    delta4 = sympy.Abs(sympy.sin(phi - lamb) * sympy.sin(theta) -
-                       sympy.sin(xi) * sympy.sin(-theta1 + theta2))
-
-    return sympy.Max(delta1, delta2, delta3, delta4)
-
-
 def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
     """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
@@ -643,6 +615,7 @@ def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         logger.debug("abs_inner=%s", abs_inner)
         raise MapperError('YZY and ZYZ angles do not give same rotation matrix.')
     return out_angles
+
 
 def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     """Return a triple theta, phi, lambda for the product.
