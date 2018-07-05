@@ -100,7 +100,7 @@ class DefaultQISKitProvider(BaseProvider):
         """
         groups = {}
         for provider in self.providers:
-            groups = {**groups, **provider.grouped_backend_names()}
+            groups.update(provider.grouped_backend_names())
         for pair in combinations(groups.values(), r=2):
             if not set.isdisjoint(set(pair[0]), set(pair[1])):
                 raise ValueError('duplicate backend group definition')
@@ -116,7 +116,7 @@ class DefaultQISKitProvider(BaseProvider):
         """
         deprecates = {}
         for provider in self.providers:
-            deprecates = {**deprecates, **provider.deprecated_backend_names()}
+            deprecates.update(provider.deprecated_backend_names())
 
         return deprecates
 
@@ -129,7 +129,7 @@ class DefaultQISKitProvider(BaseProvider):
         """
         aliases = {}
         for provider in self.providers:
-            aliases = {**aliases, **provider.aliased_backend_names()}
+            aliases.update(provider.aliased_backend_names())
 
         return aliases
 

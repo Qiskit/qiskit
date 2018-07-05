@@ -49,8 +49,7 @@ class IBMQProvider(BaseProvider):
         return list(self.backends.values())
 
     def grouped_backend_names(self):
-        return {
-            }
+        return {}
 
     def deprecated_backend_names(self):
         return {
