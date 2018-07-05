@@ -25,7 +25,7 @@ Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
-- Complie the circuits in parallel for speedup (#).
+- Compile the circuits in parallel for speedup (#627).
 
 Removed
 -------
