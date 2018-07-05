@@ -33,6 +33,7 @@ Removed
 Fixed
 -----
 - Fixed broken process error and simulator slowdown on Windows (#613).
+- Fixed yzy_to_zyz bugs (#520, #607) by moving to quaternions (#626).
 
 
 `0.5.5`_ - 2018-07-02
