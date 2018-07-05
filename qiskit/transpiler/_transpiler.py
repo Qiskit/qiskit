@@ -28,7 +28,7 @@ from qiskit._gate import Gate
 logger = logging.getLogger(__name__)
 
 
-def compile_one_circuit(circuit, backend, backend_conf,
+def _compile_one_circuit(circuit, backend, backend_conf,
                         config=None, basis_gates=None, coupling_map=None, initial_layout=None,
                         seed=None, pass_manager=None):
     job = {}
@@ -143,7 +143,7 @@ def compile(circuits, backend,
 
     max_workers = min(4, multiprocessing.cpu_count() // 2)
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(compile_one_circuit, circuit, backend, backend_conf, config, basis_gates,
+        futures = [executor.submit(_compile_one_circuit, circuit, backend, backend_conf, config, basis_gates,
             coupling_map, initial_layout, seed, pass_manager) for circuit in circuits]
         for future in concurrent.futures.as_completed(futures):
             qobj["circuits"].append(future.result())
