@@ -295,13 +295,12 @@ class Bloch():
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
-        Parameters
-        ----------
-        points : array/list
-            Collection of data points.
-        meth : str {'s', 'm', 'l'}
-            Type of points to plot, use 'm' for multicolored, 'l' for points
-            connected with a line.
+        Args:
+            points (array_like):
+                Collection of data points.
+            meth (str):
+                Type of points to plot, use 'm' for multicolored, 'l' for points
+                connected with a line.
         """
         if not isinstance(points[0], (list, np.ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
