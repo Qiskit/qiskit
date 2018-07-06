@@ -28,17 +28,18 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
         kwargs (dict): keyword arguments passed to provider class initialization.
-            For the IBMQProvider default this can include things such as;
-            token (str): The token used to register on the online backend such
-                as the quantum experience.
-            url (str): The url used for online backend such as the quantum
-                experience.
-            hub (str): The hub used for online backend.
-            group (str): The group used for online backend.
-            project (str): The project used for online backend.
-            proxies (dict): Proxy configuration for the API, as a dict with
-                'urls' and credential keys.
-            verify (bool): If False, ignores SSL certificates errors.
+            For the IBMQProvider default this can include things such as:
+
+                * token (str): The token used to register on the online backend such
+                    as the quantum experience.
+                * url (str): The url used for online backend such as the quantum
+                    experience.
+                * hub (str): The hub used for online backend.
+                * group (str): The group used for online backend.
+                * project (str): The project used for online backend.
+                * proxies (dict): Proxy configuration for the API, as a dict with
+                    'urls' and credential keys.
+                * verify (bool): If False, ignores SSL certificates errors.
 
     Returns:
         BaseProvider: the provider instance that was just registered.
@@ -50,7 +51,7 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
     try:
         provider = provider_class(*args, **kwargs)
     except Exception as ex:
-        raise QISKitError("Couldn't instance provider!. Error: {0}".format(ex))
+        raise QISKitError("Couldn't instantiate provider! Error: {0}".format(ex))
 
     _DEFAULT_PROVIDER.add_provider(provider)
     return provider
@@ -112,19 +113,22 @@ def available_backends(filters=None, compact=True):
     backend_names = [str(backend)
                      for backend in _DEFAULT_PROVIDER.available_backends(filters)]
 
-    if compact:
-        alias_dict = _DEFAULT_PROVIDER.aliased_backend_names()
-        aliases = set()
-        for name in backend_names:
-            backend_alias = set(k for k, v in alias_dict.items() if name in v)
-            if not backend_alias:
-                aliases.add(name)
-            elif len(backend_alias) == 1:
-                (alias,) = backend_alias
-                aliases.add(alias)
-        backend_names = list(aliases)
+    alias_dict = {v: k for k, v in _DEFAULT_PROVIDER.aliased_backend_names().items()}
+    backend_names = [alias_dict[name] if name in alias_dict else name for name in backend_names]
 
-    return backend_names
+    if compact:
+        group_dict = _DEFAULT_PROVIDER.grouped_backend_names()
+        groups = set()
+        for name in backend_names:
+            backend_group = set(k for k, v in group_dict.items() if name in v)
+            if not backend_group:
+                groups.add(name)
+            elif len(backend_group) == 1:
+                (group,) = backend_group
+                groups.add(group)
+        backend_names = list(groups)
+
+    return sorted(backend_names)
 
 
 def local_backends(compact=True):

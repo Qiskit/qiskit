@@ -12,7 +12,7 @@ Issue reporting
 ~~~~~~~~~~~~~~~
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/QISKit/qiskit-core/issues>`_.
+it to the `issue tracker <https://github.com/QISKit/qiskit-terra/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
@@ -80,10 +80,10 @@ Linux and Mac
 
 .. code::
 
-    qiskit-core$ mkdir out
-    qiskit-core$ cd out
-    qiskit-core/out$ cmake ..
-    qiskit-core/out$ make
+    qiskit-terra$ mkdir out
+    qiskit-terra$ cd out
+    qiskit-terra/out$ cmake ..
+    qiskit-terra/out$ make
 
 Windows
 
