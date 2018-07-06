@@ -134,36 +134,5 @@ class TestCrossSimulation(QiskitTestCase):
         # self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.04)
 
 
-class TestSimulatorNames(QiskitTestCase):
-    """Test aliased and deprecated names.
-    """
-
-    def test_alias(self):
-        """test short alias names work"""
-        compact_name = "local_qasm_simulator"
-        backend = get_backend(compact_name)
-        if not _skip_class:
-            self.assertIsInstance(backend, QasmSimulatorCpp)
-        else:
-            self.assertIsInstance(backend, QasmSimulatorPy)
-
-    def test_compact(self):
-        """test the compact flag for available_backends works"""
-        compact_names = available_backends()
-        expanded_names = available_backends(compact=False)
-        self.assertIn('local_qasm_simulator', compact_names)
-        self.assertIn('local_statevector_simulator', compact_names)
-        self.assertIn('local_unitary_simulator', compact_names)
-        self.assertIn('local_qasm_simulator_py', expanded_names)
-        self.assertIn('local_statevector_simulator_py', expanded_names)
-
-    def test_deprecated(self):
-        """test deprecated backends are resolved correctly"""
-        old_name = "local_qiskit_simulator"
-        if not _skip_class:
-            new_backend = get_backend(old_name)
-            self.assertIsInstance(new_backend, QasmSimulatorCpp)
-
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)

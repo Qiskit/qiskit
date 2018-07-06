@@ -48,7 +48,7 @@ class IBMQProvider(BaseProvider):
         # pylint: disable=arguments-differ
         return list(self.backends.values())
 
-    def aliased_backend_names(self):
+    def grouped_backend_names(self):
         return {}
 
     def deprecated_backend_names(self):
@@ -56,6 +56,14 @@ class IBMQProvider(BaseProvider):
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
             'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
             'real': 'ibmqx1'
+            }
+
+    def aliased_backend_names(self):
+        return {
+            'ibmq_5_yorktown': 'ibmqx2',
+            'ibmq_5_tenerife': 'ibmqx4',
+            'ibmq_16_rueschlikon': 'ibmqx5',
+            'ibmq_20_austin': 'QS1_1'
             }
 
     @classmethod
