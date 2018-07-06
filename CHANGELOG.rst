@@ -23,6 +23,19 @@ Added
 
 Changed
 -------
+
+Removed
+-------
+
+Fixed
+-----
+
+
+`0.5.6`_ - 2018-07-06
+=====================
+
+Changed
+-------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
 
@@ -517,7 +530,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-terra/compare/0.5.5...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-terra/compare/0.5.6...HEAD
+.. _0.5.6: https://github.com/QISKit/qiskit-terra/compare/0.5.5...0.5.6
 .. _0.5.5: https://github.com/QISKit/qiskit-terra/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/QISKit/qiskit-terra/compare/0.5.3...0.5.4
 .. _0.5.3: https://github.com/QISKit/qiskit-terra/compare/0.5.2...0.5.3
