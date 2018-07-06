@@ -88,37 +88,50 @@ class DefaultQISKitProvider(BaseProvider):
 
         return backends
 
-    def aliased_backend_names(self):
+    def grouped_backend_names(self):
         """
-        Aggregate alias information from all providers.
+        Aggregate group names from all providers.
 
         Returns:
-            dict[str: list[str]]: aggregated alias dictionary
+            dict[str: list[str]]: aggregated group dictionary
 
         Raises:
-            ValueError: if a backend is mapped to multiple aliases
+            ValueError: if a backend is mapped to multiple groups
         """
-        aliases = {}
+        groups = {}
         for provider in self.providers:
-            aliases = {**aliases, **provider.aliased_backend_names()}
-        for pair in combinations(aliases.values(), r=2):
+            groups.update(provider.grouped_backend_names())
+        for pair in combinations(groups.values(), r=2):
             if not set.isdisjoint(set(pair[0]), set(pair[1])):
-                raise ValueError('duplicate backend alias definition')
+                raise ValueError('duplicate backend group definition')
 
-        return aliases
+        return groups
 
     def deprecated_backend_names(self):
         """
         Aggregate deprecated names from all providers.
 
         Returns:
-            dict[str: list[str]]: aggregated alias dictionary
+            dict[str: str]: aggregated dictionary of deprecated names
         """
         deprecates = {}
         for provider in self.providers:
-            deprecates = {**deprecates, **provider.deprecated_backend_names()}
+            deprecates.update(provider.deprecated_backend_names())
 
         return deprecates
+
+    def aliased_backend_names(self):
+        """
+        Aggregate aliase names from all providers.
+
+        Returns:
+            dict[str: str]: aggregated alias dictionary
+        """
+        aliases = {}
+        for provider in self.providers:
+            aliases.update(provider.aliased_backend_names())
+
+        return aliases
 
     def add_provider(self, provider):
         """
@@ -137,17 +150,18 @@ class DefaultQISKitProvider(BaseProvider):
         current_backends = {str(backend) for backend in self.available_backends()}
         added_backends = {str(backend) for backend in provider.available_backends()}
         common_backends = added_backends.intersection(current_backends)
-        if common_backends:
-            logger.warning(
-                'The backend names "%s" of this provider are already in use. '
-                'Refer to documentation for `available_backends()` and `unregister()`.',
-                list(common_backends))
 
         # checks for equality of provider instances, based on the __eq__ method
         if provider not in self.providers:
             self.providers.append(provider)
         else:
             raise QISKitError("The same provider has already been registered!")
+
+        if common_backends:
+            logger.warning(
+                'The backend names "%s" of this provider are already in use. '
+                'Refer to documentation for `available_backends()` and `unregister()`.',
+                list(common_backends))
 
         return provider
 
@@ -169,9 +183,10 @@ class DefaultQISKitProvider(BaseProvider):
             raise QISKitError("'%s' provider is not registered.")
 
     def resolve_backend_name(self, name):
-        """Resolve backend name from a possible short alias or a deprecated name.
+        """Resolve backend name from a possible short group name, a deprecated name,
+        or an alias.
 
-        The alias will be chosen in order of priority, depending on availability.
+        A group will be resolved in order of member priorities, depending on availability.
 
         Args:
             name (str): name of backend to resolve
@@ -181,22 +196,25 @@ class DefaultQISKitProvider(BaseProvider):
 
         Raises:
             LookupError: if name cannot be resolved through
-            regular available names, nor aliases, nor deprecated names
+            regular available names, nor groups, nor deprecated, nor alias names
         """
         resolved_name = ""
-        available = [b.name for b in self.available_backends()]
-        aliased = self.aliased_backend_names()
+        available = [b.name for b in self.available_backends(filters=None)]
+        grouped = self.grouped_backend_names()
         deprecated = self.deprecated_backend_names()
+        aliased = self.aliased_backend_names()
 
         if name in available:
             resolved_name = name
-        elif name in aliased:
-            available_dealiases = [b for b in aliased[name] if b in available]
-            if available_dealiases:
-                resolved_name = available_dealiases[0]
+        elif name in grouped:
+            available_members = [b for b in grouped[name] if b in available]
+            if available_members:
+                resolved_name = available_members[0]
         elif name in deprecated:
             resolved_name = deprecated[name]
             logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
+        elif name in aliased:
+            resolved_name = aliased[name]
 
         if resolved_name not in available:
             raise LookupError('backend "{}" not found.'.format(name))
