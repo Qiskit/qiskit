@@ -64,9 +64,26 @@ stage_osx: &stage_osx
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
       brew install gcc@6
       brew link --overwrite gcc@6
-      brew upgrade pyenv || brew install pyenv
+      brew upgrade pyenv
       pyenv install 3.6.5
-      ~/.pyenv/versions/3.6.5/bin/python -m venv venv
+      virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
+      source venv/bin/activate
+    fi
+
+stage_osx_python3_7: &stage_osx_python3_7
+  <<: *stage_osx
+  before_install:
+    # Last line drops cmake from the list of requirements since it is not
+    # installable in Python 3.7 but it is not strictly necessary for building.
+    |
+    if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+      brew install gcc@6
+      brew link --overwrite gcc@6
+      brew upgrade pyenv
+      brew install freetype
+      brew install pkg-config
+      pyenv install 3.7.0
+      virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
       source venv/bin/activate
     fi
 
@@ -135,16 +152,36 @@ jobs:
       <<: *stage_linux
       python: 3.6
 
+    # GNU/Linux, Python 3.7
+    - stage: test
+      <<: *stage_linux
+      # Compiling Python 3.7 requires an Ubuntu Xenial distribution.
+      # Try removing once python: 3.7 is available in Travis.
+      dist: xenial
+      # Enable Travis native Python and remove before_install when the following
+      # is resolved: https://github.com/travis-ci/travis-ci/issues/9815
+      # python: 3.7
+      before_install:
+        - sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev
+        - cd /opt/pyenv/ && git pull origin master && cd -
+        - pyenv install 3.7.0
+        - /opt/pyenv/versions/3.7.0/bin/python -m venv .venv
+        - source .venv/bin/activate
+
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
+
+    # OSX, Python 3.7 (via pyenv)
+    - stage: test
+      <<: *stage_osx_python3_7
 
     # "deploy" stage.
     ###########################################################################
     # github pages documentation update (GNU/Linux, Python 3.5)
     - stage: deploy doc and pypi
       <<: *stage_linux_no_compile
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       script: cd ..
       deploy:
         <<: *deploy_ghpages
@@ -152,7 +189,7 @@ jobs:
     # GNU/Linux, Python 3.5
     - stage: deploy doc and pypi
       <<: *stage_linux
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:
@@ -161,7 +198,7 @@ jobs:
     # OSX, Python 3.latest (brew does not support versions)
     - stage: deploy doc and pypi
       <<: *stage_osx
-      if: branch = stable and repo = QISKit/qiskit-core and type = push
+      if: branch = stable and repo = QISKit/qiskit-terra and type = push
       install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
       script: cd ..
       deploy:

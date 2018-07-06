@@ -18,8 +18,8 @@ from matplotlib import cm
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import numpy as np
-
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.tools.visualization.bloch import Bloch
 
 
 class Arrow3D(FancyArrowPatch):
@@ -47,56 +47,9 @@ def plot_bloch_vector(bloch, title=""):
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
     """
-    # Set arrow lengths
-    arlen = 1.3
-
-    # Plot semi-transparent sphere
-    u = np.linspace(0, 2 * np.pi, 100)
-    v = np.linspace(0, np.pi, 100)
-    x = np.outer(np.cos(u), np.sin(v))
-    y = np.outer(np.sin(u), np.sin(v))
-    z = np.outer(np.ones(np.size(u)), np.cos(v))
-
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_aspect("equal")
-    ax.plot_surface(x, y, z, color=(.5, .5, .5), alpha=0.1)
-
-    # Plot arrows (axes, Bloch vector, its projections)
-    xa = Arrow3D([0, arlen], [0, 0], [0, 0], mutation_scale=20, lw=1,
-                 arrowstyle="-|>", color=(.5, .5, .5))
-    ya = Arrow3D([0, 0], [0, arlen], [0, 0], mutation_scale=20, lw=1,
-                 arrowstyle="-|>", color=(.5, .5, .5))
-    za = Arrow3D([0, 0], [0, 0], [0, arlen], mutation_scale=20, lw=1,
-                 arrowstyle="-|>", color=(.5, .5, .5))
-    a = Arrow3D([0, bloch[0]], [0, bloch[1]], [0, bloch[2]], mutation_scale=20,
-                lw=2, arrowstyle="simple", color="k")
-    bax = Arrow3D([0, bloch[0]], [0, 0], [0, 0], mutation_scale=20, lw=2,
-                  arrowstyle="-", color="r")
-    bay = Arrow3D([0, 0], [0, bloch[1]], [0, 0], mutation_scale=20, lw=2,
-                  arrowstyle="-", color="g")
-    baz = Arrow3D([0, 0], [0, 0], [0, bloch[2]], mutation_scale=20, lw=2,
-                  arrowstyle="-", color="b")
-    arrowlist = [xa, ya, za, a, bax, bay, baz]
-    for arr in arrowlist:
-        ax.add_artist(arr)
-
-    # Rotate the view
-    ax.view_init(30, 30)
-
-    # Annotate the axes, shifts are ad-hoc for this (30, 30) view
-    xp, yp, _ = proj3d.proj_transform(arlen, 0, 0, ax.get_proj())
-    plt.annotate("x", xy=(xp, yp), xytext=(-3, -8), textcoords='offset points',
-                 ha='right', va='bottom')
-    xp, yp, _ = proj3d.proj_transform(0, arlen, 0, ax.get_proj())
-    plt.annotate("y", xy=(xp, yp), xytext=(6, -5), textcoords='offset points',
-                 ha='right', va='bottom')
-    xp, yp, _ = proj3d.proj_transform(0, 0, arlen, ax.get_proj())
-    plt.annotate("z", xy=(xp, yp), xytext=(2, 0), textcoords='offset points',
-                 ha='right', va='bottom')
-
-    plt.title(title)
-    plt.show()
+    B = Bloch()
+    B.add_vectors(bloch)
+    B.show(title=title)
 
 
 def plot_state_city(rho, title=""):
@@ -370,7 +323,17 @@ def plot_state_qsphere(rho):
 
 
 def plot_state(rho, method='city'):
-    """Plot the quantum state."""
+    """Plot the quantum state.
+
+    Args:
+        rho (ndarray): Density matrix representation
+            of a quantum state vector or mized state.
+        method (str): Plotting method to use.
+
+    Note:
+        If input is a state vector, you must first
+        convert to density matrix via `qiskit.tools.qi.qi.outer`.
+    """
     num = int(np.log2(len(rho)))
     # Need updating to check its a matrix
     if method == 'city':
