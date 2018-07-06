@@ -46,6 +46,10 @@ Added
 - Add ``unregister()`` for removing previously registered providers (#584).
 - Add matplotlib-based circuit drawer (#579).
 - Adding backend filtering by least busy (#575).
+- Allow running with new display names for IBMQ devices,
+  and return those from ``available_backends()`` (#566)
+- Introduce Qiskit Transpiler and refactor compilation flow (#578)
+- Add CXCancellation pass (#578)
 
 Changed
 -------
@@ -54,6 +58,7 @@ Changed
 - Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
 - For backend status, `status['available']` is now `status['operational']` (#609).
 - Added support for registering third-party providers in `register()` (#602).
+- Order strings in the output of ``available_backends()`` (#566)
 
 Removed
 -------
