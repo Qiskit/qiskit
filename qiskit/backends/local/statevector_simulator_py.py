@@ -87,17 +87,21 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
-        if qobj['config']['shots'] != 1:
-            logger.info("statevector simulator only supports 1 shot. "
-                        "Setting shots=1.")
-            qobj['config']['shots'] = 1
+        self._set_shots_to_1(qobj, False)
         for circuit in qobj['circuits']:
-            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
-                logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", circuit['name'])
-                circuit['config']['shots'] = 1
-            for op in circuit['compiled_circuit']['operations']:
-                if op['name'] in ['measure', 'reset']:
+            self._set_shots_to_1(circuit, True)
+            for operator in circuit['compiled_circuit']['operations']:
+                if operator['name'] in ['measure', 'reset']:
                     raise SimulatorError("In circuit {}: statevector simulator does "
                                          "not support measure or reset.".format(circuit['name']))
-        return
+
+    def _set_shots_to_1(self, dictionary, include_name):
+        if 'config' not in dictionary:
+            dictionary['config'] = {}
+        if 'shots' in dictionary['config'] and dictionary['config']['shots'] != 1:
+            warn = 'statevector simulator only supports 1 shot. Setting shots=1'
+            if include_name:
+                warn += 'Setting shots=1 for circuit' + dictionary['name']
+            warn += '.'
+            logger.info(warn)
+        dictionary['config']['shots'] = 1
