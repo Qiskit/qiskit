@@ -8,6 +8,4 @@
 """Module that holds the runtime location of qiskitrc file.
 """
 
-QISKIT_RC_FILE = None
-
 REGISTER_CALLED = 0

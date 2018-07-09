@@ -11,7 +11,7 @@ import warnings
 from qiskit import QISKitError
 from qiskit.backends.ibmq.ibmqprovider import IBMQProvider
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-from qiskit.wrapper.configrc import _settings as rc_set
+from qiskit.wrapper.credentials import _settings as rc_set
 
 # Default provider used by the rest of the functions on this module. Please
 # note that this is a global object.
