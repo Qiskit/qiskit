@@ -10,11 +10,11 @@
 """Tests for QISKit API registration"""
 import os
 import qiskit.wrapper._wrapper as wrap
-from qiskit.wrapper.configrc._configrc import (has_qiskit_configrc,
-                                               generate_qiskitrc,
-                                               store_credentials,
-                                               get_credentials,
-                                               remove_credentials)
+from qiskit.wrapper.credentials._configrc import (has_qiskit_configrc,
+                                                  generate_qiskitrc,
+                                                  store_credentials,
+                                                  get_credentials,
+                                                  remove_credentials)
 from .common import (QiskitTestCase, requires_ci, requires_qe_access)
 
 
