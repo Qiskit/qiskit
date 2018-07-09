@@ -41,19 +41,64 @@ This will install the latest stable release along with all the dependencies.
    you haven't already done so
 -  Get an API token from the IBM Q experience website under “My
    Account” > “Personal Access Token”
--  The API token needs to be placed in a file called ``Qconfig.py``. For
-   convenience, we provide a default version of this file that you
-   can use as a reference: `Qconfig.py.default`_. After downloading that
-   file, copy it into the folder where you will be invoking the SDK (on
-   Windows, replace ``cp`` with ``copy``):
+
+3.1 Store API credentials locally
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For most users, storing your API credentials is most easily done locally.
+Your information is stored locally in a configuration file called `qiskitrc`.
+To store your information, simply run:
+
+.. code:: python
+
+    from qiskit import store_credentials
+
+    store_credentials(`MY_API_TOKEN`)
+
+where `MY_API_TOKEN` should be replaced with your token.
+
+If you are on the IBM Q network, you must also pass `url`,
+`hub`, `group`, and `project` arguments to `store_credentials`.
+
+To register your credentials with QISKit, simply run:
+
+.. code:: python
+
+    from qiskit import register
+
+    register()
+
+
+3.2 Load API credentials from environment variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more advanced users, it is possible to load API credentials from 
+environmental variables.  Specifically, one may set `QE_TOKEN`,
+`QE_URL`, `QE_HUB`, `QE_GROUP`, and `QE_PROJECT`.  These can then be registered 
+with QISKit:
+
+.. code:: python
+
+    from qiskit import register
+
+    register()
+
+3.3 Load API credentials from Qconfig.py
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The API token can be loaded from a file called 
+``Qconfig.py``. For convenience, we provide a default version of 
+this file that you can use as a reference: `Qconfig.py.default`_. 
+After downloading that file, copy it into the folder where you 
+will be invoking the SDK (on Windows, replace ``cp`` with ``copy``):
 
 .. code:: sh
 
     cp Qconfig.py.default Qconfig.py
 
--  Open your ``Qconfig.py``, remove the ``#`` from the beginning of the API
-   token line, and copy/paste your API token into the space between the
-   quotation marks on that line. Save and close the file.
+Open your ``Qconfig.py``, remove the ``#`` from the beginning of the API
+token line, and copy/paste your API token into the space between the
+quotation marks on that line. Save and close the file.
 
 For example, a valid and fully configured ``Qconfig.py`` file would look like:
 
@@ -65,10 +110,10 @@ For example, a valid and fully configured ``Qconfig.py`` file would look like:
         'url': 'https://quantumexperience.ng.bluemix.net/api'
     }
 
--  If you have access to the IBM Q features, you also need to setup the
-   values for your hub, group, and project. You can do so by filling the
-   ``config`` variable with the values you can find on your IBM Q account
-   page.
+If you have access to the IBM Q features, you also need to setup the
+values for your hub, group, and project. You can do so by filling the
+``config`` variable with the values you can find on your IBM Q account
+page.
 
 For example, a valid and fully configured ``Qconfig.py`` file for IBM Q
 users would look like:
@@ -85,6 +130,14 @@ users would look like:
         'project': 'MY_PROJECT'
     }
 
+If the `Qconfig.py` is in the current working directory, then it can be
+automatrically registered with QISKit:
+
+.. code:: python
+
+    from qiskit import register
+
+    register()
 
 Install Jupyter-based tutorials
 ===============================
