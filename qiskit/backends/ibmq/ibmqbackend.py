@@ -269,6 +269,7 @@ class IBMQBackend(BaseBackend):
 
         Args:
             status (dict): dict with optionally a 'name' key.
+            field (str): the field to replace in the dict.
 
         FIXME (new_backend_names): a hack to show the new device display
         names. Needs to be fixed in the API.
@@ -282,7 +283,6 @@ class IBMQBackend(BaseBackend):
                 status[field]) or status[field]
 
         return status
-
 
 
 class IBMQBackendError(QISKitError):
