@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Utilties for working with credentials for the wrapper.
+Utilities for working with credentials for the wrapper.
 """
 import logging
 
 from qiskit import QISKitError
-from ._configrc import read_credentials_from_qiskitrc
+from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
 from ._qconfig import read_credentials_from_qconfig
 
@@ -35,14 +35,12 @@ def discover_credentials():
 
             {'provider_name': {'token': 'TOKEN', 'url': 'URL', ... }}
     """
-    provider_credentials = {}
-
     # 1. Attempt to read them from the `Qconfig.py` file.
     try:
         qconfig_credentials = read_credentials_from_qconfig()
         if qconfig_credentials:
-            provider_credentials[None] = qconfig_credentials
-            return provider_credentials
+            logger.info('Using credentials from qconfig')
+            return qconfig_credentials
     except QISKitError as ex:
         logger.warning(
             'Automatic discovery of qconfig credentials failed: %s', str(ex))
@@ -51,8 +49,8 @@ def discover_credentials():
     try:
         environ_credentials = read_credentials_from_environ()
         if environ_credentials:
-            provider_credentials[None] = environ_credentials
-            return provider_credentials
+            logger.info('Using credentials from environment variables')
+            return environ_credentials
     except QISKitError as ex:
         logger.warning(
             'Automatic discovery of environment credentials failed: %s',
@@ -61,8 +59,11 @@ def discover_credentials():
     # 3. Attempt to read them from the qiskitrc file.
     try:
         provider_credentials = read_credentials_from_qiskitrc()
+        if provider_credentials:
+            logger.info('Using credentials from qiskitrc')
+            return provider_credentials
     except QISKitError as ex:
         logger.warning(
             'Automatic discovery of qiskitrc credentials failed: %s', str(ex))
 
-    return provider_credentials
+    return {}

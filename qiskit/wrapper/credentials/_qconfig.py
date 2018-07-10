@@ -9,10 +9,14 @@
 Utilities for reading credentials from the deprecated `Qconfig.py` file.
 """
 
-from importlib.util import spec_from_file_location, module_from_spec
 import os
+from importlib.util import module_from_spec, spec_from_file_location
 
 from qiskit import QISKitError
+from qiskit.backends.ibmq import IBMQProvider
+
+
+DEFAULT_QCONFIG_FILE = 'Qconfig.py'
 
 
 def read_credentials_from_qconfig():
@@ -29,7 +33,7 @@ def read_credentials_from_qconfig():
             exception is not raised if the file does not exist (instead, an
             empty dict is returned).
     """
-    if not os.path.isfile('Qconfig.py'):
+    if not os.path.isfile(DEFAULT_QCONFIG_FILE):
         return {}
     else:
         # Note this is nested inside the else to prevent some tools marking
@@ -42,14 +46,17 @@ def read_credentials_from_qconfig():
         #     DeprecationWarning)
 
     try:
-        spec = spec_from_file_location('Qconfig', 'Qconfig.py')
+        spec = spec_from_file_location('Qconfig', DEFAULT_QCONFIG_FILE)
         q_config = module_from_spec(spec)
         spec.loader.exec_module(q_config)
 
-        credentials = q_config.config.copy()
+        if hasattr(q_config, 'config'):
+            credentials = q_config.config.copy()
+        else:
+            credentials = {}
         credentials['token'] = q_config.APItoken
     except Exception as ex:
         # pylint: disable=broad-except
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
 
-    return credentials
+    return {IBMQProvider.__name__: credentials}

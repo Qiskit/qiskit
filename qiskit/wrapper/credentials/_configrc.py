@@ -10,8 +10,11 @@ Utilities for reading and writing credentials from and to configuration files.
 """
 
 import os
+from ast import literal_eval
 from configparser import ConfigParser, ParsingError
+
 from qiskit import QISKitError
+from qiskit.backends.ibmq import IBMQProvider
 
 
 DEFAULT_QISKITRC_FILE = os.path.join(os.path.expanduser("~"),
@@ -30,7 +33,7 @@ def read_credentials_from_qiskitrc(filename=None):
         dict: dictionary with the contents of the configuration file, with
             the form::
 
-            {'provider_name': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {'provider_class_name': {'token': 'TOKEN', 'url': 'URL', ... }}
 
     Raises:
         QISKitError: if the file was not parseable. Please note that this
@@ -44,8 +47,18 @@ def read_credentials_from_qiskitrc(filename=None):
     except ParsingError as ex:
         raise QISKitError(str(ex))
 
-    return {name: dict(config_parser.items(name)) for
-            name in config_parser.sections()}
+    # Build the credentials dictionary.
+    credentials_dict = {}
+    for name in config_parser.sections():
+        single_credentials = dict(config_parser.items(name))
+        # TODO: 'proxies' is the only value that is a dict. Consider moving to
+        # json configuration or splitting into single keys manually.
+        if 'proxies' in single_credentials.keys():
+            single_credentials['proxies'] = literal_eval(
+                single_credentials['proxies'])
+        credentials_dict[name] = single_credentials
+
+    return credentials_dict
 
 
 def write_qiskit_rc(credentials, filename=None):
@@ -54,7 +67,7 @@ def write_qiskit_rc(credentials, filename=None):
 
     Args:
         credentials (dict): dictionary with the credentials, with the form::
-            {'provider_name': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {'provider_class_name': {'token': 'TOKEN', 'url': 'URL', ... }}
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
     """
@@ -69,44 +82,25 @@ def write_qiskit_rc(credentials, filename=None):
         config_parser.write(config_file)
 
 
-def store_credentials(token=None,
-                      url='https://quantumexperience.ng.bluemix.net/api',
-                      hub=None, group=None, project=None, proxies=None,
-                      verify=True, account_name=None, overwrite=False,
-                      filename=None):
+def store_credentials(provider_class=IBMQProvider, overwrite=False,
+                      filename=None, **kwargs):
     """
     Store the credentials for a single provider in the configuration file.
 
     Args:
-        token (str): the token used to register on the online backend such
-            as the quantum experience.
-        url (str): the url used for online backend such as the quantum
-            experience.
-        hub (str): the hub used for online backend.
-        group (str): the group used for online backend.
-        project (str): the project used for online backend.
-        proxies (dict): proxy configuration for the API, as a dict with
-            'urls' and credential keys.
-        verify (bool): if False, ignores SSL certificates errors.
-        account_name (str): name for the account in the configuration file
-            section.
+        provider_class (class): class of the Provider for the credentials.
         overwrite (bool): overwrite existing credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
+        kwargs (dict): keyword arguments passed to provider class
+            initialization.
 
     Raises:
         QISKitError: If provider already exists and overwrite=False; or if
             the account_name could not be assigned.
     """
-    # Assign a default name for the credentials section.
-    if not account_name:
-        if 'quantumexperience' in url:
-            account_name = 'ibmq'
-        elif 'q-console' in url:
-            account_name = 'qnet'
-        else:
-            raise QISKitError('Cannot parse provider name from credentials.')
-
+    # Set the name of the Provider from the class.
+    account_name = provider_class.__name__
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
     credentials = read_credentials_from_qiskitrc(filename)
@@ -114,18 +108,17 @@ def store_credentials(token=None,
         raise QISKitError('%s is already present and overwrite=False'
                           % account_name)
 
-    # Append the provider, and store it in the file.
-    credentials[account_name] = {
-        'token': token, 'url': url, 'hub': hub, 'group': group,
-        'project': project, 'proxies': proxies, 'verify': verify}
+    # Append the provider, trim the empty options and store it in the file.
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    credentials[account_name] = {**kwargs}
     write_qiskit_rc(credentials, filename)
 
 
-def remove_credentials(account_name, filename=None):
+def remove_credentials(provider_class=IBMQProvider, filename=None):
     """Remove provider credentials from qiskitrc.
 
-     Args:
-        account_name (str): Name of the account to be removed.
+    Args:
+        provider_class (class): class of the Provider for the credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
 
@@ -133,12 +126,13 @@ def remove_credentials(account_name, filename=None):
         QISKitError: If there is no account with that name on the configuration
             file.
     """
+    # Set the name of the Provider from the class.
+    account_name = provider_class.__name__
     credentials = read_credentials_from_qiskitrc(filename)
 
     try:
         credentials.pop(account_name)
     except KeyError:
         raise QISKitError('The account "%s" does not exist in the '
-                          'configuration file. Available accounts: %s' %
-                          (account_name, credentials.keys()))
+                          'configuration file')
     write_qiskit_rc(credentials, filename)
