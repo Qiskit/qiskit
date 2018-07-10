@@ -7,9 +7,11 @@
 
 """Helper module for simplified QISKit usage."""
 
+import logging
 import warnings
 from qiskit import transpiler, QISKitError
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wrapper import credentials
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
@@ -17,6 +19,9 @@ from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 # Default provider used by the rest of the functions on this module. Please
 # note that this is a global object.
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
+
+
+logger = logging.getLogger(__name__)
 
 
 def register(*args, provider_class=IBMQProvider, **kwargs):
@@ -45,9 +50,17 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         BaseProvider: the provider instance that was just registered.
 
     Raises:
-        QISKitError: if the provider could not be registered
-        (e.g. due to conflict)
+        QISKitError: if the provider could not be registered (e.g. due to
+        conflict, or if no credentials were provided.)
     """
+    # Try to autodiscover credentials if not passed.
+    if not args and not kwargs and provider_class == IBMQProvider:
+        kwargs = credentials.discover_credentials().get(IBMQProvider.__name__) or {}
+        if not kwargs:
+            raise QISKitError(
+                'No IBMQ credentials found. Please pass them explicitly or '
+                'store them before calling register() with store_credentials()')
+
     try:
         provider = provider_class(*args, **kwargs)
     except Exception as ex:
@@ -79,8 +92,36 @@ def registered_providers():
     return list(_DEFAULT_PROVIDER.providers)
 
 
-# Functions for inspecting and retrieving backends.
+def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
+                      hub=None, group=None, project=None, proxies=None,
+                      verify=True, overwrite=False):
+    """
+    Store credentials for the IBMQ account in the config file.
 
+    Args:
+        token (str): The token used to register on the online backend such
+            as the quantum experience.
+        url (str): The url used for online backend such as the quantum
+            experience.
+        hub (str): The hub used for online backend.
+        group (str): The group used for online backend.
+        project (str): The project used for online backend.
+        proxies (dict): Proxy configuration for the API, as a dict with
+            'urls' and credential keys.
+        verify (bool): If False, ignores SSL certificates errors.
+        overwrite (bool): overwrite existing credentials.
+
+    Raises:
+        QISKitError: if the credentials already exist and overwrite==False.
+    """
+    credentials.store_credentials(
+        provider_class=IBMQProvider, overwrite=overwrite,
+        token=token, url=url, hub=hub, group=group, project=project,
+        proxies=proxies, verify=verify
+    )
+
+
+# Functions for inspecting and retrieving backends.
 
 def available_backends(filters=None, compact=True):
     """

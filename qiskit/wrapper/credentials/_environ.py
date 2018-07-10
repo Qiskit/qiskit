@@ -11,6 +11,9 @@ Utilities for reading credentials from environment variables.
 
 import os
 
+from qiskit.backends.ibmq import IBMQProvider
+
+
 # Dictionary that maps `ENV_VARIABLE_NAME` to credential parameter.
 VARIABLES_MAP = {
     'QE_TOKEN': 'token',
@@ -28,7 +31,7 @@ def read_credentials_from_environ():
     Returns:
         dict: dictionary with the credentials, in the form::
 
-            {'token': 'TOKEN', 'url': 'URL', ... }
+            {'IBMQProvider': {'token': 'TOKEN', 'url': 'URL', ... }}
 
     """
     # The token is the only required parameter.
@@ -41,4 +44,4 @@ def read_credentials_from_environ():
         if os.getenv(envar_name):
             credentials[credential_key] = os.getenv(envar_name)
 
-    return credentials
+    return {IBMQProvider.__name__: credentials}
