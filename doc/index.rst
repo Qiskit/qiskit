@@ -8,7 +8,7 @@ QISKit Documentation
 ====================
 
 Quantum Information Science Kit (QISKit), SDK Python version for working
-with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience
+with `OpenQASM <https://github.com/Qiskit/openqasm>`_ and the IBM Q experience
 (QX).
 
 
@@ -45,4 +45,4 @@ Authors (alphabetical)
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
 Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
 Erick Winston and Chris Wood,
-along with `many contributors <https://github.com/QISKit/qiskit-terra/blob/master/CONTRIBUTORS.md>`_.
+along with `many contributors <https://github.com/Qiskit/qiskit-terra/blob/master/CONTRIBUTORS.md>`_.

@@ -40,11 +40,11 @@ QISKitをインストールする最も簡単な方法はPIP tool(Pythonのパ�
 
 .. code:: sh
 
-    git clone https://github.com/QISKit/qiskit-terra
+    git clone https://github.com/Qiskit/qiskit-terra
     cd qiskit-terra
 
 - もしGitをインストールしていない場合は、
-  `QISKit SDK GitHub repo <https://github.com/QISKit/qiskit-terra>`__ の
+  `QISKit SDK GitHub repo <https://github.com/Qiskit/qiskit-terra>`__ の
   "Clone or download"ボタンをクリックして、
   その後ダウンロードしたファイルを展開し、そのディレクトリーに移動し作業を開始します。
 
@@ -112,7 +112,7 @@ QISKitプロジェクトはチュートリアルをJupyterノートブックの�
 
 1.1 インストール
 ----------------
-- チュートリアルのダウンロード: https://github.com/QISKit/qiskit-tutorial/archive/master.zip
+- チュートリアルのダウンロード: https://github.com/Qiskit/qiskit-tutorial/archive/master.zip
 - zipファイルの展開
 - ターミナルで"qiskit-tutorial-master"のディレクトリーに移動し、以下を実行する:
 
@@ -121,7 +121,7 @@ QISKitプロジェクトはチュートリアルをJupyterノートブックの�
     jupyter notebook index.ipynb
 
 チュートリアルに関する詳しい説明は
-`qiskit-tutorial repository <https://github.com/QISKit/qiskit-tutorial>`__
+`qiskit-tutorial repository <https://github.com/Qiskit/qiskit-tutorial>`__
 を参照してください。
 
 FAQ

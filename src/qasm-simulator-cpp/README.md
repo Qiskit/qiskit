@@ -11,7 +11,7 @@ Copyright 2017, IBM.
 
 ### Description
 
-*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-terra).
+*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/Qiskit/qiskit-terra).
 
 ## Contents
 

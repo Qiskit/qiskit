@@ -59,7 +59,7 @@ class TestQuantumOptimization(QiskitTestCase):
     def test_optimization_of_H2_at_bond_length(self):
         """From chemistry tutorial, but shorter.
 
-        https://github.com/QISKit/qiskit-tutorial/blob/master/\
+        https://github.com/Qiskit/qiskit-tutorial/blob/master/\
         4_applications/quantum_chemistry.ipynb#Optimization-of-H2-at-bond-length but shorter."""
         n = 2
         m = 6

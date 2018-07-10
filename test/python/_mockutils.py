@@ -54,7 +54,7 @@ class DummySimulator(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_dummy_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A dummy simulator for testing purposes',

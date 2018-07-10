@@ -21,17 +21,17 @@ Project Overview
 ----------------
 The QISKit project comprises:
 
-* `QISKit Terra <https://github.com/QISKit/qiskit-terra>`_: Python science
-  development kit for writing quantum computing experiments, programs, and 
+* `QISKit Terra <https://github.com/Qiskit/qiskit-terra>`_: Python science
+  development kit for writing quantum computing experiments, programs, and
   applications.
 
-* `QISKit API <https://github.com/QISKit/qiskit-api-py>`_: A thin Python
+* `QISKit API <https://github.com/Qiskit/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
   connect and and execute quantum programs.
 
-* `QISKit OpenQASM <https://github.com/QISKit/qiskit-openqasm>`_: Contains
+* `QISKit OpenQASM <https://github.com/Qiskit/qiskit-openqasm>`_: Contains
   specifications, examples, documentation, and tools for the OpenQASM
   intermediate representation.
 
-* `QISKit Tutorial <https://github.com/QISKit/qiskit-tutorial>`_: A 
+* `QISKit Tutorial <https://github.com/Qiskit/qiskit-tutorial>`_: A
   collection of Jupyter notebooks using QISKit.

@@ -1,15 +1,15 @@
 # Quantum Information Science Kit (QISKit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
-[![Build Status](https://travis-ci.org/QISKit/qiskit-terra.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-terra)
+[![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
 
-The Quantum Information Science Kit (**QISKit** for short) is a software development kit (SDK) for
-working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the
+The Quantum Information Science Kit (**Qiskit** for short) is a software development kit (SDK) for
+working with [OpenQASM](https://github.com/Qiskit/qiskit-openqasm) and the
 [IBM Q Experience (QX)](https://quantumexperience.ng.bluemix.net/).
 
-Use **QISKit** to create quantum computing programs, compile them, and execute them on one of
+Use **Qiskit** to create quantum computing programs, compile them, and execute them on one of
 several backends (online Real quantum processors, online simulators, and local simulators). For
-the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py)
+the online backends, QISKit uses our [python API client](https://github.com/Qiskit/qiskit-api-py)
 to connect to the IBM Q Experience.
 
 **We use GitHub issues for tracking requests and bugs. Please see the**
@@ -39,7 +39,7 @@ python distribution, as it comes with all of these dependencies pre-installed.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with
 QISKit. If you're new to quantum, start with our
-[User Guides](https://github.com/QISKit/ibmqx-user-guides)!
+[User Guides](https://github.com/Qiskit/ibmqx-user-guides)!
 
 ### Installation
 
@@ -120,7 +120,7 @@ run the same program on a real quantum computer.
 ### Executing your code on a real Quantum chip
 
 You can also use QISKit to execute your code on a
-[real quantum chip](https://github.com/QISKit/ibmqx-backend-information).
+[real quantum chip](https://github.com/Qiskit/ibmqx-backend-information).
 In order to do so, you need to configure the SDK for using the credentials in
 your IBM Q Experience account:
 
@@ -170,9 +170,9 @@ For more details on this and more information see
 ### Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Tutorial](https://github.com/QISKit/qiskit-tutorial) repository. Start with the
-[index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to
-the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/master/reference/tools/getting_started.ipynb).
+[Tutorial](https://github.com/Qiskit/qiskit-tutorial) repository. Start with the
+[index tutorial](https://github.com/Qiskit/qiskit-tutorial/blob/master/index.ipynb) and then go to
+the [‘Getting Started’ example](https://github.com/Qiskit/qiskit-tutorial/blob/master/reference/tools/getting_started.ipynb).
 If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html),
 you can copy and modify the notebooks to create your own experiments.
 
@@ -186,15 +186,15 @@ documentation can be found in the [*doc* directory](doc/qiskit.rst) and in
 For more information on how to use QISKit, tutorial examples, and other helpful links, take a look
 at these resources:
 
-* **[User Guides](https://github.com/QISKit/ibmqx-user-guides)**,
+* **[User Guides](https://github.com/Qiskit/ibmqx-user-guides)**,
   a good starting place for learning about quantum information and computing
-* **[Tutorials](https://github.com/QISKit/qiskit-tutorial)**,
-  for example notebooks, start with the [index](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and [‘Getting Started’ Jupyter notebook](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb)
-* **[OpenQASM](https://github.com/QISKit/openqasm)**,
+* **[Tutorials](https://github.com/Qiskit/qiskit-tutorial)**,
+  for example notebooks, start with the [index](https://github.com/Qiskit/qiskit-tutorial/blob/master/index.ipynb) and [‘Getting Started’ Jupyter notebook](https://github.com/Qiskit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb)
+* **[OpenQASM](https://github.com/Qiskit/openqasm)**,
   for additional information and examples of QASM code
 * **[IBM Quantum Experience Composer](https://quantumexperience.ng.bluemix.net/qx/editor)**,
   a GUI for interacting with real and simulated quantum computers
-* **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, an API to use the IBM Quantum
+* **[QISkit Python API](https://github.com/Qiskit/qiskit-api-py)**, an API to use the IBM Quantum
   Experience in Python
 
 QISKit was originally developed by researchers and developers on the

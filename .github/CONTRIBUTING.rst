@@ -12,7 +12,7 @@ Issue reporting
 ~~~~~~~~~~~~~~~
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/QISKit/qiskit-terra/issues>`_.
+it to the `issue tracker <https://github.com/Qiskit/qiskit-terra/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
@@ -36,7 +36,7 @@ We'd love to accept your code! Before we can, we have to get a few legal
 requirements sorted out. By signing a contributor license agreement (CLA), we
 ensure that the community is free to use your contributions.
 
-When you contribute to the QISKit project with a new pull request, a bot will
+When you contribute to the Qiskit project with a new pull request, a bot will
 evaluate whether you have signed the CLA. If required, the bot will comment on
 the pull request,  including a link to accept the agreement. The
 `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
@@ -355,7 +355,7 @@ There are two main branches in the repository:
 Release cycle
 ~~~~~~~~~~~~~
 
-From time to time, we will release brand new versions of the QISKit SDK. These
+From time to time, we will release brand new versions of the Qiskit SDK. These
 are well-tested versions of the software.
 
 When the time for a new release has come, we will:
@@ -375,7 +375,7 @@ What version should I use: development or stable?
 
 It depends on your needs as a user.
 
-If you want to use QISKit for building Apps which goal is to run Quantum
+If you want to use Qiskit for building Apps which goal is to run Quantum
 programs, we encourage you to use the latest released version, installing it via
 Pip.
 
