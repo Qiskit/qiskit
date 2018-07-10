@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/backend_config_schema.json",
-    "description": "Qiskit device backend configuration",
+    "description": "QISKit device backend configuration",
     "definitions": {
         "coreconfig": {
             "type": "object",
@@ -135,7 +135,7 @@
                     "description": "The backend supports openPulse (true/false)"},
                 "n_uchannels": {
                     "type": "integer",
-                    "description": "Number of additional control channels",
+                    "description": "Number of additional control channels", 
                     "minimum": 0},
                 "hamiltonian": {
                     "type": "object",
@@ -185,11 +185,11 @@
                     "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
                 "dt": {
                     "type": "number",
-                    "description": "Time discretization for the drive and U channels",
+                    "description": "Time discretization for the drive and U channels", 
                     "minimum": 0},
                 "dtm": {
                     "type": "number",
-                    "description": "Time discretization for the measurement channels",
+                    "description": "Time discretization for the measurement channels", 
                     "minimum": 0},
                 "rep_rates": {
                     "type": "array",
@@ -223,6 +223,6 @@
     "properties": {
                 "open_pulse": {"enum": [ false ]}
                 }}]}
-                ]
+                ]           
 }
 

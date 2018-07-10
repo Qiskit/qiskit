@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name,missing-docstring,broad-except
 
-"""Quantum Program Qiskit Test."""
+"""Quantum Program QISKit Test."""
 
 import os
 import unittest
@@ -22,7 +22,7 @@ from .common import requires_qe_access, QiskitTestCase, Path
 
 
 class TestQuantumProgram(QiskitTestCase):
-    """Qiskit QuantumProgram Object Tests."""
+    """QISKit QuantumProgram Object Tests."""
 
     def setUp(self):
         self.QASM_FILE_PATH = self._get_resource_path(
@@ -1517,7 +1517,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_ccx(self):
         """Checks a Toffoli gate.
 
-        Based on https://github.com/Qiskit/qiskit-terra/pull/172.
+        Based on https://github.com/QISKit/qiskit-terra/pull/172.
         """
         Q_program = QuantumProgram()
         q = Q_program.create_quantum_register('q', 3)

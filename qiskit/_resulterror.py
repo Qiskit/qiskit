@@ -15,7 +15,7 @@ from ._qiskiterror import QISKitError
 class ResultError(QISKitError):
     """Exceptions raised due to errors in result output.
 
-    It may be better for the Qiskit API to raise this exception.
+    It may be better for the QISKit API to raise this exception.
 
     Args:
         error (dict): This is the error record as it comes back from

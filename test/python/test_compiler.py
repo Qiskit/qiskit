@@ -32,7 +32,7 @@ class FakeBackEnd(object):
 
 
 class TestCompiler(QiskitTestCase):
-    """Qiskit Compiler Tests."""
+    """QISKit Compiler Tests."""
 
     def test_compile(self):
         """Test Compiler.

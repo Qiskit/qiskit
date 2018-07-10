@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper module for simplified Qiskit usage."""
+"""Helper module for simplified QISKit usage."""
 
 import warnings
 from qiskit import transpiler, QISKitError

@@ -26,7 +26,7 @@ def remove_backends_from_list(backends):
 
 
 class TestBackends(QiskitTestCase):
-    """Qiskit Backends (Object) Tests."""
+    """QISKit Backends (Object) Tests."""
 
     def test_local_backends_exist(self):
         """Test if there are local backends.

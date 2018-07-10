@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by the Qiskit SDK.
+Exception for errors raised by the QISKit SDK.
 """
 
 
 class QISKitError(Exception):
-    """Base class for errors raised by the Qiskit SDK."""
+    """Base class for errors raised by the QISKit SDK."""
 
     def __init__(self, *message):
         """Set the error message."""

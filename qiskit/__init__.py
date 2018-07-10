@@ -8,7 +8,7 @@
 # pylint: disable=wrong-import-order
 # pylint: disable=redefined-builtin
 
-"""Main Qiskit public functionality."""
+"""Main QISKit public functionality."""
 
 # First, check for required Python and API version
 from . import _util
