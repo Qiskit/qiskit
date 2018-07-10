@@ -11,12 +11,12 @@ eine Sammlung von :class:`~qiskit.ClassicalRegister` Objekten,
 einem entfernten Quantum Device oder einen lokalen Simulator Backend gesendet
 und die Resultate zur weiteren Auswerten gesammelt werden.
 
-Um einen Circuit zur erzeugen und auf einem Simulator, der in QISKit
+Um einen Circuit zur erzeugen und auf einem Simulator, der in Qiskit
 enthalten ist, auszuführen, reicht folgender Code:
 
 .. code-block:: python
 
-    # Import the QISKit SDK
+    # Import the Qiskit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import available_backends, execute
 

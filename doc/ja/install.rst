@@ -34,7 +34,7 @@ QISKitをインストールする最も簡単な方法はPIP tool(Pythonのパ�
 3. レポジトリのインストール
 ---------------------------
 
-それ以外にもローカルにQISKit SDKのレポジトリのクローンを作成してそのディレクトリで作業するのも一般的です:
+それ以外にもローカルにQiskit SDKのレポジトリのクローンを作成してそのディレクトリで作業するのも一般的です:
 
 -  もしGitをインストールしている場合は、以下のコマンドを実行してください:
 
@@ -44,7 +44,7 @@ QISKitをインストールする最も簡単な方法はPIP tool(Pythonのパ�
     cd qiskit-terra
 
 - もしGitをインストールしていない場合は、
-  `QISKit SDK GitHub repo <https://github.com/Qiskit/qiskit-terra>`__ の
+  `Qiskit SDK GitHub repo <https://github.com/Qiskit/qiskit-terra>`__ の
   "Clone or download"ボタンをクリックして、
   その後ダウンロードしたファイルを展開し、そのディレクトリーに移動し作業を開始します。
 
@@ -141,4 +141,4 @@ FAQ
 
     curl https://bootstrap.pypa.io/ez_setup.py -o - | python
 
-プロジェクトのGitHubのWikiのQISKit troubleshootingのページにさらに情報があります。
+プロジェクトのGitHubのWikiのQiskit troubleshootingのページにさらに情報があります。

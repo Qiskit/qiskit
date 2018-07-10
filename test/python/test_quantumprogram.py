@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name,missing-docstring,broad-except
 
-"""Quantum Program QISKit Test."""
+"""Quantum Program Qiskit Test."""
 
 import os
 import unittest
@@ -22,7 +22,7 @@ from .common import requires_qe_access, QiskitTestCase, Path
 
 
 class TestQuantumProgram(QiskitTestCase):
-    """QISKit QuantumProgram Object Tests."""
+    """Qiskit QuantumProgram Object Tests."""
 
     def setUp(self):
         self.QASM_FILE_PATH = self._get_resource_path(

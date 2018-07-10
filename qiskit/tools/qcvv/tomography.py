@@ -905,7 +905,7 @@ def __wizard(rho, epsilon=None):
 # DEPRECIATED r0.3 TOMOGRAPHY FUNCTIONS
 #
 # The following functions are here for backwards compatability with the
-# r0.3 QISKit notebooks, but will be removed in the following release.
+# r0.3 Qiskit notebooks, but will be removed in the following release.
 ###############################################################################
 
 

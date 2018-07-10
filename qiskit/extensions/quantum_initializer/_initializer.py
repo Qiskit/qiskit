@@ -253,7 +253,7 @@ class InitializeGate(CompositeGate):
 
 # ###############################################################
 # Add needed functionality to other classes (it feels
-# weird following the QISKit convention of adding functionality to other
+# weird following the Qiskit convention of adding functionality to other
 # classes like this ;),
 #  TODO: multiple inheritance might be better?)
 

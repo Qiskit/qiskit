@@ -1,4 +1,4 @@
-﻿# Quantum Information Science Kit (QISKit)
+﻿# Quantum Information Science Kit (Qiskit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
@@ -6,12 +6,12 @@
 **Qiskit**是一个用于和 [OpenQASM](https://github.com/Qiskit/qiskit-openqasm)和
 [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/)协同工作的软件开发工具包(SDK)。
 
-利用 **Qiskit** 来编写量子计算程序、编译、并且在一些终端上运行（实时在线量子处理器，在线模拟器，和本地模拟器）。 在在线后端， QISKit 使用我们的 [python API client](https://github.com/Qiskit/qiskit-api-py)
+利用 **Qiskit** 来编写量子计算程序、编译、并且在一些终端上运行（实时在线量子处理器，在线模拟器，和本地模拟器）。 在在线后端， Qiskit 使用我们的 [python API client](https://github.com/Qiskit/qiskit-api-py)
 与 IBM Q experience建立连接。
 
 **我们使用 GitHub issues 来追踪需求和错误。详见**
 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **中的提问和讨论。**
-**如果您有意对 QISKit 做出贡献，请参见我们的**
+**如果您有意对 Qiskit 做出贡献，请参见我们的**
 [contribution guidelines](https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst)。
 
 链接索引:
@@ -26,16 +26,16 @@
 
 ### 安装环境
 
-安装使用 QISKit 需要 [Python 3.5](https://www.python.org/downloads/) 版本及以上。 并且建议使用[Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) 来参阅我们的教程。
+安装使用 Qiskit 需要 [Python 3.5](https://www.python.org/downloads/) 版本及以上。 并且建议使用[Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) 来参阅我们的教程。
 因此我们推荐安装 [Anaconda 3](https://www.continuum.io/downloads)
 开源Python 发行版本， 它包含了所有需要的安装包。
 此外，如果有一些对量子信息的基本了解，在使用
-QISKit的时候会很有帮助。如果您是量子领域的新手，请参见我们的
+Qiskit的时候会很有帮助。如果您是量子领域的新手，请参见我们的
 [User Guides](https://github.com/Qiskit/ibmqx-user-guides)！
 
 ### 安装
 
-我们鼓励您使用PIP 工具 (Python包管理工具)来安装 QISKit：
+我们鼓励您使用PIP 工具 (Python包管理工具)来安装 Qiskit：
 ```
     pip install qiskit
 ```
@@ -47,7 +47,7 @@ PIP 为以下平台预装有二进制版本：
 * Win64
 
 如果您的运行平台不在以上的列表中，PIP 将会在安装的时候从安装源创建。这将需要预装 CMake 3.5 或更高的版本和至少一个由 [CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html)支持的开发环境。
-如果在安装过程中 PIP 没能成功创建，不要担心，您最终还是会成功安装 QISKit，只是可能不能使用一些高阶的功能。无论如何，我们还会提供一个不那么快捷的python备选方案。
+如果在安装过程中 PIP 没能成功创建，不要担心，您最终还是会成功安装 Qiskit，只是可能不能使用一些高阶的功能。无论如何，我们还会提供一个不那么快捷的python备选方案。
 
 
 #### 配置您的安装环境
@@ -57,14 +57,14 @@ PIP 为以下平台预装有二进制版本：
 
 ## 创建您的第一个量子程序
 
-当SDK安装好了之后，我们可以开始使用QISKit了。
+当SDK安装好了之后，我们可以开始使用Qiskit了。
 
 我们可以试验一个量子电路的例子，它将在本地模拟器上运行。
 
 这是一个产生叠加态的简单例子：
 
 ```python
-# Import the QISKit SDK
+# Import the Qiskit SDK
 import qiskit
 
 # Create a Quantum Register called "qr" with 2 qubits
@@ -109,7 +109,7 @@ COMPLETED
 
 ### 在一个真实的量子芯片上执行您的程序
 
-您也可以使用 QISKit 在一个
+您也可以使用 Qiskit 在一个
 [真实的量子芯片](https://github.com/Qiskit/ibmqx-backend-information)上执行您的程序。
 为此，您需要配置 SDK 来为您的 Quantum Experience Account使用证书：
 
@@ -149,7 +149,7 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
 ```
 
 更多详细信息请参见我们的
-[QISKit documentation](https://www.qiskit.org/documentation/)。
+[Qiskit documentation](https://www.qiskit.org/documentation/)。
 
 ### 下一步
 
@@ -159,14 +159,14 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
 如果您已经有安装有 [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html)，
 那么您可以复制和修改这些notebooks来创建您自己的实验。
 
-如要将教程安装在 QISKit SDK 中，请参见
+如要将教程安装在 Qiskit SDK 中，请参见
 [安装详述](https://github.com/Qiskit/qiskit-terra/blob/master/doc/install.rst#Install-Jupyter-based-tutorials)。 完整的 SDK
 文档请参见 [*doc* directory](https://github.com/Qiskit/qiskit-terra/blob/master/doc/qiskit.rst) 和
-[QISKit 官网](https://www.qiskit.org/documentation)。
+[Qiskit 官网](https://www.qiskit.org/documentation)。
 
 ## 更多信息
 
-欲知更多有关如何使用 QISKit、指导实例、和其他有用链接的信息，请见以下资源：
+欲知更多有关如何使用 Qiskit、指导实例、和其他有用链接的信息，请见以下资源：
 
 * **[用户指南](https://github.com/Qiskit/ibmqx-user-guides)**，
   一个学习量子信息和计算的很好的入门资料
@@ -179,11 +179,11 @@ Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"], verify=False,
 * **[QISkit Python API](https://github.com/Qiskit/qiskit-api-py)**，一个在Python中使用IBM Quantum Experience 的API
 
 
-QISKit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
+Qiskit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
 [IBM-Q](http://www.research.ibm.com/ibm-q/) 团队的研究人员和开发人员开发的，
 旨在提供一个与量子计算机配套的高水平的开发工具包。
 
-欲知更多有关 QISKit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 QISKit 做出贡献，请参见我们的 [contribution guidelines](https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst)。
+欲知更多有关 Qiskit 和更广泛地有关量子计算的提问和讨论请访问 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)。 如果您有兴趣为 Qiskit 做出贡献，请参见我们的 [contribution guidelines](https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst)。
 
 ## 多语言指导
 
@@ -191,7 +191,7 @@ QISKit 最早是由[IBM Research](http://www.research.ibm.com/)研究中心的
 
 ## 作者 (按字母顺序)
 
-QISKit was originally authored by
+Qiskit was originally authored by
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 

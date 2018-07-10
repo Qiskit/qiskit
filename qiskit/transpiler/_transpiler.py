@@ -248,7 +248,7 @@ def _best_subset(backend, n_qubits):
     connectivity.
 
     Parameters:
-        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        backend (Qiskit.BaseBackend): A Qiskit backend instance.
         n_qubits (int): Number of subset qubits to consider.
 
     Returns:

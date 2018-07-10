@@ -15,7 +15,7 @@ this project, one can do,
 
 .. code-block:: python
 
-    # Import the QISKit SDK
+    # Import the Qiskit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import available_backends, execute
 

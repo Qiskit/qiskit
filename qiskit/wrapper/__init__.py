@@ -7,7 +7,7 @@
 
 # pylint: disable=redefined-builtin
 
-"""Helper module for simplified QISKit usage.
+"""Helper module for simplified Qiskit usage.
 
 The functions in this module provide convenience helpers for accessing commonly
 used features of the SDK in a simplified way. They support a small subset of

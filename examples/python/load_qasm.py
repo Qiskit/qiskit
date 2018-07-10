@@ -21,5 +21,5 @@ try:
     print(sim_result.get_counts(qc))
 
 except QISKitError as ex:
-    print('There was an internal QISKit error. Error = {}'.format(ex))
+    print('There was an internal Qiskit error. Error = {}'.format(ex))
 

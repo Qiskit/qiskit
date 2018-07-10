@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class LocalJob(BaseJob):
-    """Local QISKit SDK Job class.
+    """Local Qiskit SDK Job class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs

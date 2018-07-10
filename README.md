@@ -1,4 +1,4 @@
-# Quantum Information Science Kit (QISKit)
+# Quantum Information Science Kit (Qiskit)
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
@@ -9,14 +9,14 @@ working with [OpenQASM](https://github.com/Qiskit/qiskit-openqasm) and the
 
 Use **Qiskit** to create quantum computing programs, compile them, and execute them on one of
 several backends (online Real quantum processors, online simulators, and local simulators). For
-the online backends, QISKit uses our [python API client](https://github.com/Qiskit/qiskit-api-py)
+the online backends, Qiskit uses our [python API client](https://github.com/Qiskit/qiskit-api-py)
 to connect to the IBM Q Experience.
 
 **We use GitHub issues for tracking requests and bugs. Please see the**
 [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for
 questions and discussion.**
 
-**If you'd like to contribute to QISKit, please take a look at our**
+**If you'd like to contribute to Qiskit, please take a look at our**
 [contribution guidelines](.github/CONTRIBUTING.rst).
 
 Links to Sections:
@@ -31,19 +31,19 @@ Links to Sections:
 
 ### Dependencies
 
-At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit. In
+At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using Qiskit. In
 addition, [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) is recommended
 for interacting with the tutorials.
 For this reason we recommend installing the [Anaconda 3](https://www.continuum.io/downloads)
 python distribution, as it comes with all of these dependencies pre-installed.
 
 In addition, a basic understanding of quantum information is very helpful when interacting with
-QISKit. If you're new to quantum, start with our
+Qiskit. If you're new to quantum, start with our
 [User Guides](https://github.com/Qiskit/ibmqx-user-guides)!
 
 ### Installation
 
-We encourage to install QISKit via the PIP tool (a python package manager):
+We encourage to install Qiskit via the PIP tool (a python package manager):
 
 ```
 pip install qiskit
@@ -59,7 +59,7 @@ PIP package comes with prebuilt binaries for these platforms:
 
 If your platform is not in the list, PIP will try to build from the sources at installation time. It will require to have CMake 3.5 or higher pre-installed and at least one of the [build environments supported by CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html).
 
-If during the installation PIP doesn't succeed to build, don't worry, you will have QISKit installed at the end but you probably couldn't take advantage of some of the high-performance components. Anyway, we always provide a python, not-so-fast alternative as a fallback.
+If during the installation PIP doesn't succeed to build, don't worry, you will have Qiskit installed at the end but you probably couldn't take advantage of some of the high-performance components. Anyway, we always provide a python, not-so-fast alternative as a fallback.
 
 
 #### Setup your environment
@@ -69,14 +69,14 @@ We recommend using python virtual environments to improve your experience. Refer
 
 ## Creating your first Quantum Program
 
-Now that the SDK is installed, it's time to begin working with QISKit.
+Now that the SDK is installed, it's time to begin working with Qiskit.
 
 We are ready to try out a quantum circuit example, which runs via the local simulator.
 
 This is a simple example that makes an entangled state.
 
 ```python
-# Import the QISKit SDK
+# Import the Qiskit SDK
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import available_backends, execute
 
@@ -119,7 +119,7 @@ run the same program on a real quantum computer.
 
 ### Executing your code on a real Quantum chip
 
-You can also use QISKit to execute your code on a
+You can also use Qiskit to execute your code on a
 [real quantum chip](https://github.com/Qiskit/ibmqx-backend-information).
 In order to do so, you need to configure the SDK for using the credentials in
 your IBM Q Experience account:
@@ -164,7 +164,7 @@ register(Qconfig.APItoken, Qconfig.config["url"],
 ```
 
 For more details on this and more information see
-[our QISKit documentation](https://www.qiskit.org/documentation/).
+[our Qiskit documentation](https://www.qiskit.org/documentation/).
 
 
 ### Next Steps
@@ -176,14 +176,14 @@ the [‘Getting Started’ example](https://github.com/Qiskit/qiskit-tutorial/bl
 If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html),
 you can copy and modify the notebooks to create your own experiments.
 
-To install the tutorials as part of the QISKit SDK, see the following
+To install the tutorials as part of the Qiskit SDK, see the following
 [installation details](doc/install.rst#Install-Jupyter-based-tutorials). Complete SDK
 documentation can be found in the [*doc* directory](doc/qiskit.rst) and in
-[the official QISKit site](https://www.qiskit.org/documentation).
+[the official Qiskit site](https://www.qiskit.org/documentation).
 
 ## More Information
 
-For more information on how to use QISKit, tutorial examples, and other helpful links, take a look
+For more information on how to use Qiskit, tutorial examples, and other helpful links, take a look
 at these resources:
 
 * **[User Guides](https://github.com/Qiskit/ibmqx-user-guides)**,
@@ -197,13 +197,13 @@ at these resources:
 * **[QISkit Python API](https://github.com/Qiskit/qiskit-api-py)**, an API to use the IBM Quantum
   Experience in Python
 
-QISKit was originally developed by researchers and developers on the
+Qiskit was originally developed by researchers and developers on the
 [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/),
 with the aim of offering a high level development kit to work with quantum computers.
 
 Visit the [IBM Q Experience community](https://quantumexperience.ng.bluemix.net/qx/community) for
-questions and discussions on QISKit and quantum computing more broadly. If you'd like to
-contribute to QISKit, please take a look at our [contribution guidelines](.github/CONTRIBUTING.rst).
+questions and discussions on Qiskit and quantum computing more broadly. If you'd like to
+contribute to Qiskit, please take a look at our [contribution guidelines](.github/CONTRIBUTING.rst).
 
 ## Multilanguage guide
 
@@ -212,7 +212,7 @@ contribute to QISKit, please take a look at our [contribution guidelines](.githu
 
 ## Authors (alphabetical)
 
-QISKit was originally authored by
+Qiskit was originally authored by
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 

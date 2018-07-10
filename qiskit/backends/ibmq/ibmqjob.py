@@ -425,7 +425,7 @@ class IBMQJob(BaseJob):
         while self._status not in self._final_states:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                raise TimeoutError('QISKit timed out')
+                raise TimeoutError('Qiskit timed out')
             logger.info('status = %s (%d seconds)', api_result['status'],
                         elapsed_time)
 

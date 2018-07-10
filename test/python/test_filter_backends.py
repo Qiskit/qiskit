@@ -14,7 +14,7 @@ from .common import requires_qe_access, QiskitTestCase
 
 
 class TestBackendFilters(QiskitTestCase):
-    """QISKit Backend Filtering Tests."""
+    """Qiskit Backend Filtering Tests."""
 
     @requires_qe_access
     def test_filter_config_dict(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
