@@ -23,8 +23,22 @@ Added
 
 Changed
 -------
-- Rename repository to ``qiskit-terra`` (#606).
 - Introduce a ``QObj`` class replacing the previous dictionaries (#589).
+
+Removed
+-------
+
+Fixed
+-----
+
+
+`0.5.6`_ - 2018-07-06
+=====================
+
+Changed
+-------
+- Rename repository to ``qiskit-terra`` (#606).
+- Update Bloch sphere to QuTiP version (#618).
 
 Removed
 -------
@@ -33,6 +47,7 @@ Removed
 Fixed
 -----
 - Fixed broken process error and simulator slowdown on Windows (#613).
+- Fixed yzy_to_zyz bugs (#520, #607) by moving to quaternions (#626).
 
 
 `0.5.5`_ - 2018-07-02
@@ -45,6 +60,10 @@ Added
 - Add ``unregister()`` for removing previously registered providers (#584).
 - Add matplotlib-based circuit drawer (#579).
 - Adding backend filtering by least busy (#575).
+- Allow running with new display names for IBMQ devices,
+  and return those from ``available_backends()`` (#566)
+- Introduce Qiskit Transpiler and refactor compilation flow (#578)
+- Add CXCancellation pass (#578)
 
 Changed
 -------
@@ -53,6 +72,7 @@ Changed
 - Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
 - For backend status, `status['available']` is now `status['operational']` (#609).
 - Added support for registering third-party providers in `register()` (#602).
+- Order strings in the output of ``available_backends()`` (#566)
 
 Removed
 -------
@@ -511,7 +531,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/QISKit/qiskit-terra/compare/0.5.5...HEAD
+.. _UNRELEASED: https://github.com/QISKit/qiskit-terra/compare/0.5.6...HEAD
+.. _0.5.6: https://github.com/QISKit/qiskit-terra/compare/0.5.5...0.5.6
 .. _0.5.5: https://github.com/QISKit/qiskit-terra/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/QISKit/qiskit-terra/compare/0.5.3...0.5.4
 .. _0.5.3: https://github.com/QISKit/qiskit-terra/compare/0.5.2...0.5.3
