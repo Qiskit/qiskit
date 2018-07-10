@@ -47,6 +47,23 @@ class TestIBMQJobStates(QiskitTestCase):
 
         self._current_api.progress()
 
+    def test_error_while_creating_job(self):
+        job = self.run_with_api(ErrorWhileCreatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_error_while_running_job(self):
+        job = self.run_with_api(ErrorWhileRunningAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.RUNNING)
+
+        self._current_api.progress()
+        self.assertStatus(job, JobStatus.ERROR)
+
     def test_error_while_validating_job(self):
         job = self.run_with_api(ErrorWhileValidatingAPI())
         self.assertStatus(job, JobStatus.INITIALIZING)
@@ -336,6 +353,24 @@ class NonQueuedAPI(BaseFakeAPI):
     _job_status = [
         {'status': 'RUNNING'},
         {'status': 'COMPLETED', 'qasms': []}
+    ]
+
+
+class ErrorWhileCreatingAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while creating
+    the job."""
+
+    _job_status = [
+        {'status': 'ERROR_CREATING_JOB'}
+    ]
+
+
+class ErrorWhileRunningAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while running."""
+
+    _job_status = [
+        {'status': 'RUNNING'},
+        {'status': 'ERROR_RUNNING_JOB'}
     ]
 
 
