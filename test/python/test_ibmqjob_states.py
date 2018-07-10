@@ -121,15 +121,15 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_status_flow_for_throwing_cancellation(self):
-        job = self.run_with_api(ThrowingCancellationAPI())
+    def test_status_flow_for_errored_cancellation(self):
+        job = self.run_with_api(ErroredCancellationAPI())
         self.assertStatus(job, JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertStatus(job, JobStatus.RUNNING)
 
-        with self.assertRaises(IBMQJobError):
-            job.cancel()
+        can_cancel = job.cancel()
+        self.assertFalse(can_cancel)
         self.assertIsInstance(job.exception, IBMQJobError)
 
         self.assertStatus(job, JobStatus.RUNNING)
@@ -465,7 +465,7 @@ class NonCancellableAPI(BaseFakeAPI):
     ]
 
 
-class ThrowingCancellationAPI(BaseFakeAPI):
+class ErroredCancellationAPI(BaseFakeAPI):
     """Class for emulating an API with cancellation but throwing while
     trying."""
 
