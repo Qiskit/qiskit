@@ -38,6 +38,42 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertIsInstance(job.exception, IBMQJobError)
         self.assertStatus(job, JobStatus.ERROR)
 
+    def test_validating_job(self):
+        job = self.run_with_api(ValidatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.VALIDATING)
+
+        self._current_api.progress()
+
+    def test_error_while_creating_job(self):
+        job = self.run_with_api(ErrorWhileCreatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_error_while_running_job(self):
+        job = self.run_with_api(ErrorWhileRunningAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.RUNNING)
+
+        self._current_api.progress()
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_error_while_validating_job(self):
+        job = self.run_with_api(ErrorWhileValidatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.VALIDATING)
+
+        self._current_api.progress()
+        self.assertStatus(job, JobStatus.ERROR)
+
     def test_status_flow_for_non_queued_job(self):
         job = self.run_with_api(NonQueuedAPI())
         self.assertStatus(job, JobStatus.INITIALIZING)
@@ -218,6 +254,8 @@ class TestIBMQJobStates(QiskitTestCase):
             self.assertTrue(job.cancelled)
         elif status == JobStatus.DONE:
             self.assertTrue(job.done)
+        elif status == JobStatus.VALIDATING:
+            self.assertTrue(job.validating)
         elif status == JobStatus.RUNNING:
             self.assertTrue(job.running)
         elif status == JobStatus.QUEUED:
@@ -291,12 +329,48 @@ class UnknownStatusAPI(BaseFakeAPI):
     ]
 
 
+class ValidatingAPI(BaseFakeAPI):
+    """Class for emulating an API with job validation."""
+
+    _job_status = [
+        {'status': 'VALIDATING'},
+        {'status': 'RUNNING'}
+    ]
+
+
+class ErrorWhileValidatingAPI(BaseFakeAPI):
+    """Class for emulating an API processing an invalid job."""
+
+    _job_status = [
+        {'status': 'VALIDATING'},
+        {'status': 'ERROR_VALIDATING_JOB'}
+    ]
+
+
 class NonQueuedAPI(BaseFakeAPI):
     """Class for emulating a successfully-completed non-queued API."""
 
     _job_status = [
         {'status': 'RUNNING'},
         {'status': 'COMPLETED', 'qasms': []}
+    ]
+
+
+class ErrorWhileCreatingAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while creating
+    the job."""
+
+    _job_status = [
+        {'status': 'ERROR_CREATING_JOB'}
+    ]
+
+
+class ErrorWhileRunningAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while running."""
+
+    _job_status = [
+        {'status': 'RUNNING'},
+        {'status': 'ERROR_RUNNING_JOB'}
     ]
 
 
