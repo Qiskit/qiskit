@@ -203,7 +203,7 @@ def run(qobj, executable):
     Run simulation on C++ simulator inside a subprocess.
 
     Args:
-        qobj (QObj): qobj dictionary defining the simulation to run
+        qobj (Qobj): qobj dictionary defining the simulation to run
         executable (string): filename (with path) of the simulator executable
     Returns:
         dict: A dict of simulation results

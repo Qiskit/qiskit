@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Module for the QObj structure."""
+"""Module for the Qobj structure."""
 
-from ._qobj import (QObj, QObjCompiledCircuit, QObjConfig, QObjExperiment,
-                    QObjExperimentConfig, QObjInstruction, QObjItem)
+from ._qobj import (Qobj, QobjCompiledCircuit, QobjConfig, QobjExperiment,
+                    QobjExperimentConfig, QobjInstruction, QobjItem)

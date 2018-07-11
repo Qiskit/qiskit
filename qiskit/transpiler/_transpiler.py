@@ -22,7 +22,7 @@ from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper)
 from qiskit._gate import Gate
-from qiskit.qobj import QObj, QObjConfig, QObjExperiment, QObjExperimentConfig, QObjCompiledCircuit
+from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjExperimentConfig, QobjCompiledCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def compile(circuits, backend,
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        QObj: the QObj to be run on the backends
+        Qobj: the Qobj to be run on the backends
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
@@ -60,9 +60,9 @@ def compile(circuits, backend,
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
 
-    # Step 1: create the QObj, with empty circuits
-    qobj = QObj(id=qobj_id or str(uuid.uuid4()),
-                config=QObjConfig(max_credits=max_credits,
+    # Step 1: create the Qobj, with empty circuits
+    qobj = Qobj(id=qobj_id or str(uuid.uuid4()),
+                config=QobjConfig(max_credits=max_credits,
                                   shots=shots,
                                   backend_name=backend_name),
                 circuits=[])
@@ -88,9 +88,9 @@ def compile(circuits, backend,
         circuit_config["seed"] = seed
         circuit_config["layout"] = None  # set during step 3.
 
-        # Step 2: create the QObjExperiment, with empty compiled circuits.
-        experiment = QObjExperiment(name=circuit.name,
-                                    config=QObjExperimentConfig(**circuit_config),
+        # Step 2: create the QobjExperiment, with empty compiled circuits.
+        experiment = QobjExperiment(name=circuit.name,
+                                    config=QobjExperimentConfig(**circuit_config),
                                     compiled_circuit=None,
                                     compiled_circuit_qasm=None)
 
@@ -123,7 +123,7 @@ def compile(circuits, backend,
         list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
         experiment.config.layout = list_layout
         json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-        experiment.compiled_circuit = QObjCompiledCircuit.from_dict(json_circuit)
+        experiment.compiled_circuit = QobjCompiledCircuit.from_dict(json_circuit)
 
         # set eval_symbols=True to evaluate each symbolic expression
         # TODO after transition to qobj, we can drop this

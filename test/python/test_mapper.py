@@ -8,8 +8,10 @@
 # pylint: disable=invalid-name,missing-docstring
 
 import unittest
+
 import qiskit.wrapper
-from qiskit import (QuantumProgram, qasm, unroll, mapper, load_qasm_string)
+from qiskit import (QuantumProgram, load_qasm_string, mapper, qasm, unroll)
+from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 
 
@@ -217,10 +219,10 @@ class MapperTest(QiskitTestCase):
         backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(yzy_zyz_1)
         qobj1 = qiskit.wrapper.compile(circ1, backend)
-        self.assertIsInstance(qobj1, dict)
+        self.assertIsInstance(qobj1, Qobj)
         circ2 = load_qasm_string(yzy_zyz_2)
         qobj2 = qiskit.wrapper.compile(circ2, backend)
-        self.assertIsInstance(qobj2, dict)
+        self.assertIsInstance(qobj2, Qobj)
 
 
 # QASMs expected by the tests.

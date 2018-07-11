@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
-from qiskit.qobj import QObj
+from qiskit.qobj import Qobj
 from qiskit.tools import file_io
 from .common import requires_qe_access, QiskitTestCase, Path
 
@@ -725,8 +725,8 @@ class TestQuantumProgram(QiskitTestCase):
         out = q_program.compile(['circuitName'], backend=backend,
                                 coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
-        # FIXME should validate the QObj when defined
-        self.assertIsInstance(out, QObj)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(out, Qobj)
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.

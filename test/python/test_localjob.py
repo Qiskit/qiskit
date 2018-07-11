@@ -20,7 +20,7 @@ from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
 from qiskit.backends.local import UnitarySimulatorPy
-from qiskit.qobj import QObj
+from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 
 
@@ -119,7 +119,7 @@ def fake_qobj():
             }
         }]
     }
-    return QObj.from_dict(qobj)
+    return Qobj.from_dict(qobj)
 
 
 class FakeBackend():

@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import (qasm, unroll, QuantumProgram, QuantumCircuit,
                     QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
-from qiskit.qobj import QObj
+from qiskit.qobj import Qobj
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -67,7 +67,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                 }
             ]
         }
-        qobj = QObj.from_dict(qobj)
+        qobj = Qobj.from_dict(qobj)
 
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,

@@ -15,7 +15,7 @@ from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram)
 from qiskit.backends.local.qasm_simulator_cpp import QasmSimulatorCpp
 from qiskit import wrapper
-from qiskit.qobj import QObj
+from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 
 
@@ -235,7 +235,7 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         out = q_program.compile()
         self.log.info(out)
-        self.assertIsInstance(out, QObj)
+        self.assertIsInstance(out, Qobj)
 
     def test_get_execution_list_noname(self):
         """Test get_execution_list for circuits without name.

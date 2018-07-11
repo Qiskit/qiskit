@@ -1035,7 +1035,7 @@ class QuantumProgram(object):
 
         Args:
             name (str):  the circuit name
-            qobj (QObj): the qobj
+            qobj (Qobj): the qobj
 
         Returns:
             dict: the config of the circuit.
@@ -1055,7 +1055,7 @@ class QuantumProgram(object):
         """Return the compiled circuit in qasm format.
 
         Args:
-            qobj (QObj): the qobj
+            qobj (Qobj): the qobj
             name (str): name of the quantum circuit
 
         Returns:

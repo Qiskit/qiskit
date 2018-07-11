@@ -19,7 +19,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from qiskit import qasm, unroll, QuantumProgram
 from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
-from qiskit.qobj import QObj
+from qiskit.qobj import Qobj
 
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
@@ -71,7 +71,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                              'config': circuit_config
                          }
                      ]}
-        self.qobj = QObj.from_dict(self.qobj)
+        self.qobj = Qobj.from_dict(self.qobj)
 
     def tearDown(self):
         pass
@@ -160,7 +160,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                 }
             ]
         }
-        qobj = QObj.from_dict(qobj)
+        qobj = Qobj.from_dict(qobj)
 
         result = QasmSimulatorPy().run(qobj).result()
         result_if_true = result.get_data('test_if_true')

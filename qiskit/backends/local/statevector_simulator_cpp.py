@@ -13,7 +13,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 
-from qiskit.qobj import QObjItem
+from qiskit.qobj import QobjInstruction
 from .qasm_simulator_cpp import QasmSimulatorCpp
 from ._simulatorerror import SimulatorError
 from .localjob import LocalJob
@@ -48,7 +48,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         # Add final snapshots to circuits
         for circuit in qobj.circuits:
             circuit.compiled_circuit.operations.append(
-                QObjItem.from_dict({'name': 'snapshot', 'params': [final_state_key]})
+                QobjInstruction.from_dict({'name': 'snapshot', 'params': [final_state_key]})
             )
         result = super()._run_job(qobj)
         # Extract final state snapshot and move to 'statevector' data field
@@ -77,14 +77,13 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
             logger.info("statevector simulator only supports 1 shot. "
                         "Setting shots=1.")
             qobj.config.shots = 1
-        for circuit_qobj in qobj.circuits:
-            circuit = circuit_qobj.as_dict()
-            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
+        for circuit in qobj.circuits:
+            if getattr(circuit.config, 'shots', 1) != 1:
                 logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s", circuit['name'])
-                circuit_qobj.config.shots = 1
-            for op in circuit['compiled_circuit']['operations']:
-                if op['name'] in ['measure', 'reset']:
-                    raise SimulatorError("In circuit {}: statevector simulator does "
-                                         "not support measure or reset.".format(circuit['name']))
-        return
+                            "Setting shots=1 for circuit %s.", circuit.name)
+                circuit.config.shots = 1
+            for op in circuit.compiled_circuit.operations:
+                if op.name in ['measure', 'reset']:
+                    raise SimulatorError(
+                        "In circuit {}: statevector simulator does not support "
+                        "measure or reset.".format(circuit.name))

@@ -156,7 +156,7 @@ class UnitarySimulatorPy(BaseBackend):
         """Run qobj. This is a blocking call.
 
         Args:
-            qobj (QObj): job description
+            qobj (Qobj): job description
         Returns:
             Result: Result object
         """

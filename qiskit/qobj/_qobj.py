@@ -5,27 +5,27 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Models for QObj and its related components."""
+"""Models for Qobj and its related components."""
 
 from types import SimpleNamespace
 
-from ._utils import QObjType, QObjValidationError
+from ._utils import QobjType, QobjValidationError
 
-# Current version of the QObj schema.
+# Current version of the Qobj schema.
 QOBJ_VERSION = '0.0.1'
 
 
-class QObjItem(SimpleNamespace):
-    """Generic QObj structure.
+class QobjItem(SimpleNamespace):
+    """Generic Qobj structure.
 
-    Single item of a QObj structure, acting as a superclass of the rest of the
+    Single item of a Qobj structure, acting as a superclass of the rest of the
     more specific elements.
     """
     REQUIRED_ARGS = ()
 
     def as_dict(self):
         """
-        Return a dictionary representation of the QObjItem, recursively
+        Return a dictionary representation of the QobjItem, recursively
         converting its public attributes.
 
         Returns:
@@ -41,25 +41,25 @@ class QObjItem(SimpleNamespace):
         """
         if isinstance(obj, list):
             return [cls._expand_item(item) for item in obj]
-        if isinstance(obj, QObjItem):
+        if isinstance(obj, QobjItem):
             return obj.as_dict()
         return obj
 
     @classmethod
     def from_dict(cls, obj):
         """
-        Return a QObjItem from a dictionary recursively, checking for the
+        Return a QobjItem from a dictionary recursively, checking for the
         required attributes.
 
         Returns:
-            QObjItem: a new QObjItem.
+            QobjItem: a new QobjItem.
 
         Raises:
-            QObjValidationError: if the dictionary does not contain the
+            QobjValidationError: if the dictionary does not contain the
                 required attributes for that class.
         """
         if not all(key in obj.keys() for key in cls.REQUIRED_ARGS):
-            raise QObjValidationError(
+            raise QobjValidationError(
                 'The dict does not contain all required keys: missing "%s"' %
                 [key for key in cls.REQUIRED_ARGS if key not in obj.keys()])
 
@@ -69,19 +69,19 @@ class QObjItem(SimpleNamespace):
     @classmethod
     def _qobjectify_item(cls, obj):
         """
-        Return a valid value for a QObjItem from a object.
+        Return a valid value for a QobjItem from a object.
         """
         if isinstance(obj, dict):
             # TODO: should use the subclasses for finer control over the
             # required arguments.
-            return QObjItem.from_dict(obj)
+            return QobjItem.from_dict(obj)
         elif isinstance(obj, list):
             return [cls._qobjectify_item(item) for item in obj]
         return obj
 
     def __reduce__(self):
         """
-        Customize the reduction in order to allow serialization, as the QObjs
+        Customize the reduction in order to allow serialization, as the Qobjs
         are automatically serialized due to the use of futures.
         """
         init_args = tuple(getattr(self, key) for key in self.REQUIRED_ARGS)
@@ -90,15 +90,15 @@ class QObjItem(SimpleNamespace):
         return self.__class__, init_args, extra_args
 
 
-class QObj(QObjItem):
-    """Representation of a QObj.
+class Qobj(QobjItem):
+    """Representation of a Qobj.
 
     Attributes:
-        id (str): QObj identifier.
-        config (QObjConfig): config settings for the QObj.
-        circuits (list[QObjExperiment]): list of experiments.
+        id (str): Qobj identifier.
+        config (QobjConfig): config settings for the Qobj.
+        circuits (list[QobjExperiment]): list of experiments.
         type (str): experiment type (QASM/PULSE).
-        _version (str): QObj version.
+        _version (str): Qobj version.
     """
 
     REQUIRED_ARGS = ['id', 'config', 'circuits']
@@ -109,14 +109,14 @@ class QObj(QObjItem):
         self.config = config
         self.circuits = circuits
 
-        self.type = QObjType.QASM.value
+        self.type = QobjType.QASM.value
         self._version = QOBJ_VERSION
 
         super().__init__(**kwargs)
 
 
-class QObjConfig(QObjItem):
-    """Configuration for a QObj.
+class QobjConfig(QobjItem):
+    """Configuration for a Qobj.
 
     Attributes:
         max_credits (int): number of credits.
@@ -133,13 +133,13 @@ class QObjConfig(QObjItem):
         super().__init__(**kwargs)
 
 
-class QObjExperiment(QObjItem):
-    """Quantum experiment represented inside a QObj.
+class QobjExperiment(QobjItem):
+    """Quantum experiment represented inside a Qobj.
 
     Attributes:
         name (str): name of the experiment.
-        config (QObjExperimentConfig): config settings for the experiment.
-        compiled_circuit (QObjCompiledCircuit): list of instructions
+        config (QobjExperimentConfig): config settings for the experiment.
+        compiled_circuit (QobjCompiledCircuit): list of instructions
         compiled_circuit_qasm (str)
     """
     REQUIRED_ARGS = ['name', 'config', 'compiled_circuit',
@@ -155,24 +155,23 @@ class QObjExperiment(QObjItem):
         super().__init__(**kwargs)
 
 
-class QObjInstruction(QObjItem):
+class QobjInstruction(QobjItem):
     """Quantum Instruction.
 
     Attributes:
         name(str): name of the gate.
         qubits(list): list of qubits to apply to the gate.
     """
-    REQUIRED_ARGS = ['name', 'qubits']
+    REQUIRED_ARGS = ['name']
 
-    def __init__(self, name, qubits, **kwargs):
+    def __init__(self, name, **kwargs):
         self.name = name
-        self.qubits = qubits
 
         super().__init__(**kwargs)
 
 
 # TODO: Remove when new schema is in place?
-class QObjExperimentConfig(QObjItem):
+class QobjExperimentConfig(QobjItem):
     """Configuration for a experiment.
 
     Attributes:
@@ -193,12 +192,12 @@ class QObjExperimentConfig(QObjItem):
 
 
 # TODO: Remove when new schema is in place?
-class QObjCompiledCircuit(QObjItem):
+class QobjCompiledCircuit(QobjItem):
     """Compiled circuit.
 
     Attributes:
-        header (QObjItem): header.
-        operations (list[QObjInstruction]): list of instructions.
+        header (QobjItem): header.
+        operations (list[QobjInstruction]): list of instructions.
     """
     REQUIRED_ARGS = ['header', 'operations']
 

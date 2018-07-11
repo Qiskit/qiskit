@@ -47,7 +47,7 @@ class IBMQJob(BaseJob):
         """IBMQJob init function.
 
         Args:
-            qobj (QObj): job description
+            qobj (Qobj): job description
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
