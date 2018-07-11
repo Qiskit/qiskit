@@ -45,4 +45,4 @@ Authors (alphabetical)
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
 Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
 Erick Winston and Chris Wood,
-along with `many contributors <https://github.com/QISKit/qiskit-terra/blob/master/CONTRIBUTORS.md>`_.
+along with `many contributors <https://github.com/Qiskit/qiskit-terra/graphs/contributors>`_.
