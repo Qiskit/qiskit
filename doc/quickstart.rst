@@ -15,7 +15,7 @@ this project, one can do,
 
 .. code-block:: python
 
-    # Import the QISKit SDK
+    # Import the Qiskit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import available_backends, execute
 
@@ -55,7 +55,7 @@ The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
 Quantum Chips
 -------------
 
-You can execute your QASM circuits on a real chip by using the IBM Q experience (QX) cloud platform. 
+You can execute your QASM circuits on a real chip by using the IBM Q experience (QX) cloud platform.
 Currently through QX you can use the following chips:
 
 -   ``ibmqx4``: `5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`_
@@ -63,7 +63,7 @@ Currently through QX you can use the following chips:
 -   ``ibmqx5``: `16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`_
 
 For chip details and realtime information about availability visit the
-`IBM Q experience backend information <https://github.com/QISKit/ibmqx-backend-information>`_
+`IBM Q experience backend information <https://github.com/Qiskit/ibmqx-backend-information>`_
 and the `IBM Q experience devices page <https://quantumexperience.ng.bluemix.net/qx/devices>`_.
 
 .. include:: example_real_backend.rst

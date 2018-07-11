@@ -8,7 +8,7 @@ Installation
 1. Dependencies
 ---------------
 
-To use QISKit you'll need to have installed at least
+To use Qiskit you'll need to have installed at least
 `Python 3.5 or later <https://www.python.org/downloads/>`__.
 `Jupyter Notebooks <https://jupyter.readthedocs.io/en/latest/install.html>`__
 is also recommended for interacting with
@@ -21,7 +21,7 @@ python distribution, which already comes with all these dependencies pre-install
 2. Installation
 ---------------
 
-The recommended way to install QISKit is by using the PIP tool (Python
+The recommended way to install Qiskit is by using the PIP tool (Python
 package manager):
 
 .. code:: sh
@@ -89,7 +89,7 @@ users would look like:
 Install Jupyter-based tutorials
 ===============================
 
-The QISKit project provides you a collection of tutorials in the form of Jupyter
+The Qiskit project provides you a collection of tutorials in the form of Jupyter
 notebooks, which are essentially web pages that contain "cells" of embedded
 Python code. Please refer to the `tutorials repository`_ for detailed
 instructions.
@@ -111,11 +111,11 @@ Depending on the system and setup, appending "sudo -H" before the
     pip install -U --no-cache-dir qiskit
 
 
-For additional troubleshooting tips, see the `QISKit troubleshooting page
-<https://github.com/QISKit/qiskit-terra/wiki/QISKit-Troubleshooting>`_
+For additional troubleshooting tips, see the `Qiskit troubleshooting page
+<https://github.com/Qiskit/qiskit-terra/wiki/QISKit-Troubleshooting>`_
 on the project's GitHub wiki.
 
-.. _tutorials: https://github.com/QISKit/qiskit-tutorial
-.. _tutorials repository: https://github.com/QISKit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/QISKit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
-.. _Qconfig.py.default: https://github.com/QISKit/qiskit-terra/blob/stable/Qconfig.py.default
+.. _tutorials: https://github.com/Qiskit/qiskit-tutorial
+.. _tutorials repository: https://github.com/Qiskit/qiskit-tutorial
+.. _documentation for contributors: https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
+.. _Qconfig.py.default: https://github.com/Qiskit/qiskit-terra/blob/stable/Qconfig.py.default
