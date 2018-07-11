@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
 
 Removed
 -------
