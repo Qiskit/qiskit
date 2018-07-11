@@ -47,7 +47,7 @@ class IBMQJob(BaseJob):
         """IBMQJob init function.
 
         Args:
-            qobj (dict): job description
+            qobj (Qobj): job description
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
@@ -55,7 +55,7 @@ class IBMQJob(BaseJob):
         self._qobj = qobj
         self._api = api
         self._id = None  # this must be before creating the future
-        self._backend_name = self._qobj.get('config').get('backend_name')
+        self._backend_name = self._qobj.config.backend_name
         self._status = JobStatus.INITIALIZING
         self._future_submit = self._executor.submit(self._submit)
         self._status_msg = 'Job is initializing. Please, wait a moment.'
@@ -362,38 +362,38 @@ class IBMQJob(BaseJob):
         """
         qobj = self._qobj
         api_jobs = []
-        for circuit in qobj['circuits']:
+        for circuit in qobj.circuits:
             job = {}
-            if (('compiled_circuit_qasm' not in circuit) or
-                    (circuit['compiled_circuit_qasm'] is None)):
+            if not circuit.compiled_circuit_qasm:
                 compiled_circuit = transpile(circuit['circuit'])
-                circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-            if isinstance(circuit['compiled_circuit_qasm'], bytes):
-                job['qasm'] = circuit['compiled_circuit_qasm'].decode()
+                circuit.compiled_circuit_qasm = compiled_circuit.qasm(qeflag=True)
+            if isinstance(circuit.compiled_circuit_qasm, bytes):
+                job['qasm'] = circuit.compiled_circuit_qasm.decode()
             else:
-                job['qasm'] = circuit['compiled_circuit_qasm']
-            if 'name' in circuit:
-                job['name'] = circuit['name']
+                job['qasm'] = circuit.compiled_circuit_qasm
+            if getattr(circuit, 'name', None):
+                job['name'] = circuit.name
             # convert numpy types for json serialization
             compiled_circuit = json.loads(
-                json.dumps(circuit['compiled_circuit'],
+                json.dumps(circuit.compiled_circuit.as_dict(),
                            default=_numpy_type_converter))
             job['metadata'] = {'compiled_circuit': compiled_circuit}
             api_jobs.append(job)
-        seed0 = qobj['circuits'][0]['config']['seed']
+
+        seed0 = qobj.circuits[0].config.seed
         hpc = None
-        if 'hpc' in qobj['config']:
+        if getattr(qobj.config, 'hpc', None):
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
                 hpc = {
                     'multiShotOptimization':
-                        qobj['config']['hpc']['multi_shot_optimization'],
+                        qobj.config.hpc.multi_shot_optimization,
                     'ompNumThreads':
-                        qobj['config']['hpc']['omp_num_threads']
+                        qobj.config.hpc.omp_num_threads
                 }
             except (KeyError, TypeError):
                 hpc = None
-        backend_name = qobj['config']['backend_name']
+        backend_name = qobj.config.backend_name
         if backend_name != self._backend_name:
             raise QISKitError("inconsistent qobj backend "
                               "name ({0} != {1})".format(backend_name,
@@ -401,8 +401,8 @@ class IBMQJob(BaseJob):
         submit_info = {}
         try:
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
-                                            shots=qobj['config']['shots'],
-                                            max_credits=qobj['config']['max_credits'],
+                                            shots=qobj.config.shots,
+                                            max_credits=qobj.config.max_credits,
                                             seed=seed0,
                                             hpc=hpc)
         # pylint: disable=broad-except

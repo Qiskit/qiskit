@@ -34,8 +34,8 @@ class CompileSkipTranslationTest(QiskitTestCase):
                            skip_transpiler=True)
         rfalse = qp.compile([name], backend='local_qasm_simulator', shots=1024,
                             skip_transpiler=False)
-        self.assertEqual(rtrue['config'], rfalse['config'])
-        self.assertEqual(rtrue['circuits'], rfalse['circuits'])
+        self.assertEqual(rtrue.config, rfalse.config)
+        self.assertEqual(rtrue.circuits, rfalse.circuits)
 
     def test_simple_execute(self):
         name = 'test_simple'

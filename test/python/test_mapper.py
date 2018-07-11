@@ -8,8 +8,10 @@
 # pylint: disable=invalid-name,missing-docstring
 
 import unittest
+
 import qiskit.wrapper
-from qiskit import (QuantumProgram, qasm, unroll, mapper, load_qasm_string)
+from qiskit import (QuantumProgram, load_qasm_string, mapper, qasm, unroll)
+from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 
 
@@ -203,9 +205,9 @@ class MapperTest(QiskitTestCase):
                         [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
                         [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
         qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
-        cx_qubits = [x["qubits"]
-                     for x in qobj["circuits"][0]["compiled_circuit"]["operations"]
-                     if x["name"] == "cx"]
+        cx_qubits = [x.qubits
+                     for x in qobj.circuits[0].compiled_circuit.operations
+                     if x.name == "cx"]
 
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
@@ -217,10 +219,10 @@ class MapperTest(QiskitTestCase):
         backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(yzy_zyz_1)
         qobj1 = qiskit.wrapper.compile(circ1, backend)
-        self.assertIsInstance(qobj1, dict)
+        self.assertIsInstance(qobj1, Qobj)
         circ2 = load_qasm_string(yzy_zyz_2)
         qobj2 = qiskit.wrapper.compile(circ2, backend)
-        self.assertIsInstance(qobj2, dict)
+        self.assertIsInstance(qobj2, Qobj)
 
 
 # QASMs expected by the tests.

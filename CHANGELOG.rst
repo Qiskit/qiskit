@@ -24,6 +24,7 @@ Added
 Changed
 -------
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
+- Introduce a ``QObj`` class replacing the previous dictionaries (#589).
 
 Removed
 -------

@@ -228,7 +228,7 @@ def compile(circuits, backend,
         skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
     Returns:
-        obj: the qobj to be run on the backends
+        Qobj: the qobj to be run on the backends
     """
     # pylint: disable=redefined-builtin
     if isinstance(backend, str):
