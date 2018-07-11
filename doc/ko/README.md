@@ -142,5 +142,5 @@ QISKit was originally authored by
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
 Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
 
-And continues to grow with the help and work of [many people](https://github.com/QISKit/qiskit-terra/tree/master/CONTRIBUTORS.md) who contribute
+And continues to grow with the help and work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
 to the project at different levels.
