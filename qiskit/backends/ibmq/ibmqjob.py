@@ -204,7 +204,11 @@ class IBMQJob(BaseJob):
             self._status_msg = '{}'.format(err)
             return None
 
-        if api_job['status'] == 'RUNNING':
+        if api_job['status'] == 'VALIDATING':
+            self._status = JobStatus.VALIDATING
+            self._status_msg = self._status.value
+
+        elif api_job['status'] == 'RUNNING':
             self._status = JobStatus.RUNNING
             self._status_msg = self._status.value
             queued, queue_position = self._is_job_queued(api_job)
@@ -224,7 +228,7 @@ class IBMQJob(BaseJob):
             self._cancelled = True
 
         elif 'ERROR' in api_job['status']:
-            # ERROR_CREATING_JOB or ERROR_RUNNING_JOB
+            # Errored status are of the form "ERROR_*_JOB"
             self._status = JobStatus.ERROR
             self._status_msg = api_job['status']
 
@@ -277,6 +281,19 @@ class IBMQJob(BaseJob):
             QISKitError: couldn't get job status from server
         """
         return self.status['status'] == JobStatus.RUNNING
+
+    @property
+    def validating(self):
+        """
+        Returns whether job is being validated
+
+        Returns:
+            bool: True if job is under validation, else False.
+
+        Raises:
+            QISKitError: couldn't get job status from server
+        """
+        return self.status['status'] == JobStatus.VALIDATING
 
     @property
     def done(self):
