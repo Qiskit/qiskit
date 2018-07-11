@@ -25,6 +25,7 @@ Changed
 -------
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
 - Introduce a ``QObj`` class replacing the previous dictionaries (#589).
+- Use ``get_status_job()`` for checking IBMQJob status. (#641)
 
 Removed
 -------
