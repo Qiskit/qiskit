@@ -1,6 +1,6 @@
 # CMake config file to build the C++ Simulator
 #
-# For Windows, we always build static executables. QISKit provides the 
+# For Windows, we always build static executables. Qiskit provides the
 # necessary external binary libraries (.lib and .dll), these .lib come from an
 # external source and they are simple import files, so we still need the .dll
 # files in order to run the final executable. We only support MinGW64 toolchain
@@ -115,12 +115,12 @@ if(NOT BLAS_LIB)
 endif()
 
 set(LIBRARIES PRIVATE ${BLAS_LIB})
-				  
+
 # Linking
 target_link_libraries(qasm_simulator_cpp ${LIBRARIES})
 
 set(QASM_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:qasm_simulator_cpp>
-	CACHE INTERNAL "Output directory for building QISKit C++ Simulator")
+	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
 
 # TODO Windows 32 bits builds are not supported yet
 set(ARCH_BITS "64")
@@ -148,7 +148,7 @@ if(WIN32) # Windows 64 bits is also true here
 				${QASM_SIMULATOR_CPP_OUTPUT_DIR}/${FINAL_FILE})
 	endforeach()
 endif()
-	
+
 # Tests
 # TODO: Enable them when ready
 #add_subdirectory(${QASM_SIMULATOR_CPP_DIR}/test)

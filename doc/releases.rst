@@ -4,10 +4,10 @@ Release history
 Release notes
 *************
 
-QISKit SDK 0.5.0
+Qiskit SDK 0.5.0
 ================
 
-This release brings a number of improvements to QISKit, both for the user
+This release brings a number of improvements to Qiskit, both for the user
 experience and under the hood. Please refer to the full changelog for a
 detailed description of the changes - the highlights are:
 

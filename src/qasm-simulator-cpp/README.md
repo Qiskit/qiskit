@@ -11,7 +11,7 @@ Copyright 2017, IBM.
 
 ### Description
 
-*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/QISKit/qiskit-terra).
+*QASM Simulator* is a quantum circuit simulator written in C++ that includes a variety of realistic circuit level noise models. The simulator may be run as a command line application to evaluate quantum programs specified by a *Quantum program OBJect (__QObj__)*. It may also be used as a local backend in the *Quantum Information Science Kit ([__QISKit__](https://www.qiskit.org))* [Python SDK](https://github.com/Qiskit/qiskit-terra).
 
 ## Contents
 
@@ -137,7 +137,7 @@ After building, the simulator may be run as follows:
 ./qasm_simulator_cpp input.json
 ```
 
-where `input.json` is the file name of a **Quantum program object (qobj)**. This is a JSON specification of a quantum program which can be produced using the QISKit SDK (link to qobj specification to come...).
+where `input.json` is the file name of a **Quantum program object (qobj)**. This is a JSON specification of a quantum program which can be produced using the Qiskit SDK (link to qobj specification to come...).
 
 It is also possible to pipe the contents of a qobj directly to the simulator by using replacing the file name with a dash `-`. For example:
 
@@ -163,7 +163,7 @@ result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 
 ### Running as a backend for qiskit-terra
 
-This simulator can also be used as a backend for the QISKit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
+This simulator can also be used as a backend for the Qiskit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
 
 ```python
 backend = 'local_qasm_simulator'
@@ -179,7 +179,7 @@ You can check the backend was successfully added using the `available_backends` 
 
 ### Simulator output
 
-By default the simulator prints a JSON file to the standard output. If called through QISKit this output is loaded and parsed as a Python dictionary. An example simulator output is for a qobj called from QISKit containing a single circuit is:
+By default the simulator prints a JSON file to the standard output. If called through Qiskit this output is loaded and parsed as a Python dictionary. An example simulator output is for a qobj called from Qiskit containing a single circuit is:
 
 ```python
 {
@@ -210,7 +210,7 @@ The `"result"` key is a list of the output of each circuit in the qobj: If the q
 
 #### qiskit-terra output
 
-If the simulator is called though the Python QISKit SDK the input qobj will only contain a single circuit, and only the values in the `"data"` field will be accessible in the `Results` object. The dictionary of this data may be accessed using the `Results.get_data('name')` method.
+If the simulator is called though the Python Qiskit SDK the input qobj will only contain a single circuit, and only the values in the `"data"` field will be accessible in the `Results` object. The dictionary of this data may be accessed using the `Results.get_data('name')` method.
 
 #### Complex number format in JSON
 
@@ -337,9 +337,9 @@ The following are all valid representations of the state *|psi> = (|00> + |11> )
 
 The input will be renormalized by the simulator to ensure it is a quantum state. Hence there is no difference between replacing the above inputs with `"initial_state": [1, 0, 0, 1]"`.
 
-##### QISKit Example
+##### Qiskit Example
 
-When calling the simulator though the QISKit Python SDK the input state may also be a a NumPy array, for example:
+When calling the simulator though the Qiskit Python SDK the input state may also be a a NumPy array, for example:
 
 ```python
 config = {'initial_state': np.array([1, 0, 0, 1j]) / np.sqrt(2)}
@@ -444,7 +444,7 @@ A single qubit gate error with gate time of *1* unit, depolarizing probability *
 
 #### Special Options for X90 and CX coherent errors
 
-The CX and X90 gate have special keys for automatically generating coherent error matrices. This is not supported directly by the simulator, but is handled by the QISKit backend in python.
+The CX and X90 gate have special keys for automatically generating coherent error matrices. This is not supported directly by the simulator, but is handled by the Qiskit backend in python.
 
 ##### X90 Gate
 

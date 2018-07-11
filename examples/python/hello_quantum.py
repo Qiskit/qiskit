@@ -1,11 +1,11 @@
 """
 Example used in the README. In this example a Bell state is made.
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-# Import the QISKit
+# Import the Qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import QISKitError, available_backends, execute, register, get_backend, least_busy
 
