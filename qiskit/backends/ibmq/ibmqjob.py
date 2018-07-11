@@ -36,6 +36,14 @@ class IBMQJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
         _final_states (list(JobStatus)): terminal states of async jobs
     """
+    api_final_states = [
+        'COMPLETED',
+        'CANCELLED',
+        'ERROR_CREATING_JOB',
+        'ERROR_VALIDATING_JOB',
+        'ERROR_RUNNING_JOB'
+    ]
+
     _executor = futures.ThreadPoolExecutor()
     _final_states = [
         JobStatus.DONE,
@@ -194,7 +202,7 @@ class IBMQJob(BaseJob):
 
         try:
             api_job = self._api.get_status_job(self.id)
-            if api_job['status'] in ['COMPLETED', 'CANCELLED', 'ERROR']:
+            if api_job['status'] in self.api_final_states:
                 # Call the endpoint that returns full information.
                 api_job = self._api.get_job(self.id)
 
@@ -455,12 +463,6 @@ class IBMQJob(BaseJob):
                                               (pprint.pformat(api_result)))
                 raise QISKitError("get_job didn't return status: %s" %
                                   (pprint.pformat(api_result)))
-
-            if (api_result['status'] == 'ERROR_CREATING_JOB' or
-                    api_result['status'] == 'ERROR_RUNNING_JOB'):
-                job_result = {'id': self._id, 'status': 'ERROR',
-                              'result': api_result['status']}
-                return Result(job_result)
 
             time.sleep(wait)
             api_result = self._update_status()
