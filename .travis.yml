@@ -169,12 +169,12 @@ jobs:
         - source .venv/bin/activate
 
     # OSX, Python 3.6.5 (via pyenv)
-    - stage: test
-      <<: *stage_osx
+#    - stage: test
+#      <<: *stage_osx
 
     # OSX, Python 3.7 (via pyenv)
-    - stage: test
-      <<: *stage_osx_python3_7
+#    - stage: tes
+#      <<: *stage_osx_python3_7
 
     # "deploy" stage.
     ###########################################################################
