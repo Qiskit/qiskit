@@ -68,7 +68,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.h(qr)
         qc.measure(qr, cr)
         qobj = transpiler.compile([self._qc, qc], backend)
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         job = backend.run(qobj)
         result = job.result()
         counts_qx1 = result.get_counts(result.get_names()[0])
@@ -102,7 +102,7 @@ class TestIBMQJob(QiskitTestCase):
         backend = _least_busy(backends)
         self.log.info('using backend: %s', backend.name)
         qobj = transpiler.compile(self._qc, backend)
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         job = backend.run(qobj)
         while not (job.done or job.exception):
             self.log.info(job.status)

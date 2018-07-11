@@ -13,6 +13,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 
+from qiskit.qobj import QobjInstruction
 from .qasm_simulator_cpp import QasmSimulatorCpp
 from ._simulatorerror import SimulatorError
 from .localjob import LocalJob
@@ -45,9 +46,10 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
-        for circuit in qobj['circuits']:
-            circuit['compiled_circuit']['operations'].append(
-                {'name': 'snapshot', 'params': [final_state_key]})
+        for circuit in qobj.circuits:
+            circuit.compiled_circuit.operations.append(
+                QobjInstruction.from_dict({'name': 'snapshot', 'params': [final_state_key]})
+            )
         result = super()._run_job(qobj)
         # Extract final state snapshot and move to 'statevector' data field
         for res in result._result['result']:
@@ -71,17 +73,17 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         1. No shots
         2. No measurements in the middle
         """
-        if qobj['config']['shots'] != 1:
+        if qobj.config.shots != 1:
             logger.info("statevector simulator only supports 1 shot. "
                         "Setting shots=1.")
-            qobj['config']['shots'] = 1
-        for circuit in qobj['circuits']:
-            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
+            qobj.config.shots = 1
+        for circuit in qobj.circuits:
+            if getattr(circuit.config, 'shots', 1) != 1:
                 logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s", circuit['name'])
-                circuit['config']['shots'] = 1
-            for op in circuit['compiled_circuit']['operations']:
-                if op['name'] in ['measure', 'reset']:
-                    raise SimulatorError("In circuit {}: statevector simulator does "
-                                         "not support measure or reset.".format(circuit['name']))
-        return
+                            "Setting shots=1 for circuit %s.", circuit.name)
+                circuit.config.shots = 1
+            for op in circuit.compiled_circuit.operations:
+                if op.name in ['measure', 'reset']:
+                    raise SimulatorError(
+                        "In circuit {}: statevector simulator does not support "
+                        "measure or reset.".format(circuit.name))

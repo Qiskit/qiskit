@@ -80,18 +80,17 @@ class QasmSimulatorCpp(BaseBackend):
         return Result(result)
 
     def _validate(self, qobj):
-        if qobj['config']['shots'] == 1:
+        if qobj.config.shots == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
+        for circuit in qobj.circuits:
+            if 'measure' not in [op.name for
+                                 op in circuit.compiled_circuit.operations]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
-        return
+                               "classical register will remain all zeros.", circuit.name)
 
 
 class CliffordSimulatorCpp(BaseBackend):
@@ -204,7 +203,7 @@ def run(qobj, executable):
     Run simulation on C++ simulator inside a subprocess.
 
     Args:
-        qobj (dict): qobj dictionary defining the simulation to run
+        qobj (Qobj): qobj dictionary defining the simulation to run
         executable (string): filename (with path) of the simulator executable
     Returns:
         dict: A dict of simulation results
@@ -214,7 +213,7 @@ def run(qobj, executable):
     try:
         with subprocess.Popen([executable, '-'],
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj, cls=QASMSimulatorEncoder).encode()
+            cin = json.dumps(qobj.as_dict(), cls=QASMSimulatorEncoder).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',

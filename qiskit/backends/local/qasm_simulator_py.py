@@ -276,14 +276,14 @@ class QasmSimulatorPy(BaseBackend):
         """Run circuits in qobj"""
         self._validate(qobj)
         result_list = []
-        self._shots = qobj['config']['shots']
+        self._shots = qobj.config.shots
         start = time.time()
-        for circuit in qobj['circuits']:
-            result_list.append(self.run_circuit(circuit))
+        for circuit in qobj.circuits:
+            result_list.append(self.run_circuit(circuit.as_dict()))
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
-                  'id': qobj['id'],
+                  'id': qobj.id,
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
@@ -407,18 +407,17 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end-start)}
 
     def _validate(self, qobj):
-        if qobj['config']['shots'] == 1:
+        if qobj.config.shots == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
+        for circuit in qobj.circuits:
+            if 'measure' not in [op.name for
+                                 op in circuit.compiled_circuit.operations]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
-        return
+                               "classical register will remain all zeros.", circuit.name)
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.
