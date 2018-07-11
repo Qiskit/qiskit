@@ -127,7 +127,7 @@ Zur bequemeren Verwendung bietet
 Handler und den Level vom `qiskit` Logger modifizieren. Das Verwenden dieser
 Methoden kann Konflikte mit den globalen Einstellungen des Logging Setups Ihrer
 Python Umgebung erzeugen. Bitte beachten Sie dies, wenn Sie eine
-Applikation auf dem QISKit SDK aufbauend entwickeln.
+Applikation auf dem Qiskit SDK aufbauend entwickeln.
 
 Die Konvention zur Ausgabe einer Logging Nachricht schreibt vor, im Modul
 eine globale Variable mit Namen **logger** zu deklarieren, die den Logger mit
@@ -151,7 +151,7 @@ Das SDK verwendet das `standard Python "unittest" Framework
 <https://docs.python.org/3/library/unittest.html>`_ zum Testen von
 verschiednen Komponenten und Funktionalitäten.
 
-Da das QISKit Build-System auf CMake basiert, muss ein so genannter
+Da das Qiskit Build-System auf CMake basiert, muss ein so genannter
 "out-of-source" Build vor dem Ausführen der Tests durchgeführt werden. Dies
 bedeutet einfach, dass folgende Befehle ausgeführt werden müssen:
 

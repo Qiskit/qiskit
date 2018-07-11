@@ -3,7 +3,7 @@
 # Author: Juan Gomez
 
 # Please provide a valid username and password to connect to PyPi for uploading
-# the QISKit SDK distributable packaged
+# the Qiskit SDK distributable packaged
 USERNAME=""
 PASSWORD=""
 
@@ -12,7 +12,7 @@ PASSWORD=""
 usage(){
     echo "Usage:"
     echo "$0 [OPTION]"
-    echo "Helper script to create and upload QISKit SDK distributable package"
+    echo "Helper script to create and upload Qiskit SDK distributable package"
     echo "to PyPi severs."
     echo ""
     echo "Options:"

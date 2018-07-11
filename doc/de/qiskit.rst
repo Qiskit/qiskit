@@ -1,12 +1,12 @@
-QISKit Überblick
+Qiskit Überblick
 ================
 
 Philosophie
 -----------
 
-QISKit umfasst eine Sammlung von Software, mit deren Hilfe man Quantum
+Qiskit umfasst eine Sammlung von Software, mit deren Hilfe man Quantum
 Circuits geringer Tiefe bearbeiten und in naher Zukunft Applikationen
-und Experimente für einen Quantencomputer bauen kann. In QISKit besteht
+und Experimente für einen Quantencomputer bauen kann. In Qiskit besteht
 ein Quantum Program aus einem Array von Quantum Circuits. Der Programm
 Workflow setzt sich zusammen aus drei Stufen: Build, Compile und Run.
 Build erlaubt verschiedene Quantum Circuits aufzubauen, die das zu lösende
@@ -22,21 +22,21 @@ verbessern.
 
 Projekt Übersicht
 -----------------
-Das QISKit Projekt besteht aus:
+Das Qiskit Projekt besteht aus:
 
-* `QISKit Terra <https://github.com/QISKit/qiskit-terra>`_: Das Python
+* `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`_: Das Python
   Science Development Kit dient zum Schreiben von Quantencomputer
   Experimenten, Programmen und Anwendungen.
 
-* `QISKit API <https://github.com/QISKit/qiskit-api-py>`_: Ein kleiner
+* `Qiskit API <https://github.com/Qiskit/qiskit-api-py>`_: Ein kleiner
   Python Wrapper um die Quantum Experience HTTP API, der es ermöglicht
   sich mit dem Quantum Experience Server zu verbinden und Quantenpgoramme
   auszuführen.
 
-* `QISKit OpenQASM <https://github.com/QISKit/qiskit-openqasm>`_:
+* `Qiskit OpenQASM <https://github.com/Qiskit/qiskit-openqasm>`_:
   Beinhaltet Spezifikationen, Beispiele, Dokumentation und Tools
   für die OpenQASM Repräsentation.
 
-* `QISKit Tutorial <https://github.com/QISKit/qiskit-tutorial>`_: Eine
-  Sammlung von beispielhaften Jupyter Notebooks, die Funktionen aus QISKit
+* `Qiskit Tutorial <https://github.com/Qiskit/qiskit-tutorial>`_: Eine
+  Sammlung von beispielhaften Jupyter Notebooks, die Funktionen aus Qiskit
   verwenden.

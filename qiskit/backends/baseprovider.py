@@ -45,16 +45,16 @@ class BaseProvider(ABC):
         """
         pass
 
-    def aliased_backend_names(self):
+    def grouped_backend_names(self):
         """
-        Returns dict that defines alias names, usually shorter names
+        Returns dict that defines group names, usually shorter names
         for referring to the backends.
 
-        If an alias key is used, the corresponding backend will be chosen
+        If a group name is used, the corresponding backend will be chosen
         in order of priority from the value list, depending on availability.
 
         Returns:
-            dict[str: list[str]]: {alias_name: list(backend_name)}
+            dict[str: list[str]]: {group_name: list(backend_name)}
         """
         return {}
 
@@ -66,6 +66,17 @@ class BaseProvider(ABC):
 
         Returns:
             dict[str: str]: {deprecated_name: backend_name}
+        """
+        return {}
+
+    def aliased_backend_names(self):
+        """
+        Dict that stores possible aliases for a given backend name.
+        Either the name itself or an alias can be used to connect to that
+        backend.
+
+        Returns:
+            dict[str: list[str]]: {backend_name: list(alias_name)}
         """
         return {}
 
