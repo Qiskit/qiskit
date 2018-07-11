@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# QISKit documentation build configuration file, created by
+# Qiskit documentation build configuration file, created by
 # sphinx-quickstart on Tue Jul 25 18:13:28 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -73,7 +73,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'QISKit SDK'
+project = 'Qiskit SDK'
 copyright = '2017-2018 IBM Research'
 author = 'IBM Research'
 
@@ -173,7 +173,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'QISKit.tex', 'QISKit Documentation',
+    (master_doc, 'QISKit.tex', 'Qiskit Documentation',
      '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez,
      and John Smolin''', 'manual'),
 ]
@@ -184,7 +184,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'qiskit', 'QISKit Documentation',
+    (master_doc, 'qiskit', 'Qiskit Documentation',
      [author], 1)
 ]
 
@@ -195,8 +195,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'QISKit', 'QISKit Documentation',
-     author, 'QISKit', 'One line description of project.',
+    (master_doc, 'Qiskit', 'Qiskit Documentation',
+     author, 'Qiskit', 'One line description of project.',
      'Miscellaneous'),
 ]
 

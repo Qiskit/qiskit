@@ -6,9 +6,9 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Example showing how to use QISKit at level 2 (advanced).
+Example showing how to use Qiskit at level 2 (advanced).
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
