@@ -42,7 +42,7 @@ class QasmSimulatorCppBuild(build):
             if current_platform not in supported_platforms:
                 # TODO: stdout is silenced by pip if the full setup.py invocation is
                 # successful, unless using '-v' - hence the warnings are not printed.
-                print('WARNING: QISKit cpp simulator is meant to be built with these '
+                print('WARNING: Qiskit cpp simulator is meant to be built with these '
                       'platforms: {}. We will support other platforms soon!'
                       .format(supported_platforms))
                 return
@@ -88,11 +88,11 @@ setup(
     name="qiskit",
     version="${QISKIT_VERSION}",
     description="Software for developing quantum computing programs",
-    long_description="""QISKit is a software development kit for writing
+    long_description="""Qiskit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
         Python 3.5 and 3.6""",
-    url="https://github.com/QISKit/qiskit-terra",
-    author="QISKit Development Team",
+    url="https://github.com/Qiskit/qiskit-terra",
+    author="Qiskit Development Team",
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=[

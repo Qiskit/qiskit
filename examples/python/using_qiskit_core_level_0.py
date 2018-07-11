@@ -6,17 +6,17 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Example showing how to use QISKit at level 0 (novice).
+Example showing how to use Qiskit at level 0 (novice).
 
 See level 1 if you would like to understand how to compile
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
 import time
 
-# Import the QISKit modules
+# Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
 from qiskit import available_backends, execute, register, least_busy
 
