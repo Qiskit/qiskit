@@ -193,7 +193,11 @@ class IBMQJob(BaseJob):
             return None
 
         try:
-            api_job = self._api.get_job(self.id)
+            api_job = self._api.get_status_job(self.id)
+            if api_job['status'] in ['COMPLETED', 'CANCELLED', 'ERROR']:
+                # Call the endpoint that returns full information.
+                api_job = self._api.get_job(self.id)
+
             if 'status' not in api_job:
                 raise QISKitError('get_job didn\'t return status: %s' %
                                   pprint.pformat(api_job))

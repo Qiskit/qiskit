@@ -307,6 +307,9 @@ class BaseFakeAPI():
             return {'status': 'Error', 'error': 'Job ID not specified'}
         return self._job_status[self._state]
 
+    def get_status_job(self, job_id):
+        return self.get_job(job_id)
+
     def run_job(self, *_args, **_kwargs):
         time.sleep(0.2)
         return {'id': 'TEST_ID'}
