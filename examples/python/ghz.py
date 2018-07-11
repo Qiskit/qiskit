@@ -8,7 +8,7 @@
 """
 GHZ state example illustrating mapping onto the backend.
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 

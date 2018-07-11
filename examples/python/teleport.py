@@ -8,7 +8,7 @@
 """
 Quantum teleportation example based on an OpenQASM example.
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
