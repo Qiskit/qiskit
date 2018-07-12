@@ -378,7 +378,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(q[3], q[14])
         qc.measure(q, c)
         qobj = transpiler.compile(qc, backend)
-        compiled_ops = qobj.circuits[0].compiled_circuit.operations
+        compiled_ops = qobj.experiments[0].instructions
         for op in compiled_ops:
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])

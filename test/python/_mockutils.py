@@ -146,17 +146,17 @@ def new_fake_qobj():
     return {
         'id': 'test-id',
         'config': {
-            'backend_name': 'test-backend',
             'shots': 1024,
             'max_credits': 100
         },
-        'circuits': [{
-            'compiled_circuit_qasm': 'fake-code',
+        'experiments': [{
+            'header': {'compiled_circuit_qasm': 'fake-code'},
             'config': {
                 'seed': 123456
             },
-            'compiled_circuit': {}
-        }]
+            'instructions': []
+        }],
+        'header': {'backend_name': 'test-backend'}
     }
 
 

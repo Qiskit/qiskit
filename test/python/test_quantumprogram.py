@@ -731,7 +731,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
 
-        If all correct should return length 6 dictionary.
+        If all correct should return length 3 dictionary.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = q_program.get_circuit("circuitName")
@@ -747,7 +747,7 @@ class TestQuantumProgram(QiskitTestCase):
                                  coupling_map=coupling_map)
         result = q_program.get_compiled_configuration(qobj, 'circuitName')
         self.log.info(result)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result), 3)
 
     def test_get_compiled_qasm(self):
         """Test get_compiled_qasm.
