@@ -3,199 +3,179 @@
     "config": {
         "shots": 2000,
         "seed": 1,
-        "backend_name": "local_qasm_simulator_cpp",
         "data" : ["density_matrix", "probabilities"]
     },
-    "circuits": [
+    "header": {
+        "backend_name": "local_qasm_simulator_cpp"
+    },
+    "experiments": [
         {
-            "name": "measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "x0 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "x", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "x0 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "x", "qubits": [0]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "x1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "x", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "x1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "x", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "x0 x1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "x", "qubits": [0]},
-                    {"name": "x", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "x0 x1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "y0 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "y", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "y0 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "y", "qubits": [0]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "y1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "y", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "y1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "y", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "y0 y1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "y", "qubits": [0]},
-                    {"name": "y", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "y0 y1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "y", "qubits": [0]},
+                {"name": "y", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "h0 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "h", "qubits": [0]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "h0 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "h1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "h", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "h1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "h", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "h0 h1 measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "h", "qubits": [0]},
-                    {"name": "h", "qubits": [1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "h0 h1 measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "h", "qubits": [1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         },
         {
-            "name": "bell measure (opt)",
-            "compiled_circuit": {
-                "header": {
-                    "clbit_labels": [["c", 2]],
-                    "number_of_clbits": 2,
-                    "number_of_qubits": 2,
-                    "qubit_labels": [["q", 0], ["q", 1]]
-                },
-                "operations": [
-                    {"name": "h", "qubits": [0]},
-                    {"name": "cx", "qubits": [0, 1]},
-                    {"name": "snapshot", "params": [0]},
-                    {"name": "measure", "qubits": [0], "clbits": [0]},
-                    {"name": "measure", "qubits": [1], "clbits": [1]}
-                ]
-            }
+            "header": {
+                "name": "bell measure (opt)",
+                "clbit_labels": [["c", 2]],
+                "number_of_clbits": 2,
+                "number_of_qubits": 2,
+                "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "cx", "qubits": [0, 1]},
+                {"name": "snapshot", "params": [0]},
+                {"name": "measure", "qubits": [0], "clbits": [0]},
+                {"name": "measure", "qubits": [1], "clbits": [1]}
+            ]
         }
     ]
 }

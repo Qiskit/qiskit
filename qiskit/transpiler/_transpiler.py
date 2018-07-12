@@ -60,14 +60,15 @@ def compile(circuits, backend,
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
 
-    # TODO: solve "config" and "shots" arguments
-    # TODO: calculate "register_slots"
-
     # Step 1: create the Qobj, with empty experiments.
+    # Copy the configuration: the values in `config` have prefern
+    qobj_config = (config or {}).copy()
+    qobj_config.update({'shots': shots,
+                        'max_credits': max_credits,
+                        'register_slots': 0})  # TODO: fix"register_slots"
+
     qobj = Qobj(id=qobj_id or str(uuid.uuid4()),
-                config=QobjConfig(shots=shots,
-                                  max_credits=max_credits,
-                                  register_slots=1234),
+                config=QobjConfig(**qobj_config),
                 experiments=[],
                 header=QobjHeader(backend_name=backend_name))
     if seed:

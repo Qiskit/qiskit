@@ -21,8 +21,7 @@ from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
-
-from qiskit.qobj import Qobj
+from qiskit.qobj import Qobj, QobjItem
 from qiskit.transpiler import transpile
 from .common import QiskitTestCase
 
@@ -53,24 +52,16 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                      'config': {
                          'max_credits': 3,
                          'shots': 2000,
-                         'backend_name': 'local_qasm_simulator_cpp',
                          'seed': 1111
                      },
-                     'circuits': [
-                         {
-                             'name': 'test_circuit1',
-                             'compiled_circuit': compiled_circuit1,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         },
-                         {
-                             'name': 'test_circuit2',
-                             'compiled_circuit': compiled_circuit2,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         }
-                     ]}
+                     'experiments': [compiled_circuit1, compiled_circuit2],
+                     'header': {'backend_name': 'local_qasm_simulator_cpp'}}
         self.qobj = Qobj.from_dict(self.qobj)
+        self.qobj.experiments[0].header.name = 'test_circuit1'
+        self.qobj.experiments[0].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
+        self.qobj.experiments[1].header.name = 'test_circuit2'
+        self.qobj.experiments[1].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
+
         # Simulator backend
         try:
             self.backend = QasmSimulatorCpp()

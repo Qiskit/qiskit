@@ -70,7 +70,11 @@ def qobj_to_dict_previous_version(qobj):
         'circuits': []
     }
 
-    # Update configuration:
+    # Update configuration: qobj.config might have extra items.
+    for key, value in qobj.config.__dict__.items():
+        if key not in ('shots', 'register_slots', 'max_credits', 'seed'):
+            converted['config'][key] = value
+
     # Add circuits.
     for experiment in qobj.experiments:
         circuit_config = getattr(experiment, 'config', {})

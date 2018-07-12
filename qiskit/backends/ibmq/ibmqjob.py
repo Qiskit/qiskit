@@ -380,7 +380,7 @@ class IBMQJob(BaseJob):
                 job['qasm'] = circuit['compiled_circuit_qasm'].decode()
             else:
                 job['qasm'] = circuit['compiled_circuit_qasm']
-            if getattr(circuit, 'name', None):
+            if circuit.get('name', None):
                 job['name'] = circuit['name']
             # convert numpy types for json serialization
             compiled_circuit = json.loads(
@@ -407,7 +407,6 @@ class IBMQJob(BaseJob):
             raise QISKitError("inconsistent qobj backend "
                               "name ({0} != {1})".format(backend_name,
                                                          self._backend_name))
-        submit_info = {}
         try:
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
                                             shots=qobj['config']['shots'],
