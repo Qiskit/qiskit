@@ -9,7 +9,7 @@
 
 from types import SimpleNamespace
 
-from . import _utils
+from ._utils import QobjValidationError, QobjType
 
 # Current version of the Qobj schema.
 QOBJ_VERSION = '0.0.2'
@@ -60,7 +60,7 @@ class QobjItem(SimpleNamespace):
                 required attributes for that class.
         """
         if not all(key in obj.keys() for key in cls.REQUIRED_ARGS):
-            raise _utils.QobjValidationError(
+            raise QobjValidationError(
                 'The dict does not contain all required keys: missing "%s"' %
                 [key for key in cls.REQUIRED_ARGS if key not in obj.keys()])
 
@@ -112,7 +112,7 @@ class Qobj(QobjItem):
         self.experiments = experiments
         self.header = header
 
-        self.type = _utils.QobjType.QASM.value
+        self.type = QobjType.QASM.value
         self._version = QOBJ_VERSION
 
         super().__init__(**kwargs)
