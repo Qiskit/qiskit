@@ -82,6 +82,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 logger = logging.getLogger(__name__)
@@ -278,8 +279,10 @@ class QasmSimulatorPy(BaseBackend):
         result_list = []
         self._shots = qobj.config.shots
         start = time.time()
-        for circuit in qobj.circuits:
-            result_list.append(self.run_circuit(circuit.as_dict()))
+
+        qobj_prev = qobj_to_dict(qobj, version='0.0.1')
+        for circuit in qobj_prev['circuits']:
+            result_list.append(self.run_circuit(circuit))
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
@@ -413,11 +416,13 @@ class QasmSimulatorPy(BaseBackend):
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circuit in qobj.circuits:
+
+        for experiment in qobj.experiments:
             if 'measure' not in [op.name for
-                                 op in circuit.compiled_circuit.operations]:
+                                 op in experiment.instructions]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circuit.name)
+                               "classical register will remain all zeros.",
+                               experiment.header.name)
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.

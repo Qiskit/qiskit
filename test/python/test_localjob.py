@@ -108,16 +108,15 @@ def fake_qobj():
     qobj = {
         'id': 'test-id',
         'config': {
-            'backend_name': backend.name,
             'shots': 1024,
             'max_credits': 100
             },
-        'circuits': [{
-            'compiled_circuit_qasm': 'fake-code',
-            'config': {
-                'seed': 123456
-            }
-        }]
+        'experiments': [{
+            'header': {'compiled_circuit_qasm': 'fake-code'},
+            'config': {'seed': 123456},
+            'instructions': []
+        }],
+        'header': {'backend_name': backend.name}
     }
     return Qobj.from_dict(qobj)
 

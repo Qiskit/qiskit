@@ -11,13 +11,11 @@
 
 import unittest
 
-from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram)
-from qiskit.backends.local.qasm_simulator_cpp import QasmSimulatorCpp
+from qiskit import ClassicalRegister, QISKitError, QuantumCircuit, QuantumProgram, QuantumRegister
 from qiskit import wrapper
+from qiskit.backends.local.qasm_simulator_cpp import QasmSimulatorCpp
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
-
 
 # Cpp backend required
 try:
@@ -327,8 +325,8 @@ class TestQobj(QiskitTestCase):
     def test_local_qasm_simulator_py(self):
         backend = wrapper.get_backend('local_qasm_simulator_py')
         qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj.circuits[0].compiled_circuit
-        ccq = qobj.circuits[0].compiled_circuit_qasm
+        cc = qobj.experiments[0]
+        ccq = qobj.experiments[0].header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], cc.header.qubit_labels))
         self.assertIn(self.qr_name, ccq)
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
@@ -338,8 +336,8 @@ class TestQobj(QiskitTestCase):
     def test_local_clifford_simulator_cpp(self):
         backend = wrapper.get_backend('local_clifford_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj.circuits[0].compiled_circuit
-        ccq = qobj.circuits[0].compiled_circuit_qasm
+        cc = qobj.experiments[0]
+        ccq = qobj.experiments[0].header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], cc.header.qubit_labels))
         self.assertIn(self.qr_name, ccq)
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
@@ -349,8 +347,8 @@ class TestQobj(QiskitTestCase):
     def test_local_qasm_simulator_cpp(self):
         backend = wrapper.get_backend('local_qasm_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj.circuits[0].compiled_circuit
-        ccq = qobj.circuits[0].compiled_circuit_qasm
+        cc = qobj.experiments[0]
+        ccq = qobj.experiments[0].header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], cc.header.qubit_labels))
         self.assertIn(self.qr_name, ccq)
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
@@ -359,8 +357,8 @@ class TestQobj(QiskitTestCase):
     def test_local_unitary_simulator(self):
         backend = wrapper.get_backend('local_unitary_simulator_py')
         qobj = wrapper.compile(self.circuits, backend=backend)
-        cc = qobj.circuits[0].compiled_circuit
-        ccq = qobj.circuits[0].compiled_circuit_qasm
+        cc = qobj.experiments[0]
+        ccq = qobj.experiments[0].header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], cc.header.qubit_labels))
         self.assertIn(self.qr_name, ccq)
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
