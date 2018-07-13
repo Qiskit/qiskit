@@ -15,6 +15,7 @@ import time
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
@@ -233,6 +234,34 @@ class TestIBMQJobStates(QiskitTestCase):
         job.cancel()
         self.assertStatus(job, JobStatus.CANCELLED)
 
+    def test_only_final_states_cause_datailed_request(self):
+        from unittest import mock
+
+        # The state ERROR_CREATING_JOB is only handled when running the job,
+        # and not while checking the status, so it is not tested.
+        all_state_apis = {'COMPLETED': NonQueuedAPI,
+                          'CANCELLED': CancellableAPI,
+                          'ERROR_VALIDATING_JOB': ErrorWhileValidatingAPI,
+                          'ERROR_RUNNING_JOB': ErrorWhileRunningAPI}
+
+        for status, api in all_state_apis.items():
+            with self.subTest(status=status):
+                job = self.run_with_api(api())
+                self.wait_for_initialization(job)
+
+                try:
+                    self._current_api.progress()
+                except BaseFakeAPI.NoMoreStatesError:
+                    pass
+
+                with mock.patch.object(self._current_api, 'get_job',
+                                       wraps=self._current_api.get_job):
+                    _ = job.status
+                    if status in API_FINAL_STATES:
+                        self.assertTrue(self._current_api.get_job.called)
+                    else:
+                        self.assertFalse(self._current_api.get_job.called)
+
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
         status."""
@@ -308,7 +337,10 @@ class BaseFakeAPI():
         return self._job_status[self._state]
 
     def get_status_job(self, job_id):
-        return self.get_job(job_id)
+        summary_fields = ['status', 'infoQueue']
+        complete_response = self.get_job(job_id)
+        return {key: value for key, value in complete_response.items()
+                if key in summary_fields}
 
     def run_job(self, *_args, **_kwargs):
         time.sleep(0.2)
