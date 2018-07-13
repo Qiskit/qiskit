@@ -19,3 +19,10 @@ class JobStatus(enum.Enum):
     CANCELLED = 'job has been cancelled'
     DONE = 'job has successfully run'
     ERROR = 'job incurred error'
+
+
+JOB_FINAL_STATES = (
+    JobStatus.DONE,
+    JobStatus.CANCELLED,
+    JobStatus.ERROR
+)

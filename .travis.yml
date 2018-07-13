@@ -155,18 +155,13 @@ jobs:
     # GNU/Linux, Python 3.7
     - stage: test
       <<: *stage_linux
-      # Compiling Python 3.7 requires an Ubuntu Xenial distribution.
-      # Try removing once python: 3.7 is available in Travis.
+      # Compiling Python 3.7 requires an Ubuntu Xenial distribution
+      # and sudo set to true
+      # Fix when this is solved:
+      # https://github.com/travis-ci/travis-ci/issues/9815
       dist: xenial
-      # Enable Travis native Python and remove before_install when the following
-      # is resolved: https://github.com/travis-ci/travis-ci/issues/9815
-      # python: 3.7
-      before_install:
-        - sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev
-        - cd /opt/pyenv/ && git pull origin master && cd -
-        - pyenv install 3.7.0
-        - /opt/pyenv/versions/3.7.0/bin/python -m venv .venv
-        - source .venv/bin/activate
+      python: 3.7
+      sudo: true
 
     # OSX, Python 3.6.5 (via pyenv)
 #    - stage: test
