@@ -21,7 +21,7 @@ import numpy
 
 from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
-from qiskit.backends.jobstatus import JobStatus
+from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
@@ -46,11 +46,6 @@ class IBMQJob(BaseJob):
         _final_states (list(JobStatus)): terminal states of async jobs
     """
     _executor = futures.ThreadPoolExecutor()
-    _final_states = [
-        JobStatus.DONE,
-        JobStatus.CANCELLED,
-        JobStatus.ERROR
-    ]
 
     def __init__(self, qobj, api, is_device):
         """IBMQJob init function.
@@ -147,7 +142,7 @@ class IBMQJob(BaseJob):
         if self._is_device and self.done:
             _reorder_bits(this_result)
 
-        if self._status not in self._final_states:
+        if self._status not in JOB_FINAL_STATES:
             if this_result.get_status() == 'ERROR':
                 self._status = JobStatus.ERROR
             else:
@@ -197,7 +192,7 @@ class IBMQJob(BaseJob):
 
     def _update_status(self):
         """Query the API to update the status."""
-        if (self._status in self._final_states or
+        if (self._status in JOB_FINAL_STATES or
                 self._status == JobStatus.INITIALIZING):
             return None
 
@@ -346,7 +341,7 @@ class IBMQJob(BaseJob):
         Return backend determined id (also available in status method).
         """
         # pylint: disable=invalid-name
-        while self._id is None and self._status not in self._final_states:
+        while self._id is None and self._status not in JOB_FINAL_STATES:
             if self._future_submit.exception():
                 self._status = JobStatus.ERROR
                 self._exception = self._future_submit.exception()
@@ -452,7 +447,7 @@ class IBMQJob(BaseJob):
         """
         start_time = time.time()
         api_result = self._update_status()
-        while self._status not in self._final_states:
+        while self._status not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
                 raise TimeoutError('QISKit timed out')
