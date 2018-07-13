@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tools for compiling a batch of quantum circuits."""
+from copy import deepcopy
 import logging
 import uuid
 
@@ -62,10 +63,13 @@ def compile(circuits, backend,
 
     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefern
-    qobj_config = (config or {}).copy()
+    qobj_config = deepcopy(config or {})
+    # TODO: "register_slots" is required by the qobj schema in the top-level
+    # qobj.config. In this implementation, is overridden by the individual
+    # experiment.config entries (hence the 0 should never be used).
     qobj_config.update({'shots': shots,
                         'max_credits': max_credits,
-                        'register_slots': 0})  # TODO: fix"register_slots"
+                        'register_slots': 0})
 
     qobj = Qobj(id=qobj_id or str(uuid.uuid4()),
                 config=QobjConfig(**qobj_config),
@@ -121,9 +125,14 @@ def compile(circuits, backend,
         # Step 3b: populate the Experiment configuration and header
         experiment.header.name = circuit.name
         # TODO: place in header or config?
-        experiment.config = QobjItem(coupling_map=coupling_map,
-                                     basis_gates=basis_gates,
-                                     layout=list_layout)
+        experiment_config = deepcopy(config or {})
+        experiment_config.update({
+            'coupling_map': coupling_map,
+            'basis_gates': basis_gates,
+            'layout': list_layout,
+            'register_slots': sum(register.size for register
+                                  in circuit.get_cregs().values())})
+        experiment.config = QobjItem(**experiment_config)
 
         # set eval_symbols=True to evaluate each symbolic expression
         # TODO after transition to qobj, we can drop this

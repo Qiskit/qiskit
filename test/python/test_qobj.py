@@ -7,7 +7,7 @@
 
 """QOBj test."""
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment,
-                         QobjInstruction, qobj_to_dict)
+                         QobjInstruction)
 from .common import QiskitTestCase
 
 
@@ -23,8 +23,7 @@ class TestQobj(QiskitTestCase):
         experiments = [experiment_1]
 
         qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
-        import pprint
-        pprint.pprint(qobj_to_dict(qobj))
+
         expected = {
             'id': '12345',
             'type': 'QASM',
