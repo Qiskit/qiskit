@@ -15,6 +15,7 @@ import time
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
@@ -256,7 +257,7 @@ class TestIBMQJobStates(QiskitTestCase):
                 with mock.patch.object(self._current_api, 'get_job',
                                        wraps=self._current_api.get_job):
                     _ = job.status
-                    if status in IBMQJob.api_final_states:
+                    if status in API_FINAL_STATES:
                         self.assertTrue(self._current_api.get_job.called)
                     else:
                         self.assertFalse(self._current_api.get_job.called)

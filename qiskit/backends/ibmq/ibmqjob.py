@@ -29,6 +29,15 @@ from qiskit._resulterror import ResultError
 logger = logging.getLogger(__name__)
 
 
+API_FINAL_STATES = (
+    'COMPLETED',
+    'CANCELLED',
+    'ERROR_CREATING_JOB',
+    'ERROR_VALIDATING_JOB',
+    'ERROR_RUNNING_JOB'
+)
+
+
 class IBMQJob(BaseJob):
     """IBM Q Job class
 
@@ -36,14 +45,6 @@ class IBMQJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
         _final_states (list(JobStatus)): terminal states of async jobs
     """
-    api_final_states = [
-        'COMPLETED',
-        'CANCELLED',
-        'ERROR_CREATING_JOB',
-        'ERROR_VALIDATING_JOB',
-        'ERROR_RUNNING_JOB'
-    ]
-
     _executor = futures.ThreadPoolExecutor()
     _final_states = [
         JobStatus.DONE,
@@ -202,7 +203,7 @@ class IBMQJob(BaseJob):
 
         try:
             api_job = self._api.get_status_job(self.id)
-            if api_job['status'] in self.api_final_states:
+            if api_job['status'] in API_FINAL_STATES:
                 # Call the endpoint that returns full information.
                 api_job = self._api.get_job(self.id)
 
