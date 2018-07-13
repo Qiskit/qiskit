@@ -224,11 +224,11 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
-    @unittest.expectedFailure
-    def test_cancel_while_initializing_does_not_fail(self):
+    def test_cancel_while_initializing_is_not_possible_but_does_not_fail(self):
         job = self.run_with_api(CancellableAPI())
-        job.cancel()
-        self.assertStatus(job, JobStatus.CANCELLED)
+        can_cancel = job.cancel()
+        self.assertFalse(can_cancel)
+        self.assertStatus(job, JobStatus.INITIALIZING)
 
     def test_only_final_states_cause_datailed_request(self):
         from unittest import mock
