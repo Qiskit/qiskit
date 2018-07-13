@@ -127,7 +127,7 @@ class QobjConfig(QobjItem):
 
     Attributes defined in the schema but not required:
         max_credits (int): number of credits.
-        seed (int):
+        seed (int): random seed.
     """
     REQUIRED_ARGS = ['shots', 'register_slots']
 
@@ -143,9 +143,9 @@ class QobjHeader(QobjItem):
 
     Attributes defined in the schema but not required:
         backend_name (str): name of the backend
-        backend_version (str):
-        qubit_labels (list):
-        clbit_labels (list):
+        backend_version (str): the backend version this set of experiments was generated for.
+        qubit_labels (list): map physical qubits to qregs (for QASM).
+        clbit_labels (list): map classical clbits to register_slots (for QASM).
     """
     pass
 
@@ -156,8 +156,8 @@ class QobjExperiment(QobjItem):
         instructions (list[QobjInstruction)): list of instructions.
 
     Attributes defined in the schema but not required:
-        header (QobjExperimentHeader):
-        config (QobjItem):
+        header (QobjExperimentHeader): header.
+        config (QobjItem): config settings for the Experiment.
     """
     REQUIRED_ARGS = ['instructions']
 

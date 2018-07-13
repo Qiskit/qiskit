@@ -303,6 +303,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_get_jobs_filter_counts(self):
         # TODO: consider generalizing backend name
+        # TODO: this tests depends on the previous executions of the user
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         my_filter = {'backend.name': 'ibmq_qasm_simulator',
                      'shots': 1024,
@@ -318,8 +319,9 @@ class TestIBMQJob(QiskitTestCase):
                                 for cresult in result._result['result']))
             for circuit_name in result.get_names():
                 self.log.info('\tcircuit_name: %s', circuit_name)
-                counts = result.get_counts(circuit_name)
-                self.log.info('\t%s', str(counts))
+                if circuit_name:
+                    counts = result.get_counts(circuit_name)
+                    self.log.info('\t%s', str(counts))
 
     def test_get_jobs_filter_date(self):
         backends = self._provider.available_backends()
