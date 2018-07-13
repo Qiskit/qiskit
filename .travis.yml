@@ -168,7 +168,7 @@ jobs:
       <<: *stage_osx
 
     # OSX, Python 3.7 (via pyenv)
-    - stage: tes
+    - stage: test
       <<: *stage_osx_python3_7
 
     # "deploy" stage.
