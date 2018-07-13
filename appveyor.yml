@@ -7,10 +7,8 @@ version: 1.0.{build}
 
 environment:
     matrix:
-        # - PYTHON_VERSION: 3.5
-        #   MINICONDA: C:\Miniconda35
-        # - PYTHON_VERSION: 3.6
-        #   MINICONDA: C:\Miniconda36
+        - PYTHON: C:\Python35
+        - PYTHON: C:\Python36
         - PYTHON: C:\Python37
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
