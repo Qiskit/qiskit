@@ -29,6 +29,14 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
     Authenticate against an online backend provider.
     This is a factory method that returns the provider that gets registered.
 
+    Note that if no parameters are passed, this method will try to
+    automatically discover the credentials for IBMQ in the following places,
+    in order::
+
+        1. in the `Qconfig.py` file in the current working directory.
+        2. in the environment variables.
+        3. in the `qiskitrc` configuration file.
+
     Args:
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class

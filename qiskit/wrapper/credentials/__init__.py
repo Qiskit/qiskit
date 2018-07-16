@@ -24,10 +24,11 @@ def discover_credentials():
     Automatically discover credentials for online providers.
 
     This method looks for credentials in the following locations, in order,
-    and returning as soon as credentials are found:
-    1. in the `Qconfig.py` file in the current working directory.
-    2. in the environment variables.
-    3. in the `qiskitrc` configuration file.
+    and returning as soon as credentials are found::
+
+        1. in the `Qconfig.py` file in the current working directory.
+        2. in the environment variables.
+        3. in the `qiskitrc` configuration file.
 
     Returns:
         dict: dictionary with the contents of the configuration file, with

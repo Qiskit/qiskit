@@ -130,19 +130,23 @@ your IBM Q Experience account:
 
 2. Get an API token from the IBM Q Experience website under _My Account > Advanced > API Token_. This API token allows you to execute your programs with the IBM Q Experience backends. See: [Example](doc/example_real_backend.rst).
 
-3. We are now going to add the necessary credentials to QISKit.  Take your token from step 2, here called `MY_API_TOKEN`, and pass it to the `store_credentials` function:
+3. We are now going to add the necessary credentials to QISKit. Take your token
+   from step 2, here called `MY_API_TOKEN`, and pass it to the
+   `store_credentials` function:
 
-  ```python
-  from qiskit import store_credentials
+   ```python
+   from qiskit import store_credentials
 
-  store_credentials(`MY_API_TOKEN`)
-  ```
+   store_credentials('MY_API_TOKEN')
+   ```
 
 4. If you have access to the IBM Q Network features, you also need to pass the
    values for your url, hub, group, and project found on your IBM Q account
    page to `store_credentials`.
 
-Once the credentials are stored, you can register them via
+After calling `store_credentials()`, your credentials will be stored into disk.
+Once they are stored, you can automatically load and use them in your program
+via:
 
 ```python
 from qiskit import register
@@ -150,8 +154,10 @@ from qiskit import register
 register()
 ```
 
-For more details on this installation method, using environmental variables,
-and the old `Qconfig.py` method, see
+For more details on installing Qiskit and for alternative methods for passing
+the IBM QX credentials, such as using environment variables, sending them
+explicitly and support for the `Qconfig.py` method available in previous
+versions, please check
 [our Qiskit documentation](https://www.qiskit.org/documentation/).
 
 
