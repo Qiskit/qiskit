@@ -25,7 +25,6 @@ Links to Sections:
 * [Creating your first Quantum Program](#creating-your-first-quantum-program)
 * [More Information](#more-information)
 * [Authors](#authors-alphabetical)
-* [License](#license)
 
 ## Installation
 
@@ -218,8 +217,3 @@ Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chr
 
 And continues to grow with the help and work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
 to the project at different levels.
-
-## License
-
-The code in this repository is [licensed for use](LICENSE.txt) with an Apache 2.0 license. If you are contributing you should also reference the [contribution guidelines](.github/CONTRIBUTING.rst).
-
