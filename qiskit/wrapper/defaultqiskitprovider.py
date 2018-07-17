@@ -41,14 +41,16 @@ class DefaultQISKitProvider(BaseProvider):
 
         Note:
             If two or more providers share similar backend names, only the backends
-            belonging to the 1st registered provider will be returned.
+            belonging to the first registered provider will be returned.
 
         Args:
             filters (dict or callable): filtering conditions.
-                each will either pass through, or be filtered out.
+                each will either pass through, or be filtered out:
+
                 1) dict: {'criteria': value}
                     the criteria can be over backend's `configuration` or `status`
                     e.g. {'local': False, 'simulator': False, 'operational': True}
+
                 2) callable: BaseBackend -> bool
                     e.g. lambda x: x.configuration['n_qubits'] > 5
 
@@ -122,7 +124,7 @@ class DefaultQISKitProvider(BaseProvider):
 
     def aliased_backend_names(self):
         """
-        Aggregate aliase names from all providers.
+        Aggregate aliased names from all providers.
 
         Returns:
             dict[str: str]: aggregated alias dictionary
