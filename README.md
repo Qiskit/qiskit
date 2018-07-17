@@ -25,7 +25,6 @@ Links to Sections:
 * [Creating your first Quantum Program](#creating-your-first-quantum-program)
 * [More Information](#more-information)
 * [Authors](#authors-alphabetical)
-* [License](#license)
 
 ## Installation
 
