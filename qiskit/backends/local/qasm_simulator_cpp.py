@@ -156,8 +156,9 @@ class QASMSimulatorEncoder(json.JSONEncoder):
 
     This functions as the standard JSON Encoder but adds support
     for encoding:
-        complex numbers z as lists [z.real, z.imag]
-        ndarrays as nested lists.
+
+        * complex numbers z as lists [z.real, z.imag]
+        * ndarrays as nested lists.
     """
 
     # pylint: disable=method-hidden,arguments-differ
@@ -242,9 +243,11 @@ def cx_error_matrix(cal_error, zz_error):
 
     The ideal cross-resonsance (CR) gate corresponds to a 2-qubit rotation
         U_CR_ideal = exp(-1j * (pi/2) * XZ/2)
+
     where qubit-0 is the control, and qubit-1 is the target. This can be
-    converted to a CNOT gate by single-qubit rotations
-        U_CX = U_L * U_CR_ideal * U_R.
+    converted to a CNOT gate by single-qubit rotations::
+
+        U_CX = U_L * U_CR_ideal * U_R
 
     The noisy rotation is implemented as
         U_CR_noise = exp(-1j * (pi/2 + cal_error) * (XZ + zz_error ZZ)/2)
@@ -287,8 +290,10 @@ def x90_error_matrix(cal_error, detuning_error):
 
     The ideal X90 rotation is a pi/2 rotation about the X-axis:
         U_X90_ideal = exp(-1j (pi/2) X/2)
+
     The noisy rotation is implemented as
         U_X90_noise = exp(-1j (pi/2 + cal_error) (cos(d) X + sin(d) Y)/2)
+
     where d is the detuning_error.
 
     The retured error matrix is given by
@@ -315,9 +320,10 @@ def _generate_coherent_error_matrix(config):
         config (dict): the config of a qobj circuit
 
     This parses the config for the following noise parameter keys and returns a
-    coherent error matrix for simulation coherent noise.
-        'CX' gate: 'calibration_error', 'zz_error'
-        'X90' gate: 'calibration_error', 'detuning_error'
+    coherent error matrix for simulation coherent noise::
+
+        * 'CX' gate: 'calibration_error', 'zz_error'
+        * 'X90' gate: 'calibration_error', 'detuning_error'
     """
     # pylint: disable=invalid-name
     if 'noise_params' in config:
