@@ -44,9 +44,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'sphinxcontrib.fulltoc']
 
-autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance',
-                         'inherited-members']
-
 # Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
@@ -59,6 +56,8 @@ napoleon_use_admonition_for_references = False
 napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
+
+autoclass_content = 'both'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
