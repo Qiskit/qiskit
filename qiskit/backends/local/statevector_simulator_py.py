@@ -60,8 +60,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
-        for circuit in qobj.circuits:
-            circuit.compiled_circuit.operations.append(
+        for experiment in qobj.experiments:
+            experiment.instructions.append(
                 QobjInstruction.from_dict({'name': 'snapshot', 'params': [final_state_key]})
             )
         result = super()._run_job(qobj)._result
@@ -93,13 +93,13 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             logger.info("statevector simulator only supports 1 shot. "
                         "Setting shots=1.")
             qobj.config.shots = 1
-        for circuit in qobj.circuits:
-            if getattr(circuit.config, 'shots', 1) != 1:
+        for experiment in qobj.experiments:
+            if getattr(experiment.config, 'shots', 1) != 1:
                 logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", circuit.name)
-                circuit.config.shots = 1
-            for op in circuit.compiled_circuit.operations:
+                            "Setting shots=1 for circuit %s.", experiment.name)
+                experiment.config.shots = 1
+            for op in experiment.instructions:
                 if op.name in ['measure', 'reset']:
                     raise SimulatorError(
                         "In circuit {}: statevector simulator does not support "
-                        "measure or reset.".format(circuit.name))
+                        "measure or reset.".format(experiment.header.name))

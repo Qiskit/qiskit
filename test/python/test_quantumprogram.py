@@ -731,7 +731,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
 
-        If all correct should return length 6 dictionary.
+        If all correct should return length 4 dictionary.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = q_program.get_circuit("circuitName")
@@ -878,24 +878,22 @@ class TestQuantumProgram(QiskitTestCase):
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        qobj1 = qobj1.as_dict()
-        qobj1['circuits'][0]['config']['shots'] = 50
-        qobj1['circuits'][0]['config']['xvals'] = [1, 1, 1]
+        qobj1.experiments[0].config.shots = 50
+        qobj1.experiments[0].config.xvals = [1, 1, 1]
         config['shots'] = 1000
         config['xvals'][0] = 'only for qobj2'
         qobj2 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        qobj2 = qobj2.as_dict()
-        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
-        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
-        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1, 1, 1])
-        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1, 2, 3, 4])
-        self.assertTrue(qobj1['config']['shots'] == 1024)
-        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
+        self.assertTrue(qobj1.experiments[0].config.shots == 50)
+        self.assertTrue(qobj1.experiments[1].config.shots == 1)
+        self.assertTrue(qobj1.experiments[0].config.xvals == [1, 1, 1])
+        self.assertTrue(qobj1.experiments[1].config.xvals == [1, 2, 3, 4])
+        self.assertTrue(qobj1.config.shots == 1024)
+        self.assertTrue(qobj2.experiments[0].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[1].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[0].config.xvals == [
             'only for qobj2', 2, 3, 4])
-        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
+        self.assertTrue(qobj2.experiments[1].config.xvals == [
             'only for qobj2', 2, 3, 4])
 
     ###############################################################
@@ -1583,12 +1581,12 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(qobj.config.max_credits, 11)
         # change seed
         qobj = q_program.reconfig(qobj, seed=11)
-        self.assertEqual(qobj.circuits[0].config.seed, 11)
+        self.assertEqual(qobj.experiments[0].config.seed, 11)
         # change the config
         test_config_2 = {'foo': 2}
         qobj = q_program.reconfig(qobj, config=test_config_2)
-        self.assertEqual(qobj.circuits[0].config.foo, 2)
-        self.assertEqual(qobj.circuits[0].config.bar, 1)
+        self.assertEqual(qobj.experiments[0].config.foo, 2)
+        self.assertEqual(qobj.experiments[0].config.bar, 1)
 
     def test_timeout(self):
         """Test run.

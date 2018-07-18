@@ -25,10 +25,6 @@ class TestIBMQJobStates(QiskitTestCase):
     """
     Test ibmqjob module.
     """
-
-    def __init__(self, *args):
-        super().__init__(*args)
-
     def setUp(self):
         self._current_api = None
         self._current_qjob = None

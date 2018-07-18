@@ -22,6 +22,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -86,11 +87,13 @@ class QasmSimulatorCpp(BaseBackend):
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circuit in qobj.circuits:
+
+        for experiment in qobj.experiments:
             if 'measure' not in [op.name for
-                                 op in circuit.compiled_circuit.operations]:
+                                 op in experiment.instructions]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circuit.name)
+                               "classical register will remain all zeros.",
+                               experiment.header.name)
 
 
 class CliffordSimulatorCpp(BaseBackend):
@@ -213,7 +216,8 @@ def run(qobj, executable):
     try:
         with subprocess.Popen([executable, '-'],
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj.as_dict(), cls=QASMSimulatorEncoder).encode()
+            cin = json.dumps(qobj_to_dict(qobj, version='0.0.1'),
+                             cls=QASMSimulatorEncoder).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
