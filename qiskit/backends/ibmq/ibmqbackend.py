@@ -17,6 +17,21 @@ from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends import JobStatus
 
+# FIXME (new_backend_names): these two dicts are placed here to avoid cyclic
+# imports. Once fixed, their place should be `ibmqprovider.py`.
+
+# Dict with the form {'new_name': 'previous_name'}
+ALIASED_BACKEND_NAMES = {
+    'ibmq_5_yorktown': 'ibmqx2',
+    'ibmq_5_tenerife': 'ibmqx4',
+    'ibmq_16_rueschlikon': 'ibmqx5',
+    'ibmq_20_austin': 'QS1_1'
+}
+
+# Dict with the form {'previous_name': 'new_name'}
+ALIASED_BACKEND_NAMES_REVERSED = {name: alias for alias, name in
+                                  ALIASED_BACKEND_NAMES.items()}
+
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +275,6 @@ class IBMQBackend(BaseBackend):
         Returns:
             str: name valid for the api
         """
-        from qiskit.backends.ibmq.ibmqprovider import ALIASED_BACKEND_NAMES
         return ALIASED_BACKEND_NAMES.get(self.name) or self.name
 
     def _update_dict_name_from_api(self, status, field='name'):
@@ -277,7 +291,6 @@ class IBMQBackend(BaseBackend):
         Returns:
             dict: dict with the 'name' replaced.
         """
-        from qiskit.backends.ibmq.ibmqprovider import ALIASED_BACKEND_NAMES_REVERSED
         if field in status.keys():
             status[field] = ALIASED_BACKEND_NAMES_REVERSED.get(
                 status[field]) or status[field]
