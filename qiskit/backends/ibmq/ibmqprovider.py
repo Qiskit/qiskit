@@ -10,19 +10,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-
-# Dict with the form {'new_name': 'previous_name'}
-ALIASED_BACKEND_NAMES = {
-    'ibmq_5_yorktown': 'ibmqx2',
-    'ibmq_5_tenerife': 'ibmqx4',
-    'ibmq_16_rueschlikon': 'ibmqx5',
-    'ibmq_20_austin': 'QS1_1'
-}
-
-# Dict with the form {'previous_name': 'new_name'}
-ALIASED_BACKEND_NAMES_REVERSED = {name: alias for alias, name in
-                                  ALIASED_BACKEND_NAMES.items()}
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackend, ALIASED_BACKEND_NAMES_REVERSED
 
 
 class IBMQProvider(BaseProvider):
