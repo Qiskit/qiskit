@@ -136,6 +136,16 @@ class IBMQBackend(BaseBackend):
             # be fixed in api
             if status['name'] == 'ibmqx_hpc_qasm_simulator':
                 status['available'] = True
+            # FIXME a hack to show the new device display names. Needs to
+            # be fixed in the API.
+            if status['name'] == 'ibmqx2':
+                status['name'] = 'ibmq_5_yorktown'
+            if status['name'] == 'ibmqx4':
+                status['name'] = 'ibmq_5_tenerife'
+            if status['name'] == 'ibmqx5':
+                status['name'] = 'ibmq_16_rueschlikon'
+            if status['name'] == 'QS1_1':
+                status['name'] = 'ibmq_20_austin'
 
             # FIXME: this needs to be replaced at the API level - eventually
             # it will.
