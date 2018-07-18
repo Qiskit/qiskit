@@ -58,6 +58,10 @@ def compile(circuits, backend,
 
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
+    # FIXME (new_backend_names): the API uses the old backend names, but in
+    # qiskit we are using the new ones. This makes the qobj names valid (old).
+    if getattr(backend, '_name_for_api', None):
+        backend_name = backend._name_for_api
 
     qobj = {}
 
