@@ -86,7 +86,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         # pylint: disable=unused-argument
         import re
-        self.assertTrue(re.match('https://[-a-z.]*bluemix.net/api', QE_URL))
+        self.assertTrue(re.match('^https?://[0-9.:/A-Za-z_-]+/api', QE_URL))
 
     def test_create_classical_register(self):
         """Test create_classical_register.
