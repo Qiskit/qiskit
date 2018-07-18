@@ -21,12 +21,21 @@ import numpy
 
 from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
-from qiskit.backends.jobstatus import JobStatus
+from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._qiskiterror import QISKitError
 from qiskit._result import Result
 from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
+
+
+API_FINAL_STATES = (
+    'COMPLETED',
+    'CANCELLED',
+    'ERROR_CREATING_JOB',
+    'ERROR_VALIDATING_JOB',
+    'ERROR_RUNNING_JOB'
+)
 
 
 class IBMQJob(BaseJob):
@@ -37,17 +46,12 @@ class IBMQJob(BaseJob):
         _final_states (list(JobStatus)): terminal states of async jobs
     """
     _executor = futures.ThreadPoolExecutor()
-    _final_states = [
-        JobStatus.DONE,
-        JobStatus.CANCELLED,
-        JobStatus.ERROR
-    ]
 
     def __init__(self, qobj, api, is_device):
         """IBMQJob init function.
 
         Args:
-            qobj (dict): job description
+            qobj (Qobj): job description
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
         """
@@ -55,7 +59,7 @@ class IBMQJob(BaseJob):
         self._qobj = qobj
         self._api = api
         self._id = None  # this must be before creating the future
-        self._backend_name = self._qobj.get('config').get('backend_name')
+        self._backend_name = self._qobj.config.backend_name
         self._status = JobStatus.INITIALIZING
         self._future_submit = self._executor.submit(self._submit)
         self._status_msg = 'Job is initializing. Please, wait a moment.'
@@ -138,7 +142,7 @@ class IBMQJob(BaseJob):
         if self._is_device and self.done:
             _reorder_bits(this_result)
 
-        if self._status not in self._final_states:
+        if self._status not in JOB_FINAL_STATES:
             if this_result.get_status() == 'ERROR':
                 self._status = JobStatus.ERROR
             else:
@@ -188,12 +192,16 @@ class IBMQJob(BaseJob):
 
     def _update_status(self):
         """Query the API to update the status."""
-        if (self._status in self._final_states or
+        if (self._status in JOB_FINAL_STATES or
                 self._status == JobStatus.INITIALIZING):
             return None
 
         try:
-            api_job = self._api.get_job(self.id)
+            api_job = self._api.get_status_job(self.id)
+            if api_job['status'] in API_FINAL_STATES:
+                # Call the endpoint that returns full information.
+                api_job = self._api.get_job(self.id)
+
             if 'status' not in api_job:
                 raise QISKitError('get_job didn\'t return status: %s' %
                                   pprint.pformat(api_job))
@@ -204,7 +212,11 @@ class IBMQJob(BaseJob):
             self._status_msg = '{}'.format(err)
             return None
 
-        if api_job['status'] == 'RUNNING':
+        if api_job['status'] == 'VALIDATING':
+            self._status = JobStatus.VALIDATING
+            self._status_msg = self._status.value
+
+        elif api_job['status'] == 'RUNNING':
             self._status = JobStatus.RUNNING
             self._status_msg = self._status.value
             queued, queue_position = self._is_job_queued(api_job)
@@ -224,7 +236,7 @@ class IBMQJob(BaseJob):
             self._cancelled = True
 
         elif 'ERROR' in api_job['status']:
-            # ERROR_CREATING_JOB or ERROR_RUNNING_JOB
+            # Errored status are of the form "ERROR_*_JOB"
             self._status = JobStatus.ERROR
             self._status_msg = api_job['status']
 
@@ -279,6 +291,19 @@ class IBMQJob(BaseJob):
         return self.status['status'] == JobStatus.RUNNING
 
     @property
+    def validating(self):
+        """
+        Returns whether job is being validated
+
+        Returns:
+            bool: True if job is under validation, else False.
+
+        Raises:
+            QISKitError: couldn't get job status from server
+        """
+        return self.status['status'] == JobStatus.VALIDATING
+
+    @property
     def done(self):
         """
         Returns True if job successfully finished running.
@@ -316,7 +341,7 @@ class IBMQJob(BaseJob):
         Return backend determined id (also available in status method).
         """
         # pylint: disable=invalid-name
-        while self._id is None and self._status not in self._final_states:
+        while self._id is None and self._status not in JOB_FINAL_STATES:
             if self._future_submit.exception():
                 self._status = JobStatus.ERROR
                 self._exception = self._future_submit.exception()
@@ -345,38 +370,38 @@ class IBMQJob(BaseJob):
         """
         qobj = self._qobj
         api_jobs = []
-        for circuit in qobj['circuits']:
+        for circuit in qobj.circuits:
             job = {}
-            if (('compiled_circuit_qasm' not in circuit) or
-                    (circuit['compiled_circuit_qasm'] is None)):
+            if not circuit.compiled_circuit_qasm:
                 compiled_circuit = transpile(circuit['circuit'])
-                circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
-            if isinstance(circuit['compiled_circuit_qasm'], bytes):
-                job['qasm'] = circuit['compiled_circuit_qasm'].decode()
+                circuit.compiled_circuit_qasm = compiled_circuit.qasm(qeflag=True)
+            if isinstance(circuit.compiled_circuit_qasm, bytes):
+                job['qasm'] = circuit.compiled_circuit_qasm.decode()
             else:
-                job['qasm'] = circuit['compiled_circuit_qasm']
-            if 'name' in circuit:
-                job['name'] = circuit['name']
+                job['qasm'] = circuit.compiled_circuit_qasm
+            if getattr(circuit, 'name', None):
+                job['name'] = circuit.name
             # convert numpy types for json serialization
             compiled_circuit = json.loads(
-                json.dumps(circuit['compiled_circuit'],
+                json.dumps(circuit.compiled_circuit.as_dict(),
                            default=_numpy_type_converter))
             job['metadata'] = {'compiled_circuit': compiled_circuit}
             api_jobs.append(job)
-        seed0 = qobj['circuits'][0]['config']['seed']
+
+        seed0 = qobj.circuits[0].config.seed
         hpc = None
-        if 'hpc' in qobj['config']:
+        if getattr(qobj.config, 'hpc', None):
             try:
                 # Use CamelCase when passing the hpc parameters to the API.
                 hpc = {
                     'multiShotOptimization':
-                        qobj['config']['hpc']['multi_shot_optimization'],
+                        qobj.config.hpc.multi_shot_optimization,
                     'ompNumThreads':
-                        qobj['config']['hpc']['omp_num_threads']
+                        qobj.config.hpc.omp_num_threads
                 }
             except (KeyError, TypeError):
                 hpc = None
-        backend_name = qobj['config']['backend_name']
+        backend_name = qobj.config.backend_name
         if backend_name != self._backend_name:
             raise QISKitError("inconsistent qobj backend "
                               "name ({0} != {1})".format(backend_name,
@@ -384,8 +409,8 @@ class IBMQJob(BaseJob):
         submit_info = {}
         try:
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
-                                            shots=qobj['config']['shots'],
-                                            max_credits=qobj['config']['max_credits'],
+                                            shots=qobj.config.shots,
+                                            max_credits=qobj.config.max_credits,
                                             seed=seed0,
                                             hpc=hpc)
         # pylint: disable=broad-except
@@ -422,7 +447,7 @@ class IBMQJob(BaseJob):
         """
         start_time = time.time()
         api_result = self._update_status()
-        while self._status not in self._final_states:
+        while self._status not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
                 raise TimeoutError('QISKit timed out')
@@ -434,12 +459,6 @@ class IBMQJob(BaseJob):
                                               (pprint.pformat(api_result)))
                 raise QISKitError("get_job didn't return status: %s" %
                                   (pprint.pformat(api_result)))
-
-            if (api_result['status'] == 'ERROR_CREATING_JOB' or
-                    api_result['status'] == 'ERROR_RUNNING_JOB'):
-                job_result = {'id': self._id, 'status': 'ERROR',
-                              'result': api_result['status']}
-                return Result(job_result)
 
             time.sleep(wait)
             api_result = self._update_status()

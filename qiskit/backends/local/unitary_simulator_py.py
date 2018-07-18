@@ -156,13 +156,13 @@ class UnitarySimulatorPy(BaseBackend):
         """Run qobj. This is a blocking call.
 
         Args:
-            qobj (dict): job description
+            qobj (Qobj): job description
         Returns:
             Result: Result object
         """
         result_list = []
-        for circuit in qobj['circuits']:
-            result_list.append(self.run_circuit(circuit))
+        for circuit in qobj.circuits:
+            result_list.append(self.run_circuit(circuit.as_dict()))
         job_id = str(uuid.uuid4())
         return Result(
             {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'})

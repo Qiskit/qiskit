@@ -15,6 +15,8 @@ import time
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
+from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
 
@@ -36,6 +38,42 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertStatus(job, JobStatus.INITIALIZING)
         self.wait_for_initialization(job)
         self.assertIsInstance(job.exception, IBMQJobError)
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_validating_job(self):
+        job = self.run_with_api(ValidatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.VALIDATING)
+
+        self._current_api.progress()
+
+    def test_error_while_creating_job(self):
+        job = self.run_with_api(ErrorWhileCreatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_error_while_running_job(self):
+        job = self.run_with_api(ErrorWhileRunningAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.RUNNING)
+
+        self._current_api.progress()
+        self.assertStatus(job, JobStatus.ERROR)
+
+    def test_error_while_validating_job(self):
+        job = self.run_with_api(ErrorWhileValidatingAPI())
+        self.assertStatus(job, JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertStatus(job, JobStatus.VALIDATING)
+
+        self._current_api.progress()
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_status_flow_for_non_queued_job(self):
@@ -196,6 +234,34 @@ class TestIBMQJobStates(QiskitTestCase):
         job.cancel()
         self.assertStatus(job, JobStatus.CANCELLED)
 
+    def test_only_final_states_cause_datailed_request(self):
+        from unittest import mock
+
+        # The state ERROR_CREATING_JOB is only handled when running the job,
+        # and not while checking the status, so it is not tested.
+        all_state_apis = {'COMPLETED': NonQueuedAPI,
+                          'CANCELLED': CancellableAPI,
+                          'ERROR_VALIDATING_JOB': ErrorWhileValidatingAPI,
+                          'ERROR_RUNNING_JOB': ErrorWhileRunningAPI}
+
+        for status, api in all_state_apis.items():
+            with self.subTest(status=status):
+                job = self.run_with_api(api())
+                self.wait_for_initialization(job)
+
+                try:
+                    self._current_api.progress()
+                except BaseFakeAPI.NoMoreStatesError:
+                    pass
+
+                with mock.patch.object(self._current_api, 'get_job',
+                                       wraps=self._current_api.get_job):
+                    _ = job.status
+                    if status in API_FINAL_STATES:
+                        self.assertTrue(self._current_api.get_job.called)
+                    else:
+                        self.assertFalse(self._current_api.get_job.called)
+
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
         status."""
@@ -218,6 +284,8 @@ class TestIBMQJobStates(QiskitTestCase):
             self.assertTrue(job.cancelled)
         elif status == JobStatus.DONE:
             self.assertTrue(job.done)
+        elif status == JobStatus.VALIDATING:
+            self.assertTrue(job.validating)
         elif status == JobStatus.RUNNING:
             self.assertTrue(job.running)
         elif status == JobStatus.QUEUED:
@@ -227,7 +295,8 @@ class TestIBMQJobStates(QiskitTestCase):
         """Creates a new `IBMQJob` instance running with the provided API
         object."""
         self._current_api = api
-        self._current_qjob = IBMQJob(new_fake_qobj(), api, False)
+        self._current_qjob = IBMQJob(Qobj.from_dict(new_fake_qobj()), api,
+                                     False)
         return self._current_qjob
 
 
@@ -267,6 +336,12 @@ class BaseFakeAPI():
             return {'status': 'Error', 'error': 'Job ID not specified'}
         return self._job_status[self._state]
 
+    def get_status_job(self, job_id):
+        summary_fields = ['status', 'infoQueue']
+        complete_response = self.get_job(job_id)
+        return {key: value for key, value in complete_response.items()
+                if key in summary_fields}
+
     def run_job(self, *_args, **_kwargs):
         time.sleep(0.2)
         return {'id': 'TEST_ID'}
@@ -291,12 +366,48 @@ class UnknownStatusAPI(BaseFakeAPI):
     ]
 
 
+class ValidatingAPI(BaseFakeAPI):
+    """Class for emulating an API with job validation."""
+
+    _job_status = [
+        {'status': 'VALIDATING'},
+        {'status': 'RUNNING'}
+    ]
+
+
+class ErrorWhileValidatingAPI(BaseFakeAPI):
+    """Class for emulating an API processing an invalid job."""
+
+    _job_status = [
+        {'status': 'VALIDATING'},
+        {'status': 'ERROR_VALIDATING_JOB'}
+    ]
+
+
 class NonQueuedAPI(BaseFakeAPI):
     """Class for emulating a successfully-completed non-queued API."""
 
     _job_status = [
         {'status': 'RUNNING'},
         {'status': 'COMPLETED', 'qasms': []}
+    ]
+
+
+class ErrorWhileCreatingAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while creating
+    the job."""
+
+    _job_status = [
+        {'status': 'ERROR_CREATING_JOB'}
+    ]
+
+
+class ErrorWhileRunningAPI(BaseFakeAPI):
+    """Class emulating an API processing a job that errors while running."""
+
+    _job_status = [
+        {'status': 'RUNNING'},
+        {'status': 'ERROR_RUNNING_JOB'}
     ]
 
 

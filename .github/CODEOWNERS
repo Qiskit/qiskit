@@ -1,6 +1,6 @@
 # This file defines the persons that will be assigned as reviewers for PRs that
 # modify a particular file in the repo. Please note it is just a convention
-# for the GitHub interface, and any member of the QISKit team can (and should!)
+# for the GitHub interface, and any member of the Qiskit team can (and should!)
 # review as well.
 
 # Real code owners.

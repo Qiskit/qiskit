@@ -69,9 +69,9 @@ class TestTranspiler(QiskitTestCase):
 
         qobj = wrapper.compile(circ, backend='local_qasm_simulator',
                                coupling_map=coupling_map, basis_gates=basis_gates)
-        compiler_json = qobj['circuits'][0]['compiled_circuit']
+        compiler_json = qobj.circuits[0].compiled_circuit
 
-        self.assertDictEqual(transpiler_json, compiler_json)
+        self.assertDictEqual(transpiler_json, compiler_json.as_dict())
 
     def test_pass_cx_cancellation(self):
         """Test the cx cancellation pass.

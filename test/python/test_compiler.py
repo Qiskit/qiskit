@@ -13,6 +13,7 @@ import unittest
 import qiskit
 from qiskit import transpiler
 from qiskit import Result
+from qiskit.qobj import Qobj
 from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
@@ -50,8 +51,8 @@ class TestCompiler(QiskitTestCase):
 
         qobj = transpiler.compile(qc, backend)
 
-        # FIXME should test against the qobj when defined
-        self.assertEqual(len(qobj), 3)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(qobj, Qobj)
 
     def test_compile_two(self):
         """Test Compiler.
@@ -70,8 +71,8 @@ class TestCompiler(QiskitTestCase):
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
 
-        # FIXME should test against the qobj when defined
-        self.assertEqual(len(qobj), 3)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(qobj, Qobj)
 
     def test_compile_run(self):
         """Test Compiler and run.
@@ -165,8 +166,8 @@ class TestCompiler(QiskitTestCase):
 
         qobj = transpiler.compile(qc, backend)
 
-        # FIXME should test against the qobj when defined
-        self.assertEqual(len(qobj), 3)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(qobj, Qobj)
 
     @requires_qe_access
     def test_compile_two_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
@@ -188,8 +189,8 @@ class TestCompiler(QiskitTestCase):
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
 
-        # FIXME should test against the qobj when defined
-        self.assertEqual(len(qobj), 3)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(qobj, Qobj)
 
     @requires_qe_access
     def test_compile_run_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
@@ -338,7 +339,7 @@ class TestCompiler(QiskitTestCase):
             qobj = transpiler.compile(circuit, backend)
         except QISKitError:
             qobj = None
-        self.assertIsInstance(qobj, dict)
+        self.assertIsInstance(qobj, Qobj)
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
@@ -358,7 +359,7 @@ class TestCompiler(QiskitTestCase):
             qobj = transpiler.compile(qc, backend)
         except QISKitError:
             qobj = None
-        self.assertIsInstance(qobj, dict)
+        self.assertIsInstance(qobj, Qobj)
 
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
@@ -377,10 +378,10 @@ class TestCompiler(QiskitTestCase):
         qc.cx(q[3], q[14])
         qc.measure(q, c)
         qobj = transpiler.compile(qc, backend)
-        compiled_ops = qobj['circuits'][0]['compiled_circuit']['operations']
+        compiled_ops = qobj.circuits[0].compiled_circuit.operations
         for op in compiled_ops:
-            if op['name'] == 'cx':
-                self.assertIn(op['qubits'], backend.configuration['coupling_map'])
+            if op.name == 'cx':
+                self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
 
 if __name__ == '__main__':

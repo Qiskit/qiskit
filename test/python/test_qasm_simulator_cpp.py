@@ -7,10 +7,9 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-from test.python.common import QiskitTestCase
-
 import json
 import unittest
+
 import numpy as np
 from numpy.linalg import norm
 
@@ -18,11 +17,14 @@ import qiskit
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit.transpiler import transpile
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
+from qiskit.dagcircuit import DAGCircuit
+
+from qiskit.qobj import Qobj
+from qiskit.transpiler import transpile
+from .common import QiskitTestCase
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -68,6 +70,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                              'layout': None,
                          }
                      ]}
+        self.qobj = Qobj.from_dict(self.qobj)
         # Simulator backend
         try:
             self.backend = QasmSimulatorCpp()
@@ -112,7 +115,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
 
     def test_run_qobj(self):
         result = self.backend.run(self.qobj).result()
-        shots = self.qobj['config']['shots']
+        shots = self.qobj.config.shots
         threshold = 0.04 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
@@ -124,9 +127,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_measure_opt(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         expected_data = {
             'measure (opt)': {
                 'deterministic': True,
@@ -205,9 +208,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_measure_opt_flag(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         sampled_measurements = {
             'measure (sampled)': True,
             'trivial (sampled)': True,
@@ -239,7 +242,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_reset(self):
         filename = self._get_resource_path('qobj/cpp_reset.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
         expected_data = {
             'reset': {'statevector': np.array([1, 0])},
@@ -263,7 +266,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_save_load(self):
         filename = self._get_resource_path('qobj/cpp_save_load.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
 
         snapshots = result.get_snapshots('save_command')
@@ -289,7 +292,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_single_qubit_gates(self):
         filename = self._get_resource_path('qobj/cpp_single_qubit_gates.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
         expected_data = {
             'snapshot': {
@@ -380,7 +383,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_two_qubit_gates(self):
         filename = self._get_resource_path('qobj/cpp_two_qubit_gates.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
         expected_data = {
             'h0 CX01': {
@@ -437,7 +440,7 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_conditionals(self):
         filename = self._get_resource_path('qobj/cpp_conditionals.json')
         with open(filename, 'r') as file:
-            qobj = json.load(file)
+            qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
         expected_data = {
             'single creg (c0=0)': {
