@@ -158,11 +158,13 @@ def regulate(theta):
             return that representation (for example, `3.14` -> `sympy.pi`).
         * otherwise, return a sympified representation of theta (for example,
             `1.23` ->  `sympy.Float(1.23)`).
+
     See also `UGateGeneric`.
 
     Args:
         theta (float or sympy.Basic): the float value (e.g., 3.14) or the
             symbolic value (e.g., pi)
+
     Returns:
         sympy.Basic: the sympy-regulated representation of `theta`
     """

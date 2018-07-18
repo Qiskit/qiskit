@@ -97,7 +97,8 @@ def available_backends(filters=None, compact=True):
         will be shown only once. To disambiguate and choose a backend from a
         specific provider, get the backend from that specific provider.
 
-        Example:
+        Example::
+
             p1 = register(token1)
             p2 = register(token2)
             execute(circuit, p1.get_backend('ibmq_5_tenerife'))

@@ -1,105 +1,87 @@
 {{ fullname }} package
 {% for item in range(8 + fullname|length) -%}={%- endfor %}
 
+{# Split the imported references into several lists. #}
+{% set all = get_members(in_list='__all__', include_imported=True) %}
+{%- set exceptions = get_members(typ='exception', include_imported=True, out_format='table') -%}
+{%- set classes = get_members(typ='class', include_imported=True, out_format='table') -%}
+{%- set functions = get_members(typ='function', include_imported=True, out_format='table') -%}
+{%- set data = get_members(typ='data', include_imported=True, out_format='table') -%}
+
 .. automodule:: {{ fullname }}
-
-{# Split the imported references into several lists, as better-apidoc seems to
-   have a bug with our current public vs private structure and the variables
-   provided by the extension are not always fully populated. #}
-{%- set imported_modules = [] -%}
-{%- set imported_classes = [] -%}
-{%- set imported_exceptions = [] -%}
-{%- set imported_functions = [] -%}
-{%- set imported_other = [] -%}
-
-{% for item in members_imports_refs -%}
-    {%- if item.split('<')[1].split('>')[0].startswith('qiskit') -%}
-        {%- set ref_type = item.split(':')[1] -%}
-        {%- set ref_name = item.split(' ')[0].split('`')[1] -%}
-        {%- if ref_type == 'mod' -%}
-            {%- if ref_name != fullname and fullname != 'qiskit.extensions.standard' -%}
-                {{- imported_modules.append(ref_name) or '' -}}
-            {%- endif %}
-        {%- elif ref_type == 'class' -%}
-            {{- imported_classes.append(ref_name) or '' -}}
-        {%- elif ref_type == 'exc' -%}
-            {{- imported_exceptions.append(ref_name) or '' -}}
-        {%- elif ref_type == 'func' -%}
-            {{- imported_functions.append(ref_name) or '' -}}
-        {%- else -%}
-            {{- imported_other.append(ref_name) or '' -}}
-        {%- endif -%}
+    {% if members -%}
+    :members: {{ members|join(", ") }}
+    :undoc-members:
+    :show-inheritance:
+    {%- endif %}
+    {% if fullname.startswith('_') %}
+    :toctree: qiskit.private.{{ fullname }}
     {%- endif -%}
-{%- endfor -%}
 
-{# Bypass the automatic discovery of gates. #}
-{%- if fullname == 'qiskit.extensions' -%}
-    {%- set imported_modules = ['standard',
-                                'simulator',
-                                'quantum_initializer'] -%}
+{% if submodules %}
+    Submodules
+    ----------
+
+    .. toctree::
+       :maxdepth: 1
+   {# Do not show the "private" (starting with `_`) modules. This workaround is
+   due to the fact that we need the members in private modules parsed and
+   generated but not show everything in the package (for example,
+   `qiskit._foo.Bar` is shown as `Bar` in the `qiskit` package page, but
+   `qiskit._foo` should not be linked directly or shown in the `qiskit` package
+   page).
+   See also the :orphaned: at the top, and the --private flag for
+   better-apidoc. #}
+
+{% for item in submodules %}
+       {% if not item.startswith('_') %}{{ fullname }}.{{ item }}{%- endif -%}
+       {%- endfor %}
 {%- endif -%}
 
-{% if imported_modules %}
-Submodules
-----------
+{% if subpackages %}
 
-.. autosummary::
-   :nosignatures:
-   :toctree:
-{% for item in imported_modules %}
-    {{ item }}
-    {%- endfor %}
+    Subpackages
+    -----------
+
+    .. toctree::
+       :maxdepth: 1
+{% for item in subpackages %}
+       {{ fullname }}.{{ item }}
+       {%- endfor %}
 {%- endif %}
 
-{% if imported_classes %}
-Classes
--------
+{%- if exceptions %}
 
-.. autosummary::
-   :nosignatures:
-   :toctree:
-   :template: autosummary/class.rst
-{% for item in imported_classes %}
-    {{ item }}
+    Exceptions
+    ----------
+
+{% for line in exceptions %}
+    {{ line }}
 {%- endfor %}
 {%- endif %}
 
-{% if imported_exceptions %}
-Exceptions
-----------
+{%- if classes %}
 
-.. autosummary::
-   :nosignatures:
-   :toctree:
-{% for item in imported_exceptions %}
-    {{ item }}
+    Classes
+    -------
+
+{% for line in classes %}
+    {{ line }}
 {%- endfor %}
 {%- endif %}
 
-{% if imported_functions %}
+{%- if functions %}
+
 {# Manually name this section via a "_qiskit_top_level_functions" reference,
    for convenience (link from release notes). #}
 {% if fullname == 'qiskit' %}
-.. _qiskit_top_level_functions:
+    .. _qiskit_top_level_functions:
 {% endif %}
 
-Functions
----------
+    Functions
+    ---------
 
-.. autosummary::
-   :nosignatures:
-   {% if fullname != 'qiskit.extensions.standard' -%}:toctree:{% endif %}
-{% for item in imported_functions %}
-    {{ item }}
+{% for line in functions %}
+    {{ line }}
 {%- endfor %}
-
-{# Handle the qiskit.extensions.standard module, as the imports are in the form
-   "from .ABC import ABC" except in two cases, which makes the documentation
-   try to point to the submodules and not the actual functions. #}
-{% if fullname == 'qiskit.extensions.standard' -%}
-{%- for item in imported_functions %}
-.. autofunction:: {{ item }}
-{%- endfor %}
-{%- endif %}
-
 {%- endif %}
