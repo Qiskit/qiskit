@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import (qasm, unroll, QuantumProgram, QuantumCircuit,
                     QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
-from qiskit.qobj import Qobj
+from qiskit.qobj import Qobj, QobjItem
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -42,32 +42,26 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         # strip measurements from circuit to avoid warnings
-        circuit['operations'] = [op for op in circuit['operations']
-                                 if op['name'] != 'measure']
+        circuit['instructions'] = [op for op in circuit['instructions']
+                                   if op['name'] != 'measure']
         # the simulator is expecting a JSON format, so we need to convert it
         # back to JSON
         qobj = {
             'id': 'unitary',
             'config': {
                 'max_credits': None,
-                'shots': 1,
-                'backend_name': 'local_unitary_simulator_py'
+                'shots': 1
             },
-            'circuits': [
-                {
-                    'name': 'test',
-                    'compiled_circuit': circuit,
-                    'compiled_circuit_qasm': self.qp.get_qasm('example'),
-                    'config': {
-                        'coupling_map': None,
-                        'basis_gates': None,
-                        'layout': None,
-                        'seed': None
-                    }
-                }
-            ]
+            'experiments': [circuit],
+            'header': {'backend_name': 'local_unitary_simulator_py'}
         }
         qobj = Qobj.from_dict(qobj)
+        qobj.experiments[0].header.name = 'test'
+        qobj.experiments[0].header.compiled_circuit_qasm = self.qp.get_qasm('example')
+        qobj.experiments[0].config = QobjItem(coupling_map=None,
+                                              basis_gates=None,
+                                              layout=None,
+                                              seed=None)
 
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
