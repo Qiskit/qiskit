@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- A benchmark tool  (``qiskit-core/test/performance/simulate/benchmarks``) (#574)
 
 Changed
 -------
