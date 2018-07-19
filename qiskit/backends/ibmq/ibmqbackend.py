@@ -17,6 +17,22 @@ from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends import JobStatus
 
+# FIXME (new_backend_names): these two dicts are placed here to avoid cyclic
+# imports. Once fixed, their place should be `ibmqprovider.py`.
+
+# Dict with the form {'new_name': 'previous_name'}
+ALIASED_BACKEND_NAMES = {
+    'ibmq_5_yorktown': 'ibmqx2',
+    'ibmq_5_tenerife': 'ibmqx4',
+    'ibmq_16_rueschlikon': 'ibmqx5',
+    'ibmq_20_austin': 'QS1_1'
+}
+
+# Dict with the form {'previous_name': 'new_name'}
+ALIASED_BACKEND_NAMES_REVERSED = {name: alias for alias, name in
+                                  ALIASED_BACKEND_NAMES.items()}
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +84,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If a configuration for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self._name_for_api
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
@@ -83,6 +99,9 @@ class IBMQBackend(BaseBackend):
             new_key = _camel_case_to_snake_case(key)
             calibrations_edit[new_key] = vals
 
+        calibrations_edit = self._update_dict_name_from_api(calibrations_edit,
+                                                            field='backend')
+
         return calibrations_edit
 
     @property
@@ -96,7 +115,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If parameters for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self._name_for_api
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
@@ -111,6 +130,9 @@ class IBMQBackend(BaseBackend):
             new_key = _camel_case_to_snake_case(key)
             parameters_edit[new_key] = vals
 
+        parameters_edit = self._update_dict_name_from_api(parameters_edit,
+                                                          field='backend')
+
         return parameters_edit
 
     @property
@@ -124,7 +146,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If status for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self._name_for_api
             status = self._api.backend_status(backend_name)
             # FIXME a hack to rename the key. Needs to be fixed in api
             status['name'] = status['backend']
@@ -136,6 +158,8 @@ class IBMQBackend(BaseBackend):
             # be fixed in api
             if status['name'] == 'ibmqx_hpc_qasm_simulator':
                 status['available'] = True
+
+            status = self._update_dict_name_from_api(status)
 
             # FIXME: this needs to be replaced at the API level - eventually
             # it will.
@@ -184,7 +208,8 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendValueError: status keyword value unrecognized
         """
-        backend_name = self.configuration['name']
+        backend_name = self._name_for_api
+
         api_filter = {}
         if status:
             if isinstance(status, str):
@@ -238,6 +263,39 @@ class IBMQBackend(BaseBackend):
         is_device = not bool(self._configuration.get('simulator'))
         job = IBMQJob.from_api(job_info, self._api, is_device)
         return job
+
+    @property
+    def _name_for_api(self):
+        """
+        Return the backend name as used in the API.
+
+        FIXME (new_backend_names): a hack to show the new device display
+        names. Needs to be fixed in the API.
+
+        Returns:
+            str: name valid for the api
+        """
+        return ALIASED_BACKEND_NAMES.get(self.name) or self.name
+
+    def _update_dict_name_from_api(self, status, field='name'):
+        """
+        Update a dict['name'] with an aliased (new) backend name.
+
+        Args:
+            status (dict): dict with optionally a 'name' key.
+            field (str): the field to replace in the dict.
+
+        FIXME (new_backend_names): a hack to show the new device display
+        names. Needs to be fixed in the API.
+
+        Returns:
+            dict: dict with the 'name' replaced.
+        """
+        if field in status.keys():
+            status[field] = ALIASED_BACKEND_NAMES_REVERSED.get(
+                status[field]) or status[field]
+
+        return status
 
 
 class IBMQBackendError(QISKitError):

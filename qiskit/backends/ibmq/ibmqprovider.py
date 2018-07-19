@@ -10,7 +10,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackend, ALIASED_BACKEND_NAMES_REVERSED
 
 
 class IBMQProvider(BaseProvider):
@@ -59,12 +59,7 @@ class IBMQProvider(BaseProvider):
             }
 
     def aliased_backend_names(self):
-        return {
-            'ibmq_5_yorktown': 'ibmqx2',
-            'ibmq_5_tenerife': 'ibmqx4',
-            'ibmq_16_rueschlikon': 'ibmqx5',
-            'ibmq_20_austin': 'QS1_1'
-            }
+        return ALIASED_BACKEND_NAMES_REVERSED
 
     @classmethod
     def _authenticate(cls, token, url,
@@ -123,6 +118,13 @@ class IBMQProvider(BaseProvider):
             if new_key not in ['id', 'serial_number', 'topology_id',
                                'status']:
                 edited_config[new_key] = config[key]
+
+        # FIXME (new_backend_names): a hack to show the new device display
+        # names. Needs to be fixed in the API.
+        if config.get('name') in ALIASED_BACKEND_NAMES_REVERSED.keys():
+            # Use the new name of the backend for `backend.name` if it is in
+            # the list of aliases.
+            edited_config['name'] = ALIASED_BACKEND_NAMES_REVERSED[config['name']]
 
         return edited_config
 

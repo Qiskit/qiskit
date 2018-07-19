@@ -533,7 +533,9 @@ class TestQuantumProgram(QiskitTestCase):
 
         check_result = q_program.get_qasm('circuitName')
         self.log.info(check_result)
-        self.assertEqual(len(check_result), 1775)
+        # TODO: revise Sympy 1.2 compatibility. The length is 1775 for
+        # sympy=1.1.x, and 1781 for sympy=1.2
+        self.assertIn(len(check_result), (1775, 1781))
 
     def test_load_wrong(self):
         """Test load Json.
