@@ -3,7 +3,7 @@
     "id": "http://www.qiskit.org/schemas/result_schema.json",
     "title": "qobj results",
     "description": "The results of executing a qobj",
-    "version": 1.0,
+    "version": "1.0.0",
     "definitions": {
         "complex": {
             "description": "JSON representation of a complex number",

@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": 1.0,
+    "version": "1.0.0",
     "definitions": {
         "bfunc": {
             "type": "object",
@@ -43,11 +43,15 @@
         },
         "qobjlevel0": {
             "type": "object",
-            "required": ["id","type","experiments","config","header"],
+            "required": ["id","schema_version","type","experiments","config","header"],
             "properties": {
                 "id": {
                     "type": "string",
                     "description": "User generated qobj ID"
+                    },
+                "schema_version": {
+                    "type": "string",
+                    "description": "Schema version used to compile the qobj"
                     },
                 "type": {
                     "type": "string",

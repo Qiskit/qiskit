@@ -1,5 +1,6 @@
 {
     "id": "Set of Experiments 1",
+    "schema_version": "1.0.0",
     "type": "QASM",
     "header": {
         "backend_name": "ibmqx2",
