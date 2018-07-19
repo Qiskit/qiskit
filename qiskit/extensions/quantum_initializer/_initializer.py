@@ -75,6 +75,9 @@ class InitializeGate(CompositeGate):
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
         self.inverse()
+        # do not set the inverse flag, as this is the actual initialize gate
+        # we just used inverse() as a method to obtain it
+        self.inverse_flag = False
 
     def nth_qubit_from_least_sig_qubit(self, nth):
         """
@@ -91,7 +94,7 @@ class InitializeGate(CompositeGate):
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        circ.initialize(self.param, self.arg)
+        self._modifiers(circ.initialize(self.param, self.arg))
 
     def gates_to_uncompute(self):
         """

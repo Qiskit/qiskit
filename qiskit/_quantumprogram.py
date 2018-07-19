@@ -15,12 +15,12 @@ import logging
 import warnings
 
 import qiskit.wrapper
+from qiskit.qobj import qobj_to_dict
 
 from ._classicalregister import ClassicalRegister
 from ._logging import set_qiskit_logger, unset_qiskit_logger
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
-from ._quantumjob import QuantumJob
 from ._quantumregister import QuantumRegister
 from .mapper import coupling_dict2list
 from .qasm import Qasm
@@ -660,9 +660,9 @@ class QuantumProgram(object):
         warnings.warn(
             "set_api() will be deprecated in upcoming versions (>0.5.0). "
             "Using qiskit.register() instead is recommended.", DeprecationWarning)
-        qiskit.wrapper.register(token, url,
-                                hub, group, project, proxies, verify,
-                                provider_name='ibmq')
+        qiskit.wrapper.register(token, url=url,
+                                hub=hub, group=group, project=project,
+                                proxies=proxies, verify=verify)
 
         # TODO: the setting of self._api and self.__api_config is left for
         # backwards-compatibility.
@@ -823,7 +823,7 @@ class QuantumProgram(object):
             backend (str): The backend to check
 
         Returns:
-            dict: {'available': True}
+            dict: {'operational': True}
 
         Raises:
             ConnectionError: if the API call failed.
@@ -932,7 +932,7 @@ class QuantumProgram(object):
     def compile(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, basis_gates=None, coupling_map=None,
                 initial_layout=None, shots=1024, max_credits=10, seed=None,
-                qobj_id=None, hpc=None, skip_transpiler=False, skip_translation=False):
+                qobj_id=None, hpc=None, skip_transpiler=False):
         """Compile the circuits into the execution list.
 
         .. deprecated:: 0.5
@@ -940,11 +940,6 @@ class QuantumProgram(object):
             upcoming versions. Using the coupling_map as a list is recommended.
         """
         # pylint: disable=missing-param-doc, missing-type-doc
-        if skip_translation:
-            warnings.warn(
-                "skip_translation will be called skip_transpiler in future versions.",
-                DeprecationWarning)
-            skip_transpiler = True
         if isinstance(coupling_map, dict):
             coupling_map = coupling_dict2list(coupling_map)
             warnings.warn(
@@ -978,7 +973,7 @@ class QuantumProgram(object):
             If the inputs are left as None then the qobj is not updated
 
         Args:
-            qobj (dict): already compile qobj
+            qobj (Qobj): already compile qobj
             backend (str): see .compile
             config (dict): see .compile
             shots (int): see .compile
@@ -989,17 +984,18 @@ class QuantumProgram(object):
             qobj: updated qobj
         """
         if backend is not None:
-            qobj['config']['backend'] = backend
+            qobj.config.backend = backend
         if shots is not None:
-            qobj['config']['shots'] = shots
+            qobj.config.shots = shots
         if max_credits is not None:
-            qobj['config']['max_credits'] = max_credits
+            qobj.config.max_credits = max_credits
 
-        for circuits in qobj['circuits']:
+        for experiment in qobj.experiments:
             if seed is not None:
-                circuits['seed'] = seed
+                experiment.config.seed = seed
             if config is not None:
-                circuits['config'].update(config)
+                for key, value in config.items():
+                    setattr(experiment.config, key, value)
 
         return qobj
 
@@ -1018,6 +1014,8 @@ class QuantumProgram(object):
         if not qobj:
             print_func("no executions to run")
         execution_list = []
+
+        qobj = qobj_to_dict(qobj, version='0.0.1')
 
         print_func("id: %s" % qobj['id'])
         print_func("backend: %s" % qobj['config']['backend_name'])
@@ -1038,7 +1036,7 @@ class QuantumProgram(object):
 
         Args:
             name (str):  the circuit name
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
 
         Returns:
             dict: the config of the circuit.
@@ -1047,9 +1045,9 @@ class QuantumProgram(object):
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["config"]
+            for index in range(len(qobj.experiments)):
+                if qobj.experiments[index].header.name == name:
+                    return qobj.experiments[index].config.as_dict()
         except KeyError:
             pass
         raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
@@ -1058,7 +1056,7 @@ class QuantumProgram(object):
         """Return the compiled circuit in qasm format.
 
         Args:
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
             name (str): name of the quantum circuit
 
         Returns:
@@ -1068,9 +1066,9 @@ class QuantumProgram(object):
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
+            for index in range(len(qobj.experiments)):
+                if qobj.experiments[index].header.name == name:
+                    return qobj.experiments[index].header.compiled_circuit_qasm
         except KeyError:
             pass
         raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
@@ -1121,17 +1119,15 @@ class QuantumProgram(object):
     def _run_internal(self, qobj_list):
         job_list = []
         for qobj in qobj_list:
-            backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
-            q_job = QuantumJob(qobj, backend=backend, preformatted=True, resources={
-                'max_credits': qobj['config']['max_credits']})
-            job = backend.run(q_job)
+            backend = qiskit.wrapper.get_backend(qobj.header.backend_name)
+            job = backend.run(qobj)
             job_list.append(job)
         return job_list
 
     def execute(self, name_of_circuits=None, backend="local_qasm_simulator",
                 config=None, timeout=60, basis_gates=None,
                 coupling_map=None, initial_layout=None, shots=1024,
-                max_credits=3, seed=None, hpc=None, skip_transpiler=False, skip_translation=False):
+                max_credits=3, seed=None, hpc=None, skip_transpiler=False):
         """Execute, compile, and run an array of quantum circuits).
 
         This builds the internal "to execute" list which is list of quantum
@@ -1189,11 +1185,6 @@ class QuantumProgram(object):
             upcoming versions. Using the coupling_map as a list is recommended.
         """
         # pylint: disable=missing-param-doc, missing-type-doc
-        if skip_translation:
-            warnings.warn(
-                "skip_translation will be called skip_transpiler in future versions.",
-                DeprecationWarning)
-            skip_transpiler = True
         # TODO: Jay: currently basis_gates, coupling_map, initial_layout, shots,
         # max_credits, and seed are extra inputs but I would like them to go
         # into the config

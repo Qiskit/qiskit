@@ -88,6 +88,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
@@ -102,7 +103,7 @@ class UnitarySimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_unitary_simulator_py',
-        'url': 'https://github.com/QISKit/qiskit-core',
+        'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for unitary matrix',
@@ -141,33 +142,32 @@ class UnitarySimulatorPy(BaseBackend):
         unitaty_add = enlarge_two_opt(gate, q_0, q_1, self._number_of_qubits)
         self._unitary_state = np.dot(unitaty_add, self._unitary_state)
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run q_job. This is a blocking call.
+    def _run_job(self, qobj):
+        """Run qobj. This is a blocking call.
 
         Args:
-            q_job (QuantumJob): job to run
+            qobj (Qobj): job description
         Returns:
             Result: Result object
         """
-        qobj = q_job.qobj
         result_list = []
-        for circuit in qobj['circuits']:
+        qobj_converted = qobj_to_dict(qobj, version='0.0.1')
+        for circuit in qobj_converted['circuits']:
             result_list.append(self.run_circuit(circuit))
         job_id = str(uuid.uuid4())
         return Result(
-            {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'},
-            qobj)
+            {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'})
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate."""
@@ -175,6 +175,7 @@ class UnitarySimulatorPy(BaseBackend):
         self._number_of_qubits = ccircuit['header']['number_of_qubits']
         result = {}
         result['data'] = {}
+        result['name'] = circuit.get('name')
         self._unitary_state = np.identity(2**(self._number_of_qubits),
                                           dtype=complex)
         for operation in ccircuit['operations']:

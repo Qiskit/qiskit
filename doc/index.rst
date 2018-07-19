@@ -1,14 +1,14 @@
-.. QISKit documentation master file, created by
+.. Qiskit documentation master file, created by
    sphinx-quickstart on Tue Jul 25 18:13:28 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
 ====================
-QISKit Documentation
+Qiskit Documentation
 ====================
 
-Quantum Information Science Kit (QISKit), SDK Python version for working
-with `OpenQASM <https://github.com/QISKit/openqasm>`_ and the IBM Q experience
+Quantum Information Science Kit (Qiskit), SDK Python version for working
+with `OpenQASM <https://github.com/Qiskit/openqasm>`_ and the IBM Q experience
 (QX).
 
 
@@ -20,7 +20,7 @@ Table of Contents
 
    install
    Getting started <quickstart>
-   QISKit overview <qiskit>
+   Qiskit overview <qiskit>
    Developer documentation <dev_introduction>
    SDK reference <_autodoc/qiskit>
    Release history <releases>
@@ -45,4 +45,4 @@ Authors (alphabetical)
 Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
 Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
 Erick Winston and Chris Wood,
-along with `many contributors <https://github.com/QISKit/qiskit-core/blob/master/CONTRIBUTORS.md>`_.
+along with `many contributors <https://github.com/Qiskit/qiskit-terra/graphs/contributors>`_.

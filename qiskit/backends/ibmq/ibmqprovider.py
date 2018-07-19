@@ -15,7 +15,7 @@ from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
-    def __init__(self, token, url,
+    def __init__(self, token, url='https://quantumexperience.ng.bluemix.net/api',
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
@@ -26,20 +26,29 @@ class IBMQProvider(BaseProvider):
         # Populate the list of remote backends.
         self.backends = self._discover_remote_backends()
 
+        # authentication attributes, which uniquely identify the provider instance
+        self._token = token
+        self._url = url
+        self._hub = hub
+        self._group = group
+        self._project = project
+        self._proxies = proxies
+        self._verify = verify
+
     def get_backend(self, name):
         return self.backends[name]
 
-    def available_backends(self, filters=None):
+    def available_backends(self):
+        """Get a list of available backends from the IBMQ provider.
+
+        Returns:
+            list[IBMQBackend]: a list of backend instances available
+            from the IBMQ provider.
+        """
         # pylint: disable=arguments-differ
-        backends = self.backends
+        return list(self.backends.values())
 
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
-        return list(backends.values())
-
-    def aliased_backend_names(self):
+    def grouped_backend_names(self):
         return {}
 
     def deprecated_backend_names(self):
@@ -47,6 +56,14 @@ class IBMQProvider(BaseProvider):
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
             'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
             'real': 'ibmqx1'
+            }
+
+    def aliased_backend_names(self):
+        return {
+            'ibmq_5_yorktown': 'ibmqx2',
+            'ibmq_5_tenerife': 'ibmqx4',
+            'ibmq_16_rueschlikon': 'ibmqx5',
+            'ibmq_20_austin': 'QS1_1'
             }
 
     @classmethod
@@ -124,3 +141,12 @@ class IBMQProvider(BaseProvider):
             ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
 
         return ret
+
+    def __eq__(self, other):
+        try:
+            equality = (self._token == other._token and self._url == other._url and
+                        self._hub == other._hub and self._group == other._group and
+                        self._project == other._project)
+        except AttributeError:
+            equality = False
+        return equality

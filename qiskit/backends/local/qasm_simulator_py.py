@@ -82,6 +82,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ class QasmSimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_qasm_simulator_py',
-        'url': 'https://github.com/QISKit/qiskit-core',
+        'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A python simulator for qasm files',
@@ -261,36 +262,37 @@ class QasmSimulatorPy(BaseBackend):
                                    {}).setdefault("statevector",
                                                   []).append(np.copy(self._statevector))
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run circuits in q_job"""
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
+        """Run circuits in qobj"""
         self._validate(qobj)
         result_list = []
-        self._shots = qobj['config']['shots']
+        self._shots = qobj.config.shots
         start = time.time()
-        for circuit in qobj['circuits']:
+
+        qobj_prev = qobj_to_dict(qobj, version='0.0.1')
+        for circuit in qobj_prev['circuits']:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
-                  'id': qobj['id'],
+                  'id': qobj.id,
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
-        return Result(result, qobj)
+        return Result(result)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
@@ -408,18 +410,19 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end-start)}
 
     def _validate(self, qobj):
-        if qobj['config']['shots'] == 1:
+        if qobj.config.shots == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
+
+        for experiment in qobj.experiments:
+            if 'measure' not in [op.name for
+                                 op in experiment.instructions]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
-        return
+                               "classical register will remain all zeros.",
+                               experiment.header.name)
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.

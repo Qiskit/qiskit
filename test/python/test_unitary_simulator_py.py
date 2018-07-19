@@ -14,9 +14,10 @@ import pstats
 import unittest
 import numpy as np
 
-from qiskit import (qasm, unroll, QuantumProgram, QuantumJob, QuantumCircuit,
+from qiskit import (qasm, unroll, QuantumProgram, QuantumCircuit,
                     QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.qobj import Qobj, QobjItem
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -41,31 +42,27 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
             unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         # strip measurements from circuit to avoid warnings
-        circuit['operations'] = [op for op in circuit['operations']
-                                 if op['name'] != 'measure']
+        circuit['instructions'] = [op for op in circuit['instructions']
+                                   if op['name'] != 'measure']
         # the simulator is expecting a JSON format, so we need to convert it
         # back to JSON
         qobj = {
             'id': 'unitary',
             'config': {
                 'max_credits': None,
-                'shots': 1,
-                'backend_name': 'local_unitary_simulator_py'
+                'shots': 1
             },
-            'circuits': [
-                {
-                    'name': 'test',
-                    'compiled_circuit': circuit,
-                    'compiled_circuit_qasm': self.qp.get_qasm('example'),
-                    'config': {
-                        'coupling_map': None,
-                        'basis_gates': None,
-                        'layout': None,
-                        'seed': None
-                    }
-                }
-            ]
+            'experiments': [circuit],
+            'header': {'backend_name': 'local_unitary_simulator_py'}
         }
+        qobj = Qobj.from_dict(qobj)
+        qobj.experiments[0].header.name = 'test'
+        qobj.experiments[0].header.compiled_circuit_qasm = self.qp.get_qasm('example')
+        qobj.experiments[0].config = QobjItem(coupling_map=None,
+                                              basis_gates=None,
+                                              layout=None,
+                                              seed=None)
+
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -73,11 +70,8 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         # delimiter=',')
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
-        q_job = QuantumJob(qobj,
-                           backend=UnitarySimulatorPy(),
-                           preformatted=True)
 
-        result = UnitarySimulatorPy().run(q_job).result()
+        result = UnitarySimulatorPy().run(qobj).result()
         self.assertTrue(np.allclose(result.get_unitary('test'),
                                     expected,
                                     rtol=1e-3))
@@ -96,7 +90,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         backend = UnitarySimulatorPy()
         qobj = compile([qc1, qc2], backend=backend)
-        job = backend.run(QuantumJob(qobj, backend=backend, preformatted=True))
+        job = backend.run(qobj)
         unitary1 = job.result().get_unitary(qc1)
         unitary2 = job.result().get_unitary(qc2)
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],

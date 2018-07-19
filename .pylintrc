@@ -74,7 +74,7 @@ disable=print-statement,parameter-unpacking,unpacking-in-except,old-raise-syntax
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,
-    too-many-public-methods, too-few-public-methods
+    too-many-public-methods, too-few-public-methods, too-many-ancestors
 
 
 

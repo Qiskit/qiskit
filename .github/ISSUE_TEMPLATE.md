@@ -5,7 +5,7 @@
 
 ### Informations
 
-- **QISKit (Python SDK) version**:
+- **Qiskit (Python SDK) version**:
 - **Python version**:
 - **Operating system**:
 

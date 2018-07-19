@@ -7,22 +7,23 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-from test.python.common import QiskitTestCase
-
 import json
 import unittest
+
 import numpy as np
 from numpy.linalg import norm
 
 import qiskit
-import qiskit._compiler
 from qiskit import ClassicalRegister
 from qiskit import QuantumCircuit
-from qiskit import QuantumJob
 from qiskit import QuantumRegister
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.qobj import Qobj, QobjItem
+from qiskit.transpiler import transpile
+from .common import QiskitTestCase
 
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
@@ -45,39 +46,28 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         self.qc = qc
         # create qobj
-        compiled_circuit1 = qiskit._compiler.compile_circuit(self.qc, format='json')
-        compiled_circuit2 = qiskit._compiler.compile_circuit(self.qasm_circ, format='json')
+        compiled_circuit1 = transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json')
+        compiled_circuit2 = transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ), format='json')
         self.qobj = {'id': 'test_qobj',
                      'config': {
                          'max_credits': 3,
                          'shots': 2000,
-                         'backend_name': 'local_qasm_simulator_cpp',
                          'seed': 1111
                      },
-                     'circuits': [
-                         {
-                             'name': 'test_circuit1',
-                             'compiled_circuit': compiled_circuit1,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         },
-                         {
-                             'name': 'test_circuit2',
-                             'compiled_circuit': compiled_circuit2,
-                             'basis_gates': 'u1,u2,u3,cx,id',
-                             'layout': None,
-                         }
-                     ]}
+                     'experiments': [compiled_circuit1, compiled_circuit2],
+                     'header': {'backend_name': 'local_qasm_simulator_cpp'}}
+        self.qobj = Qobj.from_dict(self.qobj)
+        self.qobj.experiments[0].header.name = 'test_circuit1'
+        self.qobj.experiments[0].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
+        self.qobj.experiments[1].header.name = 'test_circuit2'
+        self.qobj.experiments[1].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
+
         # Simulator backend
         try:
             self.backend = QasmSimulatorCpp()
         except FileNotFoundError as fnferr:
             raise unittest.SkipTest(
                 'cannot find {} in path'.format(fnferr))
-
-        self.q_job = QuantumJob(self.qobj,
-                                backend=self.backend,
-                                preformatted=True)
 
     def test_x90_coherent_error_matrix(self):
         X90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
@@ -115,8 +105,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                                places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):
-        result = self.backend.run(self.q_job).result()
-        shots = self.qobj['config']['shots']
+        result = self.backend.run(self.qobj).result()
+        shots = self.qobj.config.shots
         threshold = 0.04 * shots
         counts = result.get_counts('test_circuit2')
         target = {'100 100': shots / 8, '011 011': shots / 8,
@@ -128,11 +118,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_measure_opt(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
-        shots = q_job.qobj['config']['shots']
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
+        shots = qobj.config.shots
         expected_data = {
             'measure (opt)': {
                 'deterministic': True,
@@ -211,11 +199,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_measure_opt_flag(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
-        shots = q_job.qobj['config']['shots']
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
+        shots = qobj.config.shots
         sampled_measurements = {
             'measure (sampled)': True,
             'trivial (sampled)': True,
@@ -247,10 +233,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_reset(self):
         filename = self._get_resource_path('qobj/cpp_reset.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
         expected_data = {
             'reset': {'statevector': np.array([1, 0])},
             'x reset': {'statevector': np.array([1, 0])},
@@ -273,10 +257,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_save_load(self):
         filename = self._get_resource_path('qobj/cpp_save_load.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
 
         snapshots = result.get_snapshots('save_command')
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
@@ -301,10 +283,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_single_qubit_gates(self):
         filename = self._get_resource_path('qobj/cpp_single_qubit_gates.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
         expected_data = {
             'snapshot': {
                 'statevector': np.array([1, 0])},
@@ -394,10 +374,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_qobj_two_qubit_gates(self):
         filename = self._get_resource_path('qobj/cpp_two_qubit_gates.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
         expected_data = {
             'h0 CX01': {
                 'statevector': np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])},
@@ -453,10 +431,8 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
     def test_conditionals(self):
         filename = self._get_resource_path('qobj/cpp_conditionals.json')
         with open(filename, 'r') as file:
-            q_job = QuantumJob(json.load(file),
-                               backend=self.backend,
-                               preformatted=True)
-        result = self.backend.run(q_job).result()
+            qobj = Qobj.from_dict(json.load(file))
+        result = self.backend.run(qobj).result()
         expected_data = {
             'single creg (c0=0)': {
                 'statevector': np.array([1, 0, 0, 0])},

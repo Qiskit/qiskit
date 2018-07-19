@@ -2,20 +2,19 @@
     "id": "test_two_qubit_gates",
     "config": {
         "shots": 1,
-        "seed": 1,
-        "backend_name": "local_qasm_simulator_cpp"
+        "seed": 1
     },
-    "circuits": [
+    "header": {"backend_name": "local_qasm_simulator_cpp"},
+    "experiments": [
         {
-            "name": "h0 CX01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 CX01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "CX", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -25,18 +24,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 CX10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 CX10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "CX", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -46,18 +44,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 CX01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 CX01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "CX", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -67,18 +64,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 CX10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 CX10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "CX", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -88,18 +84,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 cx01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 cx01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "cx", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -109,18 +104,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 cx10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 cx10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "cx", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -130,18 +124,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 cx01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 cx01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "cx", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -151,18 +144,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 cx10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 cx10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "cx", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -172,18 +164,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 cz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 cz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "cz", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -193,18 +184,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 cz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 cz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "cz", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -214,18 +204,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 cz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 cz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "cz", "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -235,18 +224,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 cz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 cz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "cz", "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -256,18 +244,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 h1 cz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 h1 cz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "h", "qubits": [1]},
                     {"name": "cz", "qubits": [0, 1]},
@@ -278,18 +265,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 h1 cz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 h1 cz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "h", "qubits": [1]},
                     {"name": "cz", "qubits": [1, 0]},
@@ -300,18 +286,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 rzz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 rzz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -321,18 +306,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 rzz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 rzz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -342,18 +326,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 rzz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 rzz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [0, 1]},
                     {"name": "snapshot", "params": [0]},
@@ -363,18 +346,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h1 rzz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h1 rzz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [1]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [1, 0]},
                     {"name": "snapshot", "params": [0]},
@@ -384,18 +366,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 h1 rzz01",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 h1 rzz01",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "h", "qubits": [1]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [0, 1]},
@@ -406,18 +387,17 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         },
         {
-            "name": "h0 h1 rzz10",
-            "compiled_circuit": {
                 "header": {
+                    "name": "h0 h1 rzz10",
                     "clbit_labels": [["c0", 1]],
                     "number_of_clbits": 1,
                     "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
                 },
-                "operations": [
+                "instructions": [
                     {"name": "h", "qubits": [0]},
                     {"name": "h", "qubits": [1]},
                     {"name": "rzz", "params": [1.5707963267948966], "qubits": [1, 0]},
@@ -428,7 +408,7 @@
                     	"clbits": [0]
                     }
                 ]
-            }
+
         }
     ]
 }

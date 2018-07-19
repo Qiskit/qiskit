@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------
 # build_dependencies.sh
 # 
-# Dependency installer for qiskit-core/src/qasm-simulator-cpp
+# Dependency installer for qiskit-terra/src/qasm-simulator-cpp
 # Running the script:
 #   1. Run the script directly
 #     ./build_dependencies.sh  

@@ -5,10 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+
 """
-Dummy backend simulator.
-The purpose of this class is to create a Simulator that we can trick for testing
-purposes. Testing local timeouts, arbitrary responses or behavior, etc.
+Supporting fake, stubs and mocking classes.
+
+The module includes, among other, a dummy backend simulator. The purpose of
+this class is to create a Simulator that we can trick for testing purposes:
+testing local timeouts, arbitrary responses or behavior, etc.
 """
 
 import uuid
@@ -19,7 +22,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
@@ -27,12 +30,17 @@ logger = logging.getLogger(__name__)
 
 class DummyProvider(BaseProvider):
     """Dummy provider just for testing purposes."""
+    def __init__(self):
+        self._backend = DummySimulator()
+
+        super().__init__()
+
     def get_backend(self, name):
-        return DummySimulator()
+        return self._backend
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ
-        backends = {DummySimulator.name: DummySimulator()}
+        backends = {DummySimulator.name: self._backend}
 
         filters = filters or {}
         for key, value in filters.items():
@@ -46,7 +54,7 @@ class DummySimulator(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_dummy_simulator',
-        'url': 'https://github.com/QISKit/qiskit-core',
+        'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A dummy simulator for testing purposes',
@@ -63,17 +71,17 @@ class DummySimulator(BaseBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
 
-    def run(self, q_job):
-        return DummyJob(self.run_job, q_job)
+    def run(self, qobj):
+        return DummyJob(self.run_job, qobj)
 
-    def run_job(self, q_job):
+    # pylint: disable=unused-argument
+    def run_job(self, qobj):
         """ Main dummy simulator loop """
         job_id = str(uuid.uuid4())
-        qobj = q_job.qobj
-
         time.sleep(self.time_alive)
 
-        return Result({'job_id': job_id, 'result': [], 'status': 'COMPLETED'}, qobj)
+        return Result(
+            {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
 class DummyJob(BaseJob):
@@ -131,3 +139,28 @@ class DummyJob(BaseJob):
             Exception: exception raised by attempting to run job.
         """
         return self._future.exception(timeout=0)
+
+
+def new_fake_qobj():
+    """Creates a fake qobj dictionary."""
+    return {
+        'id': 'test-id',
+        'config': {
+            'shots': 1024,
+            'max_credits': 100
+        },
+        'experiments': [{
+            'header': {'compiled_circuit_qasm': 'fake-code'},
+            'config': {
+                'seed': 123456
+            },
+            'instructions': []
+        }],
+        'header': {'backend_name': 'test-backend'}
+    }
+
+
+class FakeBackend():
+    """Fakes qiskit.backends.basebackend.BaseBackend instances."""
+    def __init__(self):
+        self.name = 'test-backend'

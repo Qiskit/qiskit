@@ -22,6 +22,7 @@ import logging
 from qiskit._result import Result
 from qiskit.backends.local.localjob import LocalJob
 from qiskit.backends.local._simulatorerror import SimulatorError
+from qiskit.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_statevector_simulator_py',
-        'url': 'https://github.com/QISKit/qiskit-core',
+        'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A Python statevector simulator for qobj files',
@@ -43,27 +44,27 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
 
-    def run(self, q_job):
-        """Run q_job asynchronously.
+    def run(self, qobj):
+        """Run qobj asynchronously.
 
         Args:
-            q_job (QuantumJob): QuantumJob object
+            qobj (dict): job description
 
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, q_job)
+        return LocalJob(self._run_job, qobj)
 
-    def _run_job(self, q_job):
-        """Run a QuantumJob on the backend."""
-        qobj = q_job.qobj
+    def _run_job(self, qobj):
+        """Run a Qobj on the backend."""
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
         # Add final snapshots to circuits
-        for circuit in qobj['circuits']:
-            circuit['compiled_circuit']['operations'].append(
-                {'name': 'snapshot', 'params': [final_state_key]})
-        result = super()._run_job(q_job)._result
+        for experiment in qobj.experiments:
+            experiment.instructions.append(
+                QobjInstruction.from_dict({'name': 'snapshot', 'params': [final_state_key]})
+            )
+        result = super()._run_job(qobj)._result
         # Replace backend name with current backend
         result['backend'] = self._configuration['name']
         # Extract final state snapshot and move to 'statevector' data field
@@ -79,7 +80,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             # Remove snapshot dict if empty
             if snapshots == {}:
                 res['data'].pop('snapshots', None)
-        return Result(result, qobj)
+        return Result(result)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -88,17 +89,17 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
-        if qobj['config']['shots'] != 1:
+        if qobj.config.shots != 1:
             logger.info("statevector simulator only supports 1 shot. "
                         "Setting shots=1.")
-            qobj['config']['shots'] = 1
-        for circuit in qobj['circuits']:
-            if 'shots' in circuit['config'] and circuit['config']['shots'] != 1:
+            qobj.config.shots = 1
+        for experiment in qobj.experiments:
+            if getattr(experiment.config, 'shots', 1) != 1:
                 logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", circuit['name'])
-                circuit['config']['shots'] = 1
-            for op in circuit['compiled_circuit']['operations']:
-                if op['name'] in ['measure', 'reset']:
-                    raise SimulatorError("In circuit {}: statevector simulator does "
-                                         "not support measure or reset.".format(circuit['name']))
-        return
+                            "Setting shots=1 for circuit %s.", experiment.name)
+                experiment.config.shots = 1
+            for op in experiment.instructions:
+                if op.name in ['measure', 'reset']:
+                    raise SimulatorError(
+                        "In circuit {}: statevector simulator does not support "
+                        "measure or reset.".format(experiment.header.name))

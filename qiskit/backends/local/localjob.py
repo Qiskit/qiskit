@@ -12,7 +12,7 @@ import logging
 import sys
 
 from qiskit.backends import BaseJob
-from qiskit.backends.basejob import JobStatus
+from qiskit.backends import JobStatus
 from qiskit import QISKitError
 
 logger = logging.getLogger(__name__)
@@ -25,16 +25,16 @@ class LocalJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    if sys.platform == 'darwin':
+    if sys.platform in ['darwin', 'win32']:
         _executor = futures.ThreadPoolExecutor()
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, q_job):
+    def __init__(self, fn, qobj):
         super().__init__()
-        self._q_job = q_job
-        self._backend_name = q_job.backend.name
-        self._future = self._executor.submit(fn, q_job)
+        self._qobj = qobj
+        self._backend_name = qobj.header.backend_name
+        self._future = self._executor.submit(fn, qobj)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ

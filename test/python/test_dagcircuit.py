@@ -12,7 +12,6 @@
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
-
 from .common import QiskitTestCase
 
 
@@ -42,6 +41,27 @@ class TestDagCircuit(QiskitTestCase):
         dag.apply_operation_back('x', [qubit1], [], [], ('cr', 1))
         dag.apply_operation_back('measure', [qubit0], [clbit0], [], condition)
         dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition)
+
+    def test_get_named_nodes(self):
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
+        dag.add_basis_element('cx', 2)
+        dag.add_qreg('q', 3)
+        dag.apply_operation_back('cx', [('q', 0), ('q', 1)])
+        dag.apply_operation_back('h', [('q', 0)])
+        dag.apply_operation_back('cx', [('q', 2), ('q', 1)])
+        dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
+        dag.apply_operation_back('h', [('q', 2)])
+
+        # The ordering is not assured, so we only compare the output (unordered) sets.
+        # We use tuples because lists aren't hashable.
+        named_nodes = dag.get_named_nodes('cx')
+        node_qargs = {tuple(dag.multi_graph.node[node_id]["qargs"]) for node_id in named_nodes}
+        expected_gates = {
+            (('q', 0), ('q', 1)),
+            (('q', 2), ('q', 1)),
+            (('q', 0), ('q', 2))}
+        self.assertEqual(expected_gates, node_qargs)
 
 
 if __name__ == '__main__':
