@@ -82,7 +82,6 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
-from qiskit.qobj import qobj_to_dict
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 logger = logging.getLogger(__name__)

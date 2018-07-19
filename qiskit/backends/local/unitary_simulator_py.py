@@ -88,7 +88,6 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
-from qiskit.qobj import qobj_to_dict
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
@@ -128,8 +127,8 @@ class UnitarySimulatorPy(BaseBackend):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-        unitaty_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
-        self._unitary_state = np.dot(unitaty_add, self._unitary_state)
+        unitary_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
+        self._unitary_state = np.dot(unitary_add, self._unitary_state)
 
     def _add_unitary_two(self, gate, q_0, q_1):
         """Apply the two-qubit gate.
@@ -162,46 +161,49 @@ class UnitarySimulatorPy(BaseBackend):
             Result: Result object
         """
         result_list = []
-        qobj_converted = qobj_to_dict(qobj, version='0.0.1')
-        for circuit in qobj_converted['circuits']:
+        for circuit in qobj.experiments:
             result_list.append(self.run_circuit(circuit))
         job_id = str(uuid.uuid4())
         return Result(
             {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'})
 
     def run_circuit(self, circuit):
-        """Apply the single-qubit gate."""
-        ccircuit = circuit['compiled_circuit']
-        self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        result = {}
-        result['data'] = {}
-        result['name'] = circuit.get('name')
-        self._unitary_state = np.identity(2**(self._number_of_qubits),
+        """Apply the single-qubit gate.
+
+        Args:
+            circuit (QobjExperiment): experiment from qobj experiments list
+
+        Returns:
+            dict: A dictionary of results.
+        """
+        self._number_of_qubits = circuit.header.number_of_qubits
+        result = {
+            'data': {},
+            'name': circuit.header.name
+        }
+        self._unitary_state = np.identity(2 ** self._number_of_qubits,
                                           dtype=complex)
-        for operation in ccircuit['operations']:
-            if operation['name'] in ['U', 'u1', 'u2', 'u3']:
-                if 'params' in operation:
-                    params = operation['params']
-                else:
-                    params = None
-                qubit = operation['qubits'][0]
-                gate = single_gate_matrix(operation['name'], params)
+        for operation in circuit.instructions:
+            if operation.name in ('U', 'u1', 'u2', 'u3'):
+                params = getattr(operation, 'params', None)
+                qubit = operation.qubits[0]
+                gate = single_gate_matrix(operation.name, params)
                 self._add_unitary_single(gate, qubit)
-            elif operation['name'] in ['id', 'u0']:
+            elif operation.name in ('id', 'u0'):
                 pass
-            elif operation['name'] in ['CX', 'cx']:
-                qubit0 = operation['qubits'][0]
-                qubit1 = operation['qubits'][1]
+            elif operation.name in ('CX', 'cx'):
+                qubit0 = operation.qubits[0]
+                qubit1 = operation.qubits[1]
                 gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
-            elif operation['name'] == 'measure':
+            elif operation.name == 'measure':
                 logger.info('Warning have dropped measure from unitary '
                             'simulator')
-            elif operation['name'] == 'reset':
+            elif operation.name == 'reset':
                 logger.info('Warning have dropped reset from unitary '
                             'simulator')
-            elif operation['name'] == 'barrier':
+            elif operation.name == 'barrier':
                 pass
             else:
                 result['status'] = 'ERROR'
