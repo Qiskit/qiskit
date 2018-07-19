@@ -7,5 +7,6 @@
 
 """Module for the Qobj structure."""
 
-from ._qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjItem)
+from ._qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction,
+                    QobjItem, QobjHeader)
 from ._converter import qobj_to_dict
