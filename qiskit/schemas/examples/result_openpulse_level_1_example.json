@@ -15,7 +15,7 @@
         "success": true,
         "meas_return": "avg",
         "data": {
-            "register": [[1.5,0]]
+            "memory": [[1.5,0]]
         }
         },
         {"header": {"exp_descrip": "Excited state calibration"},
@@ -24,7 +24,7 @@
         "success": true,
         "meas_return": "avg",
         "data": {
-            "register": [[0,1.5]]
+            "memory": [[0,1.5]]
         }
         },
         {"header": {"exp_descrip": "T1", "t1_time": 0},
@@ -33,7 +33,7 @@
         "success": true,
         "meas_return": "single",
         "data": {
-            "register": [[[0.1,1.6]],[[-0.2,1.4]],[[0.2,1.3]],[[-0.1,1.6]],[[0,1.5]]]
+            "memory": [[[0.1,1.6]],[[-0.2,1.4]],[[0.2,1.3]],[[-0.1,1.6]],[[0,1.5]]]
         }
         }         
     ]

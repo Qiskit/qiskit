@@ -12,6 +12,7 @@
         {"name": "90_2", "samples": [[0,0],[0,0],[0,0]]}
         ],
     "meas_kernel": {"name": "boxcar", "params": []},
-    "discriminator": {"name": "max_1Q_fidelity", "params": []}
+    "discriminator": {"name": "max_1Q_fidelity", "params": []},
+    "buffer": 2
 }
     
