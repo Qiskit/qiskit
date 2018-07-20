@@ -19,8 +19,9 @@ import json
 import datetime
 import numpy
 
-from qiskit.qobj import qobj_to_dict
 from IBMQuantumExperience import ApiError
+
+from qiskit.qobj import qobj_to_dict
 from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
