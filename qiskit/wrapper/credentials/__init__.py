@@ -14,6 +14,7 @@ from qiskit import QISKitError
 from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
 from ._qconfig import read_credentials_from_qconfig
+from ._utils import get_account_name
 
 
 logger = logging.getLogger(__name__)

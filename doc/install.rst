@@ -143,7 +143,7 @@ following contents:
 And customize the following lines:
 
 * copy/paste your API token into the space between the quotation marks on the
-  first line (``APItoken = 'PUT_YOUR_API_TOKEN_HERE``).
+  first line (``APItoken = 'PUT_YOUR_API_TOKEN_HERE'``).
 * if you have access to the IBM Q features, you also need to setup the
   values for your url, hub, group, and project. You can do so by filling the
   ``config`` variable with the values you can find on your IBM Q account

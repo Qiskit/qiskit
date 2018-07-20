@@ -14,6 +14,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 
 from qiskit import QISKitError
 from qiskit.backends.ibmq import IBMQProvider
+from ._utils import get_account_name
 
 
 DEFAULT_QCONFIG_FILE = 'Qconfig.py'
@@ -59,4 +60,4 @@ def read_credentials_from_qconfig():
         # pylint: disable=broad-except
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
 
-    return {IBMQProvider.__name__: credentials}
+    return {get_account_name(IBMQProvider): credentials}

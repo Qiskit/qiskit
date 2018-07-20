@@ -63,7 +63,8 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
     """
     # Try to autodiscover credentials if not passed.
     if not args and not kwargs and provider_class == IBMQProvider:
-        kwargs = credentials.discover_credentials().get(IBMQProvider.__name__) or {}
+        kwargs = credentials.discover_credentials().get(
+            credentials.get_account_name(IBMQProvider)) or {}
         if not kwargs:
             raise QISKitError(
                 'No IBMQ credentials found. Please pass them explicitly or '

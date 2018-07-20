@@ -15,6 +15,7 @@ from configparser import ConfigParser, ParsingError
 
 from qiskit import QISKitError
 from qiskit.backends.ibmq import IBMQProvider
+from ._utils import get_account_name
 
 
 DEFAULT_QISKITRC_FILE = os.path.join(os.path.expanduser("~"),
@@ -51,11 +52,14 @@ def read_credentials_from_qiskitrc(filename=None):
     credentials_dict = {}
     for name in config_parser.sections():
         single_credentials = dict(config_parser.items(name))
-        # TODO: 'proxies' is the only value that is a dict. Consider moving to
-        # json configuration or splitting into single keys manually.
+        # Individually convert keys to their right types.
+        # TODO: consider generalizing, moving to json configuration or a more
+        # robust alternative.
         if 'proxies' in single_credentials.keys():
             single_credentials['proxies'] = literal_eval(
                 single_credentials['proxies'])
+        if 'verify' in single_credentials.keys():
+            single_credentials['verify'] = bool(single_credentials['verify'])
         credentials_dict[name] = single_credentials
 
     return credentials_dict
@@ -100,7 +104,7 @@ def store_credentials(provider_class=IBMQProvider, overwrite=False,
             the account_name could not be assigned.
     """
     # Set the name of the Provider from the class.
-    account_name = provider_class.__name__
+    account_name = get_account_name(provider_class)
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
     credentials = read_credentials_from_qiskitrc(filename)
@@ -127,7 +131,7 @@ def remove_credentials(provider_class=IBMQProvider, filename=None):
             file.
     """
     # Set the name of the Provider from the class.
-    account_name = provider_class.__name__
+    account_name = get_account_name(provider_class)
     credentials = read_credentials_from_qiskitrc(filename)
 
     try:
