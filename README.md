@@ -126,43 +126,38 @@ your IBM Q Experience account:
 
 #### Configure your API token and QX credentials
 
-
 1. Create an _[IBM Q Experience](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
+
 2. Get an API token from the IBM Q Experience website under _My Account > Advanced > API Token_. This API token allows you to execute your programs with the IBM Q Experience backends. See: [Example](doc/example_real_backend.rst).
-3. We are going to create a new file called `Qconfig.py` and insert the API token into it. This file must have these contents:
 
-  ```python
-  APItoken = 'MY_API_TOKEN'
+3. We are now going to add the necessary credentials to QISKit. Take your token
+   from step 2, here called `MY_API_TOKEN`, and pass it to the
+   `store_credentials` function:
 
-  config = {
-      'url': 'https://quantumexperience.ng.bluemix.net/api',
-      # The following should only be needed for IBM Q Network users.
-      'hub': 'MY_HUB',
-      'group': 'MY_GROUP',
-      'project': 'MY_PROJECT'
-  }
-  ```
+   ```python
+   from qiskit import store_credentials
 
-4. Substitute `MY_API_TOKEN` with your real API Token extracted in step 2.
+   store_credentials('MY_API_TOKEN')
+   ```
 
-5. If you have access to the IBM Q Network features, you also need to setup the
-   values for your hub, group, and project. You can do so by filling the
-   `config` variable with the values you can find on your IBM Q account
-   page.
+4. If you have access to the IBM Q Network features, you also need to pass the
+   values for your url, hub, group, and project found on your IBM Q account
+   page to `store_credentials`.
 
-Once the `Qconfig.py` file is set up, you have to move it under the same directory/folder where your program/tutorial resides, so it can be imported and be used to authenticate with the `register()` function. For example:
+After calling `store_credentials()`, your credentials will be stored into disk.
+Once they are stored, Qiskit will automatically load and use them in your program
+via:
 
 ```python
 from qiskit import register
-import Qconfig
 
-register(Qconfig.APItoken, Qconfig.config["url"],
-         hub=Qconfig.config["hub"],
-         group=Qconfig.config["group"],
-         project=Qconfig.config["project"])
+register()
 ```
 
-For more details on this and more information see
+For more details on installing Qiskit and for alternative methods for passing
+the IBM QX credentials, such as using environment variables, sending them
+explicitly and support for the `Qconfig.py` method available in previous
+versions, please check
 [our Qiskit documentation](https://www.qiskit.org/documentation/).
 
 

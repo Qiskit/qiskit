@@ -10,6 +10,8 @@
 
 """Main QISKit public functionality."""
 
+import os
+
 # First, check for required Python and API version
 from . import _util
 
@@ -35,12 +37,11 @@ from ._result import Result
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
     get_backend, compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy)
+    registered_providers, load_qasm_string, load_qasm_file, least_busy,
+    store_credentials)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
-
-import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
