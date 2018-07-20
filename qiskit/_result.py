@@ -201,7 +201,7 @@ class Result(object):
             if len(self._result['result']) == 1:
                 return self._result['result'][0]['data']
             else:
-                raise QISKitError("You have to select a circuit when there is more than"
+                raise QISKitError("You have to select a circuit when there is more than "
                                   "one available")
 
         if not isinstance(circuit, str):
@@ -327,7 +327,7 @@ class Result(object):
                 if len(slots) == 1:
                     slot = slots[0]
                 else:
-                    raise QISKitError("You have to select a slot when there"
+                    raise QISKitError("You have to select a slot when there "
                                       "is more than one available")
             snapshot_dict = snapshots_dict[slot]
 

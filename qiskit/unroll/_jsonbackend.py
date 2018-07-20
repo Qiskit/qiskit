@@ -16,7 +16,7 @@ The input is a AST and a basis set and returns a json memory object::
      "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
      "clbit_labels": [["c", 2]], // list[list[string, int]]
      }
-     "operations": // list[map]
+     "instructions": // list[map]
         [
             {
                 "name": , // required -- string
@@ -50,7 +50,7 @@ class JsonBackend(UnrollerBackend):
         """
         super().__init__(basis)
         self.circuit = {}
-        self.circuit['operations'] = []
+        self.circuit['instructions'] = []
         self.circuit['header'] = {
             'number_of_qubits': 0,
             'number_of_clbits': 0,
@@ -138,7 +138,7 @@ class JsonBackend(UnrollerBackend):
             if "U" not in self.basis:
                 self.basis.append("U")
             qubit_indices = [self._qubit_order_internal.get(qubit)]
-            self.circuit['operations'].append({
+            self.circuit['instructions'].append({
                 'name': "U",
                 # TODO: keep these real for now, until a later time
                 'params': [float(arg[0].real(nested_scope)),
@@ -170,7 +170,7 @@ class JsonBackend(UnrollerBackend):
                     'mask': "0x%X" % mask,
                     'val': "0x%X" % self.cval
                 }
-            self.circuit['operations'][-1]['conditional'] = conditional
+            self.circuit['instructions'][-1]['conditional'] = conditional
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -183,7 +183,7 @@ class JsonBackend(UnrollerBackend):
                 self.basis.append("CX")
             qubit_indices = [self._qubit_order_internal.get(qubit0),
                              self._qubit_order_internal.get(qubit1)]
-            self.circuit['operations'].append({
+            self.circuit['instructions'].append({
                 'name': 'CX',
                 'qubits': qubit_indices,
             })
@@ -199,7 +199,7 @@ class JsonBackend(UnrollerBackend):
             self.basis.append("measure")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
         clbit_indices = [self._cbit_order_internal.get(bit)]
-        self.circuit['operations'].append({
+        self.circuit['instructions'].append({
             'name': 'measure',
             'qubits': qubit_indices,
             'clbits': clbit_indices
@@ -218,7 +218,7 @@ class JsonBackend(UnrollerBackend):
             for qubitlist in qubitlists:
                 for qubits in qubitlist:
                     qubit_indices.append(self._qubit_order_internal.get(qubits))
-            self.circuit['operations'].append({
+            self.circuit['instructions'].append({
                 'name': 'barrier',
                 'qubits': qubit_indices,
             })
@@ -233,7 +233,7 @@ class JsonBackend(UnrollerBackend):
         if "reset" not in self.basis:
             self.basis.append("reset")
         qubit_indices = [self._qubit_order_internal.get(qubit)]
-        self.circuit['operations'].append({
+        self.circuit['instructions'].append({
             'name': 'reset',
             'qubits': qubit_indices,
         })
@@ -270,7 +270,7 @@ class JsonBackend(UnrollerBackend):
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get(qubit)
                              for qubit in qubits]
-            self.circuit['operations'].append({
+            self.circuit['instructions'].append({
                 'name': name,
                 # TODO: keep these real for now, until a later time
                 'params': list(map(lambda x: float(x.real(nested_scope)),
@@ -306,4 +306,4 @@ class JsonBackend(UnrollerBackend):
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
         return (len(self.circuit['header']) > 0 and
-                len(self.circuit['operations']) > 0)
+                len(self.circuit['instructions']) > 0)

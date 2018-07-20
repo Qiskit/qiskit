@@ -376,7 +376,7 @@ class QCircuitImage(object):
         columns = 2     # wires in the beginning and end
         is_occupied = [False] * self.img_width
         max_column_width = {}
-        for op in self.circuit['operations']:
+        for op in self.circuit['instructions']:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
                            't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy', 'crz', 'cu3']
@@ -655,7 +655,7 @@ class QCircuitImage(object):
         else:
             qregdata = self.qregs
 
-        for _, op in enumerate(self.circuit['operations']):
+        for _, op in enumerate(self.circuit['instructions']):
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
                 cl_reg = self.clbit_list[self._ffs(mask)]
@@ -1360,7 +1360,7 @@ class MatplotlibDrawer:
         u.execute()
         self._ast = u.backend.circuit
         self._registers()
-        self._ops = self._ast['operations']
+        self._ops = self._ast['instructions']
 
     def _registers(self):
         # NOTE: formats of clbit and qubit are different!

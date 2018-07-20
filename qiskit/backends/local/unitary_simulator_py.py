@@ -88,6 +88,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
 
 logger = logging.getLogger(__name__)
@@ -161,8 +162,9 @@ class UnitarySimulatorPy(BaseBackend):
             Result: Result object
         """
         result_list = []
-        for circuit in qobj.circuits:
-            result_list.append(self.run_circuit(circuit.as_dict()))
+        qobj_converted = qobj_to_dict(qobj, version='0.0.1')
+        for circuit in qobj_converted['circuits']:
+            result_list.append(self.run_circuit(circuit))
         job_id = str(uuid.uuid4())
         return Result(
             {'job_id': job_id, 'result': result_list, 'status': 'COMPLETED'})

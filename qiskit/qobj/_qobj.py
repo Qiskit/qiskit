@@ -9,10 +9,12 @@
 
 from types import SimpleNamespace
 
-from ._utils import QobjType, QobjValidationError
+from ._utils import QobjValidationError, QobjType
 
 # Current version of the Qobj schema.
-QOBJ_VERSION = '0.0.1'
+QOBJ_VERSION = '0.0.2'
+# Previous Qobj schema versions:
+# * 0.0.1: Qiskit 0.5.x format (pre-schemas).
 
 
 class QobjItem(SimpleNamespace):
@@ -27,7 +29,6 @@ class QobjItem(SimpleNamespace):
         """
         Return a dictionary representation of the QobjItem, recursively
         converting its public attributes.
-
         Returns:
             dict: a dictionary.
         """
@@ -96,18 +97,20 @@ class Qobj(QobjItem):
     Attributes:
         id (str): Qobj identifier.
         config (QobjConfig): config settings for the Qobj.
-        circuits (list[QobjExperiment]): list of experiments.
+        experiments (list[QobjExperiment]): list of experiments.
+        header (QobjHeader): headers.
         type (str): experiment type (QASM/PULSE).
         _version (str): Qobj version.
     """
 
-    REQUIRED_ARGS = ['id', 'config', 'circuits']
+    REQUIRED_ARGS = ['id', 'config', 'experiments', 'header']
 
-    def __init__(self, id, config, circuits, **kwargs):
+    def __init__(self, id, config, experiments, header, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
         self.id = id
         self.config = config
-        self.circuits = circuits
+        self.experiments = experiments
+        self.header = header
 
         self.type = QobjType.QASM.value
         self._version = QOBJ_VERSION
@@ -119,40 +122,58 @@ class QobjConfig(QobjItem):
     """Configuration for a Qobj.
 
     Attributes:
-        max_credits (int): number of credits.
         shots (int): number of shots.
-        backend_name (str): name of the backend.
-    """
-    REQUIRED_ARGS = ['max_credits', 'shots', 'backend_name']
+        register_slots (int): number of classical register slots.
 
-    def __init__(self, max_credits, shots, backend_name, **kwargs):
-        self.max_credits = max_credits
+    Attributes defined in the schema but not required:
+        max_credits (int): number of credits.
+        seed (int): random seed.
+    """
+    REQUIRED_ARGS = ['shots', 'register_slots']
+
+    def __init__(self, shots, register_slots, **kwargs):
         self.shots = shots
-        self.backend_name = backend_name
+        self.register_slots = register_slots
 
         super().__init__(**kwargs)
+
+
+class QobjHeader(QobjItem):
+    """Header for a Qobj.
+
+    Attributes defined in the schema but not required:
+        backend_name (str): name of the backend
+        backend_version (str): the backend version this set of experiments was generated for.
+        qubit_labels (list): map physical qubits to qregs (for QASM).
+        clbit_labels (list): map classical clbits to register_slots (for QASM).
+    """
+    pass
 
 
 class QobjExperiment(QobjItem):
     """Quantum experiment represented inside a Qobj.
 
-    Attributes:
-        name (str): name of the experiment.
-        config (QobjExperimentConfig): config settings for the experiment.
-        compiled_circuit (QobjCompiledCircuit): list of instructions
-        compiled_circuit_qasm (str)
-    """
-    REQUIRED_ARGS = ['name', 'config', 'compiled_circuit',
-                     'compiled_circuit_qasm']
+        instructions (list[QobjInstruction)): list of instructions.
 
-    def __init__(self, name, config, compiled_circuit, compiled_circuit_qasm,
-                 **kwargs):
-        self.name = name
-        self.config = config
-        self.compiled_circuit = compiled_circuit
-        self.compiled_circuit_qasm = compiled_circuit_qasm
+    Attributes defined in the schema but not required:
+        header (QobjExperimentHeader): header.
+        config (QobjItem): config settings for the Experiment.
+    """
+    REQUIRED_ARGS = ['instructions']
+
+    def __init__(self, instructions, **kwargs):
+        self.instructions = instructions
 
         super().__init__(**kwargs)
+
+
+class QobjExperimentHeader(QobjItem):
+    """Header for a Qobj.
+
+    Attributes defined in the schema but not required:
+        name (str): experiment name.
+    """
+    pass
 
 
 class QobjInstruction(QobjItem):
@@ -166,43 +187,5 @@ class QobjInstruction(QobjItem):
 
     def __init__(self, name, **kwargs):
         self.name = name
-
-        super().__init__(**kwargs)
-
-
-# TODO: Remove when new schema is in place?
-class QobjExperimentConfig(QobjItem):
-    """Configuration for a experiment.
-
-    Attributes:
-        seed (int): seed.
-        basis_gates (str): basis gates
-        coupling_map (list): coupling map
-        layout (list): layout
-    """
-    REQUIRED_ARGS = ['seed', 'basis_gates', 'coupling_map', 'layout']
-
-    def __init__(self, seed, basis_gates, coupling_map, layout, **kwargs):
-        self.seed = seed
-        self.basis_gates = basis_gates
-        self.coupling_map = coupling_map
-        self.layout = layout
-
-        super().__init__(**kwargs)
-
-
-# TODO: Remove when new schema is in place?
-class QobjCompiledCircuit(QobjItem):
-    """Compiled circuit.
-
-    Attributes:
-        header (QobjItem): header.
-        operations (list[QobjInstruction]): list of instructions.
-    """
-    REQUIRED_ARGS = ['header', 'operations']
-
-    def __init__(self, header, operations, **kwargs):
-        self.header = header
-        self.operations = operations
 
         super().__init__(**kwargs)

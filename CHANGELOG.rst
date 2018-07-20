@@ -20,6 +20,8 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Introduced new options for handling credentials (qiskitrc file, environment
+  variables) and automatic registration. (#547)
 
 Changed
 -------
@@ -32,6 +34,7 @@ Removed
 
 Fixed
 -----
+- Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
 
 
 `0.5.6`_ - 2018-07-06
