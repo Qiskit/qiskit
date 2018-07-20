@@ -15,7 +15,8 @@ import os
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
-from qiskit.wrapper.credentials import discover_credentials
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 
 
@@ -249,9 +250,10 @@ def requires_qe_access(func):
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
         # Attempt to read the standard credentials.
+        account_name = get_account_name(IBMQProvider)
         discovered_credentials = discover_credentials()
-        try:
-            credentials = next(iter(discovered_credentials.values()))
+        if account_name in discovered_credentials.keys():
+            credentials = discovered_credentials[account_name]
             kwargs.update({
                 'QE_TOKEN': credentials.get('token'),
                 'QE_URL': credentials.get('url'),
@@ -259,7 +261,7 @@ def requires_qe_access(func):
                 'group': credentials.get('group'),
                 'project': credentials.get('project'),
             })
-        except StopIteration:
+        else:
             raise Exception('Could not locate valid credentials')
 
         return func(*args, **kwargs)

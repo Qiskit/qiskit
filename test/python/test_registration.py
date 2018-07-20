@@ -19,15 +19,20 @@ from unittest import skipIf
 import qiskit
 from qiskit import QISKitError
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper.credentials import _configrc, _qconfig, discover_credentials
+from qiskit.wrapper.credentials import (_configrc, _qconfig,
+                                        discover_credentials, get_account_name)
 from qiskit.wrapper.credentials._environ import VARIABLES_MAP
 from .common import QiskitTestCase
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows
 @skipIf(os.name == 'nt', 'Test not supported in Windows')
-class TestWrapperCredentuals(QiskitTestCase):
+class TestWrapperCredentials(QiskitTestCase):
     """Wrapper autoregistration and credentials test case."""
+    def setUp(self):
+        super(TestWrapperCredentials, self).setUp()
+        self.ibmq_account_name = get_account_name(IBMQProvider)
+
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), no_file(_configrc.DEFAULT_QISKITRC_FILE), no_envs():
@@ -73,8 +78,8 @@ class TestWrapperCredentuals(QiskitTestCase):
             with no_file('Qconfig.py'), custom_envs({'QE_TOKEN': 'ENVIRON_TOKEN'}):
                 credentials = discover_credentials()
 
-        self.assertIn('IBMQProvider', credentials)
-        self.assertEqual(credentials['IBMQProvider']['token'], 'ENVIRON_TOKEN')
+        self.assertIn(self.ibmq_account_name, credentials)
+        self.assertEqual(credentials[self.ibmq_account_name]['token'], 'ENVIRON_TOKEN')
 
     def test_qconfig_over_all(self):
         """Test order, with qconfig"""
@@ -85,8 +90,8 @@ class TestWrapperCredentuals(QiskitTestCase):
                     custom_envs({'QE_TOKEN': 'ENVIRON_TOKEN'}):
                 credentials = discover_credentials()
 
-        self.assertIn('IBMQProvider', credentials)
-        self.assertEqual(credentials['IBMQProvider']['token'], 'QCONFIG_TOKEN')
+        self.assertIn(self.ibmq_account_name, credentials)
+        self.assertEqual(credentials[self.ibmq_account_name]['token'], 'QCONFIG_TOKEN')
 
 
 # Context managers

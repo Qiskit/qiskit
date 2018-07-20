@@ -145,7 +145,7 @@ your IBM Q Experience account:
    page to `store_credentials`.
 
 After calling `store_credentials()`, your credentials will be stored into disk.
-Once they are stored, you can automatically load and use them in your program
+Once they are stored, Qiskit will automatically load and use them in your program
 via:
 
 ```python
