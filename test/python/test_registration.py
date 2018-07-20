@@ -35,7 +35,7 @@ class TestWrapperCredentials(QiskitTestCase):
 
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
-        with no_file('Qconfig.py'), no_file(_configrc.DEFAULT_QISKITRC_FILE), no_envs():
+        with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
             with self.assertRaises(QISKitError) as cm:
                 qiskit.wrapper.register()
 
@@ -117,12 +117,14 @@ def no_file(filename):
 def no_envs():
     """Context manager that disables qiskit environment variables."""
     # Remove the original variables from `os.environ`.
+    # Store the original `os.environ`.
+    os_environ_original = os.environ.copy()
     modified_environ = {key: value for key, value in os.environ.items()
                         if key not in VARIABLES_MAP.keys()}
-    patcher = patch.dict(os.environ, modified_environ)
-    patcher.start()
+    os.environ = modified_environ
     yield
-    patcher.stop()
+    # Restore the original `os.environ`.
+    os.environ = os_environ_original
 
 
 @contextmanager
@@ -165,11 +167,13 @@ def custom_qconfig(contents=b''):
 def custom_envs(new_environ):
     """Context manager that disables qiskit environment variables."""
     # Remove the original variables from `os.environ`.
+    # Store the original `os.environ`.
+    os_environ_original = os.environ.copy()
     modified_environ = {**os.environ, **new_environ}
-    patcher = patch.dict(os.environ, modified_environ)
-    patcher.start()
+    os.environ = modified_environ
     yield
-    patcher.stop()
+    # Restore the original `os.environ`.
+    os.environ = os_environ_original
 
 
 @contextmanager
