@@ -12,50 +12,30 @@ Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumProgram
-from qiskit import QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import execute, compile, register, get_backend
 
 import Qconfig
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "ibmq_qasm_simulator"
-coupling_map = {0: [1, 8], 1: [2, 9], 2: [3, 10], 3: [4, 11], 4: [5, 12],
-                5: [6, 13], 6: [7, 14], 7: [15], 8: [9], 9: [10], 10: [11],
-                11: [12], 12: [13], 13: [14], 14: [15]}
+backend = get_backend("local_qasm_simulator")
+coupling_map = [[0,1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10], [3, 4], [3, 11],
+                [4, 5], [4, 12], [5, 6], [5, 13], [6, 7], [6, 14], [7, 15], [8, 9],
+                [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15]]
 
 ###############################################################
 # Make a quantum program for the n-bit ripple adder.
 ###############################################################
 n = 2
 
-QPS_SPECS = {
-    "circuits": [{
-        "name": "rippleadd",
-        "quantum_registers": [
-            {"name": "a",
-             "size": n},
-            {"name": "b",
-             "size": n},
-            {"name": "cin",
-             "size": 1},
-            {"name": "cout",
-             "size": 1}
-        ],
-        "classical_registers": [
-            {"name": "ans",
-             "size": n + 1},
-        ]}]
-}
-
-qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.get_circuit("rippleadd")
-a = qp.get_quantum_register("a")
-b = qp.get_quantum_register("b")
-cin = qp.get_quantum_register("cin")
-cout = qp.get_quantum_register("cout")
-ans = qp.get_classical_register("ans")
+a = QuantumRegister(n, "a")
+b = QuantumRegister(n, "b")
+cin = QuantumRegister(1, "cin")
+cout = QuantumRegister(1, "cout")
+ans = ClassicalRegister(n+1, "ans")
+qc = QuantumCircuit(a, b, cin, cout, ans, name="rippleadd")
 
 
 def majority(p, a, b, c):
@@ -94,23 +74,21 @@ for j in range(n):
 qc.measure(cout[0], ans[n])
 
 ###############################################################
-# Set up the API and execute the program.
+# execute the program.
 ###############################################################
-qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # First version: not mapped
-result = qp.execute(["rippleadd"], backend=backend,
-                    coupling_map=None, shots=1024)
+job = execute(qc, backend=backend, coupling_map=None, shots=1024)
+result = job.result()
 print(result)
 print(result.get_counts("rippleadd"))
 
 # Second version: mapped to 2x8 array coupling graph
-obj = qp.compile(["rippleadd"], backend=backend,
-                 coupling_map=coupling_map, shots=1024)
-result = qp.run(obj)
+qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024)
+job = backend.run(qobj)
+result = job.result()
 
 print(result)
-print(result.get_ran_qasm("rippleadd"))
 print(result.get_counts("rippleadd"))
 
 # Both versions should give the same distribution

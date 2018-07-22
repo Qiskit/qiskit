@@ -13,31 +13,17 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-from qiskit import QuantumProgram
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
 from qiskit.tools.visualization import plot_circuit
 import Qconfig
 
 
 ###############################################################
-# Make a quantum program for state initialization.
+# Make a quantum circuit for state initialization.
 ###############################################################
-Q_SPECS = {
-    "name": "Program-tutorial",
-    "circuits": [{
-        "name": "initializer_circ",
-        "quantum_registers": [{
-            "name": "qr",
-            "size": 4
-        }],
-        "classical_registers": [{
-            "name": "cr",
-            "size": 4
-        }]}],
-}
-Q_program = QuantumProgram(specs=Q_SPECS)
-circuit = Q_program.get_circuit("initializer_circ")
-qr = Q_program.get_quantum_register("qr")
-cr = Q_program.get_classical_register('cr')
+qr = QuantumRegister(4, "qr")
+cr = ClassicalRegister(4, 'cr')
+circuit = QuantumCircuit(qr, cr, name="initializer_circ")
 
 desired_vector = [
     1 / math.sqrt(4) * complex(0, 1),
@@ -64,36 +50,22 @@ circuit.measure(qr[1], cr[1])
 circuit.measure(qr[2], cr[2])
 circuit.measure(qr[3], cr[3])
 
-QASM_source = Q_program.get_qasm("initializer_circ")
+QASM_source = circuit.qasm()
 
 print(QASM_source)
 plot_circuit(circuit)
 
 ###############################################################
-# Set the backend name and coupling map.
+# Execute on a simulator backend.
 ###############################################################
-device = 'ibmqx2'
-coupling_map = {0: [1, 2],
-                1: [2],
-                2: [],
-                3: [2, 4],
-                4: [2]}
-circuits = ['initializer_circ']
 shots = 1024
-
-###############################################################
-# Set up the API and execute the program.
-###############################################################
-Q_program.set_api(Qconfig.APItoken, Qconfig.config["url"])
 
 # Desired vector
 print("Desired probabilities...")
 print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
-result = Q_program.execute(circuits,
-                           backend='local_qasm_simulator',
-                           wait=2, timeout=240, shots=shots)
+result = execute(circuit, backend='local_qasm_simulator', shots=shots).result()
 
 print("Probabilities from simulator...[%s]" % result)
 n_qubits_qureg = qr.size
