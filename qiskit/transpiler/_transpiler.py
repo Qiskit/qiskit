@@ -133,8 +133,6 @@ def compile(circuits, backend,
             'register_slots': sum(register.size for register
                                   in circuit.get_cregs().values())})
         experiment.config = QobjItem(**experiment_config)
-        if seed:
-            experiment.config.seed = seed
 
         # set eval_symbols=True to evaluate each symbolic expression
         # TODO after transition to qobj, we can drop this

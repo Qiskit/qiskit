@@ -159,7 +159,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         cr0 = ClassicalRegister(1, 'cr0')
         cr1 = ClassicalRegister(1, 'cr1')
         cr2 = ClassicalRegister(1, 'cr2')
-        circuit = QuantumCircuit(qr, cr0, cr1, cr2, name='teleport',)
+        circuit = QuantumCircuit(qr, cr0, cr1, cr2, name='teleport')
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
         circuit.ry(pi/4, qr[0])

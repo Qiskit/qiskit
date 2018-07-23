@@ -116,7 +116,7 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
-        self._seed = 1
+        self._qobj_config = None
 
     @staticmethod
     def _index1(b, i, k):
@@ -277,6 +277,7 @@ class QasmSimulatorPy(BaseBackend):
         self._validate(qobj)
         result_list = []
         self._shots = qobj.config.shots
+        self._qobj_config = qobj.config
         start = time.time()
 
         for circuit in qobj.experiments:
@@ -324,8 +325,12 @@ class QasmSimulatorPy(BaseBackend):
             cl_reg_nbits.append(cl_reg[1])
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        self._seed = getattr(circuit.config, 'seed', random.getrandbits(32))
-        self._local_random.seed(self._seed)
+
+        # Get the seed looking in circuit, qobj, and then random.
+        seed = getattr(circuit.config, 'seed',
+                       getattr(self._qobj_config, 'seed',
+                               random.getrandbits(32)))
+        self._local_random.seed(seed)
         outcomes = []
 
         start = time.time()
@@ -394,7 +399,7 @@ class QasmSimulatorPy(BaseBackend):
             data['classical_state'] = self._classical_state
         end = time.time()
         return {'name': circuit.header.name,
-                'seed': self._seed,
+                'seed': seed,
                 'shots': self._shots,
                 'data': data,
                 'status': 'DONE',
