@@ -144,9 +144,6 @@ class DefaultQISKitProvider(BaseProvider):
 
         Returns:
             BaseProvider: the provider instance.
-
-        Raises:
-            QISKitError: if trying to add a provider identical to one already registered
         """
         # Check for backend name clashes, emitting a warning.
         current_backends = {str(backend) for backend in self.available_backends()}
@@ -161,10 +158,10 @@ class DefaultQISKitProvider(BaseProvider):
                     'The backend names "%s" of this provider are already in use. '
                     'Refer to documentation for `available_backends()` and `unregister()`.',
                     list(common_backends))
+            return provider
         else:
             warnings.warn("Skipping registration: The provider is already registered.")
-
-        return provider
+            return self.providers[self.providers.index(provider)]
 
     def remove_provider(self, provider):
         """
