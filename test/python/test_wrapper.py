@@ -52,8 +52,8 @@ class TestWrapper(QiskitTestCase):
         """Test double registration of the same credentials."""
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         initial_providers = registered_providers()
-        with self.assertRaises(QISKitError):
-            qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
+        # Registering twice should give warning and add no providers.
+        qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         self.assertCountEqual(initial_providers, registered_providers())
 
     def test_register_bad_credentials(self):
