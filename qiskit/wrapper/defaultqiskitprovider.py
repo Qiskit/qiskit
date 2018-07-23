@@ -9,7 +9,7 @@
 
 import logging
 from itertools import combinations
-
+import warnings
 from qiskit import QISKitError
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
@@ -156,14 +156,13 @@ class DefaultQISKitProvider(BaseProvider):
         # checks for equality of provider instances, based on the __eq__ method
         if provider not in self.providers:
             self.providers.append(provider)
+            if common_backends:
+                logger.warning(
+                    'The backend names "%s" of this provider are already in use. '
+                    'Refer to documentation for `available_backends()` and `unregister()`.',
+                    list(common_backends))
         else:
-            raise QISKitError("The same provider has already been registered!")
-
-        if common_backends:
-            logger.warning(
-                'The backend names "%s" of this provider are already in use. '
-                'Refer to documentation for `available_backends()` and `unregister()`.',
-                list(common_backends))
+            warnings.warn("Skipping registration: The provider is already registered.")
 
         return provider
 
