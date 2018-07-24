@@ -64,12 +64,14 @@ def compile(circuits, backend,
     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefern
     qobj_config = deepcopy(config or {})
-    # TODO: "register_slots" is required by the qobj schema in the top-level
-    # qobj.config. In this implementation, is overridden by the individual
-    # experiment.config entries (hence the 0 should never be used).
+    # TODO: "memory_slots" is required by the qobj schema in the top-level
+    # qobj.config, and is user-defined. At the moment is set to the maximum
+    # number of *register* slots for the circuits, in order to have `measure`
+    # behave properly until the transition is over; and each circuit stores
+    # its memory_slots in its configuration.
     qobj_config.update({'shots': shots,
                         'max_credits': max_credits,
-                        'register_slots': 0})
+                        'memory_slots': 0})
 
     qobj = Qobj(id=qobj_id or str(uuid.uuid4()),
                 config=QobjConfig(**qobj_config),
@@ -130,7 +132,7 @@ def compile(circuits, backend,
             'coupling_map': coupling_map,
             'basis_gates': basis_gates,
             'layout': list_layout,
-            'register_slots': sum(register.size for register
+            'memory_slots': sum(register.size for register
                                   in circuit.get_cregs().values())})
         experiment.config = QobjItem(**experiment_config)
 
@@ -141,6 +143,11 @@ def compile(circuits, backend,
 
         # Step 3c: add the Experiment to the Qobj
         qobj.experiments.append(experiment)
+
+    # Update the `memory_slots` value.
+    # TODO: remove when `memory_slots` can be provided by the user.
+    qobj.config.memory_slots = max(experiment.config.memory_slots for
+                                   experiment in qobj.experiments)
 
     return qobj
 
