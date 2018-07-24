@@ -22,6 +22,7 @@ Added
 -----
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
+- Compile circuits in parallel
 
 Changed
 -------
