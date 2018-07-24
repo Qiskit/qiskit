@@ -57,7 +57,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
 
         self.qobj = Qobj(id='test_sim_single_shot',
                          config=QobjConfig(shots=1024,
-                                           register_slots=6,
+                                           memory_slots=6,
                                            max_credits=3),
                          experiments=[circuit],
                          header=QobjHeader(
@@ -130,7 +130,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         qobj = Qobj(id='test_if_qobj',
                     config=QobjConfig(max_credits=3,
                                       shots=shots,
-                                      register_slots=max_qubits),
+                                      memory_slots=max_qubits),
                     experiments=[ucircuit_true, ucircuit_false],
                     header=QobjHeader(backend_name='local_qasm_simulator_py'))
 

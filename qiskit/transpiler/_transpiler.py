@@ -133,7 +133,7 @@ def compile(circuits, backend,
             'basis_gates': basis_gates,
             'layout': list_layout,
             'memory_slots': sum(register.size for register
-                                  in circuit.get_cregs().values())})
+                                in circuit.get_cregs().values())})
         experiment.config = QobjItem(**experiment_config)
 
         # set eval_symbols=True to evaluate each symbolic expression
