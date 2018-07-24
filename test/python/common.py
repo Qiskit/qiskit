@@ -239,7 +239,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-    func = vcr.use_cassette()(func)
+    func = vcr.use_cassette(cassette_library_dir='test/cassettes')(func)
     @functools.wraps(func)
     def _(*args, **kwargs):
         # pylint: disable=invalid-name
