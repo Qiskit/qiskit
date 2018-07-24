@@ -27,6 +27,7 @@ class TestQobj(QiskitTestCase):
         expected = {
             'id': '12345',
             'type': 'QASM',
+            'schema_version': '1.0.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
