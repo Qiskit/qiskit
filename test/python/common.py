@@ -15,6 +15,8 @@ import os
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
+from qiskit.backends.ibmq import IBMQProvider
+from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 
 
@@ -227,7 +229,7 @@ def requires_qe_access(func):
         * determines if the test should be skipped by checking environment
             variables.
         * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
-            `Qconfig.py` or from environment variables.
+            `Qconfig.py`, environment variables or qiskitrc.
         * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
             arguments to the test function.
     Args:
@@ -243,31 +245,25 @@ def requires_qe_access(func):
         if SKIP_ONLINE_TESTS:
             raise unittest.SkipTest('Skipping online tests')
 
-        # Try to read the variables from Qconfig.
-        try:
-            import Qconfig
-            QE_TOKEN = Qconfig.APItoken
-            QE_URL = Qconfig.config['url']
-            QE_HUB = Qconfig.config.get('hub')
-            QE_GROUP = Qconfig.config.get('group')
-            QE_PROJECT = Qconfig.config.get('project')
-        except ImportError:
-            # Try to read them from environment variables (ie. Travis).
-            QE_TOKEN = os.getenv('QE_TOKEN')
-            QE_URL = os.getenv('QE_URL')
-            QE_HUB = os.getenv('QE_HUB')
-            QE_GROUP = os.getenv('QE_GROUP')
-            QE_PROJECT = os.getenv('QE_PROJECT')
-        if not QE_TOKEN or not QE_URL:
-            raise Exception(
-                'Could not locate a valid "Qconfig.py" file nor read the QE '
-                'values from the environment')
+        # Cleanup the credentials, as this file is shared by the tests.
+        from qiskit.wrapper import _wrapper
+        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
-        kwargs['QE_TOKEN'] = QE_TOKEN
-        kwargs['QE_URL'] = QE_URL
-        kwargs['hub'] = QE_HUB
-        kwargs['group'] = QE_GROUP
-        kwargs['project'] = QE_PROJECT
+        # Attempt to read the standard credentials.
+        account_name = get_account_name(IBMQProvider)
+        discovered_credentials = discover_credentials()
+        if account_name in discovered_credentials.keys():
+            credentials = discovered_credentials[account_name]
+            kwargs.update({
+                'QE_TOKEN': credentials.get('token'),
+                'QE_URL': credentials.get('url'),
+                'hub': credentials.get('hub'),
+                'group': credentials.get('group'),
+                'project': credentials.get('project'),
+            })
+        else:
+            raise Exception('Could not locate valid credentials')
+
         return func(*args, **kwargs)
 
     return _
