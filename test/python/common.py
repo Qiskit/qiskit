@@ -18,6 +18,7 @@ from qiskit import __path__ as qiskit_path
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+import vcr
 
 
 class Path(Enum):
@@ -238,7 +239,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-
+    func = vcr.use_cassette()(func)
     @functools.wraps(func)
     def _(*args, **kwargs):
         # pylint: disable=invalid-name
