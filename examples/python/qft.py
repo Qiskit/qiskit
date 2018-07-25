@@ -13,62 +13,18 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-from qiskit import QuantumProgram
-
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import register, execute
 import Qconfig
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "ibmqx2"
-coupling_map = {0: [1, 2],
-                1: [2],
-                2: [],
-                3: [2, 4],
-                4: [2]}
+coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
 
 ###############################################################
 # Make a quantum program for the GHZ state.
 ###############################################################
-QPS_SPECS = {
-    "circuits": [
-        {
-            "name": "qft3",
-            "quantum_registers": [{
-                "name": "q",
-                "size": 5
-            }],
-            "classical_registers": [{
-                "name": "c",
-                "size": 5
-            }]
-        },
-        {
-            "name": "qft4",
-            "quantum_registers": [{
-                "name": "q",
-                "size": 5
-            }],
-            "classical_registers": [{
-                "name": "c",
-                "size": 5
-            }]
-        },
-        {
-            "name": "qft5",
-            "quantum_registers": [{
-                "name": "q",
-                "size": 5
-            }],
-            "classical_registers": [
-                {"name": "c",
-                 "size": 5}
-            ]
-        }
-    ]
-}
-
-
 def input_state(circ, q, n):
     """n-qubit input state for QFT that produces output 1."""
     for j in range(n):
@@ -84,13 +40,11 @@ def qft(circ, q, n):
         circ.h(q[j])
 
 
-qp = QuantumProgram(specs=QPS_SPECS)
-q = qp.get_quantum_register("q")
-c = qp.get_classical_register("c")
-
-qft3 = qp.get_circuit("qft3")
-qft4 = qp.get_circuit("qft4")
-qft5 = qp.get_circuit("qft5")
+q = QuantumRegister(5, "q")
+c = ClassicalRegister(5, "c")
+qft3 = QuantumCircuit(q, c, name="qft3")
+qft4 = QuantumCircuit(q, c, name="qft4")
+qft5 = QuantumCircuit(q, c, name="qft5")
 
 input_state(qft3, q, 3)
 qft3.barrier()
@@ -117,25 +71,21 @@ print(qft3.qasm())
 print(qft4.qasm())
 print(qft5.qasm())
 
-
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+register(Qconfig.APItoken, Qconfig.config["url"])
 
-result = qp.execute(["qft3", "qft4", "qft5"], backend='ibmq_qasm_simulator',
-                    coupling_map=coupling_map, shots=1024)
+result = execute([qft3, qft4, qft5], backend='ibmq_qasm_simulator',
+                 coupling_map=coupling_map, shots=1024).result()
 print(result)
 print(result.get_ran_qasm("qft3"))
-print(result.get_ran_qasm("qft4"))
-print(result.get_ran_qasm("qft5"))
 print(result.get_counts("qft3"))
 print(result.get_counts("qft4"))
 print(result.get_counts("qft5"))
 
 
-result = qp.execute(["qft3"], backend=backend,
-                    coupling_map=coupling_map, shots=1024, timeout=120)
+result = execute([qft3], backend='ibmq_5_tenerife', shots=1024).result()
 print(result)
 print(result.get_ran_qasm("qft3"))
 print(result.get_counts("qft3"))

@@ -11,31 +11,17 @@ Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumProgram
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import CompositeGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.rx import RXGate
 
-
-Q_SPECS = {
-    "name": "Program-tutorial",
-    "circuits": [{
-        "name": "Circuit",
-        "quantum_registers": [{
-            "name": "qr",
-            "size": 4
-        }],
-        "classical_registers": [{
-            "name": "cr",
-            "size": 4
-        }]}],
-}
-Q_program = QuantumProgram(specs=Q_SPECS)
-circuit = Q_program.get_circuit("Circuit")
-quantum_r = Q_program.get_quantum_register("qr")
-classical_r = Q_program.get_classical_register('cr')
+quantum_r = QuantumRegister(4, "qr")
+classical_r = ClassicalRegister(4, "cr")
+circuit = QuantumCircuit(quantum_r, classical_r)
 
 circuit.h(quantum_r[0])
+
 circuit.rx(0, quantum_r[0])
 
 circuit.cx(quantum_r[0], quantum_r[1])
@@ -46,7 +32,6 @@ circuit.h(quantum_r[0])
 circuit.cx(quantum_r[0], quantum_r[1])
 composite_gate_1 = CompositeGate("composite1", [],
                                  [quantum_r[x] for x in range(4)])
-
 composite_gate_1._attach(CnotGate(quantum_r[0], quantum_r[1]))
 circuit._attach(composite_gate_1)
 
@@ -79,7 +64,5 @@ print("Removed Zero Rotations: " + str(circuit.remove_zero_rotations()))
 
 print("Removed Double CNOTs: " + str(circuit.remove_double_cnots_once()))
 
-# QASM from a program
-
-QASM_source = Q_program.get_qasm("Circuit")
+QASM_source = circuit.qasm()
 print(QASM_source)
