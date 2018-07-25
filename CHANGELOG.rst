@@ -38,6 +38,7 @@ Removed
 Fixed
 -----
 - Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
+- Fixed the examples to be compatible with version 0.5+ (#672)
 
 
 `0.5.6`_ - 2018-07-06
