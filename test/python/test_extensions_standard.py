@@ -169,7 +169,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_cswap(self):
         self.circuit.cswap(self.q[0], self.q[1], self.q[2])
-        qasm_txt = 'cx q[2],q[1];\nccx q[0],q[1],q[2];\ncx q[2],q[1];'
+        qasm_txt = 'cswap q[0],q[1],q[2];'
         self.assertResult(FredkinGate, qasm_txt, qasm_txt)
 
     def test_cswap_invalid(self):
@@ -732,19 +732,6 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, c.rzz, 0.1, self.q[0], self.q[0])
         c.rzz(pi/2, self.q[1], self.q[2])
         self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', 'rzz(-pi/2) q[1],q[2];')
-
-    def assertResult(self, t, qasm_txt, qasm_txt_):
-        """
-        t: type
-        qasm_txt: qasm representation
-        qasm_txt_: qasm representation of inverse
-        """
-        c = self.circuit
-        self.assertRaises(QISKitError, c.z, self.c[0])
-        self.assertRaises(QISKitError, c.z, self.c)
-        self.assertRaises(QISKitError, c.z, (self.q, 3))
-        self.assertRaises(QISKitError, c.z, (self.q, 'a'))
-        self.assertRaises(QISKitError, c.z, 0)
 
     def test_z_reg(self):
         qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
