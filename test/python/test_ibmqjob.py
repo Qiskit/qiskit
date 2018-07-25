@@ -19,10 +19,11 @@ from scipy.stats import chi2_contingency
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpiler
-from qiskit.backends import JobStatus
+from qiskit.backends import JobStatus, JobError
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends.local import LocalProvider
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -58,6 +59,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.measure(qr, cr)
         cls._qc = qc
         cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        cls._local_provider = LocalProvider()
         cls._using_hub = bool(hub and group and project)
 
     def test_run_simulator(self):
@@ -105,11 +107,11 @@ class TestIBMQJob(QiskitTestCase):
         shots = qobj.config.shots
         job = backend.run(qobj)
         while not (job.done or job.exception):
-            self.log.info(job.status)
+            self.log.info(job.status())
             time.sleep(4)
         if job.exception:
             raise job.exception
-        self.log.info(job.status)
+        self.log.info(job.status())
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
         counts_ex = {'00': shots/2, '11': shots/2}
@@ -152,7 +154,7 @@ class TestIBMQJob(QiskitTestCase):
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('%s %s %s %s', job.status['status'], job.running,
+                self.log.info('%s %s %s %s', job.status(), job.running,
                               check, job.id)
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
@@ -187,7 +189,7 @@ class TestIBMQJob(QiskitTestCase):
         num_jobs = 3
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
-        job_status = [job.status['status'] for job in job_array]
+        job_status = [job.status() for job in job_array]
         num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
         num_queued = sum([status == JobStatus.QUEUED for status in job_status])
         num_running = sum([status == JobStatus.RUNNING for status in job_status])
@@ -236,19 +238,19 @@ class TestIBMQJob(QiskitTestCase):
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         success = False
         self.log.info('jobs submitted: %s', num_jobs)
-        while any([job.status['status'] == JobStatus.INITIALIZING for job in job_array]):
+        while any([job.status() == JobStatus.INITIALIZING for job in job_array]):
             self.log.info('jobs initializing')
             time.sleep(1)
         for job in job_array:
             job.cancel()
         while not success:
-            job_status = [job.status for job in job_array]
+            job_status = [job.status() for job in job_array]
             for status in job_status:
                 self.log.info(status)
-            if any([status['status'] == JobStatus.CANCELLED for status in job_status]):
+            if any([status == JobStatus.CANCELLED for status in job_status]):
                 success = True
-            if all([status['status'] == JobStatus.DONE for status in job_status]):
-                raise IBMQJobError('all jobs completed before any could be cancelled')
+            if all([status == JobStatus.DONE for status in job_status]):
+                raise JobError('all jobs completed before any could be cancelled')
             self.log.info('-' * 20)
             time.sleep(2)
         self.assertTrue(success)
@@ -265,7 +267,7 @@ class TestIBMQJob(QiskitTestCase):
         backend = self._provider.get_backend(backend_name)
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        self.assertTrue(job.backend_name == backend_name)
+        self.assertTrue(job.backend_name() == backend_name)
 
     def test_get_jobs_from_backend(self):
         backend = _least_busy(self._provider.available_backends())
@@ -274,7 +276,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('time to get jobs: %0.3f s', time.time() - start_time)
         self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
         for job in job_list:
-            self.log.info('status: %s', job.status)
+            self.log.info('status: %s', job.status())
             self.assertTrue(isinstance(job.id, str))
         self.log.info('time to get job statuses: %0.3f s', time.time() - start_time)
 
@@ -299,7 +301,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.result()._result['status'])
-            self.assertTrue(job.status['status'] == JobStatus.DONE)
+            self.assertTrue(job.status() == JobStatus.DONE)
 
     def test_get_jobs_filter_counts(self):
         # TODO: consider generalizing backend name
@@ -333,6 +335,13 @@ class TestIBMQJob(QiskitTestCase):
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.creation_date)
             self.assertTrue(job.creation_date < past_day_30.isoformat())
+
+    def test_double_submit_fails(self):
+        backend = self._local_provider.get_backend('local_qasm_simulator_py')
+        qobj = transpiler.compile(self._qc, backend)
+        job = backend.run(qobj)
+        with self.assertRaises(JobError):
+            job.submit()
 
 
 if __name__ == '__main__':

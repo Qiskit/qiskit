@@ -58,7 +58,8 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
             for index in range(taskcount):
-                LocalJob(target_tasks[index], fake_qobj())
+                local_job = LocalJob(target_tasks[index], fake_qobj())
+                local_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
         for index in range(taskcount):
@@ -75,6 +76,7 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
             job = LocalJob(lambda: None, fake_qobj())
+            job.submit()
             job.cancel()
 
         self.assertCalledOnce(executor.submit)

@@ -14,8 +14,9 @@ import unittest
 import time
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
+from qiskit.backends import JobError
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
@@ -31,9 +32,9 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def test_unrecognized_status(self):
         job = self.run_with_api(UnknownStatusAPI())
-        self.assertStatus(job, JobStatus.INITIALIZING)
-        self.wait_for_initialization(job)
-        self.assertIsInstance(job.exception, IBMQJobError)
+        with self.assertRaises(JobError):
+            self.wait_for_initialization(job)
+
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_validating_job(self):
@@ -128,6 +129,8 @@ class TestIBMQJobStates(QiskitTestCase):
         self.wait_for_initialization(job)
         self.assertStatus(job, JobStatus.RUNNING)
 
+        with self.assertRaises(JobError):
+            job.cancel()
         can_cancel = job.cancel()
         self.assertFalse(can_cancel)
         self.assertIsInstance(job.exception, IBMQJobError)
@@ -136,10 +139,11 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def test_status_flow_for_invalid_job(self):
         job = self.run_with_api(UnableToInitializeAPI())
+        # TODO This is very risky, if the status changes to ERROR too fast
+        # this assert will fail, but it's not a bug in the code.
         self.assertStatus(job, JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
-        self.assertIsInstance(job.exception, IBMQJobError)
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_status_flow_for_throwing_job(self):
@@ -147,16 +151,13 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertStatus(job, JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
-        self.assertIsInstance(job.exception, ApiError)
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_status_flow_for_throwing_api(self):
         job = self.run_with_api(ThrowingAPI())
-        self.assertStatus(job, JobStatus.INITIALIZING)
-
-        self.wait_for_initialization(job)
-        self.assertIsInstance(job.exception, ApiError)
-        self.assertStatus(job, JobStatus.ERROR)
+        with self.assertRaises(JobError):
+            # If api.get_job() throws, the job will re-throw instantly
+            self.wait_for_initialization(job)
 
     def test_cancelled_result(self):
         job = self.run_with_api(CancellableAPI())
@@ -170,9 +171,12 @@ class TestIBMQJobStates(QiskitTestCase):
     def test_errored_result(self):
         job = self.run_with_api(ThrowingInitializationAPI())
 
-        # TODO: Seems inconsistent, should throw while initializating?
+        # If there's a problem while initializing the job.status will
+        # automatically change to ERROR and job.result() will throw
         self.wait_for_initialization(job)
-        self.assertEqual(job.result().get_status(), 'ERROR')
+        with self.assertRaises(JobError):
+            job.result()
+
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_completed_result(self):
@@ -212,8 +216,9 @@ class TestIBMQJobStates(QiskitTestCase):
         with ThreadPoolExecutor() as executor:
             executor.submit(_auto_progress_api, self._current_api)
 
-        result = job.result()
-        self.assertEqual(result.get_status(), 'ERROR')
+        with self.assertRaises(JobError):
+            job.result()
+
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_never_complete_result_with_timeout(self):
@@ -252,7 +257,7 @@ class TestIBMQJobStates(QiskitTestCase):
 
                 with mock.patch.object(self._current_api, 'get_job',
                                        wraps=self._current_api.get_job):
-                    _ = job.status
+                    _ = job.status()
                     if status in API_FINAL_STATES:
                         self.assertTrue(self._current_api.get_job.called)
                     else:
@@ -263,7 +268,7 @@ class TestIBMQJobStates(QiskitTestCase):
         status."""
         waited = 0
         wait = 0.1
-        while job.status['status'] == JobStatus.INITIALIZING:
+        while job.status() == JobStatus.INITIALIZING:
             time.sleep(wait)
             waited += wait
             if waited > timeout:
@@ -275,7 +280,7 @@ class TestIBMQJobStates(QiskitTestCase):
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
         if the shorthand method for that status returns `True`."""
-        self.assertEqual(job.status['status'], status)
+        self.assertEqual(job.status(), status)
         if status == JobStatus.CANCELLED:
             self.assertTrue(job.cancelled)
         elif status == JobStatus.DONE:
@@ -291,8 +296,8 @@ class TestIBMQJobStates(QiskitTestCase):
         """Creates a new `IBMQJob` instance running with the provided API
         object."""
         self._current_api = api
-        self._current_qjob = IBMQJob(Qobj.from_dict(new_fake_qobj()), api,
-                                     False)
+        self._current_qjob = IBMQJob(api, False, qobj=Qobj.from_dict(new_fake_qobj()))
+        self._current_qjob.submit()
         return self._current_qjob
 
 

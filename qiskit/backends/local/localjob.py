@@ -11,9 +11,7 @@ from concurrent import futures
 import logging
 import sys
 
-from qiskit.backends import BaseJob
-from qiskit.backends import JobStatus
-from qiskit import QISKitError
+from qiskit.backends import BaseJob, JobStatus, JobError
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +30,17 @@ class LocalJob(BaseJob):
 
     def __init__(self, fn, qobj):
         super().__init__()
+        self._fn = fn
         self._qobj = qobj
         self._backend_name = qobj.header.backend_name
-        self._future = self._executor.submit(fn, qobj)
+        self._future = None
+
+    def submit(self):
+        """ Submit the job to the backend for running """
+        if self._future is not None:
+            raise JobError("We have already submitted the job!")
+
+        self._future = self._executor.submit(self._fn, self._qobj)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
@@ -57,6 +63,9 @@ class LocalJob(BaseJob):
         return self._future.result(timeout=timeout)
 
     def cancel(self):
+        # If there was no submit, we just return true, there's nothing to cancel.
+        if self._future is None:
+            return True
         return self._future.cancel()
 
     @property
@@ -71,11 +80,8 @@ class LocalJob(BaseJob):
             _status = JobStatus.CANCELLED
         elif self.done:
             _status = JobStatus.DONE
-        elif self.exception:
-            _status = JobStatus.ERROR
-            _status_msg = str(self.exception)
         else:
-            raise LocalJobError('Unexpected behavior of {0}'.format(
+            raise JobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
         return {'status': _status,
                 'status_msg': _status_msg}
@@ -99,23 +105,8 @@ class LocalJob(BaseJob):
         return self._future.cancelled()
 
     @property
-    def exception(self):
-        """
-        Return Exception object if exception occured else None.
-
-        Returns:
-            Exception: exception raised by attempting to run job.
-        """
-        return self._future.exception(timeout=0)
-
-    @property
     def backend_name(self):
         """
         Return backend name used for this job
         """
         return self._backend_name
-
-
-class LocalJobError(QISKitError):
-    """class for Local Job errors"""
-    pass
