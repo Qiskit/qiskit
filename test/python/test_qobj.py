@@ -13,16 +13,20 @@ from .common import QiskitTestCase
 
 class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
+
     def test_create_qobj(self):
         """Test creation of a Qobj based on the individual elements."""
-        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-        instructions = [instruction_1, instruction_2]
-        experiment_1 = QobjExperiment(instructions=instructions)
-        experiments = [experiment_1]
-
-        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+        qobj = Qobj(
+            id='12345',
+            header={},
+            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QobjExperiment(instructions=[
+                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                ])
+            ]
+        )
 
         expected = {
             'id': '12345',
@@ -35,7 +39,7 @@ class TestQobj(QiskitTestCase):
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},
                     {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]}
                 ]}
-            ],
-            }
+            ]
+        }
 
         self.assertEqual(qobj.as_dict(), expected)
