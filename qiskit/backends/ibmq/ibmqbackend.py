@@ -116,7 +116,7 @@ class IBMQBackend(BaseBackend):
         return parameters_edit
 
     @property
-    def IBMstatus(self):
+    def status(self):
         """Return the online backend status.
 
         Returns:
