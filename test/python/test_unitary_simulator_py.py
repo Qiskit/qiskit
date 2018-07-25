@@ -14,10 +14,10 @@ import pstats
 import unittest
 import numpy as np
 
-from qiskit import (qasm, unroll, QuantumProgram, QuantumCircuit,
+from qiskit import (qasm, unroll, QuantumCircuit,
                     QuantumRegister, ClassicalRegister, compile)
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
-from qiskit.qobj import Qobj, QobjItem
+from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
@@ -28,41 +28,30 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/example.qasm')
-        self.qp = QuantumProgram()
-
-    def tearDown(self):
-        pass
 
     def test_unitary_simulator(self):
         """test generation of circuit unitary"""
-        self.qp.load_qasm_file(self.qasm_filename, name='example')
-        basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
-            unroll.JsonBackend(basis_gates))
+            qasm.Qasm(filename=self.qasm_filename).parse(),
+            unroll.JsonBackend([]))
         circuit = unroller.execute()
         # strip measurements from circuit to avoid warnings
         circuit['instructions'] = [op for op in circuit['instructions']
                                    if op['name'] != 'measure']
-        # the simulator is expecting a JSON format, so we need to convert it
-        # back to JSON
-        qobj = {
-            'id': 'unitary',
-            'config': {
-                'max_credits': None,
-                'shots': 1
-            },
-            'experiments': [circuit],
-            'header': {'backend_name': 'local_unitary_simulator_py'}
-        }
-        qobj = Qobj.from_dict(qobj)
-        qobj.experiments[0].header.name = 'test'
-        qobj.experiments[0].header.compiled_circuit_qasm = self.qp.get_qasm('example')
-        qobj.experiments[0].config = QobjItem(coupling_map=None,
-                                              basis_gates=None,
-                                              layout=None,
-                                              seed=None)
+        circuit = QobjExperiment.from_dict(circuit)
+        circuit.config = QobjItem(coupling_map=None,
+                                  basis_gates=None,
+                                  layout=None,
+                                  seed=self.seed)
+        circuit.header.name = 'test'
 
+        qobj = Qobj(id='unitary',
+                    config=QobjConfig(shots=1,
+                                      register_slots=6,
+                                      max_credits=None),
+                    experiments=[circuit],
+                    header=QobjHeader(
+                        backend_name='local_unitary_simulator_py'))
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -121,10 +110,10 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                               max_depth=max_depth,
                                               max_qubits=max_qubits)
         random_circuits.add_circuits(n_circuits, do_measure=False)
-        self.qp = random_circuits.get_program()
+        qp = random_circuits.get_program()
         pr.enable()
-        self.qp.execute(self.qp.get_circuit_names(),
-                        backend=UnitarySimulatorPy())
+        qp.execute(qp.get_circuit_names(),
+                   backend=UnitarySimulatorPy())
         pr.disable()
         sout = io.StringIO()
         ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')

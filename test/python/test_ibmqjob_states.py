@@ -121,15 +121,15 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_status_flow_for_throwing_cancellation(self):
-        job = self.run_with_api(ThrowingCancellationAPI())
+    def test_status_flow_for_errored_cancellation(self):
+        job = self.run_with_api(ErroredCancellationAPI())
         self.assertStatus(job, JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertStatus(job, JobStatus.RUNNING)
 
-        with self.assertRaises(IBMQJobError):
-            job.cancel()
+        can_cancel = job.cancel()
+        self.assertFalse(can_cancel)
         self.assertIsInstance(job.exception, IBMQJobError)
 
         self.assertStatus(job, JobStatus.RUNNING)
@@ -224,11 +224,11 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
-    @unittest.expectedFailure
-    def test_cancel_while_initializing_does_not_fail(self):
+    def test_cancel_while_initializing_is_not_possible_but_does_not_fail(self):
         job = self.run_with_api(CancellableAPI())
-        job.cancel()
-        self.assertStatus(job, JobStatus.CANCELLED)
+        can_cancel = job.cancel()
+        self.assertFalse(can_cancel)
+        self.assertStatus(job, JobStatus.INITIALIZING)
 
     def test_only_final_states_cause_datailed_request(self):
         from unittest import mock
@@ -465,7 +465,7 @@ class NonCancellableAPI(BaseFakeAPI):
     ]
 
 
-class ThrowingCancellationAPI(BaseFakeAPI):
+class ErroredCancellationAPI(BaseFakeAPI):
     """Class for emulating an API with cancellation but throwing while
     trying."""
 

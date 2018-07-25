@@ -19,6 +19,8 @@ import json
 import datetime
 import numpy
 
+from IBMQuantumExperience import ApiError
+
 from qiskit.qobj import qobj_to_dict
 from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
@@ -151,30 +153,38 @@ class IBMQJob(BaseJob):
         return this_result
 
     def cancel(self):
-        """Attempt to cancel job. Currently this is only possible on
-        commercial systems.
+        """Attempt to cancel a job. If it is not possible, check the
+        ```exception``` property for more information.
+
         Returns:
-            bool: True if job can be cancelled, else False.
+            bool: True if job can be cancelled, else False. Currently this is
+            only possible on commercial systems.
 
         Raises:
             IBMQJobError: if server returned error
         """
-        if self._is_commercial:
-            hub = self._api.config['hub']
-            group = self._api.config['group']
-            project = self._api.config['project']
+        hub = self._api.config.get('hub', None)
+        group = self._api.config.get('group', None)
+        project = self._api.config.get('project', None)
+
+        cancelled = False
+        try:
             response = self._api.cancel_job(self._id, hub, group, project)
-            if 'error' in response:
+            errored = 'error' in response
+            cancelled = not errored
+
+            if errored:
                 err_msg = response.get('error', '')
                 error = IBMQJobError('Error cancelling job: %s' % err_msg)
                 self._exception = error
-                raise error
-            else:
-                self._cancelled = True
-                return True
-        else:
-            self._cancelled = False
-            return False
+
+        except ApiError as error:
+            err_msg = error.usr_msg
+            error = IBMQJobError('Error cancelling job: %s' % err_msg)
+            self._exception = error
+
+        self._cancelled = cancelled
+        return self._cancelled
 
     @property
     def status(self):
@@ -329,12 +339,6 @@ class IBMQJob(BaseJob):
         if isinstance(self._exception, Exception):
             self._status_msg = str(self._exception)
         return self._exception
-
-    @property
-    def _is_commercial(self):
-        config = self._api.config
-        # this check may give false positives so should probably be improved
-        return config.get('hub') and config.get('group') and config.get('project')
 
     @property
     def id(self):

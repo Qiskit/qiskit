@@ -3,6 +3,7 @@
     "id": "http://www.qiskit.org/schemas/result_schema.json",
     "title": "qobj results",
     "description": "The results of executing a qobj",
+    "version": "1.0.0",
     "definitions": {
         "complex": {
             "description": "JSON representation of a complex number",
@@ -49,10 +50,10 @@
                         }
                     }
                 },
-        "register": {
+        "memory": {
                 "type": "array",
                 "minItems": 1,
-                "description": "Output of the registers"},
+                "description": "Output of the memory"},
         "resultobj": {
             "type": "object",
             "required": ["success", "shots", "data"],
@@ -80,7 +81,7 @@
                 "meas_return": {
                     "type": "string",
                     "enum": ["single","avg"],
-                    "description": "Is the data in the register/snapshot averaged or from each shot"
+                    "description": "Is the data in the memory/snapshot averaged or from each shot"
                 },
                 "header": {
                     "type": "object",
@@ -91,7 +92,7 @@
                     "properties": {
                         "counts": {
                             "type": "object",
-                            "description": "Histogram of the registers over the indicated shots",
+                            "description": "Histogram of the memory over the indicated shots",
                             "example": {"01011": 10, "10001": 102},
                             "patternProperties": {
                                 "^0x([0-9A-F])+$": {"type": "integer",
@@ -106,8 +107,8 @@
                                 "$ref": "#/definitions/snapshot"
                             }
                         },
-                        "register": {
-                            "$ref": "#/definitions/register"
+                        "memory": {
+                            "$ref": "#/definitions/memory"
                         },
                         "statevector": {
                             "type": "array",
