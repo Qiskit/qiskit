@@ -1,13 +1,13 @@
 """
 Example on how to use: load_qasm_file
-If you want to use your local cloned repository intead of the one installed via pypi,
-you have to run like this:
-    examples/python$ PYTHONPATH=$PYTHONPATH:../.. python load_qasm.py
+
+Note: if you have only cloned the Qiskit repository but not
+used `pip install`, the examples only work from the root directory.
 """
 from qiskit.wrapper import load_qasm_file
 from qiskit import QISKitError, available_backends, execute
 try:
-    qc = load_qasm_file("../qasm/entangled_registers.qasm")
+    qc = load_qasm_file("examples/qasm/entangled_registers.qasm")
 
     # See a list of available local simulators
     print("Local backends: ", available_backends({'local': True}))
