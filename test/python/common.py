@@ -333,11 +333,14 @@ class IdRemoverPersister(FilesystemPersister):
             responses = IdRemoverPersister.getResponsesWith(path, cassette_dict)
             for response in responses:
                 IdRemoverPersister.removeIdsInAResponse(response, fields, path, id_tracker)
+        for oldId, newId in id_tracker.items():
+            for request in cassette_dict['requests']:
+                request.uri = request.uri.replace(oldId,newId)
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
         ids2remove = {'api/users/loginWithToken': ['id', 'userId', 'created'],
-                      'api/Jobs': ['id', 'userId', 'created']}
+                      'api/Jobs': ['id', 'userId']}
         IdRemoverPersister.removeIds(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
