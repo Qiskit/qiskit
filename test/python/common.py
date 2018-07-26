@@ -16,6 +16,7 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 
@@ -218,6 +219,41 @@ def slow_test(func):
     def _(*args, **kwargs):
         if SKIP_SLOW_TESTS:
             raise unittest.SkipTest('Skipping slow tests')
+        return func(*args, **kwargs)
+
+    return _
+
+
+def is_cpp_simulator_available():
+    """
+    Check if executable for C++ simulator is available in the expected
+    location.
+
+    Returns:
+        bool: True if simulator executable is available
+    """
+    try:
+        QasmSimulatorCpp()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def requires_cpp_simulator(func):
+    """
+    Decorator that signals if C++ simulator is available
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _(*args, **kwargs):
+        if not is_cpp_simulator_available():
+            raise unittest.SkipTest('C++ simulator not found, skipping test')
         return func(*args, **kwargs)
 
     return _

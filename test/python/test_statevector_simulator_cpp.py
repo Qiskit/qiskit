@@ -7,28 +7,20 @@
 
 # pylint: disable=invalid-name,missing-docstring,broad-except
 
-from test.python.common import QiskitTestCase
-
 import unittest
 from qiskit import execute, load_qasm_file
-
-import qiskit.backends.local.qasm_simulator_cpp as cpp_simulator
-try:
-    cpp_simulator = cpp_simulator.QasmSimulatorCpp()
-except Exception as err:
-    _skip_class = True
-else:
-    _skip_class = False
+from .common import QiskitTestCase, requires_cpp_simulator
 
 
-@unittest.skipIf(_skip_class, 'C++ simulator unavailable')
 class StatevectorSimulatorCppTest(QiskitTestCase):
     """Test C++ statevector simulator."""
 
+    @requires_cpp_simulator
     def setUp(self):
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
 
+    @requires_cpp_simulator
     def test_statevector_simulator_cpp(self):
         """Test final state vector for single circuit run."""
         result = execute(self.q_circuit, backend='local_statevector_simulator_cpp').result()
