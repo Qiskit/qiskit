@@ -38,6 +38,7 @@ Removed
 Fixed
 -----
 - Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
+- Fixed bug in the definition of ``cswap`` gate and its test (#685).
 - Fixed the examples to be compatible with version 0.5+ (#672)
 
 
