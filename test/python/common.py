@@ -20,6 +20,7 @@ from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from vcr import VCR
 from vcr.persisters.filesystem import FilesystemPersister
+import json
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
@@ -297,7 +298,47 @@ SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '
 class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
+    def getResponsesWith(stringToFind, cassette_dict):
+        requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if stringToFind in x.path]
+        return [cassette_dict['responses'][i] for i in requests_indeces]
+
+    @staticmethod
+    def getNewId(field, path, id_tracker):
+        dummy_name = 'dummy%s%s' % (path.replace('/', ''), field)
+        count = len(list(filter(lambda x: x.startswith(dummy_name), id_tracker.values())))
+        return "%s%02d" % (dummy_name, count + 1)
+
+    @staticmethod
+    def removeIdInAJSON(jsonobj, field, path, id_tracker):
+        if field in jsonobj:
+            oldId = jsonobj[field]
+            if oldId in id_tracker:
+                jsonobj[field] = id_tracker[oldId]
+            else:
+                newId = IdRemoverPersister.getNewId(field, path, id_tracker)
+                jsonobj[field] = newId
+                id_tracker[oldId] = newId
+
+    @staticmethod
+    def removeIdsInAResponse(response, fields, path, id_tracker):
+        body = json.loads(response['body']['string'].decode('utf-8'))
+        for field in fields:
+            IdRemoverPersister.removeIdInAJSON(body, field, path, id_tracker)
+        response['body']['string'] = json.dumps(body).encode('utf-8')
+
+    @staticmethod
+    def removeIds(ids2remove, cassette_dict):
+        id_tracker = {} # {oldId: newId}
+        for path, fields in ids2remove.items():
+            responses = IdRemoverPersister.getResponsesWith(path, cassette_dict)
+            for response in responses:
+                IdRemoverPersister.removeIdsInAResponse(response, fields, path, id_tracker)
+
+    @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
+        ids2remove = {'api/users/loginWithToken': ['id', 'userId', 'created'],
+                      'api/Jobs': ['id', 'userId', 'created']}
+        IdRemoverPersister.removeIds(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
                                                                     serializer)
@@ -328,7 +369,7 @@ vcr = VCR(
     record_mode='once',
     match_on=['uri', 'method'],
     filter_headers=['x-qx-client-application', 'User-Agent'],
-    filter_query_parameters=['access_token'],
+    filter_query_parameters=[('access_token','dummyapiusersloginWithTokenid01')],
     filter_post_data_parameters=[('apiToken', 'apiToken_dummy')],
     decode_compressed_response=True,
     before_record_response=purge_headers(['Date',
