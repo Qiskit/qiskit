@@ -18,7 +18,8 @@ from qiskit import __path__ as qiskit_path
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-import vcr
+from vcr import VCR
+import operator
 
 
 class Path(Enum):
@@ -239,7 +240,8 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-    func = vcr.use_cassette(cassette_library_dir='test/cassettes')(func)
+    func = vcr.use_cassette()(func)
+
     @functools.wraps(func)
     def _(*args, **kwargs):
         # pylint: disable=invalid-name
@@ -292,3 +294,37 @@ def _is_ci_fork_pull_request():
 
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
+
+def purge_response(items):
+    mapLists = list()
+    for item in items:
+        if not isinstance(item, tuple):
+            item = (item, None)
+        mapLists.append((item[0].split('.'),item[1]))
+
+    def getFromDict(dataDict, mapList):
+        return functools.reduce(operator.getitem, mapList, dataDict)
+
+    def before_record_response(response):
+        for (mapList, value) in mapLists:
+            if value:
+                getFromDict(response, mapList[:-1])[mapList[-1]] = value
+            else:
+                del getFromDict(response, mapList[:-1])[mapList[-1]]
+        return response
+    return before_record_response
+
+
+vcr = VCR(
+    cassette_library_dir='test/cassettes',
+    record_mode='once',
+    match_on=['uri', 'method'],
+    filter_headers=['x-qx-client-application', 'User-Agent'],
+    filter_query_parameters=['access_token'],
+    filter_post_data_parameters=[('apiToken','apiToken_dummy')],
+    before_record_response=purge_response(['headers.Date',
+                                           ('headers.Set-Cookie', 'dummy_cookie'),
+                                           'headers.X-Global-Transaction-ID',
+                                           'headers.Etag',
+                                           'headers.Content-Security-Policy'])
+)
