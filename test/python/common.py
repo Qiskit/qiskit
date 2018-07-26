@@ -307,10 +307,13 @@ def purge_response(items):
 
     def before_record_response(response):
         for (mapList, value) in mapLists:
-            if value:
-                getFromDict(response, mapList[:-1])[mapList[-1]] = value
-            else:
-                del getFromDict(response, mapList[:-1])[mapList[-1]]
+            try:
+                if value:
+                    getFromDict(response, mapList[:-1])[mapList[-1]] = value
+                else:
+                    del getFromDict(response, mapList[:-1])[mapList[-1]]
+            except KeyError:
+                pass
         return response
     return before_record_response
 
