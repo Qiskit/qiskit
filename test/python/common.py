@@ -325,9 +325,12 @@ vcr = VCR(
     filter_headers=['x-qx-client-application', 'User-Agent'],
     filter_query_parameters=['access_token'],
     filter_post_data_parameters=[('apiToken','apiToken_dummy')],
+    decode_compressed_response=True,
     before_record_response=purge_response(['headers.Date',
                                            ('headers.Set-Cookie', 'dummy_cookie'),
                                            'headers.X-Global-Transaction-ID',
                                            'headers.Etag',
-                                           'headers.Content-Security-Policy'])
+                                           'headers.Content-Security-Policy',
+                                           'headers.X-Content-Security-Policy',
+                                           'headers.X-Webkit-Csp'])
 )
