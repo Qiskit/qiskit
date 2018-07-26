@@ -19,8 +19,7 @@ from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from vcr import VCR
-import operator
-
+from vcr.persisters.filesystem import FilesystemPersister
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
@@ -295,6 +294,13 @@ def _is_ci_fork_pull_request():
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
 
+class IdRemoverPersister(FilesystemPersister):
+
+    @staticmethod
+    def save_cassette(cassette_path, cassette_dict, serializer):
+        super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
+                                                                    cassette_dict,
+                                                                    serializer)
 
 def purge_headers(headers):
     headerList = list()
