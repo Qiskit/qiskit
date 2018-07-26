@@ -295,23 +295,23 @@ def _is_ci_fork_pull_request():
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
 
-def purge_response(items):
-    mapLists = list()
-    for item in items:
+def purge_response(headers=[]):
+    headerList = list()
+    for item in headers:
         if not isinstance(item, tuple):
             item = (item, None)
-        mapLists.append((item[0].split('.'),item[1]))
+        headerList.append((item[0],item[1]))
 
     def getFromDict(dataDict, mapList):
         return functools.reduce(operator.getitem, mapList, dataDict)
 
     def before_record_response(response):
-        for (mapList, value) in mapLists:
+        for (header, value) in headerList:
             try:
                 if value:
-                    getFromDict(response, mapList[:-1])[mapList[-1]] = value
+                    response['headers'][header]= value
                 else:
-                    del getFromDict(response, mapList[:-1])[mapList[-1]]
+                    del response['headers'][header]
             except KeyError:
                 pass
         return response
@@ -326,11 +326,11 @@ vcr = VCR(
     filter_query_parameters=['access_token'],
     filter_post_data_parameters=[('apiToken','apiToken_dummy')],
     decode_compressed_response=True,
-    before_record_response=purge_response(['headers.Date',
-                                           ('headers.Set-Cookie', 'dummy_cookie'),
-                                           'headers.X-Global-Transaction-ID',
-                                           'headers.Etag',
-                                           'headers.Content-Security-Policy',
-                                           'headers.X-Content-Security-Policy',
-                                           'headers.X-Webkit-Csp'])
+    before_record_response=purge_response(headers=['Date',
+                                           ('Set-Cookie', 'dummy_cookie'),
+                                           'X-Global-Transaction-ID',
+                                           'Etag',
+                                           'Content-Security-Policy',
+                                           'X-Content-Security-Policy',
+                                           'X-Webkit-Csp'])
 )
