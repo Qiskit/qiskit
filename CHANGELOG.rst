@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Added decorator to check for C++ simulator availability (#662)
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 
