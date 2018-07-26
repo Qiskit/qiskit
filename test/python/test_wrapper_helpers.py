@@ -12,7 +12,7 @@
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.wrapper import execute, available_backends
+from qiskit.wrapper import execute
 from .common import QiskitTestCase
 
 
@@ -24,11 +24,20 @@ class TestWrapperHelpers(QiskitTestCase):
         c = ClassicalRegister(3)
         self.circuit = QuantumCircuit(q, c)
         self.circuit.ccx(q[0], q[1], q[2])
+        self.circuit.measure(q, c)
 
     def test_local_execute_and_get_ran_qasm(self):
         """Check if the local backend return the ran qasm."""
 
-        for backend_name in available_backends({'local': True}):
+        local_backend_names = [
+            'local_qasm_simulator_cpp',
+            'local_qasm_simulator_py',
+            'local_statevector_simulator_cpp',
+            'local_statevector_simulator_py',
+            'local_unitary_simulator_py'
+        ]
+
+        for backend_name in local_backend_names:
             with self.subTest(backend_name=backend_name):
                 result = execute(self.circuit, 'local_qasm_simulator').result()
                 self.assertIsNotNone(result.get_ran_qasm(self.circuit.name))

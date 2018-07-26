@@ -78,7 +78,19 @@ class QasmSimulatorCpp(BaseBackend):
     def _run_job(self, qobj):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
+        for experiment in qobj.experiments:
+            name = experiment.header.name
+            qasm = experiment.header.compiled_circuit_qasm
+            experiment_result = self._find_experiment_result(result, name)
+            experiment_result['compiled_circuit_qasm'] = qasm
         return Result(result)
+
+    def _find_experiment_result(self, result, name):
+        for experiment_result in result['result']:
+            if experiment_result['name'] == name:
+                return experiment_result
+
+        return None
 
     def _validate(self, qobj):
         if qobj.config.shots == 1:
