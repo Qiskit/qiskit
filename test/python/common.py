@@ -339,3 +339,5 @@ vcr = VCR(
                                           'X-Content-Security-Policy',
                                           'X-Webkit-Csp'])
 )
+
+vcr.register_persister(IdRemoverPersister)
