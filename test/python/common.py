@@ -303,7 +303,11 @@ class IdRemoverPersister(FilesystemPersister):
         return [cassette_dict['responses'][i] for i in requests_indeces]
 
     @staticmethod
-    def getNewId(field, path, id_tracker):
+    def getNewId(field, path, id_tracker, _type=str):
+        if _type == float:
+            return 0.42
+        if _type == int:
+            return 42
         dummy_name = 'dummy%s%s' % (path.replace('/', ''), field)
         count = len(list(filter(lambda x: x.startswith(dummy_name), id_tracker.values())))
         return "%s%02d" % (dummy_name, count + 1)
@@ -330,7 +334,7 @@ class IdRemoverPersister(FilesystemPersister):
             try:
                 oldId = machingDict[mapList[-1]]
                 if not oldId in id_tracker:
-                    newId = IdRemoverPersister.getNewId(field, path, id_tracker)
+                    newId = IdRemoverPersister.getNewId(field, path, id_tracker, type(oldId))
                     id_tracker[oldId] = newId
                 machingDict[mapList[-1]] = id_tracker[oldId]
             except KeyError:
@@ -351,13 +355,22 @@ class IdRemoverPersister(FilesystemPersister):
             for response in responses:
                 IdRemoverPersister.removeIdsInAResponse(response, fields, path, id_tracker)
         for oldId, newId in id_tracker.items():
+            if not isinstance(oldId, str):
+                continue
             for request in cassette_dict['requests']:
                 request.uri = request.uri.replace(oldId,newId)
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
-        ids2remove = {'api/users/loginWithToken': ['id', 'userId', 'created'],
-                      'api/Jobs': ['id', 'userId','qasms.executionId']}
+        ids2remove = {'api/users/loginWithToken': ['id',
+                                                   'userId',
+                                                   'created'],
+                      'api/Jobs': ['id',
+                                   'userId',
+                                   'qasms.executionId',
+                                   'qasms.result.date',
+                                   'qasms.result.data.time',
+                                   'creationDate']}
         IdRemoverPersister.removeIds(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
@@ -398,7 +411,8 @@ vcr = VCR(
                                           'Etag',
                                           'Content-Security-Policy',
                                           'X-Content-Security-Policy',
-                                          'X-Webkit-Csp'])
+                                          'X-Webkit-Csp',
+                                          'content-length'])
 )
 
 vcr.register_persister(IdRemoverPersister)
