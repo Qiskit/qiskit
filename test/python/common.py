@@ -309,15 +309,32 @@ class IdRemoverPersister(FilesystemPersister):
         return "%s%02d" % (dummy_name, count + 1)
 
     @staticmethod
+    def getMachingDicts(dataDict, mapList):
+        ret = []
+        if len(mapList) == 0:
+            return ret
+        if isinstance(dataDict, list):
+            [ ret.extend(IdRemoverPersister.getMachingDicts(i, mapList)) for i in dataDict]
+        if isinstance(dataDict, dict):
+            if mapList[0] in dataDict.keys():
+                if len(mapList) == 1:
+                    return [dataDict]
+                else:
+                    ret.extend(IdRemoverPersister.getMachingDicts(dataDict[mapList[0]],mapList[1:]))
+        return ret
+
+    @staticmethod
     def removeIdInAJSON(jsonobj, field, path, id_tracker):
-        if field in jsonobj:
-            oldId = jsonobj[field]
-            if oldId in id_tracker:
-                jsonobj[field] = id_tracker[oldId]
-            else:
-                newId = IdRemoverPersister.getNewId(field, path, id_tracker)
-                jsonobj[field] = newId
-                id_tracker[oldId] = newId
+        mapList = field.split('.')
+        for machingDict in IdRemoverPersister.getMachingDicts(jsonobj, mapList):
+            try:
+                oldId = machingDict[mapList[-1]]
+                if not oldId in id_tracker:
+                    newId = IdRemoverPersister.getNewId(field, path, id_tracker)
+                    id_tracker[oldId] = newId
+                machingDict[mapList[-1]] = id_tracker[oldId]
+            except KeyError:
+                pass
 
     @staticmethod
     def removeIdsInAResponse(response, fields, path, id_tracker):
@@ -340,7 +357,7 @@ class IdRemoverPersister(FilesystemPersister):
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
         ids2remove = {'api/users/loginWithToken': ['id', 'userId', 'created'],
-                      'api/Jobs': ['id', 'userId']}
+                      'api/Jobs': ['id', 'userId','qasms.executionId']}
         IdRemoverPersister.removeIds(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
