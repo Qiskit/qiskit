@@ -367,10 +367,16 @@ class IdRemoverPersister(FilesystemPersister):
                                                    'created'],
                       'api/Jobs': ['id',
                                    'userId',
+                                   'creationDate',
                                    'qasms.executionId',
                                    'qasms.result.date',
                                    'qasms.result.data.time',
-                                   'creationDate']}
+                                   'qasms.result.data.counts.11',
+                                   'qasms.result.data.counts.00',
+                                   'qasms.result.data.additionalData.seed'],
+                      'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
+                      'api/Backends/ibmqx4/queue/status': ['lengthQueue']
+                      }
         IdRemoverPersister.removeIds(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
