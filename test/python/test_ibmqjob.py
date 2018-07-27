@@ -45,8 +45,7 @@ class TestIBMQJob(QiskitTestCase):
     """
 
     @classmethod
-    @requires_qe_access
-    def setUpClass(cls, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def setUpClass(cls):
         # pylint: disable=arguments-differ
         super().setUpClass()
         # create QuantumCircuit
@@ -57,10 +56,11 @@ class TestIBMQJob(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
         cls._qc = qc
-        cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        cls._using_hub = bool(hub and group and project)
 
-    def test_run_simulator(self):
+    @requires_qe_access
+    def test_run_simulator(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
@@ -95,7 +95,10 @@ class TestIBMQJob(QiskitTestCase):
         self.assertGreater(contingency2[1], 0.01)
 
     @slow_test
-    def test_run_device(self):
+    @requires_qe_access
+    def test_run_device(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backends = [backend for backend in self._provider.available_backends()
                     if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
@@ -124,7 +127,10 @@ class TestIBMQJob(QiskitTestCase):
         self.assertDictAlmostEqual(counts_qx, counts_ex, shots*0.1)
 
     @slow_test
-    def test_run_async_simulator(self):
+    @requires_qe_access
+    def test_run_async_simulator(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
@@ -171,7 +177,10 @@ class TestIBMQJob(QiskitTestCase):
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
-    def test_run_async_device(self):
+    @requires_qe_access
+    def test_run_async_device(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backends = [backend for backend in self._provider.available_backends()
                     if not backend.configuration['simulator']]
         backend = _least_busy(backends)
@@ -216,7 +225,10 @@ class TestIBMQJob(QiskitTestCase):
         job_ids = [job.id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
-    def test_cancel(self):
+    @requires_qe_access
+    def test_cancel(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         if not self._using_hub:
             self.skipTest('job cancellation currently only available on hubs')
         backends = [backend for backend in self._provider.available_backends()
@@ -253,21 +265,30 @@ class TestIBMQJob(QiskitTestCase):
             time.sleep(2)
         self.assertTrue(success)
 
-    def test_job_id(self):
+    @requires_qe_access
+    def test_job_id(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.log.info('job_id: %s', job.id)
         self.assertTrue(job.id is not None)
 
-    def test_get_backend_name(self):
+    @requires_qe_access
+    def test_get_backend_name(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backend_name = 'ibmq_qasm_simulator'
         backend = self._provider.get_backend(backend_name)
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.assertTrue(job.backend_name == backend_name)
 
-    def test_get_jobs_from_backend(self):
+    @requires_qe_access
+    def test_get_jobs_from_backend(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backend = _least_busy(self._provider.available_backends())
         start_time = time.time()
         job_list = backend.jobs(limit=5, skip=0)
@@ -278,7 +299,10 @@ class TestIBMQJob(QiskitTestCase):
             self.assertTrue(isinstance(job.id, str))
         self.log.info('time to get job statuses: %0.3f s', time.time() - start_time)
 
-    def test_retrieve_job(self):
+    @requires_qe_access
+    def test_retrieve_job(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
@@ -286,13 +310,19 @@ class TestIBMQJob(QiskitTestCase):
         self.assertTrue(job.id == rjob.id)
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
-    def test_retrieve_job_error(self):
+    @requires_qe_access
+    def test_retrieve_job_error(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backends = [backend for backend in self._provider.available_backends()
                     if not backend.configuration['simulator']]
         backend = _least_busy(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
 
-    def test_get_jobs_filter_job_status(self):
+    @requires_qe_access
+    def test_get_jobs_filter_job_status(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backends = self._provider.available_backends()
         backend = _least_busy(backends)
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
@@ -301,7 +331,10 @@ class TestIBMQJob(QiskitTestCase):
             self.log.info('match #%d: %s', i, job.result()._result['status'])
             self.assertTrue(job.status['status'] == JobStatus.DONE)
 
-    def test_get_jobs_filter_counts(self):
+    @requires_qe_access
+    def test_get_jobs_filter_counts(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         # TODO: consider generalizing backend name
         # TODO: this tests depends on the previous executions of the user
         backend = self._provider.get_backend('ibmq_qasm_simulator')
@@ -323,7 +356,10 @@ class TestIBMQJob(QiskitTestCase):
                     counts = result.get_counts(circuit_name)
                     self.log.info('\t%s', str(counts))
 
-    def test_get_jobs_filter_date(self):
+    @requires_qe_access
+    def test_get_jobs_filter_date(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        self._using_hub = bool(hub and group and project)
         backends = self._provider.available_backends()
         backend = _least_busy(backends)
         past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
