@@ -12,8 +12,9 @@ from types import SimpleNamespace
 from ._utils import QobjValidationError, QobjType
 
 # Current version of the Qobj schema.
-QOBJ_VERSION = '0.0.2'
-# Previous Qobj schema versions:
+QOBJ_VERSION = '1.0.0'
+# Qobj schema versions:
+# * 1.0.0: Qiskit 0.6
 # * 0.0.1: Qiskit 0.5.x format (pre-schemas).
 
 
@@ -100,7 +101,7 @@ class Qobj(QobjItem):
         experiments (list[QobjExperiment]): list of experiments.
         header (QobjHeader): headers.
         type (str): experiment type (QASM/PULSE).
-        _version (str): Qobj version.
+        schema_version (str): Qobj version.
     """
 
     REQUIRED_ARGS = ['id', 'config', 'experiments', 'header']
@@ -113,7 +114,7 @@ class Qobj(QobjItem):
         self.header = header
 
         self.type = QobjType.QASM.value
-        self._version = QOBJ_VERSION
+        self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
 
@@ -123,17 +124,18 @@ class QobjConfig(QobjItem):
 
     Attributes:
         shots (int): number of shots.
-        register_slots (int): number of classical register slots.
+        memory_slots (int): number of measurements slots in the classical
+            memory on the backend.
 
     Attributes defined in the schema but not required:
         max_credits (int): number of credits.
         seed (int): random seed.
     """
-    REQUIRED_ARGS = ['shots', 'register_slots']
+    REQUIRED_ARGS = ['shots', 'memory_slots']
 
-    def __init__(self, shots, register_slots, **kwargs):
+    def __init__(self, shots, memory_slots, **kwargs):
         self.shots = shots
-        self.register_slots = register_slots
+        self.memory_slots = memory_slots
 
         super().__init__(**kwargs)
 
@@ -145,7 +147,7 @@ class QobjHeader(QobjItem):
         backend_name (str): name of the backend
         backend_version (str): the backend version this set of experiments was generated for.
         qubit_labels (list): map physical qubits to qregs (for QASM).
-        clbit_labels (list): map classical clbits to register_slots (for QASM).
+        clbit_labels (list): map classical clbits to memory_slots (for QASM).
     """
     pass
 

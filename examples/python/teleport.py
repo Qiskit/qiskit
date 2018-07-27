@@ -12,46 +12,23 @@ Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumProgram
-import Qconfig
-
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import execute
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "ibmq_qasm_simulator"
-coupling_map = {0: [1, 2],
-                1: [2],
-                2: [],
-                3: [2, 4],
-                4: [2]}
+backend = "local_qasm_simulator"
+coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
 
 ###############################################################
 # Make a quantum program for quantum teleportation.
 ###############################################################
-QPS_SPECS = {
-    "circuits": [{
-        "name": "teleport",
-        "quantum_registers": [{
-            "name": "q",
-            "size": 3
-        }],
-        "classical_registers": [
-            {"name": "c0",
-             "size": 1},
-            {"name": "c1",
-             "size": 1},
-            {"name": "c2",
-             "size": 1},
-        ]}]
-}
-
-qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.get_circuit("teleport")
-q = qp.get_quantum_register("q")
-c0 = qp.get_classical_register("c0")
-c1 = qp.get_classical_register("c1")
-c2 = qp.get_classical_register("c2")
+q = QuantumRegister(3, "q")
+c0 = ClassicalRegister(1, "c0")
+c1 = ClassicalRegister(1, "c1")
+c2 = ClassicalRegister(1, "c2")
+qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -75,23 +52,18 @@ qc.x(q[2]).c_if(c1, 1)
 qc.measure(q[2], c2[0])
 
 ###############################################################
-# Set up the API and execute the program.
-###############################################################
-qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
-
+# Execute.
 # Experiment does not support feedback, so we use the simulator
+###############################################################
 
 # First version: not mapped
-result = qp.execute(["teleport"], backend=backend,
-                    coupling_map=None, shots=1024)
+result = execute(qc, backend=backend, coupling_map=None, shots=1024).result()
 print(result)
 print(result.get_counts("teleport"))
 
 # Second version: mapped to qx2 coupling graph
-result = qp.execute(["teleport"], backend=backend,
-                    coupling_map=coupling_map, shots=1024)
+result = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024).result()
 print(result)
-print(result.get_ran_qasm("teleport"))
 print(result.get_counts("teleport"))
 
 # Both versions should give the same distribution
