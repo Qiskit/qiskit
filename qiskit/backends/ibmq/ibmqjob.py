@@ -12,6 +12,7 @@ IBM Q Experience.
 """
 
 from concurrent import futures
+from concurrent.futures import TimeoutError as FutureTimeoutError, CancelledError
 import time
 import logging
 import pprint
@@ -42,6 +43,35 @@ API_FINAL_STATES = (
 
 class IBMQJob(BaseJob):
     """IBM Q Job class
+
+    This class represents the Jobs that will be executed on IBM Q backends
+    (simulators or real chips). It has some asynchronous properties, and some
+    blocking behavior. This is a common use-case example:
+    .. highlight::
+
+        try:
+            job = IBMQJob( ... )
+            job.submit() # <--- It won't block.
+
+            while not job.done(): # <---- It will return false if the job
+                                  # hasn't finished yet
+                pass # <---- or maybe... serialize to disk? .. whatever the user wants
+
+            result = job.result() # <--- This could block, but as the job is already
+                                  # finished, it won't in this case.
+        except JobError as ex:
+            log("Something wrong happened!: {}".format(ex))
+
+    About the status in case of Error or Exception:
+    If there's an exception from the IBMQuantumExperience API once a job has been submitted,
+    we cannot set the status of the Job to ERROR, because it might happen that the Job is actually
+    queued or running, and let's say that the exception is caused because of a temporary
+    out of service situation of the server, once this situation is restored, we might want to ask
+    again about the status of our Job, that could be in state: queued, running or done.
+    if something wrong happened to the Job, it's server responsability to answer an error response
+    to a status query from Qiskit.
+    But, if the exception is thrown before having a valid Job ID, there's nothing we can do,
+    with this Job instance, as we cannot query the server for information using this Job instance.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
@@ -85,6 +115,7 @@ class IBMQJob(BaseJob):
         if qobj is None:
             self.status()
         self._queue_position = 0
+        self._future_exception = None
         self._cancelled = False
         self._is_device = is_device
         self._creation_date = datetime.datetime.utcnow().replace(
@@ -113,6 +144,8 @@ class IBMQJob(BaseJob):
             # is failing. The job can be still running.
             return Result({'id': self._id, 'status': 'ERROR',
                            'result': str(err)})
+        except ApiError as api_err:
+            raise JobError(str(api_err))
 
         if self._is_device and self.done:
             _reorder_bits(this_result)
@@ -120,15 +153,14 @@ class IBMQJob(BaseJob):
         return this_result
 
     def cancel(self):
-        """Attempt to cancel a job. If it is not possible, check the
-        ```exception``` property for more information.
+        """Attempt to cancel a job.
 
         Returns:
             bool: True if job can be cancelled, else False. Currently this is
             only possible on commercial systems.
 
         Raises:
-            JobError: if server returned error
+            JobError: if there was some unexpected failure in the server
         """
         hub = self._api.config.get('hub', None)
         group = self._api.config.get('group', None)
@@ -140,17 +172,20 @@ class IBMQJob(BaseJob):
             errored = 'error' in response
             cancelled = not errored
 
+            # This is a controlled error from the API server, so the job IS not
+            # cancellable, but there's no reason to throw an exception, we will
+            # just return False.
             if errored:
                 self._cancelled = cancelled
-                err_msg = response.get('error', '')
-                raise JobError('Error cancelling job: %s' % err_msg)
+                return False
 
         except ApiError as error:
             self._cancelled = cancelled
             err_msg = error.usr_msg
             raise JobError('Error cancelling job: %s' % err_msg)
 
-        return self._cancelled
+        self._cancelled = cancelled
+        return cancelled
 
     def status(self):
         """Query the API to update the status.
@@ -163,23 +198,22 @@ class IBMQJob(BaseJob):
                           or the server sent an unknown answer.
         """
 
+        # This will only happen if something bad happens when submitting a Job, so
+        # we don't have a Job ID
+        if self._future_exception is not None:
+            raise JobError(str(self._future_exception))
+
         if self._status in JOB_FINAL_STATES or self._id is None:
             return self._status
 
         try:
             # TODO See result values
             api_job = self._api.get_status_job(self._id)
-            if api_job['status'] in API_FINAL_STATES:
-                # Call the endpoint that returns full information.
-                api_job = self._api.get_job(self._id)
-
             if 'status' not in api_job:
-                self._status = JobStatus.ERROR
                 raise JobError('get_job didn\'t return status: %s' %
                                pprint.pformat(api_job))
         # pylint: disable=broad-except
         except Exception as err:
-            self._status = JobStatus.ERROR
             raise JobError(str(err))
 
         if api_job['status'] == 'VALIDATING':
@@ -203,7 +237,6 @@ class IBMQJob(BaseJob):
             self._status = JobStatus.ERROR
 
         else:
-            self._status = JobStatus.ERROR
             raise JobError('Unrecognized answer from server: \n{}'
                            .format(pprint.pformat(api_job)))
 
@@ -217,6 +250,12 @@ class IBMQJob(BaseJob):
             Number: Position in the queue. 0 = No queued.
         """
         return self._queue_position
+
+    def creation_date(self):
+        """
+        Returns creation date
+        """
+        return self._creation_date
 
     @property
     def queued(self):
@@ -264,7 +303,7 @@ class IBMQJob(BaseJob):
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
 
-        Return:
+        Returns:
             bool: True if job successfully finished running.
 
         Raises:
@@ -302,16 +341,13 @@ class IBMQJob(BaseJob):
     def submit(self):
         """Submit job to IBM Q.
 
-        Returns:
-            dict: submission info including job id from server
-
         Raises:
             ResultError: If the API reported an error with the submitted job.
             RegisterSizeError: If the requested register size exceeded device
                 capability.
             JobError: If we have already submited the job.
         """
-        if self._future is not None or self._id is not None:
+        if self._future is not None and self._id is not None:
             raise JobError("We have already submitted the job!")
 
         api_jobs = []
@@ -341,7 +377,7 @@ class IBMQJob(BaseJob):
                                              seed, shots, max_credits)
 
     def _submit_callback(self, api_jobs, backend_name, hpc, seed, shots, max_credits):
-        """Submit job to IBM Q.
+        """ Submit job to IBM Q.
 
         Args:
             api_jobs (list): List of API Job dictionaries to submit. One per circuit.
@@ -351,8 +387,8 @@ class IBMQJob(BaseJob):
             shots (integer): Number of shots the circuits should run
             max_credits (integer): Maximum number of credits
 
-        Return:
-            A dictionary with the response of the submitted job
+        Returns:
+            dict: A dictionary with the response of the submitted job
 
         Raises:
             JobError: If something bad happened during job request to the API
@@ -364,10 +400,14 @@ class IBMQJob(BaseJob):
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
                                             shots=shots, max_credits=max_credits,
                                             seed=seed, hpc=hpc)
-        except Exception as err:
-            self._status = JobStatus.ERROR
-            raise JobError(str(err))
+        except Exception as err:  # pylint: disable=broad-except
+            # This is not a controlled error form the API, so we don't want to change
+            # job status to ERROR, because we really don't know what happened with the
+            # Job at this point... it could be successfully QUEUED for example.
+            self._future_exception = err
+            return {'error': str(err)}
 
+        # Fail fast!!
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
             return submit_info
@@ -497,13 +537,14 @@ def _reorder_bits(result):
 
 
 def _numpy_type_converter(obj):
+    ret = obj
     if isinstance(obj, numpy.integer):
-        return int(obj)
+        ret = int(obj)
     elif isinstance(obj, numpy.floating):  # pylint: disable=no-member
-        return float(obj)
+        ret = float(obj)
     elif isinstance(obj, numpy.ndarray):
-        return obj.tolist()
-    return obj
+        ret = obj.tolist()
+    return ret
 
 
 def _create_job_from_circuit(circuit):

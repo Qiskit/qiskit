@@ -333,8 +333,8 @@ class TestIBMQJob(QiskitTestCase):
         job_list = backend.jobs(limit=5, db_filter=my_filter)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
-            self.log.info('match #%d: %s', i, job.creation_date)
-            self.assertTrue(job.creation_date < past_day_30.isoformat())
+            self.log.info('match #%d: %s', i, job.creation_date())
+            self.assertTrue(job.creation_date() < past_day_30.isoformat())
 
     def test_double_submit_fails(self):
         backend = self._local_provider.get_backend('local_qasm_simulator_py')
