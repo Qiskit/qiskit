@@ -15,7 +15,7 @@ class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
     def test_create_qobj(self):
         """Test creation of a Qobj based on the individual elements."""
-        config = QobjConfig(max_credits=10, shots=1024, register_slots=2)
+        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
         instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
         instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
         instructions = [instruction_1, instruction_2]
@@ -27,8 +27,9 @@ class TestQobj(QiskitTestCase):
         expected = {
             'id': '12345',
             'type': 'QASM',
+            'schema_version': '1.0.0',
             'header': {},
-            'config': {'max_credits': 10, 'register_slots': 2, 'shots': 1024},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
                 {'instructions': [
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},
