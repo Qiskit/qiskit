@@ -375,7 +375,7 @@ class QasmSimulatorPy(BaseBackend):
                 elif operation.name == 'barrier':
                     pass
                 # Check if snapshot command
-                elif operation.name == 'snapshot':
+                elif operation.name == '#snapshot':
                     params = operation.params
                     self._add_qasm_snapshot(params[0])
                 else:
