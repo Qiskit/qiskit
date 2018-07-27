@@ -370,7 +370,8 @@ class IdRemoverPersister(FilesystemPersister):
                                    'creationDate',
                                    'qasms.executionId',
                                    'qasms.result.date',
-                                   'qasms.result.data.time'],
+                                   'qasms.result.data.time',
+                                   'qasms.result.data.additionalData.seed'],
                       'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
                       'api/Backends/ibmqx4/queue/status': ['lengthQueue']
                       }
