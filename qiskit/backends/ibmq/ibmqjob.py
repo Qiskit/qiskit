@@ -247,7 +247,7 @@ class IBMQJob(BaseJob):
         Returns the position in the server queue
 
         Returns:
-            Number: Position in the queue. 0 = No queued.
+            Number: Position in the queue. 0 = No queued yet
         """
         return self._queue_position
 
@@ -549,25 +549,25 @@ def _numpy_type_converter(obj):
 
 def _create_job_from_circuit(circuit):
     """ Helper function that creates a special Job required by the API, from a circuit """
-    job = {}
+    api_job = {}
     if not circuit.get('compiled_circuit_qasm', None):
         compiled_circuit = transpile(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
     if isinstance(circuit['compiled_circuit_qasm'], bytes):
-        job['qasm'] = circuit['compiled_circuit_qasm'].decode()
+        api_job['qasm'] = circuit['compiled_circuit_qasm'].decode()
     else:
-        job['qasm'] = circuit['compiled_circuit_qasm']
+        api_job['qasm'] = circuit['compiled_circuit_qasm']
 
     if circuit.get('name', None):
-        job['name'] = circuit['name']
+        api_job['name'] = circuit['name']
 
     # convert numpy types for json serialization
     compiled_circuit = json.loads(json.dumps(circuit['compiled_circuit'],
                                              default=_numpy_type_converter))
 
-    job['metadata'] = {'compiled_circuit': compiled_circuit}
-    return job
+    api_job['metadata'] = {'compiled_circuit': compiled_circuit}
+    return api_job
 
 
 def _is_job_queued(api_job):
