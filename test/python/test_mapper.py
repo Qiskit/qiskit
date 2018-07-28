@@ -248,7 +248,12 @@ class MapperTest(QiskitTestCase):
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/move_measurements.qasm'),
                                      name='move')
         dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
-        out_dag = transpile(dag_circuit, coupling_map=cmap, format='dag')
+        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+               ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
+               ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
+               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
+        out_dag = transpile(dag_circuit, initial_layout=lay,
+                            coupling_map=cmap, format='dag')
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))
