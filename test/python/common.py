@@ -309,7 +309,7 @@ class IdRemoverPersister(FilesystemPersister):
         if _type == int:
             return 42
         dummy_name = 'dummy%s%s' % (path.replace('/', ''), field)
-        count = len(list(filter(lambda x: x.startswith(dummy_name), id_tracker.values())))
+        count = len(list(filter(lambda x: str(x).startswith(dummy_name), id_tracker.values())))
         return "%s%02d" % (dummy_name, count + 1)
 
     @staticmethod
