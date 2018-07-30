@@ -9,6 +9,10 @@
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment,
                          QobjInstruction)
 from .common import QiskitTestCase
+from qiskit import __path__ as qiskit_path
+import os
+import json
+import jsonschema as jsch
 
 
 class TestQobj(QiskitTestCase):
@@ -27,7 +31,7 @@ class TestQobj(QiskitTestCase):
             all(getattr(qobj, required_arg) is not None for required_arg in Qobj.REQUIRED_ARGS))
 
     def test_as_dict(self):
-        """Test creation of a Qobj based on the individual elements."""
+        """Test conversion to dict of a Qobj based on the individual elements."""
         config = QobjConfig(max_credits=10, shots=1024, register_slots=2)
         instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
         instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
@@ -50,6 +54,51 @@ class TestQobj(QiskitTestCase):
                 ]}
             ],
             }
+
+        self.assertEqual(qobj.as_dict(), expected)
+
+    def test_as_dict_to_json(self):
+
+        """Test conversion to dict of a Qobj based on the individual elements."""
+        config = QobjConfig(max_credits=10, shots=1024)
+        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
+        instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+        instructions = [instruction_1, instruction_2]
+        experiment_1 = QobjExperiment(instructions=instructions)
+        experiments = [experiment_1]
+
+        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+        qobj._version = '67890'  # private member variables shouldn't appear in the dict, edit this to verify that
+
+        expected = {
+            'id': '12345',
+            'type': 'QASM',
+            'header': {},
+            'config': {'max_credits': 10, 'shots': 1024},
+            'experiments': [
+                {'instructions': [
+                    {'name': 'u1', 'params': [0.4], 'qubits': [1]},
+                    {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]}
+                ]}
+            ],
+            }
+
+        # Main SDK path:    qiskit/
+        SDK = qiskit_path[0]
+        # Schemas path:     qiskit/schemas
+        SCHEMAS = os.path.join(SDK, 'schemas')
+        # Schema name: qobj_schema.json
+        FILE = os.path.join(SCHEMAS, 'qobj_schema.json')
+        f = open(FILE, 'r')
+
+        schema = json.load(f)
+        example = json.dumps(qobj.as_dict())
+        try:
+            jsch.validate(example, schema)
+        except jsch.ValidationError as err:
+            print("Error on example %s:" % 'test_as_dict_to_json')
+            print(err)
+        f.close()
 
         self.assertEqual(qobj.as_dict(), expected)
 
