@@ -104,6 +104,7 @@ class IBMQJob(BaseJob):
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
+        self._future_exception = None
         self._api = api
         self._id = job_id  # this must be before creating the future
         self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
@@ -114,7 +115,6 @@ class IBMQJob(BaseJob):
         if qobj is None:
             self.status()
         self._queue_position = 0
-        self._future_exception = None
         self._cancelled = False
         self._is_device = is_device
         self._creation_date = datetime.datetime.utcnow().replace(
