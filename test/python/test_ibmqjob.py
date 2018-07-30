@@ -23,7 +23,7 @@ from qiskit.backends import JobStatus
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
-from .common import requires_qe_access, QiskitTestCase, slow_test
+from .common import requires_qe_access, JobTestCase, slow_test
 
 
 def _least_busy(backends):
@@ -39,7 +39,7 @@ def _least_busy(backends):
                key=lambda b: b.status['pending_jobs'])
 
 
-class TestIBMQJob(QiskitTestCase):
+class TestIBMQJob(JobTestCase):
     """
     Test ibmqjob module.
     """
@@ -304,35 +304,6 @@ class TestIBMQJob(QiskitTestCase):
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.creation_date)
             self.assertTrue(job.creation_date < past_day_30.isoformat())
-
-    def wait_for_initialization(self, job, timeout=1):
-        """Waits until the job progress from `INITIALIZING` to a different
-        status."""
-        waited = 0
-        wait = 0.1
-        while job.status['status'] == JobStatus.INITIALIZING:
-            time.sleep(wait)
-            waited += wait
-            if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
-
-    def assertStatus(self, job, status):
-        """Assert the intenal job status is the expected one and also tests
-        if the shorthand method for that status returns `True`."""
-        self.assertEqual(job.status['status'], status)
-        if status == JobStatus.CANCELLED:
-            self.assertTrue(job.cancelled)
-        elif status == JobStatus.DONE:
-            self.assertTrue(job.done)
-        elif status == JobStatus.VALIDATING:
-            self.assertTrue(job.validating)
-        elif status == JobStatus.RUNNING:
-            self.assertTrue(job.running)
-        elif status == JobStatus.QUEUED:
-            self.assertTrue(job.queued)
 
 
 if __name__ == '__main__':
