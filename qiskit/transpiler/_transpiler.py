@@ -21,7 +21,8 @@ from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
-                           cx_cancellation, direction_mapper)
+                           cx_cancellation, direction_mapper,
+                           remove_last_measurements, return_last_measurements)
 from qiskit._gate import Gate
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem
 
@@ -243,8 +244,10 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                         dag_circuit.property_summary())
             # Insert swap gates
             coupling = Coupling(coupling_list2dict(coupling_map))
+            removed_meas = remove_last_measurements(dag_circuit)
+            logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
-            dag_circuit, final_layout = swap_mapper(
+            dag_circuit, final_layout, last_layout = swap_mapper(
                 dag_circuit, coupling, initial_layout, trials=20, seed=seed)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
@@ -256,6 +259,8 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             cx_cancellation(dag_circuit)
             # Simplify single qubit gates
             dag_circuit = optimize_1q_gates(dag_circuit)
+            return_last_measurements(dag_circuit, removed_meas,
+                                     last_layout)
             logger.info("post-mapping properties: %s",
                         dag_circuit.property_summary())
 
