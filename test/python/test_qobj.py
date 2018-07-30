@@ -130,11 +130,6 @@ class TestQobjConfig(QiskitTestCase):
                 for required_arg in QobjConfig.REQUIRED_ARGS))
 
 
-class QobjHeader(QiskitTestCase):
-    """Tests for QobjHeader."""
-    pass
-
-
 class TestQobjExperiment(QiskitTestCase):
     """Tests for QobjExperiment."""
     def test_init_qobj_experiment(self):
@@ -147,11 +142,6 @@ class TestQobjExperiment(QiskitTestCase):
         self.assertTrue(
             all(getattr(qobj_experiment, required_arg) is not None
                 for required_arg in QobjExperiment.REQUIRED_ARGS))
-
-
-class QobjExperimentHeader(QiskitTestCase):
-    """Tests for QobjExperimentHeader."""
-    pass
 
 
 class TestQobjInstruction(QiskitTestCase):
