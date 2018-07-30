@@ -144,11 +144,11 @@ class DummyJob(BaseJob):
 
 
 def new_fake_qobj():
-    """Creates a fake qobj dictionary."""
+    """Create fake `Qobj` and backend instances."""
     backend = FakeBackend()
     return Qobj(
-        'test-id',
-        config=QobjConfig(1024, 1, max_credits=100),
+        id='test-id',
+        config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
         header=QobjHeader(backend_name=backend.name),
         experiments=[QobjExperiment(
             instructions=[],

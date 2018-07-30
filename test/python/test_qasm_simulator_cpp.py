@@ -55,9 +55,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                       format='json'))
 
         self.qobj = Qobj(
-            'test_qobj',
+            id='test_qobj',
             config=QobjConfig(
-                2000, 1,
+                shots=2000, memory_slots=1,
                 max_credits=3,
                 seed=1111
             ),
