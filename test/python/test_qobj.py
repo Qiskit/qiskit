@@ -17,9 +17,9 @@ import jsonschema as jsch
 
 class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
-    def test_init_Qobj(self):
+    def test_init_qobj(self):
         """Test initialization of a Qobj for required arguments."""
-        config = QobjConfig(max_credits=10, shots=1024, register_slots=2)
+        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
         instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
         instructions = [instruction_1]
         experiment_1 = QobjExperiment(instructions=instructions)
@@ -45,8 +45,9 @@ class TestQobj(QiskitTestCase):
         expected = {
             'id': '12345',
             'type': 'QASM',
+            'schema_version': '1.0.0',
             'header': {},
-            'config': {'max_credits': 10, 'register_slots': 2, 'shots': 1024},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
                 {'instructions': [
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},

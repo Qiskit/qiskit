@@ -12,6 +12,9 @@ import unittest
 import qiskit.wrapper
 from qiskit import (QuantumProgram, load_qasm_string, mapper, qasm, unroll)
 from qiskit.qobj import Qobj
+from qiskit.transpiler._transpiler import transpile
+from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.mapper._mapping import remove_last_measurements
 from .common import QiskitTestCase
 
 
@@ -23,6 +26,19 @@ class FakeQX4BackEnd(object):
         self.configuration = {'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
                               'simulator': False, 'n_qubits': 5,
                               'coupling_map': qx4_cmap}
+
+
+class FakeQX5BackEnd(object):
+    """A fake QX5 backend.
+    """
+    def __init__(self):
+        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
+                    [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
+                    [13, 14], [15, 0], [15, 2], [15, 14]]
+        self.configuration = {'name': 'fake_qx5', 'basis_gates': 'u1,u2,u3,cx,id',
+                              'simulator': False, 'n_qubits': 16,
+                              'coupling_map': qx5_cmap}
 
 
 class MapperTest(QiskitTestCase):
@@ -224,6 +240,24 @@ class MapperTest(QiskitTestCase):
         qobj2 = qiskit.wrapper.compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
+    def test_move_measurements(self):
+        """Measurements applied AFTER swap mapping.
+        """
+        backend = FakeQX5BackEnd()
+        cmap = backend.configuration['coupling_map']
+        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/move_measurements.qasm'),
+                                     name='move')
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+               ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
+               ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
+               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
+        out_dag = transpile(dag_circuit, initial_layout=lay,
+                            coupling_map=cmap, format='dag')
+        moved_meas = remove_last_measurements(out_dag, perform_remove=False)
+        meas_nodes = out_dag.get_named_nodes('measure')
+        self.assertEqual(len(moved_meas), len(meas_nodes))
+
 
 # QASMs expected by the tests.
 EXPECTED_QASM_SYMBOLIC_BINARY = """OPENQASM 2.0;
@@ -278,9 +312,9 @@ cx q[1],q[0];
 cx q[1],q[0];
 cx q[1],q[0];
 u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];
 u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];\n"""
+measure q[1] -> cr[0];
+measure q[0] -> cr[1];\n"""
 
 QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
 include "qelib1.inc";
