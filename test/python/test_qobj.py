@@ -59,8 +59,7 @@ class TestQobj(QiskitTestCase):
         self.assertEqual(qobj.as_dict(), expected)
 
     def test_as_dict_to_json(self):
-
-        """Test conversion to dict of a Qobj based on the individual elements."""
+        """Test dictionary representation of Qobj against its schema."""
         config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
         instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
         instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
@@ -71,35 +70,14 @@ class TestQobj(QiskitTestCase):
         qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
         qobj._version = '67890'  # private member variables shouldn't appear in the dict, edit this to verify that
 
-        expected = {
-            'id': '12345',
-            'type': 'QASM',
-            'header': {},
-            'config': {'max_credits': 10, 'shots': 1024},
-            'schema_version': '1.0.0',
-            'experiments': [
-                {'instructions': [
-                    {'name': 'u1', 'params': [0.4], 'qubits': [1]},
-                    {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]}
-                ]}
-            ],
-            }
-
-        # Main SDK path:    qiskit/
-        SDK = qiskit_path[0]
-        # Schemas path:     qiskit/schemas
-        SCHEMAS = os.path.join(SDK, 'schemas')
-        # Schema name: qobj_schema.json
-        FILE = os.path.join(SCHEMAS, 'qobj_schema.json')
-        f = open(FILE, 'r')
+        sdk = qiskit_path[0]  # Main SDK path:    qiskit/
+        schemas = os.path.join(sdk, 'schemas')  # Schemas path:     qiskit/schemas
+        file = os.path.join(schemas, 'qobj_schema.json')  # Schema name: qobj_schema.json
+        f = open(file, 'r')
 
         schema = json.load(f)
-        example = json.dumps(qobj.as_dict())
-        try:
-            jsch.validate(example, schema)
-        except jsch.ValidationError as err:
-            print("Error on example %s:" % 'test_as_dict_to_json')
-            print(err)
+        example = qobj.as_dict()
+        jsch.validate(example, schema)
         f.close()
 
     def test_expand_item(self):
