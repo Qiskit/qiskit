@@ -12,7 +12,6 @@ IBM Q Experience.
 """
 
 from concurrent import futures
-from concurrent.futures import TimeoutError as FutureTimeoutError, CancelledError
 import time
 import logging
 import pprint

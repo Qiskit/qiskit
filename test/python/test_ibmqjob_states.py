@@ -458,7 +458,7 @@ class ThrowingServerButJobFinishedAPI(BaseFakeAPI):
     def get_status_job(self, job_id):
         return self._job_status[self._state]
 
-    def run_job(self, job_id):
+    def run_job(self, *_args, **_kwargs):
         raise ApiError()
 
 
