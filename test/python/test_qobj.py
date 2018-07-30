@@ -6,13 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """QOBj test."""
-from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment,
-                         QobjInstruction)
-from .common import QiskitTestCase
-from qiskit import __path__ as qiskit_path
 import os
 import json
 import jsonschema as jsch
+from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment,
+                         QobjInstruction)
+from qiskit import __path__ as qiskit_path
+from .common import QiskitTestCase
 
 
 class TestQobj(QiskitTestCase):
@@ -40,7 +40,7 @@ class TestQobj(QiskitTestCase):
         experiments = [experiment_1]
 
         qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
-        qobj._version = '67890'  # private member variables shouldn't appear in the dict, edit this to verify that
+        qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
         expected = {
             'id': '12345',
@@ -68,17 +68,17 @@ class TestQobj(QiskitTestCase):
         experiments = [experiment_1]
 
         qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
-        qobj._version = '67890'  # private member variables shouldn't appear in the dict, edit this to verify that
+        qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
         sdk = qiskit_path[0]  # Main SDK path:    qiskit/
         schemas = os.path.join(sdk, 'schemas')  # Schemas path:     qiskit/schemas
         file = os.path.join(schemas, 'qobj_schema.json')  # Schema name: qobj_schema.json
-        f = open(file, 'r')
+        file_obj = open(file, 'r')
 
-        schema = json.load(f)
+        schema = json.load(file_obj)
         example = qobj.as_dict()
         jsch.validate(example, schema)
-        f.close()
+        file_obj.close()
 
     def test_expand_item(self):
         """Test distinct cases of _expand_item."""
@@ -118,7 +118,7 @@ class TestQobj(QiskitTestCase):
 
 class TestQobjConfig(QiskitTestCase):
     """Tests for QobjConfig."""
-    def test_init_QobjConfig(self):
+    def test_init_qobj_config(self):
         """Test initialization of a QobjConfig for required arguments."""
         shots = 1
         memory_slots = 2
@@ -126,7 +126,8 @@ class TestQobjConfig(QiskitTestCase):
         qobj_config = QobjConfig(shots=shots, memory_slots=memory_slots)
 
         self.assertTrue(
-            all(getattr(qobj_config, required_arg) is not None for required_arg in QobjConfig.REQUIRED_ARGS))
+            all(getattr(qobj_config, required_arg) is not None
+                for required_arg in QobjConfig.REQUIRED_ARGS))
 
 
 class QobjHeader(QiskitTestCase):
@@ -136,7 +137,7 @@ class QobjHeader(QiskitTestCase):
 
 class TestQobjExperiment(QiskitTestCase):
     """Tests for QobjExperiment."""
-    def test_init_QobjExperiment(self):
+    def test_init_qobj_experiment(self):
         """Test initialization of a QobjExperiment for required arguments."""
         instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
         instructions = [instruction_1]
@@ -144,7 +145,8 @@ class TestQobjExperiment(QiskitTestCase):
         qobj_experiment = QobjExperiment(instructions=instructions)
 
         self.assertTrue(
-            all(getattr(qobj_experiment, required_arg) is not None for required_arg in QobjExperiment.REQUIRED_ARGS))
+            all(getattr(qobj_experiment, required_arg) is not None
+                for required_arg in QobjExperiment.REQUIRED_ARGS))
 
 
 class QobjExperimentHeader(QiskitTestCase):
@@ -154,11 +156,12 @@ class QobjExperimentHeader(QiskitTestCase):
 
 class TestQobjInstruction(QiskitTestCase):
     """Tests for QobjInstruction."""
-    def test_init_QobjInstruction(self):
+    def test_init_qobj_instruction(self):
         """Test initialization of a QobjInstruction for required arguments."""
         name = 'name'
 
         qobj_instruction = QobjInstruction(name=name)
 
         self.assertTrue(
-            all(getattr(qobj_instruction, required_arg) is not None for required_arg in QobjInstruction.REQUIRED_ARGS))
+            all(getattr(qobj_instruction, required_arg) is not None
+                for required_arg in QobjInstruction.REQUIRED_ARGS))
