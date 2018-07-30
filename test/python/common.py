@@ -403,7 +403,7 @@ def purge_headers(headers):
 
 vcr = VCR(
     cassette_library_dir='test/cassettes',
-    record_mode='once',
+    record_mode='none',
     match_on=['uri', 'method'],
     filter_headers=['x-qx-client-application', 'User-Agent'],
     filter_query_parameters=[('access_token','dummyapiusersloginWithTokenid01')],
