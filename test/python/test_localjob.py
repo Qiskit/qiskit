@@ -35,18 +35,6 @@ class TestLocalJob(QiskitTestCase):
         UnitarySimulatorPy
     ]
 
-    def test_run(self):
-        with mocked_simulator_binaries(),\
-             patch.object(LocalJob, '__init__', return_value=None,
-                          autospec=True):
-
-            for backend_constructor in self._backends:
-                with self.subTest(backend=backend_constructor):
-                    self.log.info('Backend under test: %s', backend_constructor)
-                    backend = backend_constructor()
-                    job = backend.run(fake_qobj())
-                    self.assertIsInstance(job, LocalJob)
-
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors
         # can run several tasks at the same time. It is our responsibility to
@@ -90,6 +78,7 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
             job = LocalJob(lambda: None, fake_qobj())
+            job.submit()
             _ = job.done
 
         self.assertCalledOnce(executor.submit)

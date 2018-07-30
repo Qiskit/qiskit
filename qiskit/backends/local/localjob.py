@@ -60,12 +60,13 @@ class LocalJob(BaseJob):
             concurrent.futures.TimeoutError: if timeout occured.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
+        self._check_submitted()
         return self._future.result(timeout=timeout)
 
     def cancel(self):
-        # If there was no submit, we just return true, there's nothing to cancel.
         if self._future is None:
-            return True
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+
         return self._future.cancel()
 
     @property
@@ -88,6 +89,7 @@ class LocalJob(BaseJob):
 
     @property
     def running(self):
+        self._check_submitted()
         return self._future.running()
 
     @property
@@ -98,10 +100,12 @@ class LocalJob(BaseJob):
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
         """
+        self._check_submitted()
         return self._future.done() and not self._future.cancelled()
 
     @property
     def cancelled(self):
+        self._check_submitted()
         return self._future.cancelled()
 
     @property
@@ -110,3 +114,8 @@ class LocalJob(BaseJob):
         Return backend name used for this job
         """
         return self._backend_name
+
+    def _check_submitted(self):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+
