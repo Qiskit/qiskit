@@ -17,12 +17,12 @@ from qiskit.wrapper import available_backends, register, execute, get_backend
 from .common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
+@requires_cpp_simulator
 class TestCrossSimulation(QiskitTestCase):
     """Test output consistency across simulators.
     """
     _desired_fidelity = 0.99
 
-    @requires_cpp_simulator
     def test_statevector(self):
         """statevector from a bell state"""
         q = qiskit.QuantumRegister(2)
@@ -41,7 +41,6 @@ class TestCrossSimulation(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "cpp vs. py statevector has low fidelity{0:.2g}.".format(fidelity))
 
-    @requires_cpp_simulator
     @requires_qe_access
     def test_qasm(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """counts from a GHZ state"""
@@ -67,7 +66,6 @@ class TestCrossSimulation(QiskitTestCase):
         self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.05)
         self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.05)
 
-    @requires_cpp_simulator
     def test_qasm_snapshot(self):
         """snapshot a circuit at multiple places"""
         q = qiskit.QuantumRegister(3)
@@ -94,7 +92,6 @@ class TestCrossSimulation(QiskitTestCase):
         fidelity = state_fidelity(snapshot_cpp_1[0], snapshot_py_1[0])
         self.assertGreater(fidelity, self._desired_fidelity)
 
-    @requires_cpp_simulator
     @requires_qe_access
     def test_qasm_reset_measure(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """counts from a qasm program with measure and reset in the middle"""

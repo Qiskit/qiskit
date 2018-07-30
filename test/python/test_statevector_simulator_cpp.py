@@ -12,15 +12,14 @@ from qiskit import execute, load_qasm_file
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
+@requires_cpp_simulator
 class StatevectorSimulatorCppTest(QiskitTestCase):
     """Test C++ statevector simulator."""
 
-    @requires_cpp_simulator
     def setUp(self):
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
 
-    @requires_cpp_simulator
     def test_statevector_simulator_cpp(self):
         """Test final state vector for single circuit run."""
         result = execute(self.q_circuit, backend='local_statevector_simulator_cpp').result()

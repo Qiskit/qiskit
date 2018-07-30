@@ -17,13 +17,13 @@ from qiskit.wrapper import execute
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
+@requires_cpp_simulator
 class TestExtensionsSimulator(QiskitTestCase):
     """Test instruction extensions for simulators:
     save, load, noise, snapshot, wait
     """
     _desired_fidelity = 0.99
 
-    @requires_cpp_simulator
     def test_save_load(self):
         """save |+>|0>, do some stuff, then load"""
         q = qiskit.QuantumRegister(2)
@@ -45,7 +45,6 @@ class TestExtensionsSimulator(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "save-load statevector has low fidelity{0:.2g}.".format(fidelity))
 
-    @requires_cpp_simulator
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
         q = qiskit.QuantumRegister(2)
@@ -66,7 +65,6 @@ class TestExtensionsSimulator(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "snapshot has low fidelity{0:.2g}.".format(fidelity))
 
-    @requires_cpp_simulator
     def test_noise(self):
         """turn on a pauli x noise for qubits 0 and 2"""
         q = qiskit.QuantumRegister(3)

@@ -239,24 +239,18 @@ def is_cpp_simulator_available():
     return True
 
 
-def requires_cpp_simulator(func):
+def requires_cpp_simulator(test_item):
     """
-    Decorator that signals if C++ simulator is available
+    Decorator that skips test if C++ simulator is not available
 
     Args:
-        func (callable): test function to be decorated.
+        test_item (callable): function or class to be decorated.
 
     Returns:
         callable: the decorated function.
     """
-
-    @functools.wraps(func)
-    def _(*args, **kwargs):
-        if not is_cpp_simulator_available():
-            raise unittest.SkipTest('C++ simulator not found, skipping test')
-        return func(*args, **kwargs)
-
-    return _
+    reason = 'C++ simulator not found, skipping test'
+    return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
 
 
 def requires_qe_access(func):
