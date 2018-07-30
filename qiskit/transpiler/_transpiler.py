@@ -9,6 +9,8 @@
 from copy import deepcopy
 import logging
 import uuid
+import concurrent
+import sys
 
 import numpy as np
 import scipy.sparse as sp
@@ -88,13 +90,18 @@ def compile(circuits, backend,
     basis_gates = basis_gates or backend_conf['basis_gates']
     coupling_map = coupling_map or backend_conf['coupling_map']
 
+    if sys.platform in ['darwin', 'win32']:
+        executor = concurrent.futures.ThreadPoolExecutor()
+    else:
+        executor = concurrent.futures.ProcessPoolExecutor()
+
     # Step 2 and 3: transpile and populate the circuits
-    for circuit in circuits:
-        experiment = _compile_single_circuit(
-            circuit, backend, config, basis_gates, coupling_map, initial_layout,
-            seed, pass_manager)
-        # Step 3c: add the Experiment to the Qobj
-        qobj.experiments.append(experiment)
+    futures = [executor.submit(_compile_single_circuit, circuit, backend, backend_conf, qobj_config, basis_gates,
+                               coupling_map, initial_layout, seed, pass_manager)
+               for circuit in circuits]
+    for future in concurrent.futures.as_completed(futures):
+        qobj.experiments.append(future.result())
+    del executor
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
