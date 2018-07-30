@@ -214,6 +214,7 @@ class TestIBMQJob(QiskitTestCase):
         job_ids = [job.id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
+    @slow_test
     def test_cancel(self):
         backend = self._provider.get_backend('ibmqx4')
         qobj = transpiler.compile(self._qc, backend)
