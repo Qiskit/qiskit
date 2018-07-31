@@ -245,10 +245,6 @@ def requires_qe_access(func):
 
     @functools.wraps(func)
     def _(*args, **kwargs):
-        # pylint: disable=invalid-name
-        if SKIP_ONLINE_TESTS:
-            raise unittest.SkipTest('Skipping online tests')
-
         # Cleanup the credentials, as this file is shared by the tests.
         from qiskit.wrapper import _wrapper
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
@@ -295,8 +291,10 @@ def _is_ci_fork_pull_request():
 
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
 RECORD_TEST_RESPONSE = os.getenv('RECORD_TEST_RESPONSE', False) is not False
+vcr_mode = 'none'
 if RECORD_TEST_RESPONSE:
     SKIP_SLOW_TESTS = True  # TODO Activate later
+    vcr_mode = 'all'
 
 
 class IdRemoverPersister(FilesystemPersister):
@@ -410,7 +408,7 @@ def purge_headers(headers):
 
 vcr = VCR(
     cassette_library_dir='test/cassettes',
-    record_mode='none',
+    record_mode=vcr_mode,
     match_on=['uri', 'method'],
     filter_headers=['x-qx-client-application', 'User-Agent'],
     filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
