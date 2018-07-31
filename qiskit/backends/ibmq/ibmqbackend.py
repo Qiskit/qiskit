@@ -186,7 +186,7 @@ class IBMQBackend(BaseBackend):
             IBMQBackendValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
-        api_filter = {}
+        api_filter = OrderedDict({})
         if status:
             if isinstance(status, str):
                 status = JobStatus[status]
@@ -210,7 +210,7 @@ class IBMQBackend(BaseBackend):
             # filter ignores backend_name filter so we need to set it
             api_filter['backend.name'] = backend_name
             # status takes precendence over db_filter for same keys
-            api_filter = OrderedDict({**db_filter, **api_filter})
+            api_filter = {**db_filter, **api_filter}
         job_info_list = self._api.get_jobs(limit=limit, skip=skip,
                                            backend=backend_name,
                                            filter=api_filter)
