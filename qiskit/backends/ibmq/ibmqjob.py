@@ -388,12 +388,6 @@ class IBMQJob(BaseJob):
 
         Returns:
             dict: A dictionary with the response of the submitted job
-
-        Raises:
-            JobError: If something bad happened during job request to the API
-            ResultError: If the API reported an error with the submitted job.
-            RegisterSizeError: If the requested register size exceeded device
-                capability.
         """
         try:
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
