@@ -46,7 +46,8 @@ import time
 from qiskit.wrapper.progressbar import BaseProgressBar
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    from IPython.display import (HTML, Javascript, display)
+    from IPython.display import (
+        HTML, Javascript, display)  # pylint: disable=import-error
     __all__ = ['HTMLProgressBar']
 else:
     __all__ = []
