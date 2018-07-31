@@ -58,9 +58,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_run_simulator(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backend = provider.get_backend('ibmq_qasm_simulator')
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
         qc = QuantumCircuit(qr, cr, name='hadamard')
@@ -96,9 +95,8 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     @requires_qe_access
     def test_run_device(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backends = [backend for backend in self._provider.available_backends()
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backends = [backend for backend in provider.available_backends()
                     if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
         backend = _least_busy(backends)
@@ -128,10 +126,9 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     @requires_qe_access
     def test_run_async_simulator(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
         self.log.info('submitting to backend %s', backend.name)
         num_qubits = 16
         qr = QuantumRegister(num_qubits, 'qr')
@@ -178,9 +175,8 @@ class TestIBMQJob(QiskitTestCase):
     @slow_test
     @requires_qe_access
     def test_run_async_device(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backends = [backend for backend in self._provider.available_backends()
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backends = [backend for backend in provider.available_backends()
                     if not backend.configuration['simulator']]
         backend = _least_busy(backends)
         self.log.info('submitting to backend %s', backend.name)
@@ -226,11 +222,11 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_cancel(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        if not self._using_hub:
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        using_hub = bool(hub and group and project)
+        if not using_hub:
             self.skipTest('job cancellation currently only available on hubs')
-        backends = [backend for backend in self._provider.available_backends()
+        backends = [backend for backend in provider.available_backends()
                     if not backend.configuration['simulator']]
         self.log.info('devices: %s', [b.name for b in backends])
         backend = backends[0]
@@ -266,9 +262,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_job_id(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backend = provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.log.info('job_id: %s', job.id)
@@ -276,19 +271,17 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_get_backend_name(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend_name = 'ibmq_qasm_simulator'
-        backend = self._provider.get_backend(backend_name)
+        backend = provider.get_backend(backend_name)
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.assertTrue(job.backend_name == backend_name)
 
     @requires_qe_access
     def test_get_jobs_from_backend(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backend = _least_busy(self._provider.available_backends())
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backend = _least_busy(provider.available_backends())
         start_time = time.time()
         job_list = backend.jobs(limit=5, skip=0)
         self.log.info('time to get jobs: %0.3f s', time.time() - start_time)
@@ -300,9 +293,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_retrieve_job(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backend = provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         rjob = backend.retrieve_job(job.id)
@@ -311,18 +303,16 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_retrieve_job_error(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backends = [backend for backend in self._provider.available_backends()
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backends = [backend for backend in provider.available_backends()
                     if not backend.configuration['simulator']]
         backend = _least_busy(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
 
     @requires_qe_access
     def test_get_jobs_filter_job_status(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backends = self._provider.available_backends()
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backends = provider.available_backends()
         backend = _least_busy(backends)
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
         self.log.info('found %s matching jobs', len(job_list))
@@ -332,11 +322,10 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_get_jobs_filter_counts(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         # TODO: consider generalizing backend name
         # TODO: this tests depends on the previous executions of the user
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
         my_filter = {'backend.name': 'ibmq_qasm_simulator',
                      'shots': 1024,
                      'qasms.result.data.counts.00': {'lt': 500}}
@@ -357,9 +346,8 @@ class TestIBMQJob(QiskitTestCase):
 
     @requires_qe_access
     def test_get_jobs_filter_date(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        self._using_hub = bool(hub and group and project)
-        backends = self._provider.available_backends()
+        provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        backends = provider.available_backends()
         backend = _least_busy(backends)
         my_filter = {'creationDate': {'lt': '2017-01-01T00:00:00.00'}}
         job_list = backend.jobs(limit=5, db_filter=my_filter)
