@@ -205,8 +205,9 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-Additionally, an environment variable ``SKIP_ONLINE_TESTS`` can be used for
-toggling the execution of the tests that require network access to the API.
+By default, the tests run against a local copy of the HTTP interactions.
+Additionally, an environment variable ``RECORD_TEST_RESPONSE`` can be used for
+run the tests online against the remote API.
 
 Style guide
 ~~~~~~~~~~~
