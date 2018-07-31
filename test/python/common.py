@@ -254,20 +254,25 @@ def requires_qe_access(func):
         discovered_credentials = discover_credentials()
         if account_name in discovered_credentials.keys():
             credentials = discovered_credentials[account_name]
-            if RECORD_TEST_RESPONSE:
-                qe_token = credentials.get('token')
-            else:
-                qe_token = 'dummyapiusersloginWithTokenid01'
             kwargs.update({
-                'QE_TOKEN': qe_token,
+                'QE_TOKEN': credentials.get('token'),
                 'QE_URL': credentials.get('url'),
                 'hub': credentials.get('hub'),
                 'group': credentials.get('group'),
                 'project': credentials.get('project'),
             })
         else:
-            raise Exception('Could not locate valid credentials')
-
+            if RECORD_TEST_RESPONSE:
+                raise Exception('Could not locate valid credentials. You need them for performing'
+                                'tests against the remote API.')
+            else:
+                kwargs.update({
+                    'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
+                    'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
+                    'hub': None,
+                    'group': None,
+                    'project': None,
+                })
         return func(*args, **kwargs)
 
     return _
