@@ -1,9 +1,9 @@
-# Copyright 2017, IBM.
+# Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-.PHONY: env env-dev lint test run doc
+.PHONY: env env-dev lint test run doc test_record
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -28,6 +28,9 @@ style:
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
 	python3 -m unittest discover -s test -v
+
+test_record:
+	env RECORD_TEST_RESPONSE="True" python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
