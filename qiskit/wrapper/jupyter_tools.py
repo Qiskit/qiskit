@@ -40,10 +40,16 @@
 
 """Tools for working in Jupyter notebooks"""
 
+import sys
 import uuid
 import time
-from IPython.display import (HTML, Javascript, display)
 from qiskit.wrapper.progressbar import BaseProgressBar
+
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+    from IPython.display import (HTML, Javascript, display)
+    __all__ = ['HTMLProgressBar']
+else:
+    __all__ = []
 
 
 class HTMLProgressBar(BaseProgressBar):
