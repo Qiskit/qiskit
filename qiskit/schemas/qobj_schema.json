@@ -52,9 +52,9 @@
         },
         "qobjlevel0": {
             "type": "object",
-            "required": ["id","schema_version","type","experiments","config","header"],
+            "required": ["qobj_id","schema_version","type","experiments","config","header"],
             "properties": {
-                "id": {
+                "qobj_id": {
                     "type": "string",
                     "description": "User generated qobj ID"
                     },

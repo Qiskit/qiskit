@@ -1,8 +1,9 @@
 {
-    "id": "Set of Experiments 1",
+    "qobj_id": "exp123_072018_op",
     "schema_version": "1.0.0",
     "type": "PULSE",
     "header": {
+        "description": "Set of Experiments 1",
         "backend_name": "pulse_simulator2",
         "description": "Sample pulse experiment"
         },

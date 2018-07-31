@@ -1,8 +1,9 @@
 {
-    "id": "Set of Experiments 1",
+    "qobj_id": "exp123_072018",
     "schema_version": "1.0.0",
     "type": "QASM",
     "header": {
+        "description": "Set of Experiments 1",
         "backend_name": "ibmqx2",
         "clbit_labels": [["c1", 1],["c2",2]],
         "qubit_labels": [["q", 0],null,["q",1]]},
