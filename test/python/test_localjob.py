@@ -14,7 +14,6 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.local import LocalJob
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp

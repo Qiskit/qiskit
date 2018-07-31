@@ -118,4 +118,3 @@ class LocalJob(BaseJob):
     def _check_submitted(self):
         if self._future is None:
             raise JobError("Job not submitted yet!. You have to .submit() first!")
-
