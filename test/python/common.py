@@ -254,8 +254,12 @@ def requires_qe_access(func):
         discovered_credentials = discover_credentials()
         if account_name in discovered_credentials.keys():
             credentials = discovered_credentials[account_name]
+            if RECORD_TEST_RESPONSE:
+                qe_token = credentials.get('token')
+            else:
+                qe_token = 'dummyapiusersloginWithTokenid01'
             kwargs.update({
-                'QE_TOKEN': credentials.get('token'),
+                'QE_TOKEN': qe_token,
                 'QE_URL': credentials.get('url'),
                 'hub': credentials.get('hub'),
                 'group': credentials.get('group'),
