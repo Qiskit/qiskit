@@ -18,8 +18,8 @@ from qiskit import __path__ as qiskit_path
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-from vcr import VCR
 from vcr.persisters.filesystem import FilesystemPersister
+from vcr import VCR as vcr
 import json
 
 
@@ -241,7 +241,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-    func = vcr.use_cassette()(func)
+    func = VCR.use_cassette()(func)
 
     @functools.wraps(func)
     def _(*args, **kwargs):
@@ -295,22 +295,22 @@ def _is_ci_fork_pull_request():
 
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
 RECORD_TEST_RESPONSE = os.getenv('RECORD_TEST_RESPONSE', False) is not False
-vcr_mode = 'none'
+VCR_MODE = 'none'
 if RECORD_TEST_RESPONSE:
     SKIP_SLOW_TESTS = True  # TODO Activate later
-    vcr_mode = 'all'
+    VCR_MODE = 'all'
 
 
 class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
-    def getResponsesWith(stringToFind, cassette_dict):
+    def get_responses_with(string2find, cassette_dict):
         requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if
-                            stringToFind in x.path]
+                            string2find in x.path]
         return [cassette_dict['responses'][i] for i in requests_indeces]
 
     @staticmethod
-    def getNewId(field, path, id_tracker, _type=str):
+    def get_new_id(field, path, id_tracker, _type=str):
         if _type == float:
             return 0.42
         if _type == int:
@@ -320,53 +320,53 @@ class IdRemoverPersister(FilesystemPersister):
         return "%s%02d" % (dummy_name, count + 1)
 
     @staticmethod
-    def getMachingDicts(dataDict, mapList):
+    def get_maching_dicts(data_dict, map_list):
         ret = []
-        if len(mapList) == 0:
+        if map_list:
             return ret
-        if isinstance(dataDict, list):
-            [ret.extend(IdRemoverPersister.getMachingDicts(i, mapList)) for i in dataDict]
-        if isinstance(dataDict, dict):
-            if mapList[0] in dataDict.keys():
-                if len(mapList) == 1:
-                    return [dataDict]
+        if isinstance(data_dict, list):
+            _ = [ret.extend(IdRemoverPersister.get_maching_dicts(i, map_list)) for i in data_dict]
+        if isinstance(data_dict, dict):
+            if map_list[0] in data_dict.keys():
+                if len(map_list) == 1:
+                    return [data_dict]
                 else:
                     ret.extend(
-                        IdRemoverPersister.getMachingDicts(dataDict[mapList[0]], mapList[1:]))
+                        IdRemoverPersister.get_maching_dicts(data_dict[map_list[0]], map_list[1:]))
         return ret
 
     @staticmethod
-    def removeIdInAJSON(jsonobj, field, path, id_tracker):
-        mapList = field.split('.')
-        for machingDict in IdRemoverPersister.getMachingDicts(jsonobj, mapList):
+    def remove_id_in_a_json(jsonobj, field, path, id_tracker):
+        map_list = field.split('.')
+        for maching_dict in IdRemoverPersister.get_maching_dicts(jsonobj, map_list):
             try:
-                oldId = machingDict[mapList[-1]]
-                if not oldId in id_tracker:
-                    newId = IdRemoverPersister.getNewId(field, path, id_tracker, type(oldId))
-                    id_tracker[oldId] = newId
-                machingDict[mapList[-1]] = id_tracker[oldId]
+                old_id = maching_dict[map_list[-1]]
+                if old_id not in id_tracker:
+                    new_id = IdRemoverPersister.get_new_id(field, path, id_tracker, type(old_id))
+                    id_tracker[old_id] = new_id
+                maching_dict[map_list[-1]] = id_tracker[old_id]
             except KeyError:
                 pass
 
     @staticmethod
-    def removeIdsInAResponse(response, fields, path, id_tracker):
+    def remove_ids_in_a_response(response, fields, path, id_tracker):
         body = json.loads(response['body']['string'].decode('utf-8'))
         for field in fields:
-            IdRemoverPersister.removeIdInAJSON(body, field, path, id_tracker)
+            IdRemoverPersister.remove_id_in_a_json(body, field, path, id_tracker)
         response['body']['string'] = json.dumps(body).encode('utf-8')
 
     @staticmethod
-    def removeIds(ids2remove, cassette_dict):
-        id_tracker = {}  # {oldId: newId}
+    def remove_ids(ids2remove, cassette_dict):
+        id_tracker = {}  # {old_id: new_id}
         for path, fields in ids2remove.items():
-            responses = IdRemoverPersister.getResponsesWith(path, cassette_dict)
+            responses = IdRemoverPersister.get_responses_with(path, cassette_dict)
             for response in responses:
-                IdRemoverPersister.removeIdsInAResponse(response, fields, path, id_tracker)
-        for oldId, newId in id_tracker.items():
-            if not isinstance(oldId, str):
+                IdRemoverPersister.remove_ids_in_a_response(response, fields, path, id_tracker)
+        for old_id, new_id in id_tracker.items():
+            if not isinstance(old_id, str):
                 continue
             for request in cassette_dict['requests']:
-                request.uri = request.uri.replace(oldId, newId)
+                request.uri = request.uri.replace(old_id, new_id)
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
@@ -381,23 +381,22 @@ class IdRemoverPersister(FilesystemPersister):
                                    'qasms.result.data.time',
                                    'qasms.result.data.additionalData.seed'],
                       'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
-                      'api/Backends/ibmqx4/queue/status': ['lengthQueue']
-                      }
-        IdRemoverPersister.removeIds(ids2remove, cassette_dict)
+                      'api/Backends/ibmqx4/queue/status': ['lengthQueue']}
+        IdRemoverPersister.remove_ids(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
                                                                     serializer)
 
 
 def purge_headers(headers):
-    headerList = list()
+    header_list = list()
     for item in headers:
         if not isinstance(item, tuple):
             item = (item, None)
-        headerList.append((item[0], item[1]))
+        header_list.append((item[0], item[1]))
 
     def before_record_response(response):
-        for (header, value) in headerList:
+        for (header, value) in header_list:
             try:
                 if value:
                     response['headers'][header] = value
@@ -410,9 +409,9 @@ def purge_headers(headers):
     return before_record_response
 
 
-vcr = VCR(
+VCR = vcr(
     cassette_library_dir='test/cassettes',
-    record_mode=vcr_mode,
+    record_mode=VCR_MODE,
     match_on=['uri', 'method'],
     filter_headers=['x-qx-client-application', 'User-Agent'],
     filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
@@ -427,4 +426,4 @@ vcr = VCR(
                                           'X-Webkit-Csp',
                                           'content-length']))
 
-vcr.register_persister(IdRemoverPersister)
+VCR.register_persister(IdRemoverPersister)
