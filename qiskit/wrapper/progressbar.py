@@ -44,6 +44,7 @@ import time
 import datetime
 import sys
 
+
 class BaseProgressBar(object):
     """
     An abstract progress bar with some shared functionality.
