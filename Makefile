@@ -30,6 +30,7 @@ test:
 	python3 -m unittest discover -s test -v
 
 test_record:
+	rm test/cassettes/*
 	env RECORD_TEST_RESPONSE="True" python3 -m unittest discover -s test -v
 
 profile:
