@@ -22,6 +22,7 @@ from sympy import Number as N
 from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
 from qiskit.unroll import DagUnroller, DAGBackend
 from qiskit.mapper._quaternion import quaternion_from_euler
 
@@ -437,7 +438,9 @@ def swap_mapper(circuit_graph, coupling_graph,
         a layout dict mapping qubits of circuit_graph into qubits
         of coupling_graph. The layout may differ from the initial_layout
         if the first layer of gates cannot be executed on the
-        initial_layout.
+        initial_layout. Finally, returned is the final layer qubit
+        permutation that is needed to add measurements back in.
+
     Raises:
         MapperError: if there was any error during the mapping or with the
             parameters.
@@ -574,6 +577,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout = layout
                 first_layer = False
 
+    # This is the final layout that we need to correctly replace
+    # any measurements that needed to be removed before the swap
+    last_layout = layout
+
     # If first_layer is still set, the circuit only has single-qubit gates
     # so we can use the initial layout to output the entire circuit
     if first_layer:
@@ -585,7 +592,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     dag_unrrolled = DagUnroller(dagcircuit_output,
                                 DAGBackend(basis.split(",")))
     dagcircuit_output = dag_unrrolled.expand_gates()
-    return dagcircuit_output, initial_layout
+    return dagcircuit_output, initial_layout, last_layout
 
 
 def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
@@ -815,3 +822,54 @@ def optimize_1q_gates(circuit):
         if right_name == "nop":
             unrolled._remove_op_node(run[0])
     return unrolled
+
+
+def remove_last_measurements(dag_circuit, perform_remove=True):
+    """Removes all measurements that occur as the last operation
+    on a given qubit for a DAG circuit.  Measurements that are followed by
+    additional gates are untouched.
+
+    This operation is done in-place on the input DAG circuit if perform_pop=True.
+
+    Parameters:
+        dag_circuit (qiskit.dagcircuit._dagcircuit.DAGCircuit): DAG circuit.
+        perform_remove (bool): Whether to perform removal, or just return node list.
+
+    Returns:
+        list: List of all measurements that were removed.
+    """
+    removed_meas = []
+    try:
+        meas_nodes = dag_circuit.get_named_nodes('measure')
+    except DAGCircuitError:
+        return removed_meas
+
+    for idx in meas_nodes:
+        _, succ_map = dag_circuit._make_pred_succ_maps(idx)
+        if len(succ_map) == 2:
+            # All succesors of the measurement are outputs, one for qubit and one for cbit
+            # (As opposed to more gates being applied), and it is safe to remove the
+            # measurement node and add it back after the swap mapper is done.
+            removed_meas.append(dag_circuit.multi_graph.node[idx])
+            if perform_remove:
+                dag_circuit._remove_op_node(idx)
+    return removed_meas
+
+
+def return_last_measurements(dag_circuit, removed_meas, final_layout):
+    """Returns the measurements to a quantum circuit, removed by
+    `remove_last_measurements` after the swap mapper is finished.
+
+    This operation is done in-place on the input DAG circuit.
+
+    Parameters:
+        dag_circuit (qiskit.dagcircuit._dagcircuit.DAGCircuit): DAG circuit.
+        removed_meas (list): List of measurements previously removed.
+        final_layout (dict): Qubit layout after swap mapping.
+    """
+    if any(removed_meas) and 'measure' not in dag_circuit.basis.keys():
+        dag_circuit.add_basis_element("measure", 1, 1, 0)
+    for meas in removed_meas:
+        new_q_label = final_layout[meas['qargs'][0]]
+        dag_circuit.apply_operation_back(name='measure', qargs=[new_q_label],
+                                         cargs=meas['cargs'])

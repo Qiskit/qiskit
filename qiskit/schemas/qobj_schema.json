@@ -251,7 +251,7 @@
                     }
                 },
                 {"$ref": "#/definitions/bfunc"},
-                {"$ref": "#/definitions/copy"}		
+                {"$ref": "#/definitions/copy"}
             ] 
         },
         "openqasm_instructions": {
@@ -380,7 +380,7 @@
                 "title": "snapshot",
                 "required": ["params"],
                 "properties": {
-                    "name": {"enum": ["snapshot"]},     
+                    "name": {"enum": ["snapshot"]},
                     "memory": {"maxItems": 0},               
                     "register": {"maxItems": 0},
                     "params": {

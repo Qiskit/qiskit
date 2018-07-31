@@ -72,7 +72,7 @@ def qobj_to_dict_previous_version(qobj):
 
     # Update configuration: qobj.config might have extra items.
     for key, value in qobj.config.__dict__.items():
-        if key not in ('shots', 'register_slots', 'max_credits', 'seed'):
+        if key not in ('shots', 'memory_slots', 'max_credits', 'seed'):
             converted['config'][key] = value
 
     # Add circuits.
@@ -82,13 +82,19 @@ def qobj_to_dict_previous_version(qobj):
             circuit_config = circuit_config.as_dict()
             circuit_config['seed'] = getattr(qobj.config, 'seed', None)
 
+        # Convert '#snapshot' to 'snapshot' in the instructions.
+        instructions = []
+        for instruction in experiment.instructions:
+            instructions.append(instruction.as_dict())
+            if instruction.name == '#snapshot':
+                instructions[-1]['name'] = 'snapshot'
+
         circuit = {
             'name': getattr(experiment.header, 'name', None),
             'config': circuit_config,
             'compiled_circuit': {
                 'header': experiment.header.as_dict(),
-                'operations': [instruction.as_dict() for instruction in
-                               experiment.instructions]
+                'operations': instructions
             },
             'compiled_circuit_qasm': getattr(experiment.header,
                                              'compiled_circuit_qasm', None)
