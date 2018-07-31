@@ -22,6 +22,7 @@ from vcr import VCR
 from vcr.persisters.filesystem import FilesystemPersister
 import json
 
+
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
     # Main SDK path:    qiskit/
@@ -292,14 +293,18 @@ def _is_ci_fork_pull_request():
     return False
 
 
-SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
+RECORD_TEST_RESPONSE = os.getenv('RECORD_TEST_RESPONSE', False) is not False
+if RECORD_TEST_RESPONSE:
+    SKIP_SLOW_TESTS = True  # TODO Activate later
+
 
 class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def getResponsesWith(stringToFind, cassette_dict):
-        requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if stringToFind in x.path]
+        requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if
+                            stringToFind in x.path]
         return [cassette_dict['responses'][i] for i in requests_indeces]
 
     @staticmethod
@@ -318,13 +323,14 @@ class IdRemoverPersister(FilesystemPersister):
         if len(mapList) == 0:
             return ret
         if isinstance(dataDict, list):
-            [ ret.extend(IdRemoverPersister.getMachingDicts(i, mapList)) for i in dataDict]
+            [ret.extend(IdRemoverPersister.getMachingDicts(i, mapList)) for i in dataDict]
         if isinstance(dataDict, dict):
             if mapList[0] in dataDict.keys():
                 if len(mapList) == 1:
                     return [dataDict]
                 else:
-                    ret.extend(IdRemoverPersister.getMachingDicts(dataDict[mapList[0]],mapList[1:]))
+                    ret.extend(
+                        IdRemoverPersister.getMachingDicts(dataDict[mapList[0]], mapList[1:]))
         return ret
 
     @staticmethod
@@ -349,7 +355,7 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def removeIds(ids2remove, cassette_dict):
-        id_tracker = {} # {oldId: newId}
+        id_tracker = {}  # {oldId: newId}
         for path, fields in ids2remove.items():
             responses = IdRemoverPersister.getResponsesWith(path, cassette_dict)
             for response in responses:
@@ -358,7 +364,7 @@ class IdRemoverPersister(FilesystemPersister):
             if not isinstance(oldId, str):
                 continue
             for request in cassette_dict['requests']:
-                request.uri = request.uri.replace(oldId,newId)
+                request.uri = request.uri.replace(oldId, newId)
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
@@ -379,6 +385,7 @@ class IdRemoverPersister(FilesystemPersister):
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
                                                                     serializer)
+
 
 def purge_headers(headers):
     headerList = list()
@@ -406,7 +413,7 @@ vcr = VCR(
     record_mode='none',
     match_on=['uri', 'method'],
     filter_headers=['x-qx-client-application', 'User-Agent'],
-    filter_query_parameters=[('access_token','dummyapiusersloginWithTokenid01')],
+    filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
     filter_post_data_parameters=[('apiToken', 'apiToken_dummy')],
     decode_compressed_response=True,
     before_record_response=purge_headers(['Date',
@@ -416,7 +423,6 @@ vcr = VCR(
                                           'Content-Security-Policy',
                                           'X-Content-Security-Policy',
                                           'X-Webkit-Csp',
-                                          'content-length'])
-)
+                                          'content-length']))
 
 vcr.register_persister(IdRemoverPersister)
