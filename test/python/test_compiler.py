@@ -385,6 +385,23 @@ class TestCompiler(QiskitTestCase):
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
+    def test_compile_list_circuits(self):
+        """Compile list of circuits with different qreg names.
+        """
+        backend = FakeBackEnd()
+        circuits = []
+        for _ in range(2):
+            qr = qiskit.QuantumRegister(2)
+            cr = qiskit.ClassicalRegister(2)
+            circuit = qiskit.QuantumCircuit(qr, cr)
+            circuit.h(qr[0])
+            circuit.cx(qr[0], qr[1])
+            circuit.measure(qr, cr)
+            circuits.append(circuit)
+
+        qobj = transpiler.compile(circuits, backend)
+        self.assertIsInstance(qobj, Qobj)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
