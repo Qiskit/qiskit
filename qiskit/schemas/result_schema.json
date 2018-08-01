@@ -128,7 +128,7 @@
         }
     },                            
     "type": "object",
-    "required": ["backend_name", "backend_version", "id", "job_id", "success", "results"],
+    "required": ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"],
     "properties": {
         "backend_name": {
             "type": "string",
@@ -139,9 +139,9 @@
             "pattern": "[0-9]+.[0-9]+.[0-9]+$",
             "description": "Backend version in the form X.X.X"
             },
-        "id": {
+        "qobj_id": {
             "type": "string",
-            "description": "User generated id"
+            "description": "User generated Qobj id"
         },
         "job_id": {
             "type": "string",
