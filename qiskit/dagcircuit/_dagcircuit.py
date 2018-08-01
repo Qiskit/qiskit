@@ -41,6 +41,10 @@ class DAGCircuit:
 
     def __init__(self):
         """Create an empty circuit."""
+
+        # Circuit name.  Generally, this corresponds to the name
+        # of the QuantumCircuit from which the DAG was generated.
+        self.name = None
         # Map from a wire's name (reg,idx) to a Bool that is True if the
         # wire is a classical bit and False if the wire is a qubit.
         self.wire_type = {}
@@ -1327,6 +1331,7 @@ class DAGCircuit:
         circuit are included in the gate basis.
         """
         dagcircuit = DAGCircuit()
+        dagcircuit.name = circuit.name
         for register in circuit.regs.values():
             if isinstance(register, QuantumRegister):
                 dagcircuit.add_qreg(register.name, len(register))
