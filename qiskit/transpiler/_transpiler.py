@@ -23,7 +23,6 @@ from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
-from qiskit._gate import Gate
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem
 
 logger = logging.getLogger(__name__)
@@ -91,7 +90,7 @@ def compile(circuits, backend,
         # pick a good initial layout if coupling_map is not already satisfied
         # otherwise keep it as q[i]->q[i]
         if (initial_layout is None and not backend.configuration['simulator']
-                and not _matches_coupling_map(circuits[i].data, coupling_map)):
+                and not _matches_coupling_map(dag_circuits[i], coupling_map)):
             initial_layout = _pick_best_layout(backend, num_qubits, circuits[i].get_qregs())
 
         dag_circuits[i], final_layout = transpile(
@@ -355,25 +354,28 @@ def _best_subset(backend, n_qubits):
     return best_map
 
 
-def _matches_coupling_map(instructions, coupling_map):
-    """Iterate over circuit instructions to check if all multi-qubit couplings
+def _matches_coupling_map(dag_circuit, coupling_map):
+    """Iterate over circuit gates to check if all multi-qubit couplings
     match the qubit coupling graph in the backend.
 
     Parameters:
-            instructions (list): List of circuit instructions.
+            dag_circuit (DAGCircuit): DAG representation of circuit.
             coupling_map (list): Backend coupling map, represented as an adjacency list.
 
     Returns:
-            True: If all instructions readily fit the backend coupling graph.
+            True: If all gates readily fit the backend coupling graph.
 
-            False: If there's at least one instruction that uses multiple qubits
+            False: If there's at least one gate that uses multiple qubits
                    which does not match the backend couplings.
     """
-    for instruction in instructions:
-        if isinstance(instruction, Gate) and instruction.is_multi_qubit():
-            if instruction.get_qubit_coupling() not in coupling_map:
-                return False
-    return True
+    match = True
+    for _, data in dag_circuit.multi_graph.nodes(data=True):
+        if data['type'] == 'op':
+            gate_map = [qr[1] for qr in data['qargs']]
+            if gate_map not in coupling_map:
+                match = False
+                break
+    return match
 
 
 def _pick_best_layout(backend, num_qubits, qregs):
