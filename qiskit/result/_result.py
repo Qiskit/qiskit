@@ -209,6 +209,45 @@ class Result(object):
             dict: A dictionary of data for the different backends.
 
         Raises:
+                error occurred while fetching the data.
+
+    def get_data(self, circuit=None):
+        """Get the data of circuit name.
+
+        The data format will depend on the backend. For a real device it
+        will be for the form::
+
+            "counts": {'00000': XXXX, '00001': XXXX},
+            "time"  : xx.xxxxxxxx
+
+        for the qasm simulators of 1 shot::
+
+            'statevector': array([ XXX,  ..., XXX]),
+            'classical_state': 0
+
+        for the qasm simulators of n shots::
+
+            'counts': {'0000': XXXX, '1001': XXXX}
+
+        for the unitary simulators::
+
+            'unitary': np.array([[ XX + XXj
+                                   ...
+                                   XX + XX]
+                                 ...
+                                 [ XX + XXj
+                                   ...
+                                   XX + XXj]]
+
+        Args:
+            circuit (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            dict: A dictionary of data for the different backends.
+
+        Raises:
             QISKitError: if there is no data for the circuit, or an unhandled
                 error occurred while fetching the data.
         """
