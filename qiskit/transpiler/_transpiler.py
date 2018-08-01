@@ -96,9 +96,9 @@ def compile(circuits, backend,
         list_layout_temp = [[k, v] for k, v in final_layout.items()] if final_layout else None
         list_layout.append(list_layout_temp)
 
+    # step 3: making a qobj
     qobj = _dags_2_qobj(DAGs, circuits, backend, list_layout = list_layout, config=config, shots=shots, max_credits=max_credits, 
-                        qobj_id=qobj_id, basis_gates=basis_gates, coupling_map=coupling_map, 
-                        initial_layout=initial_layout, seed=seed)
+                        qobj_id=qobj_id, basis_gates=basis_gates, coupling_map=coupling_map,  seed=seed)
 
     return qobj
 
@@ -120,7 +120,7 @@ def _circuits_2_dags(circuits):
 
 
 def _dags_2_qobj(DAGs, circuits, backend, list_layout=None, config=None, shots=None, max_credits=None, qobj_id=None, basis_gates=None, 
-                 coupling_map=None, initial_layout=None, seed=None):
+                 coupling_map=None, seed=None):
     """blah
     """
     backend_conf = backend.configuration
