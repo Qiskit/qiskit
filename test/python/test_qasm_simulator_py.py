@@ -55,7 +55,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                                   seed=self.seed)
         circuit.header.name = 'test'
 
-        self.qobj = Qobj(id='test_sim_single_shot',
+        self.qobj = Qobj(qobj_id='test_sim_single_shot',
                          config=QobjConfig(shots=1024,
                                            memory_slots=6,
                                            max_credits=3),
@@ -127,7 +127,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                                          seed=None)
         ucircuit_false.header.name = 'test_if_false'
 
-        qobj = Qobj(id='test_if_qobj',
+        qobj = Qobj(qobj_id='test_if_qobj',
                     config=QobjConfig(max_credits=3,
                                       shots=shots,
                                       memory_slots=max_qubits),
