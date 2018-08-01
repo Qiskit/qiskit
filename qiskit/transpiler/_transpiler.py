@@ -97,7 +97,7 @@ def compile(circuits, backend,
         list_layout.append(list_layout_temp)
 
     # step 3: making a qobj
-    qobj = _dags_2_qobj(DAGs, circuits, backend, list_layout = list_layout, config=config, shots=shots, max_credits=max_credits, 
+    qobj = _dags_2_qobj(DAGs, circuits, backend_name=backend_name, list_layout=list_layout, config=config, shots=shots, max_credits=max_credits, 
                         qobj_id=qobj_id, basis_gates=basis_gates, coupling_map=coupling_map,  seed=seed)
 
     return qobj
@@ -119,14 +119,11 @@ def _circuits_2_dags(circuits):
     return DAGs
 
 
-def _dags_2_qobj(DAGs, circuits, backend, list_layout=None, config=None, shots=None, max_credits=None, qobj_id=None, basis_gates=None, 
+def _dags_2_qobj(DAGs, circuits, backend_name, list_layout=None, config=None, shots=None, max_credits=None, qobj_id=None, basis_gates=None, 
                  coupling_map=None, seed=None):
     """blah
     """
-    backend_conf = backend.configuration
-    backend_name = backend_conf['name']
-    qobj_id=None
-     # Step 1: create the Qobj, with empty experiments.
+    # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefern
     qobj_config = deepcopy(config or {})
     # TODO: "memory_slots" is required by the qobj schema in the top-level
