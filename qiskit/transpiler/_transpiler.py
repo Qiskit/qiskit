@@ -60,10 +60,11 @@ def compile(circuits, backend,
         circuits = [circuits]
 
 
-    # THIS NEEDS TO BE CLEAN UP -- some things to decide for list of circuits. We have bugs if 2 is not true
+    # THIS NEEDS TO BE CLEAN UP -- some things to decide for list of circuits. We have
+    # bugs if 2 is not true
     # 1. DO all circuits have same coupling map
     # 2. do they all have same registers etc.
-    # 3. do they all get the same basis set. 
+    # 3. do they all get the same basis set.
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
     # Check for valid parameters for the experiments.
@@ -78,63 +79,72 @@ def compile(circuits, backend,
         coupling_map = None
 
     # step 1: Making the list of dag circuits
-    DAGs = _circuits_2_dags(circuits)
+    dag_circuits = _circuits_2_dags(circuits)
 
     # step 2: Transpile all the dags
     list_layout = []
     # change to standard python when dag_circuit has all fields of circuit (name, qregs)
-    for i in range(len(DAGs) ):
+    for i in range(len(dag_circuits)):
 
         # TODO: move this inside the mapper pass
-        num_qubits = sum(DAGs[i].qregs.values())
+        num_qubits = sum(dag_circuits[i].qregs.values())
         # pick a good initial layout if coupling_map is not already satisfied
         # otherwise keep it as q[i]->q[i]
-        if (initial_layout is None and not backend.configuration['simulator'] and
-            not _matches_coupling_map(circuits[i].data, coupling_map)):
+        if (initial_layout is None and not backend.configuration['simulator']
+                and not _matches_coupling_map(circuits[i].data, coupling_map)):
             initial_layout = _pick_best_layout(backend, num_qubits, circuits[i].get_qregs())
 
-        DAGs[i], final_layout = transpile(
-            DAGs[i],
+        dag_circuits[i], final_layout = transpile(
+            dag_circuits[i],
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             initial_layout=initial_layout,
             get_layout=True,
             seed=seed,
             pass_manager=pass_manager)
-        # why does transpile need a seed?
+        # why does transpile need a seed? -- it is not the same seed going to qobj
+        # for running simulations.
         # what is get_layout and lets make it clearer why true
         list_layout.append([[k, v] for k, v in final_layout.items()] if final_layout else None)
 
     # step 3: making a qobj
     # Things to go: circuits (needs additions to dag)
-    # should not need to pass basis gate
-    # when qobj does not support the others we remove
-    qobj = _dags_2_qobj(DAGs, circuits, backend_name=backend_name, list_layout=list_layout, config=config, shots=shots, max_credits=max_credits, 
-                        qobj_id=qobj_id, basis_gates=basis_gates, coupling_map=coupling_map, seed=seed)
+    # we are not keeping many in qobj in future so we remove then
+    qobj = _dags_2_qobj(dag_circuits, circuits, backend_name=backend_name, list_layout=list_layout,
+                        config=config, shots=shots, max_credits=max_credits,
+                        qobj_id=qobj_id, basis_gates=basis_gates,
+                        coupling_map=coupling_map, seed=seed)
 
     return qobj
 
 
 def _circuits_2_dags(circuits):
-    """Converts the list of circuits into a list of DAGs.
+    """Converts the list of circuits into a list of dag_circuits.
 
     Args:
         circuits [QuantumCircuit]: circuit to compile
 
     Returns:
-        DAGs [DAGCircuit]: the dag representation of the circuits to be used in the transpiler
+        dag_circuits: the dag representation of the circuits to be used
+        in the transpiler
     """
-    DAGs = []
+    dag_circuits = []
     for circuit in circuits:
         dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-        DAGs.append(dag_circuit)
-    return DAGs
+        dag_circuits.append(dag_circuit)
+    return dag_circuits
 
 
-def _dags_2_qobj(DAGs, circuits, backend_name, list_layout=None, config=None, shots=None, max_credits=None, qobj_id=None, basis_gates=None, 
-                 coupling_map=None, seed=None):
-    """
-    blah
+def _dags_2_qobj(dag_circuits, circuits, backend_name, list_layout=None, config=None, shots=None,
+                 max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
+                 seed=None):
+    """Converts the list of DAGCircuits into a qobj.
+
+    Args:
+        circuits [DAGCircuits]: DAGCircuits to compile
+
+    Returns:
+        QOBJ: the qobj to run on the backend
     """
     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefern
@@ -155,11 +165,11 @@ def _dags_2_qobj(DAGs, circuits, backend_name, list_layout=None, config=None, sh
     if seed:
         qobj.config.seed = seed
 
-    # change to standard for if dage gets circuit field
-    for i in range(len(DAGs) ):
-        dag = DAGs[i]
+    # change to standard for if dags gets circuit field
+    for i in range(len(dag_circuits)):
+        dag = dag_circuits[i]
         json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-        
+
         # Step 3a: create the Experiment based on json_circuit
         experiment = QobjExperiment.from_dict(json_circuit)
         # Step 3b: populate the Experiment configuration and header
@@ -171,7 +181,7 @@ def _dags_2_qobj(DAGs, circuits, backend_name, list_layout=None, config=None, sh
             'basis_gates': basis_gates,
             'layout': list_layout[i],
             'memory_slots': sum(register.size for register
-                            in circuits[i].get_cregs().values())})
+                                in circuits[i].get_cregs().values())})
         experiment.config = QobjItem(**experiment_config)
 
         # set eval_symbols=True to evaluate each symbolic expression
