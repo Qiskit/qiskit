@@ -82,18 +82,19 @@ def compile(circuits, backend,
     # step 2: Transpile all the dags
     list_layout = []
     # change to standard python when dag_circuit has all fields of circuit (name, qregs)
-    for i in range(len(dag_circuits)):
+    for i, dag_circ in enumerate(dag_circuits):
 
         # TODO: move this inside the mapper pass
-        num_qubits = sum(dag_circuits[i].qregs.values())
+        num_qubits = sum(dag_circ.qregs.values())
         # pick a good initial layout if coupling_map is not already satisfied
         # otherwise keep it as q[i]->q[i]
         if (initial_layout is None and not backend.configuration['simulator']
-                and not _matches_coupling_map(dag_circuits[i], coupling_map)):
-            initial_layout = _pick_best_layout(backend, num_qubits, circuits[i].get_qregs())
+                and not _matches_coupling_map(dag_circ, coupling_map)):
+            initial_layout = _pick_best_layout(backend, num_qubits,
+                                               dag_circ.qregs)
 
         dag_circuits[i], final_layout = transpile(
-            dag_circuits[i],
+            dag_circ,
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             initial_layout=initial_layout,
@@ -164,9 +165,9 @@ def _dags_2_qobj(dag_circuits, circuits, backend_name, list_layout=None, config=
         qobj.config.seed = seed
 
     # change to standard for if dags gets circuit field
-    for i in range(len(dag_circuits)):
-        dag = dag_circuits[i]
-        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
+    for i, dag_circ in enumerate(dag_circuits):
+
+        json_circuit = DagUnroller(dag_circ, JsonBackend(dag_circ.basis)).execute()
 
         # Step 3a: create the Experiment based on json_circuit
         experiment = QobjExperiment.from_dict(json_circuit)
@@ -184,7 +185,7 @@ def _dags_2_qobj(dag_circuits, circuits, backend_name, list_layout=None, config=
 
         # set eval_symbols=True to evaluate each symbolic expression
         # TODO after transition to qobj, we can drop this
-        experiment.header.compiled_circuit_qasm = dag.qasm(qeflag=True, eval_symbols=True)
+        experiment.header.compiled_circuit_qasm = dag_circ.qasm(qeflag=True, eval_symbols=True)
         # Step 3c: add the Experiment to the Qobj
         qobj.experiments.append(experiment)
 
@@ -383,7 +384,7 @@ def _pick_best_layout(backend, num_qubits, qregs):
     Parameters:
         backend (BaseBackend) : The backend with the coupling_map for searching
         num_qubits (int): Number of qubits
-        qregs (list): The list of quantum registers
+        qregs (dict): Dict of quantum registers with key:val = name:length.
 
     Returns:
         initial_layout: A special ordered layout
@@ -393,7 +394,7 @@ def _pick_best_layout(backend, num_qubits, qregs):
     layout = {}
     map_iter = 0
     for key, value in qregs.items():
-        for i in range(value.size):
+        for i in range(value):
             layout[(key, i)] = ('q', best_sub[map_iter])
             map_iter += 1
     return layout
