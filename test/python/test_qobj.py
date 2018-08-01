@@ -17,29 +17,37 @@ from .common import QiskitTestCase
 
 class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
-    def test_init_qobj(self):
-        """Test initialization of a Qobj for required arguments."""
-        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instructions = [instruction_1]
-        experiment_1 = QobjExperiment(instructions=instructions)
-        experiments = [experiment_1]
 
-        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+    def test_create_qobj(self):
+        """Test creation of a Qobj based on the individual elements."""
+        qobj = Qobj(
+            id='12345',
+            header={},
+            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QobjExperiment(instructions=[
+                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                ])
+            ]
+        )
 
         self.assertTrue(
             all(getattr(qobj, required_arg) is not None for required_arg in Qobj.REQUIRED_ARGS))
 
     def test_as_dict(self):
         """Test conversion to dict of a Qobj based on the individual elements."""
-        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-        instructions = [instruction_1, instruction_2]
-        experiment_1 = QobjExperiment(instructions=instructions)
-        experiments = [experiment_1]
-
-        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+        qobj = Qobj(
+            id='12345',
+            header={},
+            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QobjExperiment(instructions=[
+                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                ])
+            ]
+        )
         qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
         expected = {
@@ -54,20 +62,23 @@ class TestQobj(QiskitTestCase):
                     {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]}
                 ]}
             ],
-            }
+        }
 
         self.assertEqual(qobj.as_dict(), expected)
 
     def test_as_dict_to_json(self):
         """Test dictionary representation of Qobj against its schema."""
-        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-        instructions = [instruction_1, instruction_2]
-        experiment_1 = QobjExperiment(instructions=instructions)
-        experiments = [experiment_1]
-
-        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+        qobj = Qobj(
+            id='12345',
+            header={},
+            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QobjExperiment(instructions=[
+                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                ])
+            ]
+        )
         qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
         sdk = qiskit_path[0]  # Main SDK path:    qiskit/
@@ -90,14 +101,17 @@ class TestQobj(QiskitTestCase):
         self.assertEqual(Qobj._expand_item(single_list), single_list)
         self.assertEqual(Qobj._expand_item(nested_list), nested_list)
 
-        config = QobjConfig(max_credits=10, shots=1024, memory_slots=2)
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instruction_2 = QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-        instructions = [instruction_1, instruction_2]
-        experiment_1 = QobjExperiment(instructions=instructions)
-        experiments = [experiment_1]
-
-        qobj = Qobj(id='12345', config=config, experiments=experiments, header={})
+        qobj = Qobj(
+            id='12345',
+            header={},
+            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QobjExperiment(instructions=[
+                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                ])
+            ]
+        )
 
         expected_dict = {
             'id': '12345',

@@ -21,7 +21,7 @@ from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.qobj import Qobj, QobjItem
+from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
 from qiskit.transpiler import transpile
 from .common import QiskitTestCase
 
@@ -45,18 +45,25 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         self.qc = qc
+
         # create qobj
-        compiled_circuit1 = transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json')
-        compiled_circuit2 = transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ), format='json')
-        self.qobj = {'id': 'test_qobj',
-                     'config': {
-                         'max_credits': 3,
-                         'shots': 2000,
-                         'seed': 1111
-                     },
-                     'experiments': [compiled_circuit1, compiled_circuit2],
-                     'header': {'backend_name': 'local_qasm_simulator_cpp'}}
-        self.qobj = Qobj.from_dict(self.qobj)
+        compiled_circuit1 = QobjExperiment.from_dict(
+            transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json'))
+
+        compiled_circuit2 = QobjExperiment.from_dict(
+            transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ),
+                      format='json'))
+
+        self.qobj = Qobj(
+            id='test_qobj',
+            config=QobjConfig(
+                shots=2000, memory_slots=1,
+                max_credits=3,
+                seed=1111
+            ),
+            experiments=[compiled_circuit1, compiled_circuit2],
+            header=QobjHeader(backend_name='local_qasm_simulator_cpp')
+        )
         self.qobj.experiments[0].header.name = 'test_circuit1'
         self.qobj.experiments[0].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
         self.qobj.experiments[1].header.name = 'test_circuit2'
