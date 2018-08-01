@@ -81,6 +81,10 @@ def compile(circuits, backend,
 
     # step 2: Transpile all the dags
     list_layout = []
+
+    # Work-around for compiling multiple circuits with different qreg names.
+    # Should later make it so that the initial_layout can be a list of layouts.
+    _initial_layout = initial_layout.copy() if initial_layout is not None else None
     # change to standard python when dag_circuit has all fields of circuit (name, qregs)
     for i, dag_circ in enumerate(dag_circuits):
 
@@ -90,14 +94,14 @@ def compile(circuits, backend,
         # otherwise keep it as q[i]->q[i]
         if (initial_layout is None and not backend.configuration['simulator']
                 and not _matches_coupling_map(dag_circ, coupling_map)):
-            initial_layout = _pick_best_layout(backend, num_qubits,
-                                               dag_circ.qregs)
+            _initial_layout = _pick_best_layout(backend, num_qubits,
+                                                dag_circ.qregs)
 
         dag_circuits[i], final_layout = transpile(
             dag_circ,
             basis_gates=basis_gates,
             coupling_map=coupling_map,
-            initial_layout=initial_layout,
+            initial_layout=_initial_layout,
             get_layout=True,
             seed=seed,
             pass_manager=pass_manager)
