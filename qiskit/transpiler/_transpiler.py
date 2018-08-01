@@ -58,7 +58,6 @@ def compile(circuits, backend,
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
-
     # THIS NEEDS TO BE CLEAN UP -- some things to decide for list of circuits. We have
     # bugs if 2 is not true
     # 1. DO all circuits have same coupling map
