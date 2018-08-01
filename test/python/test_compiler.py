@@ -50,6 +50,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         qobj = transpiler.compile(qc, backend)
+        print(qobj)
 
         # FIXME should validate the Qobj when defined
         self.assertIsInstance(qobj, Qobj)

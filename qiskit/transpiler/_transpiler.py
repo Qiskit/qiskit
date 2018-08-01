@@ -62,7 +62,71 @@ def compile(circuits, backend,
     backend_conf = backend.configuration
     backend_name = backend_conf['name']
 
-    # Step 1: create the Qobj, with empty experiments.
+    # Check for valid parameters for the experiments.
+    if hpc is not None and \
+            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
+        raise TranspilerError('Unknown HPC parameter format!')
+    basis_gates = basis_gates or backend_conf['basis_gates']
+    coupling_map = coupling_map or backend_conf['coupling_map']
+    if coupling_map == "all-to-all":
+        coupling_map = None
+
+    # step 1: Making the super dag
+    DAGs = _circuits_2_dags(circuits)
+
+    # step 2: Transpile
+    # THIS IS A HACK FOR NOW
+    list_layout = []
+    for i in range(len(circuits) ):
+        # TODO: move this inside the mapper pass
+        num_qubits = sum((len(qreg) for qreg in circuits[i].get_qregs().values()))
+        # pick a good initial layout if coupling_map is not already satisfied
+        # otherwise keep it as q[i]->q[i]
+        if (initial_layout is None and not backend.configuration['simulator'] and
+            not _matches_coupling_map(circuits[i].data, coupling_map)):
+            initial_layout = _pick_best_layout(backend, num_qubits, circuits[i].get_qregs())
+        DAGs[i], final_layout = transpile(
+            DAGs[i],
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            initial_layout=initial_layout,
+            get_layout=True,
+            seed=seed,
+            pass_manager=pass_manager)
+        list_layout_temp = [[k, v] for k, v in final_layout.items()] if final_layout else None
+        list_layout.append(list_layout_temp)
+
+    qobj = _dags_2_qobj(DAGs, circuits, backend, list_layout = list_layout, config=config, shots=shots, max_credits=max_credits, 
+                        qobj_id=qobj_id, basis_gates=basis_gates, coupling_map=coupling_map, 
+                        initial_layout=initial_layout, seed=seed)
+
+    return qobj
+
+
+def _circuits_2_dags(circuits):
+    """Converts the list of circuits into a list of DAGs.
+
+    Args:
+        circuits (QuantumCircuit): circuit to compile
+
+    Returns:
+        DAGs: the dag representation of the circuits
+    """
+    DAGs = []
+    for circuit in circuits:
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+        DAGs.append(dag_circuit)
+    return DAGs
+
+
+def _dags_2_qobj(DAGs, circuits, backend, list_layout=None, config=None, shots=None, max_credits=None, qobj_id=None, basis_gates=None, 
+                 coupling_map=None, initial_layout=None, seed=None):
+    """blah
+    """
+    backend_conf = backend.configuration
+    backend_name = backend_conf['name']
+    qobj_id=None
+     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefern
     qobj_config = deepcopy(config or {})
     # TODO: "memory_slots" is required by the qobj schema in the top-level
@@ -81,18 +145,28 @@ def compile(circuits, backend,
     if seed:
         qobj.config.seed = seed
 
-    # Check for valid parameters for the experiments.
-    if hpc is not None and \
-            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise TranspilerError('Unknown HPC parameter format!')
-    basis_gates = basis_gates or backend_conf['basis_gates']
-    coupling_map = coupling_map or backend_conf['coupling_map']
-
     # Step 2 and 3: transpile and populate the circuits
-    for circuit in circuits:
-        experiment = _compile_single_circuit(
-            circuit, backend, config, basis_gates, coupling_map, initial_layout,
-            seed, pass_manager)
+    for i in range(len(DAGs) ):
+        dag = DAGs[i]
+        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
+        
+        # Step 3a: create the Experiment based on json_circuit
+        experiment = QobjExperiment.from_dict(json_circuit)
+        # Step 3b: populate the Experiment configuration and header
+        experiment.header.name = circuits[i].name
+        # TODO: place in header or config?
+        experiment_config = deepcopy(config or {})
+        experiment_config.update({
+            'coupling_map': coupling_map,
+            'basis_gates': basis_gates,
+            'layout': list_layout[i],
+            'memory_slots': sum(register.size for register
+                            in circuits[i].get_cregs().values())})
+        experiment.config = QobjItem(**experiment_config)
+
+        # set eval_symbols=True to evaluate each symbolic expression
+        # TODO after transition to qobj, we can drop this
+        experiment.header.compiled_circuit_qasm = dag.qasm(qeflag=True, eval_symbols=True)
         # Step 3c: add the Experiment to the Qobj
         qobj.experiments.append(experiment)
 
@@ -108,82 +182,6 @@ def compile(circuits, backend,
                                experiment in qobj.experiments)
 
     return qobj
-
-
-def _compile_single_circuit(circuit, backend,
-                            config=None, basis_gates=None, coupling_map=None,
-                            initial_layout=None, seed=None, pass_manager=None):
-    """Compile a single circuit into a QobjExperiment.
-
-    Args:
-        circuit (QuantumCircuit): circuit to compile
-        backend (BaseBackend): a backend to compile for
-        config (dict): dictionary of parameters (e.g. noise) used by runner
-        basis_gates (str): comma-separated basis gate set to compile to
-        coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
-        seed (int): random seed for simulators
-        pass_manager (PassManager): a pass_manager for the transpiler stage
-
-    Returns:
-        QobjExperiment: the QobjExperiment to be run on the backends
-    """
-    # TODO: A better solution is to have options to enable/disable optimizations
-    num_qubits = sum((len(qreg) for qreg in circuit.get_qregs().values()))
-    if num_qubits == 1 or coupling_map == "all-to-all":
-        coupling_map = None
-    # Step 2a: circuit -> dag
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-
-    # TODO: move this inside the mapper pass
-    # pick a good initial layout if coupling_map is not already satisfied
-    # otherwise keep it as q[i]->q[i]
-    if (initial_layout is None and
-            not backend.configuration['simulator'] and
-            not _matches_coupling_map(circuit.data, coupling_map)):
-        initial_layout = _pick_best_layout(backend, num_qubits, circuit.get_qregs())
-
-    # Step 2b: transpile (dag -> dag)
-    dag_circuit, final_layout = transpile(
-        dag_circuit,
-        basis_gates=basis_gates,
-        coupling_map=coupling_map,
-        initial_layout=initial_layout,
-        get_layout=True,
-        seed=seed,
-        pass_manager=pass_manager)
-
-    # Step 2c: dag -> json
-    # the compiled circuit to be run saved as a dag
-    # we assume that transpile() has already expanded gates
-    # to the target basis, so we just need to generate json
-    list_layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-
-    json_circuit = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
-
-    # Step 3a: create the Experiment based on json_circuit
-    experiment = QobjExperiment.from_dict(json_circuit)
-    # Step 3b: populate the Experiment configuration and header
-    experiment.header.name = circuit.name
-    # TODO: place in header or config?
-    experiment_config = deepcopy(config or {})
-    experiment_config.update({
-        'coupling_map': coupling_map,
-        'basis_gates': basis_gates,
-        'layout': list_layout,
-        'memory_slots': sum(register.size for register
-                            in circuit.get_cregs().values()),
-        # TODO: `n_qubits` is not part of the qobj specification, but needed
-        # for the simulator.
-        'n_qubits': num_qubits})
-    experiment.config = QobjItem(**experiment_config)
-
-    # set eval_symbols=True to evaluate each symbolic expression
-    # TODO after transition to qobj, we can drop this
-    experiment.header.compiled_circuit_qasm = dag_circuit.qasm(
-        qeflag=True, eval_symbols=True)
-
-    return experiment
 
 
 # pylint: disable=redefined-builtin
