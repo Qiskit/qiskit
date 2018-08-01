@@ -310,5 +310,5 @@ def _is_ci_fork_pull_request():
     return False
 
 
-SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
+SKIP_ONLINE_TESTS = False
 SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
