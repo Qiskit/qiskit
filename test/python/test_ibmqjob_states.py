@@ -263,7 +263,8 @@ class TestIBMQJobStates(JobTestCase):
         object.
         """
         self._current_api = api
-        self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj())
+        self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj(),
+                                     backend_allows_qobj=True)
         self._current_qjob.submit()
         return self._current_qjob
 
