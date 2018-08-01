@@ -44,11 +44,10 @@ class TestIBMQJob(QiskitTestCase):
     Test ibmqjob module.
     """
 
-    @classmethod
     @requires_qe_access
-    def setUpClass(cls, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
+    def setUp(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         # pylint: disable=arguments-differ
-        super().setUpClass()
+        super().setUp()
         # create QuantumCircuit
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
@@ -56,9 +55,8 @@ class TestIBMQJob(QiskitTestCase):
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
-        cls._qc = qc
-        cls._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
-        cls._using_hub = bool(hub and group and project)
+        self._qc = qc
+        self._provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
@@ -217,7 +215,7 @@ class TestIBMQJob(QiskitTestCase):
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     def test_cancel(self):
-        if not self._using_hub:
+        if not self.using_ibmq_credentials:
             self.skipTest('job cancellation currently only available on hubs')
         backends = [backend for backend in self._provider.available_backends()
                     if not backend.configuration['simulator']]

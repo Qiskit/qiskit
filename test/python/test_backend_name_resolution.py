@@ -48,7 +48,7 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_aliases(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test that display names of devices map the same backends as the
         regular names."""
-        register(QE_TOKEN, QE_URL)
+        register(QE_TOKEN, QE_URL, hub, group, project)
         aliased_names = _DEFAULT_PROVIDER.aliased_backend_names()
         for display_name, backend_name in aliased_names.items():
             with self.subTest(display_name=display_name,
