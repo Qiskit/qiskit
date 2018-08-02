@@ -238,7 +238,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-    func = vcr.use_cassette()(func)
+    func = VCR.use_cassette()(func)
 
     @functools.wraps(func)
     def _(*args, **kwargs):
@@ -302,4 +302,4 @@ if RECORD_TEST_RESPONSE:
     SKIP_SLOW_TESTS = True  # TODO Activate later
     VCR_MODE = 'all'
 
-vcr = http_recorder(VCR_MODE)
+VCR = http_recorder(VCR_MODE)
