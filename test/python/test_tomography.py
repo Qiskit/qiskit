@@ -26,18 +26,18 @@ class TestTomography(QiskitTestCase):
         self.assertEqual(tomo.marginal_counts(counts, [0]), {"0": 41, "1": 59})
         self.assertEqual(tomo.marginal_counts(counts, [1]), {"0": 49, "1": 51})
 
-    def test_state_tomography_set_default(self):
+    def test_state_tomo_set_default(self):
         pauli_set = tomo.state_tomography_set([0], meas_basis='Pauli')
         default_set = tomo.state_tomography_set([0])
         self.assertEqual(pauli_set['circuits'], default_set['circuits'])
 
-    def test_process_tomography_set_default(self):
+    def test_process_tomo_set_default(self):
         tomo_set = tomo.process_tomography_set([0])
         default_set = tomo.process_tomography_set(
             [0], meas_basis='Pauli', prep_basis='SIC')
         self.assertEqual(tomo_set['circuits'], default_set['circuits'])
 
-    def test_state_tomography_1qubit(self):
+    def test_state_tomo_1qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0])
         # Get test circuits
@@ -66,7 +66,7 @@ class TestTomography(QiskitTestCase):
             _tomography_test_fit(rho, [1 / np.sqrt(2), -1j / np.sqrt(2)],
                                  threshold))
 
-    def test_state_tomography_2qubit(self):
+    def test_state_tomo_2qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0, 1])
         # Get test circuits
@@ -81,7 +81,7 @@ class TestTomography(QiskitTestCase):
         rho = _tomography_test_data(qp, 'X1Id0', qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 0, 1, 0], threshold))
 
-    def test_process_tomography_1qubit(self):
+    def test_process_tomo_1qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0])
         # Get test circuits
@@ -97,7 +97,7 @@ class TestTomography(QiskitTestCase):
         self.assertTrue(
             _tomography_test_fit(choi, [0.5, 0.5, 0.5, -0.5], threshold))
 
-    def test_process_tomography_2qubit(self):
+    def test_process_tomo_2qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0, 1])
         # Get test circuits

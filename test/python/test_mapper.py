@@ -49,7 +49,8 @@ class MapperTest(QiskitTestCase):
         self.qp = QuantumProgram()
 
     def test_mapper_overoptimization(self):
-        """
+        """Check mapper overoptimization
+
         The mapper should not change the semantics of the input. An overoptimization introduced
         the issue #81: https://github.com/QISKit/qiskit-terra/issues/81
         """
@@ -63,7 +64,8 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(count1.keys(), count2.keys(), )
 
     def test_math_domain_error(self):
-        """
+        """Check for floating point errors.
+
         The math library operates over floats and introduce floating point errors that should be
         avoided.
         See: https://github.com/QISKit/qiskit-terra/issues/111
@@ -80,7 +82,7 @@ class MapperTest(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_optimize_1q_gates_issue159(self):
-        """Test change in behavior for optimize_1q_gates that removes u1(2*pi) rotations.
+        """optimize_1q_gates that removes u1(2*pi) rotations.
 
         See: https://github.com/QISKit/qiskit-terra/issues/159
         """
@@ -149,7 +151,7 @@ class MapperTest(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_symbolic_unary(self):
-        """Test symbolic math in DAGBackend and optimizer with a prefix.
+        """SymPy with a prefix.
 
         See: https://github.com/QISKit/qiskit-terra/issues/172
         """
@@ -161,7 +163,7 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_UNARY)
 
     def test_symbolic_binary(self):
-        """Test symbolic math in DAGBackend and optimizer with a binary operation.
+        """SymPy binary operation.
 
         See: https://github.com/QISKit/qiskit-terra/issues/172
         """
@@ -174,7 +176,7 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_BINARY)
 
     def test_symbolic_extern(self):
-        """Test symbolic math in DAGBackend and optimizer with an external function.
+        """SymPy with external function.
 
         See: https://github.com/QISKit/qiskit-terra/issues/172
         """
@@ -186,7 +188,7 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_EXTERN)
 
     def test_symbolic_power(self):
-        """Test symbolic math in DAGBackend and optimizer with a power (^).
+        """SymPy with a power (^).
 
         See: https://github.com/QISKit/qiskit-terra/issues/172
         """
@@ -197,7 +199,7 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_POWER)
 
     def test_already_mapped(self):
-        """Test that if the circuit already matches the backend topology, it is not remapped.
+        """Circuit not remapped if matches topology.
 
         See: https://github.com/QISKit/qiskit-terra/issues/342
         """
@@ -228,7 +230,7 @@ class MapperTest(QiskitTestCase):
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
     def test_yzy_zyz_cases(self):
-        """Test mapper function yzy_to_zyz works in previously failed cases.
+        """yzy_to_zyz works in previously failed cases.
 
         See: https://github.com/QISKit/qiskit-terra/issues/607
         """

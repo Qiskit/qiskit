@@ -29,7 +29,7 @@ class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
 
     def test_local_backends_exist(self):
-        """Test if there are local backends.
+        """There are local backends.
 
         If all correct some should exists.
         """
@@ -41,7 +41,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backends_exist(self, QE_TOKEN, QE_URL,
                                    hub=None, group=None, project=None):
-        """Test if there are remote backends.
+        """There are remote backends.
 
         If all correct some should exists.
         """
@@ -54,7 +54,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backends_exist_real_device(self, QE_TOKEN, QE_URL,
                                                hub=None, group=None, project=None):
-        """Test if there are remote backends that are devices.
+        """There are remote backends that are devices.
 
         If all correct some should exists.
         """
@@ -67,7 +67,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backends_exist_simulator(self, QE_TOKEN, QE_URL,
                                              hub=None, group=None, project=None):
-        """Test if there are remote backends that are simulators.
+        """There are remote backends that are simulators.
 
         If all correct some should exists.
         """
@@ -78,7 +78,7 @@ class TestBackends(QiskitTestCase):
         self.assertTrue(remote)
 
     def test_get_backend(self):
-        """Test get backends.
+        """Get backends.
 
         If all correct should return a name the same as input.
         """
@@ -87,7 +87,7 @@ class TestBackends(QiskitTestCase):
         self.assertEqual(backend.configuration['name'], 'local_qasm_simulator_py')
 
     def test_local_backend_status(self):
-        """Test backend_status.
+        """Local backend_status.
 
         If all correct should pass the vaildation.
         """
@@ -107,7 +107,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backend_status(self, QE_TOKEN, QE_URL,
                                    hub=None, group=None, project=None):
-        """Test backend_status.
+        """ Remote backend_status.
 
         If all correct should pass the validation.
         """
@@ -127,7 +127,7 @@ class TestBackends(QiskitTestCase):
             jsonschema.validate(status, schema)
 
     def test_local_backend_configuration(self):
-        """Test backend configuration.
+        """Local backend configuration.
 
         If all correct should pass the vaildation.
         """
@@ -145,7 +145,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backend_configuration(self, QE_TOKEN, QE_URL,
                                           hub=None, group=None, project=None):
-        """Test backend configuration.
+        """Remote backend configuration.
 
         If all correct should pass the validation.
         """
@@ -161,7 +161,7 @@ class TestBackends(QiskitTestCase):
             jsonschema.validate(configuration, schema)
 
     def test_local_backend_calibration(self):
-        """Test backend calibration.
+        """Local backend calibration.
 
         If all correct should pass the vaildation.
         """
@@ -176,7 +176,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backend_calibration(self, QE_TOKEN, QE_URL,
                                         hub=None, group=None, project=None):
-        """Test backend calibration.
+        """Remote backend calibration.
 
         If all correct should pass the validation.
         """
@@ -193,7 +193,7 @@ class TestBackends(QiskitTestCase):
                 self.assertEqual(len(calibration), 4)
 
     def test_local_backend_parameters(self):
-        """Test backend parameters.
+        """Local backend parameters.
 
         If all correct should pass the vaildation.
         """
@@ -208,7 +208,7 @@ class TestBackends(QiskitTestCase):
     @requires_qe_access
     def test_remote_backend_parameters(self, QE_TOKEN, QE_URL,
                                        hub=None, group=None, project=None):
-        """Test backend parameters.
+        """Remote backend parameters.
 
         If all correct should pass the validation.
         """

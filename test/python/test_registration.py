@@ -27,7 +27,7 @@ from .common import QiskitTestCase
 
 # TODO: NamedTemporaryFiles do not support name in Windows
 @skipIf(os.name == 'nt', 'Test not supported in Windows')
-class TestWrapperCredentials(QiskitTestCase):
+class TestCredentials(QiskitTestCase):
     """Wrapper autoregistration and credentials test case."""
     def setUp(self):
         super(TestWrapperCredentials, self).setUp()

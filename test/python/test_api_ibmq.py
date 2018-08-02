@@ -73,9 +73,9 @@ class TestApiHub(QiskitTestCase):
 
         return quantum_program
 
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
-    def test_execute_api_no_parameters(self):
-        """Test calling the API with no hub parameters."""
+    @skipIf(not HAS_GROUP_VARS, 'No QE group vars')
+    def test_api_no_parameters(self):
+        """Call the API with no hub parameters."""
         quantum_program = self._get_quantum_program()
 
         # Invoke with no hub, group or project parameters.
@@ -95,9 +95,9 @@ class TestApiHub(QiskitTestCase):
             url = mocked_post.call_args_list[-1][0][0]
             self.assertTrue(url.endswith('/jobs'))
 
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
-    def test_execute_api_parameters(self):
-        """Test calling the API with hub parameters."""
+    @skipIf(not HAS_GROUP_VARS, 'No QE group vars')
+    def test_api_parameters(self):
+        """Call the API with hub parameters."""
         quantum_program = self._get_quantum_program()
 
         # Invoke with hub, group and project parameters.
@@ -119,9 +119,9 @@ class TestApiHub(QiskitTestCase):
                              (QE_HUB, QE_GROUP, QE_PROJECT),
                              url)
 
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
-    def test_execute_invalid_api_parameters(self):
-        """Test calling the API with invalid hub parameters."""
+    @skipIf(not HAS_GROUP_VARS, 'No QE group vars')
+    def test_invalid_api_parameters(self):
+        """Call the API with invalid hub parameters."""
         # Invoke with hub, group and project parameters.
         _ = self._set_api(QE_TOKEN, {'url': QE_URL,
                                      'hub': 'FAKE_HUB',
@@ -135,9 +135,9 @@ class TestApiHub(QiskitTestCase):
         self.assertEqual([],
                          qiskit.available_backends(filters={'local': False}))
 
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
+    @skipIf(not HAS_GROUP_VARS, 'No QE group vars')
     def test_api_calls_no_parameters(self):
-        """Test calling some endpoints of the API with no hub parameters.
+        """Call the API with no hub parameters.
 
         Note: this tests does not make assertions, it is only intended to
             verify the endpoints.
@@ -152,9 +152,9 @@ class TestApiHub(QiskitTestCase):
             self.log.info(backend.parameters)
             self.log.info(backend.calibration)
 
-    @skipIf(not HAS_GROUP_VARS, 'QE group variables not present')
+    @skipIf(not HAS_GROUP_VARS, 'No QE group vars')
     def test_api_calls_parameters(self):
-        """Test calling some endpoints of the API with hub parameters.
+        """Call the API with hub parameters.
 
         Note: this tests does not make assertions, it is only intended to
             verify the endpoints.

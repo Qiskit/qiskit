@@ -96,7 +96,7 @@ measure b[3] -> d[3];
                           load_qasm_string, "", name=None)
 
     def test_load_qasm_text(self):
-        """Test load_qasm_text and get_circuit.
+        """load_qasm_text and get_circuit.
 
         If all is correct we should get the qasm file loaded from the string
 

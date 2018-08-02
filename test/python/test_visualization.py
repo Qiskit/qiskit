@@ -28,11 +28,12 @@ except RuntimeError:
 
 
 @unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
-class TestLatexSourceGenerator(QiskitTestCase):
+class TestLatex(QiskitTestCase):
     """QISKit latex source generator tests."""
 
     def random_circuit(self, width=3, depth=3, max_operands=3):
-        """Generate random circuit of arbitrary size.
+        """Random circuit of arbitrary size.
+        
         Note: the depth is the layers of independent operation. true depth
         in the image may be more for visualization purposes, if gates overlap.
 
@@ -78,6 +79,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
         return qc
 
     def test_tiny_circuit(self):
+        """Tiny circuit
+        """
         filename = self._get_resource_path('test_tiny.tex')
         qc = self.random_circuit(1, 1, 1)
         try:
@@ -88,6 +91,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
     def test_normal_circuit(self):
+        """Normal size circuit
+        """
         filename = self._get_resource_path('test_normal.tex')
         qc = self.random_circuit(5, 5, 3)
         try:
@@ -98,6 +103,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
     def test_wide_circuit(self):
+        """Wide circuit
+        """
         filename = self._get_resource_path('test_wide.tex')
         qc = self.random_circuit(100, 1, 1)
         try:
@@ -108,6 +115,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
     def test_deep_circuit(self):
+        """Deep circuit
+        """
         filename = self._get_resource_path('test_deep.tex')
         qc = self.random_circuit(1, 100, 1)
         try:
@@ -118,6 +127,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
     def test_huge_circuit(self):
+        """Huge circuit.
+        """
         filename = self._get_resource_path('test_huge.tex')
         qc = self.random_circuit(40, 40, 1)
         try:
@@ -128,6 +139,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
     def test_teleport(self):
+        """Teleportation circuit.
+        """
         filename = self._get_resource_path('test_teleport.tex')
         q = qiskit.QuantumRegister(3, 'q')
         c = qiskit.ClassicalRegister(3, 'c')

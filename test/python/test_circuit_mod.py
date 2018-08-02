@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name, unused-import
 
-"""Tests for combining and extending circuits across width and depth"""
+"""Tests for combining and extending (modifiying) circuits across width and depth"""
 
 import qiskit.extensions.simulator
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
@@ -16,11 +16,11 @@ from qiskit.tools.qi.qi import state_fidelity
 from .common import QiskitTestCase
 
 
-class TestCircuitCombineExtend(QiskitTestCase):
+class TestCircuitMod(QiskitTestCase):
     """Test combining and extending of QuantumCircuits."""
 
-    def test_combine_circuit_common(self):
-        """Test combining two circuits with same registers.
+    def test_combine_common(self):
+        """Combining two circuits with same registers.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -38,8 +38,8 @@ class TestCircuitCombineExtend(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_combine_circuit_different(self):
-        """Test combining two circuits with different registers.
+    def test_combine_different(self):
+        """Combining two circuits with different registers.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -55,8 +55,8 @@ class TestCircuitCombineExtend(QiskitTestCase):
         target = {'11': shots}
         self.assertEqual(counts, target)
 
-    def test_combine_circuit_fail(self):
-        """Test combining two circuits fails if registers incompatible.
+    def test_combine_fail(self):
+        """Combining two circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
         it should raise a QISKitError.
@@ -71,8 +71,8 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertRaises(QISKitError, qc1.__add__, qc2)
         self.assertRaises(QISKitError, qc1.__add__, qc3)
 
-    def test_combine_circuit_extension_instructions(self):
-        """Test combining circuits contining barrier, initializer, snapshot
+    def test_combine_extension_instructions(self):
+        """Combining circuits contining barrier, initializer, snapshot
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -98,7 +98,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_extend_circuit(self):
-        """Test extending a circuit with same registers.
+        """Extending a circuit with same registers.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -116,8 +116,8 @@ class TestCircuitCombineExtend(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_extend_circuit_different_registers(self):
-        """Test extending a circuit with different registers.
+    def test_extend_different_registers(self):
+        """Extending a circuit with different registers.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -134,7 +134,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
-        """Test extending a circuits fails if registers incompatible.
+        """Extending a circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
         it should raise a QISKitError.
@@ -149,8 +149,8 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertRaises(QISKitError, qc1.__iadd__, qc2)
         self.assertRaises(QISKitError, qc1.__iadd__, qc3)
 
-    def test_extend_circuit_extension_instructions(self):
-        """Test extending circuits contining barrier, initializer, snapshot
+    def test_extend_extension_instructions(self):
+        """Extending circuits contining barrier, initializer, snapshot
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)

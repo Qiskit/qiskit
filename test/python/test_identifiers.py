@@ -26,7 +26,7 @@ else:
     _skip_cpp = False
 
 
-class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
+class TestAnonIdsInQuantumProgram(QiskitTestCase):
     """Circuits and records can have no name"""
 
     def setUp(self):
@@ -127,16 +127,22 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         self.assertEqual(len(qcn), 3)
 
     def test_get_circuit_noname(self):
+        """Get circuit no name.
+        """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qc = q_program.get_circuit()
         self.assertIsInstance(qc, QuantumCircuit)
 
     def test_get_quantum_register_noname(self):
+        """Get QuantumRegister no name.
+        """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qr = q_program.get_quantum_register()
         self.assertIsInstance(qr, QuantumRegister)
 
     def test_get_classical_register_noname(self):
+        """Get ClassicalRegister no name.
+        """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         cr = q_program.get_classical_register()
         self.assertIsInstance(cr, ClassicalRegister)
@@ -236,7 +242,7 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         self.assertIsInstance(out, Qobj)
 
     def test_get_execution_list_noname(self):
-        """Test get_execution_list for circuits without name.
+        """get_execution_list for circuits without name.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qc = q_program.get_circuit()
@@ -251,6 +257,8 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
         self.assertEqual(len(result), 1)
 
     def test_change_circuit_qobj_after_compile_noname(self):
+        """Change circuit after compile no name.
+        """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qr = q_program.get_quantum_register()
         cr = q_program.get_classical_register()
@@ -285,7 +293,7 @@ class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
             'only for qobj2', 2, 3, 4])
 
     def test_add_circuit_noname(self):
-        """Test add two circuits without names. Also tests get_counts without circuit name.
+        """Add two circuits without names.
         """
         q_program = QuantumProgram()
         qr = q_program.create_quantum_register(size=2)
@@ -363,38 +371,38 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, ccq)
 
 
-class TestAnonymousIds(QiskitTestCase):
+class TestAnonIds(QiskitTestCase):
     """Test the anonymous use of registers.
     """
 
-    def test_create_anonymous_classical_register(self):
-        """Test creating a ClassicalRegister with no name.
+    def test_create_anon_classical_register(self):
+        """ClassicalRegister with no name.
         """
         cr = ClassicalRegister(size=3)
         self.assertIsInstance(cr, ClassicalRegister)
 
-    def test_create_anonymous_quantum_register(self):
-        """Test creating a QuantumRegister with no name.
+    def test_create_anon_quantum_register(self):
+        """QuantumRegister with no name.
         """
         qr = QuantumRegister(size=3)
         self.assertIsInstance(qr, QuantumRegister)
 
-    def test_create_anonymous_classical_registers(self):
-        """Test creating several ClassicalRegister with no name.
+    def test_create_anon_classical_registers(self):
+        """Several ClassicalRegister with no name.
         """
         cr1 = ClassicalRegister(size=3)
         cr2 = ClassicalRegister(size=3)
         self.assertNotEqual(cr1.name, cr2.name)
 
-    def test_create_anonymous_quantum_registers(self):
-        """Test creating several QuantumRegister with no name.
+    def test_create_anon_quantum_registers(self):
+        """Several QuantumRegister with no name.
         """
         qr1 = QuantumRegister(size=3)
         qr2 = QuantumRegister(size=3)
         self.assertNotEqual(qr1.name, qr2.name)
 
-    def test_create_anonymous_mixed_registers(self):
-        """Test creating several Registers with no name.
+    def test_create_anon_mixed_registers(self):
+        """Several Registers with no name.
         """
         cr0 = ClassicalRegister(size=3)
         qr0 = QuantumRegister(size=3)
@@ -413,7 +421,7 @@ class TestAnonymousIds(QiskitTestCase):
         self.assertEqual(qr_current, qr_index + 2)
 
     def test_create_circuit_noname(self):
-        """Test create_circuit with no name
+        """Create_circuit with no name
         """
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
@@ -425,55 +433,21 @@ class TestInvalidIds(QiskitTestCase):
     """Circuits and records with invalid IDs"""
 
     def test_invalid_type_circuit_name(self):
-        """Test QuantumCircuit() with invalid type name
+        """QuantumCircuit() with invalid type name
         """
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
         self.assertRaises(QISKitError, QuantumCircuit, qr, cr, name=1)
 
     def test_invalid_type_qr_name(self):
-        """Test QuantumRegister() with an invalid type name.
+        """QuantumRegister() with an invalid type name.
         """
         self.assertRaises(QISKitError, QuantumRegister, size=3, name=1)
 
     def test_invalid_type_cr_name(self):
-        """Test ClassicalRegister() with an invalid type name.
+        """ClassicalRegister() with an invalid type name.
         """
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name=1)
-
-    def test_invalid_type_qr_spec(self):
-        """QPS_SPECS_NONAMES defines a quantum register with an invalid type name
-
-        Note: remove after QuantumProgram deprecation.
-        """
-        QPS_SPECS_NONAMES = {
-            "circuits": [{
-                "quantum_registers": [{
-                    "name": 1,
-                    "size": 3}],
-                "classical_registers": [{
-                    "size": 3}]
-            }]
-        }
-
-        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
-    def test_invalid_type_cr_spec(self):
-        """QPS_SPECS_NONAMES defines a classical register with an invalid type name
-
-        Note: remove after QuantumProgram deprecation.
-        """
-        QPS_SPECS_NONAMES = {
-            "circuits": [{
-                "quantum_registers": [{
-                    "size": 3}],
-                "classical_registers": [{
-                    "name": 1,
-                    "size": 3}]
-            }]
-        }
-
-        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
     def test_invalid_qasmname_qr(self):
         """Test QuantumRegister() with an invalid QASM name (do not start with lowercase).
@@ -484,42 +458,6 @@ class TestInvalidIds(QiskitTestCase):
         """Test ClassicalRegister() with an invalid QASM name (do not start with lowercase).
         """
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name='Cr')
-
-    def test_invalid_qasmname_qr_spec(self):
-        """QPS_SPECS_NONAMES defines a quantum register with invalid QASM name (do not start
-        with lowercase).
-
-        Note: remove after QuantumProgram deprecation.
-        """
-        QPS_SPECS_NONAMES = {
-            "circuits": [{
-                "quantum_registers": [{
-                    "name": 'Qr',
-                    "size": 3}],
-                "classical_registers": [{
-                    "size": 3}]
-            }]
-        }
-
-        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
-
-    def test_invalid_qasmname_cr_spec(self):
-        """QPS_SPECS_NONAMES defines a classical register with invalid QASM name (do not start
-        with lowercase).
-
-        Note: remove after QuantumProgram deprecation.
-        """
-        QPS_SPECS_NONAMES = {
-            "circuits": [{
-                "quantum_registers": [{
-                    "size": 3}],
-                "classical_registers": [{
-                    "name": "Cr",
-                    "size": 3}]
-            }]
-        }
-
-        self.assertRaises(QISKitError, QuantumProgram, specs=QPS_SPECS_NONAMES)
 
 
 if __name__ == '__main__':

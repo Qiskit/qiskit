@@ -35,7 +35,7 @@ class TestExtensionsSimulator(QiskitTestCase):
     _desired_fidelity = 0.99
 
     def test_save_load(self):
-        """save |+>|0>, do some stuff, then load"""
+        """Save |+>|0>, do some stuff, then load"""
         q = qiskit.QuantumRegister(2)
         c = qiskit.ClassicalRegister(2)
         circ = qiskit.QuantumCircuit(q, c)
@@ -56,7 +56,7 @@ class TestExtensionsSimulator(QiskitTestCase):
             "save-load statevector has low fidelity{0:.2g}.".format(fidelity))
 
     def test_snapshot(self):
-        """snapshot a bell state in the middle of circuit"""
+        """Snapshot bell state in the middle of circuit"""
         q = qiskit.QuantumRegister(2)
         c = qiskit.ClassicalRegister(2)
         circ = qiskit.QuantumCircuit(q, c)
@@ -76,7 +76,7 @@ class TestExtensionsSimulator(QiskitTestCase):
             "snapshot has low fidelity{0:.2g}.".format(fidelity))
 
     def test_noise(self):
-        """turn on a pauli x noise for qubits 0 and 2"""
+        """Turn on Pauli x noise for qubits 0 and 2"""
         q = qiskit.QuantumRegister(3)
         c = qiskit.ClassicalRegister(3)
         circ = qiskit.QuantumCircuit(q, c)

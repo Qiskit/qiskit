@@ -25,6 +25,8 @@ class TestQI(QiskitTestCase):
     """Tests for qi.py"""
 
     def test_partial_trace(self):
+        """Partial trace.
+        """
         # reference
         rho0 = [[0.5, 0.5], [0.5, 0.5]]
         rho1 = [[1, 0], [0, 0]]
@@ -52,6 +54,8 @@ class TestQI(QiskitTestCase):
         self.assertTrue(all_pass)
 
     def test_vectorize(self):
+        """Matrix vectorization.
+        """
         mat = [[1, 2], [3, 4]]
         col = [1, 3, 2, 4]
         row = [1, 2, 3, 4]
@@ -63,6 +67,8 @@ class TestQI(QiskitTestCase):
         self.assertTrue(test_pass)
 
     def test_devectorize(self):
+        """Matrix devectorization
+        """
         mat = [[1, 2], [3, 4]]
         col = [1, 3, 2, 4]
         row = [1, 2, 3, 4]
@@ -74,6 +80,8 @@ class TestQI(QiskitTestCase):
         self.assertTrue(test_pass)
 
     def test_outer(self):
+        """Outer product
+        """
         v_z = [1, 0]
         v_y = [1, 1j]
         rho_z = [[1, 0], [0, 0]]
@@ -87,6 +95,8 @@ class TestQI(QiskitTestCase):
         self.assertTrue(test_pass)
 
     def test_state_fidelity(self):
+        """State vector fidelity
+        """
         psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
         psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
@@ -112,6 +122,8 @@ class TestQI(QiskitTestCase):
                                msg='matrix-matrix input')
 
     def test_purity(self):
+        """Density matrix purity
+        """
         rho1 = [[1, 0], [0, 0]]
         rho2 = [[0.5, 0], [0, 0.5]]
         rho3 = 0.7 * np.array(rho1) + 0.3 * np.array(rho2)
@@ -121,6 +133,8 @@ class TestQI(QiskitTestCase):
         self.assertTrue(test_pass)
 
     def test_concurrence(self):
+        """Concurrence
+        """
         psi1 = [1, 0, 0, 0]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
         rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0],
@@ -149,6 +163,8 @@ class TestPauli(QiskitTestCase):
         self.p3 = Pauli(v, w)
 
     def test_random_pauli5(self):
+        """Random Pauli
+        """
         length = 2
         q = random_pauli(length)
         self.log.info(q)
@@ -159,6 +175,8 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.to_matrix()), 2 ** length)
 
     def test_pauli_invert(self):
+        """Invert random Pauli.
+        """
         self.log.info("===== p3 =====")
         self.log.info(self.p3)
         self.assertEqual(str(self.p3), 'v = 1.0\t0.0\t1.0\t\nw = 0.0\t1.0\t1.0\t')
@@ -192,6 +210,8 @@ class TestPauli(QiskitTestCase):
         self.assertTrue((r.to_matrix() == m).all())
 
     def test_pauli_group(self):
+        """Pauli group.
+        """
         self.log.info("Group in tensor order:")
         expected = ['III', 'XII', 'YII', 'ZII', 'IXI', 'XXI', 'YXI', 'ZXI', 'IYI', 'XYI', 'YYI',
                     'ZYI', 'IZI', 'XZI', 'YZI', 'ZZI', 'IIX', 'XIX', 'YIX', 'ZIX', 'IXX', 'XXX',
@@ -219,6 +239,8 @@ class TestPauli(QiskitTestCase):
             self.assertEqual(expected.pop(0), j.to_label())
 
     def test_pauli_sgn_prod(self):
+        """Pauli group sng_prod
+        """
         p1 = Pauli(np.array([0]), np.array([1]))
         p2 = Pauli(np.array([1]), np.array([1]))
 
@@ -245,7 +267,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(sgn, -1j)
 
     def test_equality_equal(self):
-        """Test equality operator: equal Paulis"""
+        """Equality operator: equal Paulis"""
         p1 = self.p3
         p2 = deepcopy(p1)
 
@@ -258,7 +280,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'ZXY')
 
     def test_equality_different(self):
-        """Test equality operator: different Paulis"""
+        """Equality operator: different Paulis"""
         p1 = self.p3
         p2 = deepcopy(p1)
 
@@ -272,7 +294,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'IXY')
 
     def test_inequality_equal(self):
-        """Test inequality operator: equal Paulis"""
+        """Inequality operator: equal Paulis"""
         p1 = self.p3
         p2 = deepcopy(p1)
 
@@ -285,7 +307,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'ZXY')
 
     def test_inequality_different(self):
-        """Test inequality operator: different Paulis"""
+        """Inequality operator: different Paulis"""
         p1 = self.p3
         p2 = deepcopy(p1)
 

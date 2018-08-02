@@ -22,7 +22,7 @@ else:
 
 
 @unittest.skipIf(_skip_class, 'C++ simulator unavailable')
-class StatevectorSimulatorCppTest(QiskitTestCase):
+class StatevectorSimCpp(QiskitTestCase):
     """Test C++ statevector simulator."""
 
     def setUp(self):
@@ -30,7 +30,7 @@ class StatevectorSimulatorCppTest(QiskitTestCase):
         self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
 
     def test_statevector_simulator_cpp(self):
-        """Test final state vector for single circuit run."""
+        """Final state for single circuit."""
         result = execute(self.q_circuit, backend='local_statevector_simulator_cpp').result()
         self.assertEqual(result.get_status(), 'COMPLETED')
         actual = result.get_statevector(self.q_circuit)
