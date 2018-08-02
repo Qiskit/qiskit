@@ -1,8 +1,6 @@
-Structure
-=========
+#Structure
 
-Programming interface
----------------------
+## Programming interface
 
 The *qiskit* directory is the main Python module and contains the
 programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
@@ -74,7 +72,7 @@ Several unroller backends and their outputs are summarized here:
 
 
 Logging
--------
+=======
 
 The SDK uses the `standard Python "logging" library
 <https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
@@ -124,8 +122,8 @@ the messages. For example, if the module is `qiskit/some/module.py`:
    logger.info("This is an info message)
 
 
-Testing
--------
+## Testing
+
 
 The SDK uses the `standard Pyton "unittest" framework
 <https://docs.python.org/3/library/unittest.html>`_ for the testing of the
@@ -195,6 +193,19 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-Additionally, an environment variable
-``SKIP_SLOW_TESTS`` can be used to toggling execution of tests that are
-particularly slow (default is ``True``).
+### Testing options
+By default, and if there is no user configuration available, the tests that require online access are run with recorded information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
+If the a user configuration is found, in that cases is used.
+
+How and which tests are executed is controlled by a environment variable `QISKIT_TESTS`. The options are: 
+
+| Option        | Description   | Default | If `True`, forces |
+| ------------- |--------------| -----| -----| 
+| `skip_online` | It can be run without user configuration and skips tests that require remote requests (also, no mocked information is used) | `False`| `run_online == False` `rec == False`
+| `run_online` | If the user configuration is found, run the tests using that configuration. If not, it uses recorded information| `True`| `skip_online == False`
+| `skip_slow`   | It skips tests tagged as *slow*. | `True` | `run_slow == False` |
+| `run_slow`   | It runs tests tagged as *slow*. | `True` | `skip_slow == False` |
+| `rec`		   | It requires user configuration and records the remote requests | `False` | `run_online == True` `skip_online == False` `run_slow  == False`
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example, `QISKIT_TESTS=skip_online,rec` will set the options as `run_online == True` and `rec == True`.

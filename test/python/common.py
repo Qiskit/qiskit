@@ -219,7 +219,7 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _(*args, **kwargs):
-        if SKIP_SLOW_TESTS:
+        if TEST_OPTIONS['skip_slow']:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
 
@@ -281,7 +281,7 @@ def requires_qe_access(func):
                         credentials.get('project')):
                     args[0].using_ibmq_credentials = True
             else:
-                if RECORD_TEST_RESPONSE:
+                if TEST_OPTIONS['rec']:
                     raise Exception(
                         'Could not locate valid credentials. You need them for performing'
                         'tests against the remote API.')
@@ -318,12 +318,45 @@ def _is_ci_fork_pull_request():
             return True
     return False
 
+def get_test_options(option_var):
+    defaults = {
+        'skip_online': False,
+        'run_online': True,
+        'skip_slow': True,
+        'run_slow': True,
+        'rec': False
+    }
 
-SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
-RECORD_TEST_RESPONSE = os.getenv('RECORD_TEST_RESPONSE', False) is not False
+    def turnTrue(option):
+        defaults[option] = True
+        return True
+
+    def turnFalse(option):
+        defaults[option] = False
+        return True
+
+    if_True = {
+        'skip_online': (lambda : turnFalse('run_online') and turnFalse('rec')),
+        'run_online': (lambda : turnFalse('skip_online')),
+        'skip_slow': (lambda : turnFalse('run_online')),
+        'run_slow': (lambda : turnFalse('skip_slow')),
+        'rec': (lambda : turnTrue('run_online') and
+                         turnFalse('skip_online') and
+                         turnFalse('run_slow'))
+    }
+
+    opt_string = os.getenv(option_var, False)
+    if not opt_string:
+        return defaults
+
+    for opt in opt_string.split(','):
+        defaults[opt] = True
+        if_True[opt]()
+    return defaults
+
+TEST_OPTIONS = get_test_options('QISKIT_TESTS')
 VCR_MODE = 'none'
-if RECORD_TEST_RESPONSE:
-    SKIP_SLOW_TESTS = True  # TODO Activate later
+if TEST_OPTIONS['rec']:
     VCR_MODE = 'all'
 
 VCR = http_recorder(VCR_MODE)
