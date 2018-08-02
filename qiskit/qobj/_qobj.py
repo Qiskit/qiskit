@@ -96,7 +96,7 @@ class Qobj(QobjItem):
     """Representation of a Qobj.
 
     Attributes:
-        id (str): Qobj identifier.
+        qobj_id (str): Qobj identifier.
         config (QobjConfig): config settings for the Qobj.
         experiments (list[QobjExperiment]): list of experiments.
         header (QobjHeader): headers.
@@ -104,11 +104,11 @@ class Qobj(QobjItem):
         schema_version (str): Qobj version.
     """
 
-    REQUIRED_ARGS = ['id', 'config', 'experiments', 'header']
+    REQUIRED_ARGS = ['qobj_id', 'config', 'experiments', 'header']
 
-    def __init__(self, id, config, experiments, header, **kwargs):
+    def __init__(self, qobj_id, config, experiments, header, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
-        self.id = id
+        self.qobj_id = qobj_id
         self.config = config
         self.experiments = experiments
         self.header = header
