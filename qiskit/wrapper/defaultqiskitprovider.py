@@ -9,7 +9,7 @@
 
 import logging
 from itertools import combinations
-
+import warnings
 from qiskit import QISKitError
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
@@ -41,14 +41,16 @@ class DefaultQISKitProvider(BaseProvider):
 
         Note:
             If two or more providers share similar backend names, only the backends
-            belonging to the 1st registered provider will be returned.
+            belonging to the first registered provider will be returned.
 
         Args:
             filters (dict or callable): filtering conditions.
-                each will either pass through, or be filtered out.
+                each will either pass through, or be filtered out:
+
                 1) dict: {'criteria': value}
                     the criteria can be over backend's `configuration` or `status`
                     e.g. {'local': False, 'simulator': False, 'operational': True}
+
                 2) callable: BaseBackend -> bool
                     e.g. lambda x: x.configuration['n_qubits'] > 5
 
@@ -122,7 +124,7 @@ class DefaultQISKitProvider(BaseProvider):
 
     def aliased_backend_names(self):
         """
-        Aggregate aliase names from all providers.
+        Aggregate aliased names from all providers.
 
         Returns:
             dict[str: str]: aggregated alias dictionary
@@ -142,9 +144,6 @@ class DefaultQISKitProvider(BaseProvider):
 
         Returns:
             BaseProvider: the provider instance.
-
-        Raises:
-            QISKitError: if trying to add a provider identical to one already registered
         """
         # Check for backend name clashes, emitting a warning.
         current_backends = {str(backend) for backend in self.available_backends()}
@@ -154,16 +153,15 @@ class DefaultQISKitProvider(BaseProvider):
         # checks for equality of provider instances, based on the __eq__ method
         if provider not in self.providers:
             self.providers.append(provider)
+            if common_backends:
+                logger.warning(
+                    'The backend names "%s" of this provider are already in use. '
+                    'Refer to documentation for `available_backends()` and `unregister()`.',
+                    list(common_backends))
+            return provider
         else:
-            raise QISKitError("The same provider has already been registered!")
-
-        if common_backends:
-            logger.warning(
-                'The backend names "%s" of this provider are already in use. '
-                'Refer to documentation for `available_backends()` and `unregister()`.',
-                list(common_backends))
-
-        return provider
+            warnings.warn("Skipping registration: The provider is already registered.")
+            return self.providers[self.providers.index(provider)]
 
     def remove_provider(self, provider):
         """

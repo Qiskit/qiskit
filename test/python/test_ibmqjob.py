@@ -68,7 +68,7 @@ class TestIBMQJob(QiskitTestCase):
         qc.h(qr)
         qc.measure(qr, cr)
         qobj = transpiler.compile([self._qc, qc], backend)
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         job = backend.run(qobj)
         result = job.result()
         counts_qx1 = result.get_counts(result.get_names()[0])
@@ -102,7 +102,7 @@ class TestIBMQJob(QiskitTestCase):
         backend = _least_busy(backends)
         self.log.info('using backend: %s', backend.name)
         qobj = transpiler.compile(self._qc, backend)
-        shots = qobj['config']['shots']
+        shots = qobj.config.shots
         job = backend.run(qobj)
         while not (job.done or job.exception):
             self.log.info(job.status)
@@ -303,6 +303,7 @@ class TestIBMQJob(QiskitTestCase):
 
     def test_get_jobs_filter_counts(self):
         # TODO: consider generalizing backend name
+        # TODO: this tests depends on the previous executions of the user
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         my_filter = {'backend.name': 'ibmq_qasm_simulator',
                      'shots': 1024,
@@ -318,8 +319,9 @@ class TestIBMQJob(QiskitTestCase):
                                 for cresult in result._result['result']))
             for circuit_name in result.get_names():
                 self.log.info('\tcircuit_name: %s', circuit_name)
-                counts = result.get_counts(circuit_name)
-                self.log.info('\t%s', str(counts))
+                if circuit_name:
+                    counts = result.get_counts(circuit_name)
+                    self.log.info('\t%s', str(counts))
 
     def test_get_jobs_filter_date(self):
         backends = self._provider.available_backends()

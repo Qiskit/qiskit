@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
+from qiskit.qobj import Qobj
 from qiskit.tools import file_io
 from .common import requires_qe_access, QiskitTestCase, Path
 
@@ -85,7 +86,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         # pylint: disable=unused-argument
         import re
-        self.assertTrue(re.match('https://[-a-z.]*bluemix.net/api', QE_URL))
+        self.assertTrue(re.match('^https?://[0-9.:/A-Za-z_-]+/api', QE_URL))
 
     def test_create_classical_register(self):
         """Test create_classical_register.
@@ -724,12 +725,13 @@ class TestQuantumProgram(QiskitTestCase):
         out = q_program.compile(['circuitName'], backend=backend,
                                 coupling_map=coupling_map, qobj_id='cooljob')
         self.log.info(out)
-        self.assertEqual(len(out), 3)
+        # FIXME should validate the Qobj when defined
+        self.assertIsInstance(out, Qobj)
 
     def test_get_compiled_configuration(self):
         """Test compiled_configuration.
 
-        If all correct should return length 6 dictionary.
+        If all correct should return length 4 dictionary.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qc = q_program.get_circuit("circuitName")
@@ -876,22 +878,22 @@ class TestQuantumProgram(QiskitTestCase):
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        qobj1['circuits'][0]['config']['shots'] = 50
-        qobj1['circuits'][0]['config']['xvals'] = [1, 1, 1]
+        qobj1.experiments[0].config.shots = 50
+        qobj1.experiments[0].config.xvals = [1, 1, 1]
         config['shots'] = 1000
         config['xvals'][0] = 'only for qobj2'
         qobj2 = q_program.compile(circuits, backend=backend, shots=shots,
                                   seed=88, config=config)
-        self.assertTrue(qobj1['circuits'][0]['config']['shots'] == 50)
-        self.assertTrue(qobj1['circuits'][1]['config']['shots'] == 1)
-        self.assertTrue(qobj1['circuits'][0]['config']['xvals'] == [1, 1, 1])
-        self.assertTrue(qobj1['circuits'][1]['config']['xvals'] == [1, 2, 3, 4])
-        self.assertTrue(qobj1['config']['shots'] == 1024)
-        self.assertTrue(qobj2['circuits'][0]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][1]['config']['shots'] == 1000)
-        self.assertTrue(qobj2['circuits'][0]['config']['xvals'] == [
+        self.assertTrue(qobj1.experiments[0].config.shots == 50)
+        self.assertTrue(qobj1.experiments[1].config.shots == 1)
+        self.assertTrue(qobj1.experiments[0].config.xvals == [1, 1, 1])
+        self.assertTrue(qobj1.experiments[1].config.xvals == [1, 2, 3, 4])
+        self.assertTrue(qobj1.config.shots == 1024)
+        self.assertTrue(qobj2.experiments[0].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[1].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[0].config.xvals == [
             'only for qobj2', 2, 3, 4])
-        self.assertTrue(qobj2['circuits'][1]['config']['xvals'] == [
+        self.assertTrue(qobj2.experiments[1].config.xvals == [
             'only for qobj2', 2, 3, 4])
 
     ###############################################################
@@ -1557,7 +1559,7 @@ class TestQuantumProgram(QiskitTestCase):
         qc2.measure(qr[2], cr[2])
         shots = 1024
         backend = 'local_qasm_simulator'
-        test_config = {'0': 0, '1': 1}
+        test_config = {'foo': 0, 'bar': 1}
         qobj = q_program.compile(['qc2'], backend=backend, shots=shots, config=test_config)
         out = q_program.run(qobj)
         results = out.get_counts('qc2')
@@ -1573,18 +1575,18 @@ class TestQuantumProgram(QiskitTestCase):
 
         # change backend
         qobj = q_program.reconfig(qobj, backend='local_unitary_simulator')
-        self.assertEqual(qobj['config']['backend'], 'local_unitary_simulator')
+        self.assertEqual(qobj.config.backend, 'local_unitary_simulator')
         # change maxcredits
         qobj = q_program.reconfig(qobj, max_credits=11)
-        self.assertEqual(qobj['config']['max_credits'], 11)
+        self.assertEqual(qobj.config.max_credits, 11)
         # change seed
         qobj = q_program.reconfig(qobj, seed=11)
-        self.assertEqual(qobj['circuits'][0]['seed'], 11)
+        self.assertEqual(qobj.experiments[0].config.seed, 11)
         # change the config
-        test_config_2 = {'0': 2}
+        test_config_2 = {'foo': 2}
         qobj = q_program.reconfig(qobj, config=test_config_2)
-        self.assertEqual(qobj['circuits'][0]['config']['0'], 2)
-        self.assertEqual(qobj['circuits'][0]['config']['1'], 1)
+        self.assertEqual(qobj.experiments[0].config.foo, 2)
+        self.assertEqual(qobj.experiments[0].config.bar, 1)
 
     def test_timeout(self):
         """Test run.

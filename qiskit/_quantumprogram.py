@@ -15,6 +15,7 @@ import logging
 import warnings
 
 import qiskit.wrapper
+from qiskit.qobj import qobj_to_dict
 
 from ._classicalregister import ClassicalRegister
 from ._logging import set_qiskit_logger, unset_qiskit_logger
@@ -972,7 +973,7 @@ class QuantumProgram(object):
             If the inputs are left as None then the qobj is not updated
 
         Args:
-            qobj (dict): already compile qobj
+            qobj (Qobj): already compile qobj
             backend (str): see .compile
             config (dict): see .compile
             shots (int): see .compile
@@ -983,17 +984,18 @@ class QuantumProgram(object):
             qobj: updated qobj
         """
         if backend is not None:
-            qobj['config']['backend'] = backend
+            qobj.config.backend = backend
         if shots is not None:
-            qobj['config']['shots'] = shots
+            qobj.config.shots = shots
         if max_credits is not None:
-            qobj['config']['max_credits'] = max_credits
+            qobj.config.max_credits = max_credits
 
-        for circuits in qobj['circuits']:
+        for experiment in qobj.experiments:
             if seed is not None:
-                circuits['seed'] = seed
+                experiment.config.seed = seed
             if config is not None:
-                circuits['config'].update(config)
+                for key, value in config.items():
+                    setattr(experiment.config, key, value)
 
         return qobj
 
@@ -1012,6 +1014,8 @@ class QuantumProgram(object):
         if not qobj:
             print_func("no executions to run")
         execution_list = []
+
+        qobj = qobj_to_dict(qobj, version='0.0.1')
 
         print_func("id: %s" % qobj['id'])
         print_func("backend: %s" % qobj['config']['backend_name'])
@@ -1032,7 +1036,7 @@ class QuantumProgram(object):
 
         Args:
             name (str):  the circuit name
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
 
         Returns:
             dict: the config of the circuit.
@@ -1041,9 +1045,9 @@ class QuantumProgram(object):
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["config"]
+            for index in range(len(qobj.experiments)):
+                if qobj.experiments[index].header.name == name:
+                    return qobj.experiments[index].config.as_dict()
         except KeyError:
             pass
         raise QISKitError('No compiled configurations for circuit "{0}"'.format(name))
@@ -1052,7 +1056,7 @@ class QuantumProgram(object):
         """Return the compiled circuit in qasm format.
 
         Args:
-            qobj (dict): the qobj
+            qobj (Qobj): the qobj
             name (str): name of the quantum circuit
 
         Returns:
@@ -1062,9 +1066,9 @@ class QuantumProgram(object):
             QISKitError: if the circuit has no configurations
         """
         try:
-            for index in range(len(qobj["circuits"])):
-                if qobj["circuits"][index]['name'] == name:
-                    return qobj["circuits"][index]["compiled_circuit_qasm"]
+            for index in range(len(qobj.experiments)):
+                if qobj.experiments[index].header.name == name:
+                    return qobj.experiments[index].header.compiled_circuit_qasm
         except KeyError:
             pass
         raise QISKitError('No compiled qasm for circuit "{0}"'.format(name))
@@ -1115,7 +1119,7 @@ class QuantumProgram(object):
     def _run_internal(self, qobj_list):
         job_list = []
         for qobj in qobj_list:
-            backend = qiskit.wrapper.get_backend(qobj['config']['backend_name'])
+            backend = qiskit.wrapper.get_backend(qobj.header.backend_name)
             job = backend.run(qobj)
             job_list.append(job)
         return job_list

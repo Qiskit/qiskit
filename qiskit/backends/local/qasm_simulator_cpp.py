@@ -22,6 +22,7 @@ import numpy as np
 from qiskit._result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -80,18 +81,19 @@ class QasmSimulatorCpp(BaseBackend):
         return Result(result)
 
     def _validate(self, qobj):
-        if qobj['config']['shots'] == 1:
+        if qobj.config.shots == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
+
+        for experiment in qobj.experiments:
+            if 'measure' not in [op.name for
+                                 op in experiment.instructions]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
-        return
+                               "classical register will remain all zeros.",
+                               experiment.header.name)
 
 
 class CliffordSimulatorCpp(BaseBackend):
@@ -157,8 +159,9 @@ class QASMSimulatorEncoder(json.JSONEncoder):
 
     This functions as the standard JSON Encoder but adds support
     for encoding:
-        complex numbers z as lists [z.real, z.imag]
-        ndarrays as nested lists.
+
+        * complex numbers z as lists [z.real, z.imag]
+        * ndarrays as nested lists.
     """
 
     # pylint: disable=method-hidden,arguments-differ
@@ -204,7 +207,7 @@ def run(qobj, executable):
     Run simulation on C++ simulator inside a subprocess.
 
     Args:
-        qobj (dict): qobj dictionary defining the simulation to run
+        qobj (Qobj): qobj dictionary defining the simulation to run
         executable (string): filename (with path) of the simulator executable
     Returns:
         dict: A dict of simulation results
@@ -214,7 +217,8 @@ def run(qobj, executable):
     try:
         with subprocess.Popen([executable, '-'],
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj, cls=QASMSimulatorEncoder).encode()
+            cin = json.dumps(qobj_to_dict(qobj, version='0.0.1'),
+                             cls=QASMSimulatorEncoder).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
@@ -243,9 +247,11 @@ def cx_error_matrix(cal_error, zz_error):
 
     The ideal cross-resonsance (CR) gate corresponds to a 2-qubit rotation
         U_CR_ideal = exp(-1j * (pi/2) * XZ/2)
+
     where qubit-0 is the control, and qubit-1 is the target. This can be
-    converted to a CNOT gate by single-qubit rotations
-        U_CX = U_L * U_CR_ideal * U_R.
+    converted to a CNOT gate by single-qubit rotations::
+
+        U_CX = U_L * U_CR_ideal * U_R
 
     The noisy rotation is implemented as
         U_CR_noise = exp(-1j * (pi/2 + cal_error) * (XZ + zz_error ZZ)/2)
@@ -288,8 +294,10 @@ def x90_error_matrix(cal_error, detuning_error):
 
     The ideal X90 rotation is a pi/2 rotation about the X-axis:
         U_X90_ideal = exp(-1j (pi/2) X/2)
+
     The noisy rotation is implemented as
         U_X90_noise = exp(-1j (pi/2 + cal_error) (cos(d) X + sin(d) Y)/2)
+
     where d is the detuning_error.
 
     The retured error matrix is given by
@@ -316,9 +324,10 @@ def _generate_coherent_error_matrix(config):
         config (dict): the config of a qobj circuit
 
     This parses the config for the following noise parameter keys and returns a
-    coherent error matrix for simulation coherent noise.
-        'CX' gate: 'calibration_error', 'zz_error'
-        'X90' gate: 'calibration_error', 'detuning_error'
+    coherent error matrix for simulation coherent noise::
+
+        * 'CX' gate: 'calibration_error', 'zz_error'
+        * 'X90' gate: 'calibration_error', 'detuning_error'
     """
     # pylint: disable=invalid-name
     if 'noise_params' in config:

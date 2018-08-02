@@ -2,6 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/default_pulse_config_schema.json",
     "description": "Default OpenPulse backend configuration",
+    "version": "1.0.0",
     "definitions": {
         "complex": {
             "description": "JSON representation of a complex number",
@@ -52,7 +53,7 @@
         }
     },
     "type": "object",
-    "required": ["qubit_freq_est","meas_freq_est","pulse_library","meas_kernel","discriminator"],
+    "required": ["qubit_freq_est","meas_freq_est","pulse_library","meas_kernel","discriminator","buffer"],
     "properties": {
         "qubit_freq_est": {
             "type": "array",
@@ -64,6 +65,12 @@
             "description": "Backend calibrated qubit frequencies",
             "minItems": 1,
             "items": {"type": "number"}},
+        "buffer": {
+            "type": "integer",
+            "description": "Default buffer time between pulses",
+            "minimum": 0,
+            "default": 1
+        },
         "gate_def": {
             "type": "array",
             "description": "Backend calibrated QASM to Pulse definitions",

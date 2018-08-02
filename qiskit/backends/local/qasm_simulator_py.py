@@ -116,7 +116,7 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
-        self._seed = 1
+        self._qobj_config = None
 
     @staticmethod
     def _index1(b, i, k):
@@ -276,14 +276,16 @@ class QasmSimulatorPy(BaseBackend):
         """Run circuits in qobj"""
         self._validate(qobj)
         result_list = []
-        self._shots = qobj['config']['shots']
+        self._shots = qobj.config.shots
+        self._qobj_config = qobj.config
         start = time.time()
-        for circuit in qobj['circuits']:
+
+        for circuit in qobj.experiments:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
-                  'id': qobj['id'],
+                  'id': qobj.qobj_id,
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
@@ -295,7 +297,7 @@ class QasmSimulatorPy(BaseBackend):
         """Run a circuit and return a single Result.
 
         Args:
-            circuit (dict): JSON circuit from qobj circuits list
+            circuit (QobjExperiment): experiment from qobj experiments list
 
         Returns:
             dict: A dictionary of results which looks something like::
@@ -311,24 +313,24 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
-        ccircuit = circuit['compiled_circuit']
-        self._number_of_qubits = ccircuit['header']['number_of_qubits']
-        self._number_of_cbits = ccircuit['header']['number_of_clbits']
+        self._number_of_qubits = circuit.header.number_of_qubits
+        self._number_of_cbits = circuit.header.number_of_clbits
         self._statevector = 0
         self._classical_state = 0
         self._snapshots = {}
         cl_reg_index = []  # starting bit index of classical register
         cl_reg_nbits = []  # number of bits in classical register
         cbit_index = 0
-        for cl_reg in ccircuit['header']['clbit_labels']:
+        for cl_reg in circuit.header.clbit_labels:
             cl_reg_nbits.append(cl_reg[1])
             cl_reg_index.append(cbit_index)
             cbit_index += cl_reg[1]
-        if circuit['config']['seed'] is None:
-            self._seed = random.getrandbits(32)
-        else:
-            self._seed = circuit['config']['seed']
-        self._local_random.seed(self._seed)
+
+        # Get the seed looking in circuit, qobj, and then random.
+        seed = getattr(circuit.config, 'seed',
+                       getattr(self._qobj_config, 'seed',
+                               random.getrandbits(32)))
+        self._local_random.seed(seed)
         outcomes = []
 
         start = time.time()
@@ -337,69 +339,67 @@ class QasmSimulatorPy(BaseBackend):
                                          dtype=complex)
             self._statevector[0] = 1
             self._classical_state = 0
-            for operation in ccircuit['operations']:
-                if 'conditional' in operation:
-                    mask = int(operation['conditional']['mask'], 16)
+            for operation in circuit.instructions:
+                if getattr(operation, 'conditional', None):
+                    mask = int(operation.conditional.mask, 16)
                     if mask > 0:
                         value = self._classical_state & mask
                         while (mask & 0x1) == 0:
                             mask >>= 1
                             value >>= 1
-                        if value != int(operation['conditional']['val'], 16):
+                        if value != int(operation.conditional.val, 16):
                             continue
                 # Check if single  gate
-                if operation['name'] in ['U', 'u1', 'u2', 'u3']:
-                    if 'params' in operation:
-                        params = operation['params']
-                    else:
-                        params = None
-                    qubit = operation['qubits'][0]
-                    gate = single_gate_matrix(operation['name'], params)
+                if operation.name in ('U', 'u1', 'u2', 'u3'):
+                    params = getattr(operation, 'params', None)
+                    qubit = operation.qubits[0]
+                    gate = single_gate_matrix(operation.name, params)
                     self._add_qasm_single(gate, qubit)
                 # Check if CX gate
-                elif operation['name'] in ['id', 'u0']:
+                elif operation.name in ('id', 'u0'):
                     pass
-                elif operation['name'] in ['CX', 'cx']:
-                    qubit0 = operation['qubits'][0]
-                    qubit1 = operation['qubits'][1]
+                elif operation.name in ('CX', 'cx'):
+                    qubit0 = operation.qubits[0]
+                    qubit1 = operation.qubits[1]
                     self._add_qasm_cx(qubit0, qubit1)
                 # Check if measure
-                elif operation['name'] == 'measure':
-                    qubit = operation['qubits'][0]
-                    cbit = operation['clbits'][0]
+                elif operation.name == 'measure':
+                    qubit = operation.qubits[0]
+                    cbit = operation.clbits[0]
                     self._add_qasm_measure(qubit, cbit)
                 # Check if reset
-                elif operation['name'] == 'reset':
-                    qubit = operation['qubits'][0]
+                elif operation.name == 'reset':
+                    qubit = operation.qubits[0]
                     self._add_qasm_reset(qubit)
                 # Check if barrier
-                elif operation['name'] == 'barrier':
+                elif operation.name == 'barrier':
                     pass
                 # Check if snapshot command
-                elif operation['name'] == 'snapshot':
-                    params = operation['params']
+                elif operation.name == 'snapshot':
+                    params = operation.params
                     self._add_qasm_snapshot(params[0])
                 else:
                     backend = self._configuration['name']
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
-                                                        operation['name']))
+                                                        operation.name))
             # Turn classical_state (int) into bit string
             outcomes.append(bin(self._classical_state)[2:].zfill(
                 self._number_of_cbits))
         # Return the results
         counts = dict(Counter(outcomes))
-        data = {'counts': self._format_result(
-            counts, cl_reg_index, cl_reg_nbits)}
-        data['snapshots'] = self._snapshots
+        data = {
+            'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits),
+            'snapshots': self._snapshots
+        }
         if self._shots == 1:
             # TODO: deprecated -- remove in v0.6
             data['statevector'] = self._statevector
             data['quantum_state'] = self._statevector
             data['classical_state'] = self._classical_state
         end = time.time()
-        return {'name': circuit['name'],
-                'seed': self._seed,
+        return {'name': circuit.header.name,
+                'seed': seed,
                 'shots': self._shots,
                 'data': data,
                 'status': 'DONE',
@@ -407,18 +407,19 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end-start)}
 
     def _validate(self, qobj):
-        if qobj['config']['shots'] == 1:
+        if qobj.config.shots == 1:
             warnings.warn('The behavior of getting statevector from simulators '
                           'by setting shots=1 is deprecated and will be removed. '
                           'Use the local_statevector_simulator instead, or place '
                           'explicit snapshot instructions.',
                           DeprecationWarning)
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
+
+        for experiment in qobj.experiments:
+            if 'measure' not in [op.name for
+                                 op in experiment.instructions]:
                 logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
-        return
+                               "classical register will remain all zeros.",
+                               experiment.header.name)
 
     def _format_result(self, counts, cl_reg_index, cl_reg_nbits):
         """Format the result bit string.

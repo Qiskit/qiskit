@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,missing-docstring
-
 from sys import version_info
 import cProfile
 import io
@@ -17,8 +16,10 @@ import unittest
 
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-from qiskit import qasm, unroll, QuantumProgram
+from qiskit import (qasm, unroll, transpiler,
+                    ClassicalRegister, QuantumRegister, QuantumCircuit)
 from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
+from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
 
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
@@ -42,42 +43,30 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
             cls.pdf.close()
 
     def setUp(self):
+        self.qp = None
         self.seed = 88
-        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
-        self.qp = QuantumProgram()
-        self.qp.load_qasm_file(self.qasm_filename, name='example')
-        basis_gates = []  # unroll to base gates
-        unroller = unroll.Unroller(
-            qasm.Qasm(data=self.qp.get_qasm('example')).parse(),
-            unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        circuit_config = {'coupling_map': None,
-                          'basis_gates': 'u1,u2,u3,cx,id',
-                          'layout': None,
-                          'seed': self.seed}
-        resources = {'max_credits': 3}
-        self.qobj = {'id': 'test_sim_single_shot',
-                     'config': {
-                         'max_credits': resources['max_credits'],
-                         'shots': 1024,
-                         'backend_name': 'local_qasm_simulator_py',
-                     },
-                     'circuits': [
-                         {
-                             'name': 'test',
-                             'compiled_circuit': circuit,
-                             'compiled_circuit_qasm': None,
-                             'config': circuit_config
-                         }
-                     ]}
+        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        unroller = unroll.Unroller(qasm.Qasm(filename=qasm_filename).parse(),
+                                   unroll.JsonBackend([]))
+        circuit = QobjExperiment.from_dict(unroller.execute())
+        circuit.config = QobjItem(coupling_map=None,
+                                  basis_gates='u1,u2,u3,cx,id',
+                                  layout=None,
+                                  seed=self.seed)
+        circuit.header.name = 'test'
 
-    def tearDown(self):
-        pass
+        self.qobj = Qobj(qobj_id='test_sim_single_shot',
+                         config=QobjConfig(shots=1024,
+                                           memory_slots=6,
+                                           max_credits=3),
+                         experiments=[circuit],
+                         header=QobjHeader(
+                             backend_name='local_qasm_simulator_py'))
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qobj['config']['shots'] = shots
+        self.qobj.config.shots = shots
         result = QasmSimulatorPy().run(self.qobj).result()
         self.assertEqual(result.get_status(), 'COMPLETED')
 
@@ -97,10 +86,9 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         self.log.info('test_if_statement_x')
         shots = 100
         max_qubits = 3
-        qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr', max_qubits)
-        cr = qp.create_classical_register('cr', max_qubits)
-        circuit_if_true = qp.create_circuit('test_if_true', [qr], [cr])
+        qr = QuantumRegister(max_qubits, 'qr')
+        cr = ClassicalRegister(max_qubits, 'cr')
+        circuit_if_true = QuantumCircuit(qr, cr, name='test_if_true')
         circuit_if_true.x(qr[0])
         circuit_if_true.x(qr[1])
         circuit_if_true.measure(qr[0], cr[0])
@@ -109,7 +97,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         circuit_if_true.measure(qr[0], cr[0])
         circuit_if_true.measure(qr[1], cr[1])
         circuit_if_true.measure(qr[2], cr[2])
-        circuit_if_false = qp.create_circuit('test_if_false', [qr], [cr])
+        circuit_if_false = QuantumCircuit(qr, cr, name='test_if_false')
         circuit_if_false.x(qr[0])
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
@@ -119,45 +107,33 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         circuit_if_false.measure(qr[2], cr[2])
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if_true')).parse(),
+            qasm.Qasm(data=circuit_if_true.qasm()).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit_true = unroller.execute()
+        ucircuit_true = QobjExperiment.from_dict(unroller.execute())
         unroller = unroll.Unroller(
-            qasm.Qasm(data=qp.get_qasm('test_if_false')).parse(),
+            qasm.Qasm(data=circuit_if_false.qasm()).parse(),
             unroll.JsonBackend(basis_gates))
-        ucircuit_false = unroller.execute()
-        qobj = {
-            'id': 'test_if_qobj',
-            'config': {
-                'max_credits': 3,
-                'shots': shots,
-                'backend_name': 'local_qasm_simulator_py',
-            },
-            'circuits': [
-                {
-                    'name': 'test_if_true',
-                    'compiled_circuit': ucircuit_true,
-                    'compiled_circuit_qasm': None,
-                    'config': {
-                        'coupling_map': None,
-                        'basis_gates': 'u1,u2,u3,cx,id',
-                        'layout': None,
-                        'seed': None
-                    }
-                },
-                {
-                    'name': 'test_if_false',
-                    'compiled_circuit': ucircuit_false,
-                    'compiled_circuit_qasm': None,
-                    'config': {
-                        'coupling_map': None,
-                        'basis_gates': 'u1,u2,u3,cx,id',
-                        'layout': None,
-                        'seed': None
-                    }
-                }
-            ]
-        }
+        ucircuit_false = QobjExperiment.from_dict(unroller.execute())
+
+        # Customize the experiments and create the qobj.
+        ucircuit_true.config = QobjItem(coupling_map=None,
+                                        basis_gates='u1,u2,u3,cx,id',
+                                        layout=None,
+                                        seed=None)
+        ucircuit_true.header.name = 'test_if_true'
+        ucircuit_false.config = QobjItem(coupling_map=None,
+                                         basis_gates='u1,u2,u3,cx,id',
+                                         layout=None,
+                                         seed=None)
+        ucircuit_false.header.name = 'test_if_false'
+
+        qobj = Qobj(qobj_id='test_if_qobj',
+                    config=QobjConfig(max_credits=3,
+                                      shots=shots,
+                                      memory_slots=max_qubits),
+                    experiments=[ucircuit_true, ucircuit_false],
+                    header=QobjHeader(backend_name='local_qasm_simulator_py'))
+
         result = QasmSimulatorPy().run(qobj).result()
         result_if_true = result.get_data('test_if_true')
         self.log.info('result_if_true circuit:')
@@ -176,17 +152,14 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                      "we have to disable this test until fixed")
     def test_teleport(self):
         """test teleportation as in tutorials"""
-
         self.log.info('test_teleport')
         pi = np.pi
         shots = 1000
-        qp = QuantumProgram()
-        qr = qp.create_quantum_register('qr', 3)
-        cr0 = qp.create_classical_register('cr0', 1)
-        cr1 = qp.create_classical_register('cr1', 1)
-        cr2 = qp.create_classical_register('cr2', 1)
-        circuit = qp.create_circuit('teleport', [qr],
-                                    [cr0, cr1, cr2])
+        qr = QuantumRegister(3, 'qr')
+        cr0 = ClassicalRegister(1, 'cr0')
+        cr1 = ClassicalRegister(1, 'cr1')
+        cr2 = ClassicalRegister(1, 'cr2')
+        circuit = QuantumCircuit(qr, cr0, cr1, cr2, name='teleport')
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
         circuit.ry(pi/4, qr[0])
@@ -198,20 +171,23 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        backend = 'local_qasm_simulator_py'
-        qobj = qp.compile('teleport', backend=backend, shots=shots,
-                          seed=self.seed)
-        results = qp.run(qobj)
+        backend = QasmSimulatorPy()
+        qobj = transpiler.compile(circuit, backend=backend, shots=shots,
+                                  seed=self.seed)
+        results = backend.run(qobj).result()
         data = results.get_counts('teleport')
-        alice = {}
-        bob = {}
-        alice['00'] = data['0 0 0'] + data['1 0 0']
-        alice['01'] = data['0 1 0'] + data['1 1 0']
-        alice['10'] = data['0 0 1'] + data['1 0 1']
-        alice['11'] = data['0 1 1'] + data['1 1 1']
-        bob['0'] = data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1']
-        bob['1'] = data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
-        self.log.info('test_telport: circuit:')
+        alice = {
+            '00': data['0 0 0'] + data['1 0 0'],
+            '01': data['0 1 0'] + data['1 1 0'],
+            '10': data['0 0 1'] + data['1 0 1'],
+            '11': data['0 1 1'] + data['1 1 1']
+        }
+        bob = {
+            '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
+            '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
+        }
+        self.log.info('test_teleport: circuit:')
+        self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())
         self.log.info('test_teleport: data %s', data)
         self.log.info('test_teleport: alice %s', alice)

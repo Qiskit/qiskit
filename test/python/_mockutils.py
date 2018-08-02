@@ -22,6 +22,8 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
+from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader
+from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
 
@@ -142,22 +144,18 @@ class DummyJob(BaseJob):
 
 
 def new_fake_qobj():
-    """Creates a fake qobj dictionary."""
-    return {
-        'id': 'test-id',
-        'config': {
-            'backend_name': 'test-backend',
-            'shots': 1024,
-            'max_credits': 100
-        },
-        'circuits': [{
-            'compiled_circuit_qasm': 'fake-code',
-            'config': {
-                'seed': 123456
-            },
-            'compiled_circuit': {}
-        }]
-    }
+    """Create fake `Qobj` and backend instances."""
+    backend = FakeBackend()
+    return Qobj(
+        qobj_id='test-id',
+        config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
+        header=QobjHeader(backend_name=backend.name),
+        experiments=[QobjExperiment(
+            instructions=[],
+            header=QobjExperimentHeader(compiled_circuit_qasm='fake-code'),
+            config=QobjItem(seed=123456)
+        )]
+    )
 
 
 class FakeBackend():

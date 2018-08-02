@@ -1,8 +1,8 @@
 pillow>=4.2.1
 pylint>=1.8,<1.9
 pycodestyle
-Sphinx>=1.6,<1.7
-better-apidoc==0.1.2
+Sphinx>=1.7,<1.8
+better-apidoc==0.2.0
 sphinxcontrib-fulltoc==1.2.0
 coverage>=4.4.0
 jsonschema>=2.6,<2.7
