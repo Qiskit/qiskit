@@ -10,7 +10,6 @@
 This module is used for connecting to the Quantum Experience.
 """
 import logging
-from collections import OrderedDict
 
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
@@ -186,7 +185,7 @@ class IBMQBackend(BaseBackend):
             IBMQBackendValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
-        api_filter = OrderedDict({})
+        api_filter = {}
         if status:
             if isinstance(status, str):
                 status = JobStatus[status]
