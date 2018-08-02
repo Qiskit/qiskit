@@ -439,8 +439,7 @@ class TestQasmSimCpp(QiskitTestCase):
         filename = self._get_resource_path('qobj/cpp_conditionals.json')
         with open(filename, 'r') as file:
             qobj = Qobj.from_dict(json.load(file))
-        backend = qiskit.get_backend('local_statevector_simulator')
-        result = backend.run(qobj).result()
+        result = self.backend.run(qobj).result()
         expected_data = {
             'single creg (c0=0)': {
                 'statevector': np.array([1, 0, 0, 0])},
