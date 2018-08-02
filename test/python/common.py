@@ -20,6 +20,7 @@ from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .http_recorder import http_recorder
 
+
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
     # Main SDK path:    qiskit/
