@@ -21,7 +21,7 @@ class TestQobj(QiskitTestCase):
     def test_create_qobj(self):
         """Test creation of a Qobj based on the individual elements."""
         qobj = Qobj(
-            id='12345',
+            qobj_id='12345',
             header={},
             config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
             experiments=[
@@ -51,7 +51,7 @@ class TestQobj(QiskitTestCase):
         qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
         expected = {
-            'id': '12345',
+            'qobj_id': '12345',
             'type': 'QASM',
             'schema_version': '1.0.0',
             'header': {},

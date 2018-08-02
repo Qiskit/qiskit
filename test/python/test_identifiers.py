@@ -13,17 +13,8 @@ import unittest
 
 from qiskit import ClassicalRegister, QISKitError, QuantumCircuit, QuantumProgram, QuantumRegister
 from qiskit import wrapper
-from qiskit.backends.local.qasm_simulator_cpp import QasmSimulatorCpp
 from qiskit.qobj import Qobj
-from .common import QiskitTestCase
-
-# Cpp backend required
-try:
-    cpp_backend = QasmSimulatorCpp()
-except FileNotFoundError:
-    _skip_cpp = True
-else:
-    _skip_cpp = False
+from .common import QiskitTestCase, requires_cpp_simulator
 
 
 class TestAnonymousIdsInQuantumProgram(QiskitTestCase):
@@ -330,7 +321,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
+    @requires_cpp_simulator
     def test_local_clifford_simulator_cpp(self):
         backend = wrapper.get_backend('local_clifford_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
@@ -341,7 +332,7 @@ class TestQobj(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], cc.header.clbit_labels))
         self.assertIn(self.cr_name, ccq)
 
-    @unittest.skipIf(_skip_cpp, "no c++ simulator found.")
+    @requires_cpp_simulator
     def test_local_qasm_simulator_cpp(self):
         backend = wrapper.get_backend('local_qasm_simulator_cpp')
         qobj = wrapper.compile(self.circuits, backend=backend)
