@@ -43,7 +43,6 @@ class TestIBMQJob(QiskitTestCase):
     Test ibmqjob module.
     """
 
-    @requires_qe_access
     def setUp(self):
         super().setUp()
         # create QuantumCircuit
