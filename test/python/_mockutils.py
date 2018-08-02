@@ -147,7 +147,7 @@ def new_fake_qobj():
     """Create fake `Qobj` and backend instances."""
     backend = FakeBackend()
     return Qobj(
-        id='test-id',
+        qobj_id='test-id',
         config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
         header=QobjHeader(backend_name=backend.name),
         experiments=[QobjExperiment(

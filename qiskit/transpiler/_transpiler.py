@@ -74,7 +74,7 @@ def compile(circuits, backend,
                         'max_credits': max_credits,
                         'memory_slots': 0})
 
-    qobj = Qobj(id=qobj_id or str(uuid.uuid4()),
+    qobj = Qobj(qobj_id=qobj_id or str(uuid.uuid4()),
                 config=QobjConfig(**qobj_config),
                 experiments=[],
                 header=QobjHeader(backend_name=backend_name))

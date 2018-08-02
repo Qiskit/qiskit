@@ -62,7 +62,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         # Add final snapshots to circuits
         for experiment in qobj.experiments:
             experiment.instructions.append(
-                QobjInstruction(name='#snapshot', params=[final_state_key])
+                QobjInstruction(name='snapshot', params=[final_state_key])
             )
         result = super()._run_job(qobj)._result
         # Replace backend name with current backend
