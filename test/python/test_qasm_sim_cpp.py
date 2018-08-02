@@ -26,7 +26,7 @@ from qiskit.transpiler import transpile
 from .common import QiskitTestCase
 
 
-class TestLocalQasmSimulatorCpp(QiskitTestCase):
+class TestQasmSimCpp(QiskitTestCase):
     """
     Test job_processor module.
     """

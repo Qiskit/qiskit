@@ -25,14 +25,14 @@ else:
     _skip_cpp = False
 
 
-class TestBackendNameResolution(QiskitTestCase):
+class TestNameResolution(QiskitTestCase):
     """
     Test backend resolution algorithms.
     """
 
     @requires_qe_access
     def test_deprecated(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test that deprecated names map the same backends as the new names.
+        """Deprecated names map the same backends as the new names.
         """
         register(QE_TOKEN, QE_URL, hub, group, project)
         deprecated_names = _DEFAULT_PROVIDER.deprecated_backend_names()
@@ -46,7 +46,7 @@ class TestBackendNameResolution(QiskitTestCase):
     @requires_qe_access
     # pylint: disable=unused-argument
     def test_aliases(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test that display names of devices map the same backends as the
+        """Display names of devices map the same backends as the
         regular names."""
         register(QE_TOKEN, QE_URL, hub, group, project)
         aliased_names = _DEFAULT_PROVIDER.aliased_backend_names()
@@ -59,7 +59,7 @@ class TestBackendNameResolution(QiskitTestCase):
                 self.assertEqual(backend_by_display_name['name'], backend_name)
 
     def test_aggregate(self):
-        """Test that aggregate group names maps the first available backend
+        """Aggregate group names maps the first available backend
         of their list of backends."""
         aggregate_backends = _DEFAULT_PROVIDER.grouped_backend_names()
         for group_name, priority_list in aggregate_backends.items():
@@ -71,7 +71,7 @@ class TestBackendNameResolution(QiskitTestCase):
                                      get_backend(target_backend))
 
     def test_aliases_fail(self):
-        """Test a failing backend lookup."""
+        """Failing backend lookup."""
         self.assertRaises(LookupError, get_backend, 'bad_name')
 
 

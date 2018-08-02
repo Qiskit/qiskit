@@ -21,6 +21,8 @@ class TestDagCircuit(QiskitTestCase):
         self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
 
     def test_create(self):
+        """ Create DAG circuit.
+        """
         qubit0 = ('qr', 0)
         qubit1 = ('qr', 1)
         clbit0 = ('cr', 0)
@@ -43,6 +45,8 @@ class TestDagCircuit(QiskitTestCase):
         dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition)
 
     def test_get_named_nodes(self):
+        """ Get named nodes from DAG.
+        """
         dag = DAGCircuit()
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)

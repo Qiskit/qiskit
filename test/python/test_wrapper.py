@@ -25,7 +25,7 @@ class TestWrapper(QiskitTestCase):
     """Wrapper test case."""
     @requires_qe_access
     def test_wrapper_register_ok(self, QE_TOKEN, QE_URL, hub, group, project):
-        """Test wrapper.register()."""
+        """wrapper.register()."""
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         backends = qiskit.wrapper.available_backends()
         backends = remove_backends_from_list(backends)
@@ -34,7 +34,7 @@ class TestWrapper(QiskitTestCase):
 
     @requires_qe_access
     def test_backends_with_filter(self, QE_TOKEN, QE_URL, hub, group, project):
-        """Test wrapper.available_backends(filter=...)."""
+        """wrapper.available_backends(filter=...)."""
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         backends = qiskit.wrapper.available_backends({'local': False,
                                                       'simulator': True})
@@ -42,14 +42,14 @@ class TestWrapper(QiskitTestCase):
         self.assertTrue(len(backends) > 0)
 
     def test_local_backends(self):
-        """Test wrapper.local_backends(filter=...)."""
-        local_backends = qiskit.wrapper.local_backends()
+        """wrapper.available_backends({'local': True})"""
+        local_backends = qiskit.wrapper.available_backends({'local': True})
         self.log.info(local_backends)
         self.assertTrue(len(local_backends) > 0)
 
     @requires_qe_access
     def test_register_twice(self, QE_TOKEN, QE_URL, hub, group, project):
-        """Test double registration of the same credentials."""
+        """Double registration of the same credentials."""
         qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         initial_providers = registered_providers()
         # Registering twice should give warning and add no providers.
@@ -57,7 +57,7 @@ class TestWrapper(QiskitTestCase):
         self.assertCountEqual(initial_providers, registered_providers())
 
     def test_register_bad_credentials(self):
-        """Test registering a provider with bad credentials."""
+        """Registering a provider with bad credentials."""
         initial_providers = registered_providers()
         with self.assertRaises(QISKitError):
             qiskit.wrapper.register('FAKE_TOKEN', 'http://unknown')
@@ -65,7 +65,7 @@ class TestWrapper(QiskitTestCase):
 
     @requires_qe_access
     def test_unregister(self, QE_TOKEN, QE_URL, hub, group, project):
-        """Test unregistering."""
+        """Unregistering."""
         initial_providers = registered_providers()
         ibmqprovider = qiskit.wrapper.register(QE_TOKEN, QE_URL, hub, group, project)
         self.assertCountEqual(initial_providers + [ibmqprovider],
@@ -75,7 +75,7 @@ class TestWrapper(QiskitTestCase):
 
     @requires_qe_access
     def test_unregister_non_existent(self, QE_TOKEN, QE_URL, hub, group, project):
-        """Test unregistering a non existent provider."""
+        """Unregistering a non existent provider."""
         initial_providers = registered_providers()
         ibmqprovider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         with self.assertRaises(QISKitError):
@@ -83,7 +83,7 @@ class TestWrapper(QiskitTestCase):
         self.assertEqual(initial_providers, registered_providers())
 
     def test_register_backend_name_conflicts(self):
-        """Test backend name conflicts when registering."""
+        """Backend name conflicts when registering."""
         class SecondDummyProvider(DummyProvider):
             """
             Subclass the DummyProvider so register treats them as different."""

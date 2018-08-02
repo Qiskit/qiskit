@@ -11,7 +11,9 @@
 """
 import unittest
 
-from qiskit import qasm, unroll, QuantumProgram
+import qiskit
+from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.unroll import DagUnroller, JsonBackend
 
 from .common import QiskitTestCase, Path
 
@@ -27,14 +29,12 @@ class TestJsonOutput(QiskitTestCase):
             'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
-        qp = QuantumProgram()
-        qp.load_qasm_file(self.QASM_FILE_PATH, name="example")
+        circ = qiskit.load_qasm_file(self.QASM_FILE_PATH)
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        json_circuit = DagUnroller(dag_circuit,
+                                   JsonBackend(dag_circuit.basis)).execute()
 
-        basis_gates = []  # unroll to base gates, change to test
-        unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
-                                   unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        self.log.info('test_json_ouptut: %s', circuit)
+        self.log.info('test_json_ouptut: %s', json_circuit)
 
 
 if __name__ == '__main__':

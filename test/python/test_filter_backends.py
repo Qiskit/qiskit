@@ -18,9 +18,8 @@ class TestBackendFilters(QiskitTestCase):
 
     @requires_qe_access
     def test_filter_config_dict(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test filtering by dictionary of configuration properties"""
+        """Filtering by dictionary of configuration properties"""
         n_qubits = 20 if self.using_ibmq_credentials else 5
-
         register(QE_TOKEN, QE_URL, hub, group, project)
         filter_ = {'n_qubits': n_qubits, 'local': False}
         filtered_backends = available_backends(filter_)
@@ -28,7 +27,7 @@ class TestBackendFilters(QiskitTestCase):
 
     @requires_qe_access
     def test_filter_status_config_dict(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test filtering by dictionary of mixed status/configuration properties"""
+        """Filtering by dictionary of mixed status/configuration properties"""
         register(QE_TOKEN, QE_URL, hub, group, project)
         filter_ = {'operational': True, 'local': False, 'simulator': True}
         filtered_backends = available_backends(filter_)
@@ -36,7 +35,7 @@ class TestBackendFilters(QiskitTestCase):
 
     @requires_qe_access
     def test_filter_config_callable(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test filtering by lambda function on configuration properties"""
+        """Filtering by lambda function on configuration properties"""
         register(QE_TOKEN, QE_URL, hub, group, project)
         filtered_backends = available_backends(lambda x: (not x.configuration['simulator'] and
                                                           x.configuration['n_qubits'] > 5))
@@ -44,7 +43,7 @@ class TestBackendFilters(QiskitTestCase):
 
     @requires_qe_access
     def test_filter_least_busy(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test filtering by least busy function"""
+        """Filtering by least busy function"""
         register(QE_TOKEN, QE_URL, hub, group, project)
         filtered_backends = least_busy(available_backends())
         self.assertTrue(filtered_backends)

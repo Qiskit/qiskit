@@ -28,7 +28,7 @@ from .common import QiskitTestCase
 do_profiling = False
 
 
-class TestLocalQasmSimulatorPy(QiskitTestCase):
+class TestQasmSimPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
 
     @classmethod
@@ -63,15 +63,8 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                          header=QobjHeader(
                              backend_name='local_qasm_simulator_py'))
 
-    def test_qasm_simulator_single_shot(self):
-        """Test single shot run."""
-        shots = 1
-        self.qobj.config.shots = shots
-        result = QasmSimulatorPy().run(self.qobj).result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
-
     def test_qasm_simulator(self):
-        """Test data counts output for single circuit run against reference."""
+        """Counts for single circuit match reference."""
         result = QasmSimulatorPy().run(self.qobj).result()
         shots = 1024
         threshold = 0.04 * shots
@@ -83,6 +76,8 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
+        """Test if statement
+        """
         self.log.info('test_if_statement_x')
         shots = 100
         max_qubits = 3
@@ -151,7 +146,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                      "Due to gate ordering issues with Python 3.5 "
                      "we have to disable this test until fixed")
     def test_teleport(self):
-        """test teleportation as in tutorials"""
+        """Run teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
         shots = 1000
@@ -240,7 +235,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
 
     @unittest.skipIf(not do_profiling, "skipping simulator profiling.")
     def profile_nqubit_speed_grow_depth(self):
-        """simulation time vs the number of qubits
+        """Simulation time vs number of qubits
 
         where the circuit depth is 10x the number of simulated
         qubits. Also creates a pdf file with this module name showing a
@@ -318,7 +313,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
 
     @unittest.skipIf(not do_profiling, "skipping simulator profiling.")
     def profile_nqubit_speed_constant_depth(self):
-        """simulation time vs the number of qubits
+        """Simulation time vs number of qubits
 
         where the circuit depth is fixed at 40. Also creates a pdf file
         with this module name showing a plot of the results. Compilation

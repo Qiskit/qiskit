@@ -36,7 +36,7 @@ class TestCompiler(QiskitTestCase):
     """QISKit Compiler Tests."""
 
     def test_compile(self):
-        """Test Compiler.
+        """Test compiler.
 
         If all correct some should exists.
         """
@@ -55,7 +55,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     def test_compile_two(self):
-        """Test Compiler.
+        """Test compiler 2.
 
         If all correct some should exists.
         """
@@ -75,7 +75,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     def test_compile_run(self):
-        """Test Compiler and run.
+        """Compile and run.
 
         If all correct some should exists.
         """
@@ -93,7 +93,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     def test_compile_two_run(self):
-        """Test Compiler and run.
+        """Compile and run 2.
 
         If all correct some should exists.
         """
@@ -129,7 +129,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     def test_execute_two(self):
-        """Test execute two.
+        """Test execute 2.
 
         If all correct some should exists.
         """
@@ -171,7 +171,7 @@ class TestCompiler(QiskitTestCase):
 
     @requires_qe_access
     def test_compile_two_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test Compiler remote on two circuits.
+        """Compile remote on two circuits.
 
         If all correct some should exists.
         """
@@ -194,7 +194,7 @@ class TestCompiler(QiskitTestCase):
 
     @requires_qe_access
     def test_compile_run_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test Compiler and run remote.
+        """Compile and run remote.
 
         If all correct some should exists.
         """
@@ -214,7 +214,7 @@ class TestCompiler(QiskitTestCase):
 
     @requires_qe_access
     def test_compile_two_run_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test Compiler and run two circuits.
+        """Compile and run two circuits.
 
         If all correct some should exists.
         """
@@ -236,7 +236,7 @@ class TestCompiler(QiskitTestCase):
 
     @requires_qe_access
     def test_execute_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test Execute remote.
+        """Execute remote.
 
         If all correct some should exists.
         """
@@ -256,7 +256,7 @@ class TestCompiler(QiskitTestCase):
 
     @requires_qe_access
     def test_execute_two_remote(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
-        """Test execute two remote.
+        """Execute remote two circuits.
 
         If all correct some should exists.
         """
@@ -276,7 +276,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     def test_mapping_correction(self):
-        """Test mapping works in previous failed case.
+        """Mapping works in previous failed case.
         """
         backend = FakeBackEnd()
         q = qiskit.QuantumRegister(name='qr', size=11)
@@ -342,7 +342,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     def test_mapping_multi_qreg(self):
-        """Test mapping works for multiple qregs.
+        """Mapping works for multiple qregs.
         """
         backend = FakeBackEnd()
         q = qiskit.QuantumRegister(3, name='qr')
@@ -362,7 +362,7 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     def test_mapping_already_satisfied(self):
-        """Test compiler doesn't change circuit already matching backend coupling
+        """Compiler doesn't change circuit already matching backend coupling
         """
         backend = FakeBackEnd()
         q = qiskit.QuantumRegister(16)

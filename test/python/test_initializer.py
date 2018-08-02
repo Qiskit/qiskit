@@ -29,6 +29,8 @@ class TestInitialize(QiskitTestCase):
     _desired_fidelity = 0.99
 
     def test_uniform_superposition(self):
+        """Uniform superposition
+        """
         desired_vector = [0.5, 0.5, 0.5, 0.5]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
@@ -42,6 +44,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_deterministic_state(self):
+        """Deterministic state
+        """
         desired_vector = [0, 1, 0, 0]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
@@ -55,6 +59,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_bell_state(self):
+        """Bell state
+        """
         desired_vector = [1/math.sqrt(2), 0, 0, 1/math.sqrt(2)]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
@@ -68,6 +74,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_ghz_state(self):
+        """GHZ state
+        """
         desired_vector = [1/math.sqrt(2), 0, 0, 0, 0, 0, 0, 1/math.sqrt(2)]
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
@@ -81,6 +89,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_single_qubit(self):
+        """Single qubit
+        """
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3)]
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
@@ -94,6 +104,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_random_3qubit(self):
+        """Random three qubit
+        """
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),
             1 / math.sqrt(8) * complex(1, 0),
@@ -115,6 +127,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_random_4qubit(self):
+        """Random four qubit
+        """
         desired_vector = [
             1 / math.sqrt(4) * complex(0, 1),
             1 / math.sqrt(8) * complex(1, 0),
@@ -144,6 +158,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_malformed_amplitudes(self):
+        """Invalid amplitudes
+        """
         desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3), 0]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
@@ -152,6 +168,8 @@ class TestInitialize(QiskitTestCase):
             qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_non_unit_probability(self):
+        """Non-unit probabilities
+        """
         desired_vector = [1, 1]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
@@ -160,6 +178,8 @@ class TestInitialize(QiskitTestCase):
             qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_initialize_middle_circuit(self):
+        """Init middle circuit
+        """
         desired_vector = [0.5, 0.5, 0.5, 0.5]
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
@@ -180,6 +200,8 @@ class TestInitialize(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_sympy(self):
+        """Test SymPy
+        """
         desired_vector = [
             0,
             math.cos(math.pi / 3) * complex(0, 1) / math.sqrt(4),
@@ -209,6 +231,8 @@ class TestInitialize(QiskitTestCase):
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
     def test_combiner(self):
+        """Test combiner
+        """
         desired_vector = [0, 1]
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")

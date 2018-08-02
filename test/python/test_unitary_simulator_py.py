@@ -22,15 +22,15 @@ from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
 
 
-class LocalUnitarySimulatorTest(QiskitTestCase):
+class LocalUnitarySimTest(QiskitTestCase):
     """Test local unitary simulator."""
 
     def setUp(self):
         self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/example.qasm')
 
-    def test_unitary_simulator(self):
-        """test generation of circuit unitary"""
+    def test_one_circuit(self):
+        """Generation of circuit unitary"""
         unroller = unroll.Unroller(
             qasm.Qasm(filename=self.qasm_filename).parse(),
             unroll.JsonBackend([]))
@@ -65,8 +65,8 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                     expected,
                                     rtol=1e-3))
 
-    def test_two_unitary_simulator(self):
-        """test running two circuits
+    def test_two_circuits(self):
+        """Running two circuits
 
         This test is similar to one in test_quantumprogram but doesn't use
         multiprocessing.

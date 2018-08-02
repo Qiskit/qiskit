@@ -27,7 +27,7 @@ from qiskit import QuantumProgram
 from .common import QiskitTestCase
 
 
-class TestQuantumOptimization(QiskitTestCase):
+class TestQuantumOptim(QiskitTestCase):
     """Tests for quantum optimization"""
 
     def test_trial_functions(self):
@@ -56,7 +56,7 @@ class TestQuantumOptimization(QiskitTestCase):
         self.log.info(qasm_txt)
         self.assertEqual(len(qasm_txt), 564)
 
-    def test_optimization_of_H2_at_bond_length(self):
+    def test_optim_of_H2_at_bond_length(self):
         """From chemistry tutorial, but shorter.
 
         https://github.com/QISKit/qiskit-tutorial/blob/master/\
