@@ -12,7 +12,6 @@
 import time
 import unittest
 from concurrent import futures
-import datetime
 
 import numpy
 from scipy.stats import chi2_contingency
@@ -326,13 +325,12 @@ class TestIBMQJob(QiskitTestCase):
     def test_get_jobs_filter_date(self):
         backends = self._provider.available_backends()
         backend = _least_busy(backends)
-        past_day_30 = datetime.datetime.now() - datetime.timedelta(days=30)
-        my_filter = {'creationDate': {'lt': past_day_30.isoformat()}}
+        my_filter = {'creationDate': {'lt': '2017-01-01T00:00:00.00'}}
         job_list = backend.jobs(limit=5, db_filter=my_filter)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.creation_date)
-            self.assertTrue(job.creation_date < past_day_30.isoformat())
+            self.assertTrue(job.creation_date < '2017-01-01T00:00:00.00')
 
 
 if __name__ == '__main__':
