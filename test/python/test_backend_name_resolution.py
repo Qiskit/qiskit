@@ -12,17 +12,7 @@ aliases."""
 
 from qiskit import register, get_backend
 from qiskit.wrapper._wrapper import _DEFAULT_PROVIDER
-from qiskit.backends.local import QasmSimulatorCpp
-from .common import requires_qe_access, QiskitTestCase
-
-
-# Cpp backend required
-try:
-    cpp_backend = QasmSimulatorCpp()
-except FileNotFoundError:
-    _skip_cpp = True
-else:
-    _skip_cpp = False
+from .common import requires_qe_access, QiskitTestCase, is_cpp_simulator_available
 
 
 class TestBackendNameResolution(QiskitTestCase):
@@ -37,7 +27,7 @@ class TestBackendNameResolution(QiskitTestCase):
         register(QE_TOKEN, QE_URL, hub, group, project)
         deprecated_names = _DEFAULT_PROVIDER.deprecated_backend_names()
         for oldname, newname in deprecated_names.items():
-            if newname == 'local_qasm_simulator_cpp' and _skip_cpp:
+            if newname == 'local_qasm_simulator_cpp' and not is_cpp_simulator_available():
                 continue
 
             with self.subTest(oldname=oldname, newname=newname):
