@@ -19,10 +19,7 @@ class TestBackendFilters(QiskitTestCase):
     @requires_qe_access
     def test_filter_config_dict(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         """Test filtering by dictionary of configuration properties"""
-        if not self.using_ibmq_credentials:
-            n_qubits = 5
-        else:
-            n_qubits = 20
+        n_qubits = 20 if self.using_ibmq_credentials else 5
 
         register(QE_TOKEN, QE_URL, hub, group, project)
         filter_ = {'n_qubits': n_qubits, 'local': False}
