@@ -40,7 +40,7 @@ def _this_directory():
 # decide if the backend is available or not.
 @unittest.skip('Useful for refactoring purposes, skipping by default.')
 @unittest.skipIf(not VALID_MATPLOTLIB, 'matplotlib not available.')
-class TestVisualizationImplementation(QiskitTestCase):
+class TestVisuals(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
     latex_reference = _path_to_diagram_reference('latex_ref.png')

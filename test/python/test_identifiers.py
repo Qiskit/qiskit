@@ -26,8 +26,8 @@ else:
     _skip_cpp = False
 
 
-class TestAnonIdsInQuantumProgram(QiskitTestCase):
-    """Circuits and records can have no name"""
+class TestAnonIdsInQP(QiskitTestCase):
+    """Quantum program (QP) circuits and records can have no name"""
 
     def setUp(self):
         self.QPS_SPECS_NONAMES = {
@@ -43,21 +43,21 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
     # Tests to initiate and build a quantum program with anonymous ids
     ###############################################################
 
-    def test_create_program_with_specsnonames(self):
+    def test_create_with_specsnonames(self):
         """Test Quantum Object Factory creation using Specs definition
         object with no names for circuit nor records.
         """
         result = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         self.assertIsInstance(result, QuantumProgram)
 
-    def test_create_anonymous_classical_register(self):
+    def test_create_classical_register(self):
         """Test create_classical_register with no name.
         """
         q_program = QuantumProgram()
         cr = q_program.create_classical_register(size=3)
         self.assertIsInstance(cr, ClassicalRegister)
 
-    def test_create_anonymous_quantum_register(self):
+    def test_create_quantum_register(self):
         """Test create_quantum_register with no name.
         """
         q_program = QuantumProgram()
@@ -94,7 +94,7 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
         self.assertIsInstance(qc, QuantumCircuit)
 
     def test_create_several_circuits_noname(self):
-        """Test create_circuit with several inputs and without names.
+        """Several inputs and without names.
         """
         q_program = QuantumProgram()
         qr1 = q_program.create_quantum_register(size=3)
@@ -108,8 +108,8 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
         self.assertIsInstance(qc2, QuantumCircuit)
         self.assertIsInstance(qc3, QuantumCircuit)
 
-    def test_get_register_and_circuit_names_nonames(self):
-        """Get the names of the circuits and registers after create them without a name
+    def test_get_circuit_nonames(self):
+        """Names after creation without a name
         """
         q_program = QuantumProgram()
         qr1 = q_program.create_quantum_register(size=3)
@@ -148,7 +148,7 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
         self.assertIsInstance(cr, ClassicalRegister)
 
     def test_get_qasm_noname(self):
-        """Test the get_qasm using an specification without names.
+        """get_qasm using an specification without names.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
         qc = q_program.get_circuit()
@@ -171,7 +171,7 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
         self.assertEqual(len(result), len(qrn[0]) * 9 + len(crn[0]) * 4 + 147)
 
     def test_get_qasms_noname(self):
-        """Test the get_qasms from a qprogram without names.
+        """get_qasms from a qprogram without names.
         """
         q_program = QuantumProgram()
         qr = q_program.create_quantum_register(size=3)
@@ -256,7 +256,7 @@ class TestAnonIdsInQuantumProgram(QiskitTestCase):
         result = q_program.get_execution_list(qobj, print_func=self.log.info)
         self.assertEqual(len(result), 1)
 
-    def test_change_circuit_qobj_after_compile_noname(self):
+    def test_change_after_compile_noname(self):
         """Change circuit after compile no name.
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS_NONAMES)
@@ -450,12 +450,12 @@ class TestInvalidIds(QiskitTestCase):
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name=1)
 
     def test_invalid_qasmname_qr(self):
-        """Test QuantumRegister() with an invalid QASM name (do not start with lowercase).
+        """QuantumRegister() with invalid name.
         """
         self.assertRaises(QISKitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
-        """Test ClassicalRegister() with an invalid QASM name (do not start with lowercase).
+        """ClassicalRegister() with invalid name.
         """
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name='Cr')
 

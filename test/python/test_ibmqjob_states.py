@@ -81,7 +81,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.ERROR)
 
-    def test_status_flow_for_non_queued_job(self):
+    def test_flow_for_non_queued_job(self):
         """Status flow for non-queued job
         """
         job = self.run_with_api(NonQueuedAPI())
@@ -93,7 +93,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_status_flow_for_queued_job(self):
+    def test_flow_for_queued_job(self):
         """Status flow for queued job
         """
         job = self.run_with_api(QueuedAPI())
@@ -108,7 +108,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_status_flow_for_cancellable_job(self):
+    def test_flow_for_cancellable_job(self):
         """Status flow for cancellable job
         """
         job = self.run_with_api(CancellableAPI())
@@ -123,7 +123,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.CANCELLED)
 
-    def test_status_flow_for_non_cancellable_job(self):
+    def test_flow_for_non_cancellable_job(self):
         """Status flow for non-cancellable job
         """
         job = self.run_with_api(NonCancellableAPI())
@@ -138,7 +138,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self._current_api.progress()
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_status_flow_for_errored_cancellation(self):
+    def test_flow_for_errored_cancel(self):
         """Status flow for errored cancellation
         """
         job = self.run_with_api(ErroredCancellationAPI())
@@ -153,7 +153,7 @@ class TestIBMQJobStates(QiskitTestCase):
 
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_status_flow_for_invalid_job(self):
+    def test_flow_for_invalid_job(self):
         """Status flow for invalid job
         """
         job = self.run_with_api(UnableToInitializeAPI())
@@ -163,7 +163,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertIsInstance(job.exception, IBMQJobError)
         self.assertStatus(job, JobStatus.ERROR)
 
-    def test_status_flow_for_throwing_job(self):
+    def test_flow_for_throwing_job(self):
         """Status flow for throwing job
         """
         job = self.run_with_api(ThrowingInitializationAPI())
@@ -173,7 +173,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertIsInstance(job.exception, ApiError)
         self.assertStatus(job, JobStatus.ERROR)
 
-    def test_status_flow_for_throwing_api(self):
+    def test_flow_for_throwing_api(self):
         """Status flow for throwing API
         """
         job = self.run_with_api(ThrowingAPI())
@@ -214,7 +214,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result().get_status(), 'COMPLETED')
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_block_on_result_waiting_until_completed(self):
+    def test_block_waiting_until_completed(self):
         """Block on result waiting until completed
         """
         from concurrent import futures
@@ -227,7 +227,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_block_on_result_waiting_until_cancelled(self):
+    def test_block_waiting_until_cancelled(self):
         """Block on result waiting until cancelled
         """
         from concurrent.futures import ThreadPoolExecutor
@@ -240,7 +240,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(result.get_status(), 'CANCELLED')
         self.assertStatus(job, JobStatus.CANCELLED)
 
-    def test_block_on_result_waiting_until_exception(self):
+    def test_block_waiting_until_exception(self):
         """Block on result waiting until exception
         """
         from concurrent.futures import ThreadPoolExecutor
@@ -253,7 +253,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(result.get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.ERROR)
 
-    def test_never_complete_result_with_timeout(self):
+    def test_never_complete_with_timeout(self):
         """Never complete with timeout
         """
         job = self.run_with_api(NonQueuedAPI())
@@ -263,7 +263,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_cancel_while_initializing_is_not_possible_but_does_not_fail(self):
+    def test_cancel_while_init_does_not_fail(self):
         """Cancel while initializing does not fail
         """
         job = self.run_with_api(CancellableAPI())
@@ -271,7 +271,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertFalse(can_cancel)
         self.assertStatus(job, JobStatus.INITIALIZING)
 
-    def test_only_final_states_cause_detailed_request(self):
+    def test_only_final_state_details(self):
         """Only final states cause detailed request
         """
         from unittest import mock

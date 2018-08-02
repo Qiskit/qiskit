@@ -38,6 +38,8 @@ class CompileSkipTranslationTest(QiskitTestCase):
         self.assertEqual(rtrue.experiments, rfalse.experiments)
 
     def test_simple_execute(self):
+        """Test simple execution
+        """
         name = 'test_simple'
         seed = 42
         qp = QuantumProgram()

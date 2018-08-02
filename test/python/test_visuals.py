@@ -33,7 +33,7 @@ class TestLatex(QiskitTestCase):
 
     def random_circuit(self, width=3, depth=3, max_operands=3):
         """Random circuit of arbitrary size.
-        
+
         Note: the depth is the layers of independent operation. true depth
         in the image may be more for visualization purposes, if gates overlap.
 

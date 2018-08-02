@@ -30,11 +30,11 @@ from .common import QiskitTestCase
 class TestCredentials(QiskitTestCase):
     """Wrapper autoregistration and credentials test case."""
     def setUp(self):
-        super(TestWrapperCredentials, self).setUp()
+        super(TestCredentials, self).setUp()
         self.ibmq_account_name = get_account_name(IBMQProvider)
 
     def test_autoregister_no_credentials(self):
-        """Test register() with no credentials available."""
+        """register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
             with self.assertRaises(QISKitError) as cm:
                 qiskit.wrapper.register()
@@ -42,7 +42,7 @@ class TestCredentials(QiskitTestCase):
         self.assertIn('No IBMQ credentials found', str(cm.exception))
 
     def test_store_credentials(self):
-        """Test storing credentials and using them for autoregister."""
+        """Store credentials and use for autoregister."""
         with no_file('Qconfig.py'), no_envs(), custom_qiskitrc(), mock_ibmq_provider():
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN', proxies={'http': 'foo'})
             provider = qiskit.register()
@@ -51,7 +51,7 @@ class TestCredentials(QiskitTestCase):
         self.assertEqual(provider._proxies, {'http': 'foo'})
 
     def test_store_credentials_overwrite(self):
-        """Test overwritind qiskitrc credentials."""
+        """Overwrite qiskitrc credentials."""
         with custom_qiskitrc():
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN', hub='HUB')
             # Attempt overwriting.
@@ -71,7 +71,7 @@ class TestCredentials(QiskitTestCase):
         self.assertEqual(provider._hub, None)
 
     def test_environ_over_qiskitrc(self):
-        """Test order, without qconfig"""
+        """Order, without qconfig"""
         with custom_qiskitrc():
             # Prepare the credentials: both env and qiskitrc present
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
@@ -82,7 +82,7 @@ class TestCredentials(QiskitTestCase):
         self.assertEqual(credentials[self.ibmq_account_name]['token'], 'ENVIRON_TOKEN')
 
     def test_qconfig_over_all(self):
-        """Test order, with qconfig"""
+        """Order, with qconfig"""
         with custom_qiskitrc():
             # Prepare the credentials: qconfig, env and qiskitrc present
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN')

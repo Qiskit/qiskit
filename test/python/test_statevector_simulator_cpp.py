@@ -29,7 +29,7 @@ class StatevectorSimCpp(QiskitTestCase):
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
 
-    def test_statevector_simulator_cpp(self):
+    def test_final_state(self):
         """Final state for single circuit."""
         result = execute(self.q_circuit, backend='local_statevector_simulator_cpp').result()
         self.assertEqual(result.get_status(), 'COMPLETED')

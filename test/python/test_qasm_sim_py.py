@@ -28,7 +28,7 @@ from .common import QiskitTestCase
 do_profiling = False
 
 
-class TestLocalQasmSimulatorPy(QiskitTestCase):
+class TestQasmSimPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
 
     @classmethod
@@ -62,13 +62,6 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                          experiments=[circuit],
                          header=QobjHeader(
                              backend_name='local_qasm_simulator_py'))
-
-    def test_qasm_simulator_single_shot(self):
-        """Single shot run."""
-        shots = 1
-        self.qobj.config.shots = shots
-        result = QasmSimulatorPy().run(self.qobj).result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
 
     def test_qasm_simulator(self):
         """Counts for single circuit match reference."""

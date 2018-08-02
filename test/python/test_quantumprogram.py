@@ -16,14 +16,14 @@ from sys import version_info
 import numpy as np
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
-                    QuantumRegister, QuantumProgram, Result)
+                    QuantumRegister, QuantumProgram, Result, available_backends)
 from qiskit.qobj import Qobj
 from qiskit.tools import file_io
 from .common import requires_qe_access, QiskitTestCase, Path
 
 
-class TestQuantumProgram(QiskitTestCase):
-    """QISKit QuantumProgram Object Tests."""
+class TestQP(QiskitTestCase):
+    """QISKit QuantumProgram (QP) Object Tests."""
 
     def setUp(self):
         self.QASM_FILE_PATH = self._get_resource_path(
@@ -571,8 +571,8 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        available_backends = q_program.available_backends()
-        self.assertTrue(available_backends)
+        backends = q_program.available_backends()
+        self.assertTrue(backends)
 
     @requires_qe_access
     def test_online_backends_exist(self, QE_TOKEN, QE_URL,
@@ -583,7 +583,7 @@ class TestQuantumProgram(QiskitTestCase):
         """
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        online_backends = q_program.online_backends()
+        online_backends = available_backends({'local': False})
         self.log.info(online_backends)
         self.assertTrue(online_backends)
 
@@ -596,7 +596,8 @@ class TestQuantumProgram(QiskitTestCase):
         """
         qp = QuantumProgram(specs=self.QPS_SPECS)
         qp.set_api(QE_TOKEN, QE_URL, hub, group, project)
-        online_simulators = qp.online_simulators()
+        online_simulators = available_backends(
+            {'local': False, 'simulator': True})
         self.log.info(online_simulators)
         self.assertTrue(isinstance(online_simulators, list))
 
@@ -1123,8 +1124,8 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertAlmostEqual(mean_iz, 0, places=1)
 
     @requires_qe_access
-    def test_execute_one_circuit_simulator_online(self, QE_TOKEN, QE_URL,
-                                                  hub=None, group=None, project=None):
+    def test_one_circuit_sim_online(self, QE_TOKEN, QE_URL,
+                                    hub=None, group=None, project=None):
         """Execute_one_circuit_simulator_online.
 
         If all correct should return the data.
@@ -1261,9 +1262,9 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertEqual(result2, {'10 00': 1024})
 
     @requires_qe_access
-    def test_online_qasm_sim_two_registers(self, QE_TOKEN, QE_URL,
-                                           hub=None, group=None, project=None):
-        """Test online_qasm_simulator_two_registers.
+    def test_online_sim_two_registers(self, QE_TOKEN, QE_URL,
+                                      hub=None, group=None, project=None):
+        """Test online qasm simulator two registers.
 
         If all correct should the data.
         """
