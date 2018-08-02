@@ -31,7 +31,7 @@ test:
 
 test_record:
 	rm test/cassettes/*
-	env RECORD_TEST_RESPONSE="True" python3 -m unittest discover -s test -v
+	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
