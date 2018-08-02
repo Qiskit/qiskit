@@ -124,6 +124,7 @@ deploy_pypi: &deploy_pypi
 stages:
   - lint and pure python test
   - test
+  - ibmq
   - deploy doc and pypi
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
@@ -170,6 +171,15 @@ jobs:
     # OSX, Python 3.7 (via pyenv)
     - stage: test
       <<: *stage_osx_python3_7
+
+    # "ibmq" stage
+    ###########################################################################
+    # GNU/Linux, Python 3.6, against IBM Q
+    - stage: ibmq
+      <<: *stage_linux
+      if: branch = master and repo = Qiskit/qiskit-terra and type = push
+      python: 3.6
+      env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
 
     # "deploy" stage.
     ###########################################################################
