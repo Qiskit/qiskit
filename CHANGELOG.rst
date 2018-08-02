@@ -42,7 +42,7 @@ Fixed
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
 - Fixed the examples to be compatible with version 0.5+ (#672)
 - Fixed swap mapper using qubits after measurement. (#691).
-
+- Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 
 `0.5.6`_ - 2018-07-06
 =====================
