@@ -39,12 +39,6 @@ from qiskit.unroll import UnrollerBackend
 from qiskit import QISKitError
 
 
-# Special commands reserved for simulators, that are ignored by backends
-# that do not support them. In practice, they are prepended a `#` in the
-# resulting json.
-SIMULATION_COMMANDS = ('snapshot',)
-
-
 class JsonBackend(UnrollerBackend):
     """Backend for the unroller that makes a Json quantum circuit."""
 
@@ -277,9 +271,6 @@ class JsonBackend(UnrollerBackend):
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get(qubit)
                              for qubit in qubits]
-            # Check for special simulator commands.
-            if name in SIMULATION_COMMANDS:
-                name = '#%s' % name
             self.circuit['instructions'].append({
                 'name': name,
                 # TODO: keep these real for now, until a later time
