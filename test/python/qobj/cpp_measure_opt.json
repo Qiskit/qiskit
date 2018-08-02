@@ -1,5 +1,5 @@
 {
-    "id": "test_measure_opt",
+    "qobj_id": "test_measure_opt",
     "config": {
         "shots": 2000,
         "seed": 1,

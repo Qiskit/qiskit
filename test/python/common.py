@@ -39,6 +39,8 @@ class QiskitTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
 
         # Set logging to file and stdout if the LOG_LEVEL environment variable
         # is set.
@@ -228,6 +230,9 @@ def requires_qe_access(func):
     Decorator that signals that the test uses the online API:
         * determines if the test should be skipped by checking environment
             variables.
+        * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
+          set, it reads the credentials from an alternative set of environment
+          variables.
         * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
             `Qconfig.py`, environment variables or qiskitrc.
         * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
@@ -246,30 +251,48 @@ def requires_qe_access(func):
         from qiskit.wrapper import _wrapper
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
-        # Attempt to read the standard credentials.
-        account_name = get_account_name(IBMQProvider)
-        discovered_credentials = discover_credentials()
-        if account_name in discovered_credentials.keys():
-            credentials = discovered_credentials[account_name]
+        if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+            # Special case: instead of using the standard credentials mechanism,
+            # load them from different environment variables. This assumes they
+            # will always be in place, as is used by the Travis setup.
             kwargs.update({
-                'QE_TOKEN': credentials.get('token'),
-                'QE_URL': credentials.get('url'),
-                'hub': credentials.get('hub'),
-                'group': credentials.get('group'),
-                'project': credentials.get('project'),
+                'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
+                'QE_URL': os.getenv('IBMQ_URL'),
+                'hub': os.getenv('IBMQ_HUB'),
+                'group': os.getenv('IBMQ_GROUP'),
+                'project': os.getenv('IBMQ_PROJECT'),
             })
+            args[0].using_ibmq_credentials = True
         else:
-            if RECORD_TEST_RESPONSE:
-                raise Exception('Could not locate valid credentials. You need them for performing'
-                                'tests against the remote API.')
-            else:
+            # Attempt to read the standard credentials.
+            account_name = get_account_name(IBMQProvider)
+            discovered_credentials = discover_credentials()
+            if account_name in discovered_credentials.keys():
+                credentials = discovered_credentials[account_name]
                 kwargs.update({
-                    'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
-                    'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
-                    'hub': None,
-                    'group': None,
-                    'project': None,
+                    'QE_TOKEN': credentials.get('token'),
+                    'QE_URL': credentials.get('url'),
+                    'hub': credentials.get('hub'),
+                    'group': credentials.get('group'),
+                    'project': credentials.get('project'),
                 })
+                if (credentials.get('hub') and credentials.get('group') and
+                        credentials.get('project')):
+                    args[0].using_ibmq_credentials = True
+            else:
+                if RECORD_TEST_RESPONSE:
+                    raise Exception(
+                        'Could not locate valid credentials. You need them for performing'
+                        'tests against the remote API.')
+                else:
+                    kwargs.update({
+                        'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
+                        'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
+                        'hub': None,
+                        'group': None,
+                        'project': None,
+                    })
+                    args[0].using_ibmq_credentials = False
         return func(*args, **kwargs)
 
     return _

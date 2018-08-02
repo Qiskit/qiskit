@@ -29,7 +29,7 @@ Changed
 - Use ``Qobj`` as the formally defined schema for sending information to the
   devices:
     - introduce the ``qiskit.qobj`` module. (#589, #655)
-    - update the ``Qobj`` JSON schema. (#668, #677)
+    - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 
@@ -42,7 +42,7 @@ Fixed
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
 - Fixed the examples to be compatible with version 0.5+ (#672)
 - Fixed swap mapper using qubits after measurement. (#691).
-
+- Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 
 `0.5.6`_ - 2018-07-06
 =====================
