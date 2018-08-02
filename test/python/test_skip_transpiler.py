@@ -18,8 +18,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
     """Test compilaton with skip translation."""
 
     def test_simple_compile(self):
-        """
-        Compares with and without skip_transpiler
+        """Compare with and without skip_transpiler
         """
         name = 'test_simple'
         qp = QuantumProgram()

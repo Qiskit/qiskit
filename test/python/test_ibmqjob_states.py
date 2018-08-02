@@ -214,7 +214,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result().get_status(), 'COMPLETED')
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_block_waiting_until_completed(self):
+    def test_block_until_completed(self):
         """Block on result waiting until completed
         """
         from concurrent import futures
@@ -227,7 +227,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(result.get_status(), 'COMPLETED')
         self.assertStatus(job, JobStatus.DONE)
 
-    def test_block_waiting_until_cancelled(self):
+    def test_block_until_cancelled(self):
         """Block on result waiting until cancelled
         """
         from concurrent.futures import ThreadPoolExecutor
@@ -240,7 +240,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(result.get_status(), 'CANCELLED')
         self.assertStatus(job, JobStatus.CANCELLED)
 
-    def test_block_waiting_until_exception(self):
+    def test_block_until_exception(self):
         """Block on result waiting until exception
         """
         from concurrent.futures import ThreadPoolExecutor
@@ -263,7 +263,7 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_cancel_while_init_does_not_fail(self):
+    def test_cancel_init_does_not_fail(self):
         """Cancel while initializing does not fail
         """
         job = self.run_with_api(CancellableAPI())

@@ -861,7 +861,7 @@ class TestQP(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_change_circuit_qobj_after_compile(self):
+    def test_change_circuit_after_compile(self):
         q_program = QuantumProgram(specs=self.QPS_SPECS)
         qr = q_program.get_quantum_register("q_name")
         cr = q_program.get_classical_register("c_name")
@@ -1168,8 +1168,8 @@ class TestQP(QiskitTestCase):
         self.assertRaises(QISKitError, result.get_data, 'qc')
 
     @requires_qe_access
-    def test_execute_several_circuits_simulator_online(self, QE_TOKEN, QE_URL,
-                                                       hub=None, group=None, project=None):
+    def test_several_circuits_simulator_online(self, QE_TOKEN, QE_URL,
+                                               hub=None, group=None, project=None):
         """Execute_several_circuits_simulator_online.
 
         If all correct should return the data.

@@ -42,8 +42,8 @@ class TestWrapper(QiskitTestCase):
         self.assertTrue(len(backends) > 0)
 
     def test_local_backends(self):
-        """wrapper.local_backends(filter=...)."""
-        local_backends = qiskit.wrapper.local_backends()
+        """wrapper.available_backends({'local': True})"""
+        local_backends = qiskit.wrapper.available_backends({'local': True})
         self.log.info(local_backends)
         self.assertTrue(len(local_backends) > 0)
 
