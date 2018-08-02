@@ -61,7 +61,7 @@ def qobj_to_dict_previous_version(qobj):
     """
     # Build the top Qobj element.
     converted = {
-        'id': qobj.id,
+        'id': qobj.qobj_id,
         'config': {
             'shots': qobj.config.shots,
             'backend_name': getattr(qobj.header, 'backend_name', None),
@@ -72,7 +72,7 @@ def qobj_to_dict_previous_version(qobj):
 
     # Update configuration: qobj.config might have extra items.
     for key, value in qobj.config.__dict__.items():
-        if key not in ('shots', 'register_slots', 'max_credits', 'seed'):
+        if key not in ('shots', 'memory_slots', 'max_credits', 'seed'):
             converted['config'][key] = value
 
     # Add circuits.

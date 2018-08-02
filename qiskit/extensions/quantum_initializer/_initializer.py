@@ -10,7 +10,7 @@ Initialize qubit registers to desired arbitrary state.
 """
 
 import math
-import numpy
+import numpy as np
 import scipy
 
 from qiskit import CompositeGate
@@ -62,7 +62,7 @@ class InitializeGate(CompositeGate):
                               "to the number of qubits.")
 
         # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(numpy.absolute(param) ** 2), 1.0,
+        if not math.isclose(sum(np.absolute(param) ** 2), 1.0,
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
@@ -167,21 +167,21 @@ class InitializeGate(CompositeGate):
         # Force a and b to be complex, as otherwise numpy.angle might fail.
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
-        mag_a = numpy.absolute(a_complex)
-        final_r = float(numpy.sqrt(mag_a ** 2 + numpy.absolute(b_complex) ** 2))
+        mag_a = np.absolute(a_complex)
+        final_r = float(np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2))
         if final_r < _EPS:
             theta = 0
             phi = 0
             final_r = 0
             final_t = 0
         else:
-            theta = float(2 * numpy.arccos(mag_a / final_r))
-            a_arg = numpy.angle(a_complex)
-            b_arg = numpy.angle(b_complex)
+            theta = float(2 * np.arccos(mag_a / final_r))
+            a_arg = np.angle(a_complex)
+            b_arg = np.angle(b_complex)
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * numpy.exp(1.J * final_t/2), theta, phi
+        return final_r * np.exp(1.J * final_t/2), theta, phi
 
     def _multiplex(self, bottom_gate, bottom_qubit_index, list_of_angles):
         """
@@ -206,12 +206,10 @@ class InitializeGate(CompositeGate):
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
         angle_weight = scipy.kron([[0.5, 0.5], [0.5, -0.5]],
-                                  numpy.identity(2 ** (local_num_qubits - 2)))
+                                  np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
-        list_of_angles = (angle_weight * numpy.matrix(
-            list_of_angles).transpose()).reshape(-1).tolist()[0]
-
+        list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
         combine_composite_gates = CompositeGate(
             "multiplex" + local_num_qubits.__str__(), [], self.arg)
 

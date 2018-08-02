@@ -202,7 +202,8 @@ class JsonBackend(UnrollerBackend):
         self.circuit['instructions'].append({
             'name': 'measure',
             'qubits': qubit_indices,
-            'clbits': clbit_indices
+            'clbits': clbit_indices,
+            'memory': clbit_indices.copy()
         })
         self._add_condition()
 

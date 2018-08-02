@@ -2,6 +2,8 @@
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
+[![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
+
 
 The Quantum Information Science Kit (**Qiskit** for short) is a software development kit (SDK) for
 working with [OpenQASM](https://github.com/Qiskit/qiskit-openqasm) and the
