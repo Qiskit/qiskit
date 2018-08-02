@@ -219,7 +219,7 @@ class TestIBMQJob(JobTestCase):
         backend = self._provider.get_backend('ibmqx4')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        self.wait_for_initialization(job, timeout=3)
+        self.wait_for_initialization(job, timeout=5)
         can_cancel = job.cancel()
         self.assertTrue(can_cancel)
         self.assertStatus(job, JobStatus.CANCELLED)
