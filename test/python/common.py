@@ -281,6 +281,7 @@ def requires_qe_access(func):
                         credentials.get('project')):
                     args[0].using_ibmq_credentials = True
             else:
+                # No user credentials were found.
                 if TEST_OPTIONS['rec']:
                     raise Exception(
                         'Could not locate valid credentials. You need them for performing'
@@ -318,7 +319,13 @@ def _is_ci_fork_pull_request():
             return True
     return False
 
-def get_test_options(option_var):
+
+def get_test_options(option_var='QISKIT_TESTS'):
+    """
+    Reads option_var from env and returns a dict in which the test options are set
+    :param option_var (str): The env var to read. Default: 'QISKIT_TESTS'
+    :return (dict): A dictionary with the format {<option>: (bool)<activated>}.
+    """
     defaults = {
         'skip_online': False,
         'run_online': True,
@@ -327,22 +334,29 @@ def get_test_options(option_var):
         'rec': False
     }
 
-    def turnTrue(option):
+    def turn_true(option):
+        """
+        :param option (str): Turns defaults[option] to True
+        :return (bool): True, return always True.
+        """
         defaults[option] = True
         return True
 
-    def turnFalse(option):
+    def turn_false(option):
+        """
+        :param option (str): Turns defaults[option] to False
+        :return (bool): True, return always True.
+        """
         defaults[option] = False
         return True
 
-    if_True = {
-        'skip_online': (lambda : turnFalse('run_online') and turnFalse('rec')),
-        'run_online': (lambda : turnFalse('skip_online')),
-        'skip_slow': (lambda : turnFalse('run_online')),
-        'run_slow': (lambda : turnFalse('skip_slow')),
-        'rec': (lambda : turnTrue('run_online') and
-                         turnFalse('skip_online') and
-                         turnFalse('run_slow'))
+    if_true = {
+        'skip_online': (lambda: turn_false('run_online') and turn_false('rec')),
+        'run_online': (lambda: turn_false('skip_online')),
+        'skip_slow': (lambda: turn_false('run_online')),
+        'run_slow': (lambda: turn_false('skip_slow')),
+        'rec': (lambda: turn_true('run_online') and turn_false('skip_online') and turn_false(
+            'run_slow'))
     }
 
     opt_string = os.getenv(option_var, False)
@@ -350,11 +364,12 @@ def get_test_options(option_var):
         return defaults
 
     for opt in opt_string.split(','):
-        defaults[opt] = True
-        if_True[opt]()
+        # This means, set the opt to True and flip all the opts that need to be rewritten.
+        defaults[opt] = if_true[opt]()
     return defaults
 
-TEST_OPTIONS = get_test_options('QISKIT_TESTS')
+
+TEST_OPTIONS = get_test_options()
 VCR_MODE = 'none'
 if TEST_OPTIONS['rec']:
     VCR_MODE = 'all'
