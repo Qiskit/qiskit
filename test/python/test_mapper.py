@@ -113,7 +113,7 @@ class MapperTest(QiskitTestCase):
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = qiskit.execute(circ, backend="local_qasm_simulator",
-                              coupling_map=coupling_map, shots=shots, 
+                              coupling_map=coupling_map, shots=shots,
                               seed=self.seed)
         counts = qobj.result().get_counts()
         expected_probs = {
