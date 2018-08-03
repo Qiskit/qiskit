@@ -1,6 +1,8 @@
-#Structure
+Structure
+=========
 
-## Programming interface
+Programming interface
+---------------------
 
 The *qiskit* directory is the main Python module and contains the
 programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
@@ -193,7 +195,9 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-### Testing options
+Testing options
+===============
+
 By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
 If user credentials are found, in that cases it use them to make the network requests.
 
