@@ -383,6 +383,23 @@ class TestCompiler(QiskitTestCase):
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
+    def test_mapping_initial_layout_list(self):
+        """Test mapping when initial_layout is a list of qubits.
+        """
+        backend = FakeBackEnd()
+        q = qiskit.QuantumRegister(3, name='qr')
+        q2 = qiskit.QuantumRegister(1, name='qr2')
+        q3 = qiskit.QuantumRegister(4, name='qr3')
+        c = qiskit.ClassicalRegister(3, name='cr')
+        qc = qiskit.QuantumCircuit(q, q2, q3, c)
+        qc.h(q[0])
+        qc.cx(q[0], q2[0])
+        qc.cx(q[1], q3[2])
+        qc.measure(q, c)
+        layout = [0, 1, 2, 3, 4, 5, 6, 7]
+        qobj = transpiler.compile(qc, backend, initial_layout=layout)
+        self.assertIsInstance(qobj, Qobj)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
