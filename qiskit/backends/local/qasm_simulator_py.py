@@ -285,7 +285,7 @@ class QasmSimulatorPy(BaseBackend):
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
-                  'id': qobj.id,
+                  'id': qobj.qobj_id,
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
@@ -375,7 +375,7 @@ class QasmSimulatorPy(BaseBackend):
                 elif operation.name == 'barrier':
                     pass
                 # Check if snapshot command
-                elif operation.name == '#snapshot':
+                elif operation.name == 'snapshot':
                     params = operation.params
                     self._add_qasm_snapshot(params[0])
                 else:
