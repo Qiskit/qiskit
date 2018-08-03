@@ -12,9 +12,11 @@ import functools
 import inspect
 import logging
 import os
+import time
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
+from qiskit.backends import JobStatus
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
@@ -178,6 +180,40 @@ class QiskitTestCase(unittest.TestCase):
 
         msg = self._formatMessage(msg, standard_msg)
         raise self.failureException(msg)
+
+
+class JobTestCase(QiskitTestCase):
+    """Include common functionality when testing jobs."""
+
+    def wait_for_initialization(self, job, timeout=1):
+        """Waits until the job progress from `INITIALIZING` to a different
+        status."""
+        waited = 0
+        wait = 0.1
+        while job.status['status'] == JobStatus.INITIALIZING:
+            time.sleep(wait)
+            waited += wait
+            if waited > timeout:
+                self.fail(
+                    msg="The JOB is still initializing after timeout ({}s)"
+                    .format(timeout)
+                )
+
+    def assertStatus(self, job, status):
+        """Assert the intenal job status is the expected one and also tests
+        if the shorthand method for that status returns `True`."""
+        # pylint: disable=invalid-name
+        self.assertEqual(job.status['status'], status)
+        if status == JobStatus.CANCELLED:
+            self.assertTrue(job.cancelled)
+        elif status == JobStatus.DONE:
+            self.assertTrue(job.done)
+        elif status == JobStatus.VALIDATING:
+            self.assertTrue(job.validating)
+        elif status == JobStatus.RUNNING:
+            self.assertTrue(job.running)
+        elif status == JobStatus.QUEUED:
+            self.assertTrue(job.queued)
 
 
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):

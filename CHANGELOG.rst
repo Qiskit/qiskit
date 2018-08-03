@@ -21,6 +21,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 - Added decorator to check for C++ simulator availability (#662)
+- It is possible to cancel jobs in non comercial backends (#687)
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
