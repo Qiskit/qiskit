@@ -45,7 +45,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                   seed=self.seed)
         circuit.header.name = 'test'
 
-        qobj = Qobj(id='unitary',
+        qobj = Qobj(qobj_id='unitary',
                     config=QobjConfig(shots=1,
                                       memory_slots=6,
                                       max_credits=None),
