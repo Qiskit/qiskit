@@ -216,7 +216,9 @@ class TestIBMQJob(JobTestCase):
 
     @slow_test
     def test_cancel(self):
-        backend = self._provider.get_backend('ibmqx4')
+        backend_name = ('ibmq_20_tokyo'
+                        if self.using_ibmq_credentials else 'ibmqx4')
+        backend = self._provider.get_backend(backend_name)
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         self.wait_for_initialization(job, timeout=5)
