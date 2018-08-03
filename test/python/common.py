@@ -16,6 +16,7 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 
@@ -39,6 +40,8 @@ class QiskitTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
 
         # Set logging to file and stdout if the LOG_LEVEL environment variable
         # is set.
@@ -223,11 +226,43 @@ def slow_test(func):
     return _
 
 
+def is_cpp_simulator_available():
+    """
+    Check if executable for C++ simulator is available in the expected
+    location.
+
+    Returns:
+        bool: True if simulator executable is available
+    """
+    try:
+        QasmSimulatorCpp()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def requires_cpp_simulator(test_item):
+    """
+    Decorator that skips test if C++ simulator is not available
+
+    Args:
+        test_item (callable): function or class to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    reason = 'C++ simulator not found, skipping test'
+    return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
+
+
 def requires_qe_access(func):
     """
     Decorator that signals that the test uses the online API:
         * determines if the test should be skipped by checking environment
             variables.
+        * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
+          set, it reads the credentials from an alternative set of environment
+          variables.
         * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
             `Qconfig.py`, environment variables or qiskitrc.
         * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
@@ -249,20 +284,36 @@ def requires_qe_access(func):
         from qiskit.wrapper import _wrapper
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
-        # Attempt to read the standard credentials.
-        account_name = get_account_name(IBMQProvider)
-        discovered_credentials = discover_credentials()
-        if account_name in discovered_credentials.keys():
-            credentials = discovered_credentials[account_name]
+        if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+            # Special case: instead of using the standard credentials mechanism,
+            # load them from different environment variables. This assumes they
+            # will always be in place, as is used by the Travis setup.
             kwargs.update({
-                'QE_TOKEN': credentials.get('token'),
-                'QE_URL': credentials.get('url'),
-                'hub': credentials.get('hub'),
-                'group': credentials.get('group'),
-                'project': credentials.get('project'),
+                'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
+                'QE_URL': os.getenv('IBMQ_URL'),
+                'hub': os.getenv('IBMQ_HUB'),
+                'group': os.getenv('IBMQ_GROUP'),
+                'project': os.getenv('IBMQ_PROJECT'),
             })
+            args[0].using_ibmq_credentials = True
         else:
-            raise Exception('Could not locate valid credentials')
+            # Attempt to read the standard credentials.
+            account_name = get_account_name(IBMQProvider)
+            discovered_credentials = discover_credentials()
+            if account_name in discovered_credentials.keys():
+                credentials = discovered_credentials[account_name]
+                kwargs.update({
+                    'QE_TOKEN': credentials.get('token'),
+                    'QE_URL': credentials.get('url'),
+                    'hub': credentials.get('hub'),
+                    'group': credentials.get('group'),
+                    'project': credentials.get('project'),
+                })
+                if (credentials.get('hub') and credentials.get('group') and
+                        credentials.get('project')):
+                    args[0].using_ibmq_credentials = True
+            else:
+                raise Exception('Could not locate valid credentials')
 
         return func(*args, **kwargs)
 

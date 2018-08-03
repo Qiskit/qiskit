@@ -61,7 +61,7 @@ def qobj_to_dict_previous_version(qobj):
     """
     # Build the top Qobj element.
     converted = {
-        'id': qobj.id,
+        'id': qobj.qobj_id,
         'config': {
             'shots': qobj.config.shots,
             'backend_name': getattr(qobj.header, 'backend_name', None),
@@ -82,19 +82,13 @@ def qobj_to_dict_previous_version(qobj):
             circuit_config = circuit_config.as_dict()
             circuit_config['seed'] = getattr(qobj.config, 'seed', None)
 
-        # Convert '#snapshot' to 'snapshot' in the instructions.
-        instructions = []
-        for instruction in experiment.instructions:
-            instructions.append(instruction.as_dict())
-            if instruction.name == '#snapshot':
-                instructions[-1]['name'] = 'snapshot'
-
         circuit = {
             'name': getattr(experiment.header, 'name', None),
             'config': circuit_config,
             'compiled_circuit': {
                 'header': experiment.header.as_dict(),
-                'operations': instructions
+                'operations': [instruction.as_dict() for instruction in
+                               experiment.instructions]
             },
             'compiled_circuit_qasm': getattr(experiment.header,
                                              'compiled_circuit_qasm', None)

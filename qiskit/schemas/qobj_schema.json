@@ -12,8 +12,17 @@
                 "mask": {"type": "string"},
                 "relation": {"type": "string"},
                 "val": {"type": "string"},
-                "register": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
-                "memory": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}
+                "register": {"type": "integer", "minimum": 0},
+                "memory": {"type": "integer", "minimum": 0}
+            }
+        },
+        "copy": {
+            "type": "object",
+            "required": ["register_orig","register_copy"],
+            "properties": {
+                "name": {"enum": ["copy"]},
+                "register_orig": {"type": "integer", "minimum": 0},
+                "register_copy": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}
             }
         },
         "complex": {
@@ -43,9 +52,9 @@
         },
         "qobjlevel0": {
             "type": "object",
-            "required": ["id","schema_version","type","experiments","config","header"],
+            "required": ["qobj_id","schema_version","type","experiments","config","header"],
             "properties": {
-                "id": {
+                "qobj_id": {
                     "type": "string",
                     "description": "User generated qobj ID"
                     },
@@ -231,7 +240,7 @@
                     "title": "snapshot",
                     "required": ["t0"],
                     "properties": {
-                        "name": {"enum": ["#snapshot"]},
+                        "name": {"enum": ["snapshot"]},
                         "params": {
                             "minItems": 2,
                             "items": {
@@ -241,7 +250,8 @@
                         "texparams": {"maxItems": 0}
                     }
                 },
-                {"$ref": "#/definitions/bfunc"}	
+                {"$ref": "#/definitions/bfunc"},
+                {"$ref": "#/definitions/copy"}
             ] 
         },
         "openqasm_instructions": {
@@ -370,7 +380,7 @@
                 "title": "snapshot",
                 "required": ["params"],
                 "properties": {
-                    "name": {"enum": ["#snapshot"]},     
+                    "name": {"enum": ["snapshot"]},
                     "memory": {"maxItems": 0},               
                     "register": {"maxItems": 0},
                     "params": {
@@ -382,7 +392,8 @@
                     "texparams": {"maxItems": 0}
                 }
                 },
-                {"$ref": "#/definitions/bfunc"}
+                {"$ref": "#/definitions/bfunc"},
+                {"$ref": "#/definitions/copy"}
             ]
         }        
     },

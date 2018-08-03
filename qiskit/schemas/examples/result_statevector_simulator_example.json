@@ -2,7 +2,7 @@
     "backend_name": "local_statevector_simulator",
     "backend_version": "2.1.0",
     "job_id": "XC1323XG2",
-    "id": "Experiment1",
+    "qobj_id": "Experiment1",
     "date": "2018-04-02 15:00:00Z",
     "status": "COMPLETED",
     "success": true,
