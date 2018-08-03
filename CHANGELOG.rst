@@ -53,6 +53,7 @@ Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
+- Adjust margin of matplotlib_circuit_drawer (#632)
 
 Removed
 -------
