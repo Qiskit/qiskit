@@ -50,9 +50,10 @@ class TestQobj(QiskitTestCase):
         self.expected_dict = None
 
     def test_create_qobj_and_req_args(self):
-        """Test creation of a Qobj based on the individual elements and check for its required args."""
+        """Test creation of a Qobj and check for its required args."""
         self.assertTrue(
-            all(getattr(self.valid_qobj, required_arg) is not None for required_arg in Qobj.REQUIRED_ARGS))
+            all(getattr(self.valid_qobj, required_arg) is not None
+                for required_arg in Qobj.REQUIRED_ARGS))
 
         with self.assertRaises(ValueError):
             Qobj(qobj_id=None, header=None, config=None, experiments=None)
