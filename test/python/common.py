@@ -195,10 +195,7 @@ class JobTestCase(QiskitTestCase):
             time.sleep(wait)
             waited += wait
             if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
+                self.fail(msg="The JOB is still initializing after timeout ({}s)".format(timeout))
 
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
@@ -262,6 +259,7 @@ def slow_test(func):
 
     return _
 
+
 def get_credentials(args, kwargs):
     """
     Finds the user credentials and update in place args and kwargs.
@@ -269,7 +267,7 @@ def get_credentials(args, kwargs):
         args (tuple): args used by the test function
         kwargs (dict): kwargs used by the test function
     Returns:
-        (bool): Returns True if the credentials were found, False otherwise.
+        bool: Returns True if the credentials were found, False otherwise.
     """
     if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
         # Special case: instead of using the standard credentials mechanism,
@@ -353,6 +351,7 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
+
     @functools.wraps(func)
     def _(*args, **kwargs):
         # Cleanup the credentials, as this file is shared by the tests.
@@ -410,8 +409,12 @@ def _is_ci_fork_pull_request():
 def get_test_options(option_var='QISKIT_TESTS'):
     """
     Reads option_var from env and returns a dict in which the test options are set
-    :param option_var (str): The env var to read. Default: 'QISKIT_TESTS'
-    :return (dict): A dictionary with the format {<option>: (bool)<activated>}.
+
+    Args:
+        option_var (str): The env var to read. Default: 'QISKIT_TESTS'
+
+    Returns:
+        dict: A dictionary with the format {<option>: (bool)<activated>}.
     """
     defaults = {
         'skip_online': False,
@@ -424,17 +427,27 @@ def get_test_options(option_var='QISKIT_TESTS'):
 
     def turn_true(option):
         """
-        :param option (str): Turns defaults[option] to True
-        :return (bool): True, return always True.
+        Turns an option to True
+        Args:
+            option (str): Turns defaults[option] to True
+
+        Returns:
+            bool: True, returns always True.
         """
+
         defaults[option] = True
         return True
 
     def turn_false(option):
         """
-        :param option (str): Turns defaults[option] to False
-        :return (bool): True, return always True.
+        Turns an option to False
+        Args:
+            option (str): Turns defaults[option] to False
+
+        Returns:
+            bool: True, returns always True.
         """
+
         defaults[option] = False
         return True
 

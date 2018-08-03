@@ -24,9 +24,13 @@ class IdRemoverPersister(FilesystemPersister):
     def get_responses_with(string2find, cassette_dict):
         """
         Filters the requests from cassette_dict
-        :param string2find (str): request path
-        :param cassette_dict (dict): a VCR cassette dictionary
-        :return (Request): VCR's representation of a request.
+
+        Args:
+            string2find (str): request path
+            cassette_dict (dict): a VCR cassette dictionary
+
+        Returns:
+            Request: VCR's representation of a request.
         """
         requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if
                             string2find in x.path]
@@ -36,12 +40,17 @@ class IdRemoverPersister(FilesystemPersister):
     def get_new_id(field, path, id_tracker, _type=str):
         """
         Creates a new dummy id (or value) for replacing an existing id (or value).
-        :param field (str): field name is used, in same cases, to create a dummy value.
-        :param path (str): path of the request is used, in same cases, to create a dummy value.
-        :param id_tracker (dict): a map of already assigned ids and generated ids.
-        :param _type (type): type of the value.
-        :return (str): that is used to replace a value.
+
+        Args:
+            field (str): field name is used, in same cases, to create a dummy value.
+            path (str): path of the request is used, in same cases, to create a dummy value.
+            id_tracker (dict): a map of already assigned ids and generated ids.
+            _type (type): type of the value.
+
+        Returns:
+            str: that is used to replace a value.
         """
+
         if _type == float:
             return 0.42
         if _type == int:
@@ -53,9 +62,13 @@ class IdRemoverPersister(FilesystemPersister):
     @staticmethod
     def get_maching_dicts(data_dict, map_list):
         """
-        :param data_dict (dict): in which the map_list is going to be searched.
-        :param map_list (list): the list of nested keys to find in the data_dict
-        :return (dict): the dictionary in which matches map_list.
+        Find subdicts that are described in map_list.
+        Args:
+            data_dict (dict): in which the map_list is going to be searched.
+            map_list (list): the list of nested keys to find in the data_dict
+
+        Returns:
+            dict: the dictionary in which matches map_list.
         """
         ret = []
         if map_list:
@@ -76,11 +89,14 @@ class IdRemoverPersister(FilesystemPersister):
         """
         Replaces in jsonobj (in-place) the field with dummy value (which is constructed with
         id_tracker, if it was already reaplced, or path, if it needs to be created).
-        :param jsonobj (dict): json dictionary from the response body
-        :param field (str): string with the field in the response to by replaced
-        :param path (str): request path
-        :param id_tracker (dict): a dictionary of the ids already assigned.
+
+        Args:
+            jsonobj (dict): json dictionary from the response body
+            field (str): string with the field in the response to by replaced
+            path (str): request path
+            id_tracker (dict): a dictionary of the ids already assigned.
         """
+
         map_list = field.split('.')
         for maching_dict in IdRemoverPersister.get_maching_dicts(jsonobj, map_list):
             try:
@@ -97,10 +113,12 @@ class IdRemoverPersister(FilesystemPersister):
         """
         Replaces in response (in-place) the fields with dummy values (which is constructed with
         id_tracker, if it was already reaplced, or path, if it needs to be created).
-        :param response (dict): dictionary of the response body
-        :param fields (list): list of fields in the response to by replaced
-        :param path (str): request path
-        :param id_tracker (dict): a dictionary of the ids already assigned.
+
+        Args:
+            response (dict): dictionary of the response body
+            fields (list): list of fields in the response to by replaced
+            path (str): request path
+            id_tracker (dict): a dictionary of the ids already assigned.
         """
         body = json.loads(response['body']['string'].decode('utf-8'))
         for field in fields:
@@ -111,9 +129,12 @@ class IdRemoverPersister(FilesystemPersister):
     def remove_ids(ids2remove, cassette_dict):
         """
         Replaces in cassette_dict (in-place) the fields defined by ids2remove with dummy values.
-        :param ids2remove (dict): {request_path: [json_fields]}
-        :param cassette_dict (dict): a VCR cassette dictionary.
+
+        Args:
+            ids2remove (dict): {request_path: [json_fields]}
+            cassette_dict (dict): a VCR cassette dictionary.
         """
+
         id_tracker = {}  # {old_id: new_id}
         for path, fields in ids2remove.items():
             responses = IdRemoverPersister.get_responses_with(path, cassette_dict)
@@ -131,10 +152,12 @@ class IdRemoverPersister(FilesystemPersister):
         Extendeds FilesystemPersister.save_cassette. Replaces particular values (defined by
         ids2remove) which are replaced by a dummy value. The full manipulation is in
         cassette_dict, before saving it using FilesystemPersister.save_cassette
-        :param cassette_path (str): the file location where the cassette will be saved.
-        :param cassette_dict (dict): a VCR cassette dictionary. This is the information that will
-        be dump in cassette_path, using serializer.
-        :param serializer (func): the serializer for dumping cassette_dict in cassette_path.
+
+        Args:
+            cassette_path (str): the file location where the cassette will be saved.
+            cassette_dict (dict): a VCR cassette dictionary. This is the information that will
+            be dump in cassette_path, using serializer.
+            serializer (callable): the serializer for dumping cassette_dict in cassette_path.
         """
         ids2remove = {'api/users/loginWithToken': ['id',
                                                    'userId',
@@ -156,9 +179,15 @@ class IdRemoverPersister(FilesystemPersister):
 
 def purge_headers(headers):
     """
-    :param headers (list): headers to remove from the response
-    :return func: before_record_response
+    Remove headers from the response.
+
+    Args:
+        headers (list): headers to remove from the response
+
+    Returns:
+        callable: for been used in before_record_response VCR constructor.
     """
+
     header_list = list()
     for item in headers:
         if not isinstance(item, tuple):
@@ -167,8 +196,13 @@ def purge_headers(headers):
 
     def before_record_response(response):
         """
-        :param response (dict): a VCR response
-        :return (dict): a VCR response
+        Purge headers from response.
+
+        Args:
+            response (dict): a VCR response
+
+        Returns:
+            dict: a VCR response
         """
         for (header, value) in header_list:
             try:
@@ -184,12 +218,18 @@ def purge_headers(headers):
 
 
 def unordered_query_matcher(request1, request2):
-    """ A VCR matcher (a la VCR.matcher) that ignores the order of the query strings and ther
-    content. Useful for filter params, for example.
-    :param request1 (Request): a VCR request
-    :param request2 (Request): a VCR request
-    :return (bool): True if they match.
     """
+    A VCR matcher (a la VCR.matcher) that ignores the order of the query strings and ther
+    content. Useful for filter params, for example.
+
+    Args:
+        request1 (Request): a VCR request
+        request2 (Request): a VCR request
+
+    Returns:
+        bool: True if they match.
+    """
+
     if request1.query == request2.query:
         return True
 
@@ -217,8 +257,12 @@ def unordered_query_matcher(request1, request2):
 def http_recorder(vcr_mode):
     """
     Creates a VCR object in vcr_mode mode.
-    :param vcr_mode (str): the parameter for record_mode.
-    :return (VCR): a VCR object.
+
+    Args:
+        vcr_mode (string): the parameter for record_mode.
+
+    Returns:
+        VCR: a VCR object.
     """
     my_vcr = VCR(
         cassette_library_dir='test/cassettes',
