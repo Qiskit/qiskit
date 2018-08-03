@@ -1,5 +1,5 @@
 {
-    "id": "test_reset",
+    "qobj_id": "test_reset",
     "config": {
         "shots": 1,
         "seed": 1

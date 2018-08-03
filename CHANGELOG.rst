@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Added decorator to check for C++ simulator availability (#662)
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
@@ -30,7 +31,7 @@ Changed
 - Use ``Qobj`` as the formally defined schema for sending information to the
   devices:
     - introduce the ``qiskit.qobj`` module. (#589, #655)
-    - update the ``Qobj`` JSON schema. (#668, #677)
+    - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 
@@ -44,7 +45,7 @@ Fixed
 - Fixed the examples to be compatible with version 0.5+ (#672)
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
-
+- Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 
 `0.5.6`_ - 2018-07-06
 =====================
