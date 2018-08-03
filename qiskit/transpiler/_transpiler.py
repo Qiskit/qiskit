@@ -139,7 +139,7 @@ def _compile_single_circuit(circuit, backend,
     # the user to pass a simple list as the desired layout.  Here we
     # convert the list to the appropriate dict.
     if isinstance(initial_layout, list):
-        initial_layout = layout_as_list(initial_layout, circuit.get_qregs())
+        initial_layout = layout_list_to_dict(initial_layout, circuit.get_qregs())
 
     # pick a good initial layout if coupling_map is not already satisfied
     # otherwise keep it as q[i]->q[i]
@@ -348,7 +348,7 @@ def _best_subset(backend, n_qubits):
     return best_map
 
 
-def layout_as_list(layout_list, qregs):
+def layout_list_to_dict(layout_list, qregs):
     """Takes a list of unique integers for a qubit layout
     and returns the correct dict structure.
 
@@ -411,5 +411,5 @@ def _pick_best_layout(backend, num_qubits, qregs):
 
     """
     best_sub = _best_subset(backend, num_qubits)
-    layout = layout_as_list(best_sub, qregs)
+    layout = layout_list_to_dict(best_sub, qregs)
     return layout
