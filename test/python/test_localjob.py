@@ -19,8 +19,8 @@ from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
 from qiskit.backends.local import UnitarySimulatorPy
-from qiskit.qobj import Qobj
 from .common import QiskitTestCase
+from ._mockutils import new_fake_qobj
 
 
 class TestLocalJob(QiskitTestCase):
@@ -45,7 +45,7 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
             for index in range(taskcount):
-                local_job = LocalJob(target_tasks[index], fake_qobj())
+                local_job = LocalJob(target_tasks[index], new_fake_qobj())
                 local_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -62,7 +62,7 @@ class TestLocalJob(QiskitTestCase):
 
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
-            job = LocalJob(lambda: None, fake_qobj())
+            job = LocalJob(lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 
@@ -76,7 +76,7 @@ class TestLocalJob(QiskitTestCase):
 
         # pylint: disable=redefined-outer-name
         with intercepted_executor_for_localjob() as (LocalJob, executor):
-            job = LocalJob(lambda: None, fake_qobj())
+            job = LocalJob(lambda: None, new_fake_qobj())
             job.submit()
             _ = job.done
 
@@ -91,24 +91,6 @@ class TestLocalJob(QiskitTestCase):
             call_count, 1,
             'Callable object has been called more than once ({})'.format(
                 call_count))
-
-
-def fake_qobj():
-    backend = FakeBackend()
-    qobj = {
-        'id': 'test-id',
-        'config': {
-            'shots': 1024,
-            'max_credits': 100
-            },
-        'experiments': [{
-            'header': {'compiled_circuit_qasm': 'fake-code'},
-            'config': {'seed': 123456},
-            'instructions': []
-        }],
-        'header': {'backend_name': backend.name}
-    }
-    return Qobj.from_dict(qobj)
 
 
 class FakeBackend():

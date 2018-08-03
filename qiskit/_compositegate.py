@@ -101,6 +101,11 @@ class CompositeGate(Gate):
         self.inverse_flag = not self.inverse_flag
         return self
 
+    def reapply(self, circ):
+        """Reapply this gate to corresponding qubits in circ."""
+        for gate in self.data:
+            gate.reapply(circ)
+
     def q_if(self, *qregs):
         """Add controls to this gate."""
         self.data = [gate.q_if(qregs) for gate in self.data]

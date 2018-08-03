@@ -292,7 +292,7 @@ class TestIBMQJobStates(QiskitTestCase):
         """Creates a new `IBMQJob` instance running with the provided API
         object."""
         self._current_api = api
-        self._current_qjob = IBMQJob(api, False, qobj=Qobj.from_dict(new_fake_qobj()))
+        self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
         return self._current_qjob
 

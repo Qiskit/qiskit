@@ -1,5 +1,5 @@
 {
-    "id": "test_measure_opt_flag",
+    "qobj_id": "test_measure_opt_flag",
     "config": {
         "shots": 5,
         "seed": 1

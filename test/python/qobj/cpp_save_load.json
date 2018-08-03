@@ -1,5 +1,5 @@
 {
-    "id": "test_save_load",
+    "qobj_id": "test_save_load",
     "config": {
         "shots": 1,
         "seed": 1
