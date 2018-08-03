@@ -20,8 +20,11 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Added decorator to check for C++ simulator availability (#662)
+- It is possible to cancel jobs in non comercial backends (#687)
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
+- Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 
 Changed
 -------
@@ -41,7 +44,8 @@ Fixed
 - Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
 - Fixed the examples to be compatible with version 0.5+ (#672)
-- Fixed swap mapper using qubits after measurement. (#691).
+- Fixed swap mapper using qubits after measurement (#691).
+- Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 
 `0.5.6`_ - 2018-07-06
@@ -51,6 +55,7 @@ Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
+- Adjust margin of matplotlib_circuit_drawer (#632)
 
 Removed
 -------

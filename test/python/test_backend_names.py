@@ -11,16 +11,9 @@
 
 from qiskit import get_backend, available_backends
 from qiskit.backends.local import QasmSimulatorPy, QasmSimulatorCpp
-from .common import QiskitTestCase
-
-
-# Cpp backend required
-try:
-    cpp_backend = QasmSimulatorCpp()
-except FileNotFoundError:
-    _skip_cpp = True
-else:
-    _skip_cpp = False
+from .common import (QiskitTestCase,
+                     is_cpp_simulator_available,
+                     requires_cpp_simulator)
 
 
 class TestBackendNames(QiskitTestCase):
@@ -32,17 +25,17 @@ class TestBackendNames(QiskitTestCase):
         """test local group names are resolved correctly"""
         group_name = "local_qasm_simulator"
         backend = get_backend(group_name)
-        if not _skip_cpp:
+        if is_cpp_simulator_available():
             self.assertIsInstance(backend, QasmSimulatorCpp)
         else:
             self.assertIsInstance(backend, QasmSimulatorPy)
 
+    @requires_cpp_simulator
     def test_local_deprecated(self):
         """test deprecated local backends are resolved correctly"""
         old_name = "local_qiskit_simulator"
-        if not _skip_cpp:
-            new_backend = get_backend(old_name)
-            self.assertIsInstance(new_backend, QasmSimulatorCpp)
+        new_backend = get_backend(old_name)
+        self.assertIsInstance(new_backend, QasmSimulatorCpp)
 
     def test_compact_flag(self):
         """Test the compact flag for available_backends works"""

@@ -12,10 +12,13 @@ import functools
 import inspect
 import logging
 import os
+import time
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
+from qiskit.backends import JobStatus
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .http_recorder import http_recorder
@@ -180,6 +183,40 @@ class QiskitTestCase(unittest.TestCase):
         raise self.failureException(msg)
 
 
+class JobTestCase(QiskitTestCase):
+    """Include common functionality when testing jobs."""
+
+    def wait_for_initialization(self, job, timeout=1):
+        """Waits until the job progress from `INITIALIZING` to a different
+        status."""
+        waited = 0
+        wait = 0.1
+        while job.status['status'] == JobStatus.INITIALIZING:
+            time.sleep(wait)
+            waited += wait
+            if waited > timeout:
+                self.fail(
+                    msg="The JOB is still initializing after timeout ({}s)"
+                    .format(timeout)
+                )
+
+    def assertStatus(self, job, status):
+        """Assert the intenal job status is the expected one and also tests
+        if the shorthand method for that status returns `True`."""
+        # pylint: disable=invalid-name
+        self.assertEqual(job.status['status'], status)
+        if status == JobStatus.CANCELLED:
+            self.assertTrue(job.cancelled)
+        elif status == JobStatus.DONE:
+            self.assertTrue(job.done)
+        elif status == JobStatus.VALIDATING:
+            self.assertTrue(job.validating)
+        elif status == JobStatus.RUNNING:
+            self.assertTrue(job.running)
+        elif status == JobStatus.QUEUED:
+            self.assertTrue(job.queued)
+
+
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     """A context manager used to implement TestCase.assertNoLogs()."""
 
@@ -267,6 +304,35 @@ def get_credentials(args, kwargs):
             return False
 
     return True
+
+
+def is_cpp_simulator_available():
+    """
+    Check if executable for C++ simulator is available in the expected
+    location.
+
+    Returns:
+        bool: True if simulator executable is available
+    """
+    try:
+        QasmSimulatorCpp()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def requires_cpp_simulator(test_item):
+    """
+    Decorator that skips test if C++ simulator is not available
+
+    Args:
+        test_item (callable): function or class to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    reason = 'C++ simulator not found, skipping test'
+    return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
 
 
 def requires_qe_access(func):
