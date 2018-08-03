@@ -17,7 +17,6 @@ from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError
-from qiskit.qobj import Qobj
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
 
