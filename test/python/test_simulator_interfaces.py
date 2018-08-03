@@ -78,6 +78,7 @@ class TestCrossSimulation(QiskitTestCase):
         circ.snapshot(2)
         circ.reset(q)
         circ.snapshot(3)
+        circ.measure(q, c)
 
         sim_cpp = 'local_qasm_simulator_cpp'
         sim_py = 'local_qasm_simulator_py'
