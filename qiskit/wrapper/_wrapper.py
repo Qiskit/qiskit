@@ -307,7 +307,7 @@ def execute(circuits, backend,
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+        initial_layout (list or dict): initial layout of qubits in mapping
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
