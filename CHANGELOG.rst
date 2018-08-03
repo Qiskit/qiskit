@@ -42,6 +42,7 @@ Changed
 
 Removed
 -------
+- Removed Quantum Program (#724).
 
 Fixed
 -----

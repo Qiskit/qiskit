@@ -92,6 +92,33 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.assertAlmostEqual(norm1, 4)
         self.assertAlmostEqual(norm2, 4)
 
+    def test_local_unitary_simulator(self):
+        """Test unitary simulator.
+
+        If all correct should the hxh and cx.
+        """
+        q_program = QuantumProgram()
+        q = q_program.create_quantum_register("q", 2)
+        c = q_program.create_classical_register("c", 2)
+        qc1 = q_program.create_circuit("qc1", [q], [c])
+        qc2 = q_program.create_circuit("qc2", [q], [c])
+        qc1.h(q)
+        qc2.cx(q[0], q[1])
+        circuits = ['qc1', 'qc2']
+        backend = 'local_unitary_simulator'
+        result = q_program.execute(circuits, backend=backend)
+        unitary1 = result.get_data('qc1')['unitary']
+        unitary2 = result.get_data('qc2')['unitary']
+        unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
+                                 [0.5, 0.5, -0.5, -0.5],
+                                 [0.5, -0.5, -0.5, 0.5]])
+        unitaryreal2 = np.array([[1, 0, 0, 0], [0, 0, 0, 1],
+                                 [0., 0, 1, 0], [0, 1, 0, 0]])
+        norm1 = np.trace(np.dot(np.transpose(np.conj(unitaryreal1)), unitary1))
+        norm2 = np.trace(np.dot(np.transpose(np.conj(unitaryreal2)), unitary2))
+        self.assertAlmostEqual(norm1, 4)
+        self.assertAlmostEqual(norm2, 4)
+
     def profile_unitary_simulator(self):
         """Profile randomly generated circuits.
 

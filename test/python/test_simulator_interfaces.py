@@ -125,5 +125,77 @@ class TestCrossSimulation(QiskitTestCase):
         # self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.04)
 
 
+
+
+    def test_local_qasm_simulator_two_registers(self):
+        """Test local_qasm_simulator_two_registers.
+
+        If all correct should the data.
+        """
+        q_program = QuantumProgram()
+        q1 = q_program.create_quantum_register("q1", 2)
+        c1 = q_program.create_classical_register("c1", 2)
+        q2 = q_program.create_quantum_register("q2", 2)
+        c2 = q_program.create_classical_register("c2", 2)
+        qc1 = q_program.create_circuit("qc1", [q1, q2], [c1, c2])
+        qc2 = q_program.create_circuit("qc2", [q1, q2], [c1, c2])
+
+        qc1.x(q1[0])
+        qc2.x(q2[1])
+        qc1.measure(q1[0], c1[0])
+        qc1.measure(q1[1], c1[1])
+        qc1.measure(q2[0], c2[0])
+        qc1.measure(q2[1], c2[1])
+        qc2.measure(q1[0], c1[0])
+        qc2.measure(q1[1], c1[1])
+        qc2.measure(q2[0], c2[0])
+        qc2.measure(q2[1], c2[1])
+        circuits = ['qc1', 'qc2']
+        shots = 1024
+        backend = 'local_qasm_simulator'
+        result = q_program.execute(circuits, backend=backend, shots=shots,
+                                   seed=8458)
+        result1 = result.get_counts('qc1')
+        result2 = result.get_counts('qc2')
+        self.assertEqual(result1, {'00 01': 1024})
+        self.assertEqual(result2, {'10 00': 1024})
+
+    @requires_qe_access
+    def test_online_qasm_simulator_two_registers(self, QE_TOKEN, QE_URL,
+                                                 hub=None, group=None, project=None):
+        """Test online_qasm_simulator_two_registers.
+
+        If all correct should the data.
+        """
+        q_program = QuantumProgram()
+        q1 = q_program.create_quantum_register("q1", 2)
+        c1 = q_program.create_classical_register("c1", 2)
+        q2 = q_program.create_quantum_register("q2", 2)
+        c2 = q_program.create_classical_register("c2", 2)
+        qc1 = q_program.create_circuit("qc1", [q1, q2], [c1, c2])
+        qc2 = q_program.create_circuit("qc2", [q1, q2], [c1, c2])
+
+        qc1.x(q1[0])
+        qc2.x(q2[1])
+        qc1.measure(q1[0], c1[0])
+        qc1.measure(q1[1], c1[1])
+        qc1.measure(q2[0], c2[0])
+        qc1.measure(q2[1], c2[1])
+        qc2.measure(q1[0], c1[0])
+        qc2.measure(q1[1], c1[1])
+        qc2.measure(q2[0], c2[0])
+        qc2.measure(q2[1], c2[1])
+        circuits = ['qc1', 'qc2']
+        shots = 1024
+        q_program.set_api(QE_TOKEN, QE_URL, hub, group, project)
+        backend = 'ibmq_qasm_simulator'
+        result = q_program.execute(circuits, backend=backend, shots=shots,
+                                   seed=8458)
+        result1 = result.get_counts('qc1')
+        result2 = result.get_counts('qc2')
+        self.assertEqual(result1, {'00 01': 1024})
+        self.assertEqual(result2, {'10 00': 1024})
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

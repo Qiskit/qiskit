@@ -40,6 +40,16 @@ class TestWrapper(QiskitTestCase):
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
+    def test_offline(self):
+        import string
+        import random
+        FAKE_TOKEN = 'this_token_is_not_going_to_be_sent_anywhere'
+        FAKE_URL = 'http://{0}.com'.format(
+            ''.join(random.choice(string.ascii_lowercase) for _ in range(63))
+        )
+        # SDK will throw ConnectionError on every call that implies a connection
+        self.assertRaises(QISKitError, qiskit.wrapper.register, FAKE_TOKEN, FAKE_URL)
+
     @requires_qe_access
     def test_backends_with_filter(self, qe_token, qe_url):
         """Test wrapper.available_backends(filter=...)."""
