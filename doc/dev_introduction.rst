@@ -194,18 +194,19 @@ Windows:
     C:\..\> python -m unittest test/python/test_apps.py
 
 ### Testing options
-By default, and if there is no user configuration available, the tests that require online access are run with recorded information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
-If the a user configuration is found, in that cases is used.
+By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
+If user credentials are found, in that cases it use them to make the network requests.
 
-How and which tests are executed is controlled by a environment variable `QISKIT_TESTS`. The options are: 
+How and which tests are executed is controlled by a environment variable `QISKIT_TESTS`. The options are (where `uc_available = True` if the user credentials are available, and `False` otherwise): 
 
 | Option        | Description   | Default | If `True`, forces |
 | ------------- |--------------| -----| -----| 
-| `skip_online` | It can be run without user configuration and skips tests that require remote requests (also, no mocked information is used) | `False`| `run_online == False` `rec == False`
-| `run_online` | If the user configuration is found, run the tests using that configuration. If not, it uses recorded information| `True`| `skip_online == False`
-| `skip_slow`   | It skips tests tagged as *slow*. | `True` | `run_slow == False` |
-| `run_slow`   | It runs tests tagged as *slow*. | `True` | `skip_slow == False` |
-| `rec`		   | It requires user configuration and records the remote requests | `False` | `run_online == True` `skip_online == False` `run_slow  == False`
+| `skip_online` | It can be run without user credentials and skips tests that require remote requests (also, no mocked information is used) | `False`| `run_online = False` `rec = False` 
+| `run_online` | If the user credentials are found, run the tests using that configuration. If not, it uses mocked information| `True`| `skip_online = False` `mock_online = not uc_available`
+| `mock_online` | It can be run without user credentials and runs the online tests using mocked information | `not uc_available` | `run_online = True` `skip_online = False`
+| `skip_slow`   | It skips tests tagged as *slow*. | `True` | `run_slow = False` |
+| `run_slow`   | It runs tests tagged as *slow*. | `False` | `skip_slow = False` |
+| `rec`		   | It requires user credentials and records the remote requests | `False` | `run_online = True` `skip_online = False` `run_slow  = False`
 
 It is possible to provide more than one option separated with commas.
-The order of precedence in the options is right to left. For example, `QISKIT_TESTS=skip_online,rec` will set the options as `run_online == True` and `rec == True`.
+The order of precedence in the options is right to left. For example, `QISKIT_TESTS=skip_online,rec` will set the options as `run_online == True` and `rec == True`.	

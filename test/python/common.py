@@ -225,6 +225,49 @@ def slow_test(func):
 
     return _
 
+def get_credentials(args, kwargs):
+    """
+    Finds the user credentials and update in place args and kwargs.
+    Args:
+        args (tuple): args used by the test function
+        kwargs (dict): kwargs used by the test function
+    Returns:
+        (bool): Returns True if the credentials were found, False otherwise.
+    """
+    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+        # Special case: instead of using the standard credentials mechanism,
+        # load them from different environment variables. This assumes they
+        # will always be in place, as is used by the Travis setup.
+        kwargs.update({
+            'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
+            'QE_URL': os.getenv('IBMQ_URL'),
+            'hub': os.getenv('IBMQ_HUB'),
+            'group': os.getenv('IBMQ_GROUP'),
+            'project': os.getenv('IBMQ_PROJECT'),
+        })
+        args[0].using_ibmq_credentials = True
+    else:
+        # Attempt to read the standard credentials.
+        account_name = get_account_name(IBMQProvider)
+        discovered_credentials = discover_credentials()
+        if account_name in discovered_credentials.keys():
+            credentials = discovered_credentials[account_name]
+            kwargs.update({
+                'QE_TOKEN': credentials.get('token'),
+                'QE_URL': credentials.get('url'),
+                'hub': credentials.get('hub'),
+                'group': credentials.get('group'),
+                'project': credentials.get('project'),
+            })
+            if (credentials.get('hub') and credentials.get('group') and
+                    credentials.get('project')):
+                args[0].using_ibmq_credentials = True
+        else:
+            # No user credentials were found.
+            return False
+
+    return True
+
 
 def requires_qe_access(func):
     """
@@ -244,58 +287,36 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-    func = VCR.use_cassette()(func)
-
     @functools.wraps(func)
     def _(*args, **kwargs):
         # Cleanup the credentials, as this file is shared by the tests.
         from qiskit.wrapper import _wrapper
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
-        if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
-            # Special case: instead of using the standard credentials mechanism,
-            # load them from different environment variables. This assumes they
-            # will always be in place, as is used by the Travis setup.
-            kwargs.update({
-                'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': os.getenv('IBMQ_URL'),
-                'hub': os.getenv('IBMQ_HUB'),
-                'group': os.getenv('IBMQ_GROUP'),
-                'project': os.getenv('IBMQ_PROJECT'),
-            })
-            args[0].using_ibmq_credentials = True
+        if TEST_OPTIONS['skip_online']:
+            raise unittest.SkipTest('Skipping online tests')
+
+        if get_credentials(args, kwargs):
+            if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+                return VCR.use_cassette()(func)(*args, **kwargs)
+            return func(*args, **kwargs)
+
+        # No user credentials were found.
+        if TEST_OPTIONS['rec']:
+            raise Exception(
+                'Could not locate valid credentials. You need them for performing '
+                'tests against the remote API. Use QISKIT_TESTS=skip_online to skip this test.')
         else:
-            # Attempt to read the standard credentials.
-            account_name = get_account_name(IBMQProvider)
-            discovered_credentials = discover_credentials()
-            if account_name in discovered_credentials.keys():
-                credentials = discovered_credentials[account_name]
-                kwargs.update({
-                    'QE_TOKEN': credentials.get('token'),
-                    'QE_URL': credentials.get('url'),
-                    'hub': credentials.get('hub'),
-                    'group': credentials.get('group'),
-                    'project': credentials.get('project'),
-                })
-                if (credentials.get('hub') and credentials.get('group') and
-                        credentials.get('project')):
-                    args[0].using_ibmq_credentials = True
-            else:
-                # No user credentials were found.
-                if TEST_OPTIONS['rec']:
-                    raise Exception(
-                        'Could not locate valid credentials. You need them for performing'
-                        'tests against the remote API.')
-                else:
-                    kwargs.update({
-                        'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
-                        'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
-                        'hub': None,
-                        'group': None,
-                        'project': None,
-                    })
-                    args[0].using_ibmq_credentials = False
-        return func(*args, **kwargs)
+            args[0].log.warning("No user credentials were detected. Running with mocked data.")
+            kwargs.update({
+                'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
+                'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
+                'hub': None,
+                'group': None,
+                'project': None,
+            })
+            args[0].using_ibmq_credentials = False
+            return VCR.use_cassette()(func)(*args, **kwargs)
 
     return _
 
@@ -329,6 +350,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     defaults = {
         'skip_online': False,
         'run_online': True,
+        'mock_online': False,
         'skip_slow': True,
         'run_slow': True,
         'rec': False
@@ -353,6 +375,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     if_true = {
         'skip_online': (lambda: turn_false('run_online') and turn_false('rec')),
         'run_online': (lambda: turn_false('skip_online')),
+        'mock_online': (lambda: turn_true('run_online') and turn_false('skip_online')),
         'skip_slow': (lambda: turn_false('run_online')),
         'run_slow': (lambda: turn_false('skip_slow')),
         'rec': (lambda: turn_true('run_online') and turn_false('skip_online') and turn_false(
