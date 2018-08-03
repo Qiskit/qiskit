@@ -18,9 +18,8 @@ from .common import QiskitTestCase
 class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
 
-    def test_create_qobj(self):
-        """Test creation of a Qobj based on the individual elements."""
-        qobj = Qobj(
+    def setUp(self):
+        self.valid_qobj = Qobj(
             qobj_id='12345',
             header={},
             config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
@@ -32,25 +31,7 @@ class TestQobj(QiskitTestCase):
             ]
         )
 
-        self.assertTrue(
-            all(getattr(qobj, required_arg) is not None for required_arg in Qobj.REQUIRED_ARGS))
-
-    def test_as_dict(self):
-        """Test conversion to dict of a Qobj based on the individual elements."""
-        qobj = Qobj(
-            id='12345',
-            header={},
-            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
-            experiments=[
-                QobjExperiment(instructions=[
-                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
-                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-                ])
-            ]
-        )
-        qobj._version = '67890'  # private member variables shouldn't appear in the dict
-
-        expected = {
+        self.expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
             'schema_version': '1.0.0',
@@ -64,70 +45,34 @@ class TestQobj(QiskitTestCase):
             ],
         }
 
-        self.assertEqual(qobj.as_dict(), expected)
+    def tearDown(self):
+        self.valid_qobj = None
+        self.expected_dict = None
+
+    def test_create_qobj_and_req_args(self):
+        """Test creation of a Qobj based on the individual elements and check for its required args."""
+        self.assertTrue(
+            all(getattr(self.valid_qobj, required_arg) is not None for required_arg in Qobj.REQUIRED_ARGS))
+
+        with self.assertRaises(ValueError):
+            Qobj(qobj_id=None, header=None, config=None, experiments=None)
+
+    def test_as_dict(self):
+        """Test conversion to dict of a Qobj based on the individual elements."""
+        self.valid_qobj._version = '67890'  # private member variables shouldn't appear in the dict
+        self.assertEqual(self.valid_qobj.as_dict(), self.expected_dict)
 
     def test_as_dict_to_json(self):
         """Test dictionary representation of Qobj against its schema."""
-        qobj = Qobj(
-            id='12345',
-            header={},
-            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
-            experiments=[
-                QobjExperiment(instructions=[
-                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
-                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-                ])
-            ]
-        )
-        qobj._version = '67890'  # private member variables shouldn't appear in the dict
-
         sdk = qiskit_path[0]  # Main SDK path:    qiskit/
         schemas = os.path.join(sdk, 'schemas')  # Schemas path:     qiskit/schemas
-        file = os.path.join(schemas, 'qobj_schema.json')  # Schema name: qobj_schema.json
-        file_obj = open(file, 'r')
+        file_path = os.path.join(schemas, 'qobj_schema.json')  # Schema name: qobj_schema.json
 
-        schema = json.load(file_obj)
-        example = qobj.as_dict()
+        with open(file_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
+        example = self.valid_qobj.as_dict()
         jsch.validate(example, schema)
-        file_obj.close()
-
-    def test_expand_item(self):
-        """Test distinct cases of _expand_item."""
-        single_obj = 1
-        single_list = [1, 2]
-        nested_list = [[1, 2], ['a', 'b']]
-
-        self.assertEqual(Qobj._expand_item(single_obj), single_obj)
-        self.assertEqual(Qobj._expand_item(single_list), single_list)
-        self.assertEqual(Qobj._expand_item(nested_list), nested_list)
-
-        qobj = Qobj(
-            id='12345',
-            header={},
-            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
-            experiments=[
-                QobjExperiment(instructions=[
-                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
-                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
-                ])
-            ]
-        )
-
-        expected_dict = {
-            'id': '12345',
-            'type': 'QASM',
-            'header': {},
-            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
-            'schema_version': '1.0.0',
-            'experiments': [
-                {'instructions': [
-                    {'name': 'u1', 'params': [0.4], 'qubits': [1]},
-                    {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]}
-                ]}
-            ],
-        }
-
-        self.assertEqual(Qobj._expand_item(qobj), expected_dict)
 
 
 class TestQobjConfig(QiskitTestCase):
@@ -143,6 +88,9 @@ class TestQobjConfig(QiskitTestCase):
             all(getattr(qobj_config, required_arg) is not None
                 for required_arg in QobjConfig.REQUIRED_ARGS))
 
+        with self.assertRaises(ValueError):
+            QobjConfig(shots=None, memory_slots=None)
+
 
 class TestQobjExperiment(QiskitTestCase):
     """Tests for QobjExperiment."""
@@ -157,6 +105,9 @@ class TestQobjExperiment(QiskitTestCase):
             all(getattr(qobj_experiment, required_arg) is not None
                 for required_arg in QobjExperiment.REQUIRED_ARGS))
 
+        with self.assertRaises(ValueError):
+            QobjExperiment(instructions=None)
+
 
 class TestQobjInstruction(QiskitTestCase):
     """Tests for QobjInstruction."""
@@ -169,3 +120,6 @@ class TestQobjInstruction(QiskitTestCase):
         self.assertTrue(
             all(getattr(qobj_instruction, required_arg) is not None
                 for required_arg in QobjInstruction.REQUIRED_ARGS))
+
+        with self.assertRaises(ValueError):
+            QobjInstruction(name=None)
