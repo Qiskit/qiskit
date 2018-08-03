@@ -74,7 +74,6 @@ import random
 import uuid
 import time
 import logging
-import warnings
 from collections import Counter
 
 import numpy as np
@@ -407,13 +406,6 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end-start)}
 
     def _validate(self, qobj):
-        if qobj.config.shots == 1:
-            warnings.warn('The behavior of getting statevector from simulators '
-                          'by setting shots=1 is deprecated and will be removed. '
-                          'Use the local_statevector_simulator instead, or place '
-                          'explicit snapshot instructions.',
-                          DeprecationWarning)
-
         for experiment in qobj.experiments:
             if 'measure' not in [op.name for
                                  op in experiment.instructions]:
