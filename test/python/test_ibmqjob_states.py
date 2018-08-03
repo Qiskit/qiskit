@@ -16,11 +16,11 @@ from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobError
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
-from .common import QiskitTestCase
+from .common import JobTestCase
 from ._mockutils import new_fake_qobj
 
 
-class TestIBMQJobStates(QiskitTestCase):
+class TestIBMQJobStates(JobTestCase):
     """
     Test ibmqjob module.
     """
@@ -256,35 +256,6 @@ class TestIBMQJobStates(QiskitTestCase):
                         self.assertTrue(self._current_api.get_job.called)
                     else:
                         self.assertFalse(self._current_api.get_job.called)
-
-    def wait_for_initialization(self, job, timeout=1):
-        """Waits until the job progress from `INITIALIZING` to a different
-        status."""
-        waited = 0
-        wait = 0.1
-        while job.status['status'] == JobStatus.INITIALIZING:
-            time.sleep(wait)
-            waited += wait
-            if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
-
-    def assertStatus(self, job, status):
-        """Assert the intenal job status is the expected one and also tests
-        if the shorthand method for that status returns `True`."""
-        self.assertEqual(job.status['status'], status)
-        if status == JobStatus.CANCELLED:
-            self.assertTrue(job.cancelled)
-        elif status == JobStatus.DONE:
-            self.assertTrue(job.done)
-        elif status == JobStatus.VALIDATING:
-            self.assertTrue(job.validating)
-        elif status == JobStatus.RUNNING:
-            self.assertTrue(job.running)
-        elif status == JobStatus.QUEUED:
-            self.assertTrue(job.queued)
 
     def run_with_api(self, api):
         """Creates a new `IBMQJob` instance running with the provided API
