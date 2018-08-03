@@ -411,10 +411,5 @@ def _pick_best_layout(backend, num_qubits, qregs):
 
     """
     best_sub = _best_subset(backend, num_qubits)
-    layout = {}
-    map_iter = 0
-    for key, value in qregs.items():
-        for i in range(value.size):
-            layout[(key, i)] = ('q', best_sub[map_iter])
-            map_iter += 1
+    layout = layout_as_list(best_sub, qregs)
     return layout
