@@ -1176,6 +1176,7 @@ class QCStyle:
         self.compress = False
         self.figwidth = -1
         self.dpi = 150
+        self.margin = [2.0, 0.0, 0.0, 0.3]
 
     def set_style(self, dic):
         self.tc = dic.get('textcolor', self.tc)
@@ -1203,6 +1204,7 @@ class QCStyle:
         self.compress = dic.get('compress', self.compress)
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
+        self.margin = dic.get('margin', self.margin)
 
 
 def qx_color_scheme():
@@ -1266,7 +1268,8 @@ def qx_color_scheme():
         "cregbundle": False,
         "plotbarrier": False,
         "showindex": False,
-        "compress": False
+        "compress": False,
+        "margin": [2.0, 0.0, 0.0, 0.3]
     }
 
 
@@ -1348,7 +1351,8 @@ class MatplotlibDrawer:
         self.figure.patch.set_facecolor(color=self._style.bg)
         self.ax = self.figure.add_subplot(111)
         self.ax.axis('off')
-        self.ax.set_aspect('equal', 'datalim')
+        self.ax.set_aspect('equal')
+        self.ax.tick_params(labelbottom='off', labeltop='off', labelleft='off', labelright='off')
 
     def load_qasm_file(self, filename):
         circuit = load_qasm_file(filename, name='draw', basis_gates=','.join(self._basis))
@@ -1403,15 +1407,18 @@ class MatplotlibDrawer:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center', va='center',
                              fontsize=self._style.fs,
                              color=self._style.gt,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center', va='center',
                              fontsize=self._style.sfs,
                              color=self._style.sc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
                              fontsize=self._style.fs,
                              color=self._style.gt,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
 
     def _subtext(self, xy, text):
@@ -1420,6 +1427,7 @@ class MatplotlibDrawer:
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs,
                      color=self._style.tc,
+                     clip_on=True,
                      zorder=PORDER_TEXT)
 
     def _line(self, xy0, xy1):
@@ -1450,6 +1458,7 @@ class MatplotlibDrawer:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
                          fontsize=0.8 * self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
 
     def _conds(self, xy, istrue=False):
@@ -1530,11 +1539,15 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
         self._draw_ops(verbose)
-        self.ax.set_xlim(-1.5, self._cond['xmax'] + 1.5)
-        self.ax.set_ylim(self._cond['ymax'] - 1.5, 1.5)
+        _xl = - self._style.margin[0]
+        _xr = self._cond['xmax'] + self._style.margin[1]
+        _yb = - self._cond['ymax'] - self._style.margin[2] + 1 - 0.5
+        _yt = self._style.margin[3] + 0.5
+        self.ax.set_xlim(_xl, _xr)
+        self.ax.set_ylim(_yb, _yt)
         # update figure size
-        fig_w = abs(self._cond['xmax']) + 2
-        fig_h = abs(self._cond['ymax']) + 2
+        fig_w = _xr - _xl
+        fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
@@ -1604,6 +1617,7 @@ class MatplotlibDrawer:
             self.ax.text(-0.5, y, label, ha='right', va='center',
                          fontsize=self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
             self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.lc, zorder=PORDER_LINE)
         # classical register
@@ -1627,10 +1641,12 @@ class MatplotlibDrawer:
                 self.ax.text(0.5, y + .1, str(this_creg['val']), ha='left', va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
                          fontsize=self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
             self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.cc, zorder=PORDER_LINE)
 
@@ -1833,10 +1849,10 @@ class MatplotlibDrawer:
         # window size
         if max_anc > self._style.fold > 0:
             self._cond['xmax'] = self._style.fold + 1
-            self._cond['ymax'] = - (n_fold + 1) * (self._cond['n_lines'] + 1) + 1
+            self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
             self._cond['xmax'] = max_anc + 1
-            self._cond['ymax'] = - self._cond['n_lines']
+            self._cond['ymax'] = self._cond['n_lines']
         # add horizontal lines
         for ii in range(n_fold + 1):
             feedline_r = (n_fold > 0 and n_fold > ii)
@@ -1854,6 +1870,7 @@ class MatplotlibDrawer:
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center', va='center',
                              fontsize=self._style.sfs,
                              color=self._style.tc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
 
     @staticmethod
