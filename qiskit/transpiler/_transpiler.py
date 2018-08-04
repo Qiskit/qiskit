@@ -42,7 +42,7 @@ def compile(circuits, backend,
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+        initial_layout (dict or list): initial layout of qubits in mapping
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -120,8 +120,8 @@ def _compile_single_circuit(circuit, backend,
         backend (BaseBackend): a backend to compile for
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
-        coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+        coupling_map (dict or list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): Initial layout of qubits in mapping
         seed (int): random seed for simulators
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
@@ -135,7 +135,12 @@ def _compile_single_circuit(circuit, backend,
     # Step 2a: circuit -> dag
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
 
-    # TODO: move this inside the mapper pass
+    # Simplify the input of an initial layout in many cases by allowing
+    # the user to pass a simple list as the desired layout.  Here we
+    # convert the list to the appropriate dict.
+    if isinstance(initial_layout, list):
+        initial_layout = layout_list_to_dict(initial_layout, circuit.get_qregs())
+
     # pick a good initial layout if coupling_map is not already satisfied
     # otherwise keep it as q[i]->q[i]
     if (initial_layout is None and
@@ -343,6 +348,35 @@ def _best_subset(backend, n_qubits):
     return best_map
 
 
+def layout_list_to_dict(layout_list, qregs):
+    """Takes a list of unique integers for a qubit layout
+    and returns the correct dict structure.
+
+    Args:
+        layout_list (array_like): Qubit layout in list form.
+        qregs (dict): Quantum registers from a quantum circuit.
+
+    Returns:
+        layout: The corresponding layout dict.
+
+    Raises:
+        QISKitError: Input layout is invalid.
+    """
+    layout_list = np.asarray(layout_list)
+    num_qubits = sum((len(qr) for qr in qregs.values()))
+    if layout_list.shape[0] != num_qubits:
+        raise QISKitError('Length of layout list does not match number of qubits.')
+    if np.unique(layout_list).shape[0] != layout_list.shape[0]:
+        raise QISKitError('Layout list cannot have duplicate entries.')
+    layout = {}
+    map_iter = 0
+    for key, value in qregs.items():
+        for i in range(value.size):
+            layout[(key, i)] = ('q', layout_list[map_iter])
+            map_iter += 1
+    return layout
+
+
 def _matches_coupling_map(instructions, coupling_map):
     """Iterate over circuit instructions to check if all multi-qubit couplings
     match the qubit coupling graph in the backend.
@@ -377,10 +411,5 @@ def _pick_best_layout(backend, num_qubits, qregs):
 
     """
     best_sub = _best_subset(backend, num_qubits)
-    layout = {}
-    map_iter = 0
-    for key, value in qregs.items():
-        for i in range(value.size):
-            layout[(key, i)] = ('q', best_sub[map_iter])
-            map_iter += 1
+    layout = layout_list_to_dict(best_sub, qregs)
     return layout

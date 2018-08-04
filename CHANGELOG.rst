@@ -25,6 +25,7 @@ Added
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- Allow list to be used as ``initial_layout`` (#727).
 
 Changed
 -------
