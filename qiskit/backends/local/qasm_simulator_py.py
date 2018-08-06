@@ -74,12 +74,11 @@ import random
 import uuid
 import time
 import logging
-import warnings
 from collections import Counter
 
 import numpy as np
 
-from qiskit._result import Result
+from qiskit._result import Result, copy_qasm_from_qobj_into_result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from ._simulatorerror import SimulatorError
@@ -285,12 +284,14 @@ class QasmSimulatorPy(BaseBackend):
         end = time.time()
         job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
-                  'id': qobj.id,
+                  'id': qobj.qobj_id,
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
+
+        copy_qasm_from_qobj_into_result(qobj, result)
         return Result(result)
 
     def run_circuit(self, circuit):
@@ -375,7 +376,7 @@ class QasmSimulatorPy(BaseBackend):
                 elif operation.name == 'barrier':
                     pass
                 # Check if snapshot command
-                elif operation.name == '#snapshot':
+                elif operation.name == 'snapshot':
                     params = operation.params
                     self._add_qasm_snapshot(params[0])
                 else:
@@ -407,13 +408,6 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end-start)}
 
     def _validate(self, qobj):
-        if qobj.config.shots == 1:
-            warnings.warn('The behavior of getting statevector from simulators '
-                          'by setting shots=1 is deprecated and will be removed. '
-                          'Use the local_statevector_simulator instead, or place '
-                          'explicit snapshot instructions.',
-                          DeprecationWarning)
-
         for experiment in qobj.experiments:
             if 'measure' not in [op.name for
                                  op in experiment.instructions]:

@@ -8,7 +8,7 @@ about: Create a report to help us improve 🤔.
 
 ### Informations
 
-- **Qiskit (Python SDK) version**:
+- **Qiskit Terra version**:
 - **Python version**:
 - **Operating system**:
 

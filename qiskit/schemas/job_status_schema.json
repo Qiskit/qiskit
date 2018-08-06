@@ -5,12 +5,12 @@
     "version": "1.0.0",
     "type": "object",
     "required": [
-        "id",
+        "job_id",
         "status",
         "status_msg"
     ],
     "properties": {
-        "id": {
+        "job_id": {
             "type": "string",
             "description": "Backend job_id"
             },

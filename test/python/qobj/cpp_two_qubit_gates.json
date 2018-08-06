@@ -1,5 +1,5 @@
 {
-    "id": "test_two_qubit_gates",
+    "qobj_id": "test_two_qubit_gates",
     "config": {
         "shots": 1,
         "seed": 1

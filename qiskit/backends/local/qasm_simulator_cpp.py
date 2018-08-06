@@ -15,11 +15,10 @@ import os
 import subprocess
 from subprocess import PIPE
 import platform
-import warnings
 
 import numpy as np
 
-from qiskit._result import Result
+from qiskit._result import Result, copy_qasm_from_qobj_into_result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from qiskit.qobj import qobj_to_dict
@@ -78,16 +77,10 @@ class QasmSimulatorCpp(BaseBackend):
     def _run_job(self, qobj):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
+        copy_qasm_from_qobj_into_result(qobj, result)
         return Result(result)
 
     def _validate(self, qobj):
-        if qobj.config.shots == 1:
-            warnings.warn('The behavior of getting statevector from simulators '
-                          'by setting shots=1 is deprecated and will be removed. '
-                          'Use the local_statevector_simulator instead, or place '
-                          'explicit snapshot instructions.',
-                          DeprecationWarning)
-
         for experiment in qobj.experiments:
             if 'measure' not in [op.name for
                                  op in experiment.instructions]:

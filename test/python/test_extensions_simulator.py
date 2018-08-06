@@ -14,20 +14,10 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import execute
-from qiskit.backends.local import QasmSimulatorCpp
-from .common import QiskitTestCase
+from .common import QiskitTestCase, requires_cpp_simulator
 
 
-# Cpp backend required
-try:
-    cpp_backend = QasmSimulatorCpp()
-except FileNotFoundError:
-    _skip_class = True
-else:
-    _skip_class = False
-
-
-@unittest.skipIf(_skip_class, 'C++ simulators unavailable')
+@requires_cpp_simulator
 class TestExtensionsSimulator(QiskitTestCase):
     """Test instruction extensions for simulators:
     save, load, noise, snapshot, wait

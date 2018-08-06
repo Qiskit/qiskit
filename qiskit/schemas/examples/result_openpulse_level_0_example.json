@@ -2,7 +2,7 @@
     "backend_name": "ibmqx2",
     "backend_version": "1.1.11",
     "job_id": "XC1323XG2",
-    "id": "Experiment1",
+    "qobj_id": "Experiment1",
     "date": "2018-04-02 15:00:00Z",
     "status": "COMPLETED",
     "success": true,
