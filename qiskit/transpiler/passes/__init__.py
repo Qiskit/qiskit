@@ -8,3 +8,4 @@
 """Utils for transpiler."""
 
 from .cx_cancellation import CXCancellation
+from .mapping import SwapMapper

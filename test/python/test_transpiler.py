@@ -12,7 +12,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import wrapper
 from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import CXCancellation, SwapMapper
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.unroll import DagUnroller, JsonBackend
 from .common import QiskitTestCase
@@ -101,3 +101,20 @@ class TestTranspiler(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
 
         self.assertNotIn('cx', resources_after)
+
+    def test_pass_swap_mapper(self):
+        """Test the swap mapper pass.
+
+        It should cancel consecutive cx pairs on same qubits.
+        """
+        q = QuantumRegister(2)
+        circ = QuantumCircuit(q)
+        circ.cx(q[0], q[1])
+        circ.cx(q[1], q[0])
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+
+        coupling_map = [[1, 0]]
+
+        pass_manager = PassManager()
+        pass_manager.add_pass(SwapMapper(coupling_map=coupling_map))
+        dag_circuit = transpile(dag_circuit, coupling_map=coupling_map, pass_manager=pass_manager)
