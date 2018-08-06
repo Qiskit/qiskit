@@ -383,5 +383,6 @@ class TestCompiler(QiskitTestCase):
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
