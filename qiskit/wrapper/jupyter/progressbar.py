@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=import-error
 # Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
@@ -8,7 +8,7 @@
 """Tools for working in Jupyter notebooks"""
 
 import time
-import ipywidgets as widgets
+import ipywidgets as widgets                            
 from IPython.display import display
 import qiskit.wrapper.receiver as rec
 from qiskit.wrapper.progressbar import BaseProgressBar
