@@ -8,7 +8,7 @@
 """Tools for working in Jupyter notebooks"""
 
 import time
-import ipywidgets as widgets                            
+import ipywidgets as widgets
 from IPython.display import display
 import qiskit.wrapper.receiver as rec
 from qiskit.wrapper.progressbar import BaseProgressBar
