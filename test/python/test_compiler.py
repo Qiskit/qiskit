@@ -16,6 +16,7 @@ from qiskit import Result
 from qiskit.qobj import Qobj
 from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
 from qiskit._qiskiterror import QISKitError
+from qiskit.wrapper.progressbar import TextProgressBar
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -382,6 +383,21 @@ class TestCompiler(QiskitTestCase):
         for op in compiled_ops:
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
+
+    def test_parallel_compile_text_progressbar(self):
+        """Test TextProgressBar in parallel compile.
+        """
+        backend = FakeBackEnd()
+        TextProgressBar()
+        q = qiskit.QuantumRegister(16)
+        c = qiskit.ClassicalRegister(2)
+        qc = qiskit.QuantumCircuit(q, c)
+        qc.h(q[0])
+        for k in range(1, 15):
+            qc.cx(q[0], q[k])
+        qc.measure(q[5], c[0])
+        qlist = [qc for k in range(50)]
+        qiskit.compile(qlist, backend=backend)
 
 
 if __name__ == '__main__':
