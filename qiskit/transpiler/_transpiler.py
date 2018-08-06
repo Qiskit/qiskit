@@ -81,7 +81,7 @@ def compile(circuits, backend,
     # step 2: Transpile all the dags
     # Work-around for compiling multiple circuits with different qreg names.
     # Should later make it so that the initial_layout can be a list of layouts.
-    list_layout = []    
+    layouts = []
     _initial_layout = initial_layout.copy() if initial_layout is not None else None
     for i, dag in enumerate(dags):
         # pick a good initial layout if coupling_map is not already satisfied
@@ -98,12 +98,10 @@ def compile(circuits, backend,
             get_layout=True,
             seed=seed,
             pass_manager=pass_manager)
-        list_layout.append([[k, v] for k, v in final_layout.items()] if final_layout else None)
+        layouts.append([[k, v] for k, v in final_layout.items()] if final_layout else None)
 
     # step 3: Making a qobj
-    # FIXME: Things to go: circuits (needs additions to dag)
-    # TODO: we are not keeping many in qobj in future so we remove then
-    qobj = _dags_2_qobj(dags, circuits, backend_name=backend_name, list_layout=list_layout,
+    qobj = _dags_2_qobj(dags, backend_name=backend_name, layouts=layouts,
                         config=config, shots=shots, max_credits=max_credits,
                         qobj_id=qobj_id, basis_gates=basis_gates,
                         coupling_map=coupling_map, seed=seed)
@@ -128,17 +126,32 @@ def _circuits_2_dags(circuits):
     return dags
 
 
-def _dags_2_qobj(dags, circuits, backend_name, list_layout=None, config=None, shots=None,
+def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
                  max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
                  seed=None):
     """Convert a list of dags into a qobj.
 
     Args:
         dags (list[DAGCircuit]): dags to compile
+        backend_name (str): name of runner backend
+        layouts (list[dict]): list of circuit->device qubit layouts for each experiment
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        qobj_id (int): identifier for the generated qobj
+        basis_gates (list[str])): basis gates for the experiment
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        seed (int): random seed for simulators
+
+    Returns:
+        Qobj: the Qobj to be run on the backends
 
     Returns:
         Qobj: the qobj to run on the backend
     """
+    # TODO: the following will be removed from qobj and thus removed here:
+    # `basis_gates`, `coupling_map`
+
     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have prefernce
     qobj_config = deepcopy(config or {})
@@ -158,11 +171,8 @@ def _dags_2_qobj(dags, circuits, backend_name, list_layout=None, config=None, sh
     if seed:
         qobj.config.seed = seed
 
-    # change to standard for if dags gets circuit field
-    for i, dag in enumerate(dags):
-
+    for dag, layout in zip(dags, layouts):
         json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-
         # Step 3a: create the Experiment based on json_circuit
         experiment = QobjExperiment.from_dict(json_circuit)
         # Step 3b: populate the Experiment configuration and header
@@ -172,9 +182,8 @@ def _dags_2_qobj(dags, circuits, backend_name, list_layout=None, config=None, sh
         experiment_config.update({
             'coupling_map': coupling_map,
             'basis_gates': basis_gates,
-            'layout': list_layout[i],
-            'memory_slots': sum(register.size for register
-                                in circuits[i].get_cregs().values())})
+            'layout': layout,
+            'memory_slots': sum(dag.cregs.values())})
         experiment.config = QobjItem(**experiment_config)
 
         # set eval_symbols=True to evaluate each symbolic expression
@@ -263,7 +272,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
             dag, final_layout, last_layout = swap_mapper(
-                    dag, coupling, initial_layout, trials=20, seed=seed)
+                dag, coupling, initial_layout, trials=20, seed=seed)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
             dag_unroller = DagUnroller(dag, DAGBackend(basis))
@@ -383,11 +392,11 @@ def _pick_best_layout(dag, backend):
         dict: A special ordered initial_layout
 
     """
-    num_qubits = sum(dag.qregs.values())            
+    num_qubits = sum(dag.qregs.values())
     best_sub = _best_subset(backend, num_qubits)
     layout = {}
     map_iter = 0
-    for key, value in qregs.items():
+    for key, value in dag.qregs.items():
         for i in range(value):
             layout[(key, i)] = ('q', best_sub[map_iter])
             map_iter += 1
