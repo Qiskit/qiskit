@@ -6,11 +6,9 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """QOBj test."""
-import os
 import json
 import jsonschema as jsch
-from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment,
-                         QobjInstruction)
+from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction)
 from qiskit import __path__ as qiskit_path
 from .common import QiskitTestCase
 
@@ -65,15 +63,12 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_to_json(self):
         """Test dictionary representation of Qobj against its schema."""
-        sdk = qiskit_path[0]  # Main SDK path:    qiskit/
-        schemas = os.path.join(sdk, 'schemas')  # Schemas path:     qiskit/schemas
-        file_path = os.path.join(schemas, 'qobj_schema.json')  # Schema name: qobj_schema.json
+        file_path = self._get_resource_path('qobj_schema.json', qiskit_path.SCHEMAS)
 
         with open(file_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        example = self.valid_qobj.as_dict()
-        jsch.validate(example, schema)
+        jsch.validate(self.valid_qobj.as_dict(), schema)
 
 
 class TestQobjConfig(QiskitTestCase):
