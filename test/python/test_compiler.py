@@ -385,7 +385,7 @@ class TestCompiler(QiskitTestCase):
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
-    def test_compile_list_circuits(self):
+    def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
         backend = FakeBackEnd()
