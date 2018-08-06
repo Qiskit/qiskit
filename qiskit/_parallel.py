@@ -43,17 +43,13 @@ from the multiprocessing library.
 """
 
 import os
-import sys
 from multiprocessing import Pool, cpu_count
-from qiskit import QISKitError
-from qiskit.wrapper.progressbar import BaseProgressBar, TextProgressBar
-
-if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    from qiskit.wrapper.jupyter_tools import HTMLProgressBar
+from qiskit.wrapper.receiver import receiver as rec
+from qiskit.wrapper.progressbar import BaseProgressBar
 
 
 def serial_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-               num_processes=1, progress_bar=False):             # pylint: disable=W0613
+               num_processes=1):                                 # pylint: disable=W0613
     """
     Serial mapping function with the same call signature as parallel_map, for
     easy switching between serial and parallel execution. This is functionally
@@ -70,8 +66,6 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disab
         task_args (list): Optional additional argument to the `task` function.
         task_kwargs (dict): Optional additional keyword argument to the `task` function.
         num_processes (int): Number of processes to spawn. (IGNORED FOR SERIAL MAP)
-        progress_bar (bool): True/False, or Progress bar class instance for
-                                         showing progress.
 
     Returns:
         result: The result list contains the value of `task(value, *task_args, **task_kwargs)`
@@ -80,17 +74,16 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disab
     Raises:
         QISKitError: Invalid progress bar instance.
     """
+    # Get last element of the receiver channels
+    if any(rec.channels):
+        last_idx = next(reversed(rec.channels))
 
-    if progress_bar is True:
-        if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-            progress_bar = HTMLProgressBar()
+        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
+            progress_bar = rec.channels[last_idx]
         else:
-            progress_bar = TextProgressBar()
-    elif progress_bar is False:
-        progress_bar = BaseProgressBar()
+            progress_bar = BaseProgressBar()
     else:
-        if not isinstance(progress_bar, BaseProgressBar):
-            raise QISKitError('Progress bar must be BaseProgressBar instance.')
+        progress_bar = BaseProgressBar()
 
     progress_bar.start(len(values))
     results = []
@@ -104,7 +97,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disab
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-                 num_processes=cpu_count(), progress_bar=False):
+                 num_processes=cpu_count()):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -117,7 +110,6 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         task_args (list): Optional additional arguments to the ``task`` function.
         task_kwargs (dict): Optional additional keyword argument to the ``task`` function.
         num_processes (int): Number of processes to spawn.
-        progress_bar (bool): Progress bar class instance for showing progress.
 
     Returns:
         result: The result list contains the value of
@@ -129,16 +121,16 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
         KeyboardInterrupt: If user interupts via keyboard.
     """
-    if progress_bar is True:
-        if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-            progress_bar = HTMLProgressBar()
+    # Get last element of the receiver channels
+    if any(rec.channels):
+        last_idx = next(reversed(rec.channels))
+
+        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
+            progress_bar = rec.channels[last_idx]
         else:
-            progress_bar = TextProgressBar()
-    elif progress_bar is False:
-        progress_bar = BaseProgressBar()
+            progress_bar = BaseProgressBar()
     else:
-        if not isinstance(progress_bar, BaseProgressBar):
-            raise QISKitError('Progress bar must be BaseProgressBar instance.')
+        progress_bar = BaseProgressBar()
 
     os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
 

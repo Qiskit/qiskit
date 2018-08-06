@@ -43,40 +43,29 @@
 import time
 import datetime
 import sys
+from qiskit.wrapper.receiver import receiver as rec
 
 
 class BaseProgressBar(object):
-    """
-    An abstract progress bar with some shared functionality.
-
-    Example usage:
-
-        n_vec = linspace(0, 10, 100)
-        pbar = TextProgressBar(len(n_vec))
-        for n in n_vec:
-            pbar.update(n)
-            compute_with_n(n)
-        pbar.finished()
-
+    """An abstract progress bar with some shared functionality.
     """
 
     def __init__(self):
+        self.type = 'progressbar'
+        self.touched = False
+        self.channel_id = rec.add_channel(self)
         self.iter = None
-        self.p_chunk_size = None
-        self.p_chunk = None
         self.t_start = None
         self.t_done = None
 
-    def start(self, iterations, chunk_size=10):
+    def start(self, iterations):
         """Start the progress bar.
 
         Parameters:
-            iterations (float): Number of iterations
-            chunk_size (int): number of chunks.
+            iterations (int): Number of iterations.
         """
-        self.iter = float(iterations)
-        self.p_chunk_size = chunk_size
-        self.p_chunk = chunk_size
+        self.touched = True
+        self.iter = int(iterations)
         self.t_start = time.time()
 
     def update(self, n):
@@ -92,17 +81,18 @@ class BaseProgressBar(object):
         """
         return "%6.2fs" % (time.time() - self.t_start)
 
-    def time_remaining_est(self, percent):
+    def time_remaining_est(self, completed_iter):
         """Estimate the remaining time left.
 
         Parameters:
-            percent (float): Percent of progress completed.
+            completed_iter (int): Number of iterations completed.
 
         Returns:
             est_time: Estimated time remaining.
         """
-        if percent > 0.0:
-            t_r_est = (time.time() - self.t_start) * (100.0 - percent) / percent
+        percent = self.iter / completed_iter
+        if percent > 0:
+            t_r_est = (time.time() - self.t_start) * (percent - 1)
         else:
             t_r_est = 0
 
@@ -115,23 +105,26 @@ class BaseProgressBar(object):
     def finished(self):
         """Run when progress bar has completed.
         """
-        pass
+        rec.remove_channel(self.channel_id)
 
 
 class TextProgressBar(BaseProgressBar):
     """
     A simple text-based progress bar.
     """
+    def __init__(self):
+        super().__init__()
+        self.p_chunk = 10
+        self.p_chunk_size = 10
 
     def update(self, n):
         percent = (n / self.iter) * 100.0
         if percent >= self.p_chunk:
             print("%4.1f%%." % percent +
                   " Run time: %s." % self.time_elapsed() +
-                  " Est. time left: %s" % self.time_remaining_est(percent))
+                  " Est. time left: %s" % self.time_remaining_est(n))
             sys.stdout.flush()
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
-        self.t_done = time.time()
-        print("Total run time: %s" % self.time_elapsed())
+        rec.remove_channel(self.channel_id)

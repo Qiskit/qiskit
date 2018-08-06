@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            pass_manager=None, _parallel=False, _progress_bar=False):
+            pass_manager=None):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -50,8 +50,6 @@ def compile(circuits, backend,
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
         pass_manager (PassManager): a pass_manager for the transpiler stage
-        _parallel (bool): Compile circuits in parallel.
-        _progress_bar (bool): Use progress_bar to track parallel progress.
 
     Returns:
         Qobj: the Qobj to be run on the backends
@@ -98,7 +96,7 @@ def compile(circuits, backend,
             seed, pass_manager)
         qobj.experiments.append(experiment)
 
-    elif sys.platform == 'win32' or not _parallel:
+    elif sys.platform == 'win32':
         exps = serial_map(_compile_single_circuit,
                           circuits, task_args=(backend,),
                           task_kwargs={'config': config,
@@ -106,8 +104,7 @@ def compile(circuits, backend,
                                        'coupling_map': coupling_map,
                                        'initial_layout': initial_layout,
                                        'seed': seed,
-                                       'pass_manager': pass_manager},
-                          progress_bar=_progress_bar)
+                                       'pass_manager': pass_manager})
         # Step 3c: add the Experiment to the Qobj
         qobj.experiments = exps
     else:
@@ -119,8 +116,7 @@ def compile(circuits, backend,
                                          'coupling_map': coupling_map,
                                          'initial_layout': initial_layout,
                                          'seed': seed,
-                                         'pass_manager': pass_manager},
-                            progress_bar=_progress_bar)
+                                         'pass_manager': pass_manager})
         # Step 3c: add the Experiment to the Qobj
         qobj.experiments = exps
 

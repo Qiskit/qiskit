@@ -261,7 +261,7 @@ def get_backend(name):
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, parallel=False, progress_bar=False):
+            skip_transpiler=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -278,8 +278,6 @@ def compile(circuits, backend,
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): If True, bypass most of the compilation process and
             creates a qobj with minimal check nor translation
-        parallel (bool): Compile circuits in parallel.
-        progress_bar (bool): Use progress_bar to track parallel progress.
     Returns:
         Qobj: the qobj to be run on the backends
     """
@@ -294,13 +292,13 @@ def compile(circuits, backend,
     return transpiler.compile(circuits, backend,
                               config, basis_gates, coupling_map, initial_layout,
                               shots, max_credits, seed, qobj_id, hpc,
-                              pass_manager, parallel, progress_bar)
+                              pass_manager)
 
 
 def execute(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, parallel=False, progress_bar=False):
+            skip_transpiler=False):
     """Executes a set of circuits.
 
     Args:
@@ -316,8 +314,6 @@ def execute(circuits, backend,
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): skip most of the compile steps and produce qobj directly
-        parallel (bool): Compile circuits in parallel.
-        progress_bar (bool): Use progress_bar to track parallel progress.
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
@@ -328,7 +324,7 @@ def execute(circuits, backend,
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,
-                   skip_transpiler, parallel, progress_bar)
+                   skip_transpiler)
     return backend.run(qobj)
 
 

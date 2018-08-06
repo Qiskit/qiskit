@@ -383,22 +383,5 @@ class TestCompiler(QiskitTestCase):
             if op.name == 'cx':
                 self.assertIn(op.qubits, backend.configuration['coupling_map'])
 
-    def test_parallel_compile(self):
-        """Test compile in parallel.
-        """
-        backend = FakeBackEnd()
-        q = qiskit.QuantumRegister(16)
-        c = qiskit.ClassicalRegister(1)
-        qc = qiskit.QuantumCircuit(q, c)
-        qc.h(q[0])
-        for k in range(1, 15):
-            qc.cx(q[0], q[k])
-        qc.measure(q[5], c[0])
-        qlist = [qc for k in range(20)]
-        qobj = qiskit.compile(qlist, backend=backend,
-                              parallel=True, progress_bar=False)
-        self.assertIsInstance(qobj, Qobj)
-
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)
