@@ -7,10 +7,9 @@
 
 """QOBj test."""
 import json
-import jsonschema as jsch
+import jsonschema
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction)
-from qiskit import __path__ as qiskit_path
-from .common import QiskitTestCase
+from .common import QiskitTestCase, Path
 
 
 class TestQobj(QiskitTestCase):
@@ -53,8 +52,9 @@ class TestQobj(QiskitTestCase):
             all(getattr(self.valid_qobj, required_arg) is not None
                 for required_arg in Qobj.REQUIRED_ARGS))
 
-        with self.assertRaises(ValueError):
-            Qobj(qobj_id=None, header=None, config=None, experiments=None)
+        with self.assertRaises(TypeError):
+            # pylint: disable=no-value-for-parameter
+            Qobj()
 
     def test_as_dict(self):
         """Test conversion to dict of a Qobj based on the individual elements."""
@@ -63,12 +63,12 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_to_json(self):
         """Test dictionary representation of Qobj against its schema."""
-        file_path = self._get_resource_path('qobj_schema.json', qiskit_path.SCHEMAS)
+        file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
 
         with open(file_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        jsch.validate(self.valid_qobj.as_dict(), schema)
+        jsonschema.validate(self.valid_qobj.as_dict(), schema)
 
 
 class TestQobjConfig(QiskitTestCase):
@@ -84,8 +84,9 @@ class TestQobjConfig(QiskitTestCase):
             all(getattr(qobj_config, required_arg) is not None
                 for required_arg in QobjConfig.REQUIRED_ARGS))
 
-        with self.assertRaises(ValueError):
-            QobjConfig(shots=None, memory_slots=None)
+        with self.assertRaises(TypeError):
+            # pylint: disable=no-value-for-parameter
+            QobjConfig()
 
 
 class TestQobjExperiment(QiskitTestCase):
@@ -101,8 +102,9 @@ class TestQobjExperiment(QiskitTestCase):
             all(getattr(qobj_experiment, required_arg) is not None
                 for required_arg in QobjExperiment.REQUIRED_ARGS))
 
-        with self.assertRaises(ValueError):
-            QobjExperiment(instructions=None)
+        with self.assertRaises(TypeError):
+            # pylint: disable=no-value-for-parameter
+            QobjExperiment()
 
 
 class TestQobjInstruction(QiskitTestCase):
@@ -117,5 +119,6 @@ class TestQobjInstruction(QiskitTestCase):
             all(getattr(qobj_instruction, required_arg) is not None
                 for required_arg in QobjInstruction.REQUIRED_ARGS))
 
-        with self.assertRaises(ValueError):
-            QobjInstruction(name=None)
+        with self.assertRaises(TypeError):
+            # pylint: disable=no-value-for-parameter
+            QobjInstruction()
