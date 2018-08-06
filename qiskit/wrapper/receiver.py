@@ -11,6 +11,7 @@
 from collections import OrderedDict
 from qiskit import QISKitError
 
+
 class Reciever(object):
     """A receiver class that holds instances of objects
     (such as) progressbars that recieve call back info.
