@@ -16,7 +16,7 @@ class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
 
     def setUp(self):
-        self.valid_qobj = Qobj(
+        self._valid_qobj = Qobj(
             qobj_id='12345',
             header={},
             config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
@@ -27,8 +27,17 @@ class TestQobj(QiskitTestCase):
                 ])
             ]
         )
+        self._valid_qobj._version = '67890'  # private member variables shouldn't appear in the dict
 
-        self.expected_dict = {
+    def test_init_qobj(self):
+        """Test initialization of a Qobj for required arguments."""
+        with self.assertRaises(TypeError):
+            # pylint: disable=no-value-for-parameter
+            Qobj()
+
+    def test_as_dict(self):
+        """Test conversion to dict of a Qobj based on the individual elements."""
+        expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
             'schema_version': '1.0.0',
@@ -42,48 +51,29 @@ class TestQobj(QiskitTestCase):
             ],
         }
 
-    def tearDown(self):
-        self.valid_qobj = None
-        self.expected_dict = None
+        self.assertEqual(self._valid_qobj.as_dict(), expected_dict)
 
-    def test_create_qobj_and_req_args(self):
-        """Test creation of a Qobj and check for its required args."""
-        self.assertTrue(
-            all(getattr(self.valid_qobj, required_arg) is not None
-                for required_arg in Qobj.REQUIRED_ARGS))
-
-        with self.assertRaises(TypeError):
-            # pylint: disable=no-value-for-parameter
-            Qobj()
-
-    def test_as_dict(self):
-        """Test conversion to dict of a Qobj based on the individual elements."""
-        self.valid_qobj._version = '67890'  # private member variables shouldn't appear in the dict
-        self.assertEqual(self.valid_qobj.as_dict(), self.expected_dict)
-
-    def test_as_dict_to_json(self):
+    def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
 
         with open(file_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        jsonschema.validate(self.valid_qobj.as_dict(), schema)
+        passed = False
+        try:
+            jsonschema.validate(self._valid_qobj.as_dict(), schema)
+            passed = True
+        except jsonschema.ValidationError as err:
+            self.log.info('Error validating Qobj to_dict with JSON schema: %s', err)
+
+        self.assertTrue(passed)
 
 
 class TestQobjConfig(QiskitTestCase):
     """Tests for QobjConfig."""
     def test_init_qobj_config(self):
         """Test initialization of a QobjConfig for required arguments."""
-        shots = 1
-        memory_slots = 2
-
-        qobj_config = QobjConfig(shots=shots, memory_slots=memory_slots)
-
-        self.assertTrue(
-            all(getattr(qobj_config, required_arg) is not None
-                for required_arg in QobjConfig.REQUIRED_ARGS))
-
         with self.assertRaises(TypeError):
             # pylint: disable=no-value-for-parameter
             QobjConfig()
@@ -93,15 +83,6 @@ class TestQobjExperiment(QiskitTestCase):
     """Tests for QobjExperiment."""
     def test_init_qobj_experiment(self):
         """Test initialization of a QobjExperiment for required arguments."""
-        instruction_1 = QobjInstruction(name='u1', qubits=[1], params=[0.4])
-        instructions = [instruction_1]
-
-        qobj_experiment = QobjExperiment(instructions=instructions)
-
-        self.assertTrue(
-            all(getattr(qobj_experiment, required_arg) is not None
-                for required_arg in QobjExperiment.REQUIRED_ARGS))
-
         with self.assertRaises(TypeError):
             # pylint: disable=no-value-for-parameter
             QobjExperiment()
@@ -111,14 +92,6 @@ class TestQobjInstruction(QiskitTestCase):
     """Tests for QobjInstruction."""
     def test_init_qobj_instruction(self):
         """Test initialization of a QobjInstruction for required arguments."""
-        name = 'name'
-
-        qobj_instruction = QobjInstruction(name=name)
-
-        self.assertTrue(
-            all(getattr(qobj_instruction, required_arg) is not None
-                for required_arg in QobjInstruction.REQUIRED_ARGS))
-
         with self.assertRaises(TypeError):
             # pylint: disable=no-value-for-parameter
             QobjInstruction()
