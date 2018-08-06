@@ -18,7 +18,7 @@ import platform
 
 import numpy as np
 
-from qiskit._result import Result
+from qiskit._result import Result, copy_qasm_from_qobj_into_result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from qiskit.qobj import qobj_to_dict
@@ -77,6 +77,7 @@ class QasmSimulatorCpp(BaseBackend):
     def _run_job(self, qobj):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
+        copy_qasm_from_qobj_into_result(qobj, result)
         return Result(result)
 
     def _validate(self, qobj):

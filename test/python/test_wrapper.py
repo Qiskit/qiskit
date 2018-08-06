@@ -14,15 +14,24 @@ import unittest
 
 import qiskit.wrapper
 from qiskit import QISKitError
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper import registered_providers
+from qiskit.wrapper import registered_providers, execute
 from ._mockutils import DummyProvider
 from .common import QiskitTestCase, requires_qe_access
+from .common import is_cpp_simulator_available
 from .test_backends import remove_backends_from_list
 
 
 class TestWrapper(QiskitTestCase):
     """Wrapper test case."""
+    def setUp(self):
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        self.circuit = QuantumCircuit(q, c)
+        self.circuit.ccx(q[0], q[1], q[2])
+        self.circuit.measure(q, c)
+
     @requires_qe_access
     def test_wrapper_register_ok(self, QE_TOKEN, QE_URL, hub, group, project):
         """Test wrapper.register()."""
@@ -109,6 +118,29 @@ class TestWrapper(QiskitTestCase):
         # Check the name of the backend still refers to the previous one.
         self.assertEqual(dummy_backend,
                          qiskit.wrapper.get_backend('local_dummy_simulator'))
+
+    def test_local_execute_and_get_ran_qasm(self):
+        """Check if the local backend return the ran qasm."""
+
+        cpp_simulators = [
+            'local_qasm_simulator_cpp',
+            'local_statevector_simulator_cpp'
+        ]
+
+        python_simulators = [
+            'local_qasm_simulator_py',
+            'local_statevector_simulator_py',
+            'local_unitary_simulator_py'
+        ]
+
+        local_simulators = python_simulators
+        if is_cpp_simulator_available():
+            local_simulators += cpp_simulators
+
+        for backend_name in local_simulators:
+            with self.subTest(backend_name=backend_name):
+                result = execute(self.circuit, 'local_qasm_simulator').result()
+                self.assertIsNotNone(result.get_ran_qasm(self.circuit.name))
 
 
 if __name__ == '__main__':

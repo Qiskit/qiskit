@@ -747,7 +747,7 @@ class TestQuantumProgram(QiskitTestCase):
                                  coupling_map=coupling_map)
         result = q_program.get_compiled_configuration(qobj, 'circuitName')
         self.log.info(result)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result), 5)
 
     def test_get_compiled_qasm(self):
         """Test get_compiled_qasm.

@@ -101,6 +101,12 @@ def compile(circuits, backend,
     qobj.config.memory_slots = max(experiment.config.memory_slots for
                                    experiment in qobj.experiments)
 
+    # Update the `n_qubits` global value.
+    # TODO: num_qubits is not part of the qobj specification, but needed
+    # for the simulator.
+    qobj.config.n_qubits = max(experiment.config.n_qubits for
+                               experiment in qobj.experiments)
+
     return qobj
 
 
@@ -166,7 +172,10 @@ def _compile_single_circuit(circuit, backend,
         'basis_gates': basis_gates,
         'layout': list_layout,
         'memory_slots': sum(register.size for register
-                            in circuit.get_cregs().values())})
+                            in circuit.get_cregs().values()),
+        # TODO: `n_qubits` is not part of the qobj specification, but needed
+        # for the simulator.
+        'n_qubits': num_qubits})
     experiment.config = QobjItem(**experiment_config)
 
     # set eval_symbols=True to evaluate each symbolic expression
