@@ -130,18 +130,18 @@ class Pauli:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
             represnets the pauli.
         """
-        matrix = sparse.csr_matrix(np.array([[1]], dtype=complex))
+        matrix = sparse.coo_matrix(np.array([[1]], dtype=complex))
         for k in range(self.numberofqubits):
             if self.v[k] == 0 and self.w[k] == 0:
-                matrix = sparse.bmat([[matrix, None], [None, matrix]], "csr")
+                matrix = sparse.bmat([[matrix, None], [None, matrix]], "coo")
             elif self.v[k] == 1 and self.w[k] == 0:
-                matrix = sparse.bmat([[matrix, None], [None, -matrix]], "csr")
+                matrix = sparse.bmat([[matrix, None], [None, -matrix]], "coo")
             elif self.v[k] == 0 and self.w[k] == 1:
-                matrix = sparse.bmat([[None, matrix], [matrix, None]], "csr")
+                matrix = sparse.bmat([[None, matrix], [matrix, None]], "coo")
             elif self.v[k] == 1 and self.w[k] == 1:
-                matrix = sparse.bmat([[None, matrix * -1j], [matrix * 1j, None]], "csr")
+                matrix = sparse.bmat([[None, matrix * -1j], [matrix * 1j, None]], "coo")
 
-        return matrix
+        return matrix.tocsr()
 
 def random_pauli(number_qubits):
     """Return a random Pauli on numberofqubits."""
