@@ -22,6 +22,7 @@ from qiskit.qasm import _node as node
 
 logger = logging.getLogger(__name__)
 
+
 class SwapMapper(BasePass):
     def __init__(self, coupling_map=None, initial_layout=None, trials=20, seed=None):
         self.coupling = Coupling(coupling_list2dict(coupling_map))
@@ -114,7 +115,7 @@ class SwapMapper(BasePass):
             qubit_subset = self.coupling.get_qubits()
             qubit_subset = qubit_subset[0:dag.width()]
             self.initial_layout = {a: b for a, b in
-                              zip(dag.get_qubits(), qubit_subset)}
+                                   zip(dag.get_qubits(), qubit_subset)}
 
         # Find swap circuit to preceed to each layer of input circuit
         layout = self.initial_layout.copy()
@@ -187,11 +188,11 @@ class SwapMapper(BasePass):
                     # Update the QASM
                     dagcircuit_output.compose_back(
                         self.swap_mapper_layer_update(j,
-                                                 first_layer,
-                                                 best_layout,
-                                                 best_d,
-                                                 best_circ,
-                                                 serial_layerlist),
+                                                      first_layer,
+                                                      best_layout,
+                                                      best_d,
+                                                      best_circ,
+                                                      serial_layerlist),
                         identity_wire_map)
                     # Update initial layout
                     if first_layer:
@@ -205,11 +206,11 @@ class SwapMapper(BasePass):
                 # Update the QASM
                 dagcircuit_output.compose_back(
                     self.swap_mapper_layer_update(i,
-                                             first_layer,
-                                             best_layout,
-                                             best_d,
-                                             best_circ,
-                                             layerlist),
+                                                  first_layer,
+                                                  best_layout,
+                                                  best_d,
+                                                  best_circ,
+                                                  layerlist),
                     identity_wire_map)
                 # Update initial layout
                 if first_layer:
@@ -382,7 +383,7 @@ class SwapMapper(BasePass):
                 # We have either run out of qubits or failed to improve
                 # Compute the coupling graph distance
                 dist = sum([self.coupling.distance(trial_layout[g[0]],
-                                              trial_layout[g[1]]) for g in gates])
+                                                   trial_layout[g[1]]) for g in gates])
                 logger.debug("layer_permutation: dist = %s", dist)
                 # If all gates can be applied now, we are finished
                 # Otherwise we need to consider a deeper swap circuit
@@ -397,7 +398,7 @@ class SwapMapper(BasePass):
 
             # Either we have succeeded at some depth d < dmax or failed
             dist = sum([self.coupling.distance(trial_layout[g[0]],
-                                          trial_layout[g[1]]) for g in gates])
+                                               trial_layout[g[1]]) for g in gates])
             logger.debug("layer_permutation: dist = %s", dist)
             if dist == len(gates):
                 if d < best_d:
