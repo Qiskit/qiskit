@@ -85,6 +85,12 @@ class DAGCircuit:
         # Output precision for printing floats
         self.prec = 10
 
+        # layout of dag quantum registers on the chip
+        # TODO: rethink this. doesn't seem related to concept of DAG,
+        # but if we want to be able to generate qobj
+        # directly from a dag, we need it.
+        self.layout = []
+
     def get_qubits(self):
         """Return a list of qubits as (qreg, index) pairs."""
         return [(k, i) for k, v in self.qregs.items() for i in range(v)]
