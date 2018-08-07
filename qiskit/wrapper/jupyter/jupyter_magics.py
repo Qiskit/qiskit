@@ -69,7 +69,6 @@ class StatusMagic(Magics):
             value=_header % _job_var.status['status_msg'])
         display(status)
 
-
         def _checker(status):
             while _job_var.status['status'].name != 'DONE':
                 time.sleep(args.interval)
