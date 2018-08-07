@@ -14,23 +14,6 @@ from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, Magics, magics_class
 import ipywidgets as widgets
 import qiskit
-from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
-from qiskit.wrapper.receiver import receiver as rec
-
-
-@magics_class
-class ProgressBarMagic(Magics):
-    """A class of progress bar magic functions.
-    """
-    @cell_magic
-    def qiskit_progress_bar(self, line='', cell=None):  # pylint: disable=W0613
-        """A Jupyter magic function to generate progressbar.
-        """
-        progress_bar = HTMLProgressBar()
-        self.shell.ex(cell)
-        # Remove progress bar from receiver if not used in cell
-        if progress_bar.channel_id in rec.channels.keys():
-            rec.remove_channel(progress_bar.channel_id)
 
 
 @magics_class

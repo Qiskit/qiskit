@@ -9,8 +9,8 @@
 """
 
 from IPython import get_ipython
-from .jupyter_magics import (StatusMagic, ProgressBarMagic)
+from .jupyter_magics import StatusMagic
 
 _ip = get_ipython()  # pylint: disable=C0103
 _ip.register_magics(StatusMagic)
-_ip.register_magics(ProgressBarMagic)
+
