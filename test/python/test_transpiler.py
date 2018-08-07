@@ -107,14 +107,16 @@ class TestTranspiler(QiskitTestCase):
 
         It should cancel consecutive cx pairs on same qubits.
         """
-        q = QuantumRegister(2)
+        q = QuantumRegister(3)
         circ = QuantumCircuit(q)
+
         circ.cx(q[0], q[1])
-        circ.cx(q[1], q[0])
+
         dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
 
-        coupling_map = [[1, 0]]
+        coupling_map = [[1, 2], [2,0]]
 
         pass_manager = PassManager()
         pass_manager.add_pass(SwapMapper(coupling_map=coupling_map))
-        dag_circuit = transpile(dag_circuit, coupling_map=coupling_map, pass_manager=pass_manager)
+        dag_circuit = transpile(dag_circuit, coupling_map=coupling_map, pass_manager=pass_manager,
+                                seed=42)
