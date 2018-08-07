@@ -396,7 +396,7 @@ class TestCompiler(QiskitTestCase):
         for k in range(1, 15):
             qc.cx(q[0], q[k])
         qc.measure(q[5], c[0])
-        qlist = [qc for k in range(50)]
+        qlist = [qc for k in range(10)]
         qiskit.compile(qlist, backend=backend)
 
 
