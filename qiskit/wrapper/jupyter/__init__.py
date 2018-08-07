@@ -13,4 +13,3 @@ from .jupyter_magics import StatusMagic
 
 _ip = get_ipython()  # pylint: disable=C0103
 _ip.register_magics(StatusMagic)
-
