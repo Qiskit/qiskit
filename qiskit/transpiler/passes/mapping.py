@@ -87,11 +87,10 @@ class SwapMapper(BasePass):
             MapperError: if there was any error during the mapping or with the
                 parameters.
         """
-
         if dag.width() > self.coupling.size():
             raise MapperError("Not enough qubits in CouplingGraph")
 
-            # Schedule the input circuit
+        # Schedule the input circuit
         layerlist = list(dag.layers())
         logger.debug("schedule:")
         for i, v in enumerate(layerlist):
