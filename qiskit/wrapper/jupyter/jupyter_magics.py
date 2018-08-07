@@ -8,6 +8,7 @@
 """A module of magic functions"""
 
 import time
+import threading
 from IPython.display import display
 from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, Magics, magics_class
@@ -68,16 +69,21 @@ class StatusMagic(Magics):
             value=_header % _job_var.status['status_msg'])
         display(status)
 
-        while _job_var.status['status'].name != 'DONE':
-            time.sleep(args.interval)
-            _status = _job_var.status
-            _status_name = _status['status'].name
-            _status_msg = _status['status_msg']
-            if _status_name == 'ERROR':
-                break
-            else:
-                if _status_name == 'QUEUED':
-                    _status_msg += ' (%s)' % _status['queue_position']
-                status.value = _header % _status_msg
 
-        status.value = _header % _job_var.status['status_msg']
+        def _checker(status):
+            while _job_var.status['status'].name != 'DONE':
+                time.sleep(args.interval)
+                _status = _job_var.status
+                _status_name = _status['status'].name
+                _status_msg = _status['status_msg']
+                if _status_name == 'ERROR':
+                    break
+                else:
+                    if _status_name == 'QUEUED':
+                        _status_msg += ' (%s)' % _status['queue_position']
+                    status.value = _header % _status_msg
+
+            status.value = _header % _job_var.status['status_msg']
+
+        thread = threading.Thread(target=_checker, args=(status,))
+        thread.start()
