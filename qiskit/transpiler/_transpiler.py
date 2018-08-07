@@ -79,26 +79,9 @@ def compile(circuits, backend,
     dags = _circuits_2_dags(circuits)
 
     # step 2: Transpile all the dags
-    # Work-around for compiling multiple circuits with different qreg names.
-    # Should later make it so that the initial_layout can be a list of layouts.
-    layouts = []
-    _initial_layout = initial_layout.copy() if initial_layout is not None else None
-    for i, dag in enumerate(dags):
-        # pick a good initial layout if coupling_map is not already satisfied
-        # otherwise keep it as q[i]->q[i]. TODO: move this inside mapper pass.
-        if (initial_layout is None and not backend.configuration['simulator']
-                and not _matches_coupling_map(dag, coupling_map)):
-            _initial_layout = _pick_best_layout(dag, backend)
-
-        dags[i], final_layout = transpile(
-            dag,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=_initial_layout,
-            get_layout=True,
-            seed=seed,
-            pass_manager=pass_manager)
-        layouts.append([[k, v] for k, v in final_layout.items()] if final_layout else None)
+    dags = _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
+                           initial_layout=initial_layout, get_layout=get_layout,
+                           format=format, seed=seed, pass_manager=pass_manager)
 
     # step 3: Making a qobj
     qobj = _dags_2_qobj(dags, backend_name=backend_name, layouts=layouts,
@@ -124,6 +107,55 @@ def _circuits_2_dags(circuits):
         dag = DAGCircuit.fromQuantumCircuit(circuit)
         dags.append(dag)
     return dags
+
+
+def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+                    initial_layout=None, get_layout=False,
+                    format='dag', seed=None, pass_manager=None):
+    """Transform multiple dags through a sequence of passes.
+
+    Args:
+        dags (list[DAGCircuit]): dag circuits to transform
+        basis_gates (str): a comma seperated string for the target basis gates
+        coupling_map (list): A graph of coupling
+        initial_layout (dict): A mapping of qubit to qubit::
+        get_layout (bool): flag for returning the final layout after mapping
+        format (str): The target format of the compilation:
+            {'dag', 'json', 'qasm'}
+        seed (int): random seed for the swap mapper
+        pass_manager (PassManager): pass manager instance for the tranpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+
+    Returns:
+        list[DAGCircuit]: transformed dag circuits
+
+    Raises:
+        TranspilerError: if the format is not valid.    
+    """
+    # TODO: Parallelize this method
+
+    # Work-around for transpiling multiple circuits with different qreg names.
+    # Should later make it so that the initial_layout can be a list of layouts.
+    layouts = []
+    _initial_layout = initial_layout.copy() if initial_layout is not None else None
+    for i, dag in enumerate(dags):
+        # pick a good initial layout if coupling_map is not already satisfied
+        # otherwise keep it as q[i]->q[i]. TODO: move this inside mapper pass.
+        if (initial_layout is None and not backend.configuration['simulator']
+                and not _matches_coupling_map(dag, coupling_map)):
+            _initial_layout = _pick_best_layout(dag, backend)
+
+        dags[i], final_layout = transpile(
+            dag,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            initial_layout=_initial_layout,
+            get_layout=True,
+            seed=seed,
+            pass_manager=pass_manager)
+        layouts.append([[k, v] for k, v in final_layout.items()] if final_layout else None)    
 
 
 def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
@@ -247,9 +279,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             If contains no passes in it, no dag transformations occur.
 
     Returns:
-        object: If get_layout == False, the compiled circuit in the specified
-            format. If get_layout == True, a tuple is returned, with the
-            second element being the final layout.
+        dag (DAGCircuit): transformed dag
 
     Raises:
         TranspilerError: if the format is not valid.
