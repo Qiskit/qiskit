@@ -79,12 +79,26 @@ def compile(circuits, backend,
     dags = _circuits_2_dags(circuits)
 
     # step 2: Transpile all the dags
-    dags = _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
-                           initial_layout=initial_layout, get_layout=get_layout,
-                           format=format, seed=seed, pass_manager=pass_manager)
+
+    # FIXME: Work-around for transpiling multiple circuits with different qreg names.
+    # Make compile take a list of initial_layouts.
+    _initial_layout = initial_layout.copy() if initial_layout is not None else None
+
+    # Pick a good initial layout if coupling_map is not already satisfied
+    # otherwise keep it as q[i]->q[i].
+    # TODO: move this inside mapper pass.
+    initial_layouts = []
+    for dag in dags:
+        if (initial_layout is None and not backend.configuration['simulator']
+                and not _matches_coupling_map(dag, coupling_map)):
+            _initial_layout = _pick_best_layout(dag, backend)
+        initial_layouts.append(_initial_layout)
+    _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
+                    initial_layouts=initial_layouts, seed=seed,
+                    pass_manager=pass_manager)
 
     # step 3: Making a qobj
-    qobj = _dags_2_qobj(dags, backend_name=backend_name, layouts=layouts,
+    qobj = _dags_2_qobj(dags, backend_name=backend_name,
                         config=config, shots=shots, max_credits=max_credits,
                         qobj_id=qobj_id, basis_gates=basis_gates,
                         coupling_map=coupling_map, seed=seed)
@@ -110,55 +124,38 @@ def _circuits_2_dags(circuits):
 
 
 def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layout=None, get_layout=False,
-                    format='dag', seed=None, pass_manager=None):
+                    initial_layouts=None, seed=None, pass_manager=None):
     """Transform multiple dags through a sequence of passes.
 
     Args:
         dags (list[DAGCircuit]): dag circuits to transform
         basis_gates (str): a comma seperated string for the target basis gates
         coupling_map (list): A graph of coupling
-        initial_layout (dict): A mapping of qubit to qubit::
-        get_layout (bool): flag for returning the final layout after mapping
-        format (str): The target format of the compilation:
-            {'dag', 'json', 'qasm'}
+        initial_layouts (list[dict]): A mapping of qubit to qubit for each dag
         seed (int): random seed for the swap mapper
         pass_manager (PassManager): pass manager instance for the tranpilation process
             If None, a default set of passes are run.
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
 
-    Returns:
-        list[DAGCircuit]: transformed dag circuits
-
     Raises:
-        TranspilerError: if the format is not valid.    
+        TranspilerError: if the format is not valid.
     """
     # TODO: Parallelize this method
-
-    # Work-around for transpiling multiple circuits with different qreg names.
-    # Should later make it so that the initial_layout can be a list of layouts.
-    layouts = []
-    _initial_layout = initial_layout.copy() if initial_layout is not None else None
-    for i, dag in enumerate(dags):
-        # pick a good initial layout if coupling_map is not already satisfied
-        # otherwise keep it as q[i]->q[i]. TODO: move this inside mapper pass.
-        if (initial_layout is None and not backend.configuration['simulator']
-                and not _matches_coupling_map(dag, coupling_map)):
-            _initial_layout = _pick_best_layout(dag, backend)
-
-        dags[i], final_layout = transpile(
+    for dag, initial_layout in zip(dags, initial_layouts):
+        dag, final_layout = transpile(
             dag,
             basis_gates=basis_gates,
             coupling_map=coupling_map,
-            initial_layout=_initial_layout,
+            initial_layout=initial_layout,
             get_layout=True,
             seed=seed,
             pass_manager=pass_manager)
-        layouts.append([[k, v] for k, v in final_layout.items()] if final_layout else None)    
+        dag.layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
+        dags.append(dag)
 
 
-def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
+def _dags_2_qobj(dags, backend_name, config=None, shots=None,
                  max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
                  seed=None):
     """Convert a list of dags into a qobj.
@@ -166,7 +163,6 @@ def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
     Args:
         dags (list[DAGCircuit]): dags to compile
         backend_name (str): name of runner backend
-        layouts (list[dict]): list of circuit->device qubit layouts for each experiment
         config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
@@ -177,9 +173,6 @@ def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
 
     Returns:
         Qobj: the Qobj to be run on the backends
-
-    Returns:
-        Qobj: the qobj to run on the backend
     """
     # TODO: the following will be removed from qobj and thus removed here:
     # `basis_gates`, `coupling_map`
@@ -203,7 +196,7 @@ def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
     if seed:
         qobj.config.seed = seed
 
-    for dag, layout in zip(dags, layouts):
+    for dag in dags:
         json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
         # Step 3a: create the Experiment based on json_circuit
         experiment = QobjExperiment.from_dict(json_circuit)
@@ -214,7 +207,7 @@ def _dags_2_qobj(dags, backend_name, layouts=None, config=None, shots=None,
         experiment_config.update({
             'coupling_map': coupling_map,
             'basis_gates': basis_gates,
-            'layout': layout,
+            'layout': dag.layout,
             'memory_slots': sum(dag.cregs.values())})
         experiment.config = QobjItem(**experiment_config)
 
@@ -279,7 +272,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             If contains no passes in it, no dag transformations occur.
 
     Returns:
-        dag (DAGCircuit): transformed dag
+        DAGCircuit: transformed dag
 
     Raises:
         TranspilerError: if the format is not valid.
