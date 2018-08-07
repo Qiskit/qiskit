@@ -26,7 +26,6 @@ from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob, JobError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._result import Result
-from qiskit._resulterror import ResultError
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ API_FINAL_STATES = (
 class IBMQJob(BaseJob):
     """IBM Q Job class
 
-    This class represents the Jobs that will be executed on IBM Q backends
+    This class represents the jobs that will be executed on IBM Q backends
     (simulators or real chips). It has some asynchronous properties, and some
     blocking behavior. This is a common use-case example:
     .. highlight::
@@ -61,39 +60,40 @@ class IBMQJob(BaseJob):
         except JobError as ex:
             log("Something wrong happened!: {}".format(ex))
 
-    About the status in case of Error or Exception:
+    About the status in case of Error or Exception
+    ==============================================
     If there's an exception from the IBMQuantumExperience API once a job has been submitted,
-    we cannot set the status of the Job to ERROR, because it might happen that the Job is actually
+    we cannot set the status of the job to ERROR, because it might happen that the job is actually
     queued or running, and let's say that the exception is caused because of a temporary
     out of service situation of the server, once this situation is restored, we might want to ask
-    again about the status of our Job, that could be in state: queued, running or done.
-    if something wrong happened to the Job, it's server responsability to answer an error response
-    to a status query from Qiskit.
-    But, if the exception is thrown before having a valid Job ID, there's nothing we can do,
-    with this Job instance, as we cannot query the server for information using this Job instance.
+    again about the status of our job, that could be, for example, in state: queued, running or
+    done. If something wrong happened to the job, it's server responsability to answer an error
+    response to a status query from Qiskit. But, if the exception is thrown before having a
+    valid job ID, there's nothing we can do with this job instance, as we cannot query the server
+    for information using this job instance.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
-        _final_states (list(JobStatus)): terminal states of async jobs
     """
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, api, is_device, qobj=None, job_id=None, backend_name=None,
                  creation_date=None):
         """IBMQJob init function.
-        We can instantiate Jobs from two sources: A QObj, and an already submitted job returned by
+        We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
 
         Args:
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. If not present, is because we are probably getting
-                         a Job from the API server.
-            job_id (String): The Job ID of an already submitted job.
+                         a job from the API server.
+            job_id (String): The job ID of an already submitted job.
             backend_name(String): The name of the backend that run the job.
-            creation_date(String): When the Job was run.
+            creation_date(String): When the job was run.
         """
         super().__init__()
+        self._job_data = None
         # TODO No need for this conversion, just use the new equivalent members above
         if qobj is not None:
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
@@ -108,8 +108,8 @@ class IBMQJob(BaseJob):
         self._api = api
         self._id = job_id  # this must be before creating the future
         self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
-        # If we are creating the Job from a QObj, then it's ok to initialize the status to
-        # INITIALIZING, otherwise we are creating a Job from an already submitted job, so
+        # If we are creating the job from a QObj, then it's ok to initialize the status to
+        # INITIALIZING, otherwise we are creating a job from an already submitted job, so
         # we have to ask the API server in which state the job is found
         self._status = JobStatus.INITIALIZING
         if qobj is None:
@@ -197,8 +197,8 @@ class IBMQJob(BaseJob):
                           or the server sent an unknown answer.
         """
 
-        # This will only happen if something bad happens when submitting a Job, so
-        # we don't have a Job ID
+        # This will only happen if something bad happens when submitting a job, so
+        # we don't have a job ID
         if self._future_exception is not None:
             raise JobError(str(self._future_exception))
 
@@ -242,8 +242,7 @@ class IBMQJob(BaseJob):
         return self._status
 
     def queue_position(self):
-        """
-        Returns the position in the server queue
+        """Returns the position in the server queue
 
         Returns:
             Number: Position in the queue. 0 = No queued yet
@@ -258,8 +257,7 @@ class IBMQJob(BaseJob):
 
     @property
     def queued(self):
-        """
-        Returns whether job is queued.
+        """Returns whether job is queued.
 
         Returns:
             bool: True if job is queued, else False.
@@ -271,8 +269,7 @@ class IBMQJob(BaseJob):
 
     @property
     def running(self):
-        """
-        Returns whether job is actively running
+        """Returns whether job is actively running
 
         Returns:
             bool: True if job is running, else False.
@@ -284,8 +281,7 @@ class IBMQJob(BaseJob):
 
     @property
     def validating(self):
-        """
-        Returns whether job is being validated
+        """Returns whether job is being validated
 
         Returns:
             bool: True if job is under validation, else False.
@@ -297,8 +293,8 @@ class IBMQJob(BaseJob):
 
     @property
     def done(self):
-        """
-        Returns True if job successfully finished running.
+        """Returns True if job successfully finished running.
+
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
 
@@ -317,8 +313,8 @@ class IBMQJob(BaseJob):
     # pylint: disable=invalid-name
     @property
     def id(self):
-        """
-        Return backend determined id.
+        """Return backend determined id.
+
         If the ID is not set because the job is already initializing, this call will
         block until we have an ID.
         """
@@ -326,24 +322,19 @@ class IBMQJob(BaseJob):
         return self._id
 
     def _is_commercial(self):
-        """ Returns True if the job is running in one of the commercial backends """
+        """Returns True if the job is running in one of the commercial backends"""
         config = self._api.config
         # this check may give false positives so should probably be improved
         return config.get('hub') and config.get('group') and config.get('project')
 
     def backend_name(self):
-        """
-        Return backend name used for this job
-        """
+        """Return backend name used for this job"""
         return self._backend_name
 
     def submit(self):
         """Submit job to IBM Q.
 
         Raises:
-            ResultError: If the API reported an error with the submitted job.
-            RegisterSizeError: If the requested register size exceeded device
-                capability.
             JobError: If we have already submited the job.
         """
         if self._future is not None and self._id is not None:
@@ -376,10 +367,10 @@ class IBMQJob(BaseJob):
                                              seed, shots, max_credits)
 
     def _submit_callback(self, api_jobs, backend_name, hpc, seed, shots, max_credits):
-        """ Submit job to IBM Q.
+        """Submit job to IBM Q.
 
         Args:
-            api_jobs (list): List of API Job dictionaries to submit. One per circuit.
+            api_jobs (list): List of API job dictionaries to submit. One per circuit.
             backend_name (string): The name of the backend
             hpc (dict): HPC specific configuration
             seed (integer): The seed for the circuits
@@ -424,6 +415,7 @@ class IBMQJob(BaseJob):
         Raises:
             TimeoutError: if the job does not return results before an
             specified timeout.
+            JobError: if something wrong happened in some of the server API calls
         """
         start_time = time.time()
         while self.status() not in JOB_FINAL_STATES:
@@ -457,11 +449,15 @@ class IBMQJob(BaseJob):
                        'backend_name': self.backend_name})
 
     def _wait_for_submitting(self):
-        """ Waits for the request to return a Job ID """
+        """Waits for the request to return a job ID"""
         if self._id is None:
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
-            submit_info = self._future.result(timeout=60)
+            try:
+                submit_info = self._future.result(timeout=60)
+            except TimeoutError as ex:
+                raise JobError("Timeout waiting for the job being submitted: {}".format(ex))
+
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
                 raise JobError(str(submit_info['error']))
@@ -472,9 +468,11 @@ class IBMQJob(BaseJob):
 
 
 def _reorder_bits(result):
-    """temporary fix for ibmq backends.
-    for every ran circuit, get reordering information from qobj
-    and apply reordering on result"""
+    """Temporary fix for ibmq backends.
+
+    For every ran circuit, get reordering information from qobj
+    and apply reordering on result.
+    """
     for circuit_result in result._result['result']:
         if 'metadata' in circuit_result:
             circ = circuit_result['metadata'].get('compiled_circuit')
@@ -508,7 +506,7 @@ def _reorder_bits(result):
             # insert spaces to signify different classical registers
             cregs = circ['header']['clbit_labels']
             if sum([creg[1] for creg in cregs]) != num_clbits:
-                raise ResultError("creg sizes don't add up in result header.")
+                raise JobError("creg sizes don't add up in result header.")
             creg_begin_pos = []
             creg_end_pos = []
             acc = 0
@@ -541,7 +539,7 @@ def _numpy_type_converter(obj):
 
 
 def _create_job_from_circuit(circuit):
-    """ Helper function that creates a special Job required by the API, from a circuit """
+    """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm', None):
         compiled_circuit = transpile(circuit['circuit'])
@@ -564,7 +562,7 @@ def _create_job_from_circuit(circuit):
 
 
 def _is_job_queued(api_job):
-    """ Checks whether a Job has been queued or not """
+    """Checks whether a job has been queued or not."""
     is_queued, position = False, 0
     if 'infoQueue' in api_job:
         if 'status' in api_job['infoQueue']:

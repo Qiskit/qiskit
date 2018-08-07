@@ -118,6 +118,11 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertStatus(job, JobStatus.RUNNING)
 
     def test_status_flow_for_errored_cancellation(self):
+        """This is still on RUNNING state because the Job
+        couldn't be cancelled, and is not due to a server
+        internal error, it's just in a non-cancelable state,
+        so the server returns an ERROR response.
+        """
         job = self.run_with_api(ErroredCancellationAPI())
         self.assertStatus(job, JobStatus.INITIALIZING)
 
@@ -125,10 +130,6 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertStatus(job, JobStatus.RUNNING)
         can_cancel = job.cancel()
         self.assertFalse(can_cancel)
-        # This is still on RUNNING state because the Job
-        # couldn't be cancelled, and is not due to a server
-        # internal error, it's just in a non-cancelable state,
-        # so the server returns an ERROR response.
         self.assertStatus(job, JobStatus.RUNNING)
 
     def test_status_flow_for_invalid_job(self):
@@ -141,13 +142,14 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertStatus(job, JobStatus.ERROR)
 
     def test_status_flow_for_throwing_job(self):
-        """ If there's an exeception in the thread that will submit the job, it
+        """ If there's an exception in the thread that will submit the job, it
         doesn't mean the Job had a problem, it might be a temporary server specific
         error. So the job status will remain unchanged, but an exception will be
         re-thrown when calling status().
-        If something wrong actually happened to the Job, is the server responsability
+        If something wrong actually happened to the Job, is the server responsibility
         to return the ERROR state, but the status() method will not raise an
-        exception in this case."""
+        exception in this case.
+        """
         job = self.run_with_api(ThrowingServerButJobFinishedAPI())
         # We need to give time to the thread to populate the exception, before we
         # can re-throwing it in status()
@@ -158,7 +160,6 @@ class TestIBMQJobStates(QiskitTestCase):
     def test_status_flow_for_throwing_api(self):
         job = self.run_with_api(ThrowingAPI())
         with self.assertRaises(JobError):
-            # If api.get_job() throws, the job will re-throw instantly
             self.wait_for_initialization(job)
 
     def test_cancelled_result(self):
@@ -231,10 +232,10 @@ class TestIBMQJobStates(QiskitTestCase):
         self.assertFalse(can_cancel)
 
     def test_only_final_states_cause_datailed_request(self):
+        """The state ERROR_CREATING_JOB is only handled when running the job,
+        and not while checking the status, so it is not tested.
+        """
         from unittest import mock
-
-        # The state ERROR_CREATING_JOB is only handled when running the job,
-        # and not while checking the status, so it is not tested.
         all_state_apis = {'COMPLETED': NonQueuedAPI,
                           'CANCELLED': CancellableAPI,
                           'ERROR_VALIDATING_JOB': ErrorWhileValidatingAPI,
@@ -260,7 +261,8 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
-        status."""
+        status.
+        """
         waited = 0
         wait = 0.1
         while job.status() == JobStatus.INITIALIZING:
@@ -274,7 +276,8 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
-        if the shorthand method for that status returns `True`."""
+        if the shorthand method for that status returns `True`.
+        """
         self.assertEqual(job.status(), status)
         if status == JobStatus.CANCELLED:
             self.assertTrue(job.cancelled)
@@ -289,7 +292,8 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def run_with_api(self, api):
         """Creates a new `IBMQJob` instance running with the provided API
-        object."""
+        object.
+        """
         self._current_api = api
         self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
@@ -298,7 +302,8 @@ class TestIBMQJobStates(QiskitTestCase):
 
 def _auto_progress_api(api, interval=0.2):
     """Progress a `BaseFakeAPI` instacn every `interval` seconds until reaching
-    the final state."""
+    the final state.
+    """
     try:
         while True:
             time.sleep(interval)
@@ -391,7 +396,8 @@ class NonQueuedAPI(BaseFakeAPI):
 
 class ErrorWhileCreatingAPI(BaseFakeAPI):
     """Class emulating an API processing a job that errors while creating
-    the job."""
+    the job.
+    """
 
     _job_status = [
         {'status': 'ERROR_CREATING_JOB'}
@@ -448,7 +454,8 @@ class ThrowingServerButJobFinishedAPI(BaseFakeAPI):
     """Class for emulating an API throwing in the middle of execution, but
     corresponding Job completes. This can simulate a server exception, but
     not a a job problem, indeed, this will simulate a successfully completed
-    job """
+    job.
+    """
 
     _job_status = [
         {'status': 'COMPLETED'}
@@ -463,7 +470,8 @@ class ThrowingServerButJobFinishedAPI(BaseFakeAPI):
 
 class ThrowingGetJobAPI(BaseFakeAPI):
     """Class for emulating an API throwing in the middle of execution. But not in
-       get_status_job() , just in get_job() """
+       get_status_job() , just in get_job().
+       """
 
     _job_status = [
         {'status': 'COMPLETED'}
@@ -499,7 +507,8 @@ class NonCancellableAPI(BaseFakeAPI):
 
 class ErroredCancellationAPI(BaseFakeAPI):
     """Class for emulating an API with cancellation but throwing while
-    trying."""
+    trying.
+    """
 
     _job_status = [
         {'status': 'RUNNING'},

@@ -33,7 +33,7 @@ Changed
     - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
-- Jobs refactoring for simplifying its usage and some minor bug fixes. (#686)
+- ``Jobs API`` refactoring for simplifying its usage and some minor bug fixes. (#686)
 
 Removed
 -------

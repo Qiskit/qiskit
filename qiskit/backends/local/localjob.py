@@ -10,10 +10,30 @@
 from concurrent import futures
 import logging
 import sys
+import functools
 
 from qiskit.backends import BaseJob, JobStatus, JobError
 
 logger = logging.getLogger(__name__)
+
+
+def requires_submit(func):
+    """
+    Decorator to ensure that a submit has been performed before
+    calling the method.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @functools.wraps(func)
+    def _(self, *args, **kwargs):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+        return func(self, *args, **kwargs)
+    return _
 
 
 class LocalJob(BaseJob):
@@ -42,6 +62,7 @@ class LocalJob(BaseJob):
 
         self._future = self._executor.submit(self._fn, self._qobj)
 
+    @requires_submit
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
         """
@@ -60,13 +81,10 @@ class LocalJob(BaseJob):
             concurrent.futures.TimeoutError: if timeout occured.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
-        self._check_submitted()
         return self._future.result(timeout=timeout)
 
+    @requires_submit
     def cancel(self):
-        if self._future is None:
-            raise JobError("Job not submitted yet!. You have to .submit() first!")
-
         return self._future.cancel()
 
     @property
@@ -88,11 +106,12 @@ class LocalJob(BaseJob):
                 'status_msg': _status_msg}
 
     @property
+    @requires_submit
     def running(self):
-        self._check_submitted()
         return self._future.running()
 
     @property
+    @requires_submit
     def done(self):
         """
         Returns True if job successfully finished running.
@@ -100,12 +119,11 @@ class LocalJob(BaseJob):
         Note behavior is slightly different than Future objects which would
         also return true if successfully cancelled.
         """
-        self._check_submitted()
         return self._future.done() and not self._future.cancelled()
 
     @property
+    @requires_submit
     def cancelled(self):
-        self._check_submitted()
         return self._future.cancelled()
 
     @property
@@ -114,7 +132,3 @@ class LocalJob(BaseJob):
         Return backend name used for this job
         """
         return self._backend_name
-
-    def _check_submitted(self):
-        if self._future is None:
-            raise JobError("Job not submitted yet!. You have to .submit() first!")

@@ -6,14 +6,14 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by Jobs.
+Exception for errors raised by jobs.
 """
 
 from qiskit import QISKitError
 
 
 class JobError(QISKitError):
-    """Base class for errors raised by Jobs."""
+    """Base class for errors raised by jobs."""
 
     def __init__(self, *message):
         """Set the error message."""
