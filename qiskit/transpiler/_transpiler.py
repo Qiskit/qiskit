@@ -25,7 +25,7 @@ from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap
                            remove_last_measurements, return_last_measurements)
 from qiskit._gate import Gate
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem
-from qiskit._parallel import (serial_map, parallel_map)
+from qiskit._parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -90,23 +90,15 @@ def compile(circuits, backend,
     coupling_map = coupling_map or backend_conf['coupling_map']
 
     # Step 2 and 3: transpile and populate the circuits
-    if len(circuits) == 1:
-        experiment = _compile_single_circuit(
-            circuits[0], backend, config, basis_gates, coupling_map, initial_layout,
-            seed, pass_manager)
-        qobj.experiments.append(experiment)
-
-    elif sys.platform == 'win32':
-        exps = serial_map(_compile_single_circuit,
-                          circuits, task_args=(backend,),
-                          task_kwargs={'config': config,
-                                       'basis_gates': basis_gates,
-                                       'coupling_map': coupling_map,
-                                       'initial_layout': initial_layout,
-                                       'seed': seed,
-                                       'pass_manager': pass_manager})
-        # Step 3c: add the Experiment to the Qobj
+    if len(circuits) == 1 or sys.platform == 'win32':
+        exps = []
+        for circ in circuits:
+            exps.append(_compile_single_circuit(circ, backend, config,
+                                                basis_gates, coupling_map,
+                                                initial_layout,
+                                                seed, pass_manager))
         qobj.experiments = exps
+
     else:
         # Compile in parallel.
         exps = parallel_map(_compile_single_circuit,

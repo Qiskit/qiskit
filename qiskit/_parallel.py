@@ -44,56 +44,6 @@ from the multiprocessing library.
 
 import os
 from multiprocessing import Pool, cpu_count
-from qiskit.wrapper.receiver import receiver as rec
-from qiskit.wrapper.progressbar import BaseProgressBar
-
-
-def serial_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-               num_processes=1):                                 # pylint: disable=W0613
-    """
-    Serial mapping function with the same call signature as parallel_map, for
-    easy switching between serial and parallel execution. This is functionally
-    equivalent to:
-
-        result = [task(value, *task_args, **task_kwargs) for value in values]
-
-    This function work as a drop-in replacement for `parallel_map`.
-
-    Parameters:
-        task (func): The function that is to be called for each value in `task_vec`.
-        values (array_like): The list or array of values for which the `task` function is
-                            to be evaluated.
-        task_args (list): Optional additional argument to the `task` function.
-        task_kwargs (dict): Optional additional keyword argument to the `task` function.
-        num_processes (int): Number of processes to spawn. (IGNORED FOR SERIAL MAP)
-
-    Returns:
-        result: The result list contains the value of `task(value, *task_args, **task_kwargs)`
-            for each value in `values`.
-
-    Raises:
-        QISKitError: Invalid progress bar instance.
-    """
-    # Get last element of the receiver channels
-    if any(rec.channels):
-        last_idx = next(reversed(rec.channels))
-
-        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
-            progress_bar = rec.channels[last_idx]
-        else:
-            progress_bar = BaseProgressBar()
-    else:
-        progress_bar = BaseProgressBar()
-
-    progress_bar.start(len(values))
-    results = []
-    for n, value in enumerate(values):
-        progress_bar.update(n)
-        result = task(value, *task_args, **task_kwargs)
-        results.append(result)
-    progress_bar.finished()
-
-    return results
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
@@ -121,25 +71,11 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
         KeyboardInterrupt: If user interupts via keyboard.
     """
-    # Get last element of the receiver channels
-    if any(rec.channels):
-        last_idx = next(reversed(rec.channels))
-
-        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
-            progress_bar = rec.channels[last_idx]
-        else:
-            progress_bar = BaseProgressBar()
-    else:
-        progress_bar = BaseProgressBar()
 
     os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
 
-    progress_bar.start(len(values))
-    nfinished = [0]
-
     def _update_progress_bar(xvar):  # pylint: disable=W0613
-        nfinished[0] += 1
-        progress_bar.update(nfinished[0])
+        pass
 
     try:
         pool = Pool(processes=num_processes)
@@ -160,7 +96,6 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         pool.join()
         raise exept
 
-    progress_bar.finished()
     os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
     return [ar.get() for ar in async_res]
