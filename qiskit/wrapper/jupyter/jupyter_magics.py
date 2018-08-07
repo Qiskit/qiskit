@@ -29,23 +29,36 @@ class StatusMagic(Magics):
         type=float,
         default=0.2,
         help='Interval for status check.'
-        )
+    )
     def qiskit_job_status(self, line='', cell=None):  # pylint: disable=W0613
         """A Jupyter magic function to check the status of a Qiskit job instance.
         """
-        _error_mess = "Last line in cell must be of format 'job = qiskit.execute(...)'."
-
         args = magic_arguments.parse_argstring(self.qiskit_job_status, line)
-        # Get variable on LHS of equals sign, if any
-        _last_line = cell.split('\n')[-1].replace(' ', '').split('=')
-        if len(_last_line) != 2:
-            raise Exception(_error_mess)
-        _var_name = _last_line[0]
-        self.shell.ex(cell)
-        _job_var = self.shell.user_ns[_var_name]
+        # Split cell lines to get LHS variables
+        _cell_lines = cell.split('\n')
+        _split_lines = []
+        for _line in _cell_lines:
+            _split_lines.append(_line.replace(' ', '').split('='))
 
-        if not isinstance(_job_var, qiskit.backends.basejob.BaseJob):
-            raise Exception(_error_mess)
+        # Execute the cell
+        self.shell.ex(cell)
+
+        # Look for all vars that are BaseJob instances
+        _jobs = []
+        for _line in _split_lines:
+            if len(_line) == 2:
+                _line_var = _line[0]
+                if isinstance(self.shell.user_ns[_line_var], qiskit.backends.basejob.BaseJob):
+                    _jobs.append(_line_var)
+        # Must have one job class
+        if not any(_jobs):
+            raise Exception(
+                "Cell just contain at least one 'job=qiskit.execute(...)' expression")
+        # Cannot have more than one job class
+        elif len(_jobs) != 1:
+            raise Exception("Cell can have only a single job class instance.")
+
+        _job_var = self.shell.user_ns[_jobs[0]]
 
         _style = "font-size:16px;"
         _header = "<p style='{style}'>Job Status: %s </p>".format(style=_style)
