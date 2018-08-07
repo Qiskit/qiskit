@@ -227,9 +227,9 @@ class TestIBMQJobStates(QiskitTestCase):
 
     def test_cancel_while_initializing_fails(self):
         job = self.run_with_api(CancellableAPI())
-        self.assertStatus(job, JobStatus.INITIALIZING)
         can_cancel = job.cancel()
         self.assertFalse(can_cancel)
+        self.assertStatus(job, JobStatus.INITIALIZING)
 
     def test_only_final_states_cause_datailed_request(self):
         """The state ERROR_CREATING_JOB is only handled when running the job,

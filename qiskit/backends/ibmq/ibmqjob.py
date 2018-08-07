@@ -23,7 +23,7 @@ from IBMQuantumExperience import ApiError
 
 from qiskit.qobj import qobj_to_dict
 from qiskit.transpiler import transpile
-from qiskit.backends import BaseJob, JobError
+from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._result import Result
 
@@ -86,11 +86,15 @@ class IBMQJob(BaseJob):
         Args:
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
-            qobj (Qobj): The Quantum Object. If not present, is because we are probably getting
-                         a job from the API server.
+            qobj (Qobj): The Quantum Object. See notes below
             job_id (String): The job ID of an already submitted job.
             backend_name(String): The name of the backend that run the job.
             creation_date(String): When the job was run.
+
+        Notes:
+            It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
+            will ignore ``job_id`` and will create an instance representing
+            an already-created job retrieved from the API server.
         """
         super().__init__()
         self._job_data = None
@@ -106,7 +110,7 @@ class IBMQJob(BaseJob):
             }
         self._future_exception = None
         self._api = api
-        self._id = job_id  # this must be before creating the future
+        self._id = job_id
         self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
         # If we are creating the job from a QObj, then it's ok to initialize the status to
         # INITIALIZING, otherwise we are creating a job from an already submitted job, so
@@ -114,7 +118,7 @@ class IBMQJob(BaseJob):
         self._status = JobStatus.INITIALIZING
         if qobj is None:
             self.status()
-        self._queue_position = 0
+        self._queue_position = None
         self._cancelled = False
         self._is_device = is_device
         self._creation_date = datetime.datetime.utcnow().replace(
@@ -135,7 +139,7 @@ class IBMQJob(BaseJob):
         Raises:
             JobError: exception raised during job initialization
         """
-        self._wait_for_submitting()
+        self._wait_for_submission()
         try:
             this_result = self._wait_for_job(timeout=timeout, wait=wait)
         except TimeoutError as err:
@@ -165,26 +169,13 @@ class IBMQJob(BaseJob):
         group = self._api.config.get('group', None)
         project = self._api.config.get('project', None)
 
-        cancelled = False
         try:
             response = self._api.cancel_job(self._id, hub, group, project)
-            errored = 'error' in response
-            cancelled = not errored
-
-            # This is a controlled error from the API server, so the job IS not
-            # cancellable, but there's no reason to throw an exception, we will
-            # just return False.
-            if errored:
-                self._cancelled = cancelled
-                return False
-
+            self._cancelled = 'error' not in response
+            return self._cancelled
         except ApiError as error:
-            self._cancelled = cancelled
-            err_msg = error.usr_msg
-            raise JobError('Error cancelling job: %s' % err_msg)
-
-        self._cancelled = cancelled
-        return cancelled
+            self._cancelled = False
+            raise JobError('Error cancelling job: %s' % error.usr_msg)
 
     def status(self):
         """Query the API to update the status.
@@ -232,7 +223,7 @@ class IBMQJob(BaseJob):
             self._cancelled = True
 
         elif 'ERROR' in api_job['status']:
-            # Error statuses are of the form "ERROR_*_JOB"
+            # Error status are of the form "ERROR_*_JOB"
             self._status = JobStatus.ERROR
 
         else:
@@ -318,14 +309,8 @@ class IBMQJob(BaseJob):
         If the ID is not set because the job is already initializing, this call will
         block until we have an ID.
         """
-        self._wait_for_submitting()
+        self._wait_for_submission()
         return self._id
-
-    def _is_commercial(self):
-        """Returns True if the job is running in one of the commercial backends"""
-        config = self._api.config
-        # this check may give false positives so should probably be improved
-        return config.get('hub') and config.get('group') and config.get('project')
 
     def backend_name(self):
         """Return backend name used for this job"""
@@ -351,16 +336,7 @@ class IBMQJob(BaseJob):
         shots = self._job_data['shots']
         max_credits = self._job_data['max_credits']
 
-        hpc_camel_cased = None
-        if hpc is not None:
-            try:
-                # Use CamelCase when passing the hpc parameters to the API.
-                hpc_camel_cased = {
-                    'multiShotOptimization': hpc['multi_shot_optimization'],
-                    'ompNumThreads': hpc['omp_num_threads']
-                }
-            except (KeyError, TypeError):
-                hpc_camel_cased = None
+        hpc_camel_cased = _format_hpc_parameters(hpc)
 
         self._future = self._executor.submit(self._submit_callback, api_jobs,
                                              self._backend_name, hpc_camel_cased,
@@ -385,13 +361,12 @@ class IBMQJob(BaseJob):
                                             shots=shots, max_credits=max_credits,
                                             seed=seed, hpc=hpc)
         except Exception as err:  # pylint: disable=broad-except
-            # This is not a controlled error form the API, so we don't want to change
+            # This is not a controlled error from the API, so we don't want to change
             # job status to ERROR, because we really don't know what happened with the
             # Job at this point... it could be successfully QUEUED for example.
             self._future_exception = err
             return {'error': str(err)}
 
-        # Fail fast!!
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
             return submit_info
@@ -413,15 +388,16 @@ class IBMQJob(BaseJob):
             Result: A result object.
 
         Raises:
-            TimeoutError: if the job does not return results before an
-            specified timeout.
+            JobTimeoutError: if the job does not return results before a specified timeout.
             JobError: if something wrong happened in some of the server API calls
         """
         start_time = time.time()
         while self.status() not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                raise TimeoutError('QISKit timed out')
+                raise JobTimeoutError(
+                    'Timeout while waiting for the job: {}'.format(self._id)
+                )
 
             logger.info('status = %s (%d seconds)', self._status, elapsed_time)
             time.sleep(wait)
@@ -448,7 +424,7 @@ class IBMQJob(BaseJob):
                        'result': job_result_list,
                        'backend_name': self.backend_name})
 
-    def _wait_for_submitting(self):
+    def _wait_for_submission(self):
         """Waits for the request to return a job ID"""
         if self._id is None:
             if self._future is None:
@@ -456,7 +432,9 @@ class IBMQJob(BaseJob):
             try:
                 submit_info = self._future.result(timeout=60)
             except TimeoutError as ex:
-                raise JobError("Timeout waiting for the job being submitted: {}".format(ex))
+                raise JobTimeoutError(
+                    "Timeout waiting for the job being submitted: {}".format(ex)
+                )
 
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
@@ -571,3 +549,21 @@ def _is_job_queued(api_job):
         if 'position' in api_job['infoQueue']:
             position = api_job['infoQueue']['position']
     return is_queued, position
+
+
+def _format_hpc_parameters(hpc):
+    """Helper function to get HPC parameters with the correct format"""
+    if hpc is None:
+        return None
+
+    hpc_camel_cased = None
+    try:
+        # Use CamelCase when passing the hpc parameters to the API.
+        hpc_camel_cased = {
+            'multiShotOptimization': hpc['multi_shot_optimization'],
+            'ompNumThreads': hpc['omp_num_threads']
+        }
+    except (KeyError, TypeError):
+        pass
+
+    return hpc_camel_cased
