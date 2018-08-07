@@ -7,6 +7,7 @@
 
 """A module of magic functions"""
 
+import sys
 import time
 import threading
 from IPython.display import display
@@ -66,6 +67,8 @@ class StatusMagic(Magics):
                     status.value = _header % _status_msg
 
             status.value = _header % _job_var.status['status_msg']
+            # Explicitly stop the thread just to be safe.
+            sys.exit()
 
         thread = threading.Thread(target=_checker, args=(status,))
         thread.start()
