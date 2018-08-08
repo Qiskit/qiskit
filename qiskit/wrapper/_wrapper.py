@@ -135,8 +135,8 @@ def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
         provider_class=IBMQProvider, overwrite=overwrite,
         token=token, url=url, proxies=proxies, verify=verify)
 
-# Functions for inspecting and retrieving backends.
 
+# Functions for inspecting and retrieving backends.
 def available_backends(filters=None, compact=True):
     """
     Return names of backends that are available in the SDK, optionally filtering

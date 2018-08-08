@@ -328,7 +328,7 @@ def requires_qe_access(func):
             _group = os.getenv('IBMQ_GROUP')
             _project = os.getenv('IBMQ_PROJECT')
             _url = "https://q-console-api.mybluemix.net/api/" + \
-                    "Hubs/{hub}/Groups/{group}/Projects/{project}"
+                "Hubs/{hub}/Groups/{group}/Projects/{project}"
             _url = _url.format(hub=_hub, group=_group, project=_project)
 
             kwargs.update({
