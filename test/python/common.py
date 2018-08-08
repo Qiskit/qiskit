@@ -251,12 +251,12 @@ def slow_test(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         if SKIP_SLOW_TESTS:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def is_cpp_simulator_available():
