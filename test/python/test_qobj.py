@@ -70,13 +70,13 @@ class TestQobj(QiskitTestCase):
                 self.valid_dict
             ),
             QobjConfig: (
-                QobjConfig(shots=1, memory_slots=2, max_credits=10),
+                QobjConfig(shots=1, memory_slots=2),
                 {'shots': 1, 'memory_slots': 2}
             ),
             QobjExperiment: (
                 QobjExperiment(
                     instructions=[QobjInstruction(name='u1', qubits=[1], params=[0.4])]),
-                {'instructions': [QobjInstruction(name='u1', qubits=[1], params=[0.4])]}
+                {'instructions': {'name': 'u1', 'qubits': [1], 'params': [0.4]}}
             ),
             QobjInstruction: (
                 QobjInstruction(name='u1', qubits=[1], params=[0.4]),
@@ -86,5 +86,4 @@ class TestQobj(QiskitTestCase):
 
         for qobj_class, (qobj, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
-                if qobj != qobj_class.from_dict(expected_dict):
-                    self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
+                self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
