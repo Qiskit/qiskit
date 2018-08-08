@@ -26,9 +26,9 @@ class LoadQasmTest(QiskitTestCase):
     """Test load_qasm_* set of methods."""
 
     def setUp(self):
-        self._qasm_file_name = 'entangled_registers.qasm'
-        self._qasm_file_path = self._get_resource_path(
-            'qasm/' + self._qasm_file_name, Path.EXAMPLES)
+        self.qasm_file_name = 'entangled_registers.qasm'
+        self.qasm_file_path = self._get_resource_path(
+            'qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
     def test_load_qasm_file(self):
         """Test load_qasm_file and get_circuit.
@@ -39,7 +39,7 @@ class LoadQasmTest(QiskitTestCase):
             Libraries:
                 from qiskit.wrapper import load_qasm_file
         """
-        q_circuit = load_qasm_file(self._qasm_file_path)
+        q_circuit = load_qasm_file(self.qasm_file_path)
         qasm_string = q_circuit.qasm()
         self.log.info(qasm_string)
         expected_qasm_string = """\

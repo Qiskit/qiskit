@@ -308,7 +308,7 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _decorator(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         if SKIP_ONLINE_TESTS:
             raise unittest.SkipTest('Skipping online tests')
 
@@ -349,7 +349,7 @@ def requires_qe_access(func):
 
         return func(*args, **kwargs)
 
-    return _decorator
+    return _wrapper
 
 
 def _is_ci_fork_pull_request():

@@ -225,9 +225,9 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertNotIn('c1', q_program.get_classical_register_names())
 
         # Destroying an invalid register should fail.
-        with self.assertRaises(QISKitError) as context:
+        with self.assertRaises(QISKitError) as context_manager:
             q_program.destroy_classical_register('c1')
-        self.assertIn('Not present', str(context.exception))
+        self.assertIn('Not present', str(context_manager.exception))
 
     def test_destroy_quantum_register(self):
         """Test destroy_quantum_register."""
@@ -238,9 +238,9 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertNotIn('q1', q_program.get_quantum_register_names())
 
         # Destroying an invalid register should fail.
-        with self.assertRaises(QISKitError) as context:
+        with self.assertRaises(QISKitError) as context_manager:
             q_program.destroy_quantum_register('q1')
-        self.assertIn('Not present', str(context.exception))
+        self.assertIn('Not present', str(context_manager.exception))
 
     def test_create_circuit(self):
         """Test create_circuit.
@@ -291,9 +291,9 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertNotIn('qc', q_program.get_circuit_names())
 
         # Destroying an invalid register should fail.
-        with self.assertRaises(QISKitError) as context:
+        with self.assertRaises(QISKitError) as context_manager:
             q_program.destroy_circuit('qc')
-        self.assertIn('Not present', str(context.exception))
+        self.assertIn('Not present', str(context_manager.exception))
 
     def test_load_qasm_file(self):
         """Test load_qasm_file and get_circuit.

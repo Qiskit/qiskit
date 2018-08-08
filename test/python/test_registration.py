@@ -35,10 +35,10 @@ class TestWrapperCredentials(QiskitTestCase):
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
-            with self.assertRaises(QISKitError) as context:
+            with self.assertRaises(QISKitError) as context_manager:
                 qiskit.wrapper.register()
 
-        self.assertIn('No IBMQ credentials found', str(context.exception))
+        self.assertIn('No IBMQ credentials found', str(context_manager.exception))
 
     def test_store_credentials(self):
         """Test storing credentials and using them for autoregister."""
@@ -54,9 +54,9 @@ class TestWrapperCredentials(QiskitTestCase):
         with custom_qiskitrc():
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN', hub='HUB')
             # Attempt overwriting.
-            with self.assertRaises(QISKitError) as context:
+            with self.assertRaises(QISKitError) as context_manager:
                 qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
-            self.assertIn('already present', str(context.exception))
+            self.assertIn('already present', str(context_manager.exception))
 
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.
