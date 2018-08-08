@@ -30,7 +30,7 @@ class SwapMapper(BasePass):
     Map a DAGCircuit onto a CouplingGraph using swap gates.
     """
 
-    def __init__(self, coupling_map=None, initial_layout=None, trials=20, seed=None):
+    def __init__(self, coupling_map=None, trials=20, seed=None):
         """
         Map a DAGCircuit onto a CouplingGraph using swap gates.
         Args:
@@ -42,25 +42,11 @@ class SwapMapper(BasePass):
             ]
 
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
-            initial_layout (dict): A mapping of qubit to qubit::
-
-                              {
-                                ("q", start(int)): ("q", final(int)),
-                                ...
-                              }
-                              eg.
-                              {
-                                ("q", 0): ("q", 0),
-                                ("q", 1): ("q", 1),
-                                ("q", 2): ("q", 2),
-                                ("q", 3): ("q", 3)
-                              }
             trials (int): number of trials.
             seed (int): initial seed.
         """
         super().__init__()
         self.coupling = Coupling(coupling_list2dict(coupling_map))
-        self.last_layout = self.initial_layout = initial_layout
         self.trials = trials
         self.seed = seed
         self.cx_data = {
@@ -133,12 +119,14 @@ class SwapMapper(BasePass):
         for item, value in enumerate(layerlist):
             logger.debug("    %d: %s", item, value["partition"])
 
-        if self.initial_layout is not None:
+        initial_layout = self.shared_memory['layout']
+
+        if initial_layout:
             # Check the input layout
             circ_qubits = dag.get_qubits()
             coup_qubits = self.coupling.get_qubits()
             qubit_subset = []
-            for k, value in self.initial_layout.items():
+            for k, value in initial_layout.items():
                 qubit_subset.append(value)
                 if k not in circ_qubits:
                     raise MapperError("initial_layout qubit %s[%d] not in input "
@@ -150,11 +138,10 @@ class SwapMapper(BasePass):
             # Supply a default layout
             qubit_subset = self.coupling.get_qubits()
             qubit_subset = qubit_subset[0:dag.width()]
-            self.initial_layout = {a: b for a, b in
-                                   zip(dag.get_qubits(), qubit_subset)}
+            initial_layout = {a: b for a, b in zip(dag.get_qubits(), qubit_subset)}
 
         # Find swap circuit to preceed to each layer of input circuit
-        layout = self.initial_layout.copy()
+        layout = initial_layout.copy()
         layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
         # Construct an empty DAGCircuit with one qreg "q"
@@ -232,7 +219,7 @@ class SwapMapper(BasePass):
                         identity_wire_map)
                     # Update initial layout
                     if first_layer:
-                        self.initial_layout = layout
+                        initial_layout = layout
                         first_layer = False
 
             else:
@@ -250,17 +237,17 @@ class SwapMapper(BasePass):
                     identity_wire_map)
                 # Update initial layout
                 if first_layer:
-                    self.initial_layout = layout
+                    initial_layout = layout
                     first_layer = False
 
         # This is the final layout that we need to correctly replace
         # any measurements that needed to be removed before the swap
-        self.last_layout = layout
+        self.shared_memory['layout'] = layout
 
         # If first_layer is still set, the circuit only has single-qubit gates
         # so we can use the initial layout to output the entire circuit
         if first_layer:
-            layout = self.initial_layout
+            layout = initial_layout
             for item, layer in enumerate(layerlist):
                 dagcircuit_output.compose_back(layer["graph"], layout)
 
@@ -268,7 +255,7 @@ class SwapMapper(BasePass):
                                     DAGBackend(self.shared_memory['basis']))
         dagcircuit_output = dag_unrrolled.expand_gates()
 
-        self.shared_memory['final_layout'] = layout
+        self.shared_memory['layout'] = layout
         return dagcircuit_output
 
     def layer_permutation(self, layer_partition, layout, qubit_subset):

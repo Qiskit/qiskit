@@ -19,6 +19,9 @@ class CXCancellation(BasePass):
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on
+
+        Returns:
+            DAGCircuit: the directed acyclic graph in which the pass was run.
         """
         cx_runs = dag.collect_runs(["cx"])
         for cx_run in cx_runs:
@@ -42,3 +45,4 @@ class CXCancellation(BasePass):
                 else:
                     for n in chunk[1:]:
                         dag._remove_op_node(n)
+        return dag

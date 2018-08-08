@@ -18,12 +18,30 @@ class PassManager():
     do this correctly & efficiently
     (i.e. keep track of dependencies between passes)
     """
-    def __init__(self, basis_gates=None):
-        """Initialize an empty PassManager object
-        (with no passes scheduled).
+
+    def __init__(self, basis_gates=None, initial_layout=None):
+        """
+        Initialize an empty PassManager object (with no passes scheduled).
+
+        Args:
+            basis_gates (str): basis gates for the quantum circuit.
+            initial_layout (dict): A mapping of qubit to qubit::
+
+                              {
+                                ("q", start(int)): ("q", final(int)),
+                                ...
+                              }
+                              eg.
+                              {
+                                ("q", 0): ("q", 0),
+                                ("q", 1): ("q", 1),
+                                ("q", 2): ("q", 2),
+                                ("q", 3): ("q", 3)
+                              }
         """
         self._passes = []
-        self.shared_memory = {'basis': basis_gates.split(',') if basis_gates else []}
+        self.shared_memory = {'basis': basis_gates.split(',') if basis_gates else [],
+                              'layout': initial_layout or {}}
 
     def add_pass(self, pass_):
         """Schedule a pass in the passmanager."""

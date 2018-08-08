@@ -120,5 +120,5 @@ class TestTranspiler(QiskitTestCase):
         pass_manager.add_pass(SwapMapper(coupling_map=coupling_map, seed=42))
         dag_circuit = transpile(dag_circuit, coupling_map=coupling_map, pass_manager=pass_manager)
         self.assertEqual('cx q[2],q[1];\n', dag_circuit.qasm(no_decls=True))
-        self.assertDictEqual(pass_manager.shared_memory['final_layout'],
-                             {('q0', 0): ('q', 2), ('q0', 1): ('q', 1), ('q0', 2): ('q', 0)})
+        self.assertDictEqual(pass_manager.shared_memory['layout'],
+                             {(q.name, 0): ('q', 2), (q.name, 1): ('q', 1), (q.name, 2): ('q', 0)})

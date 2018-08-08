@@ -241,6 +241,10 @@ def transpile(dag_circuit, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # run the passes specified by the pass manager
         for pass_ in pass_manager.passes():
             dag_circuit = pass_.run(dag_circuit)
+
+        if get_layout:
+            return dag_circuit, pass_manager.shared_memory['layout']
+
         return dag_circuit
     else:
         # default set of passes
