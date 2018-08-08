@@ -259,6 +259,26 @@ class TestIBMQJobStates(QiskitTestCase):
                     else:
                         self.assertFalse(self._current_api.get_job.called)
 
+    def test_job_has_finished_but_api_throws_temporarily(self):
+        """There could be temporary problems with the API server, but doesn't
+        mean the job has failed. The server could start working fine again, and
+        we should be able to retrieve the job"""
+
+        job = self.run_with_api(TemporaryThrowingServerButJobFinishedAPI())
+        job._wait_for_submission()
+
+        # First time we query the server, we get an exception...
+        with self.assertRaises(JobError):
+            job.status()
+
+        # Maybe, also a second time...
+        with self.assertRaises(JobError):
+            job.status()
+
+        # Now the API server gets restored and doesn't throw anymore
+        # The job has finished successfully
+        self.assertStatus(job, JobStatus.DONE)
+
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
         status.
@@ -466,6 +486,26 @@ class ThrowingServerButJobFinishedAPI(BaseFakeAPI):
 
     def run_job(self, *_args, **_kwargs):
         raise ApiError()
+
+
+class TemporaryThrowingServerButJobFinishedAPI(BaseFakeAPI):
+    """Class for emulating an API throwing only a few times, but the job successfully
+    finishes. We pretend to simulate a temporary server malfunction that gets eventually
+    fixed, so in the end, we get the job.
+    """
+
+    _job_status = [
+        {'status': 'COMPLETED'}
+    ]
+
+    _number_of_exceptions_to_throw = 2
+
+    def get_job(self, job_id):
+        if self._number_of_exceptions_to_throw != 0:
+            self._number_of_exceptions_to_throw -= 1
+            raise ApiError()
+
+        return super().get_job(job_id)
 
 
 class ThrowingGetJobAPI(BaseFakeAPI):

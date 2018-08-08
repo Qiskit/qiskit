@@ -121,8 +121,11 @@ class IBMQJob(BaseJob):
         self._queue_position = None
         self._cancelled = False
         self._is_device = is_device
-        self._creation_date = datetime.datetime.utcnow().replace(
-            tzinfo=datetime.timezone.utc).isoformat() if creation_date is None else creation_date
+
+        def current_utc_time():
+            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+
+        self._creation_date = creation_date or current_utc_time()
         self._future = None
 
     # pylint: disable=arguments-differ
