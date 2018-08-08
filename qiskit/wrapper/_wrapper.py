@@ -123,12 +123,17 @@ def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
     Raises:
         QISKitError: if the credentials already exist and overwrite==False.
     """
+    if any([hub, group, project]):
+        url = "https://q-console-api.mybluemix.net/api/" + \
+              "Hubs/{hub}/Groups/{group}/Projects/{project}"
+        url = url.format(hub=hub, group=group, project=project)
+        warnings.warn(
+            "Passing hub/group/project is depreciated in qsikit 0.6+"
+            "Use the new URL format provided in the q-console.",
+            DeprecationWarning)
     credentials.store_credentials(
         provider_class=IBMQProvider, overwrite=overwrite,
-        token=token, url=url, hub=hub, group=group, project=project,
-        proxies=proxies, verify=verify
-    )
-
+        token=token, url=url, proxies=proxies, verify=verify)
 
 # Functions for inspecting and retrieving backends.
 

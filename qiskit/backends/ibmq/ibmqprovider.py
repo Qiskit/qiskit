@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Provider for remote IbmQ backends."""
+import warnings
 from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
@@ -19,9 +20,17 @@ class IBMQProvider(BaseProvider):
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
+        if any([hub, group, project]):
+            url = "https://q-console-api.mybluemix.net/api/Hubs/{hub}/" + \
+                  "Groups/{group}/Projects/{project}"
+            url = url.format(hub=hub, group=group, project=project)
+            warnings.warn(
+                "Passing hub/group/project is depreciated in qsikit 0.6+"
+                "Use the new URL format provided in the q-console.",
+                DeprecationWarning)
+
         # Get a connection to IBMQuantumExperience.
-        self._api = self._authenticate(token, url,
-                                       hub, group, project, proxies, verify)
+        self._api = self._authenticate(token, url, proxies=proxies, verify=verify)
 
         # Populate the list of remote backends.
         self.backends = self._discover_remote_backends()
@@ -29,9 +38,6 @@ class IBMQProvider(BaseProvider):
         # authentication attributes, which uniquely identify the provider instance
         self._token = token
         self._url = url
-        self._hub = hub
-        self._group = group
-        self._project = project
         self._proxies = proxies
         self._verify = verify
 
@@ -67,9 +73,7 @@ class IBMQProvider(BaseProvider):
             }
 
     @classmethod
-    def _authenticate(cls, token, url,
-                      hub=None, group=None, project=None, proxies=None,
-                      verify=True):
+    def _authenticate(cls, token, url, proxies=None, verify=True):
         """
         Authenticate against the IBMQuantumExperience API.
 
@@ -83,13 +87,6 @@ class IBMQProvider(BaseProvider):
             config_dict = {
                 'url': url,
             }
-            # Only append hub/group/project if they are different than None.
-            if all([hub, group, project]):
-                config_dict.update({
-                    'hub': hub,
-                    'group': group,
-                    'project': project
-                })
             if proxies:
                 config_dict['proxies'] = proxies
             return IBMQuantumExperience(token, config_dict, verify)
@@ -144,9 +141,7 @@ class IBMQProvider(BaseProvider):
 
     def __eq__(self, other):
         try:
-            equality = (self._token == other._token and self._url == other._url and
-                        self._hub == other._hub and self._group == other._group and
-                        self._project == other._project)
+            equality = (self._token == other._token and self._url == other._url)
         except AttributeError:
             equality = False
         return equality
