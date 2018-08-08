@@ -9,10 +9,14 @@
 
 """Module for working with Results."""
 
+import logging
 import copy
 import numpy
 from ._qiskiterror import QISKitError
 from ._quantumcircuit import QuantumCircuit
+
+
+logger = logging.getLogger(__name__)
 
 
 class Result(object):
@@ -414,3 +418,23 @@ class Result(object):
                     circuit_name, z_dicts[qubit_ind])
 
         return qubitpol, xvals
+
+
+def copy_qasm_from_qobj_into_result(qobj, result):
+    """Find the QASMs belonging to the Qobj experiments and copy them
+    into the corresponding result entries."""
+    for experiment in qobj.experiments:
+        name = experiment.header.name
+        qasm = getattr(experiment.header, 'compiled_circuit_qasm', None)
+        experiment_result = _find_experiment_result(result, name)
+        if qasm and experiment_result:
+            experiment_result['compiled_circuit_qasm'] = qasm
+
+
+def _find_experiment_result(result, name):
+    for experiment_result in result['result']:
+        if experiment_result['name'] == name:
+            return experiment_result
+
+    logger.warning('No result found for experiment %s', name)
+    return None
