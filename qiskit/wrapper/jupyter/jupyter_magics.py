@@ -27,7 +27,7 @@ class StatusMagic(Magics):
         '-i',
         '--interval',
         type=float,
-        default=0.2,
+        default=1,
         help='Interval for status check.'
     )
     def qiskit_job_status(self, line='', cell=None):  # pylint: disable=W0613
