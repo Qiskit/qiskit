@@ -114,11 +114,11 @@ class TestTranspiler(QiskitTestCase):
 
         dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
 
-        coupling_map = [[1, 2], [2,0]]
+        coupling_map = [[1, 2], [2, 0]]
 
         pass_manager = PassManager(basis_gates='u1,u2,u3,cx,id')
         pass_manager.add_pass(SwapMapper(coupling_map=coupling_map, seed=42))
         dag_circuit = transpile(dag_circuit, coupling_map=coupling_map, pass_manager=pass_manager)
         self.assertEqual('cx q[2],q[1];\n', dag_circuit.qasm(no_decls=True))
         self.assertDictEqual(pass_manager.shared_memory['final_layout'],
-            {('q0', 0): ('q', 2), ('q0', 1): ('q', 1), ('q0', 2): ('q', 0)})
+                             {('q0', 0): ('q', 2), ('q0', 1): ('q', 1), ('q0', 2): ('q', 0)})

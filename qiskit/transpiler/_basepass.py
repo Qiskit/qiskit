@@ -13,9 +13,8 @@ from abc import ABC, abstractmethod
 class BasePass(ABC):
     """Base class for transpiler passes."""
 
-    @abstractmethod
     def __init__(self):
-        self.shared_memory = None
+        self.shared_memory = {}
 
     @abstractmethod
     def run(self, dag):

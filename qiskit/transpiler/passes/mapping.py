@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name
 """
 TODO: general description of what a mapper is
 """
@@ -25,7 +26,39 @@ logger = logging.getLogger(__name__)
 
 
 class SwapMapper(BasePass):
+    """
+    Map a DAGCircuit onto a CouplingGraph using swap gates.
+    """
+
     def __init__(self, coupling_map=None, initial_layout=None, trials=20, seed=None):
+        """
+        Map a DAGCircuit onto a CouplingGraph using swap gates.
+        Args:
+            coupling_map (list): A graph of coupling::
+
+            [
+             [control0(int), target0(int)],
+             [control1(int), target1(int)],
+            ]
+
+            eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
+            initial_layout (dict): A mapping of qubit to qubit::
+
+                              {
+                                ("q", start(int)): ("q", final(int)),
+                                ...
+                              }
+                              eg.
+                              {
+                                ("q", 0): ("q", 0),
+                                ("q", 1): ("q", 1),
+                                ("q", 2): ("q", 2),
+                                ("q", 3): ("q", 3)
+                              }
+            trials (int): number of trials.
+            seed (int): initial seed.
+        """
+        super().__init__()
         self.coupling = Coupling(coupling_list2dict(coupling_map))
         self.last_layout = self.initial_layout = initial_layout
         self.trials = trials
@@ -84,6 +117,9 @@ class SwapMapper(BasePass):
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on
 
+        Returns:
+            DAGCircuit: the directed acyclic graph in which the pass was run.
+
         Raises:
             MapperError: if there was any error during the mapping or with the
                 parameters.
@@ -94,22 +130,22 @@ class SwapMapper(BasePass):
         # Schedule the input circuit
         layerlist = list(dag.layers())
         logger.debug("schedule:")
-        for i, v in enumerate(layerlist):
-            logger.debug("    %d: %s", i, v["partition"])
+        for item, value in enumerate(layerlist):
+            logger.debug("    %d: %s", item, value["partition"])
 
         if self.initial_layout is not None:
             # Check the input layout
             circ_qubits = dag.get_qubits()
             coup_qubits = self.coupling.get_qubits()
             qubit_subset = []
-            for k, v in self.initial_layout.items():
-                qubit_subset.append(v)
+            for k, value in self.initial_layout.items():
+                qubit_subset.append(value)
                 if k not in circ_qubits:
                     raise MapperError("initial_layout qubit %s[%d] not in input "
                                       "DAGCircuit" % (k[0], k[1]))
-                if v not in coup_qubits:
+                if value not in coup_qubits:
                     raise MapperError("initial_layout qubit %s[%d] not in input "
-                                      "CouplingGraph" % (v[0], v[1]))
+                                      "CouplingGraph" % (value[0], value[1]))
         else:
             # Supply a default layout
             qubit_subset = self.coupling.get_qubits()
@@ -142,19 +178,19 @@ class SwapMapper(BasePass):
         logger.debug("initial_layout = %s", layout)
 
         # Iterate over layers
-        for i, layer in enumerate(layerlist):
+        for item, layer in enumerate(layerlist):
 
             # Attempt to find a permutation for this layer
             success_flag, best_circ, best_d, best_layout, trivial_flag \
                 = self.layer_permutation(layer["partition"], layout, qubit_subset)
-            logger.debug("swap_mapper: layer %d", i)
+            logger.debug("swap_mapper: layer %d", item)
             logger.debug("swap_mapper: success_flag=%s,best_d=%s,trivial_flag=%s",
                          success_flag, str(best_d), trivial_flag)
 
             # If this fails, try one gate at a time in this layer
             if not success_flag:
                 logger.debug("swap_mapper: failed, layer %d, "
-                             "retrying sequentially", i)
+                             "retrying sequentially", item)
                 serial_layerlist = list(layer["graph"].serial_layers())
 
                 # Go through each gate in the layer
@@ -162,7 +198,7 @@ class SwapMapper(BasePass):
 
                     success_flag, best_circ, best_d, best_layout, trivial_flag \
                         = self.layer_permutation(serial_layer["partition"], layout, qubit_subset)
-                    logger.debug("swap_mapper: layer %d, sublayer %d", i, j)
+                    logger.debug("swap_mapper: layer %d, sublayer %d", item, j)
                     logger.debug("swap_mapper: success_flag=%s,best_d=%s,"
                                  "trivial_flag=%s",
                                  success_flag, str(best_d), trivial_flag)
@@ -170,7 +206,7 @@ class SwapMapper(BasePass):
                     # Give up if we fail again
                     if not success_flag:
                         raise MapperError("swap_mapper failed: " +
-                                          "layer %d, sublayer %d" % (i, j) +
+                                          "layer %d, sublayer %d" % (item, j) +
                                           ", \"%s\"" %
                                           serial_layer["graph"].qasm(
                                               no_decls=True,
@@ -205,7 +241,7 @@ class SwapMapper(BasePass):
 
                 # Update the QASM
                 dagcircuit_output.compose_back(
-                    self.swap_mapper_layer_update(i,
+                    self.swap_mapper_layer_update(item,
                                                   first_layer,
                                                   best_layout,
                                                   best_d,
@@ -225,7 +261,7 @@ class SwapMapper(BasePass):
         # so we can use the initial layout to output the entire circuit
         if first_layer:
             layout = self.initial_layout
-            for i, layer in enumerate(layerlist):
+            for item, layer in enumerate(layerlist):
                 dagcircuit_output.compose_back(layer["graph"], layout)
 
         dag_unrrolled = DagUnroller(dagcircuit_output,
