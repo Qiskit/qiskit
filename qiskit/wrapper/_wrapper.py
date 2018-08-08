@@ -13,13 +13,12 @@ from qiskit import transpiler, QISKitError
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import credentials
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit._util import _ibmq_credentials_parser
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
-
 
 # Default provider used by the rest of the functions on this module. Please
 # note that this is a global object.
 _DEFAULT_PROVIDER = DefaultQISKitProvider()
-
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +122,7 @@ def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
     Raises:
         QISKitError: if the credentials already exist and overwrite==False.
     """
-    if any([hub, group, project]):
-        url = "https://q-console-api.mybluemix.net/api/" + \
-              "Hubs/{hub}/Groups/{group}/Projects/{project}"
-        url = url.format(hub=hub, group=group, project=project)
-        warnings.warn(
-            "Passing hub/group/project is depreciated in qsikit 0.6+"
-            "Use the new URL format provided in the q-console.",
-            DeprecationWarning)
+    url = _ibmq_credentials_parser(url, hub, group, project)
     credentials.store_credentials(
         provider_class=IBMQProvider, overwrite=overwrite,
         token=token, url=url, proxies=proxies, verify=verify)

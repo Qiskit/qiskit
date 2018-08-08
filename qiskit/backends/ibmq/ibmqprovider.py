@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Provider for remote IbmQ backends."""
-import warnings
 from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
+from qiskit._util import _ibmq_credentials_parser
 
 
 class IBMQProvider(BaseProvider):
@@ -20,14 +20,7 @@ class IBMQProvider(BaseProvider):
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
-        if any([hub, group, project]):
-            url = "https://q-console-api.mybluemix.net/api/Hubs/{hub}/" + \
-                  "Groups/{group}/Projects/{project}"
-            url = url.format(hub=hub, group=group, project=project)
-            warnings.warn(
-                "Passing hub/group/project is depreciated in qsikit 0.6+"
-                "Use the new URL format provided in the q-console.",
-                DeprecationWarning)
+        url = _ibmq_credentials_parser(url, hub, group, project)
 
         # Get a connection to IBMQuantumExperience.
         self._api = self._authenticate(token, url, proxies=proxies, verify=verify)

@@ -324,16 +324,9 @@ def requires_qe_access(func):
             # Special case: instead of using the standard credentials mechanism,
             # load them from different environment variables. This assumes they
             # will always be in place, as is used by the Travis setup.
-            _hub = os.getenv('IBMQ_HUB')
-            _group = os.getenv('IBMQ_GROUP')
-            _project = os.getenv('IBMQ_PROJECT')
-            _url = "https://q-console-api.mybluemix.net/api/" + \
-                "Hubs/{hub}/Groups/{group}/Projects/{project}"
-            _url = _url.format(hub=_hub, group=_group, project=_project)
-
             kwargs.update({
                 'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': _url
+                'QE_URL': os.getenv('IBMQ_URL')
             })
             args[0].using_ibmq_credentials = True
         else:
@@ -343,21 +336,14 @@ def requires_qe_access(func):
             if account_name in discovered_credentials.keys():
                 credentials = discovered_credentials[account_name]
 
-                _url = credentials.get('url')
-                _hub = os.getenv('IBMQ_HUB')
-                _group = os.getenv('IBMQ_GROUP')
-                _project = os.getenv('IBMQ_PROJECT')
-
-                if (_hub and _group and _project):
-                    _url = "https://q-console-api.mybluemix.net/api/" + \
-                           "Hubs/{hub}/Groups/{group}/Projects/{project}"
-                    _url = _url.format(hub=_hub, group=_group, project=_project)
-                    args[0].using_ibmq_credentials = True
-
                 kwargs.update({
                     'QE_TOKEN': credentials.get('token'),
-                    'QE_URL': _url
+                    'QE_URL': credentials.get('url'),
                 })
+
+                if all(item in credentials.get('url') for
+                       item in ['Hubs', 'Groups', 'Projects']):
+                    args[0].using_ibmq_credentials = True
             else:
                 raise Exception('Could not locate valid credentials')
 
