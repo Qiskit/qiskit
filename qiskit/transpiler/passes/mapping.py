@@ -19,6 +19,7 @@ from qiskit.transpiler._basepass import BasePass
 from qiskit.mapper import (Coupling, MapperError, coupling_list2dict)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import _node as node
+from qiskit.unroll import DagUnroller, DAGBackend
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +228,11 @@ class SwapMapper(BasePass):
             for i, layer in enumerate(layerlist):
                 dagcircuit_output.compose_back(layer["graph"], layout)
 
+        dag_unrrolled = DagUnroller(dagcircuit_output,
+                                    DAGBackend(self.shared_memory['basis']))
+        dagcircuit_output = dag_unrrolled.expand_gates()
+
+        self.shared_memory['final_layout'] = layout
         return dagcircuit_output
 
     def layer_permutation(self, layer_partition, layout, qubit_subset):

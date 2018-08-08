@@ -18,14 +18,16 @@ class PassManager():
     do this correctly & efficiently
     (i.e. keep track of dependencies between passes)
     """
-    def __init__(self):
+    def __init__(self, basis_gates=[]):
         """Initialize an empty PassManager object
         (with no passes scheduled).
         """
         self._passes = []
+        self.shared_memory = {'basis' : basis_gates.split(',')}
 
     def add_pass(self, pass_):
         """Schedule a pass in the passmanager."""
+        pass_.shared_memory = self.shared_memory
         self._passes.append(pass_)
 
     def passes(self):

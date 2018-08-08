@@ -14,6 +14,10 @@ class BasePass(ABC):
     """Base class for transpiler passes."""
 
     @abstractmethod
+    def __init__(self):
+        self.shared_memory = None
+
+    @abstractmethod
     def run(self, dag):
         """Run a pass on the DAGCircuit.
         """
