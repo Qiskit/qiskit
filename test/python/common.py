@@ -470,11 +470,11 @@ def get_test_options(option_var='QISKIT_TESTS'):
         defaults[opt] = if_true[opt]()
     return defaults
 
-def _get_http_recorder(TEST_OPTIONS):
-    _VCR_MODE = 'none'
-    if TEST_OPTIONS['rec']:
-        _VCR_MODE = 'all'
-    return http_recorder(_VCR_MODE)
+def _get_http_recorder(test_options):
+    vcr_mode = 'none'
+    if test_options['rec']:
+        vcr_mode = 'all'
+    return http_recorder(vcr_mode)
 
 TEST_OPTIONS = get_test_options()
 VCR = _get_http_recorder(TEST_OPTIONS)
