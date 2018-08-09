@@ -258,7 +258,7 @@ class TestIBMQJobStates(QiskitTestCase):
 
                 with mock.patch.object(self._current_api, 'get_job',
                                        wraps=self._current_api.get_job):
-                    _ = job.status()
+                    job.status()
                     if status in API_FINAL_STATES:
                         self.assertTrue(self._current_api.get_job.called)
                     else:

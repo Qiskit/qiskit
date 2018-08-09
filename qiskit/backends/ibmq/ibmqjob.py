@@ -102,17 +102,17 @@ class IBMQJob(BaseJob):
         """
         super().__init__()
         self._job_data = None
-        # TODO No need for this conversion, just use the new equivalent members above
         if qobj is not None:
+            # TODO No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
                 'circuits': old_qobj['circuits'],
-                'hpc':  None if 'hpc' not in old_qobj['config'] else old_qobj['config']['hpc'],
+                'hpc':  old_qobj['config'].get('hpc'),
                 'seed': old_qobj['circuits'][0]['config']['seed'],  # TODO <-- [0] ???
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
-        self._future_exception = None
+        self._future_captured_exception = None
         self._api = api
         self._id = job_id
         self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
@@ -198,8 +198,8 @@ class IBMQJob(BaseJob):
         """
         # This will only happen if something bad happens when submitting a job, so
         # we don't have a job ID
-        if self._future_exception is not None:
-            raise JobError(str(self._future_exception))
+        if self._future_captured_exception is not None:
+            raise JobError(str(self._future_captured_exception))
 
         if self._status in JOB_FINAL_STATES or self._id is None:
             return self._status
@@ -286,7 +286,7 @@ class IBMQJob(BaseJob):
         api_jobs = []
         circuits = self._job_data['circuits']
         for circuit in circuits:
-            job = _create_job_from_circuit(circuit)
+            job = _create_api_job_from_circuit(circuit)
             api_jobs.append(job)
 
         hpc = self._job_data['hpc']
@@ -322,11 +322,12 @@ class IBMQJob(BaseJob):
             # This is not a controlled error from the API, so we don't want to change
             # job status to ERROR, because we really don't know what happened with the
             # Job at this point... it could be successfully QUEUED for example.
-            self._future_exception = err
+            self._future_captured_exception = err
             return {'error': str(err)}
 
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
+            self._api_error_msg = str(submit_info['error'])
             return submit_info
 
         self._id = submit_info.get('id')
@@ -396,6 +397,7 @@ class IBMQJob(BaseJob):
 
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
+                self._api_error_msg = str(submit_info['error'])
                 raise JobError(str(submit_info['error']))
 
             self._creation_date = submit_info.get('creationDate')
@@ -474,7 +476,7 @@ def _numpy_type_converter(obj):
     return ret
 
 
-def _create_job_from_circuit(circuit):
+def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm', None):
