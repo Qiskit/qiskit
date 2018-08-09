@@ -252,12 +252,12 @@ def slow_test(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         if TEST_OPTIONS['skip_slow']:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def _add_credentials(args, kwargs):
