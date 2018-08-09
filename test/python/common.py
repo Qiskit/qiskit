@@ -326,10 +326,7 @@ def requires_qe_access(func):
             # will always be in place, as is used by the Travis setup.
             kwargs.update({
                 'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': os.getenv('IBMQ_URL'),
-                'hub': os.getenv('IBMQ_HUB'),
-                'group': os.getenv('IBMQ_GROUP'),
-                'project': os.getenv('IBMQ_PROJECT'),
+                'QE_URL': os.getenv('IBMQ_URL')
             })
             args[0].using_ibmq_credentials = True
         else:
@@ -338,15 +335,14 @@ def requires_qe_access(func):
             discovered_credentials = discover_credentials()
             if account_name in discovered_credentials.keys():
                 credentials = discovered_credentials[account_name]
+
                 kwargs.update({
                     'QE_TOKEN': credentials.get('token'),
                     'QE_URL': credentials.get('url'),
-                    'hub': credentials.get('hub'),
-                    'group': credentials.get('group'),
-                    'project': credentials.get('project'),
                 })
-                if (credentials.get('hub') and credentials.get('group') and
-                        credentials.get('project')):
+
+                if all(item in credentials.get('url') for
+                       item in ['Hubs', 'Groups', 'Projects']):
                     args[0].using_ibmq_credentials = True
             else:
                 raise Exception('Could not locate valid credentials')

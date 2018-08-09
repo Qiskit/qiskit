@@ -68,7 +68,6 @@ class TestWrapperCredentials(QiskitTestCase):
         # Ensure that the credentials are the overwritten ones - note that the
         # 'hub' parameter was removed.
         self.assertEqual(provider._token, 'QISKITRC_TOKEN_2')
-        self.assertEqual(provider._hub, None)
 
     def test_environ_over_qiskitrc(self):
         """Test order, without qconfig"""
