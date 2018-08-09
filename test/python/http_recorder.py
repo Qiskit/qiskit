@@ -16,8 +16,8 @@ class IdRemoverPersister(FilesystemPersister):
     """
     IdRemoverPersister is a VCR persister. This is, it implements a way to save and load cassettes.
     This persister in particular inherits load_cassette from FilesystemPersister (basically, it
-    loads a standard cassette in the standard way from the FS). On the saving side, it removes some
-    fields in the JSON content of the responses for dummy values.
+    loads a standard cassette in the standard way from the file system). On the saving side, it
+    replaces some fields in the JSON content of the responses with dummy values.
     """
 
     @staticmethod
