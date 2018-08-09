@@ -58,7 +58,6 @@ def compile(circuits, backend,
         circuits = [circuits]
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
-    # We have bugs if 3 is not true
     # 1. do all circuits have same coupling map?
     # 2. do all circuit have the same basis set?
     # 3. do they all have same registers etc?
@@ -70,10 +69,6 @@ def compile(circuits, backend,
         raise TranspilerError('Unknown HPC parameter format!')
     basis_gates = basis_gates or backend_conf['basis_gates']
     coupling_map = coupling_map or backend_conf['coupling_map']
-    num_qubits_first = sum((len(qreg) for qreg in circuits[0].get_qregs().values()))
-    # FIXME: THIS IS A BUG if the second circuit has more than 1 qubit
-    if num_qubits_first == 1 or coupling_map == "all-to-all":
-        coupling_map = None
 
     # step 1: Making the list of dag circuits
     dags = _circuits_2_dags(circuits)
@@ -82,7 +77,7 @@ def compile(circuits, backend,
 
     # FIXME: Work-around for transpiling multiple circuits with different qreg names.
     # Make compile take a list of initial_layouts.
-    _initial_layout = initial_layout.copy() if initial_layout is not None else None
+    _initial_layout = initial_layout
 
     # Pick a good initial layout if coupling_map is not already satisfied
     # otherwise keep it as q[i]->q[i].
@@ -93,9 +88,9 @@ def compile(circuits, backend,
                 and not _matches_coupling_map(dag, coupling_map)):
             _initial_layout = _pick_best_layout(dag, backend)
         initial_layouts.append(_initial_layout)
-    _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
-                    initial_layouts=initial_layouts, seed=seed,
-                    pass_manager=pass_manager)
+    dags = _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
+                           initial_layouts=initial_layouts, seed=seed,
+                           pass_manager=pass_manager)
 
     # step 3: Making a qobj
     qobj = _dags_2_qobj(dags, backend_name=backend_name,
@@ -138,12 +133,16 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
 
+    Returns:
+        list[DAGCircuit]: the dag circuits after going through transpilation
+
     Raises:
         TranspilerError: if the format is not valid.
     """
     # TODO: Parallelize this method
+    final_dags = []
     for dag, initial_layout in zip(dags, initial_layouts):
-        dag, final_layout = transpile(
+        final_dag, final_layout = transpile(
             dag,
             basis_gates=basis_gates,
             coupling_map=coupling_map,
@@ -151,8 +150,9 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             get_layout=True,
             seed=seed,
             pass_manager=pass_manager)
-        dag.layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-        dags.append(dag)
+        final_dag.layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
+        final_dags.append(final_dag)
+    return final_dags
 
 
 def _dags_2_qobj(dags, backend_name, config=None, shots=None,
@@ -178,7 +178,7 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
     # `basis_gates`, `coupling_map`
 
     # Step 1: create the Qobj, with empty experiments.
-    # Copy the configuration: the values in `config` have prefernce
+    # Copy the configuration: the values in `config` have preference
     qobj_config = deepcopy(config or {})
     # TODO: "memory_slots" is required by the qobj schema in the top-level
     # qobj.config, and is user-defined. At the moment is set to the maximum
@@ -208,7 +208,9 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
             'coupling_map': coupling_map,
             'basis_gates': basis_gates,
             'layout': dag.layout,
-            'memory_slots': sum(dag.cregs.values())})
+            'memory_slots': sum(dag.cregs.values()),
+            # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
+            'n_qubits': sum(dag.qregs.values())})
         experiment.config = QobjItem(**experiment_config)
 
         # set eval_symbols=True to evaluate each symbolic expression
@@ -273,12 +275,19 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Returns:
         DAGCircuit: transformed dag
+        DAGCircuit, dict: transformed dag along with the final layout on backend qubits
 
     Raises:
         TranspilerError: if the format is not valid.
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
     # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed` removed after mapper pass.
+
+    # TODO: move this to the mapper pass
+    num_qubits = sum(dag.qregs.values())
+    if num_qubits == 1 or coupling_map == "all-to-all":
+        coupling_map = None
+
     final_layout = None
 
     if pass_manager:
