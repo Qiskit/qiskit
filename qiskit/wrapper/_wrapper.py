@@ -13,7 +13,7 @@ from qiskit import transpiler, QISKitError
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import credentials
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
-from qiskit._util import _ibmq_credentials_parser
+from qiskit._util import _parse_ibmq_credentials
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 # Default provider used by the rest of the functions on this module. Please
@@ -122,7 +122,7 @@ def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
     Raises:
         QISKitError: if the credentials already exist and overwrite==False.
     """
-    url = _ibmq_credentials_parser(url, hub, group, project)
+    url = _parse_ibmq_credentials(url, hub, group, project)
     credentials.store_credentials(
         provider_class=IBMQProvider, overwrite=overwrite,
         token=token, url=url, proxies=proxies, verify=verify)

@@ -11,7 +11,7 @@ Utilities for working with credentials for the wrapper.
 import logging
 
 from qiskit import QISKitError
-from qiskit._util import _ibmq_credentials_parser
+from qiskit._util import _parse_ibmq_credentials
 from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
 from ._qconfig import read_credentials_from_qconfig
@@ -78,8 +78,8 @@ def discover_credentials():
         _provider, _creds = list(_credentials.items())[0]
 
         if all(item in _creds for item in ['hub', 'group', 'project']):
-            _creds['url'] = _ibmq_credentials_parser(_creds['url'], _creds['hub'],
-                                                     _creds['group'], _creds['project'])
+            _creds['url'] = _parse_ibmq_credentials(_creds['url'], _creds['hub'],
+                                                    _creds['group'], _creds['project'])
             for key in ['hub', 'group', 'project']:
                 del _creds[key]
 

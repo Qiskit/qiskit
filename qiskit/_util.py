@@ -144,7 +144,7 @@ class AvailableToOperationalDict(UserDict):
         return super(AvailableToOperationalDict, self).__getitem__(key)
 
 
-def _ibmq_credentials_parser(url, hub=None, group=None, project=None):
+def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
     """Converts old Q network credentials to new url only
     format, if needed.
     """
@@ -153,7 +153,7 @@ def _ibmq_credentials_parser(url, hub=None, group=None, project=None):
               "Hubs/{hub}/Groups/{group}/Projects/{project}"
         url = url.format(hub=hub, group=group, project=project)
         warnings.warn(
-            "Passing hub/group/project is deprecated in qiskit 0.6+. "
-            "Use the new URL format provided in the q-console.",
+            "Passing hub/group/project as parameters is deprecated in qiskit "
+            "0.6+. Please use the new URL format provided in the q-console.",
             DeprecationWarning)
     return url

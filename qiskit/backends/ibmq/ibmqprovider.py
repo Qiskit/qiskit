@@ -11,7 +11,7 @@ from IBMQuantumExperience import IBMQuantumExperience
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit._util import _ibmq_credentials_parser
+from qiskit._util import _parse_ibmq_credentials
 
 
 class IBMQProvider(BaseProvider):
@@ -20,7 +20,7 @@ class IBMQProvider(BaseProvider):
                  hub=None, group=None, project=None, proxies=None, verify=True):
         super().__init__()
 
-        url = _ibmq_credentials_parser(url, hub, group, project)
+        url = _parse_ibmq_credentials(url, hub, group, project)
 
         # Get a connection to IBMQuantumExperience.
         self._api = self._authenticate(token, url, proxies=proxies, verify=verify)
