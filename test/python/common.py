@@ -293,7 +293,7 @@ def _add_credentials(args, kwargs):
         else:
             # No user credentials were found.
             return False
-
+    return True
 
 def is_cpp_simulator_available():
     """
