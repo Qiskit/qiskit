@@ -68,7 +68,7 @@ class IdRemoverPersister(FilesystemPersister):
             map_list (list): the list of nested keys to find in the data_dict
 
         Returns:
-            dict: the dictionary in which matches map_list.
+            list: a list of dictionaries, each of them matches map_list.
         """
         ret = []
         if map_list:
