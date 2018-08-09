@@ -78,7 +78,7 @@ from collections import Counter
 
 import numpy as np
 
-from qiskit._result import Result
+from qiskit._result import Result, copy_qasm_from_qobj_into_result
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from ._simulatorerror import SimulatorError
@@ -290,6 +290,8 @@ class QasmSimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
+
+        copy_qasm_from_qobj_into_result(qobj, result)
         return Result(result)
 
     def run_circuit(self, circuit):

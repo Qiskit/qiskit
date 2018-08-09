@@ -276,9 +276,6 @@ def _add_credentials(args, kwargs):
         kwargs.update({
             'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
             'QE_URL': os.getenv('IBMQ_URL'),
-            'hub': os.getenv('IBMQ_HUB'),
-            'group': os.getenv('IBMQ_GROUP'),
-            'project': os.getenv('IBMQ_PROJECT'),
         })
         args[0].using_ibmq_credentials = True
     else:
@@ -290,18 +287,12 @@ def _add_credentials(args, kwargs):
             kwargs.update({
                 'QE_TOKEN': credentials.get('token'),
                 'QE_URL': credentials.get('url'),
-                'hub': credentials.get('hub'),
-                'group': credentials.get('group'),
-                'project': credentials.get('project'),
             })
-            if (credentials.get('hub') and credentials.get('group') and
-                    credentials.get('project')):
+            if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
                 args[0].using_ibmq_credentials = True
         else:
             # No user credentials were found.
             return False
-
-    return True
 
 
 def is_cpp_simulator_available():
@@ -470,11 +461,13 @@ def get_test_options(option_var='QISKIT_TESTS'):
         defaults[opt] = if_true[opt]()
     return defaults
 
+
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
         vcr_mode = 'all'
     return http_recorder(vcr_mode)
+
 
 TEST_OPTIONS = get_test_options()
 VCR = _get_http_recorder(TEST_OPTIONS)

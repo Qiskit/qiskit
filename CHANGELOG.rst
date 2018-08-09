@@ -35,18 +35,21 @@ Changed
     - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
+- Q network hub/group/project credentials replaced by new url format. (#740)
 
 Removed
 -------
 
 Fixed
 -----
+- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688)
 - Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
 - Fixed the examples to be compatible with version 0.5+ (#672)
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
+- Fixed the random unitary generation from the Haar measure (#760).
 
 `0.5.6`_ - 2018-07-06
 =====================
