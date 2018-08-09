@@ -32,9 +32,9 @@ class IdRemoverPersister(FilesystemPersister):
         Returns:
             Request: VCR's representation of a request.
         """
-        requests_indeces = [i for i, x in enumerate(cassette_dict['requests']) if
-                            string2find in x.path]
-        return [cassette_dict['responses'][i] for i in requests_indeces]
+        request_indices = [i for i, request in enumerate(cassette_dict['requests']) if
+                            string2find in request.path]
+        return [cassette_dict['responses'][i] for i in request_indices]
 
     @staticmethod
     def get_new_id(field, path, id_tracker, _type=str):
