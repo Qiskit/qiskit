@@ -37,7 +37,7 @@ class IdRemoverPersister(FilesystemPersister):
         return [cassette_dict['responses'][i] for i in request_indices]
 
     @staticmethod
-    def get_new_id(field, path, id_tracker, _type=str):
+    def get_new_id(field, path, id_tracker, type_=str):
         """
         Creates a new dummy id (or value) for replacing an existing id (or value).
 
@@ -45,15 +45,15 @@ class IdRemoverPersister(FilesystemPersister):
             field (str): field name is used, in same cases, to create a dummy value.
             path (str): path of the request is used, in same cases, to create a dummy value.
             id_tracker (dict): a map of already assigned ids and generated ids.
-            _type (type): type of the value.
+            type_ (type): type of the value.
 
         Returns:
             str: that is used to replace a value.
         """
 
-        if _type == float:
+        if type_ == float:
             return 0.42
-        if _type == int:
+        if type_ == int:
             return 42
         dummy_name = 'dummy%s%s' % (path.replace('/', ''), field)
         count = len(list(filter(lambda x: str(x).startswith(dummy_name), id_tracker.values())))
