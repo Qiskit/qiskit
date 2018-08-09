@@ -35,6 +35,8 @@ class FakeBackEnd(object):
 class TestCompiler(QiskitTestCase):
     """QISKit Compiler Tests."""
 
+    seed=42
+
     def test_compile(self):
         """Test Compiler.
 
@@ -207,7 +209,7 @@ class TestCompiler(QiskitTestCase):
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qobj = transpiler.compile(qc, backend, seed=42)
+        qobj = transpiler.compile(qc, backend, seed=TestCompiler.seed)
         job = backend.run(qobj)
         result = job.result(timeout=20)
         self.assertIsInstance(result, Result)
@@ -229,7 +231,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = transpiler.compile([qc, qc_extra], backend, seed=42)
+        qobj = transpiler.compile([qc, qc_extra], backend, seed=TestCompiler.seed)
         job = backend.run(qobj)
         result = job.result()
         self.assertIsInstance(result, Result)
@@ -250,7 +252,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        job = execute(qc, backend, seed=42)
+        job = execute(qc, backend, seed=TestCompiler.seed)
         results = job.result()
         self.assertIsInstance(results, Result)
 
@@ -271,7 +273,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = execute([qc, qc_extra], backend, seed=42)
+        job = execute([qc, qc_extra], backend, seed=TestCompiler.seed)
         results = job.result()
         self.assertIsInstance(results, Result)
 
