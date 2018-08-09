@@ -8,6 +8,7 @@
 """Utilities (based on VCRpy) to record remote requets and allow testing offline/cached."""
 
 import json
+from contextlib import suppress
 from vcr.persisters.filesystem import FilesystemPersister
 from vcr import VCR
 
@@ -99,14 +100,12 @@ class IdRemoverPersister(FilesystemPersister):
 
         map_list = field.split('.')
         for maching_dict in IdRemoverPersister.get_maching_dicts(jsonobj, map_list):
-            try:
+            with suppress(KeyError):
                 old_id = maching_dict[map_list[-1]]
                 if old_id not in id_tracker:
                     new_id = IdRemoverPersister.get_new_id(field, path, id_tracker, type(old_id))
                     id_tracker[old_id] = new_id
                 maching_dict[map_list[-1]] = id_tracker[old_id]
-            except KeyError:
-                pass
 
     @staticmethod
     def remove_ids_in_a_response(response, fields, path, id_tracker):
@@ -236,13 +235,11 @@ def _purge_headers(headers):
             dict: a VCR response
         """
         for (header, value) in header_list:
-            try:
+            with suppress(KeyError):
                 if value:
                     response['headers'][header] = value
                 else:
                     del response['headers'][header]
-            except KeyError:
-                pass
         return response
 
     return before_record_response
