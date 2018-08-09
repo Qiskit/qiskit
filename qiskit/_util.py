@@ -142,3 +142,18 @@ class AvailableToOperationalDict(UserDict):
                 DeprecationWarning)
 
         return super(AvailableToOperationalDict, self).__getitem__(key)
+
+
+def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
+    """Converts old Q network credentials to new url only
+    format, if needed.
+    """
+    if any([hub, group, project]):
+        url = "https://q-console-api.mybluemix.net/api/" + \
+              "Hubs/{hub}/Groups/{group}/Projects/{project}"
+        url = url.format(hub=hub, group=group, project=project)
+        warnings.warn(
+            "Passing hub/group/project as parameters is deprecated in qiskit "
+            "0.6+. Please use the new URL format provided in the q-console.",
+            DeprecationWarning)
+    return url

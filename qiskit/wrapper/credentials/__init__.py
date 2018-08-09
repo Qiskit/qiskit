@@ -11,6 +11,7 @@ Utilities for working with credentials for the wrapper.
 import logging
 
 from qiskit import QISKitError
+from qiskit._util import _parse_ibmq_credentials
 from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
 from ._qconfig import read_credentials_from_qconfig
@@ -37,35 +38,51 @@ def discover_credentials():
 
             {'provider_name': {'token': 'TOKEN', 'url': 'URL', ... }}
     """
+    _credentials = {}
+    success = False
     # 1. Attempt to read them from the `Qconfig.py` file.
     try:
-        qconfig_credentials = read_credentials_from_qconfig()
-        if qconfig_credentials:
+        _credentials = read_credentials_from_qconfig()
+        if _credentials:
+            success = True
             logger.info('Using credentials from qconfig')
-            return qconfig_credentials
     except QISKitError as ex:
         logger.warning(
             'Automatic discovery of qconfig credentials failed: %s', str(ex))
 
     # 2. Attempt to read them from the environment variables.
-    try:
-        environ_credentials = read_credentials_from_environ()
-        if environ_credentials:
-            logger.info('Using credentials from environment variables')
-            return environ_credentials
-    except QISKitError as ex:
-        logger.warning(
-            'Automatic discovery of environment credentials failed: %s',
-            str(ex))
+    if not success:
+        try:
+            _credentials = read_credentials_from_environ()
+            if _credentials:
+                success = True
+                logger.info('Using credentials from environment variables')
+                return _credentials
+        except QISKitError as ex:
+            logger.warning(
+                'Automatic discovery of environment credentials failed: %s',
+                str(ex))
 
     # 3. Attempt to read them from the qiskitrc file.
-    try:
-        provider_credentials = read_credentials_from_qiskitrc()
-        if provider_credentials:
-            logger.info('Using credentials from qiskitrc')
-            return provider_credentials
-    except QISKitError as ex:
-        logger.warning(
-            'Automatic discovery of qiskitrc credentials failed: %s', str(ex))
+    if not success:
+        try:
+            _credentials = read_credentials_from_qiskitrc()
+            if _credentials:
+                logger.info('Using credentials from qiskitrc')
+                return _credentials
+        except QISKitError as ex:
+            logger.warning(
+                'Automatic discovery of qiskitrc credentials failed: %s', str(ex))
 
-    return {}
+    if any(_credentials):
+        _provider, _creds = list(_credentials.items())[0]
+
+        if all(item in _creds for item in ['hub', 'group', 'project']):
+            _creds['url'] = _parse_ibmq_credentials(_creds['url'], _creds['hub'],
+                                                    _creds['group'], _creds['project'])
+            for key in ['hub', 'group', 'project']:
+                del _creds[key]
+
+            _credentials[_provider] = _creds
+
+    return _credentials
