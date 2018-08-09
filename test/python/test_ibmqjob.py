@@ -218,8 +218,8 @@ class TestIBMQJob(JobTestCase):
         job_ids = [job.id for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
-    @requires_qe_access
     @slow_test
+    @requires_qe_access
     def test_cancel(self, QE_TOKEN, QE_URL, hub=None, group=None, project=None):
         provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
         backend_name = ('ibmq_20_tokyo'

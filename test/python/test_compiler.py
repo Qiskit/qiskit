@@ -22,6 +22,7 @@ from .common import requires_qe_access, QiskitTestCase
 class FakeBackEnd(object):
     """A fake backend.
     """
+
     def __init__(self):
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
@@ -35,7 +36,7 @@ class FakeBackEnd(object):
 class TestCompiler(QiskitTestCase):
     """QISKit Compiler Tests."""
 
-    seed=42
+    seed = 42
 
     def test_compile(self):
         """Test Compiler.
