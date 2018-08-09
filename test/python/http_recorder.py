@@ -218,7 +218,7 @@ def _purge_headers(headers):
         callable: for been used in before_record_response VCR constructor.
     """
 
-    header_list = list()
+    header_list = []
     for item in headers:
         if not isinstance(item, tuple):
             item = (item, None)
