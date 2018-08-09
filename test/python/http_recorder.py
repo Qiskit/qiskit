@@ -249,8 +249,8 @@ def _purge_headers(headers):
 
 def _unordered_query_matcher(request1, request2):
     """
-    A VCR matcher (a la VCR.matcher) that ignores the order of the query strings and ther
-    content. Useful for filter params, for example.
+    A VCR matcher (a la VCR.matcher) that ignores the order of the values in the query string.
+    Useful for filter params, for example.
 
     Args:
         request1 (Request): a VCR request
