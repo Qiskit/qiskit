@@ -49,6 +49,7 @@ Fixed
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
+- Fixed the random unitary generation from the Haar measure (#760).
 
 `0.5.6`_ - 2018-07-06
 =====================
