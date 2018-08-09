@@ -39,39 +39,36 @@ class TestBackends(QiskitTestCase):
         self.assertTrue(len(local) > 0)
 
     @requires_qe_access
-    def test_remote_backends_exist(self, QE_TOKEN, QE_URL,
-                                   hub=None, group=None, project=None):
+    def test_remote_backends_exist(self, QE_TOKEN, QE_URL):
         """Test if there are remote backends.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         self.log.info(remotes)
         self.assertTrue(len(remotes) > 0)
 
     @requires_qe_access
-    def test_remote_backends_exist_real_device(self, QE_TOKEN, QE_URL,
-                                               hub=None, group=None, project=None):
+    def test_remote_backends_exist_real_device(self, QE_TOKEN, QE_URL):
         """Test if there are remote backends that are devices.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remote = ibmq_provider.available_backends()
         remote = [r for r in remote if not r.configuration['simulator']]
         self.log.info(remote)
         self.assertTrue(remote)
 
     @requires_qe_access
-    def test_remote_backends_exist_simulator(self, QE_TOKEN, QE_URL,
-                                             hub=None, group=None, project=None):
+    def test_remote_backends_exist_simulator(self, QE_TOKEN, QE_URL):
         """Test if there are remote backends that are simulators.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remote = ibmq_provider.available_backends()
         remote = [r for r in remote if r.configuration['simulator']]
         self.log.info(remote)
@@ -105,8 +102,7 @@ class TestBackends(QiskitTestCase):
         jsonschema.validate(status, schema)
 
     @requires_qe_access
-    def test_remote_backend_status(self, QE_TOKEN, QE_URL,
-                                   hub=None, group=None, project=None):
+    def test_remote_backend_status(self, QE_TOKEN, QE_URL):
         """Test backend_status.
 
         If all correct should pass the validation.
@@ -114,7 +110,7 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -143,13 +139,12 @@ class TestBackends(QiskitTestCase):
             jsonschema.validate(configuration, schema)
 
     @requires_qe_access
-    def test_remote_backend_configuration(self, QE_TOKEN, QE_URL,
-                                          hub=None, group=None, project=None):
+    def test_remote_backend_configuration(self, QE_TOKEN, QE_URL):
         """Test backend configuration.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -174,13 +169,12 @@ class TestBackends(QiskitTestCase):
             self.assertEqual(len(calibration), 0)
 
     @requires_qe_access
-    def test_remote_backend_calibration(self, QE_TOKEN, QE_URL,
-                                        hub=None, group=None, project=None):
+    def test_remote_backend_calibration(self, QE_TOKEN, QE_URL):
         """Test backend calibration.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -206,13 +200,12 @@ class TestBackends(QiskitTestCase):
             self.assertEqual(len(parameters), 0)
 
     @requires_qe_access
-    def test_remote_backend_parameters(self, QE_TOKEN, QE_URL,
-                                       hub=None, group=None, project=None):
+    def test_remote_backend_parameters(self, QE_TOKEN, QE_URL):
         """Test backend parameters.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL, hub, group, project)
+        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
