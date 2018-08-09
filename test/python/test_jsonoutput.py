@@ -18,9 +18,6 @@ from .common import QiskitTestCase, Path
 
 class TestJsonOutput(QiskitTestCase):
     """Test Json output.
-
-    This is mostly covered in test_quantumprogram.py but will leave
-    here for convenience.
     """
     def setUp(self):
         self.qasm_file_path = self._get_resource_path(

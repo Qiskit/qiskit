@@ -42,7 +42,7 @@ Changed
 
 Removed
 -------
-- Removed Quantum Program (#724).
+- Removed the QuantumProgram class (#724).
 
 Fixed
 -----

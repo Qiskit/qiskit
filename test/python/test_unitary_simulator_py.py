@@ -65,14 +65,13 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                     expected,
                                     rtol=1e-3))
 
-    def test_two_unitary_simulator(self):
-        """test running two circuits
+    def test_local_unitary_simulator(self):
+        """Test unitary simulator.
 
-        This test is similar to one in test_quantumprogram but doesn't use
-        multiprocessing.
+        If all correct should return the hxh and cx.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
+        cr = ClassicalRegister(2)
         qc1 = QuantumCircuit(qr, cr)
         qc2 = QuantumCircuit(qr, cr)
         qc1.h(qr)
@@ -92,23 +91,22 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.assertAlmostEqual(norm1, 4)
         self.assertAlmostEqual(norm2, 4)
 
-    def test_local_unitary_simulator(self):
-        """Test unitary simulator.
+    def test_local_unitary_simulator_single_thread(self):
+        """test running two circuits
 
-        If all correct should the hxh and cx.
+        Identical to the above test, but does not use multiprocessing.
         """
-        q_program = QuantumProgram()
-        q = q_program.create_quantum_register("q", 2)
-        c = q_program.create_classical_register("c", 2)
-        qc1 = q_program.create_circuit("qc1", [q], [c])
-        qc2 = q_program.create_circuit("qc2", [q], [c])
-        qc1.h(q)
-        qc2.cx(q[0], q[1])
-        circuits = ['qc1', 'qc2']
-        backend = 'local_unitary_simulator'
-        result = q_program.execute(circuits, backend=backend)
-        unitary1 = result.get_data('qc1')['unitary']
-        unitary2 = result.get_data('qc2')['unitary']
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr)
+        qc2.cx(qr[0], qr[1])
+        backend = UnitarySimulatorPy()
+        qobj = compile([qc1, qc2], backend=backend)
+        job = backend.run(qobj)
+        unitary1 = job.result().get_unitary(qc1)
+        unitary2 = job.result().get_unitary(qc2)
         unitaryreal1 = np.array([[0.5, 0.5, 0.5, 0.5], [0.5, -0.5, 0.5, -0.5],
                                  [0.5, 0.5, -0.5, -0.5],
                                  [0.5, -0.5, -0.5, 0.5]])

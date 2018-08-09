@@ -404,6 +404,78 @@ class TestCompiler(QiskitTestCase):
         qobj = transpiler.compile(circuits, backend)
         self.assertIsInstance(qobj, Qobj)
 
+    def test_example_multiple_compile(self):
+        """Test a toy example compiling multiple circuits.
+
+        Pass if the results are correct.
+        """
+        coupling_map = [[0, 1], [0, 2],
+                        [1, 2],
+                        [3, 2], [3, 4],
+                        [4, 2]]
+        QPS_SPECS = {
+            "circuits": [
+                {
+                    "name": "ghz",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                },
+                {
+                    "name": "bell",
+                    "quantum_registers": [{
+                        "name": "q",
+                        "size": 5
+                    }],
+                    "classical_registers": [{
+                        "name": "c",
+                        "size": 5}]
+                }
+            ]
+        }
+        qp = QuantumProgram(specs=QPS_SPECS)
+        ghz = qp.get_circuit("ghz")
+        bell = qp.get_circuit("bell")
+        q = qp.get_quantum_register("q")
+        c = qp.get_classical_register("c")
+        # Create a GHZ state
+        ghz.h(q[0])
+        for i in range(4):
+            ghz.cx(q[i], q[i+1])
+        # Insert a barrier before measurement
+        ghz.barrier()
+        # Measure all of the qubits in the standard basis
+        for i in range(5):
+            ghz.measure(q[i], c[i])
+        # Create a Bell state
+        bell.h(q[0])
+        bell.cx(q[0], q[1])
+        bell.barrier()
+        bell.measure(q[0], c[0])
+        bell.measure(q[1], c[1])
+        shots = 2048
+        bellobj = qp.compile(["bell"], backend='local_qasm_simulator',
+                             shots=shots, seed=10)
+        ghzobj = qp.compile(["ghz"], backend='local_qasm_simulator',
+                            shots=shots, coupling_map=coupling_map,
+                            seed=10)
+        bellresult = qp.run(bellobj)
+        ghzresult = qp.run(ghzobj)
+        self.log.info(bellresult.get_counts("bell"))
+        self.log.info(ghzresult.get_counts("ghz"))
+
+        threshold = 0.04 * shots
+        counts_bell = bellresult.get_counts('bell')
+        target_bell = {'00000': shots / 2, '00011': shots / 2}
+        self.assertDictAlmostEqual(counts_bell, target_bell, threshold)
+
+        counts_ghz = ghzresult.get_counts('ghz')
+        target_ghz = {'00000': shots / 2, '11111': shots / 2}
+        self.assertDictAlmostEqual(counts_ghz, target_ghz, threshold)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

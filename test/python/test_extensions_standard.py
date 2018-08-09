@@ -139,6 +139,34 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.ccx, self.cr, self.qr, self.qr)
         self.assertRaises(QISKitError, qc.ccx, 'a', self.qr[1], self.qr[2])
 
+    def test_ccx(self):
+        """Checks a Toffoli gate.
+
+        Based on https://github.com/QISKit/qiskit-terra/pull/172.
+        """
+        Q_program = QuantumProgram()
+        q = Q_program.create_quantum_register('q', 3)
+        c = Q_program.create_classical_register('c', 3)
+        pqm = Q_program.create_circuit('pqm', [q], [c])
+
+        # Toffoli gate.
+        pqm.ccx(q[0], q[1], q[2])
+
+        # Measurement.
+        for k in range(3):
+            pqm.measure(q[k], c[k])
+
+        # Prepare run.
+        circuits = ['pqm']
+        backend = 'local_qasm_simulator'
+        shots = 1024
+
+        # Run.
+        result = Q_program.execute(circuits, backend=backend, shots=shots,
+                                   max_credits=3, timeout=240)
+
+        self.assertEqual({'000': 1024}, result.get_counts('pqm'))
+
     def test_ch(self):
         self.circuit.ch(self.qr[0], self.qr[1])
         qasm_txt = 'ch q[0],q[1];'
@@ -473,6 +501,77 @@ class TestStandard1Q(StandardExtensionTest):
     def test_swap(self):
         self.circuit.swap(self.qr[1], self.qr[2])
         self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
+
+    def test_example_swap_bits(self):
+        """Test a toy example swapping a set bit around.
+
+        Uses the mapper. Pass if results are correct.
+        """
+        coupling_map = [[0, 1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10],
+                        [3, 4], [3, 11], [4, 5], [4, 12], [5, 6], [5, 13],
+                        [6, 7], [6, 14], [7, 15], [8, 9], [9, 10], [10, 11],
+                        [11, 12], [12, 13], [13, 14], [14, 15]]
+
+        def swap(qc, q0, q1):
+            """Swap gate."""
+            qc.cx(q0, q1)
+            qc.cx(q1, q0)
+            qc.cx(q0, q1)
+        n = 3  # make this at least 3
+        QPS_SPECS = {
+            "circuits": [
+                {
+                    "name": "swapping",
+                    "quantum_registers": [
+                        {
+                            "name": "q",
+                            "size": n
+                        },
+                        {
+                            "name": "r",
+                            "size": n
+                        }
+                    ],
+                    "classical_registers": [
+                        {
+                            "name": "ans",
+                            "size": 2*n
+                        },
+                    ]
+                }
+            ]
+        }
+        qp = QuantumProgram(specs=QPS_SPECS)
+        backend = 'local_qasm_simulator'
+        qc = qp.get_circuit("swapping")
+        q = qp.get_quantum_register("q")
+        r = qp.get_quantum_register("r")
+        ans = qp.get_classical_register("ans")
+        # Set the first bit of q
+        qc.x(q[0])
+        # Swap the set bit
+        swap(qc, q[0], q[n-1])
+        swap(qc, q[n-1], r[n-1])
+        swap(qc, r[n-1], q[1])
+        swap(qc, q[1], r[1])
+        # Insert a barrier before measurement
+        qc.barrier()
+        # Measure all of the qubits in the standard basis
+        for j in range(n):
+            qc.measure(q[j], ans[j])
+            qc.measure(r[j], ans[j+n])
+        # First version: no mapping
+        result = qp.execute(["swapping"], backend=backend,
+                            coupling_map=None, shots=1024,
+                            seed=14)
+        self.assertEqual(result.get_counts("swapping"),
+                         {'010000': 1024})
+        # Second version: map to coupling graph
+        result = qp.execute(["swapping"], backend=backend,
+                            coupling_map=coupling_map, shots=1024,
+                            seed=14)
+        self.assertEqual(result.get_counts("swapping"),
+                         {'010000': 1024})
 
     def test_swap_invalid(self):
         qc = self.circuit
