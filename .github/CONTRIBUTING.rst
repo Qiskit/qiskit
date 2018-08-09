@@ -205,10 +205,6 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-By default, the tests run against a local copy of the HTTP interactions.
-Additionally, an environment variable ``RECORD_TEST_RESPONSE`` can be used for
-run the tests online against the remote API.
-
 Style guide
 ~~~~~~~~~~~
 
