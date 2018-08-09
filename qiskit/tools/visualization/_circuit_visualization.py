@@ -521,11 +521,16 @@ class QCircuitImage(object):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
                 cell_str = self._latex[i][j]
-                # floats can cause "Dimension too large" latex error in xymatrix
-                # this truncates floats to avoid issue.
-                cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float,
-                                  cell_str)
-                output.write(cell_str)
+                # Don't truncate offset float if drawing a barrier
+                if 'barrier' in cell_str:
+                    output.write(cell_str)
+                else:
+                    # floats can cause "Dimension too large" latex error in
+                    # xymatrix this truncates floats to avoid issue.
+                    cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
+                                      _truncate_float,
+                                      cell_str)
+                    output.write(cell_str)
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
@@ -1221,13 +1226,23 @@ class QCircuitImage(object):
 
                 try:
                     self._latex[pos_1][columns] = "\\meter"
+                    prev_entry = self._latex[pos_1][columns - 1]
+                    if 'barrier' in prev_entry:
+                        self._latex[pos_1][columns - 1] = prev_entry.replace(
+                            '\\barrier{', '\\barrier[-1.15em]{')
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
                     raise QISKitError('Error during Latex building: %s' %
                                       str(e))
             elif op['name'] == "barrier":
-                pass
+                qarglist = [self.qubit_list[i] for i in op['qubits']]
+                if aliases is not None:
+                    qarglist = map(lambda x: aliases[x], qarglist)
+                start = self.img_regs[(qarglist[0][0],
+                                       qarglist[0][1])]
+                span = len(op['qubits']) - 1
+                self._latex[start][columns] += " \\barrier{" + str(span) + "}"
             else:
                 assert False, "bad node data"
 
