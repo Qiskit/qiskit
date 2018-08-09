@@ -177,7 +177,37 @@ class IdRemoverPersister(FilesystemPersister):
                                                                     serializer)
 
 
-def purge_headers(headers):
+def http_recorder(vcr_mode):
+    """
+    Creates a VCR object in vcr_mode mode.
+
+    Args:
+        vcr_mode (string): the parameter for record_mode.
+
+    Returns:
+        VCR: a VCR object.
+    """
+    my_vcr = VCR(
+        cassette_library_dir='test/cassettes',
+        record_mode=vcr_mode,
+        match_on=['method', 'scheme', 'host', 'port', 'path', 'unordered_query'],
+        filter_headers=['x-qx-client-application', 'User-Agent'],
+        filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
+        filter_post_data_parameters=[('apiToken', 'apiToken_dummy')],
+        decode_compressed_response=True,
+        before_record_response=_purge_headers(['Date',
+                                               ('Set-Cookie', 'dummy_cookie'),
+                                              'X-Global-Transaction-ID',
+                                              'Etag',
+                                              'Content-Security-Policy',
+                                              'X-Content-Security-Policy',
+                                              'X-Webkit-Csp',
+                                              'content-length']))
+    my_vcr.register_matcher('unordered_query', _unordered_query_matcher)
+    my_vcr.register_persister(IdRemoverPersister)
+    return my_vcr
+
+def _purge_headers(headers):
     """
     Remove headers from the response.
 
@@ -217,7 +247,7 @@ def purge_headers(headers):
     return before_record_response
 
 
-def unordered_query_matcher(request1, request2):
+def _unordered_query_matcher(request1, request2):
     """
     A VCR matcher (a la VCR.matcher) that ignores the order of the query strings and ther
     content. Useful for filter params, for example.
@@ -252,34 +282,3 @@ def unordered_query_matcher(request1, request2):
             pass
 
     return dict1 == dict2
-
-
-def http_recorder(vcr_mode):
-    """
-    Creates a VCR object in vcr_mode mode.
-
-    Args:
-        vcr_mode (string): the parameter for record_mode.
-
-    Returns:
-        VCR: a VCR object.
-    """
-    my_vcr = VCR(
-        cassette_library_dir='test/cassettes',
-        record_mode=vcr_mode,
-        match_on=['method', 'scheme', 'host', 'port', 'path', 'unordered_query'],
-        filter_headers=['x-qx-client-application', 'User-Agent'],
-        filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
-        filter_post_data_parameters=[('apiToken', 'apiToken_dummy')],
-        decode_compressed_response=True,
-        before_record_response=purge_headers(['Date',
-                                              ('Set-Cookie', 'dummy_cookie'),
-                                              'X-Global-Transaction-ID',
-                                              'Etag',
-                                              'Content-Security-Policy',
-                                              'X-Content-Security-Policy',
-                                              'X-Webkit-Csp',
-                                              'content-length']))
-    my_vcr.register_matcher('unordered_query', unordered_query_matcher)
-    my_vcr.register_persister(IdRemoverPersister)
-    return my_vcr
