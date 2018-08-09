@@ -56,7 +56,7 @@ class LocalJob(BaseJob):
         self._future = None
 
     def submit(self):
-        """ Submit the job to the backend for running """
+        """Submit the job to the backend for running """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
@@ -65,8 +65,7 @@ class LocalJob(BaseJob):
     @requires_submit
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
-        """
-        Get job result. The behavior is the same as the underlying
+        """Get job result. The behavior is the same as the underlying
         concurrent Future objects,
 
         https://docs.python.org/3/library/concurrent.futures.html#future-objects
@@ -78,7 +77,7 @@ class LocalJob(BaseJob):
             Result: Result object
 
         Raises:
-            concurrent.futures.TimeoutError: if timeout occured.
+            concurrent.futures.TimeoutError: if timeout occurred.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
         return self._future.result(timeout=timeout)
@@ -87,44 +86,32 @@ class LocalJob(BaseJob):
     def cancel(self):
         return self._future.cancel()
 
-    @property
+    @requires_submit
     def status(self):
-        _status_msg = None
-        # order is important here
-        if self.running:
+        """Gets the status of the job by querying the Python's future
+
+        Returns:
+            JobStatus: The current JobStatus
+
+        Raises:
+            JobError: If the future is in unexpected state
+            concurrent.futures.TimeoutError: if timeout occurred.
+        """
+        # The order is important here
+        if self._future.running():
             _status = JobStatus.RUNNING
-        elif not self.done:
-            _status = JobStatus.QUEUED
-        elif self.cancelled:
+        elif self._future.cancelled():
             _status = JobStatus.CANCELLED
-        elif self.done:
-            _status = JobStatus.DONE
+        elif self._done():
+            ex = self._future.exception()
+            if ex is None:
+                _status = JobStatus.DONE
+            else:
+                _status = JobStatus.ERROR
         else:
             raise JobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))
-        return {'status': _status,
-                'status_msg': _status_msg}
-
-    @property
-    @requires_submit
-    def running(self):
-        return self._future.running()
-
-    @property
-    @requires_submit
-    def done(self):
-        """
-        Returns True if job successfully finished running.
-
-        Note behavior is slightly different than Future objects which would
-        also return true if successfully cancelled.
-        """
-        return self._future.done() and not self._future.cancelled()
-
-    @property
-    @requires_submit
-    def cancelled(self):
-        return self._future.cancelled()
+        return _status
 
     @property
     def backend_name(self):

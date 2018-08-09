@@ -19,6 +19,7 @@ from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
 from qiskit.backends.local import UnitarySimulatorPy
+from qiskit.backends.jobstatus import JobStatus
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
 
@@ -69,20 +70,6 @@ class TestLocalJob(QiskitTestCase):
         self.assertCalledOnce(executor.submit)
         mocked_future = executor.submit.return_value
         self.assertCalledOnce(mocked_future.cancel)
-
-    def test_done(self):
-        # Once more, testing that reading the `done` property delegates into
-        # the proper future API.
-
-        # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_localjob() as (LocalJob, executor):
-            job = LocalJob(lambda: None, new_fake_qobj())
-            job.submit()
-            _ = job.done
-
-        self.assertCalledOnce(executor.submit)
-        mocked_future = executor.submit.return_value
-        self.assertCalledOnce(mocked_future.done)
 
     def assertCalledOnce(self, mocked_callable):
         """Assert a mocked callable has been called once."""

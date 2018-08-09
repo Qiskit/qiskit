@@ -51,12 +51,16 @@ class IBMQJob(BaseJob):
             job = IBMQJob( ... )
             job.submit() # <--- It won't block.
 
-            while not job.done(): # <---- It will return false if the job
-                                  # hasn't finished yet
-                pass # <---- or maybe... serialize to disk? .. whatever the user wants
+            job_status = job.status()  # <--- implies a request to the API server
+            if job_status is JobStatus.DONE:
+                result = job.result() # <--- This could block, but as the job is already
+                                      # finished, it won't in this case.
+            if job_status is JobStatus.CANCELLED:
+                print("The job was cancelled!. Msg: {}".format(job.error_msg()))
+            if job_status is JobStatus.ERROR:
+                print("There was en error in th
 
-            result = job.result() # <--- This could block, but as the job is already
-                                  # finished, it won't in this case.
+
         except JobError as ex:
             log("Something wrong happened!: {}".format(ex))
 
@@ -127,6 +131,7 @@ class IBMQJob(BaseJob):
 
         self._creation_date = creation_date or current_utc_time()
         self._future = None
+        self._api_error_msg = None
 
     # pylint: disable=arguments-differ
     def result(self, timeout=None, wait=5):
@@ -147,13 +152,14 @@ class IBMQJob(BaseJob):
             this_result = self._wait_for_job(timeout=timeout, wait=wait)
         except TimeoutError as err:
             # A timeout error retrieving the results does not imply the job
-            # is failing. The job can be still running.
+            # is failing. The job can be still running. This is why we are not
+            # throwing an exception here.
             return Result({'id': self._id, 'status': 'ERROR',
                            'result': str(err)})
         except ApiError as api_err:
             raise JobError(str(api_err))
 
-        if self._is_device and self.done:
+        if self._is_device and self.status() == JobStatus.DONE:
             _reorder_bits(this_result)
 
         return this_result
@@ -190,7 +196,6 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-
         # This will only happen if something bad happens when submitting a job, so
         # we don't have a job ID
         if self._future_exception is not None:
@@ -228,12 +233,18 @@ class IBMQJob(BaseJob):
         elif 'ERROR' in api_job['status']:
             # Error status are of the form "ERROR_*_JOB"
             self._status = JobStatus.ERROR
+            # TODO: This seems to be an inconsistency in the API package.
+            self._api_error_msg = api_job.get('error') or api_job.get('Error')
 
         else:
             raise JobError('Unrecognized answer from server: \n{}'
                            .format(pprint.pformat(api_job)))
 
         return self._status
+
+    def error_message(self):
+        """Returns the error message returned from the API server response"""
+        return self._api_error_msg
 
     def queue_position(self):
         """Returns the position in the server queue
@@ -249,63 +260,7 @@ class IBMQJob(BaseJob):
         """
         return self._creation_date
 
-    @property
-    def queued(self):
-        """Returns whether job is queued.
-
-        Returns:
-            bool: True if job is queued, else False.
-
-        Raises:
-            JobError: couldn't get job status from server
-        """
-        return self.status() == JobStatus.QUEUED
-
-    @property
-    def running(self):
-        """Returns whether job is actively running
-
-        Returns:
-            bool: True if job is running, else False.
-
-        Raises:
-            JobError: couldn't get job status from server
-        """
-        return self.status() == JobStatus.RUNNING
-
-    @property
-    def validating(self):
-        """Returns whether job is being validated
-
-        Returns:
-            bool: True if job is under validation, else False.
-
-        Raises:
-            JobError: couldn't get job status from server
-        """
-        return self.status() == JobStatus.VALIDATING
-
-    @property
-    def done(self):
-        """Returns True if job successfully finished running.
-
-        Note behavior is slightly different than Future objects which would
-        also return true if successfully cancelled.
-
-        Returns:
-            bool: True if job successfully finished running.
-
-        Raises:
-            IMBQJobError: couldn't get job status from server
-        """
-        return self.status() == JobStatus.DONE
-
-    @property
-    def cancelled(self):
-        return self._cancelled
-
     # pylint: disable=invalid-name
-    @property
     def id(self):
         """Return backend determined id.
 
@@ -405,7 +360,7 @@ class IBMQJob(BaseJob):
             logger.info('status = %s (%d seconds)', self._status, elapsed_time)
             time.sleep(wait)
 
-        if self.cancelled:
+        if self._cancelled:
             return Result({'id': self._id, 'status': 'CANCELLED',
                            'result': 'job cancelled'})
 

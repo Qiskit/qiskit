@@ -104,11 +104,9 @@ class TestIBMQJob(QiskitTestCase):
         qobj = transpiler.compile(self._qc, backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
-        while not (job.done or job.exception):
+        while not (job.status() == JobStatus.DONE):
             self.log.info(job.status())
             time.sleep(4)
-        if job.exception:
-            raise job.exception
         self.log.info(job.status)
         result = job.result()
         counts_qx = result.get_counts(result.get_names()[0])
@@ -142,18 +140,18 @@ class TestIBMQJob(QiskitTestCase):
         timeout = 30
         start_time = time.time()
         while not found_async_jobs:
-            check = sum([job.running for job in job_array])
+            check = sum([job.status() == JobStatus.RUNNING for job in job_array])
             if check >= 2:
                 self.log.info('found %d simultaneous jobs', check)
                 break
-            if all([job.done for job in job_array]):
+            if all([job.status() == JobStatus.DONE for job in job_array]):
                 # done too soon? don't generate error
                 self.log.warning('all jobs completed before simultaneous jobs '
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('%s %s %s %s', job.status(), job.running,
-                              check, job.id)
+                self.log.info('%s %s %s %s', job.status(), job.status() == JobStatus.RUNNING,
+                              check, job.id())
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
@@ -163,11 +161,11 @@ class TestIBMQJob(QiskitTestCase):
         result_array = [job.result() for job in job_array]
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
-        self.assertTrue(all([job.done for job in job_array]))
+        self.assertTrue(all([job.status() == JobStatus.DONE for job in job_array]))
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.id for job in job_array]
+        job_ids = [job.id() for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
@@ -209,11 +207,11 @@ class TestIBMQJob(QiskitTestCase):
         result_array = [job.result() for job in job_array]
 
         # Ensure all jobs have finished.
-        self.assertTrue(all([job.done for job in job_array]))
+        self.assertTrue(all([job.status() == JobStatus.DONE for job in job_array]))
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.id for job in job_array]
+        job_ids = [job.id() for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     def test_cancel(self):
@@ -257,8 +255,8 @@ class TestIBMQJob(QiskitTestCase):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        self.log.info('job_id: %s', job.id)
-        self.assertTrue(job.id is not None)
+        self.log.info('job_id: %s', job.id())
+        self.assertTrue(job.id() is not None)
 
     def test_get_backend_name(self):
         backend_name = 'ibmq_qasm_simulator'
@@ -275,15 +273,15 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
         for job in job_list:
             self.log.info('status: %s', job.status())
-            self.assertTrue(isinstance(job.id, str))
+            self.assertTrue(isinstance(job.id(), str))
         self.log.info('time to get job statuses: %0.3f s', time.time() - start_time)
 
     def test_retrieve_job(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        rjob = backend.retrieve_job(job.id)
-        self.assertTrue(job.id == rjob.id)
+        rjob = backend.retrieve_job(job.id())
+        self.assertTrue(job.id() == rjob.id())
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
     def test_retrieve_job_error(self):
@@ -335,7 +333,7 @@ class TestIBMQJob(QiskitTestCase):
             self.assertTrue(job.creation_date() < past_day_30.isoformat())
 
     def test_double_submit_fails(self):
-        backend = self._local_provider.get_backend('local_qasm_simulator_py')
+        backend = self._local_provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
         with self.assertRaises(JobError):
