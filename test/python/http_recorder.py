@@ -273,8 +273,6 @@ def _unordered_query_matcher(request1, request2):
     if dict1.keys() != dict2.keys():
         return False
 
-    print(dict1, '==', dict2)
-
     for key, value in dict1.items():
         try:
             dict1[key] = json.loads(value)
