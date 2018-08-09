@@ -1744,15 +1744,28 @@ class MatplotlibDrawer:
                     for xy in c_xy:
                         self._conds(xy, istrue=True)
                 else:
-                    fmt = '{{:0{}b}}'.format(len(c_xy))
-                    vlist = list(fmt.format(int(op['conditional']['val'], 16)))[::-1]
-                    for xy, v in zip(c_xy, vlist):
-                        if v == '0':
-                            bv = False
+                    # cbit list to consider
+                    fmt_c = '{{:0{}b}}'.format(len(c_xy))
+                    mask = int(op['conditional']['mask'], 16)
+                    cmask = list(fmt_c.format(mask))[::-1]
+                    # value
+                    fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
+                    val = int(op['conditional']['val'], 16)
+                    vlist = list(fmt_v.format(val))[::-1]
+                    v_ind = 0
+                    xy_plot = []
+                    for xy, m in zip(c_xy, cmask):
+                        if m == '1':
+                            if vlist[v_ind] == '1':
+                                bv = True
+                            else:
+                                bv = False
+                            v_ind += 1
                         else:
-                            bv = True
+                            continue
                         self._conds(xy, istrue=bv)
-                creg_b = sorted(c_xy, key=lambda xy: xy[1])[0]
+                        xy_plot.append(xy)
+                creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                 self._subtext(creg_b, op['conditional']['val'])
                 self._line(qreg_t, creg_b)
             #
