@@ -21,19 +21,19 @@ class IdRemoverPersister(FilesystemPersister):
     """
 
     @staticmethod
-    def get_responses_with(string2find, cassette_dict):
+    def get_responses_with(string_to_find, cassette_dict):
         """
         Filters the requests from cassette_dict
 
         Args:
-            string2find (str): request path
+            string_to_find (str): request path
             cassette_dict (dict): a VCR cassette dictionary
 
         Returns:
             Request: VCR's representation of a request.
         """
         request_indices = [i for i, request in enumerate(cassette_dict['requests']) if
-                            string2find in request.path]
+                           string_to_find in request.path]
         return [cassette_dict['responses'][i] for i in request_indices]
 
     @staticmethod
