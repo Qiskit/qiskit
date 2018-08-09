@@ -260,7 +260,7 @@ def slow_test(func):
     return _
 
 
-def get_credentials(args, kwargs):
+def _add_credentials(args, kwargs):
     """
     Finds the user credentials and update in place args and kwargs.
     Args:
@@ -361,7 +361,7 @@ def requires_qe_access(func):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        if get_credentials(args, kwargs):
+        if _add_credentials(args, kwargs):
             if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
                 return VCR.use_cassette()(func)(*args, **kwargs)
             return func(*args, **kwargs)
