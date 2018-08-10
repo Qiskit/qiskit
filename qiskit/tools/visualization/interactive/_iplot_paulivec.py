@@ -34,7 +34,21 @@ def process_data(rho):
 
 
 def iplot_paulivec(executions_results, options=None):
-    """ Create a paulivec representation """
+    """ Create a paulivec representation.
+
+        Graphical representation of the input array.
+
+        Args:
+            executions_results (array): Array of dictionaries containing
+                    - data (dict): values to represent (ex. {'001' : 130})
+                    - name (string): name to show in the legend
+                    - device (string): Could be 'real' or 'simulated'
+            options (dict): Representation settings containing
+                    - width (integer): graph horizontal size
+                    - height (integer): graph vertical size
+                    - slider (bool): activate slider
+                    - showLegend (bool): show legend of graph content
+    """
 
     # HTML
     html_template = Template("""

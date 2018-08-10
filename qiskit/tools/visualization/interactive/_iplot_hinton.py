@@ -18,7 +18,17 @@ except ImportError:
 
 
 def iplot_hinton(executions_results, options=None):
-    """ Create a hinton representation """
+    """ Create a hinton representation.
+
+        Graphical representation of the input array using a 2D city style
+        graph (hinton).
+
+        Args:
+            executions_results (array): Density matrix
+            options (dict): Representation settings containing
+                    - width (integer): graph horizontal size
+                    - height (integer): graph vertical size
+    """
 
     # HTML
     html_template = Template("""
@@ -70,7 +80,7 @@ def iplot_hinton(executions_results, options=None):
 
     javascript = javascript_template.substitute({
         'divNumber': div_number,
-        'executions': [dict(data=real), dict(data=imag)],
+        'executions': [{'data': real}, {'data': imag}],
         'options': options
     })
 

@@ -20,7 +20,17 @@ except ImportError:
 
 
 def iplot_blochsphere(rho, options=None):
-    """ Create a bloch sphere representation """
+    """ Create a bloch sphere representation.
+
+        Graphical representation of the input array, using as much bloch
+        spheres as qubit are required.
+
+        Args:
+            rho (array): Density matrix
+            options (dict): Representation settings containing
+                    - width (integer): graph horizontal size
+                    - height (integer): graph vertical size
+    """
 
     # HTML
     html_template = Template("""

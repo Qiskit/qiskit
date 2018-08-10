@@ -18,7 +18,16 @@ except ImportError:
 
 
 def iplot_cities(rho, options=None):
-    """ Create a cities representation """
+    """ Create a cities representation.
+
+        Graphical representation of the input array using a city style graph.
+
+        Args:
+            rho (array): Density matrix
+            options (dict): Representation settings containing
+                    - width (integer): graph horizontal size
+                    - height (integer): graph vertical size
+    """
 
     # HTML
     html_template = Template("""

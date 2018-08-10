@@ -21,7 +21,17 @@ except ImportError:
 
 
 def iplot_qsphere(rho, options=None):
-    """ Create a Q sphere representation """
+    """ Create a Q sphere representation.
+
+        Graphical representation of the input array, using a Q sphere for each
+        eigenvalue.
+
+        Args:
+            rho (array): Complex array of data to be represented
+            options (dict): Representation settings containing
+                    - width (integer): graph horizontal size
+                    - height (integer): graph vertical size
+    """
 
     # HTML
     html_template = Template("""
