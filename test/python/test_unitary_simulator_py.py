@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 # pylint: disable=redefined-builtin
 
 import cProfile
@@ -105,24 +105,24 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         n_circuits = 100
         max_depth = 40
         max_qubits = 5
-        pr = cProfile.Profile()
+        profile = cProfile.Profile()
         random_circuits = RandomQasmGenerator(seed=self.seed,
                                               max_depth=max_depth,
                                               max_qubits=max_qubits)
         random_circuits.add_circuits(n_circuits, do_measure=False)
-        qp = random_circuits.get_program()
-        pr.enable()
-        qp.execute(qp.get_circuit_names(),
-                   backend=UnitarySimulatorPy())
-        pr.disable()
+        qprogram = random_circuits.get_program()
+        profile.enable()
+        qprogram.execute(qprogram.get_circuit_names(),
+                         backend=UnitarySimulatorPy())
+        profile.disable()
         sout = io.StringIO()
-        ps = pstats.Stats(pr, stream=sout).sort_stats('cumulative')
+        profile_stats = pstats.Stats(profile, stream=sout).sort_stats('cumulative')
         self.log.info('------- start profiling UnitarySimulatorPy -----------')
-        ps.print_stats()
+        profile_stats.print_stats()
         self.log.info(sout.getvalue())
         self.log.info('------- stop profiling UnitarySimulatorPy -----------')
         sout.close()
-        pr.dump_stats(self.moduleName + '.prof')
+        profile.dump_stats(self.moduleName + '.prof')
 
 
 if __name__ == '__main__':

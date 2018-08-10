@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,unused-import
+# pylint: disable=unused-import
 
 """Tests for verifying the correctness of simulator extension instructions."""
 
@@ -26,18 +26,18 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_save_load(self):
         """save |+>|0>, do some stuff, then load"""
-        q = qiskit.QuantumRegister(2)
-        c = qiskit.ClassicalRegister(2)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.save(1)
-        circ.cx(q[0], q[1])
-        circ.cx(q[1], q[0])
-        circ.h(q[1])
-        circ.load(1)
+        qr = qiskit.QuantumRegister(2)
+        cr = qiskit.ClassicalRegister(2)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.save(1)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
+        circuit.h(qr[1])
+        circuit.load(1)
 
         sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim).result()
+        result = execute(circuit, sim).result()
         statevector = result.get_statevector()
         target = [0.70710678 + 0.j, 0.70710678 + 0.j, 0. + 0.j, 0. + 0.j]
         fidelity = state_fidelity(statevector, target)
@@ -47,17 +47,17 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
-        q = qiskit.QuantumRegister(2)
-        c = qiskit.ClassicalRegister(2)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.snapshot(3)
-        circ.cx(q[0], q[1])
-        circ.h(q[1])
+        qr = qiskit.QuantumRegister(2)
+        cr = qiskit.ClassicalRegister(2)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.snapshot(3)
+        circuit.cx(qr[0], qr[1])
+        circuit.h(qr[1])
 
         sim = 'local_statevector_simulator_cpp'
-        result = execute(circ, sim).result()
+        result = execute(circuit, sim).result()
         snapshot = result.get_snapshot(slot='3')
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
         fidelity = state_fidelity(snapshot, target)
@@ -67,15 +67,15 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_noise(self):
         """turn on a pauli x noise for qubits 0 and 2"""
-        q = qiskit.QuantumRegister(3)
-        c = qiskit.ClassicalRegister(3)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.iden(q[0])
-        circ.noise(0)
-        circ.iden(q[1])
-        circ.noise(1)
-        circ.iden(q[2])
-        circ.measure(q, c)
+        qr = qiskit.QuantumRegister(3)
+        cr = qiskit.ClassicalRegister(3)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.iden(qr[0])
+        circuit.noise(0)
+        circuit.iden(qr[1])
+        circuit.noise(1)
+        circuit.iden(qr[2])
+        circuit.measure(qr, cr)
 
         config = {
             'noise_params': {
@@ -84,7 +84,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         }
         sim = 'local_qasm_simulator_cpp'
         shots = 1000
-        result = execute(circ, sim, config=config, shots=shots).result()
+        result = execute(circuit, sim, config=config, shots=shots).result()
         counts = result.get_counts()
         target = {'101': shots}
         self.assertEqual(counts, target)
