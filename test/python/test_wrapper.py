@@ -32,18 +32,18 @@ class TestWrapper(QiskitTestCase):
         self.circuit.measure(qr, cr)
 
     @requires_qe_access
-    def test_wrapper_register_ok(self, qe_token, qe_url, hub, group, project):
+    def test_wrapper_register_ok(self, qe_token, qe_url):
         """Test wrapper.register()."""
-        qiskit.wrapper.register(qe_token, qe_url, hub, group, project)
+        qiskit.wrapper.register(qe_token, qe_url)
         backends = qiskit.wrapper.available_backends()
         backends = remove_backends_from_list(backends)
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
     @requires_qe_access
-    def test_backends_with_filter(self, qe_token, qe_url, hub, group, project):
+    def test_backends_with_filter(self, qe_token, qe_url):
         """Test wrapper.available_backends(filter=...)."""
-        qiskit.wrapper.register(qe_token, qe_url, hub, group, project)
+        qiskit.wrapper.register(qe_token, qe_url)
         backends = qiskit.wrapper.available_backends({'local': False,
                                                       'simulator': True})
         self.log.info(backends)
@@ -56,12 +56,12 @@ class TestWrapper(QiskitTestCase):
         self.assertTrue(len(local_backends) > 0)
 
     @requires_qe_access
-    def test_register_twice(self, qe_token, qe_url, hub, group, project):
+    def test_register_twice(self, qe_token, qe_url):
         """Test double registration of the same credentials."""
-        qiskit.wrapper.register(qe_token, qe_url, hub, group, project)
+        qiskit.wrapper.register(qe_token, qe_url)
         initial_providers = registered_providers()
         # Registering twice should give warning and add no providers.
-        qiskit.wrapper.register(qe_token, qe_url, hub, group, project)
+        qiskit.wrapper.register(qe_token, qe_url)
         self.assertCountEqual(initial_providers, registered_providers())
 
     def test_register_bad_credentials(self):
@@ -72,20 +72,20 @@ class TestWrapper(QiskitTestCase):
         self.assertEqual(initial_providers, registered_providers())
 
     @requires_qe_access
-    def test_unregister(self, qe_token, qe_url, hub, group, project):
+    def test_unregister(self, qe_token, qe_url):
         """Test unregistering."""
         initial_providers = registered_providers()
-        ibmqprovider = qiskit.wrapper.register(qe_token, qe_url, hub, group, project)
+        ibmqprovider = qiskit.wrapper.register(qe_token, qe_url)
         self.assertCountEqual(initial_providers + [ibmqprovider],
                               registered_providers())
         qiskit.wrapper.unregister(ibmqprovider)
         self.assertEqual(initial_providers, registered_providers())
 
     @requires_qe_access
-    def test_unregister_non_existent(self, qe_token, qe_url, hub, group, project):
+    def test_unregister_non_existent(self, qe_token, qe_url):
         """Test unregistering a non existent provider."""
         initial_providers = registered_providers()
-        ibmqprovider = IBMQProvider(qe_token, qe_url, hub, group, project)
+        ibmqprovider = IBMQProvider(qe_token, qe_url)
         with self.assertRaises(QISKitError):
             qiskit.wrapper.unregister(ibmqprovider)
         self.assertEqual(initial_providers, registered_providers())

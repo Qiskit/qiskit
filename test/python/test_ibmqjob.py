@@ -45,7 +45,7 @@ class TestIBMQJob(JobTestCase):
     """
 
     @requires_qe_access
-    def setUp(self, qe_token, qe_url, hub=None, group=None, project=None):
+    def setUp(self, qe_token, qe_url):
         # pylint: disable=arguments-differ
         super().setUp()
         # create QuantumCircuit
@@ -56,7 +56,7 @@ class TestIBMQJob(JobTestCase):
         qc.cx(qr[0], qr[1])
         qc.measure(qr, cr)
         self._qc = qc
-        self._provider = IBMQProvider(qe_token, qe_url, hub, group, project)
+        self._provider = IBMQProvider(qe_token, qe_url)
 
     def test_run_simulator(self):
         backend = self._provider.get_backend('ibmq_qasm_simulator')
