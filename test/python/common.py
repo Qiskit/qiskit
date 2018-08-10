@@ -275,7 +275,6 @@ def _get_credentials(test_object, test_options):
                          'qe_url': 'https://quantumexperience.ng.bluemix.net/api'}
 
     if test_options['mock_online']:
-        test_object.using_ibmq_credentials = True
         return dummy_credentials
 
     if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
