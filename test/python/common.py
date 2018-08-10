@@ -366,10 +366,7 @@ def requires_qe_access(func):
             args[0].log.warning("No user credentials were detected. Running with mocked data.")
             kwargs.update({
                 'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
-                'QE_URL': 'https://quantumexperience.ng.bluemix.net/api',
-                'hub': None,
-                'group': None,
-                'project': None,
+                'QE_URL': 'https://quantumexperience.ng.bluemix.net/api'
             })
             args[0].using_ibmq_credentials = False
             return VCR.use_cassette()(func)(*args, **kwargs)
