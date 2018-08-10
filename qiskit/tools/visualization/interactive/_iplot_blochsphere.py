@@ -18,6 +18,7 @@ try:
 except ImportError:
     print("Jupyter notebook is required")
 
+
 def iplot_blochsphere(rho, options=None):
     """ Create a bloch sphere representation """
 

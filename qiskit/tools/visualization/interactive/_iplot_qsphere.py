@@ -19,6 +19,7 @@ try:
 except ImportError:
     print("Jupyter notebook is required")
 
+
 def iplot_qsphere(rho, options=None):
     """ Create a Q sphere representation """
 

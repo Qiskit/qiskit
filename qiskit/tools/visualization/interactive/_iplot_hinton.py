@@ -16,6 +16,7 @@ try:
 except ImportError:
     print("Jupyter notebook is required")
 
+
 def iplot_hinton(executions_results, options=None):
     """ Create a hinton representation """
 
