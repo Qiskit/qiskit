@@ -271,8 +271,8 @@ def _get_credentials(test_object, test_options):
         Exception: When the credential could not be set and they are needed for that set of options
     """
 
-    dummy_credentials = {'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
-                         'QE_URL': 'https://quantumexperience.ng.bluemix.net/api'}
+    dummy_credentials = {'qe_token': 'dummyapiusersloginWithTokenid01',
+                         'qe_url': 'https://quantumexperience.ng.bluemix.net/api'}
 
     if test_options['mock_online']:
         test_object.using_ibmq_credentials = True
@@ -283,8 +283,8 @@ def _get_credentials(test_object, test_options):
         # load them from different environment variables. This assumes they
         # will always be in place, as is used by the Travis setup.
         test_object.using_ibmq_credentials = True
-        return {'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': os.getenv('IBMQ_URL')}
+        return {'qe_token': os.getenv('IBMQ_TOKEN'),
+                'qe_url': os.getenv('IBMQ_URL')}
     else:
         # Attempt to read the standard credentials.
         account_name = get_account_name(IBMQProvider)
@@ -293,8 +293,8 @@ def _get_credentials(test_object, test_options):
             credentials = discovered_credentials[account_name]
             if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
                 test_object.using_ibmq_credentials = True
-            return {'QE_TOKEN': credentials.get('token'),
-                    'QE_URL': credentials.get('url')}
+            return {'qe_token': credentials.get('token'),
+                    'qe_url': credentials.get('url')}
 
     # No user credentials were found.
 
