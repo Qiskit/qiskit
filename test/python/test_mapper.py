@@ -14,6 +14,8 @@ from qiskit import (QuantumProgram, load_qasm_string, mapper, qasm, unroll)
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.mapper._compiling import two_qubit_kak
+from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import remove_last_measurements
 from .common import QiskitTestCase
 
@@ -259,6 +261,13 @@ class MapperTest(QiskitTestCase):
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))
+
+    def test_kak_decomposition(self):
+        """Verify KAK decomposition for random Haar unitaries.
+        """
+        for _ in range(100):
+            unitary = random_unitary_matrix(4)
+            two_qubit_kak(unitary, verify_gate_sequence=True)
 
 
 # QASMs expected by the tests.
