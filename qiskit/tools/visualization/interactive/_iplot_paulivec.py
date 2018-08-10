@@ -38,10 +38,7 @@ def iplot_paulivec(executions_results, options=None):
         Graphical representation of the input array.
 
         Args:
-            executions_results (array): Array of dictionaries containing
-                    - data (dict): values to represent (ex. {'001' : 130})
-                    - name (string): name to show in the legend
-                    - device (string): Could be 'real' or 'simulated'
+            rho (array): Density matrix
             options (dict): Representation settings containing
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
@@ -92,13 +89,10 @@ def iplot_paulivec(executions_results, options=None):
         options['showLegend'] = 1
 
     data_to_plot = []
-    for execution in executions_results:
-        rho_data = process_data(execution['data'])
-        rho_legend = execution['name']
-        data_to_plot.append(dict(
-            data=rho_data,
-            name=rho_legend
-        ))
+    rho_data = process_data(executions_results)
+    data_to_plot.append(dict(
+        data=rho_data
+    ))
 
     html = html_template.substitute({
         'divNumber': div_number

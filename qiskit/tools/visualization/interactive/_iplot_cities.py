@@ -15,6 +15,7 @@ import re
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
 
+
 def iplot_cities(rho, options=None):
     """ Create a cities representation.
 
