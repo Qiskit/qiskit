@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
 
 """Compiler Test."""
 
@@ -150,12 +149,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
-    def test_compile_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_remote(self, qe_token, qe_url):
         """Test Compiler remote.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = least_busy(available_backends())
         backend = get_backend(backend)
 
@@ -172,12 +171,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     @requires_qe_access
-    def test_compile_two_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_two_remote(self, qe_token, qe_url):
         """Test Compiler remote on two circuits.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = least_busy(available_backends())
         backend = get_backend(backend)
 
@@ -195,12 +194,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(qobj, Qobj)
 
     @requires_qe_access
-    def test_compile_run_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_run_remote(self, qe_token, qe_url):
         """Test Compiler and run remote.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
@@ -215,12 +214,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
-    def test_compile_two_run_remote(self, QE_TOKEN, QE_URL):
+    def test_compile_two_run_remote(self, qe_token, qe_url):
         """Test Compiler and run two circuits.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2, name='q')
@@ -237,12 +236,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     @requires_qe_access
-    def test_execute_remote(self, QE_TOKEN, QE_URL):
+    def test_execute_remote(self, qe_token, qe_url):
         """Test Execute remote.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
@@ -257,12 +256,12 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(results, Result)
 
     @requires_qe_access
-    def test_execute_two_remote(self, QE_TOKEN, QE_URL):
+    def test_execute_two_remote(self, qe_token, qe_url):
         """Test execute two remote.
 
         If all correct some should exists.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
         qubit_reg = qiskit.QuantumRegister(2)
@@ -281,61 +280,61 @@ class TestCompiler(QiskitTestCase):
         """Test mapping works in previous failed case.
         """
         backend = FakeBackEnd()
-        q = qiskit.QuantumRegister(name='qr', size=11)
-        c = qiskit.ClassicalRegister(name='qc', size=11)
-        circuit = qiskit.QuantumCircuit(q, c)
-        circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, q[3])
-        circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, q[5])
-        circuit.cx(q[5], q[3])
-        circuit.u1(0.856768317675967, q[3])
-        circuit.u3(-3.3911273825190915, 0.0, 0.0, q[5])
-        circuit.cx(q[3], q[5])
-        circuit.u3(2.159209321625547, 0.0, 0.0, q[5])
-        circuit.cx(q[5], q[3])
-        circuit.u3(0.30949966910232335, 1.1706201763833217, 1.738408691990081, q[3])
-        circuit.u3(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, q[5])
-        circuit.u3(1.330181833806101, 0.6003162754946363, -3.181264980452862, q[7])
-        circuit.u3(0.4885914820775024, 3.133297443244865, -2.794457469189904, q[8])
-        circuit.cx(q[8], q[7])
-        circuit.u1(2.2196187596178616, q[7])
-        circuit.u3(-3.152367609631023, 0.0, 0.0, q[8])
-        circuit.cx(q[7], q[8])
-        circuit.u3(1.2646005789809263, 0.0, 0.0, q[8])
-        circuit.cx(q[8], q[7])
-        circuit.u3(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, q[7])
-        circuit.u3(0.9267400575390405, 2.0526277839695153, 2.034202361069533, q[8])
-        circuit.u3(2.550304293455634, 3.8250017126569698, -2.1351609599720054, q[1])
-        circuit.u3(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, q[4])
-        circuit.cx(q[4], q[1])
-        circuit.u1(2.1899329069137394, q[1])
-        circuit.u3(-1.8371715243173294, 0.0, 0.0, q[4])
-        circuit.cx(q[1], q[4])
-        circuit.u3(0.4717053496327104, 0.0, 0.0, q[4])
-        circuit.cx(q[4], q[1])
-        circuit.u3(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, q[1])
-        circuit.u3(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, q[4])
-        circuit.u3(2.4204244021892807, -2.211701932616922, 3.8297006565735883, q[10])
-        circuit.u3(0.36660280497727255, 3.273119149343493, -1.8003362351299388, q[6])
-        circuit.cx(q[6], q[10])
-        circuit.u1(1.067395863586385, q[10])
-        circuit.u3(-0.7044917541291232, 0.0, 0.0, q[6])
-        circuit.cx(q[10], q[6])
-        circuit.u3(2.1830003849921527, 0.0, 0.0, q[6])
-        circuit.cx(q[6], q[10])
-        circuit.u3(2.1538343756723917, 2.2653381826084606, -3.550087952059485, q[10])
-        circuit.u3(1.307627685019188, -0.44686656993522567, -2.3238098554327418, q[6])
-        circuit.u3(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, q[9])
-        circuit.u3(2.1665254613904126, -1.281337664694577, -1.2424905413631209, q[0])
-        circuit.cx(q[0], q[9])
-        circuit.u1(2.6209599970201007, q[9])
-        circuit.u3(0.04680566321901303, 0.0, 0.0, q[0])
-        circuit.cx(q[9], q[0])
-        circuit.u3(1.7728411151289603, 0.0, 0.0, q[0])
-        circuit.cx(q[0], q[9])
-        circuit.u3(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, q[9])
-        circuit.u3(1.7369112924273789, -4.239660866163805, 1.0623389015296005, q[0])
-        circuit.barrier(q)
-        circuit.measure(q, c)
+        qr = qiskit.QuantumRegister(name='qr', size=11)
+        cr = qiskit.ClassicalRegister(name='qc', size=11)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
+        circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
+        circuit.cx(qr[5], qr[3])
+        circuit.u1(0.856768317675967, qr[3])
+        circuit.u3(-3.3911273825190915, 0.0, 0.0, qr[5])
+        circuit.cx(qr[3], qr[5])
+        circuit.u3(2.159209321625547, 0.0, 0.0, qr[5])
+        circuit.cx(qr[5], qr[3])
+        circuit.u3(0.30949966910232335, 1.1706201763833217, 1.738408691990081, qr[3])
+        circuit.u3(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, qr[5])
+        circuit.u3(1.330181833806101, 0.6003162754946363, -3.181264980452862, qr[7])
+        circuit.u3(0.4885914820775024, 3.133297443244865, -2.794457469189904, qr[8])
+        circuit.cx(qr[8], qr[7])
+        circuit.u1(2.2196187596178616, qr[7])
+        circuit.u3(-3.152367609631023, 0.0, 0.0, qr[8])
+        circuit.cx(qr[7], qr[8])
+        circuit.u3(1.2646005789809263, 0.0, 0.0, qr[8])
+        circuit.cx(qr[8], qr[7])
+        circuit.u3(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, qr[7])
+        circuit.u3(0.9267400575390405, 2.0526277839695153, 2.034202361069533, qr[8])
+        circuit.u3(2.550304293455634, 3.8250017126569698, -2.1351609599720054, qr[1])
+        circuit.u3(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, qr[4])
+        circuit.cx(qr[4], qr[1])
+        circuit.u1(2.1899329069137394, qr[1])
+        circuit.u3(-1.8371715243173294, 0.0, 0.0, qr[4])
+        circuit.cx(qr[1], qr[4])
+        circuit.u3(0.4717053496327104, 0.0, 0.0, qr[4])
+        circuit.cx(qr[4], qr[1])
+        circuit.u3(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, qr[1])
+        circuit.u3(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, qr[4])
+        circuit.u3(2.4204244021892807, -2.211701932616922, 3.8297006565735883, qr[10])
+        circuit.u3(0.36660280497727255, 3.273119149343493, -1.8003362351299388, qr[6])
+        circuit.cx(qr[6], qr[10])
+        circuit.u1(1.067395863586385, qr[10])
+        circuit.u3(-0.7044917541291232, 0.0, 0.0, qr[6])
+        circuit.cx(qr[10], qr[6])
+        circuit.u3(2.1830003849921527, 0.0, 0.0, qr[6])
+        circuit.cx(qr[6], qr[10])
+        circuit.u3(2.1538343756723917, 2.2653381826084606, -3.550087952059485, qr[10])
+        circuit.u3(1.307627685019188, -0.44686656993522567, -2.3238098554327418, qr[6])
+        circuit.u3(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, qr[9])
+        circuit.u3(2.1665254613904126, -1.281337664694577, -1.2424905413631209, qr[0])
+        circuit.cx(qr[0], qr[9])
+        circuit.u1(2.6209599970201007, qr[9])
+        circuit.u3(0.04680566321901303, 0.0, 0.0, qr[0])
+        circuit.cx(qr[9], qr[0])
+        circuit.u3(1.7728411151289603, 0.0, 0.0, qr[0])
+        circuit.cx(qr[0], qr[9])
+        circuit.u3(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, qr[9])
+        circuit.u3(1.7369112924273789, -4.239660866163805, 1.0623389015296005, qr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
 
         try:
             qobj = transpiler.compile(circuit, backend)
@@ -347,15 +346,15 @@ class TestCompiler(QiskitTestCase):
         """Test mapping works for multiple qregs.
         """
         backend = FakeBackEnd()
-        q = qiskit.QuantumRegister(3, name='qr')
-        q2 = qiskit.QuantumRegister(1, name='qr2')
-        q3 = qiskit.QuantumRegister(4, name='qr3')
-        c = qiskit.ClassicalRegister(3, name='cr')
-        qc = qiskit.QuantumCircuit(q, q2, q3, c)
-        qc.h(q[0])
-        qc.cx(q[0], q2[0])
-        qc.cx(q[1], q3[2])
-        qc.measure(q, c)
+        qr = qiskit.QuantumRegister(3, name='qr')
+        qr2 = qiskit.QuantumRegister(1, name='qr2')
+        qr3 = qiskit.QuantumRegister(4, name='qr3')
+        cr = qiskit.ClassicalRegister(3, name='cr')
+        qc = qiskit.QuantumCircuit(qr, qr2, qr3, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr2[0])
+        qc.cx(qr[1], qr3[2])
+        qc.measure(qr, cr)
 
         try:
             qobj = transpiler.compile(qc, backend)
@@ -367,23 +366,23 @@ class TestCompiler(QiskitTestCase):
         """Test compiler doesn't change circuit already matching backend coupling
         """
         backend = FakeBackEnd()
-        q = qiskit.QuantumRegister(16)
-        c = qiskit.ClassicalRegister(16)
-        qc = qiskit.QuantumCircuit(q, c)
-        qc.h(q[1])
-        qc.x(q[2])
-        qc.x(q[3])
-        qc.x(q[4])
-        qc.cx(q[1], q[2])
-        qc.cx(q[2], q[3])
-        qc.cx(q[3], q[4])
-        qc.cx(q[3], q[14])
-        qc.measure(q, c)
+        qr = qiskit.QuantumRegister(16)
+        cr = qiskit.ClassicalRegister(16)
+        qc = qiskit.QuantumCircuit(qr, cr)
+        qc.h(qr[1])
+        qc.x(qr[2])
+        qc.x(qr[3])
+        qc.x(qr[4])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[3], qr[14])
+        qc.measure(qr, cr)
         qobj = transpiler.compile(qc, backend)
         compiled_ops = qobj.experiments[0].instructions
-        for op in compiled_ops:
-            if op.name == 'cx':
-                self.assertIn(op.qubits, backend.configuration['coupling_map'])
+        for operation in compiled_ops:
+            if operation.name == 'cx':
+                self.assertIn(operation.qubits, backend.configuration['coupling_map'])
 
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.

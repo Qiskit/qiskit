@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
 
 """Test backend name resolution for functionality groups, deprecations and
 aliases."""
@@ -21,10 +20,10 @@ class TestBackendNameResolution(QiskitTestCase):
     """
 
     @requires_qe_access
-    def test_deprecated(self, QE_TOKEN, QE_URL):
+    def test_deprecated(self, qe_token, qe_url):
         """Test that deprecated names map the same backends as the new names.
         """
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         deprecated_names = _DEFAULT_PROVIDER.deprecated_backend_names()
         for oldname, newname in deprecated_names.items():
             if newname == 'local_qasm_simulator_cpp' and not is_cpp_simulator_available():
@@ -35,10 +34,10 @@ class TestBackendNameResolution(QiskitTestCase):
 
     @requires_qe_access
     # pylint: disable=unused-argument
-    def test_aliases(self, QE_TOKEN, QE_URL):
+    def test_aliases(self, qe_token, qe_url):
         """Test that display names of devices map the same backends as the
         regular names."""
-        register(QE_TOKEN, QE_URL)
+        register(qe_token, qe_url)
         aliased_names = _DEFAULT_PROVIDER.aliased_backend_names()
         for display_name, backend_name in aliased_names.items():
             with self.subTest(display_name=display_name,

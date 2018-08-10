@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,unused-import
+# pylint: disable=unused-import
 
 """Tests for checking qiskit interfaces to simulators."""
 
@@ -25,15 +25,15 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_statevector(self):
         """statevector from a bell state"""
-        q = qiskit.QuantumRegister(2)
-        circ = qiskit.QuantumCircuit(q)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
+        qr = qiskit.QuantumRegister(2)
+        circuit = qiskit.QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
 
         sim_cpp = 'local_statevector_simulator_cpp'
         sim_py = 'local_statevector_simulator_py'
-        result_cpp = execute(circ, sim_cpp).result()
-        result_py = execute(circ, sim_py).result()
+        result_cpp = execute(circuit, sim_cpp).result()
+        result_py = execute(circuit, sim_py).result()
         statevector_cpp = result_cpp.get_statevector()
         statevector_py = result_py.get_statevector()
         fidelity = state_fidelity(statevector_cpp, statevector_py)
@@ -42,24 +42,24 @@ class TestCrossSimulation(QiskitTestCase):
             "cpp vs. py statevector has low fidelity{0:.2g}.".format(fidelity))
 
     @requires_qe_access
-    def test_qasm(self, QE_TOKEN, QE_URL):
+    def test_qasm(self, qe_token, qe_url):
         """counts from a GHZ state"""
-        register(QE_TOKEN, QE_URL)
-        q = qiskit.QuantumRegister(3)
-        c = qiskit.ClassicalRegister(3)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.cx(q[1], q[2])
-        circ.measure(q, c)
+        register(qe_token, qe_url)
+        qr = qiskit.QuantumRegister(3)
+        cr = qiskit.ClassicalRegister(3)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.measure(qr, cr)
 
         sim_cpp = 'local_qasm_simulator_cpp'
         sim_py = 'local_qasm_simulator_py'
         sim_ibmq = 'ibmq_qasm_simulator'
         shots = 2000
-        result_cpp = execute(circ, sim_cpp, shots=shots).result()
-        result_py = execute(circ, sim_py, shots=shots).result()
-        result_ibmq = execute(circ, sim_ibmq, shots=shots).result()
+        result_cpp = execute(circuit, sim_cpp, shots=shots).result()
+        result_py = execute(circuit, sim_py, shots=shots).result()
+        result_ibmq = execute(circuit, sim_ibmq, shots=shots).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
         counts_ibmq = result_ibmq.get_counts()
@@ -68,22 +68,22 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_qasm_snapshot(self):
         """snapshot a circuit at multiple places"""
-        q = qiskit.QuantumRegister(3)
-        c = qiskit.ClassicalRegister(3)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.snapshot(1)
-        circ.ccx(q[0], q[1], q[2])
-        circ.snapshot(2)
-        circ.reset(q)
-        circ.snapshot(3)
-        circ.measure(q, c)
+        qr = qiskit.QuantumRegister(3)
+        cr = qiskit.ClassicalRegister(3)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.snapshot(1)
+        circuit.ccx(qr[0], qr[1], qr[2])
+        circuit.snapshot(2)
+        circuit.reset(qr)
+        circuit.snapshot(3)
+        circuit.measure(qr, cr)
 
         sim_cpp = 'local_qasm_simulator_cpp'
         sim_py = 'local_qasm_simulator_py'
-        result_cpp = execute(circ, sim_cpp, shots=2).result()
-        result_py = execute(circ, sim_py, shots=2).result()
+        result_cpp = execute(circuit, sim_cpp, shots=2).result()
+        result_py = execute(circuit, sim_py, shots=2).result()
         snapshots_cpp = result_cpp.get_snapshots()
         snapshots_py = result_py.get_snapshots()
         self.assertEqual(snapshots_cpp.keys(), snapshots_py.keys())
@@ -94,20 +94,20 @@ class TestCrossSimulation(QiskitTestCase):
         self.assertGreater(fidelity, self._desired_fidelity)
 
     @requires_qe_access
-    def test_qasm_reset_measure(self, QE_TOKEN, QE_URL):
+    def test_qasm_reset_measure(self, qe_token, qe_url):
         """counts from a qasm program with measure and reset in the middle"""
-        register(QE_TOKEN, QE_URL)
-        q = qiskit.QuantumRegister(3)
-        c = qiskit.ClassicalRegister(3)
-        circ = qiskit.QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.reset(q[0])
-        circ.cx(q[1], q[2])
-        circ.t(q)
-        circ.measure(q[1], c[1])
-        circ.h(q[2])
-        circ.measure(q[2], c[2])
+        register(qe_token, qe_url)
+        qr = qiskit.QuantumRegister(3)
+        cr = qiskit.ClassicalRegister(3)
+        circuit = qiskit.QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.reset(qr[0])
+        circuit.cx(qr[1], qr[2])
+        circuit.t(qr)
+        circuit.measure(qr[1], cr[1])
+        circuit.h(qr[2])
+        circuit.measure(qr[2], cr[2])
 
         # TODO: bring back online simulator tests when reset/measure doesn't
         # get rejected by the api
@@ -115,8 +115,8 @@ class TestCrossSimulation(QiskitTestCase):
         sim_py = 'local_qasm_simulator_py'
         # sim_ibmq = 'ibmq_qasm_simulator'
         shots = 1000
-        result_cpp = execute(circ, sim_cpp, shots=shots, seed=1).result()
-        result_py = execute(circ, sim_py, shots=shots, seed=1).result()
+        result_cpp = execute(circuit, sim_cpp, shots=shots, seed=1).result()
+        result_py = execute(circuit, sim_py, shots=shots, seed=1).result()
         # result_ibmq = execute(circ, sim_ibmq, {'shots': shots}).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
