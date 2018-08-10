@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring,broad-except
+# pylint: disable=missing-docstring,broad-except
 
 
 """IBMQJob states test-suite."""
@@ -223,7 +223,9 @@ class TestIBMQJobStates(JobTestCase):
         self.assertEqual(job.result(timeout=1).get_status(), 'ERROR')
         self.assertStatus(job, JobStatus.RUNNING)
 
-    def test_cancel_while_initializing_is_not_possible_but_does_not_fail(self):
+    def test_cancel_while_initializing_should_not_raise(self):
+        """Trying to cancel while initializing is not possible but should
+        not raise."""
         job = self.run_with_api(CancellableAPI())
         can_cancel = job.cancel()
         self.assertFalse(can_cancel)
