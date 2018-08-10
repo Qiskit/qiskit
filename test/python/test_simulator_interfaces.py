@@ -44,7 +44,7 @@ class TestCrossSimulation(QiskitTestCase):
     @requires_qe_access
     def test_qasm(self, qe_token, qe_url):
         """counts from a GHZ state"""
-        register(qe_token, qe_url, hub, group, project)
+        register(qe_token, qe_url)
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         circuit = qiskit.QuantumCircuit(qr, cr)

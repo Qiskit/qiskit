@@ -111,6 +111,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # Good variable names which should always be accepted, separated by a comma
 # i,j,k = typical indices
 # n,m = typical numbers
+# ex = for exceptions and errors
 # v,w = typical vectors
 # x,y,z = typical axes
 # _ = placeholder name
