@@ -481,6 +481,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     # Construct an empty DAGCircuit with one qreg "q"
     # and the same set of cregs as the input circuit
     dagcircuit_output = DAGCircuit()
+    dagcircuit_output.name = circuit_graph.name
     dagcircuit_output.add_qreg("q", layout_max_index)
     for name, size in circuit_graph.cregs.items():
         dagcircuit_output.add_creg(name, size)
