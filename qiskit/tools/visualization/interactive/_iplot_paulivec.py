@@ -9,14 +9,13 @@
 Paulivec visualization
 """
 from string import Template
+import sys
 import time
 import re
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_group
-try:
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
-except ImportError:
-    print("Jupyter notebook is required")
 
 
 def process_data(rho):
@@ -74,6 +73,9 @@ def iplot_paulivec(executions_results, options=None):
         });
     </script>
     """)
+
+    if not options:
+        options = {}
 
     # Process data and execute
     div_number = str(time.time())

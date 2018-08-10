@@ -9,14 +9,13 @@
 Bloch sphere visualization
 """
 from string import Template
+import sys
 import time
 import re
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_singles
-try:
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
-except ImportError:
-    print("Jupyter notebook is required")
 
 
 def iplot_blochsphere(rho, options=None):
@@ -71,6 +70,9 @@ def iplot_blochsphere(rho, options=None):
         });
     </script>
     """)
+
+    if not options:
+        options = {}
 
     # Process data and execute
     num = int(np.log2(len(rho)))

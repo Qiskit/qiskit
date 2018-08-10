@@ -9,13 +9,11 @@
 Cities visualization
 """
 from string import Template
+import sys
 import time
 import re
-try:
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
-except ImportError:
-    print("Jupyter notebook is required")
-
 
 def iplot_cities(rho, options=None):
     """ Create a cities representation.
@@ -62,6 +60,9 @@ def iplot_cities(rho, options=None):
         });
     </script>
     """)
+
+    if not options:
+        options = {}
 
     # Process data and execute
     real = []

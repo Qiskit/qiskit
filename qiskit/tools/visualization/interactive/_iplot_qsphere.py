@@ -10,14 +10,13 @@ Qsphere visualization
 """
 from functools import reduce
 from string import Template
+import sys
 import time
 import re
 import numpy as np
 from scipy import linalg
-try:
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
-except ImportError:
-    print("Jupyter notebook is required")
 
 
 def iplot_qsphere(rho, options=None):
@@ -60,6 +59,10 @@ def iplot_qsphere(rho, options=None):
     </script>
 
     """)
+
+    if not options:
+        options = {}
+
     qspheres_data = []
     # Process data and execute
     num = int(np.log2(len(rho)))

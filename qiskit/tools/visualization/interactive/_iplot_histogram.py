@@ -9,12 +9,11 @@
 Histogram visualization
 """
 from string import Template
+import sys
 import time
 import re
-try:
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.core.display import display, HTML
-except ImportError:
-    print("Jupyter notebook is required")
 
 
 def iplot_histogram(executions_results, options=None):
