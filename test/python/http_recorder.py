@@ -72,7 +72,7 @@ class IdRemoverPersister(FilesystemPersister):
             list: a list of dictionaries, each of them matches map_list.
         """
         ret = []
-        if map_list:
+        if not map_list:
             return ret
         if isinstance(data_dict, list):
             _ = [ret.extend(IdRemoverPersister.get_maching_dicts(i, map_list)) for i in data_dict]
