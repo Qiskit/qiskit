@@ -1272,7 +1272,7 @@ def qx_color_scheme():
         "showindex": False,
         "compress": False,
         "margin": [2.0, 0.0, 0.0, 0.3],
-        "creglinestyle": "doublet"
+        "creglinestyle": "solid"
     }
 
 
