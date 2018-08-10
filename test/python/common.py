@@ -260,40 +260,49 @@ def slow_test(func):
     return _wrapper
 
 
-def _add_credentials(args, kwargs):
+def _get_credentials(test_object, test_options):
     """
-    Finds the user credentials and update in place args and kwargs.
+    Finds the credentials for a specific test and options.
     Args:
-        args (tuple): args used by the test function
-        kwargs (dict): kwargs used by the test function
     Returns:
-        bool: Returns True if the credentials were found, False otherwise.
+        dict: Credentials in a dictionary
     """
+
+    dummy_credentials = {'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
+                         'QE_URL': 'https://quantumexperience.ng.bluemix.net/api'}
+
+    if test_options['mock_online']:
+        test_object.using_ibmq_credentials = True
+        return dummy_credentials
+
     if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
         # Special case: instead of using the standard credentials mechanism,
         # load them from different environment variables. This assumes they
         # will always be in place, as is used by the Travis setup.
-        kwargs.update({
-            'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-            'QE_URL': os.getenv('IBMQ_URL'),
-        })
-        args[0].using_ibmq_credentials = True
+        test_object.using_ibmq_credentials = True
+        return {'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
+                'QE_URL': os.getenv('IBMQ_URL')}
     else:
         # Attempt to read the standard credentials.
         account_name = get_account_name(IBMQProvider)
         discovered_credentials = discover_credentials()
         if account_name in discovered_credentials.keys():
             credentials = discovered_credentials[account_name]
-            kwargs.update({
-                'QE_TOKEN': credentials.get('token'),
-                'QE_URL': credentials.get('url'),
-            })
             if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
-                args[0].using_ibmq_credentials = True
-        else:
-            # No user credentials were found.
-            return False
-    return True
+                test_object.using_ibmq_credentials = True
+            return {'QE_TOKEN': credentials.get('token'),
+                'QE_URL': credentials.get('url')}
+
+    # No user credentials were found.
+
+    if test_options['run_online'] or test_options['rec']:
+        raise Exception('Could not locate valid credentials. You need them for performing '
+                        'tests against the remote API. Use QISKIT_TESTS=skip_online to skip '
+                        'this test.')
+
+    test_object.log.warning("No user credentials were detected. Running with mocked data.")
+    return dummy_credentials
+
 
 def is_cpp_simulator_available():
     """
@@ -344,7 +353,7 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
+    def _(self, *args, **kwargs):
         # Cleanup the credentials, as this file is shared by the tests.
         from qiskit.wrapper import _wrapper
         _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
@@ -352,25 +361,13 @@ def requires_qe_access(func):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        if _add_credentials(args, kwargs):
-            if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
-                return VCR.use_cassette()(func)(*args, **kwargs)
-            return func(*args, **kwargs)
+        kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
-        # No user credentials were found.
-        if TEST_OPTIONS['rec']:
-            raise Exception(
-                'Could not locate valid credentials. You need them for performing '
-                'tests against the remote API. Use QISKIT_TESTS=skip_online to skip this test.')
+        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+            wrapper = VCR.use_cassette()(func)
         else:
-            args[0].log.warning("No user credentials were detected. Running with mocked data.")
-            kwargs.update({
-                'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
-                'QE_URL': 'https://quantumexperience.ng.bluemix.net/api'
-            })
-            args[0].using_ibmq_credentials = False
-            return VCR.use_cassette()(func)(*args, **kwargs)
-
+            wrapper = func
+        return wrapper(self, *args, **kwargs)
     return _
 
 
