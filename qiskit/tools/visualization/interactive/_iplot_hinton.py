@@ -8,13 +8,17 @@
 """
 Hinton visualization
 """
-from IPython.core.display import display, HTML
 from string import Template
 import time
 import re
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
+def iplot_hinton(executions_results, options=None):
+    """ Create a hinton representation """
 
-def iplot_hinton(executions_results, options={}):
     # HTML
     html_template = Template("""
     <p>
@@ -41,30 +45,30 @@ def iplot_hinton(executions_results, options={}):
     """)
 
     # Process data and execute
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
 
     # Process data and execute
     real = []
     imag = []
-    for x in executions_results:
+    for xvalue in executions_results:
         row_real = []
         col_imag = []
 
-        for value_real in x.real:
+        for value_real in xvalue.real:
             row_real.append(float(value_real))
         real.append(row_real)
 
-        for value_imag in x.imag:
+        for value_imag in xvalue.imag:
             col_imag.append(float(value_imag))
         imag.append(col_imag)
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'executions': [dict(data=real), dict(data=imag)],
         'options': options
     })

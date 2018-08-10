@@ -8,13 +8,18 @@
 """
 Histogram visualization
 """
-from IPython.core.display import display, HTML
 from string import Template
 import time
 import re
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
 
-def iplot_histogram(executions_results, options={}):
+def iplot_histogram(executions_results, options=None):
+    """ Create a hinton representation """
+
     # HTML
     html_template = Template("""
     <p>
@@ -41,8 +46,11 @@ def iplot_histogram(executions_results, options={}):
     """)
 
     # Process data and execute
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
+
+    if not options:
+        options = {}
 
     if 'slider' in options and options['slider'] is True:
         options['slider'] = 1
@@ -60,11 +68,11 @@ def iplot_histogram(executions_results, options={}):
         options['showLegend'] = 1
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'executions': executions_results,
         'options': options
     })

@@ -8,15 +8,19 @@
 """
 Bloch sphere visualization
 """
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
-from IPython.core.display import display, HTML
 from string import Template
-import numpy as np
 import time
 import re
+import numpy as np
+from qiskit.tools.qi.pauli import pauli_singles
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
+def iplot_blochsphere(rho, options=None):
+    """ Create a bloch sphere representation """
 
-def iplot_blochsphere(rho, options={}):
     # HTML
     html_template = Template("""
     <p>
@@ -66,16 +70,16 @@ def iplot_blochsphere(rho, options={}):
                                pauli_singles(i, num)))
         bloch_data.append(bloch_state)
 
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
         'data': bloch_data,
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'options': options
     })
 

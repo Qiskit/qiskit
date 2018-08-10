@@ -8,13 +8,18 @@
 """
 Cities visualization
 """
-from IPython.core.display import display, HTML
 from string import Template
 import time
 import re
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
 
-def iplot_cities(rho, options={}):
+def iplot_cities(rho, options=None):
+    """ Create a cities representation """
+
     # HTML
     html_template = Template("""
     <p>
@@ -52,30 +57,30 @@ def iplot_cities(rho, options={}):
     # Process data and execute
     real = []
     imag = []
-    for x in rho:
+    for xvalue in rho:
         row_real = []
         col_imag = []
 
-        for value_real in x.real:
+        for value_real in xvalue.real:
             row_real.append(float(value_real))
         real.append(row_real)
 
-        for value_imag in x.imag:
+        for value_imag in xvalue.imag:
             col_imag.append(float(value_imag))
         imag.append(col_imag)
 
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
         'real': real,
         'imag': imag,
         'qbits': len(real),
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'options': options
     })
 

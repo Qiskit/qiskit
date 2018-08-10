@@ -8,17 +8,20 @@
 """
 Qsphere visualization
 """
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
-from scipy import linalg
 from functools import reduce
-from IPython.core.display import display, HTML
 from string import Template
-import numpy as np
 import time
 import re
+import numpy as np
+from scipy import linalg
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
+def iplot_qsphere(rho, options=None):
+    """ Create a Q sphere representation """
 
-def iplot_qsphere(rho, options={}):
     # HTML
     html_template = Template("""
     <p>
@@ -36,8 +39,8 @@ def iplot_qsphere(rho, options={}):
                 qVisualization: "https://qvisualization.mybluemix.net/q-visualizations"
             }
         });
-        data = $data;
         require(["qVisualization"], function(qVisualizations) {
+            data = $data;
             qVisualizations.plotState("qsphere_$divNumber",
                                       "qsphere",
                                       data,
@@ -51,12 +54,12 @@ def iplot_qsphere(rho, options={}):
     num = int(np.log2(len(rho)))
 
     # get the eigenvectors and egivenvalues
-    we, stateall = linalg.eigh(rho)
+    weig, stateall = linalg.eigh(rho)
 
-    for k in range(2**num):
+    for _ in range(2**num):
         # start with the max
-        probmix = we.max()
-        prob_location = we.argmax()
+        probmix = weig.max()
+        prob_location = weig.argmax()
         if probmix > 0.001:
             # print("The " + str(k) + "th eigenvalue = " + str(probmix))
             # get the max eigenvalue
@@ -111,18 +114,18 @@ def iplot_qsphere(rho, options={}):
 
             # Add sphere to the spheres array
             qspheres_data.append(sphere)
-            we[prob_location] = 0
+            weig[prob_location] = 0
 
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
         'data': qspheres_data,
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'options': options
     })
 
@@ -146,12 +149,12 @@ def n_choose_k(n, k):
                       range(1, k + 1)), 1)
 
 
-def bit_string_index(s):
+def bit_string_index(text):
     """Return the index of a string of 0s and 1s."""
-    n = len(s)
-    k = s.count("1")
-    assert s.count("0") == n - k, "s must be a string of 0 and 1"
-    ones = [pos for pos, char in enumerate(s) if char == "1"]
+    n = len(text)
+    k = text.count("1")
+    assert text.count("0") == n - k, "s must be a string of 0 and 1"
+    ones = [pos for pos, char in enumerate(text) if char == "1"]
     return lex_index(n, k, ones)
 
 

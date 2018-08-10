@@ -8,15 +8,19 @@
 """
 Paulivec visualization
 """
-import numpy as np
-from IPython.core.display import display, HTML
 from string import Template
 import time
 import re
+import numpy as np
 from qiskit.tools.qi.pauli import pauli_group
+try:
+    from IPython.core.display import display, HTML
+except ImportError:
+    print("Jupyter notebook is required")
 
 
 def process_data(rho):
+    """ Sort rho data """
     result = dict()
 
     num = int(np.log2(len(rho)))
@@ -29,7 +33,9 @@ def process_data(rho):
     return result
 
 
-def iplot_paulivec(executions_results, options={}):
+def iplot_paulivec(executions_results, options=None):
+    """ Create a paulivec representation """
+
     # HTML
     html_template = Template("""
     <p>
@@ -56,8 +62,8 @@ def iplot_paulivec(executions_results, options={}):
     """)
 
     # Process data and execute
-    divNumber = str(time.time())
-    divNumber = re.sub('[.]', '', divNumber)
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
 
     if 'slider' in options and options['slider'] is True:
         options['slider'] = 1
@@ -79,11 +85,11 @@ def iplot_paulivec(executions_results, options={}):
         ))
 
     html = html_template.substitute({
-        'divNumber': divNumber
+        'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
-        'divNumber': divNumber,
+        'divNumber': div_number,
         'executions': data_to_plot,
         'options': options
     })
