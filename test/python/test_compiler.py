@@ -60,13 +60,15 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
+        qubit_reg = qiskit.QuantumRegister(2)
+        clbit_reg = qiskit.ClassicalRegister(2)
+        qubit_reg2 = qiskit.QuantumRegister(2)
+        clbit_reg2 = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
+        qc_extra = qiskit.QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
 
@@ -381,6 +383,23 @@ class TestCompiler(QiskitTestCase):
         for operation in compiled_ops:
             if operation.name == 'cx':
                 self.assertIn(operation.qubits, backend.configuration['coupling_map'])
+
+    def test_compile_circuits_diff_registers(self):
+        """Compile list of circuits with different qreg names.
+        """
+        backend = FakeBackEnd()
+        circuits = []
+        for _ in range(2):
+            qr = qiskit.QuantumRegister(2)
+            cr = qiskit.ClassicalRegister(2)
+            circuit = qiskit.QuantumCircuit(qr, cr)
+            circuit.h(qr[0])
+            circuit.cx(qr[0], qr[1])
+            circuit.measure(qr, cr)
+            circuits.append(circuit)
+
+        qobj = transpiler.compile(circuits, backend)
+        self.assertIsInstance(qobj, Qobj)
 
 
 if __name__ == '__main__':
