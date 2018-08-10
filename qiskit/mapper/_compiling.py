@@ -215,20 +215,17 @@ def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):
     xx = np.array([[0, 0, 0, 1],
                    [0, 0, 1, 0],
                    [0, 1, 0, 0],
-                   [1, 0, 0, 0]
-                   ], dtype=complex)
+                   [1, 0, 0, 0]], dtype=complex)
 
     yy = np.array([[0, 0, 0, -1],
                    [0, 0, 1, 0],
                    [0, 1, 0, 0],
-                   [-1, 0, 0, 0]
-                   ], dtype=complex)
+                   [-1, 0, 0, 0]], dtype=complex)
 
     zz = np.array([[1, 0, 0, 0],
                    [0, -1, 0, 0],
                    [0, 0, -1, 0],
-                   [0, 0, 0, 1]
-                   ], dtype=complex)
+                   [0, 0, 0, 1]], dtype=complex)
 
     A_real_tr = A.real.trace()
     alpha = math.atan2(A.dot(xx).imag.trace(), A_real_tr)
