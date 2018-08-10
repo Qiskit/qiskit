@@ -16,7 +16,10 @@ import re
 import numpy as np
 from scipy import linalg
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    from IPython.core.display import display, HTML
+    try:
+        from IPython.core.display import display, HTML
+    except ImportError:
+        print("Error importing IPython.core.display")
 
 
 def iplot_qsphere(rho, options=None):

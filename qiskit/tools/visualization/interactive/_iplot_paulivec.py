@@ -15,7 +15,10 @@ import re
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_group
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    from IPython.core.display import display, HTML
+    try:
+        from IPython.core.display import display, HTML
+    except ImportError:
+        print("Error importing IPython.core.display")
 
 
 def process_data(rho):

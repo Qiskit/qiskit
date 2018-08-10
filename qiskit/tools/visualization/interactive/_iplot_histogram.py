@@ -13,7 +13,10 @@ import sys
 import time
 import re
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    from IPython.core.display import display, HTML
+    try:
+        from IPython.core.display import display, HTML
+    except ImportError:
+        print("Error importing IPython.core.display")
 
 
 def iplot_histogram(executions_results, options=None):
