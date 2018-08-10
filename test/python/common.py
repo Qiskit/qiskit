@@ -89,7 +89,6 @@ class QiskitTestCase(unittest.TestCase):
         Context manager to test that no message is sent to the specified
         logger and level (the opposite of TestCase.assertLogs()).
         """
-        # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
@@ -116,7 +115,6 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -200,7 +198,6 @@ class JobTestCase(QiskitTestCase):
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
         if the shorthand method for that status returns `True`."""
-        # pylint: disable=invalid-name
         self.assertEqual(job.status['status'], status)
         if status == JobStatus.CANCELLED:
             self.assertTrue(job.cancelled)
@@ -256,7 +253,6 @@ def slow_test(func):
         if TEST_OPTIONS['skip_slow']:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
-
     return _wrapper
 
 
@@ -348,9 +344,9 @@ def requires_qe_access(func):
         * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
           set, it reads the credentials from an alternative set of environment
           variables.
-        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
+        * if the test is not skipped, it reads `qe_token` and `qe_url` from
             `Qconfig.py`, environment variables or qiskitrc.
-        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
+        * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
     Args:
         func (callable): test function to be decorated.
@@ -360,14 +356,13 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _(self, *args, **kwargs):
-        # Cleanup the credentials, as this file is shared by the tests.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
-
+    def _wrapper(self, *args, **kwargs):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
+        # Cleanup the credentials, as this file is shared by the tests.
+        from qiskit.wrapper import _wrapper
+        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
         kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
@@ -376,7 +371,7 @@ def requires_qe_access(func):
             wrapper = func
         return wrapper(self, *args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def _is_ci_fork_pull_request():
