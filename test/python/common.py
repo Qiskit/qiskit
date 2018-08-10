@@ -304,6 +304,7 @@ def _get_credentials(test_object, test_options):
                         'this test.')
 
     test_object.log.warning("No user credentials were detected. Running with mocked data.")
+    test_options['mock_online'] = True
     return dummy_credentials
 
 
@@ -406,10 +407,10 @@ def get_test_options(option_var='QISKIT_TESTS'):
     """
     defaults = {
         'skip_online': False,
-        'run_online': True,
+        'run_online': False,
         'mock_online': False,
         'skip_slow': True,
-        'run_slow': True,
+        'run_slow': False,
         'rec': False
     }
 
