@@ -32,7 +32,7 @@ def process_data(rho):
     return result
 
 
-def iplot_paulivec(executions_results, options=None):
+def iplot_paulivec(rho, options=None):
     """ Create a paulivec representation.
 
         Graphical representation of the input array.
@@ -89,7 +89,7 @@ def iplot_paulivec(executions_results, options=None):
         options['showLegend'] = 1
 
     data_to_plot = []
-    rho_data = process_data(executions_results)
+    rho_data = process_data(rho)
     data_to_plot.append(dict(
         data=rho_data
     ))
