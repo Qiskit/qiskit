@@ -26,8 +26,8 @@ from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._qiskiterror import QISKitError
-from qiskit._result import Result
-from qiskit._resulterror import ResultError
+from qiskit.result import ResultError
+from qiskit.result._utils import result_from_old_style_dict
 
 logger = logging.getLogger(__name__)
 
@@ -139,11 +139,14 @@ class IBMQJob(BaseJob):
         except TimeoutError as err:
             # A timeout error retrieving the results does not imply the job
             # is failing. The job can be still running.
-            return Result({'id': self._id, 'status': 'ERROR',
-                           'result': str(err)})
+
+            return result_from_old_style_dict(
+                {'id': self._id, 'status': 'ERROR', 'result': str(err)})
 
         if self._is_device and self.done:
-            _reorder_bits(this_result)
+            # TODO: needs to be reintroduced after changes in #686.
+            # _reorder_bits(this_result)
+            pass
 
         if self._status not in JOB_FINAL_STATES:
             if this_result.get_status() == 'ERROR':
@@ -470,12 +473,12 @@ class IBMQJob(BaseJob):
         if self.cancelled:
             job_result = {'id': self._id, 'status': 'CANCELLED',
                           'result': 'job cancelled'}
-            return Result(job_result)
+            return result_from_old_style_dict(job_result)
 
         elif self.exception:
             job_result = {'id': self._id, 'status': 'ERROR',
                           'result': str(self.exception)}
-            return Result(job_result)
+            return result_from_old_style_dict(job_result)
 
         if api_result is None:
             api_result = self._api.get_job(self._id)
@@ -494,7 +497,10 @@ class IBMQJob(BaseJob):
                       'used_credits': api_result.get('usedCredits'),
                       'result': job_result_list}
         job_result['backend_name'] = self.backend_name
-        return Result(job_result)
+
+        return result_from_old_style_dict(
+            job_result,
+            [circuit_result['name'] for circuit_result in api_result['qasms']])
 
 
 class IBMQJobError(QISKitError):

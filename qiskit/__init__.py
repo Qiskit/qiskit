@@ -32,7 +32,7 @@ import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
 from ._quantumprogram import QuantumProgram
-from ._result import Result
+from .result import Result
 
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
