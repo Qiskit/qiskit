@@ -1485,8 +1485,6 @@ class MatplotlibDrawer:
                                     fc=self._style.cc,
                                     ec=None)
         self.ax.add_artist(arrowhead)
-        # self.ax.arrow(x=qx, y=qy, dx=0, dy=cy - qy, width=0.01, head_width=0.2, head_length=0.2,
-        #               length_includes_head=True, color=self._style.cc, zorder=PORDER_LINE)
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
