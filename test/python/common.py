@@ -263,9 +263,16 @@ def slow_test(func):
 def _get_credentials(test_object, test_options):
     """
     Finds the credentials for a specific test and options.
+
     Args:
+        test_object (QiskitTestCase): The test object asking for credentials
+        test_options (list): List of options after QISKIT_TESTS was parsed.
+
     Returns:
         dict: Credentials in a dictionary
+
+    Raises:
+        Exception: When the credential could not be set and they are needed for that set of options
     """
 
     dummy_credentials = {'QE_TOKEN': 'dummyapiusersloginWithTokenid01',
@@ -291,7 +298,7 @@ def _get_credentials(test_object, test_options):
             if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
                 test_object.using_ibmq_credentials = True
             return {'QE_TOKEN': credentials.get('token'),
-                'QE_URL': credentials.get('url')}
+                    'QE_URL': credentials.get('url')}
 
     # No user credentials were found.
 
@@ -368,6 +375,7 @@ def requires_qe_access(func):
         else:
             wrapper = func
         return wrapper(self, *args, **kwargs)
+
     return _
 
 
