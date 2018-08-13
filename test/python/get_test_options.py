@@ -53,10 +53,10 @@ def get_test_options(option_var='QISKIT_TESTS'):
         return True
 
     if_true = {
-        'skip_online': (lambda: turn_false('rec')),
-        'mock_online': (lambda: turn_false('skip_online')),
-        'run_slow': (lambda: True),
-        'rec': (lambda: turn_false('skip_online') and turn_false('run_slow'))
+        'skip_online': lambda: turn_false('rec'),
+        'mock_online': lambda: turn_false('skip_online'),
+        'run_slow': lambda: True,
+        'rec': lambda: turn_false('skip_online') and turn_false('run_slow')
     }
 
     opt_string = os.getenv(option_var, False)
