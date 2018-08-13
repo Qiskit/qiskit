@@ -479,7 +479,7 @@ def _numpy_type_converter(obj):
 def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
-    if not circuit.get('compiled_circuit_qasm', None):
+    if not circuit.get('compiled_circuit_qasm'):
         compiled_circuit = transpile(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
@@ -488,7 +488,7 @@ def _create_api_job_from_circuit(circuit):
     else:
         api_job['qasm'] = circuit['compiled_circuit_qasm']
 
-    if circuit.get('name', None):
+    if circuit.get('name'):
         api_job['name'] = circuit['name']
 
     # convert numpy types for json serialization
@@ -499,15 +499,15 @@ def _create_api_job_from_circuit(circuit):
     return api_job
 
 
-def _is_job_queued(api_job):
+def _is_job_queued(api_job_response):
     """Checks whether a job has been queued or not."""
     is_queued, position = False, 0
-    if 'infoQueue' in api_job:
-        if 'status' in api_job['infoQueue']:
-            queue_status = api_job['infoQueue']['status']
+    if 'infoQueue' in api_job_response:
+        if 'status' in api_job_response['infoQueue']:
+            queue_status = api_job_response['infoQueue']['status']
             is_queued = queue_status == 'PENDING_IN_QUEUE'
-        if 'position' in api_job['infoQueue']:
-            position = api_job['infoQueue']['position']
+        if 'position' in api_job_response['infoQueue']:
+            position = api_job_response['infoQueue']['position']
     return is_queued, position
 
 
@@ -517,13 +517,11 @@ def _format_hpc_parameters(hpc):
         return None
 
     hpc_camel_cased = None
-    try:
+    with contextlib.suppress(KeyError, TypeError):
         # Use CamelCase when passing the hpc parameters to the API.
         hpc_camel_cased = {
             'multiShotOptimization': hpc['multi_shot_optimization'],
             'ompNumThreads': hpc['omp_num_threads']
         }
-    except (KeyError, TypeError):
-        pass
 
     return hpc_camel_cased

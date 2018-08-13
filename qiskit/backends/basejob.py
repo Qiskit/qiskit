@@ -36,4 +36,3 @@ class BaseJob(ABC):
     def status(self):
         """Get backend status dictionary"""
         pass
-

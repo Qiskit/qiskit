@@ -57,8 +57,8 @@ class TestIBMQJobStates(QiskitTestCase):
 
         self._current_api.progress()
         self.assertEqual(job.status(), JobStatus.ERROR)
-
-        # We have an error message this time
+        # We don't always have an error message when getting an error response,
+        # but this test is sending one, se we want to test it.
         self.assertEqual(job.error_message(), 'Error running job')
 
     def test_error_while_validating_job(self):

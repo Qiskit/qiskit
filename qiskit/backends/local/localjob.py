@@ -29,11 +29,11 @@ def requires_submit(func):
         callable: the decorated function.
     """
     @functools.wraps(func)
-    def _(self, *args, **kwargs):
+    def _wrapper(self, *args, **kwargs):
         if self._future is None:
             raise JobError("Job not submitted yet!. You have to .submit() first!")
         return func(self, *args, **kwargs)
-    return _
+    return _wrapper
 
 
 class LocalJob(BaseJob):
@@ -103,11 +103,7 @@ class LocalJob(BaseJob):
         elif self._future.cancelled():
             _status = JobStatus.CANCELLED
         elif self._done():
-            ex = self._future.exception()
-            if ex is None:
-                _status = JobStatus.DONE
-            else:
-                _status = JobStatus.ERROR
+            _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
             raise JobError('Unexpected behavior of {0}'.format(
                 self.__class__.__name__))

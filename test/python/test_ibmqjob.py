@@ -104,7 +104,7 @@ class TestIBMQJob(QiskitTestCase):
         qobj = transpiler.compile(self._qc, backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
-        while not (job.status() == JobStatus.DONE):
+        while not (job.status() is JobStatus.DONE):
             self.log.info(job.status())
             time.sleep(4)
         self.log.info(job.status)
@@ -140,17 +140,17 @@ class TestIBMQJob(QiskitTestCase):
         timeout = 30
         start_time = time.time()
         while not found_async_jobs:
-            check = sum([job.status() == JobStatus.RUNNING for job in job_array])
+            check = sum([job.status() is JobStatus.RUNNING for job in job_array])
             if check >= 2:
                 self.log.info('found %d simultaneous jobs', check)
                 break
-            if all([job.status() == JobStatus.DONE for job in job_array]):
+            if all([job.status() is JobStatus.DONE for job in job_array]):
                 # done too soon? don't generate error
                 self.log.warning('all jobs completed before simultaneous jobs '
                                  'could be detected')
                 break
             for job in job_array:
-                self.log.info('%s %s %s %s', job.status(), job.status() == JobStatus.RUNNING,
+                self.log.info('%s %s %s %s', job.status(), job.status() is JobStatus.RUNNING,
                               check, job.id())
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
@@ -161,7 +161,7 @@ class TestIBMQJob(QiskitTestCase):
         result_array = [job.result() for job in job_array]
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
-        self.assertTrue(all([job.status() == JobStatus.DONE for job in job_array]))
+        self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
@@ -186,11 +186,11 @@ class TestIBMQJob(QiskitTestCase):
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
         job_status = [job.status() for job in job_array]
-        num_init = sum([status == JobStatus.INITIALIZING for status in job_status])
-        num_queued = sum([status == JobStatus.QUEUED for status in job_status])
-        num_running = sum([status == JobStatus.RUNNING for status in job_status])
-        num_done = sum([status == JobStatus.DONE for status in job_status])
-        num_error = sum([status == JobStatus.ERROR for status in job_status])
+        num_init = sum([status is JobStatus.INITIALIZING for status in job_status])
+        num_queued = sum([status is JobStatus.QUEUED for status in job_status])
+        num_running = sum([status is JobStatus.RUNNING for status in job_status])
+        num_done = sum([status is JobStatus.DONE for status in job_status])
+        num_error = sum([status is JobStatus.ERROR for status in job_status])
         self.log.info('number of currently initializing jobs: %d/%d',
                       num_init, num_jobs)
         self.log.info('number of currently queued jobs: %d/%d',
@@ -207,7 +207,7 @@ class TestIBMQJob(QiskitTestCase):
         result_array = [job.result() for job in job_array]
 
         # Ensure all jobs have finished.
-        self.assertTrue(all([job.status() == JobStatus.DONE for job in job_array]))
+        self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
@@ -234,7 +234,7 @@ class TestIBMQJob(QiskitTestCase):
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         success = False
         self.log.info('jobs submitted: %s', num_jobs)
-        while any([job.status() == JobStatus.INITIALIZING for job in job_array]):
+        while any([job.status() is JobStatus.INITIALIZING for job in job_array]):
             self.log.info('jobs initializing')
             time.sleep(1)
         for job in job_array:
@@ -243,9 +243,9 @@ class TestIBMQJob(QiskitTestCase):
             job_status = [job.status() for job in job_array]
             for status in job_status:
                 self.log.info(status)
-            if any([status == JobStatus.CANCELLED for status in job_status]):
+            if any([status is JobStatus.CANCELLED for status in job_status]):
                 success = True
-            if all([status == JobStatus.DONE for status in job_status]):
+            if all([status is JobStatus.DONE for status in job_status]):
                 raise JobError('all jobs completed before any could be cancelled')
             self.log.info('-' * 20)
             time.sleep(2)
@@ -297,7 +297,7 @@ class TestIBMQJob(QiskitTestCase):
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.result()._result['status'])
-            self.assertTrue(job.status() == JobStatus.DONE)
+            self.assertTrue(job.status() is JobStatus.DONE)
 
     def test_get_jobs_filter_counts(self):
         # TODO: consider generalizing backend name
@@ -335,6 +335,7 @@ class TestIBMQJob(QiskitTestCase):
     def test_double_submit_fails(self):
         backend = self._local_provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
+        # backend.run() will automatically call job.submit()
         job = backend.run(qobj)
         with self.assertRaises(JobError):
             job.submit()
