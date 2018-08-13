@@ -61,7 +61,7 @@ class IdRemoverPersister(FilesystemPersister):
         return "%s%02d" % (dummy_name, count + 1)
 
     @staticmethod
-    def get_maching_dicts(data_dict, map_list):
+    def get_matching_dicts(data_dict, map_list):
         """
         Find subdicts that are described in map_list.
         Args:
@@ -75,14 +75,14 @@ class IdRemoverPersister(FilesystemPersister):
         if not map_list:
             return ret
         if isinstance(data_dict, list):
-            _ = [ret.extend(IdRemoverPersister.get_maching_dicts(i, map_list)) for i in data_dict]
+            _ = [ret.extend(IdRemoverPersister.get_matching_dicts(i, map_list)) for i in data_dict]
         if isinstance(data_dict, dict):
             if map_list[0] in data_dict.keys():
                 if len(map_list) == 1:
                     return [data_dict]
                 else:
                     ret.extend(
-                        IdRemoverPersister.get_maching_dicts(data_dict[map_list[0]], map_list[1:]))
+                        IdRemoverPersister.get_matching_dicts(data_dict[map_list[0]], map_list[1:]))
         return ret
 
     @staticmethod
@@ -99,13 +99,13 @@ class IdRemoverPersister(FilesystemPersister):
         """
 
         map_list = field.split('.')
-        for maching_dict in IdRemoverPersister.get_maching_dicts(jsonobj, map_list):
+        for matching_dict in IdRemoverPersister.get_matching_dicts(jsonobj, map_list):
             with suppress(KeyError):
-                old_id = maching_dict[map_list[-1]]
+                old_id = matching_dict[map_list[-1]]
                 if old_id not in id_tracker:
                     new_id = IdRemoverPersister.get_new_id(field, path, id_tracker, type(old_id))
                     id_tracker[old_id] = new_id
-                maching_dict[map_list[-1]] = id_tracker[old_id]
+                matching_dict[map_list[-1]] = id_tracker[old_id]
 
     @staticmethod
     def remove_ids_in_a_response(response, fields, path, id_tracker):
