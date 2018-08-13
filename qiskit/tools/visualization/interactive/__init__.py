@@ -10,6 +10,7 @@
 
 """QISKit visualization library."""
 
+from ._iplot_state import iplot_state
 from ._iplot_blochsphere import iplot_blochsphere
 from ._iplot_cities import iplot_cities
 from ._iplot_qsphere import iplot_qsphere
