@@ -12,9 +12,11 @@ import functools
 import inspect
 import logging
 import os
+import time
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
+from qiskit.backends import JobStatus
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
@@ -86,7 +88,6 @@ class QiskitTestCase(unittest.TestCase):
         Context manager to test that no message is sent to the specified
         logger and level (the opposite of TestCase.assertLogs()).
         """
-        # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
@@ -113,7 +114,6 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -180,6 +180,39 @@ class QiskitTestCase(unittest.TestCase):
         raise self.failureException(msg)
 
 
+class JobTestCase(QiskitTestCase):
+    """Include common functionality when testing jobs."""
+
+    def wait_for_initialization(self, job, timeout=1):
+        """Waits until the job progress from `INITIALIZING` to a different
+        status."""
+        waited = 0
+        wait = 0.1
+        while job.status['status'] == JobStatus.INITIALIZING:
+            time.sleep(wait)
+            waited += wait
+            if waited > timeout:
+                self.fail(
+                    msg="The JOB is still initializing after timeout ({}s)"
+                    .format(timeout)
+                )
+
+    def assertStatus(self, job, status):
+        """Assert the intenal job status is the expected one and also tests
+        if the shorthand method for that status returns `True`."""
+        self.assertEqual(job.status['status'], status)
+        if status == JobStatus.CANCELLED:
+            self.assertTrue(job.cancelled)
+        elif status == JobStatus.DONE:
+            self.assertTrue(job.done)
+        elif status == JobStatus.VALIDATING:
+            self.assertTrue(job.validating)
+        elif status == JobStatus.RUNNING:
+            self.assertTrue(job.running)
+        elif status == JobStatus.QUEUED:
+            self.assertTrue(job.queued)
+
+
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     """A context manager used to implement TestCase.assertNoLogs()."""
 
@@ -218,12 +251,12 @@ def slow_test(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         if SKIP_SLOW_TESTS:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def is_cpp_simulator_available():
@@ -263,9 +296,9 @@ def requires_qe_access(func):
         * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
           set, it reads the credentials from an alternative set of environment
           variables.
-        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
+        * if the test is not skipped, it reads `qe_token` and `qe_url` from
             `Qconfig.py`, environment variables or qiskitrc.
-        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
+        * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
     Args:
         func (callable): test function to be decorated.
@@ -275,8 +308,7 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
-        # pylint: disable=invalid-name
+    def _wrapper(*args, **kwargs):
         if SKIP_ONLINE_TESTS:
             raise unittest.SkipTest('Skipping online tests')
 
@@ -289,11 +321,8 @@ def requires_qe_access(func):
             # load them from different environment variables. This assumes they
             # will always be in place, as is used by the Travis setup.
             kwargs.update({
-                'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': os.getenv('IBMQ_URL'),
-                'hub': os.getenv('IBMQ_HUB'),
-                'group': os.getenv('IBMQ_GROUP'),
-                'project': os.getenv('IBMQ_PROJECT'),
+                'qe_token': os.getenv('IBMQ_TOKEN'),
+                'qe_url': os.getenv('IBMQ_URL')
             })
             args[0].using_ibmq_credentials = True
         else:
@@ -302,22 +331,21 @@ def requires_qe_access(func):
             discovered_credentials = discover_credentials()
             if account_name in discovered_credentials.keys():
                 credentials = discovered_credentials[account_name]
+
                 kwargs.update({
-                    'QE_TOKEN': credentials.get('token'),
-                    'QE_URL': credentials.get('url'),
-                    'hub': credentials.get('hub'),
-                    'group': credentials.get('group'),
-                    'project': credentials.get('project'),
+                    'qe_token': credentials.get('token'),
+                    'qe_url': credentials.get('url'),
                 })
-                if (credentials.get('hub') and credentials.get('group') and
-                        credentials.get('project')):
+
+                if all(item in credentials.get('url') for
+                       item in ['Hubs', 'Groups', 'Projects']):
                     args[0].using_ibmq_credentials = True
             else:
                 raise Exception('Could not locate valid credentials')
 
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def _is_ci_fork_pull_request():

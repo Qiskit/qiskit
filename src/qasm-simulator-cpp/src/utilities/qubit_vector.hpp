@@ -1194,12 +1194,13 @@ void QubitVector::apply_matrix(const std::vector<uint_t> &qs, const cvector_t &m
   case 5:
     apply_matrix<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
     break;
+  default:
+    // General case
+    if (mat.size() == (1ULL << qs.size()))
+      apply_matrix_diagonal(qs, mat);
+    else
+      apply_matrix_col_major(qs, mat);
   }
-  // General case
-  if (mat.size() == (1ULL << qs.size()))
-    apply_matrix_diagonal(qs, mat);
-  else
-    apply_matrix_col_major(qs, mat);
 }
 
 void QubitVector::apply_matrix_col_major(const std::vector<uint_t> &qubits, const cvector_t &mat) {
@@ -1285,12 +1286,13 @@ double QubitVector::norm(const std::vector<uint_t> &qs, const cvector_t &mat) co
     return norm<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
   case 5:
     return norm<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
+  default:
+    // General case
+    if (mat.size() == (1ULL << qs.size()))
+      return norm_matrix_diagonal(qs, mat);
+    else
+      return norm_matrix(qs, mat);
   }
-  // General case
-  if (mat.size() == (1ULL << qs.size()))
-    return norm_matrix_diagonal(qs, mat);
-  else
-    return norm_matrix(qs, mat);
 }
 
 double QubitVector::norm_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) const {
@@ -1376,12 +1378,13 @@ complex_t QubitVector::expectation_value(const std::vector<uint_t> &qs, const cv
     return expectation_value<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
   case 5:
     return expectation_value<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
+  default:
+    // General case
+    if (mat.size() == (1ULL << qs.size()))
+      return expectation_value_matrix_diagonal(qs, mat);
+    else
+      return expectation_value_matrix(qs, mat);
   }
-  // General case
-  if (mat.size() == (1ULL << qs.size()))
-    return expectation_value_matrix_diagonal(qs, mat);
-  else
-    return expectation_value_matrix(qs, mat);
 }
 
 complex_t QubitVector::expectation_value_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) const {
@@ -1550,29 +1553,30 @@ rvector_t QubitVector::probabilities(const std::vector<uint_t> &qs) const {
     return probabilities<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}));
   case 5:
     return probabilities<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}));
-  }
-  // else
-  // Error checking
-  #ifdef DEBUG
-  for (const auto &qubit : qs)
-    check_qubit(qubit);
-  #endif
+  default:
+    // else
+    // Error checking
+    #ifdef DEBUG
+    for (const auto &qubit : qs)
+      check_qubit(qubit);
+    #endif
 
-  const uint_t dim = 1ULL << N;
-  const uint_t end = (1ULL << num_qubits) >> N;
-  auto qss = qs;
-  std::sort(qss.begin(), qss.end());
-  if ((N == num_qubits) && (qss == qs))
-    return probabilities();
-  const auto &qubits_sorted = qss;
-  rvector_t probs(dim, 0.);
+    const uint_t dim = 1ULL << N;
+    const uint_t end = (1ULL << num_qubits) >> N;
+    auto qss = qs;
+    std::sort(qss.begin(), qss.end());
+    if ((N == num_qubits) && (qss == qs))
+      return probabilities();
+    const auto &qubits_sorted = qss;
+    rvector_t probs(dim, 0.);
 
-  for (size_t k = 0; k < end; k++) {
-    const auto indexes = idx.indexes_dynamic(qs, qubits_sorted, N, k);
-    for (size_t m = 0; m < dim; ++m)
-      probs[m] += probability(indexes[m]);
+    for (size_t k = 0; k < end; k++) {
+      const auto indexes = idx.indexes_dynamic(qs, qubits_sorted, N, k);
+      for (size_t m = 0; m < dim; ++m)
+        probs[m] += probability(indexes[m]);
+    }
+    return probs;
   }
-  return probs;
 }
 
 //------------------------------------------------------------------------------
@@ -1663,27 +1667,28 @@ double QubitVector::probability(const std::vector<uint_t> &qs,
     return probability<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), outcome);
   case 5:
     return probability<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), outcome);
-  }
-  // else
-  // Error checking
-  #ifdef DEBUG
-  for (const auto &qubit : qs)
-    check_qubit(qubit);
-  #endif
+  default:
+    // else
+    // Error checking
+    #ifdef DEBUG
+    for (const auto &qubit : qs)
+      check_qubit(qubit);
+    #endif
 
-  const omp_int_t end = (1ULL << num_qubits) >> N;
-  auto qss = qs;
-  std::sort(qss.begin(), qss.end());
-  const auto &qubits_sorted = qss;
-  double p = 0.;
+    const omp_int_t end = (1ULL << num_qubits) >> N;
+    auto qss = qs;
+    std::sort(qss.begin(), qss.end());
+    const auto &qubits_sorted = qss;
+    double p = 0.;
 
-#pragma omp parallel reduction(+:p) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
-  {
-  #pragma omp for
-    for (omp_int_t k = 0; k < end; k++)
-      p += probability(idx.indexes_dynamic(qs, qubits_sorted, N, k)[outcome]);
+  #pragma omp parallel reduction(+:p) if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+    {
+    #pragma omp for
+      for (omp_int_t k = 0; k < end; k++)
+        p += probability(idx.indexes_dynamic(qs, qubits_sorted, N, k)[outcome]);
+    }
+    return p;
   }
-  return p;
 }
 //------------------------------------------------------------------------------
 } // end namespace QV

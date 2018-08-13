@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 """LocalJob creation and test suite."""
 
@@ -35,6 +35,17 @@ class TestLocalJob(QiskitTestCase):
         UnitarySimulatorPy
     ]
 
+    def test_run(self):
+        with mocked_simulator_binaries(), \
+             patch.object(LocalJob, '__init__', return_value=None,
+                          autospec=True):
+            for backend_constructor in self._backends:
+                with self.subTest(backend=backend_constructor):
+                    self.log.info('Backend under test: %s', backend_constructor)
+                    backend = backend_constructor()
+                    job = backend.run(new_fake_qobj())
+                    self.assertIsInstance(job, LocalJob)
+
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors
         # can run several tasks at the same time. It is our responsibility to
@@ -43,8 +54,8 @@ class TestLocalJob(QiskitTestCase):
         taskcount = 10
         target_tasks = [lambda: None for _ in range(taskcount)]
 
-        # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_localjob() as (LocalJob, executor):
+        # pylint: disable=invalid-name,redefined-outer-name
+        with mocked_executor() as (LocalJob, executor):
             for index in range(taskcount):
                 local_job = LocalJob(target_tasks[index], new_fake_qobj())
                 local_job.submit()
@@ -61,8 +72,8 @@ class TestLocalJob(QiskitTestCase):
         # we only check if we delegate on the proper method of the underlaying
         # future object.
 
-        # pylint: disable=redefined-outer-name
-        with intercepted_executor_for_localjob() as (LocalJob, executor):
+        # pylint: disable=invalid-name,redefined-outer-name
+        with mocked_executor() as (LocalJob, executor):
             job = LocalJob(lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
@@ -87,7 +98,7 @@ class FakeBackend():
 
 
 @contextmanager
-def intercepted_executor_for_localjob():
+def mocked_executor():
     """Context that patches the derived executor classes to return the same
     executor object. Also patches the future object returned by executor's
     submit()."""

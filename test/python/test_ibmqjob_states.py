@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring,broad-except
+# pylint: disable=missing-docstring,broad-except
 
 
 """IBMQJob states test-suite."""
@@ -17,11 +17,11 @@ from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError, JobTimeoutError
-from .common import QiskitTestCase
+from .common import JobTestCase
 from ._mockutils import new_fake_qobj
 
 
-class TestIBMQJobStates(QiskitTestCase):
+class TestIBMQJobStates(JobTestCase):
     """
     Test ibmqjob module.
     """

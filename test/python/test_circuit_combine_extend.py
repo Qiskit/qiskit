@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name, unused-import
+# pylint: disable=unused-import
 
 """Tests for combining and extending circuits across width and depth"""
 
@@ -61,12 +61,12 @@ class TestCircuitCombineExtend(QiskitTestCase):
         If two circuits have same name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister(1, "q")
-        q2 = QuantumRegister(2, "q")
-        c1 = ClassicalRegister(1, "q")
-        qc1 = QuantumCircuit(q1)
-        qc2 = QuantumCircuit(q2)
-        qc3 = QuantumCircuit(c1)
+        qr1 = QuantumRegister(1, "q")
+        qr2 = QuantumRegister(2, "q")
+        cr1 = ClassicalRegister(1, "q")
+        qc1 = QuantumCircuit(qr1)
+        qc2 = QuantumCircuit(qr2)
+        qc3 = QuantumCircuit(cr1)
 
         self.assertRaises(QISKitError, qc1.__add__, qc2)
         self.assertRaises(QISKitError, qc1.__add__, qc3)
@@ -139,12 +139,12 @@ class TestCircuitCombineExtend(QiskitTestCase):
         If two circuits have same name register of different size or type
         it should raise a QISKitError.
         """
-        q1 = QuantumRegister(1, "q")
-        q2 = QuantumRegister(2, "q")
-        c1 = ClassicalRegister(1, "q")
-        qc1 = QuantumCircuit(q1)
-        qc2 = QuantumCircuit(q2)
-        qc3 = QuantumCircuit(c1)
+        qr1 = QuantumRegister(1, "q")
+        qr2 = QuantumRegister(2, "q")
+        cr1 = ClassicalRegister(1, "q")
+        qc1 = QuantumCircuit(qr1)
+        qc2 = QuantumCircuit(qr2)
+        qc3 = QuantumCircuit(cr1)
 
         self.assertRaises(QISKitError, qc1.__iadd__, qc2)
         self.assertRaises(QISKitError, qc1.__iadd__, qc3)
