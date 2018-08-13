@@ -102,7 +102,7 @@ class LocalJob(BaseJob):
             _status = JobStatus.RUNNING
         elif self._future.cancelled():
             _status = JobStatus.CANCELLED
-        elif self._done():
+        elif self._future.done():
             _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
             raise JobError('Unexpected behavior of {0}'.format(

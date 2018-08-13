@@ -15,6 +15,7 @@ from concurrent import futures
 import time
 import logging
 import pprint
+import contextlib
 import json
 import datetime
 import numpy
@@ -127,6 +128,7 @@ class IBMQJob(BaseJob):
         self._is_device = is_device
 
         def current_utc_time():
+            """Gets the current time in UTC format"""
             datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
 
         self._creation_date = creation_date or current_utc_time()
