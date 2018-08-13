@@ -50,6 +50,7 @@ Fixed
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
+- Fixed the issue with control lines spanning through several classical registers. (#762).
 
 `0.5.6`_ - 2018-07-06
 =====================
