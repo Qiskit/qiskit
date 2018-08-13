@@ -233,8 +233,8 @@ def plot_state_qsphere(rho):
             loc = np.absolute(state).argmax()
             # get the element location closes to lowest bin representation.
             for j in range(2**num):
-                test = np.absolute(np.absolute(state[j])
-                                   - np.absolute(state[loc]))
+                test = np.absolute(np.absolute(state[j]) -
+                                   np.absolute(state[loc]))
                 if test < 0.001:
                     loc = j
                     break

@@ -23,12 +23,13 @@ def iplot_state(rho, method='city', options=None):
         rho (ndarray): Density matrix representation
             of a quantum state vector or mized state.
         method (str): Plotting method to use.
+        options (dict): Plotting settings.
 
     Note:
         If input is a state vector, you must first
         convert to density matrix via `qiskit.tools.qi.qi.outer`.
     """
-    
+
     # Need updating to check its a matrix
     if method == "city":
         iplot_cities(rho, options)
@@ -41,4 +42,4 @@ def iplot_state(rho, method='city', options=None):
     elif method == "hinton":
         iplot_hinton(rho, options)
     else:
-        print ("Unknown method '" + method + "'.")
+        print("Unknown method '" + method + "'.")
