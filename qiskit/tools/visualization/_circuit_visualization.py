@@ -1177,6 +1177,7 @@ class QCStyle:
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.cline = 'doublet'
 
     def set_style(self, dic):
         self.tc = dic.get('textcolor', self.tc)
@@ -1205,6 +1206,7 @@ class QCStyle:
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
+        self.cline = dic.get('creglinestyle', self.cline)
 
 
 def qx_color_scheme():
@@ -1269,7 +1271,8 @@ def qx_color_scheme():
         "plotbarrier": False,
         "showindex": False,
         "compress": False,
-        "margin": [2.0, 0.0, 0.0, 0.3]
+        "margin": [2.0, 0.0, 0.0, 0.3],
+        "creglinestyle": "solid"
     }
 
 
@@ -1430,13 +1433,37 @@ class MatplotlibDrawer:
                      clip_on=True,
                      zorder=PORDER_TEXT)
 
-    def _line(self, xy0, xy1):
+    def _line(self, xy0, xy1, lc=None, ls=None):
         x0, y0 = xy0
         x1, y1 = xy1
-        self.ax.plot([x0, x1], [y0, y1],
-                     color=self._style.lc,
-                     linewidth=1.0,
-                     zorder=PORDER_LINE)
+        if lc is None:
+            linecolor = self._style.lc
+        else:
+            linecolor = lc
+        if ls is None:
+            linestyle = 'solid'
+        else:
+            linestyle = ls
+        if linestyle == 'doublet':
+            theta = np.arctan2(np.abs(x1 - x0), np.abs(y1 - y0))
+            dx = 0.05 * WID * np.cos(theta)
+            dy = 0.05 * WID * np.sin(theta)
+            self.ax.plot([x0 + dx, x1 + dx], [y0 + dy, y1 + dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+            self.ax.plot([x0 - dx, x1 - dx], [y0 - dy, y1 - dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+        else:
+            self.ax.plot([x0, x1], [y0, y1],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle=linestyle,
+                         zorder=PORDER_LINE)
 
     def _measure(self, qxy, cxy, cid):
         qx, qy = qxy
@@ -1451,8 +1478,13 @@ class MatplotlibDrawer:
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         # arrow
-        self.ax.arrow(x=qx, y=qy, dx=0, dy=cy - qy, width=0.01, head_width=0.2, head_length=0.2,
-                      length_includes_head=True, color=self._style.cc, zorder=PORDER_LINE)
+        self._line(qxy, [cx, cy+0.35*WID], lc=self._style.cc, ls=self._style.cline)
+        arrowhead = patches.Polygon(((cx-0.20*WID, cy+0.35*WID),
+                                     (cx+0.20*WID, cy+0.35*WID),
+                                     (cx, cy)),
+                                    fc=self._style.cc,
+                                    ec=None)
+        self.ax.add_artist(arrowhead)
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
@@ -1619,7 +1651,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.lc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y])
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -1648,7 +1680,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.cc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc, ls=self._style.cline)
 
         # lf line
         if feedline_r:
@@ -1739,22 +1771,29 @@ class MatplotlibDrawer:
             # conditional gate
             if 'conditional' in op.keys():
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in self._creg_dict]
-                if self._style.bundle:
-                    c_xy = list(set(c_xy))
-                    for xy in c_xy:
-                        self._conds(xy, istrue=True)
-                else:
-                    fmt = '{{:0{}b}}'.format(len(c_xy))
-                    vlist = list(fmt.format(int(op['conditional']['val'], 16)))[::-1]
-                    for xy, v in zip(c_xy, vlist):
-                        if v == '0':
-                            bv = False
-                        else:
-                            bv = True
-                        self._conds(xy, istrue=bv)
-                creg_b = sorted(c_xy, key=lambda xy: xy[1])[0]
+                # cbit list to consider
+                fmt_c = '{{:0{}b}}'.format(len(c_xy))
+                mask = int(op['conditional']['mask'], 16)
+                cmask = list(fmt_c.format(mask))[::-1]
+                # value
+                fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
+                val = int(op['conditional']['val'], 16)
+                vlist = list(fmt_v.format(val))[::-1]
+                # plot conditionals
+                v_ind = 0
+                xy_plot = []
+                for xy, m in zip(c_xy, cmask):
+                    if m == '1':
+                        if xy not in xy_plot:
+                            if vlist[v_ind] == '1' or self._style.bundle:
+                                self._conds(xy, istrue=True)
+                            else:
+                                self._conds(xy, istrue=False)
+                            xy_plot.append(xy)
+                        v_ind += 1
+                creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                 self._subtext(creg_b, op['conditional']['val'])
-                self._line(qreg_t, creg_b)
+                self._line(qreg_t, creg_b, lc=self._style.cc, ls=self._style.cline)
             #
             # draw special gates
             #
