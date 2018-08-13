@@ -361,8 +361,8 @@ def requires_qe_access(func):
             raise unittest.SkipTest('Skipping online tests')
 
         # Cleanup the credentials, as this file is shared by the tests.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
+        from qiskit.wrapper import _wrapper as qiskit_wrapper
+        qiskit_wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
         kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
