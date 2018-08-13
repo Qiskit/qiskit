@@ -22,7 +22,7 @@ from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .http_recorder import http_recorder
-
+from .get_test_options import get_test_options
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
@@ -262,7 +262,7 @@ def _get_credentials(test_object, test_options):
 
     Args:
         test_object (QiskitTestCase): The test object asking for credentials
-        test_options (list): List of options after QISKIT_TESTS was parsed.
+        test_options (list): List of options after QISKIT_TESTS was parsed by get_test_options.
 
     Returns:
         dict: Credentials in a dictionary
@@ -394,72 +394,6 @@ def _is_ci_fork_pull_request():
         if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
             return True
     return False
-
-
-def get_test_options(option_var='QISKIT_TESTS'):
-    """
-    Reads option_var from env and returns a dict in which the test options are set
-
-    Args:
-        option_var (str): The env var to read. Default: 'QISKIT_TESTS'
-
-    Returns:
-        dict: A dictionary with the format {<option>: (bool)<activated>}.
-    """
-    defaults = {
-        'skip_online': False,
-        'run_online': False,
-        'mock_online': False,
-        'skip_slow': True,
-        'run_slow': False,
-        'rec': False
-    }
-
-    def turn_true(option):
-        """
-        Turns an option to True
-        Args:
-            option (str): Turns defaults[option] to True
-
-        Returns:
-            bool: True, returns always True.
-        """
-
-        defaults[option] = True
-        return True
-
-    def turn_false(option):
-        """
-        Turns an option to False
-        Args:
-            option (str): Turns defaults[option] to False
-
-        Returns:
-            bool: True, returns always True.
-        """
-
-        defaults[option] = False
-        return True
-
-    if_true = {
-        'skip_online': (lambda: turn_false('run_online') and turn_false('rec')),
-        'run_online': (lambda: turn_false('skip_online')),
-        'mock_online': (lambda: turn_true('run_online') and turn_false('skip_online')),
-        'skip_slow': (lambda: turn_false('run_online')),
-        'run_slow': (lambda: turn_false('skip_slow')),
-        'rec': (lambda: turn_true('run_online') and turn_false('skip_online') and turn_false(
-            'run_slow'))
-    }
-
-    opt_string = os.getenv(option_var, False)
-    if not opt_string:
-        return defaults
-
-    for opt in opt_string.split(','):
-        # This means, set the opt to True and flip all the opts that need to be rewritten.
-        defaults[opt] = if_true[opt]()
-    return defaults
-
 
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
