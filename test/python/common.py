@@ -24,6 +24,7 @@ from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .http_recorder import http_recorder
 from .get_test_options import get_test_options
 
+
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
     # Main SDK path:    qiskit/
@@ -254,6 +255,7 @@ def slow_test(func):
             return func(*args, **kwargs)
         else:
             raise unittest.SkipTest('Skipping slow tests')
+
     return _wrapper
 
 
@@ -395,6 +397,7 @@ def _is_ci_fork_pull_request():
         if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
             return True
     return False
+
 
 def _get_http_recorder(test_options):
     vcr_mode = 'none'

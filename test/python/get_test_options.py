@@ -9,6 +9,7 @@
 
 import os
 
+
 def get_test_options(option_var='QISKIT_TESTS'):
     """
     Reads option_var from env and returns a dict in which the test options are set
