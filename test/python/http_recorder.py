@@ -75,7 +75,8 @@ class IdRemoverPersister(FilesystemPersister):
         if not map_list:
             return ret
         if isinstance(data_dict, list):
-            _ = [ret.extend(IdRemoverPersister.get_matching_dicts(i, map_list)) for i in data_dict]
+            for sub_data_dict in data_dict:
+                ret.extend(IdRemoverPersister.get_matching_dicts(sub_data_dict, map_list))
         if isinstance(data_dict, dict):
             if map_list[0] in data_dict.keys():
                 if len(map_list) == 1:
