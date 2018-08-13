@@ -104,7 +104,7 @@ class TestIBMQJob(JobTestCase):
         qobj = transpiler.compile(self._qc, backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
-        while not (job.status() is JobStatus.DONE):
+        while not job.status() is JobStatus.DONE:
             self.log.info(job.status())
             time.sleep(4)
         self.log.info(job.status)
