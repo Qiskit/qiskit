@@ -224,7 +224,7 @@ def _purge_headers_cb(headers):
             item = (item, None)
         header_list.append((item[0], item[1]))
 
-    def before_record_response(response):
+    def before_record_response_cb(response):
         """
         Purge headers from response.
 
@@ -242,7 +242,7 @@ def _purge_headers_cb(headers):
                     del response['headers'][header]
         return response
 
-    return before_record_response
+    return before_record_response_cb
 
 
 def _unordered_query_matcher(request1, request2):
