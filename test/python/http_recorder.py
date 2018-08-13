@@ -194,20 +194,20 @@ def http_recorder(vcr_mode):
         filter_query_parameters=[('access_token', 'dummyapiusersloginWithTokenid01')],
         filter_post_data_parameters=[('apiToken', 'apiToken_dummy')],
         decode_compressed_response=True,
-        before_record_response=_purge_headers(['Date',
-                                               ('Set-Cookie', 'dummy_cookie'),
-                                               'X-Global-Transaction-ID',
-                                               'Etag',
-                                               'Content-Security-Policy',
-                                               'X-Content-Security-Policy',
-                                               'X-Webkit-Csp',
-                                               'content-length']))
+        before_record_response=_purge_headers_cb(['Date',
+                                                  ('Set-Cookie', 'dummy_cookie'),
+                                                  'X-Global-Transaction-ID',
+                                                  'Etag',
+                                                  'Content-Security-Policy',
+                                                  'X-Content-Security-Policy',
+                                                  'X-Webkit-Csp',
+                                                  'content-length']))
     my_vcr.register_matcher('unordered_query', _unordered_query_matcher)
     my_vcr.register_persister(IdRemoverPersister)
     return my_vcr
 
 
-def _purge_headers(headers):
+def _purge_headers_cb(headers):
     """
     Remove headers from the response.
 
