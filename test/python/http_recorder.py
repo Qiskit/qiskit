@@ -142,10 +142,9 @@ class IdRemoverPersister(FilesystemPersister):
             for response in responses:
                 IdRemoverPersister.remove_ids_in_a_response(response, fields, path, id_tracker)
         for old_id, new_id in id_tracker.items():
-            if not isinstance(old_id, str):
-                continue
-            for request in cassette_dict['requests']:
-                request.uri = request.uri.replace(old_id, new_id)
+            if isinstance(old_id, str):
+                for request in cassette_dict['requests']:
+                    request.uri = request.uri.replace(old_id, new_id)
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
