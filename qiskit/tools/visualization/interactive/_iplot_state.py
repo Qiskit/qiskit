@@ -30,7 +30,7 @@ def iplot_state(rho, method='city', options=None):
     """
     
     # Need updating to check its a matrix
-    if method == 'city':
+    if method == "city":
         iplot_cities(rho, options)
     elif method == "paulivec":
         iplot_paulivec(rho, options)
