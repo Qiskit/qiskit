@@ -300,10 +300,9 @@ def _get_credentials(test_object, test_options):
 
     # No user credentials were found.
 
-    if not test_options['skip_online'] or test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for performing '
-                        'tests against the remote API. Use QISKIT_TESTS=skip_online to skip '
-                        'this test.')
+    if test_options['rec']:
+        raise Exception('Could not locate valid credentials. You need them for recording '
+                        'tests against the remote API.')
 
     test_object.log.warning("No user credentials were detected. Running with mocked data.")
     test_options['mock_online'] = True
