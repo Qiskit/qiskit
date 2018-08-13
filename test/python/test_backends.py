@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
 
 """Backends Test."""
 
@@ -39,36 +38,36 @@ class TestBackends(QiskitTestCase):
         self.assertTrue(len(local) > 0)
 
     @requires_qe_access
-    def test_remote_backends_exist(self, QE_TOKEN, QE_URL):
+    def test_remote_backends_exist(self, qe_token, qe_url):
         """Test if there are remote backends.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         self.log.info(remotes)
         self.assertTrue(len(remotes) > 0)
 
     @requires_qe_access
-    def test_remote_backends_exist_real_device(self, QE_TOKEN, QE_URL):
+    def test_remote_backends_exist_real_device(self, qe_token, qe_url):
         """Test if there are remote backends that are devices.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remote = ibmq_provider.available_backends()
         remote = [r for r in remote if not r.configuration['simulator']]
         self.log.info(remote)
         self.assertTrue(remote)
 
     @requires_qe_access
-    def test_remote_backends_exist_simulator(self, QE_TOKEN, QE_URL):
+    def test_remote_backends_exist_simulator(self, qe_token, qe_url):
         """Test if there are remote backends that are simulators.
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remote = ibmq_provider.available_backends()
         remote = [r for r in remote if r.configuration['simulator']]
         self.log.info(remote)
@@ -102,7 +101,7 @@ class TestBackends(QiskitTestCase):
         jsonschema.validate(status, schema)
 
     @requires_qe_access
-    def test_remote_backend_status(self, QE_TOKEN, QE_URL):
+    def test_remote_backend_status(self, qe_token, qe_url):
         """Test backend_status.
 
         If all correct should pass the validation.
@@ -110,7 +109,7 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -139,12 +138,12 @@ class TestBackends(QiskitTestCase):
             jsonschema.validate(configuration, schema)
 
     @requires_qe_access
-    def test_remote_backend_configuration(self, QE_TOKEN, QE_URL):
+    def test_remote_backend_configuration(self, qe_token, qe_url):
         """Test backend configuration.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -169,12 +168,12 @@ class TestBackends(QiskitTestCase):
             self.assertEqual(len(calibration), 0)
 
     @requires_qe_access
-    def test_remote_backend_calibration(self, QE_TOKEN, QE_URL):
+    def test_remote_backend_calibration(self, qe_token, qe_url):
         """Test backend calibration.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -200,12 +199,12 @@ class TestBackends(QiskitTestCase):
             self.assertEqual(len(parameters), 0)
 
     @requires_qe_access
-    def test_remote_backend_parameters(self, QE_TOKEN, QE_URL):
+    def test_remote_backend_parameters(self, qe_token, qe_url):
         """Test backend parameters.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(QE_TOKEN, QE_URL)
+        ibmq_provider = IBMQProvider(qe_token, qe_url)
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:

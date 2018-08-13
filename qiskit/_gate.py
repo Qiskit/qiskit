@@ -42,13 +42,3 @@ class Gate(Instruction):
         """Add controls to this gate."""
         # pylint: disable=unused-argument
         raise QISKitError("control not implemented")
-
-    def is_multi_qubit(self):
-        """Returns True if this Gate uses multiple qubits as arguments"""
-        return self._is_multi_qubit
-
-    def get_qubit_coupling(self):
-        """Gets the coupling graph of the qubits in case this is a multi-qubit gate"""
-        if not self.is_multi_qubit():
-            raise QISKitError("Can't get the qubit coupling of non multi-qubit gates!")
-        return self._qubit_coupling
