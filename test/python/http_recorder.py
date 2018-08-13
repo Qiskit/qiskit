@@ -128,6 +128,8 @@ class IdRemoverPersister(FilesystemPersister):
     def remove_ids(ids2remove, cassette_dict):
         """
         Replaces in cassette_dict (in-place) the fields defined by ids2remove with dummy values.
+        Internally, it used a map (id_tracker) between real values and dummy values to keep
+        consistency during the renaming.
 
         Args:
             ids2remove (dict): {request_path: [json_fields]}
