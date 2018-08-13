@@ -26,19 +26,6 @@ def get_test_options(option_var='QISKIT_TESTS'):
         'rec': False
     }
 
-    def turn_true(option):
-        """
-        Turns an option to True
-        Args:
-            option (str): Turns defaults[option] to True
-
-        Returns:
-            bool: True, returns always True.
-        """
-
-        defaults[option] = True
-        return True
-
     def turn_false(option):
         """
         Turns an option to False
@@ -59,11 +46,18 @@ def get_test_options(option_var='QISKIT_TESTS'):
         'rec': lambda: turn_false('skip_online') and turn_false('run_slow')
     }
 
+    def set_opt_to_true(opt):
+        """
+        Set the opt to True and flip all the opts that need to be rewritten in defaults dict
+        Args:
+            opt (str): Option to be True
+        """
+        defaults[opt] = if_true[opt]()
+
     opt_string = os.getenv(option_var, False)
     if not opt_string:
         return defaults
 
     for opt in opt_string.split(','):
-        # This means, set the opt to True and flip all the opts that need to be rewritten.
-        defaults[opt] = if_true[opt]()
+        set_opt_to_true(opt)
     return defaults
