@@ -366,6 +366,8 @@ def requires_qe_access(func):
         kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+            # For recording or for replaying existing cassettes, the test should be decorated with
+            # use_cassette.
             wrapper = VCR.use_cassette()(func)
         else:
             wrapper = func
