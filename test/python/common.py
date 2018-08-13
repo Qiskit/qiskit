@@ -250,9 +250,10 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        if TEST_OPTIONS['skip_slow']:
+        if TEST_OPTIONS['run_slow']:
+            return func(*args, **kwargs)
+        else:
             raise unittest.SkipTest('Skipping slow tests')
-        return func(*args, **kwargs)
     return _wrapper
 
 
@@ -297,7 +298,7 @@ def _get_credentials(test_object, test_options):
 
     # No user credentials were found.
 
-    if test_options['run_online'] or test_options['rec']:
+    if not test_options['skip_online'] or test_options['rec']:
         raise Exception('Could not locate valid credentials. You need them for performing '
                         'tests against the remote API. Use QISKIT_TESTS=skip_online to skip '
                         'this test.')

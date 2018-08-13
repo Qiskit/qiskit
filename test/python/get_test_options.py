@@ -21,9 +21,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     """
     defaults = {
         'skip_online': False,
-        'run_online': False,
         'mock_online': False,
-        'skip_slow': True,
         'run_slow': False,
         'rec': False
     }
@@ -55,13 +53,10 @@ def get_test_options(option_var='QISKIT_TESTS'):
         return True
 
     if_true = {
-        'skip_online': (lambda: turn_false('run_online') and turn_false('rec')),
-        'run_online': (lambda: turn_false('skip_online')),
-        'mock_online': (lambda: turn_true('run_online') and turn_false('skip_online')),
-        'skip_slow': (lambda: turn_false('run_online')),
-        'run_slow': (lambda: turn_false('skip_slow')),
-        'rec': (lambda: turn_true('run_online') and turn_false('skip_online') and turn_false(
-            'run_slow'))
+        'skip_online': (lambda: turn_false('rec')),
+        'mock_online': (lambda: turn_false('skip_online')),
+        'run_slow': (lambda: True),
+        'rec': (lambda: turn_false('skip_online') and turn_false('run_slow'))
     }
 
     opt_string = os.getenv(option_var, False)
