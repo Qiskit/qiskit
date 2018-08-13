@@ -238,16 +238,11 @@
                 },
                 {
                     "title": "snapshot",
-                    "required": ["t0"],
+                    "required": ["t0","label","type"],
                     "properties": {
                         "name": {"enum": ["snapshot"]},
-                        "params": {
-                            "minItems": 2,
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "texparams": {"maxItems": 0}
+                        "label": {"type": "string"},
+                        "type": {"type": "string"}
                     }
                 },
                 {"$ref": "#/definitions/bfunc"},
@@ -378,17 +373,13 @@
                 },
                 {
                 "title": "snapshot",
-                "required": ["params"],
+                "required": ["label","type"],
                 "properties": {
                     "name": {"enum": ["snapshot"]},
                     "memory": {"maxItems": 0},               
                     "register": {"maxItems": 0},
-                    "params": {
-                        "minItems": 2,
-                        "items": {
-                            "type": "string"
-                        }
-                    },
+                    "label": {"type": "string"},
+                    "type": {"type": "string"},
                     "texparams": {"maxItems": 0}
                 }
                 },

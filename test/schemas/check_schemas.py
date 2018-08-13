@@ -58,7 +58,6 @@ schema_tests.append({"schema": "result_schema.json",
                          "result_openqasm_example.json",
                          "result_openpulse_level_0_example.json",
                          "result_openpulse_level_1_example.json",
-                         "result_snapshots_example.json",
                          "result_statevector_simulator_example.json",
                          "result_unitary_simulator_example.json"
                          ]})
