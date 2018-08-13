@@ -21,7 +21,7 @@ from .common import JobTestCase
 from ._mockutils import new_fake_qobj
 
 
-class TestIBMQJobStates(JobTestCase):
+class TestIBMQJobStatandes(JobTestCase):
     """
     Test ibmqjob module.
     """

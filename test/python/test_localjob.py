@@ -14,12 +14,12 @@ from os import path
 import unittest
 from unittest.mock import patch
 
+from qiskit.backends.local import LocalJob
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
 from qiskit.backends.local import StatevectorSimulatorPy
 from qiskit.backends.local import UnitarySimulatorPy
-from qiskit.backends.jobstatus import JobStatus
 from .common import QiskitTestCase
 from ._mockutils import new_fake_qobj
 
@@ -34,17 +34,6 @@ class TestLocalJob(QiskitTestCase):
         StatevectorSimulatorPy,
         UnitarySimulatorPy
     ]
-
-    def test_run(self):
-        with mocked_simulator_binaries(), \
-             patch.object(LocalJob, '__init__', return_value=None,
-                          autospec=True):
-            for backend_constructor in self._backends:
-                with self.subTest(backend=backend_constructor):
-                    self.log.info('Backend under test: %s', backend_constructor)
-                    backend = backend_constructor()
-                    job = backend.run(new_fake_qobj())
-                    self.assertIsInstance(job, LocalJob)
 
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors

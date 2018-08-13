@@ -308,7 +308,7 @@ class TestIBMQJob(JobTestCase):
             self.assertTrue(job.creation_date() < past_day_30.isoformat())
 
     def test_double_submit_fails(self):
-        backend = self._local_provider.get_backend('ibmq_qasm_simulator')
+        backend = self._provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         # backend.run() will automatically call job.submit()
         job = backend.run(qobj)

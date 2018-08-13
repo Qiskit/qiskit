@@ -280,7 +280,7 @@ class IBMQJob(BaseJob):
         Raises:
             JobError: If we have already submited the job.
         """
-        if self._future is not None and self._id is not None:
+        if self._future is not None or self._id is not None:
             raise JobError("We have already submitted the job!")
 
         api_jobs = []
