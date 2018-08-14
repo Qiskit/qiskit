@@ -332,9 +332,9 @@ class IBMQJob(BaseJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        self._id = submit_info.get('id')
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
+        self._id = submit_info.get('id')
         return submit_info
 
     def _wait_for_job(self, timeout=60, wait=5):
@@ -401,10 +401,6 @@ class IBMQJob(BaseJob):
                 self._status = JobStatus.ERROR
                 self._api_error_msg = str(submit_info['error'])
                 raise JobError(str(submit_info['error']))
-
-            self._creation_date = submit_info.get('creationDate')
-            self._status = JobStatus.QUEUED
-            self._id = submit_info.get('id')
 
 
 def _reorder_bits(result):

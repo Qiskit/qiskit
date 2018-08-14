@@ -12,6 +12,7 @@
 
 import unittest
 import time
+from contextlib import suppress
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
@@ -21,7 +22,7 @@ from .common import JobTestCase
 from ._mockutils import new_fake_qobj
 
 
-class TestIBMQJobStatandes(JobTestCase):
+class TestIBMQJobStates(JobTestCase):
     """
     Test ibmqjob module.
     """
@@ -47,19 +48,6 @@ class TestIBMQJobStatandes(JobTestCase):
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.ERROR)
-
-    def test_error_while_running_job(self):
-        job = self.run_with_api(ErrorWhileRunningAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
-
-        self.wait_for_initialization(job)
-        self.assertEqual(job.status(), JobStatus.RUNNING)
-
-        self._current_api.progress()
-        self.assertEqual(job.status(), JobStatus.ERROR)
-        # We don't always have an error message when getting an error response,
-        # but this test is sending one, se we want to test it.
-        self.assertEqual(job.error_message(), 'Error running job')
 
     def test_error_while_validating_job(self):
         job = self.run_with_api(ErrorWhileValidatingAPI())
@@ -121,11 +109,6 @@ class TestIBMQJobStatandes(JobTestCase):
         self.assertEqual(job.status(), JobStatus.RUNNING)
 
     def test_status_flow_for_errored_cancellation(self):
-        """This is still on RUNNING state because the Job
-        couldn't be cancelled, and is not due to a server
-        internal error, it's just in a non-cancelable state,
-        so the server returns an ERROR response.
-        """
         job = self.run_with_api(ErroredCancellationAPI())
         self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
@@ -135,35 +118,49 @@ class TestIBMQJobStatandes(JobTestCase):
         self.assertFalse(can_cancel)
         self.assertEqual(job.status(), JobStatus.RUNNING)
 
-    def test_status_flow_for_invalid_job(self):
-        job = self.run_with_api(UnableToInitializeAPI())
-        # TODO This is very risky, if the status changes to ERROR too fast
-        # this assert will fail, but it's not a bug in the code.
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
+    def test_status_flow_for_unable_to_run_valid_qobj(self):
+        """Contrary to other tests, this one is expected to fail even for a
+        non-job-related issue. If the API fails while sending a job, we don't
+        get an id so we can not query for the job status."""
+        job = self.run_with_api(UnavailableRunAPI())
 
-        self.wait_for_initialization(job)
-        self.assertEqual(job.status(), JobStatus.ERROR)
+        with self.assertRaises(JobError):
+            self.wait_for_initialization(job)
 
-    def test_status_flow_for_throwing_job(self):
-        """ If there's an exception in the thread that will submit the job, it
-        doesn't mean the Job had a problem, it might be a temporary server specific
-        error. So the job status will remain unchanged, but an exception will be
-        re-thrown when calling status().
-        If something wrong actually happened to the Job, is the server responsibility
-        to return the ERROR state, but the status() method will not raise an
-        exception in this case.
-        """
-        job = self.run_with_api(ThrowingServerButJobFinishedAPI())
-        # We need to give time to the thread to populate the exception, before we
-        # can re-throwing it in status()
-        time.sleep(0.2)
         with self.assertRaises(JobError):
             job.status()
 
-    def test_status_flow_for_throwing_api(self):
-        job = self.run_with_api(ThrowingAPI())
+    def test_api_throws_temporarily_but_job_is_finished(self):
+        job = self.run_with_api(ThrowingNonJobRelatedErrorAPI(errors_before_success=2))
+
+        # First time we query the server...
         with self.assertRaises(JobError):
+            # The error happens inside wait_for_initialization, the first time
+            # it calls to status() after INITIALIZING.
             self.wait_for_initialization(job)
+
+        # Also an explicit second time...
+        with self.assertRaises(JobError):
+            job.status()
+
+        # Now the API gets fixed and doesn't throw anymore.
+        self.assertEqual(job.status(), JobStatus.DONE)
+
+    def test_status_flow_for_unable_to_run_invalid_qobj(self):
+        job = self.run_with_api(RejectingJobAPI())
+        self.wait_for_initialization(job)
+        self.assertEqual(job.status(), JobStatus.ERROR)
+
+    def test_error_while_running_job(self):
+        job = self.run_with_api(ErrorWhileRunningAPI())
+        self.assertEqual(job.status(), JobStatus.INITIALIZING)
+
+        self.wait_for_initialization(job)
+        self.assertEqual(job.status(), JobStatus.RUNNING)
+
+        self._current_api.progress()
+        self.assertEqual(job.status(), JobStatus.ERROR)
+        self.assertEqual(job.error_message(), 'Error running job')
 
     def test_cancelled_result(self):
         job = self.run_with_api(CancellableAPI())
@@ -237,10 +234,10 @@ class TestIBMQJobStatandes(JobTestCase):
         self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
     def test_only_final_states_cause_datailed_request(self):
-        """The state ERROR_CREATING_JOB is only handled when running the job,
-        and not while checking the status, so it is not tested.
-        """
         from unittest import mock
+
+        # The state ERROR_CREATING_JOB is only handled when running the job,
+        # and not while checking the status, so it is not tested.
         all_state_apis = {'COMPLETED': NonQueuedAPI,
                           'CANCELLED': CancellableAPI,
                           'ERROR_VALIDATING_JOB': ErrorWhileValidatingAPI,
@@ -251,10 +248,8 @@ class TestIBMQJobStatandes(JobTestCase):
                 job = self.run_with_api(api())
                 self.wait_for_initialization(job)
 
-                try:
+                with suppress(BaseFakeAPI.NoMoreStatesError):
                     self._current_api.progress()
-                except BaseFakeAPI.NoMoreStatesError:
-                    pass
 
                 with mock.patch.object(self._current_api, 'get_job',
                                        wraps=self._current_api.get_job):
@@ -263,26 +258,6 @@ class TestIBMQJobStatandes(JobTestCase):
                         self.assertTrue(self._current_api.get_job.called)
                     else:
                         self.assertFalse(self._current_api.get_job.called)
-
-    def test_job_has_finished_but_api_throws_temporarily(self):
-        """There could be temporary problems with the API server, but doesn't
-        mean the job has failed. The server could start working fine again, and
-        we should be able to retrieve the job"""
-
-        job = self.run_with_api(TemporaryThrowingServerButJobFinishedAPI())
-        job._wait_for_submission()
-
-        # First time we query the server, we get an exception...
-        with self.assertRaises(JobError):
-            job.status()
-
-        # Maybe, also a second time...
-        with self.assertRaises(JobError):
-            job.status()
-
-        # Now the API server gets restored and doesn't throw anymore
-        # The job has finished successfully
-        self.assertEqual(job.status(), JobStatus.DONE)
 
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
@@ -313,12 +288,10 @@ def _auto_progress_api(api, interval=0.2):
     """Progress a `BaseFakeAPI` instacn every `interval` seconds until reaching
     the final state.
     """
-    try:
+    with suppress(BaseFakeAPI.NoMoreStatesError):
         while True:
             time.sleep(interval)
             api.progress()
-    except BaseFakeAPI.NoMoreStatesError:
-        pass
 
 
 class BaseFakeAPI():
@@ -432,15 +405,14 @@ class QueuedAPI(BaseFakeAPI):
     ]
 
 
-class UnableToInitializeAPI(BaseFakeAPI):
+class RejectingJobAPI(BaseFakeAPI):
     """Class for emulating an API unable of initializing."""
 
     def run_job(self, *_args, **_kwargs):
-        time.sleep(0.2)
-        return {'error': 'invalid test qobj'}
+        return {'error': 'invalid qobj'}
 
 
-class ThrowingInitializationAPI(BaseFakeAPI):
+class UnavailableRunAPI(BaseFakeAPI):
     """Class for emulating an API throwing before even initializing."""
 
     def run_job(self, *_args, **_kwargs):
@@ -459,35 +431,18 @@ class ThrowingAPI(BaseFakeAPI):
         raise ApiError()
 
 
-class ThrowingServerButJobFinishedAPI(BaseFakeAPI):
-    """Class for emulating an API throwing in the middle of execution, but
-    corresponding Job completes. This can simulate a server exception, but
-    not a a job problem, indeed, this will simulate a successfully completed
-    job.
+class ThrowingNonJobRelatedErrorAPI(BaseFakeAPI):
+    """Class for emulating an scenario where the job is done but the API
+    fails some times for non job-related errors.
     """
 
     _job_status = [
         {'status': 'COMPLETED'}
     ]
 
-    def get_status_job(self, job_id):
-        return self._job_status[self._state]
-
-    def run_job(self, *_args, **_kwargs):
-        raise ApiError()
-
-
-class TemporaryThrowingServerButJobFinishedAPI(BaseFakeAPI):
-    """Class for emulating an API throwing only a few times, but the job successfully
-    finishes. We pretend to simulate a temporary server malfunction that gets eventually
-    fixed, so in the end, we get the job.
-    """
-
-    _job_status = [
-        {'status': 'COMPLETED'}
-    ]
-
-    _number_of_exceptions_to_throw = 2
+    def __init__(self, errors_before_success=2):
+        super().__init__()
+        self._number_of_exceptions_to_throw = errors_before_success
 
     def get_job(self, job_id):
         if self._number_of_exceptions_to_throw != 0:
