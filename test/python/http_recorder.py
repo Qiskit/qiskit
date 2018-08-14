@@ -33,9 +33,9 @@ class IdRemoverPersister(FilesystemPersister):
         Returns:
             Request: VCR's representation of a request.
         """
-        request_indices = [i for i, request in enumerate(cassette_dict['requests']) if
-                           string_to_find in request.path]
-        return [cassette_dict['responses'][i] for i in request_indices]
+        return [response for response, request in
+                zip(cassette_dict['responses'], cassette_dict['requests'])
+                if string_to_find in request.path]
 
     @staticmethod
     def get_new_id(field, path, id_tracker, type_=str):
@@ -224,7 +224,7 @@ def _purge_headers_cb(headers):
     for item in headers:
         if not isinstance(item, tuple):
             item = (item, None)
-        header_list.append((item[0], item[1]))
+        header_list.append(item[0:2])  # ensure the tuple is a pair
 
     def before_record_response_cb(response):
         """
@@ -273,10 +273,8 @@ def _unordered_query_matcher(request1, request2):
         return False
 
     for key, value in dict1.items():
-        try:
+        with suppress(ValueError):
             dict1[key] = json.loads(value)
             dict2[key] = json.loads(dict2[key])
-        except ValueError:
-            pass
 
     return dict1 == dict2

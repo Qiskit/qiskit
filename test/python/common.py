@@ -22,7 +22,7 @@ from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .http_recorder import http_recorder
-from .get_test_options import get_test_options
+from ._test_options import get_test_options
 
 
 class Path(Enum):
@@ -251,10 +251,11 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        if TEST_OPTIONS['run_slow']:
-            return func(*args, **kwargs)
-        else:
+        skip_slow = not TEST_OPTIONS['run_slow']
+        if skip_slow:
             raise unittest.SkipTest('Skipping slow tests')
+
+        return func(*args, **kwargs)
 
     return _wrapper
 
@@ -367,13 +368,13 @@ def requires_qe_access(func):
         qiskit_wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
         kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
+        decorated_item = func
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
             # For recording or for replaying existing cassettes, the test should be decorated with
             # use_cassette.
-            wrapper = VCR.use_cassette()(func)
-        else:
-            wrapper = func
-        return wrapper(self, *args, **kwargs)
+            decorated_item = VCR.use_cassette()(decorated_item)
+
+        return decorated_item(self, *args, **kwargs)
 
     return _wrapper
 

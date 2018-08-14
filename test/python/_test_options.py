@@ -5,14 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Obtains and set the options in QISKIT_TESTS, used for running the tests."""
+"""Obtain and set the options in QISKIT_TESTS, used for running the tests."""
 
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_test_options(option_var='QISKIT_TESTS'):
-    """
-    Reads option_var from env and returns a dict in which the test options are set
+    """Read option_var from env and returns a dict in which the test options are set.
 
     Args:
         option_var (str): The env var to read. Default: 'QISKIT_TESTS'
@@ -20,7 +22,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     Returns:
         dict: A dictionary with the format {<option>: (bool)<activated>}.
     """
-    defaults = {
+    tests_options = {
         'skip_online': False,
         'mock_online': False,
         'run_slow': False,
@@ -29,7 +31,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
 
     def turn_false(option):
         """
-        Turns an option to False
+        Turn an option to False
         Args:
             option (str): Turns defaults[option] to False
 
@@ -37,28 +39,31 @@ def get_test_options(option_var='QISKIT_TESTS'):
             bool: True, returns always True.
         """
 
-        defaults[option] = False
+        tests_options[option] = False
         return True
 
-    if_true = {
+    dependency_solvers = {
         'skip_online': lambda: turn_false('rec'),
         'mock_online': lambda: turn_false('skip_online'),
-        'run_slow': lambda: True,
         'rec': lambda: turn_false('skip_online') and turn_false('run_slow')
     }
 
-    def set_opt_to_true(opt):
+    def set_flag(flag):
         """
-        Set the opt to True and flip all the opts that need to be rewritten in defaults dict
+        Set the flag to True and flip all the flags that need to be rewritten.
+
         Args:
-            opt (str): Option to be True
+            flag (str): Option to be True
         """
-        defaults[opt] = if_true[opt]()
+        tests_options[flag] = True
+        if flag in dependency_solvers:
+            dependency_solvers[flag]()
 
-    opt_string = os.getenv(option_var, False)
-    if not opt_string:
-        return defaults
+    flag_string = os.getenv(option_var, '')
+    for flag in flag_string.split(','):
+        if flag not in tests_options:
+            logger.error('Testing option "%s" unknown.', flag)
 
-    for opt in opt_string.split(','):
-        set_opt_to_true(opt)
-    return defaults
+        set_flag(flag)
+
+    return tests_options
