@@ -36,6 +36,7 @@ Changed
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
+- ``Jobs`` API simplification and breaking changes. (#686)
 
 Removed
 -------

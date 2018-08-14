@@ -14,7 +14,6 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.local import LocalJob
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.backends.local import QasmSimulatorPy
 from qiskit.backends.local import StatevectorSimulatorCpp
@@ -35,18 +34,6 @@ class TestLocalJob(QiskitTestCase):
         UnitarySimulatorPy
     ]
 
-    def test_run(self):
-        with mocked_simulator_binaries(),\
-             patch.object(LocalJob, '__init__', return_value=None,
-                          autospec=True):
-
-            for backend_constructor in self._backends:
-                with self.subTest(backend=backend_constructor):
-                    self.log.info('Backend under test: %s', backend_constructor)
-                    backend = backend_constructor()
-                    job = backend.run(new_fake_qobj())
-                    self.assertIsInstance(job, LocalJob)
-
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors
         # can run several tasks at the same time. It is our responsibility to
@@ -58,7 +45,8 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
             for index in range(taskcount):
-                LocalJob(target_tasks[index], new_fake_qobj())
+                local_job = LocalJob(target_tasks[index], new_fake_qobj())
+                local_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
         for index in range(taskcount):
@@ -75,24 +63,12 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
             job = LocalJob(lambda: None, new_fake_qobj())
+            job.submit()
             job.cancel()
 
         self.assertCalledOnce(executor.submit)
         mocked_future = executor.submit.return_value
         self.assertCalledOnce(mocked_future.cancel)
-
-    def test_done(self):
-        # Once more, testing that reading the `done` property delegates into
-        # the proper future API.
-
-        # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (LocalJob, executor):
-            job = LocalJob(lambda: None, new_fake_qobj())
-            _ = job.done
-
-        self.assertCalledOnce(executor.submit)
-        mocked_future = executor.submit.return_value
-        self.assertCalledOnce(mocked_future.done)
 
     def assertCalledOnce(self, mocked_callable):
         """Assert a mocked callable has been called once."""
