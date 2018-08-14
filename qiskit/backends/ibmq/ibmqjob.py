@@ -41,41 +41,74 @@ API_FINAL_STATES = (
 
 
 class IBMQJob(BaseJob):
-    """IBM Q Job class
+    """Represent the jobs that will be executed on IBM-Q simulators and real
+    devices. Jobs are intended to be created calling ``run()`` on a particular
+    backend.
 
-    This class represents the jobs that will be executed on IBM Q backends
-    (simulators or real chips). It has some asynchronous properties, and some
-    blocking behavior. This is a common use-case example:
+    Creating a ``Job`` instance does not imply running it. You need to do it in
+    separate steps:
+
     .. highlight::
 
+        job = IBMQJob(...)
+        job.submit() # It won't block.
+
+    An error while submitting a job will cause the next call to ``status()`` to
+    raise. If submitting the job successes, you can inspect the job's status by
+    using ``status()``. Status can be one of ``JobStatus`` members:
+
+    .. highlight::
+
+        from qiskit.backends.jobstatus import JobStatus
+
+        job = IBMQJob(...)
+        job.submit()
+
         try:
-            job = IBMQJob( ... )
-            job.submit() # <--- It won't block.
-
-            job_status = job.status()  # <--- implies a request to the API server
-            if job_status is JobStatus.DONE:
-                result = job.result() # <--- This could block, but as the job is already
-                                      # finished, it won't in this case.
-            if job_status is JobStatus.CANCELLED:
-                print("The job was cancelled!. Msg: {}".format(job.error_msg()))
-            if job_status is JobStatus.ERROR:
-                print("There was en error in th
-
+            job_status = job.status() # It won't block. It will query the backend API.
+            if job_status is JobStatus.RUNNING:
+                print('The job is still running')
 
         except JobError as ex:
-            log("Something wrong happened!: {}".format(ex))
+            print("Something wrong happened!: {}".format(ex))
 
-    About the status in case of Error or Exception
-    ==============================================
-    If there's an exception from the IBMQuantumExperience API once a job has been submitted,
-    we cannot set the status of the job to ERROR, because it might happen that the job is actually
-    queued or running, and let's say that the exception is caused because of a temporary
-    out of service situation of the server, once this situation is restored, we might want to ask
-    again about the status of our job, that could be, for example, in state: queued, running or
-    done. If something wrong happened to the job, it's server responsability to answer an error
-    response to a status query from Qiskit. But, if the exception is thrown before having a
-    valid job ID, there's nothing we can do with this job instance, as we cannot query the server
-    for information using this job instance.
+    A call to ``status()`` can raise if something happens at the API level that
+    prevents Qiskit from determining the status of the job. An example of this
+    is a temporary connection lose or a network failure.
+
+    The ``submit()`` and ``status()`` methods are examples of non-blocking API.
+    ``Job`` instances also have `id()` and ``result()`` methods which will
+    block:
+
+    .. highlight::
+
+        job = IBMQJob(...)
+        job.submit()
+
+        try:
+            job_id = job.id() # It will block until completing submission.
+            print('The job {} was successfully submitted'.format(job_id))
+
+            job_result = job.result() # It will block until finishing.
+            print('The job finished with result {}'.format(job_result))
+
+        except JobError as ex:
+            print("Something wrong happened!: {}".format(ex))
+
+
+    Both methods can raise if something ath the API level happens that prevent
+    Qiskit from determining the status of the job.
+
+    .. NOTE::
+        When querying the API for getting the status, two kinds of errors are
+        possible. The most severe is the one preventing Qiskit from getting a
+        response from the backend. This can be caused by a network failure or a
+        temporary system break. In these cases, calling ``status()`` will raise.
+
+        If Qiskit successfully retrieves the status of a job, it could be it
+        finished with errors. In that case, ``status()`` will simply return
+        ``JobStatus.ERROR`` and you can call ``error_message()`` to get more
+        info.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
@@ -104,12 +137,12 @@ class IBMQJob(BaseJob):
         super().__init__()
         self._job_data = None
         if qobj is not None:
-            # TODO No need for this conversion, just use the new equivalent members above
+            # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
                 'circuits': old_qobj['circuits'],
                 'hpc':  old_qobj['config'].get('hpc'),
-                'seed': old_qobj['circuits'][0]['config']['seed'],  # TODO <-- [0] ???
+                'seed': old_qobj['circuits'][0]['config']['seed'],
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
@@ -117,10 +150,9 @@ class IBMQJob(BaseJob):
         self._api = api
         self._id = job_id
         self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
-        # If we are creating the job from a QObj, then it's ok to initialize the status to
-        # INITIALIZING, otherwise we are creating a job from an already submitted job, so
-        # we have to ask the API server in which state the job is found
         self._status = JobStatus.INITIALIZING
+        # In case of not providing a qobj, it assumes job_id has been provided
+        # and query the API for updating the status.
         if qobj is None:
             self.status()
         self._queue_position = None
@@ -198,16 +230,16 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-        # This will only happen if something bad happens when submitting a job, so
-        # we don't have a job ID
+
+        # Implies self._id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
 
-        if self._status in JOB_FINAL_STATES or self._id is None:
+        if self._id is None or self._status in JOB_FINAL_STATES:
             return self._status
 
         try:
-            # TODO See result values
+            # TODO: See result values
             api_job = self._api.get_status_job(self._id)
             if 'status' not in api_job:
                 raise JobError('get_job didn\'t return status: %s' %
@@ -245,20 +277,20 @@ class IBMQJob(BaseJob):
         return self._status
 
     def error_message(self):
-        """Returns the error message returned from the API server response"""
+        """Return the error message returned from the API server response."""
         return self._api_error_msg
 
     def queue_position(self):
-        """Returns the position in the server queue
+        """Return the position in the server queue.
 
         Returns:
-            Number: Position in the queue. 0 = No queued yet
+            Number: Position in the queue.
         """
         return self._queue_position
 
     def creation_date(self):
         """
-        Returns creation date
+        Return creation date.
         """
         return self._creation_date
 
@@ -266,21 +298,21 @@ class IBMQJob(BaseJob):
     def id(self):
         """Return backend determined id.
 
-        If the ID is not set because the job is already initializing, this call will
-        block until we have an ID.
+        If the Id is not set because the job is already initializing, this call
+        will block until we have an Id.
         """
         self._wait_for_submission()
         return self._id
 
     def backend_name(self):
-        """Return backend name used for this job"""
+        """Return backend name used for this job."""
         return self._backend_name
 
     def submit(self):
-        """Submit job to IBM Q.
+        """Submit job to IBM-Q.
 
         Raises:
-            JobError: If we have already submited the job.
+            JobError: If we have already submitted the job.
         """
         if self._future is not None or self._id is not None:
             raise JobError("We have already submitted the job!")
@@ -303,7 +335,7 @@ class IBMQJob(BaseJob):
                                              seed, shots, max_credits)
 
     def _submit_callback(self, api_jobs, backend_name, hpc, seed, shots, max_credits):
-        """Submit job to IBM Q.
+        """Submit job to IBM-Q.
 
         Args:
             api_jobs (list): List of API job dictionaries to submit. One per circuit.
@@ -320,18 +352,21 @@ class IBMQJob(BaseJob):
             submit_info = self._api.run_job(api_jobs, backend=backend_name,
                                             shots=shots, max_credits=max_credits,
                                             seed=seed, hpc=hpc)
-        except Exception as err:  # pylint: disable=broad-except
-            # This is not a controlled error from the API, so we don't want to change
-            # job status to ERROR, because we really don't know what happened with the
-            # Job at this point... it could be successfully QUEUED for example.
+        # pylint: disable=broad-except
+        except Exception as err:
+            # Undefined error during submission:
+            # Capture and keep it for raising it when calling status().
             self._future_captured_exception = err
-            return {'error': str(err)}
+            return None
 
+        # Error in the job after submission:
+        # Transition to the `ERROR` final state.
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
+        # Submisssion success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._id = submit_info.get('id')
@@ -385,13 +420,13 @@ class IBMQJob(BaseJob):
                        'result': job_result_list,
                        'backend_name': self.backend_name})
 
-    def _wait_for_submission(self):
+    def _wait_for_submission(self, timeout=60):
         """Waits for the request to return a job ID"""
         if self._id is None:
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
             try:
-                submit_info = self._future.result(timeout=60)
+                submit_info = self._future.result(timeout=timeout)
             except TimeoutError as ex:
                 raise JobTimeoutError(
                     "Timeout waiting for the job being submitted: {}".format(ex)
