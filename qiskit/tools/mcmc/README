@@ -1,0 +1,26 @@
+[What is it]
+A stochastic optimizer is under qiskit/tools/mcmc
+ qoptimizer.py
+
+[how to run it]
+In PyCharm, simply run qoptimizer.py
+You can change the file to be optimized by passing the argument "--qasm_files=your_qasm_path"
+
+[What is the expected result?]
+The optimized mutants, i.e., the mutants that are correct and have better performance, are stored into the folder mcmc_mutants_good.
+
+At the bottom of each mutant program, we also show:
+1 new_cost_correctness (correctness): the difference of the final amplitude vector (value=0 means the final vector is exactly the same as the original program)
+2 new_cost_perf (performance): the increase of circuit depth (value<0 means the depth becomes shorter than the original program)
+3 new_cost: sum of the above two.
+
+Clearly, for optimized mutants, new_cost_correctness=0 and new_cost_perf<0
+
+
+Besides, the log of the cost after each iteration is recorded in the folder mcmc_cost_logs
+
+
+[dependency]
+1 goto qiskit root folder that has setup.py
+    python3 setup.py install
+2 pip3 install "sympy==1.0"

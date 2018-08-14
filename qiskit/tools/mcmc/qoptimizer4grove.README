@@ -1,0 +1,23 @@
+extend qoptimizer.py as follows:
+(1) create four grover templates in ./qiskit-sdk-py/qiskit/qanalyzer/qoptimizer4grove
+grover00_template.qasm
+grover01_template.qasm
+grover10_template.qasm
+grover11_template.qasm
+
+and
+amplify.qasm
+
+(2) mutate upon amplify.qasm, and compute the number of layer as the performance score.
+
+(3) inflate the mutant of amplify.qasm into the grover templates to make the complete grover programs. Compute the correctness score for each grover version and sum up them as the final correctness score.
+
+
+(3) is the main extension here
+
+
+Note: grover optimization runs locally in MBP
+
+
+1 repeat, 50000 iterations
+-> -4 optimally
