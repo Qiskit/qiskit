@@ -170,6 +170,8 @@ class IdRemoverPersister(FilesystemPersister):
                                    'qasms.result.date',
                                    'qasms.result.data.time',
                                    'qasms.result.data.additionalData.seed'],
+                      'api/Backends': ['id',
+                                       'topologyId'],
                       'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
                       'api/Backends/ibmqx4/queue/status': ['lengthQueue']}
         IdRemoverPersister.remove_ids(ids2remove, cassette_dict)
