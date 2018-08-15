@@ -171,6 +171,7 @@ class IdRemoverPersister(FilesystemPersister):
                                    'qasms.result.data.time',
                                    'qasms.result.data.additionalData.seed'],
                       'api/Backends': ['id',
+                                       'internalId',
                                        'topologyId'],
                       'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
                       'api/Backends/ibmqx4/queue/status': ['lengthQueue']}
