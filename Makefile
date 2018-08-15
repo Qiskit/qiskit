@@ -33,7 +33,7 @@ test_mock:
 	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
 
 test_recording:
-	rm test/cassettes/*
+	rm test/cassettes/* || true
 	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 profile:
