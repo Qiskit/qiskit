@@ -184,7 +184,7 @@ class IBMQJob(BaseJob):
         self._wait_for_submission()
         try:
             this_result = self._wait_for_job(timeout=timeout, wait=wait)
-        except TimeoutError as err:
+        except JobTimeoutError as err:
             # A timeout error retrieving the results does not imply the job
             # is failing. The job can be still running. This is why we are not
             # throwing an exception here.

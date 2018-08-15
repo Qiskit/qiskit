@@ -14,10 +14,11 @@ import unittest
 import time
 from contextlib import suppress
 from IBMQuantumExperience import ApiError
+from qiskit import QISKitError
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
-from qiskit.backends import JobError, JobTimeoutError
+from qiskit.backends import JobError
 from .common import JobTestCase
 from ._mockutils import new_fake_qobj
 
@@ -221,10 +222,10 @@ class TestIBMQJobStates(JobTestCase):
         job = self.run_with_api(NonQueuedAPI())
 
         self.wait_for_initialization(job)
-        # We never make the API status to progress so it is stuck on RUNNING
-        with self.assertRaises(JobTimeoutError):
-            job.result(timeout=0.2)
-
+        result = job.result(timeout=0.2)
+        # TODO: This is inconsistent, the timeout prevents Qiskit from knowing
+        # the exact state of the job so it should raise.
+        self.assertRaises(QISKitError, result.get_data)
         self.assertEqual(job.status(), JobStatus.RUNNING)
 
     def test_cancel_while_initializing_fails(self):
