@@ -18,6 +18,7 @@ import math
 
 import numpy as np
 import scipy.linalg as la
+from scipy.stats import unitary_group
 
 from qiskit import QISKitError
 from qiskit.tools.qi.pauli import pauli_group
@@ -335,8 +336,7 @@ def random_unitary_matrix(length):
     Returns:
         ndarray: U (length, length) unitary ndarray.
     """
-    q_matrix = la.qr(__ginibre_matrix(length))[0]  # Get only the first element
-    return q_matrix
+    return unitary_group.rvs(length)
 
 
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):

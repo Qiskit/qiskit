@@ -32,28 +32,7 @@ class BaseJob(ABC):
         """Attempt to cancel job."""
         pass
 
-    # Property attributes
-    #####################
-    @property
     @abstractmethod
     def status(self):
         """Get backend status dictionary"""
-        pass
-
-    @property
-    @abstractmethod
-    def running(self):
-        """True if job is currently running."""
-        pass
-
-    @property
-    @abstractmethod
-    def done(self):
-        """True if call was successfully finished."""
-        pass
-
-    @property
-    @abstractmethod
-    def cancelled(self):
-        """True if call was successfully cancelled"""
         pass

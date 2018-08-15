@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
 
 """
 Test the registration and credentials features of the wrapper.
@@ -36,10 +35,10 @@ class TestWrapperCredentials(QiskitTestCase):
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
-            with self.assertRaises(QISKitError) as cm:
+            with self.assertRaises(QISKitError) as context_manager:
                 qiskit.wrapper.register()
 
-        self.assertIn('No IBMQ credentials found', str(cm.exception))
+        self.assertIn('No IBMQ credentials found', str(context_manager.exception))
 
     def test_store_credentials(self):
         """Test storing credentials and using them for autoregister."""
@@ -55,9 +54,9 @@ class TestWrapperCredentials(QiskitTestCase):
         with custom_qiskitrc():
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN', hub='HUB')
             # Attempt overwriting.
-            with self.assertRaises(QISKitError) as cm:
+            with self.assertRaises(QISKitError) as context_manager:
                 qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
-            self.assertIn('already present', str(cm.exception))
+            self.assertIn('already present', str(context_manager.exception))
 
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.
@@ -135,13 +134,13 @@ def custom_qiskitrc(contents=b''):
     tmp_file.flush()
 
     # Temporarily modify the default location of the qiskitrc file.
-    DEFAULT_QISKITRC_FILE_original = _configrc.DEFAULT_QISKITRC_FILE
+    default_qiskitrc_file_original = _configrc.DEFAULT_QISKITRC_FILE
     _configrc.DEFAULT_QISKITRC_FILE = tmp_file.name
     yield
 
     # Delete the temporary file and restore the default location.
     tmp_file.close()
-    _configrc.DEFAULT_QISKITRC_FILE = DEFAULT_QISKITRC_FILE_original
+    _configrc.DEFAULT_QISKITRC_FILE = default_qiskitrc_file_original
 
 
 @contextmanager
@@ -153,13 +152,13 @@ def custom_qconfig(contents=b''):
     tmp_file.flush()
 
     # Temporarily modify the default location of the qiskitrc file.
-    DEFAULT_QCONFIG_FILE_original = _qconfig.DEFAULT_QCONFIG_FILE
+    default_qconfig_file_original = _qconfig.DEFAULT_QCONFIG_FILE
     _qconfig.DEFAULT_QCONFIG_FILE = tmp_file.name
     yield
 
     # Delete the temporary file and restore the default location.
     tmp_file.close()
-    _qconfig.DEFAULT_QCONFIG_FILE = DEFAULT_QCONFIG_FILE_original
+    _qconfig.DEFAULT_QCONFIG_FILE = default_qconfig_file_original
 
 
 @contextmanager
