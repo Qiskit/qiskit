@@ -22,7 +22,6 @@ from qiskit.backends import JobStatus, JobError
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
-from qiskit.backends.local import LocalProvider
 from .common import requires_qe_access, JobTestCase, slow_test
 
 
@@ -327,8 +326,10 @@ class TestIBMQJob(JobTestCase):
             self.log.info('match #%d: %s', i, job.creation_date)
             self.assertTrue(job.creation_date < '2017-01-01T00:00:00.00')
 
-    def test_double_submit_fails(self):
-        backend = self._provider.get_backend('ibmq_qasm_simulator')
+    @requires_qe_access
+    def test_double_submit_fails(self, qe_token, qe_url):
+        provider = IBMQProvider(qe_token, qe_url)
+        backend = provider.get_backend('ibmq_qasm_simulator')
         qobj = transpiler.compile(self._qc, backend)
         # backend.run() will automatically call job.submit()
         job = backend.run(qobj)
