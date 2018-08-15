@@ -16,7 +16,7 @@ from qiskit.transpiler._transpiler import transpile
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper._mapping import remove_last_measurements
+from qiskit.mapper._mapping import remove_last_measurements, MapperError
 from .common import QiskitTestCase
 
 
@@ -267,7 +267,11 @@ class MapperTest(QiskitTestCase):
         """
         for _ in range(100):
             unitary = random_unitary_matrix(4)
-            two_qubit_kak(unitary, verify_gate_sequence=True)
+            with self.subTest(unitary=unitary):
+                try:
+                    two_qubit_kak(unitary, verify_gate_sequence=True)
+                except MapperError as ex:
+                    self.fail(str(ex))
 
 
 # QASMs expected by the tests.
