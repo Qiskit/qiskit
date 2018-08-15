@@ -53,7 +53,9 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
+        job = IBMQJob(self._api, not self.configuration['simulator'], qobj=qobj)
+        job.submit()
+        return job
 
     @property
     def calibration(self):
@@ -216,7 +218,10 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             is_device = not bool(self._configuration.get('simulator'))
-            job = IBMQJob.from_api(job_info, self._api, is_device)
+            job = IBMQJob(self._api, is_device,
+                          job_id=job_info.get('id'),
+                          backend_name=job_info.get('backend').get('name'),
+                          creation_date=job_info.get('creationDate'))
             job_list.append(job)
         return job_list
 
@@ -236,7 +241,10 @@ class IBMQBackend(BaseBackend):
         if 'error' in job_info:
             raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
         is_device = not bool(self._configuration.get('simulator'))
-        job = IBMQJob.from_api(job_info, self._api, is_device)
+        job = IBMQJob(self._api, is_device,
+                      job_id=job_info.get('id'),
+                      backend_name=job_info.get('backend').get('name'),
+                      creation_date=job_info.get('creationDate'))
         return job
 
 
