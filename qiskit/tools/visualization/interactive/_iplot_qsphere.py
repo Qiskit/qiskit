@@ -29,7 +29,7 @@ def iplot_qsphere(rho, options=None):
         eigenvalue.
 
         Args:
-            rho (array): Complex array of data to be represented
+            rho (array): Density matrix (complex array)
             options (dict): Representation settings containing
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
