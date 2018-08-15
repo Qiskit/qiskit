@@ -19,14 +19,14 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_hinton(executions_results, options=None):
+def iplot_hinton(rho, options=None):
     """ Create a hinton representation.
 
         Graphical representation of the input array using a 2D city style
         graph (hinton).
 
         Args:
-            executions_results (array): Density matrix
+            rho (array): Density matrix
             options (dict): Representation settings containing
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
@@ -67,7 +67,7 @@ def iplot_hinton(executions_results, options=None):
     # Process data and execute
     real = []
     imag = []
-    for xvalue in executions_results:
+    for xvalue in rho:
         row_real = []
         col_imag = []
 
