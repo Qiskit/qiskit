@@ -221,11 +221,8 @@ class TestIBMQJobStates(JobTestCase):
         job = self.run_with_api(NonQueuedAPI())
 
         self.wait_for_initialization(job)
-        # We never make the API status to progress so it is stuck on RUNNING
         with self.assertRaises(JobTimeoutError):
             job.result(timeout=0.2)
-
-        self.assertEqual(job.status(), JobStatus.RUNNING)
 
     def test_cancel_while_initializing_fails(self):
         job = self.run_with_api(CancellableAPI())
