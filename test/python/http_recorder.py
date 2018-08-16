@@ -160,21 +160,20 @@ class IdRemoverPersister(FilesystemPersister):
             be dump in cassette_path, using serializer.
             serializer (callable): the serializer for dumping cassette_dict in cassette_path.
         """
-        ids2remove = {'api/users/loginWithToken': ['id',
-                                                   'userId',
-                                                   'created'],
-                      'api/Jobs': ['id',
-                                   'userId',
-                                   'creationDate',
-                                   'qasms.executionId',
-                                   'qasms.result.date',
-                                   'qasms.result.data.time',
-                                   'qasms.result.data.additionalData.seed'],
-                      'api/Backends': ['id',
-                                       'internalId',
-                                       'topologyId'],
-                      'api/Backends/ibmqx5/queue/status': ['lengthQueue'],
-                      'api/Backends/ibmqx4/queue/status': ['lengthQueue']}
+        ids2remove = {'/api/users/loginWithToken': ['id',
+                                                    'userId',
+                                                    'created'],
+                      '/api/Jobs': ['id',
+                                    'userId',
+                                    'creationDate',
+                                    'qasms.executionId',
+                                    'qasms.result.date',
+                                    'qasms.result.data.time',
+                                    'qasms.result.data.additionalData.seed'],
+                      '/api/Backends?': ['internalId',
+                                         'topologyId'],
+                      '/api/Backends/ibmqx5/queue/status': ['lengthQueue'],
+                      '/api/Backends/ibmqx4/queue/status': ['lengthQueue']}
         IdRemoverPersister.remove_ids(ids2remove, cassette_dict)
         super(IdRemoverPersister, IdRemoverPersister).save_cassette(cassette_path,
                                                                     cassette_dict,
@@ -262,7 +261,6 @@ def _unordered_query_matcher(request1, request2):
     Returns:
         bool: True if they match.
     """
-
     if request1.query == request2.query:
         return True
 
