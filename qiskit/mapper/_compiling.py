@@ -136,7 +136,7 @@ def ry_array(theta):
                     dtype=complex)
 
 
-def two_qubit_kak(unitary_matrix):
+def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):
     """Decompose a two-qubit gate over CNOT + SU(2) using the KAK decomposition.
 
     Based on MATLAB implementation by David Gosset.
@@ -146,73 +146,114 @@ def two_qubit_kak(unitary_matrix):
     optimal two-qubit circuit (quant-ph/0308006v3). The decomposition algorithm
     which achieves this is explained well in Drury and Love, 0806.4015.
 
-    unitary_matrix = numpy 4x4 unitary matrix
+    Args:
+        unitary_matrix (ndaray): 4x4 unitary matrix.
+        verify_gate_sequence (bool): Verify the decomposition via circuit
+                                     gate sequence, optional.
+
+    Returns:
+        list: List of gates corresponding to decomposition.
+
+    Raises:
+        MapperError: Error in KAK decomposition.
     """
     if unitary_matrix.shape != (4, 4):
-        raise MapperError("compiling.two_qubit_kak expected 4x4 matrix")
+        raise MapperError("two_qubit_kak: Expected 4x4 matrix")
     phase = la.det(unitary_matrix)**(-1.0/4.0)
     # Make it in SU(4), correct phase at the end
     U = phase * unitary_matrix
     # B changes to the Bell basis
-    B = (1.0/np.sqrt(2)) * np.array([[1, 1j, 0, 0],
-                                     [0, 0, 1j, 1],
-                                     [0, 0, 1j, -1],
-                                     [1, -1j, 0, 0]], dtype=complex)
+    B = (1.0/math.sqrt(2)) * np.array([[1, 1j, 0, 0],
+                                       [0, 0, 1j, 1],
+                                       [0, 0, 1j, -1],
+                                       [1, -1j, 0, 0]], dtype=complex)
+
+    # We also need B.conj().T below
+    Bdag = B.conj().T
     # U' = Bdag . U . B
-    Uprime = np.dot(np.transpose(B.conjugate()), np.dot(U, B))
+    Uprime = Bdag.dot(U.dot(B))
     # M^2 = trans(U') . U'
-    M2 = np.dot(np.transpose(Uprime), Uprime)
+    M2 = Uprime.T.dot(Uprime)
+
     # Diagonalize M2
     # Must use diagonalization routine which finds a real orthogonal matrix P
     # when M2 is real.
     D, P = la.eig(M2)
-    # If det(P) == -1, apply a swap to make P in SO(4)
+    D = np.diag(D)
+    # If det(P) == -1 then in O(4), apply a swap to make P in SO(4)
     if abs(la.det(P)+1) < 1e-5:
         swap = np.array([[1, 0, 0, 0],
                          [0, 0, 1, 0],
                          [0, 1, 0, 0],
                          [0, 0, 0, 1]], dtype=complex)
-        P = np.dot(P, swap)
-        D = np.diag(np.dot(swap, np.dot(np.diag(D), swap)))
-    Q = np.diag(np.sqrt(D))  # array from elementwise sqrt
+        P = P.dot(swap)
+        D = swap.dot(D.dot(swap))
+
+    Q = np.sqrt(D)  # array from elementwise sqrt
     # Want to take square root so that Q has determinant 1
     if abs(la.det(Q)+1) < 1e-5:
         Q[0, 0] = -Q[0, 0]
-    Kprime = np.dot(Uprime, np.dot(P, np.dot(la.inv(Q),
-                                             np.transpose(P))))
-    K1 = np.dot(B, np.dot(Kprime, np.dot(P, np.transpose(B.conjugate()))))
-    A = np.dot(B, np.dot(Q, np.transpose(B.conjugate())))
-    K2 = np.dot(B, np.dot(np.transpose(P), np.transpose(B.conjugate())))
-    KAK = np.dot(K1, np.dot(A, K2))
-    if la.norm(KAK - U, 2) > 1e-6:
-        raise MapperError("compiling.two_qubit_kak: " +
-                          "unknown error in KAK decomposition")
+
+    # Q^-1*P.T = P' -> QP' = P.T (solve for P' using Ax=b)
+    Pprime = la.solve(Q, P.T)
+    # K' now just U' * P * P'
+    Kprime = Uprime.dot(P.dot(Pprime))
+
+    K1 = B.dot(Kprime.dot(P.dot(Bdag)))
+    A = B.dot(Q.dot(Bdag))
+    K2 = B.dot(P.T.dot(Bdag))
+    # KAK = K1 * A * K2
+    KAK = K1.dot(A.dot(K2))
+
+    # Verify decomp matches input unitary.
+    if la.norm(KAK - U) > 1e-6:
+        raise MapperError("two_qubit_kak: KAK decomposition " +
+                          "does not return input unitary.")
+
     # Compute parameters alpha, beta, gamma so that
     # A = exp(i * (alpha * XX + beta * YY + gamma * ZZ))
-    x = np.array([[0, 1], [1, 0]], dtype=complex)
-    y = np.array([[0, -1j], [1j, 0]], dtype=complex)
-    z = np.array([[1, 0], [0, -1]], dtype=complex)
-    xx = np.kron(x, x)
-    yy = np.kron(y, y)
-    zz = np.kron(z, z)
-    alpha = math.atan(np.trace(np.imag(np.dot(A, xx)))/np.trace(np.real(A)))
-    beta = math.atan(np.trace(np.imag(np.dot(A, yy)))/np.trace(np.real(A)))
-    gamma = math.atan(np.trace(np.imag(np.dot(A, zz)))/np.trace(np.real(A)))
+    xx = np.array([[0, 0, 0, 1],
+                   [0, 0, 1, 0],
+                   [0, 1, 0, 0],
+                   [1, 0, 0, 0]], dtype=complex)
+
+    yy = np.array([[0, 0, 0, -1],
+                   [0, 0, 1, 0],
+                   [0, 1, 0, 0],
+                   [-1, 0, 0, 0]], dtype=complex)
+
+    zz = np.array([[1, 0, 0, 0],
+                   [0, -1, 0, 0],
+                   [0, 0, -1, 0],
+                   [0, 0, 0, 1]], dtype=complex)
+
+    A_real_tr = A.real.trace()
+    alpha = math.atan2(A.dot(xx).imag.trace(), A_real_tr)
+    beta = math.atan2(A.dot(yy).imag.trace(), A_real_tr)
+    gamma = math.atan2(A.dot(zz).imag.trace(), A_real_tr)
+
     # K1 = kron(U1, U2) and K2 = kron(V1, V2)
     # Find the matrices U1, U2, V1, V2
+
+    # Find a block in K1 where U1_ij * [U2] is not zero
     L = K1[0:2, 0:2]
     if la.norm(L) < 1e-9:
         L = K1[0:2, 2:4]
         if la.norm(L) < 1e-9:
             L = K1[2:4, 2:4]
-    Q = np.dot(L, np.transpose(L.conjugate()))
-    U2 = L / np.sqrt(Q[0, 0])
-    R = np.dot(K1, np.kron(np.identity(2), np.transpose(U2.conjugate())))
-    U1 = np.array([[0, 0], [0, 0]], dtype=complex)
+    # Remove the U1_ij prefactor
+    Q = L.dot(L.conj().T)
+    U2 = L / math.sqrt(Q[0, 0].real)
+
+    # Now grab U1 given we know U2
+    R = K1.dot(np.kron(np.identity(2), U2.conj().T))
+    U1 = np.zeros((2, 2), dtype=complex)
     U1[0, 0] = R[0, 0]
     U1[0, 1] = R[0, 2]
     U1[1, 0] = R[2, 0]
     U1[1, 1] = R[2, 2]
+
+    # Repeat K1 routine for K2
     L = K2[0:2, 0:2]
     if la.norm(L) < 1e-9:
         L = K2[0:2, 2:4]
@@ -221,29 +262,35 @@ def two_qubit_kak(unitary_matrix):
     Q = np.dot(L, np.transpose(L.conjugate()))
     V2 = L / np.sqrt(Q[0, 0])
     R = np.dot(K2, np.kron(np.identity(2), np.transpose(V2.conjugate())))
-    V1 = np.array([[0, 0], [0, 0]], dtype=complex)
+
+    V1 = np.zeros_like(U1)
     V1[0, 0] = R[0, 0]
     V1[0, 1] = R[0, 2]
     V1[1, 0] = R[2, 0]
     V1[1, 1] = R[2, 2]
-    if la.norm(np.kron(U1, U2) - K1) > 1e-4 or \
-       la.norm(np.kron(V1, V2) - K2) > 1e-4:
-        raise MapperError("compiling.two_qubit_kak: " +
-                          "error in SU(2) x SU(2) part")
+
+    if la.norm(np.kron(U1, U2) - K1) > 1e-4:
+        raise MapperError("two_qubit_kak: K1 != U1 x U2")
+    if la.norm(np.kron(V1, V2) - K2) > 1e-4:
+        raise MapperError("two_qubit_kak: K2 != V1 x V2")
+
     test = la.expm(1j*(alpha * xx + beta * yy + gamma * zz))
     if la.norm(A - test) > 1e-4:
-        raise MapperError("compiling.two_qubit_kak: " +
-                          "error in A part")
+        raise MapperError("two_qubit_kak: " +
+                          "Matrix A does not match xx,yy,zz decomposition.")
+
     # Circuit that implements K1 * A * K2 (up to phase), using
     # Vatan and Williams Fig. 6 of quant-ph/0308006v3
     # Include prefix and suffix single-qubit gates into U2, V1 respectively.
-    V2 = np.dot(np.array([[np.exp(1j*np.pi/4), 0],
-                          [0, np.exp(-1j*np.pi/4)]], dtype=complex), V2)
-    U1 = np.dot(U1, np.array([[np.exp(-1j*np.pi/4), 0],
-                              [0, np.exp(1j*np.pi/4)]], dtype=complex))
+
+    V2 = np.array([[np.exp(1j*np.pi/4), 0],
+                   [0, np.exp(-1j*np.pi/4)]], dtype=complex).dot(V2)
+    U1 = U1.dot(np.array([[np.exp(-1j*np.pi/4), 0],
+                          [0, np.exp(1j*np.pi/4)]], dtype=complex))
+
     # Corrects global phase: exp(ipi/4)*phase'
-    U1 = np.dot(U1, np.array([[np.exp(1j*np.pi/4), 0],
-                              [0, np.exp(1j*np.pi/4)]], dtype=complex))
+    U1 = U1.dot(np.array([[np.exp(1j*np.pi/4), 0],
+                          [0, np.exp(1j*np.pi/4)]], dtype=complex))
     U1 = phase.conjugate() * U1
 
     # Test
@@ -252,33 +299,37 @@ def two_qubit_kak(unitary_matrix):
                    [0, 0, 0, 1],
                    [0, 0, 1, 0],
                    [0, 1, 0, 0]], dtype=complex)
+
     theta = 2*gamma - np.pi/2
+
     Ztheta = np.array([[np.exp(1j*theta/2), 0],
                        [0, np.exp(-1j*theta/2)]], dtype=complex)
+
     kappa = np.pi/2 - 2*alpha
-    Ykappa = np.array([[np.cos(kappa/2), np.sin(kappa/2)],
-                       [-np.sin(kappa/2), np.cos(kappa/2)]], dtype=complex)
+    Ykappa = np.array([[math.cos(kappa/2), math.sin(kappa/2)],
+                       [-math.sin(kappa/2), math.cos(kappa/2)]], dtype=complex)
     g3 = np.kron(Ztheta, Ykappa)
     g4 = np.array([[1, 0, 0, 0],
                    [0, 1, 0, 0],
                    [0, 0, 0, 1],
                    [0, 0, 1, 0]], dtype=complex)
+
     zeta = 2*beta - np.pi/2
-    Yzeta = np.array([[np.cos(zeta/2), np.sin(zeta/2)],
-                      [-np.sin(zeta/2), np.cos(zeta/2)]], dtype=complex)
+    Yzeta = np.array([[math.cos(zeta/2), math.sin(zeta/2)],
+                      [-math.sin(zeta/2), math.cos(zeta/2)]], dtype=complex)
     g5 = np.kron(np.identity(2), Yzeta)
     g6 = g2
     g7 = np.kron(U1, U2)
 
-    V = np.dot(g2, g1)
-    V = np.dot(g3, V)
-    V = np.dot(g4, V)
-    V = np.dot(g5, V)
-    V = np.dot(g6, V)
-    V = np.dot(g7, V)
+    V = g2.dot(g1)
+    V = g3.dot(V)
+    V = g4.dot(V)
+    V = g5.dot(V)
+    V = g6.dot(V)
+    V = g7.dot(V)
 
     if la.norm(V - U*phase.conjugate()) > 1e-6:
-        raise MapperError("compiling.two_qubit_kak: " +
+        raise MapperError("two_qubit_kak: " +
                           "sequence incorrect, unknown error")
 
     v1_param = euler_angles_1q(V1)
@@ -296,23 +347,23 @@ def two_qubit_kak(unitary_matrix):
         "name": v1_gate[0],
         "args": [0],
         "params": v1_gate[1]
-        })
+    })
     return_circuit.append({
         "name": v2_gate[0],
         "args": [1],
         "params": v2_gate[1]
-        })
+    })
     return_circuit.append({
         "name": "cx",
         "args": [1, 0],
         "params": ()
-        })
+    })
     gate = simplify_U(0.0, 0.0, -2.0*gamma + np.pi/2.0)
     return_circuit.append({
         "name": gate[0],
         "args": [0],
         "params": gate[1]
-        })
+    })
     gate = simplify_U(-np.pi/2.0 + 2.0*alpha, 0.0, 0.0)
     return_circuit.append({
         "name": gate[0],
@@ -323,7 +374,7 @@ def two_qubit_kak(unitary_matrix):
         "name": "cx",
         "args": [0, 1],
         "params": ()
-        })
+    })
     gate = simplify_U(-2.0*beta + np.pi/2.0, 0.0, 0.0)
     return_circuit.append({
         "name": gate[0],
@@ -334,56 +385,59 @@ def two_qubit_kak(unitary_matrix):
         "name": "cx",
         "args": [1, 0],
         "params": ()
-        })
+    })
     return_circuit.append({
         "name": u1_gate[0],
         "args": [0],
         "params": u1_gate[1]
-        })
+    })
     return_circuit.append({
         "name": u2_gate[0],
         "args": [1],
         "params": u2_gate[1]
-        })
+    })
 
-    # Test gate sequence
-    V = np.identity(4)
-    cx21 = np.array([[1, 0, 0, 0],
-                     [0, 0, 0, 1],
-                     [0, 0, 1, 0],
-                     [0, 1, 0, 0]], dtype=complex)
-    cx12 = np.array([[1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 0, 0, 1],
-                     [0, 0, 1, 0]], dtype=complex)
-    for gate in return_circuit:
-        if gate["name"] == "cx":
-            if gate["args"] == [0, 1]:
-                V = np.dot(cx12, V)
+    if verify_gate_sequence:
+        # Test gate sequence
+        V = np.identity(4, dtype=complex)
+        cx21 = np.array([[1, 0, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0],
+                         [0, 1, 0, 0]], dtype=complex)
+
+        cx12 = np.array([[1, 0, 0, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0]], dtype=complex)
+
+        for gate in return_circuit:
+            if gate["name"] == "cx":
+                if gate["args"] == [0, 1]:
+                    V = np.dot(cx12, V)
+                else:
+                    V = np.dot(cx21, V)
             else:
-                V = np.dot(cx21, V)
-        else:
-            if gate["args"] == [0]:
-                V = np.dot(np.kron(rz_array(gate["params"][2]),
-                                   np.identity(2)), V)
-                V = np.dot(np.kron(ry_array(gate["params"][0]),
-                                   np.identity(2)), V)
-                V = np.dot(np.kron(rz_array(gate["params"][1]),
-                                   np.identity(2)), V)
-            else:
-                V = np.dot(np.kron(np.identity(2),
-                                   rz_array(gate["params"][2])), V)
-                V = np.dot(np.kron(np.identity(2),
-                                   ry_array(gate["params"][0])), V)
-                V = np.dot(np.kron(np.identity(2),
-                                   rz_array(gate["params"][1])), V)
-    # Put V in SU(4) and test up to global phase
-    V = la.det(V)**(-1.0/4.0) * V
-    if la.norm(V - U) > 1e-6 and \
-       la.norm(1j*V - U) > 1e-6 and \
-       la.norm(-1*V - U) > 1e-6 and \
-       la.norm(-1j*V - U) > 1e-6:
-        raise MapperError("compiling.two_qubit_kak: " +
-                          "sequence incorrect, unknown error")
+                if gate["args"] == [0]:
+                    V = np.dot(np.kron(rz_array(gate["params"][2]),
+                                       np.identity(2)), V)
+                    V = np.dot(np.kron(ry_array(gate["params"][0]),
+                                       np.identity(2)), V)
+                    V = np.dot(np.kron(rz_array(gate["params"][1]),
+                                       np.identity(2)), V)
+                else:
+                    V = np.dot(np.kron(np.identity(2),
+                                       rz_array(gate["params"][2])), V)
+                    V = np.dot(np.kron(np.identity(2),
+                                       ry_array(gate["params"][0])), V)
+                    V = np.dot(np.kron(np.identity(2),
+                                       rz_array(gate["params"][1])), V)
+        # Put V in SU(4) and test up to global phase
+        V = la.det(V)**(-1.0/4.0) * V
+        if la.norm(V - U) > 1e-6 and \
+           la.norm(1j*V - U) > 1e-6 and \
+           la.norm(-1*V - U) > 1e-6 and \
+           la.norm(-1j*V - U) > 1e-6:
+            raise MapperError("two_qubit_kak: Circuit implementation" +
+                              "does not match input unitary.")
 
     return return_circuit
