@@ -37,6 +37,7 @@ def process_data(data, number_to_keep):
 
     return result
 
+
 def iplot_histogram(executions_results, options=None):
     """ Create a histogram representation.
 
