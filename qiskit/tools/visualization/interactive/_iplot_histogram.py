@@ -23,20 +23,19 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
 
 def process_data(data, number_to_keep):
     result = dict()
-    
+
     if number_to_keep != 0:
         data_temp = dict(Counter(data).most_common(number_to_keep))
         data_temp['rest'] = sum(data.values()) - sum(data_temp.values())
         data = data_temp
-    
+
     labels = data
     values = np.array([data[key] for key in labels], dtype=float)
     pvalues = values / sum(values)
     for position, label in enumerate(labels):
         result[label] = round(pvalues[position], 5)
 
-    return result;
-
+    return result
 
 def iplot_histogram(executions_results, options=None):
     """ Create a histogram representation.
@@ -102,13 +101,11 @@ def iplot_histogram(executions_results, options=None):
 
     if 'number_to_keep' not in options:
         options['number_to_keep'] = 0
-        
+
     data_to_plot = []
     for execution in executions_results:
         data = process_data(execution['data'], options['number_to_keep'])
-        data_to_plot.append(dict(
-            data = data,
-        ))
+        data_to_plot.append({'data': data})
 
     html = html_template.substitute({
         'divNumber': div_number
