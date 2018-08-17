@@ -1344,8 +1344,8 @@ class MatplotlibDrawer:
         self._creg = []
         self._qreg = []
         self._ops = []
-        self._qreg_dict = {}
-        self._creg_dict = {}
+        self._qreg_dict = OrderedDict()
+        self._creg_dict = OrderedDict()
         self._cond = {
             'n_lines': 0,
             'xmax': 0,
