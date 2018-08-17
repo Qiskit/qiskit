@@ -56,7 +56,7 @@ class LocalJob(BaseJob):
                 self._executor = futures.ThreadPoolExecutor()
             else:
                 self._executor = futures.ProcessPoolExecutor()
-            LocalJob.processes2executors[pid] = _executor
+            LocalJob.processes2executors[pid] = self._executor
         else:
             self._executor = LocalJob.processes2executors[pid]
 
