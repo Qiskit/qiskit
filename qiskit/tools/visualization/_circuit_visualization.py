@@ -1246,7 +1246,8 @@ class QCStyle:
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
         self.reverse = dic.get('reversebits', self.reverse)
-
+        
+        
 def qx_color_scheme():
     return {
         "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
