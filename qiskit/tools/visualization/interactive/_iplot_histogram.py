@@ -9,9 +9,11 @@
 Histogram visualization
 """
 from string import Template
+from collections import Counter
 import sys
 import time
 import re
+import numpy as np
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
