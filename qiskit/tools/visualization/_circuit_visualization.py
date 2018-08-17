@@ -1128,10 +1128,14 @@ def matplotlib_circuit_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
+        reverse_bits (bool): reverse the order qubits are drawn
         style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
+
+    Raises:
+        TypeError: if the style file is not dictionary
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
@@ -1143,7 +1147,7 @@ def matplotlib_circuit_drawer(circuit,
             if isinstance(style, dict):
                 style["reversebits"] = reverse_bits
             else:
-                raise QISKitError('Style file should be dictionary format.')
+                raise TypeError('Style file should be dictionary format.')
     qcd = MatplotlibDrawer(basis=basis, scale=scale, style=style)
     qcd.parse_circuit(circuit)
     return qcd.draw(filename)
