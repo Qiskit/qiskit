@@ -192,8 +192,7 @@
                             "type": "object",
                             "description": "Number of levels for each oscillator mode"}
                           }
-                        }
-                    },
+                        },
                 "u_channel_lo": {
                     "type": "array",
                     "minItems": 0,
