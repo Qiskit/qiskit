@@ -1089,7 +1089,10 @@ PORDER_SUBP = 4
 def matplotlib_circuit_drawer(circuit,
                               basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                                     'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                              scale=0.7, filename=None, style=None):
+                              scale=0.7,
+                              filename=None,
+                              reverse_bits=None,
+                              style=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -1107,6 +1110,14 @@ def matplotlib_circuit_drawer(circuit,
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
                        'Perhaps you set `filename` to `basis`.', basis)
+    if reverse_bits is not None:
+        if style is None:
+            style = {"reversebits": reverse_bits}
+        else:
+            if isinstance(style, dict):
+                style["reversebits"] = reverse_bits
+            else:
+                raise QISKitError('Style file should be dictionary format.')
     qcd = MatplotlibDrawer(basis=basis, scale=scale, style=style)
     qcd.parse_circuit(circuit)
     return qcd.draw(filename)
@@ -1177,6 +1188,7 @@ class QCStyle:
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.reverse = False
 
     def set_style(self, dic):
         self.tc = dic.get('textcolor', self.tc)
@@ -1205,6 +1217,7 @@ class QCStyle:
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
+        self.reverse = dic.get('reversebits', self.reverse)
 
 
 def qx_color_scheme():
@@ -1269,7 +1282,8 @@ def qx_color_scheme():
         "plotbarrier": False,
         "showindex": False,
         "compress": False,
-        "margin": [2.0, 0.0, 0.0, 0.3]
+        "margin": [2.0, 0.0, 0.0, 0.3],
+        "reversebits": False
     }
 
 
@@ -1605,6 +1619,22 @@ class MatplotlibDrawer:
                                            'group': reg.name}
                 self._cond['n_lines'] += 1
                 idx += 1
+        # reverse bit order
+        if self._style.reverse:
+            self._reverse_bits(self._qreg_dict)
+            self._reverse_bits(self._creg_dict)
+
+    def _reverse_bits(self, target_dict):
+        coord = {}
+        # grouping
+        for dict_ in target_dict.values():
+            if dict_['group'] not in coord:
+                coord[dict_['group']] = [dict_['y']]
+            else:
+                coord[dict_['group']].insert(0, dict_['y'])
+        # reverse bit order
+        for key in target_dict.keys():
+            target_dict[key]['y'] = coord[target_dict[key]['group']].pop(0)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
