@@ -11,6 +11,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
+from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
@@ -237,9 +238,14 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendError: if retrieval failed
         """
-        job_info = self._api.get_job(job_id)
-        if 'error' in job_info:
-            raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
+        try:
+            job_info = self._api.get_job(job_id)
+            if 'error' in job_info:
+                raise IBMQBackendError('Failed to get job "{}": {}'
+                                       .format(job_id, job_info['error']))
+        except ApiError as ex:
+            raise IBMQBackendError('Failed to get job "{}":{}'
+                                   .format(job_id, str(ex)))
         is_device = not bool(self._configuration.get('simulator'))
         job = IBMQJob(self._api, is_device,
                       job_id=job_info.get('id'),
