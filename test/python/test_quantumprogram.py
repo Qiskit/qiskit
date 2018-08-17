@@ -11,7 +11,7 @@
 
 import os
 import unittest
-from sys import version_info
+from sys import version_info, float_info
 
 import numpy as np
 
@@ -1141,7 +1141,7 @@ class TestQuantumProgram(QiskitTestCase):
         q_program.set_api(qe_token, qe_url)
         with self.assertRaises(JobTimeoutError):
             q_program.execute(['qc'], backend=backend_name, shots=shots,
-                              max_credits=3, seed=73846087)
+                              max_credits=3, seed=73846087, timeout=float_info.min)
 
     @requires_qe_access
     def test_execute_several_circuits_simulator_online(self, qe_token, qe_url):
