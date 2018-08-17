@@ -46,7 +46,7 @@ def iplot_paulivec(rho, options=None):
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
                     - slider (bool): activate slider
-                    - showLegend (bool): show legend of graph content
+                    - show_legend (bool): show legend of graph content
     """
 
     # HTML
@@ -86,10 +86,10 @@ def iplot_paulivec(rho, options=None):
     else:
         options['slider'] = 0
 
-    if 'showLegend' in options and options['showLegend'] is False:
-        options['showLegend'] = 0
+    if 'show_legend' in options and options['show_legend'] is False:
+        options['show_legend'] = 0
     else:
-        options['showLegend'] = 1
+        options['show_legend'] = 1
 
     data_to_plot = []
     rho_data = process_data(rho)

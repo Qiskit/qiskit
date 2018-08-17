@@ -35,7 +35,7 @@ def iplot_histogram(executions_results, options=None):
                     - height (integer): graph vertical size
                     - slider (bool): activate slider
                     - rest (bool): make a group with all 0 value bars
-                    - showLegend (bool): show legend of graph content
+                    - show_legend (bool): show legend of graph content
     """
 
     # HTML
@@ -80,10 +80,10 @@ def iplot_histogram(executions_results, options=None):
     else:
         options['rest'] = 0
 
-    if 'showLegend' in options and options['showLegend'] is False:
-        options['showLegend'] = 0
+    if 'show_legend' in options and options['show_legend'] is False:
+        options['show_legend'] = 0
     else:
-        options['showLegend'] = 1
+        options['show_legend'] = 1
 
     html = html_template.substitute({
         'divNumber': div_number
