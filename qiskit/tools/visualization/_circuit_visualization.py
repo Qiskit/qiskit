@@ -82,7 +82,7 @@ def circuit_drawer(circuit,
 def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                         scale=0.7, filename=None):
+                         scale=0.7, filename=None, reverse_bits=False):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Args:
@@ -90,6 +90,7 @@ def latex_circuit_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
+        reverse_bits (bool): reverse the order qubits are drawn
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -102,7 +103,8 @@ def latex_circuit_drawer(circuit,
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        generate_latex_source(circuit, filename=tmppath, basis=basis, scale=scale)
+        generate_latex_source(circuit, filename=tmppath, basis=basis,
+                              scale=scale, reverse_bits=reverse_bits)
         im = None
         try:
             subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
@@ -162,7 +164,7 @@ def _trim(im):
 def generate_latex_source(circuit, filename=None,
                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                          scale=0.7):
+                          scale=0.7, reverse_bits=False):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -170,6 +172,7 @@ def generate_latex_source(circuit, filename=None,
         scale (float): image scaling
         filename (str): optional filename to write latex
         basis (str): optional comma-separated list of gate names
+        reverse_bits (bool): reverse the order qubits are drawn
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -181,7 +184,7 @@ def generate_latex_source(circuit, filename=None,
     u = Unroller(ast, JsonBackend(basis))
     u.execute()
     json_circuit = u.backend.circuit
-    qcimg = QCircuitImage(json_circuit, scale)
+    qcimg = QCircuitImage(json_circuit, scale, reverse_bits=reverse_bits)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -197,11 +200,12 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
-    def __init__(self, circuit, scale):
+    def __init__(self, circuit, scale, reverse_bits=False):
         """
         Args:
             circuit (dict): compiled_circuit from qobj
             scale (float): image scaling
+            reverse_bits (bool): reverse the order qubits are drawn
         """
         # compiled qobj circuit
         self.circuit = circuit
@@ -264,10 +268,32 @@ class QCircuitImage(object):
                 self.clbit_list.append((cr, i))
         self.ordered_regs = [(item[0], item[1]) for
                              item in self.header['qubit_labels']]
+        if reverse_bits:
+            reg_size = []
+            reg_labels = []
+            new_ordered_regs = []
+            for regs in self.ordered_regs:
+                if regs[0] in reg_labels:
+                    continue
+                reg_labels.append(regs[0])
+                reg_size.append(len(
+                    [x for x in self.ordered_regs if x[0] == regs[0]]))
+            index = 0
+            for size in reg_size:
+                new_index = index + size
+                for i in range(new_index - 1, index - 1, -1):
+                    new_ordered_regs.append(self.ordered_regs[i])
+                index = new_index
+            self.ordered_regs = new_ordered_regs
+
         if 'clbit_labels' in self.header:
             for clabel in self.header['clbit_labels']:
-                for cind in range(clabel[1]):
-                    self.ordered_regs.append((clabel[0], cind))
+                if reverse_bits:
+                    for cind in reversed(range(clabel[1])):
+                        self.ordered_regs.append((clabel[0], cind))
+                else:
+                    for cind in range(clabel[1]):
+                        self.ordered_regs.append((clabel[0], cind))
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         self.img_width = len(self.img_regs)
@@ -1188,6 +1214,7 @@ class QCStyle:
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.cline = 'doublet'
         self.reverse = False
 
     def set_style(self, dic):
@@ -1217,8 +1244,8 @@ class QCStyle:
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
+        self.cline = dic.get('creglinestyle', self.cline)
         self.reverse = dic.get('reversebits', self.reverse)
-
 
 def qx_color_scheme():
     return {
@@ -1283,6 +1310,7 @@ def qx_color_scheme():
         "showindex": False,
         "compress": False,
         "margin": [2.0, 0.0, 0.0, 0.3],
+        "creglinestyle": "solid",
         "reversebits": False
     }
 
@@ -1444,13 +1472,37 @@ class MatplotlibDrawer:
                      clip_on=True,
                      zorder=PORDER_TEXT)
 
-    def _line(self, xy0, xy1):
+    def _line(self, xy0, xy1, lc=None, ls=None):
         x0, y0 = xy0
         x1, y1 = xy1
-        self.ax.plot([x0, x1], [y0, y1],
-                     color=self._style.lc,
-                     linewidth=1.0,
-                     zorder=PORDER_LINE)
+        if lc is None:
+            linecolor = self._style.lc
+        else:
+            linecolor = lc
+        if ls is None:
+            linestyle = 'solid'
+        else:
+            linestyle = ls
+        if linestyle == 'doublet':
+            theta = np.arctan2(np.abs(x1 - x0), np.abs(y1 - y0))
+            dx = 0.05 * WID * np.cos(theta)
+            dy = 0.05 * WID * np.sin(theta)
+            self.ax.plot([x0 + dx, x1 + dx], [y0 + dy, y1 + dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+            self.ax.plot([x0 - dx, x1 - dx], [y0 - dy, y1 - dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+        else:
+            self.ax.plot([x0, x1], [y0, y1],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle=linestyle,
+                         zorder=PORDER_LINE)
 
     def _measure(self, qxy, cxy, cid):
         qx, qy = qxy
@@ -1465,8 +1517,13 @@ class MatplotlibDrawer:
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         # arrow
-        self.ax.arrow(x=qx, y=qy, dx=0, dy=cy - qy, width=0.01, head_width=0.2, head_length=0.2,
-                      length_includes_head=True, color=self._style.cc, zorder=PORDER_LINE)
+        self._line(qxy, [cx, cy+0.35*WID], lc=self._style.cc, ls=self._style.cline)
+        arrowhead = patches.Polygon(((cx-0.20*WID, cy+0.35*WID),
+                                     (cx+0.20*WID, cy+0.35*WID),
+                                     (cx, cy)),
+                                    fc=self._style.cc,
+                                    ec=None)
+        self.ax.add_artist(arrowhead)
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
@@ -1649,7 +1706,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.lc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y])
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -1678,7 +1735,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.cc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc, ls=self._style.cline)
 
         # lf line
         if feedline_r:
@@ -1769,22 +1826,29 @@ class MatplotlibDrawer:
             # conditional gate
             if 'conditional' in op.keys():
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in self._creg_dict]
-                if self._style.bundle:
-                    c_xy = list(set(c_xy))
-                    for xy in c_xy:
-                        self._conds(xy, istrue=True)
-                else:
-                    fmt = '{{:0{}b}}'.format(len(c_xy))
-                    vlist = list(fmt.format(int(op['conditional']['val'], 16)))[::-1]
-                    for xy, v in zip(c_xy, vlist):
-                        if v == '0':
-                            bv = False
-                        else:
-                            bv = True
-                        self._conds(xy, istrue=bv)
-                creg_b = sorted(c_xy, key=lambda xy: xy[1])[0]
+                # cbit list to consider
+                fmt_c = '{{:0{}b}}'.format(len(c_xy))
+                mask = int(op['conditional']['mask'], 16)
+                cmask = list(fmt_c.format(mask))[::-1]
+                # value
+                fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
+                val = int(op['conditional']['val'], 16)
+                vlist = list(fmt_v.format(val))[::-1]
+                # plot conditionals
+                v_ind = 0
+                xy_plot = []
+                for xy, m in zip(c_xy, cmask):
+                    if m == '1':
+                        if xy not in xy_plot:
+                            if vlist[v_ind] == '1' or self._style.bundle:
+                                self._conds(xy, istrue=True)
+                            else:
+                                self._conds(xy, istrue=False)
+                            xy_plot.append(xy)
+                        v_ind += 1
+                creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                 self._subtext(creg_b, op['conditional']['val'])
-                self._line(qreg_t, creg_b)
+                self._line(qreg_t, creg_b, lc=self._style.cc, ls=self._style.cline)
             #
             # draw special gates
             #

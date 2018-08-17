@@ -11,6 +11,7 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
+from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
@@ -53,7 +54,9 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        return IBMQJob(qobj, self._api, not self.configuration['simulator'])
+        job = IBMQJob(self._api, not self.configuration['simulator'], qobj=qobj)
+        job.submit()
+        return job
 
     @property
     def calibration(self):
@@ -216,7 +219,10 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             is_device = not bool(self._configuration.get('simulator'))
-            job = IBMQJob.from_api(job_info, self._api, is_device)
+            job = IBMQJob(self._api, is_device,
+                          job_id=job_info.get('id'),
+                          backend_name=job_info.get('backend').get('name'),
+                          creation_date=job_info.get('creationDate'))
             job_list.append(job)
         return job_list
 
@@ -232,11 +238,19 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendError: if retrieval failed
         """
-        job_info = self._api.get_job(job_id)
-        if 'error' in job_info:
-            raise IBMQBackendError('failed to get job id "{}"'.format(job_id))
+        try:
+            job_info = self._api.get_job(job_id)
+            if 'error' in job_info:
+                raise IBMQBackendError('Failed to get job "{}": {}'
+                                       .format(job_id, job_info['error']))
+        except ApiError as ex:
+            raise IBMQBackendError('Failed to get job "{}":{}'
+                                   .format(job_id, str(ex)))
         is_device = not bool(self._configuration.get('simulator'))
-        job = IBMQJob.from_api(job_info, self._api, is_device)
+        job = IBMQJob(self._api, is_device,
+                      job_id=job_info.get('id'),
+                      backend_name=job_info.get('backend').get('name'),
+                      creation_date=job_info.get('creationDate'))
         return job
 
 

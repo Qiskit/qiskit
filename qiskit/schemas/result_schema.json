@@ -30,26 +30,6 @@
                 "$ref": "#/definitions/complex_array"
             }
         },
-        "snapshot": {
-                    "type": "object",
-                    "description": "Snapshot of simulator internal representation",
-                    "properties": {
-                        "statevector": {
-                            "description": "A list of complex state vectors for each shot",
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_array"
-                            }
-                        },
-                        "unitary": {
-                            "description": "A list of circuit unitary matrices for each shot",
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_matrix"
-                            }
-                        }
-                    }
-                },
         "memory": {
                 "type": "array",
                 "minItems": 1,
@@ -102,10 +82,7 @@
                         }, 
                         "snapshots": {
                             "description": "collection of all snapshots of simulator state",
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/snapshot"
-                            }
+                            "type": "object"
                         },
                         "memory": {
                             "$ref": "#/definitions/memory"

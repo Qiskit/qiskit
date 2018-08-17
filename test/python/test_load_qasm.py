@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
 #
 # Copyright 2017 IBM RESEARCH. All Rights Reserved.
 #
@@ -16,6 +15,8 @@
 # limitations under the License.
 # =============================================================================
 
+# pylint: disable=missing-docstring
+
 from qiskit import QISKitError
 from qiskit.wrapper import load_qasm_file, load_qasm_string
 from .common import QiskitTestCase, Path
@@ -25,20 +26,20 @@ class LoadQasmTest(QiskitTestCase):
     """Test load_qasm_* set of methods."""
 
     def setUp(self):
-        self.QASM_FILE_NAME = 'entangled_registers.qasm'
-        self.QASM_FILE_PATH = self._get_resource_path(
-            'qasm/' + self.QASM_FILE_NAME, Path.EXAMPLES)
+        self.qasm_file_name = 'entangled_registers.qasm'
+        self.qasm_file_path = self._get_resource_path(
+            'qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
     def test_load_qasm_file(self):
         """Test load_qasm_file and get_circuit.
 
-        If all is correct we should get the qasm file loaded in QASM_FILE_PATH
+        If all is correct we should get the qasm file loaded in _qasm_file_path
 
         Previously:
             Libraries:
                 from qiskit.wrapper import load_qasm_file
         """
-        q_circuit = load_qasm_file(self.QASM_FILE_PATH)
+        q_circuit = load_qasm_file(self.qasm_file_path)
         qasm_string = q_circuit.qasm()
         self.log.info(qasm_string)
         expected_qasm_string = """\
