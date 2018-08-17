@@ -19,6 +19,23 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
+def process_data(data, number_to_keep):
+    result = dict()
+    
+    if number_to_keep != 0:
+        data_temp = dict(Counter(data).most_common(number_to_keep))
+        data_temp['rest'] = sum(data.values()) - sum(data_temp.values())
+        data = data_temp
+    
+    labels = data
+    values = np.array([data[key] for key in labels], dtype=float)
+    pvalues = values / sum(values)
+    for position, label in enumerate(labels):
+        result[label] = round(pvalues[position], 5)
+
+    return result;
+
+
 def iplot_histogram(executions_results, options=None):
     """ Create a histogram representation.
 
@@ -34,8 +51,9 @@ def iplot_histogram(executions_results, options=None):
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
                     - slider (bool): activate slider
-                    - rest (bool): make a group with all 0 value bars
+                    - number_to_keep (integer): groups max values
                     - show_legend (bool): show legend of graph content
+                    - sort (string): Could be 'asc' or 'desc'
     """
 
     # HTML
@@ -75,15 +93,20 @@ def iplot_histogram(executions_results, options=None):
     else:
         options['slider'] = 0
 
-    if 'rest' in options and options['rest'] is True:
-        options['rest'] = 1
-    else:
-        options['rest'] = 0
-
     if 'show_legend' in options and options['show_legend'] is False:
         options['show_legend'] = 0
     else:
         options['show_legend'] = 1
+
+    if 'number_to_keep' not in options:
+        options['number_to_keep'] = 0
+        
+    data_to_plot = []
+    for execution in executions_results:
+        data = process_data(execution['data'], options['number_to_keep'])
+        data_to_plot.append(dict(
+            data = data,
+        ))
 
     html = html_template.substitute({
         'divNumber': div_number
@@ -91,7 +114,7 @@ def iplot_histogram(executions_results, options=None):
 
     javascript = javascript_template.substitute({
         'divNumber': div_number,
-        'executions': executions_results,
+        'executions': data_to_plot,
         'options': options
     })
 
