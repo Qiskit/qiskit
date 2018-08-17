@@ -22,6 +22,16 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
 
 
 def process_data(data, number_to_keep):
+    """ Prepare received data for representation.
+
+        Args:
+            data (dict): values to represent (ex. {'001' : 130})
+            number_to_keep (int): number of elements to show individually.
+
+        Returns:
+            dict: processed data to show.
+    """
+
     result = dict()
 
     if number_to_keep != 0:
