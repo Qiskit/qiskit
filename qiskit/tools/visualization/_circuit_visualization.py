@@ -13,26 +13,24 @@ Two quantum circuit drawers based on:
     2. Matplotlib
 """
 
+import json
+import logging
+import operator
+import os
+import re
+import subprocess
+import tempfile
 from collections import namedtuple, OrderedDict
 from fractions import Fraction
+from io import StringIO
 from itertools import groupby, zip_longest
 from math import fmod, isclose, ceil
-from io import StringIO
 
-import re
-import os
-import operator
-import subprocess
-import logging
-import json
-import tempfile
-
-from matplotlib import get_backend as get_matplotlib_backend
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-
 from PIL import Image, ImageChops
+from matplotlib import get_backend as get_matplotlib_backend
 
 from qiskit import QuantumCircuit, QISKitError, load_qasm_file
 from qiskit.qasm import Qasm
@@ -49,7 +47,7 @@ def plot_circuit(circuit,
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     """
-    im = circuit_drawer(circuit, basis, scale, style)
+    im = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
     if im:
         im.show()
 
@@ -144,7 +142,7 @@ class QCStyle:
         self.bundle = False
         self.barrier = False
         self.index = False
-        self.compress = False
+        self.compress = True
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
