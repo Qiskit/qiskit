@@ -44,11 +44,12 @@ logger = logging.getLogger(__name__)
 def plot_circuit(circuit,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                 scale=0.7):
+                 scale=0.7,
+                 style=None):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     """
-    im = circuit_drawer(circuit, basis, scale)
+    im = circuit_drawer(circuit, basis, scale, style)
     if im:
         im.show()
 
@@ -56,7 +57,9 @@ def plot_circuit(circuit,
 def circuit_drawer(circuit,
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                   scale=0.7, filename=None):
+                   scale=0.7,
+                   filename=None,
+                   style=None):
     """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
 
     1. latex: high-quality images, but heavy external software dependencies
@@ -69,20 +72,193 @@ def circuit_drawer(circuit,
         basis (str): the basis to unroll to prior to drawing
         scale (float): scale of image to draw (shrink if < 1)
         filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
     """
     try:
-        return latex_circuit_drawer(circuit, basis, scale, filename)
+        return latex_circuit_drawer(circuit, basis, scale, filename, style)
     except (OSError, subprocess.CalledProcessError):
-        return matplotlib_circuit_drawer(circuit, basis, scale, filename)
+        return matplotlib_circuit_drawer(circuit, basis, scale, filename, style)
 
 
+# -----------------------------------------------------------------------------
+# Plot style sheet option
+# -----------------------------------------------------------------------------
+class QCStyle:
+    def __init__(self):
+        self.tc = '#000000'
+        self.sc = '#000000'
+        self.lc = '#000000'
+        self.cc = '#778899'
+        self.gc = '#ffffff'
+        self.gt = '#000000'
+        self.bc = '#bdbdbd'
+        self.bg = '#ffffff'
+        self.fs = 13
+        self.sfs = 8
+        self.disptex = {
+            'id': 'id',
+            'u0': 'U_0',
+            'u1': 'U_1',
+            'u2': 'U_2',
+            'u3': 'U_3',
+            'x': 'X',
+            'y': 'Y',
+            'z': 'Z',
+            'h': 'H',
+            's': 'S',
+            'sdg': 'S^\\dagger',
+            't': 'T',
+            'tdg': 'T^\\dagger',
+            'rx': 'R_x',
+            'ry': 'R_y',
+            'rz': 'R_z',
+            'reset': '\\left|0\\right\\rangle'
+        }
+        self.dispcol = {
+            'id': '#ffffff',
+            'u0': '#ffffff',
+            'u1': '#ffffff',
+            'u2': '#ffffff',
+            'u3': '#ffffff',
+            'x': '#ffffff',
+            'y': '#ffffff',
+            'z': '#ffffff',
+            'h': '#ffffff',
+            's': '#ffffff',
+            'sdg': '#ffffff',
+            't': '#ffffff',
+            'tdg': '#ffffff',
+            'rx': '#ffffff',
+            'ry': '#ffffff',
+            'rz': '#ffffff',
+            'reset': '#ffffff',
+            'target': '#ffffff',
+            'meas': '#ffffff'
+        }
+        self.latexmode = True
+        self.pimode = False
+        self.fold = 20
+        self.bundle = False
+        self.barrier = False
+        self.index = False
+        self.compress = False
+        self.figwidth = -1
+        self.dpi = 150
+        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.cline = 'doublet'
+        self.reverse = False
+
+    def set_style(self, dic):
+        self.tc = dic.get('textcolor', self.tc)
+        self.sc = dic.get('subtextcolor', self.sc)
+        self.lc = dic.get('linecolor', self.lc)
+        self.cc = dic.get('creglinecolor', self.cc)
+        self.gt = dic.get('gatetextcolor', self.tc)
+        self.gc = dic.get('gatefacecolor', self.gc)
+        self.bc = dic.get('barrierfacecolor', self.bc)
+        self.bg = dic.get('backgroundcolor', self.bg)
+        self.fs = dic.get('fontsize', self.fs)
+        self.sfs = dic.get('subfontsize', self.sfs)
+        self.disptex = dic.get('displaytext', self.disptex)
+        for key in self.dispcol.keys():
+            self.dispcol[key] = self.gc
+        self.dispcol = dic.get('displaycolor', self.dispcol)
+        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
+        self.pimode = dic.get('usepiformat', self.pimode)
+        self.fold = dic.get('fold', self.fold)
+        if self.fold < 2:
+            self.fold = -1
+        self.bundle = dic.get('cregbundle', self.bundle)
+        self.barrier = dic.get('plotbarrier', self.barrier)
+        self.index = dic.get('showindex', self.index)
+        self.compress = dic.get('compress', self.compress)
+        self.figwidth = dic.get('figwidth', self.figwidth)
+        self.dpi = dic.get('dpi', self.dpi)
+        self.margin = dic.get('margin', self.margin)
+        self.cline = dic.get('creglinestyle', self.cline)
+        self.reverse = dic.get('reversebits', self.reverse)
+
+
+def qx_color_scheme():
+    return {
+        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
+        "textcolor": "#000000",
+        "gatetextcolor": "#000000",
+        "subtextcolor": "#000000",
+        "linecolor": "#000000",
+        "creglinecolor": "#b9b9b9",
+        "gatefacecolor": "#ffffff",
+        "barrierfacecolor": "#bdbdbd",
+        "backgroundcolor": "#ffffff",
+        "fold": 20,
+        "fontsize": 13,
+        "subfontsize": 8,
+        "figwidth": -1,
+        "dpi": 150,
+        "displaytext": {
+            "id": "id",
+            "u0": "U_0",
+            "u1": "U_1",
+            "u2": "U_2",
+            "u3": "U_3",
+            "x": "X",
+            "y": "Y",
+            "z": "Z",
+            "h": "H",
+            "s": "S",
+            "sdg": "S^\\dagger",
+            "t": "T",
+            "tdg": "T^\\dagger",
+            "rx": "R_x",
+            "ry": "R_y",
+            "rz": "R_z",
+            "reset": "\\left|0\\right\\rangle"
+        },
+        "displaycolor": {
+            "id": "#ffca64",
+            "u0": "#f69458",
+            "u1": "#f69458",
+            "u2": "#f69458",
+            "u3": "#f69458",
+            "x": "#a6ce38",
+            "y": "#a6ce38",
+            "z": "#a6ce38",
+            "h": "#00bff2",
+            "s": "#00bff2",
+            "sdg": "#00bff2",
+            "t": "#ff6666",
+            "tdg": "#ff6666",
+            "rx": "#ffca64",
+            "ry": "#ffca64",
+            "rz": "#ffca64",
+            "reset": "#d7ddda",
+            "target": "#00bff2",
+            "meas": "#f070aa"
+        },
+        "latexdrawerstyle": True,
+        "usepiformat": False,
+        "cregbundle": False,
+        "plotbarrier": False,
+        "showindex": False,
+        "compress": False,
+        "margin": [2.0, 0.0, 0.0, 0.3],
+        "creglinestyle": "solid",
+        "reversebits": False
+    }
+
+
+# -----------------------------------------------------------------------------
+# latex_circuit_drawer
+# -----------------------------------------------------------------------------
 def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                         scale=0.7, filename=None, reverse_bits=False):
+                         scale=0.7,
+                         filename=None,
+                         style=None):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Args:
@@ -90,7 +266,7 @@ def latex_circuit_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
-        reverse_bits (bool): reverse the order qubits are drawn
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -104,7 +280,7 @@ def latex_circuit_drawer(circuit,
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
         generate_latex_source(circuit, filename=tmppath, basis=basis,
-                              scale=scale, reverse_bits=reverse_bits)
+                              scale=scale, style=style)
         im = None
         try:
             subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
@@ -164,7 +340,7 @@ def _trim(im):
 def generate_latex_source(circuit, filename=None,
                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                          scale=0.7, reverse_bits=False):
+                          scale=0.7, style=None):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -172,7 +348,7 @@ def generate_latex_source(circuit, filename=None,
         scale (float): image scaling
         filename (str): optional filename to write latex
         basis (str): optional comma-separated list of gate names
-        reverse_bits (bool): reverse the order qubits are drawn
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -184,7 +360,7 @@ def generate_latex_source(circuit, filename=None,
     u = Unroller(ast, JsonBackend(basis))
     u.execute()
     json_circuit = u.backend.circuit
-    qcimg = QCircuitImage(json_circuit, scale, reverse_bits=reverse_bits)
+    qcimg = QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -200,13 +376,23 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
-    def __init__(self, circuit, scale, reverse_bits=False):
+    def __init__(self, circuit, scale, style=None):
         """
         Args:
             circuit (dict): compiled_circuit from qobj
             scale (float): image scaling
-            reverse_bits (bool): reverse the order qubits are drawn
+            style (dict or str): dictionary of style or file name of style file
         """
+        # style sheet
+        self._style = QCStyle()
+        if style:
+            if isinstance(style, dict):
+                self._style.set_style(style)
+            elif isinstance(style, str):
+                with open(style, 'r') as infile:
+                    dic = json.load(infile)
+                self._style.set_style(dic)
+
         # compiled qobj circuit
         self.circuit = circuit
 
@@ -268,7 +454,7 @@ class QCircuitImage(object):
                 self.clbit_list.append((cr, i))
         self.ordered_regs = [(item[0], item[1]) for
                              item in self.header['qubit_labels']]
-        if reverse_bits:
+        if self._style.reverse:
             reg_size = []
             reg_labels = []
             new_ordered_regs = []
@@ -288,7 +474,7 @@ class QCircuitImage(object):
 
         if 'clbit_labels' in self.header:
             for clabel in self.header['clbit_labels']:
-                if reverse_bits:
+                if self._style.reverse:
                     for cind in reversed(range(clabel[1])):
                         self.ordered_regs.append((clabel[0], cind))
                 else:
@@ -1100,7 +1286,7 @@ def _truncate_float(matchobj, format_str='0.2g'):
 
 
 # -----------------------------------------------------------------------------
-# definitions for matplotlib_circuit_drawer
+# matplotlib_circuit_drawer
 # -----------------------------------------------------------------------------
 WID = 0.65
 HIG = 0.65
@@ -1117,7 +1303,6 @@ def matplotlib_circuit_drawer(circuit,
                                     'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
                               scale=0.7,
                               filename=None,
-                              reverse_bits=None,
                               style=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -1128,196 +1313,20 @@ def matplotlib_circuit_drawer(circuit,
         basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
-        reverse_bits (bool): reverse the order qubits are drawn
         style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
-
-    Raises:
-        TypeError: if the style file is not dictionary
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
                        'Perhaps you set `filename` to `basis`.', basis)
-    if reverse_bits is not None:
-        if style is None:
-            style = {"reversebits": reverse_bits}
-        else:
-            if isinstance(style, dict):
-                style["reversebits"] = reverse_bits
-            else:
-                raise TypeError('Style file should be dictionary format.')
     qcd = MatplotlibDrawer(basis=basis, scale=scale, style=style)
     qcd.parse_circuit(circuit)
     return qcd.draw(filename)
 
 
 Register = namedtuple('Register', 'name index')
-
-
-class QCStyle:
-    def __init__(self):
-        self.tc = '#000000'
-        self.sc = '#000000'
-        self.lc = '#000000'
-        self.cc = '#778899'
-        self.gc = '#ffffff'
-        self.gt = '#000000'
-        self.bc = '#bdbdbd'
-        self.bg = '#ffffff'
-        self.fs = 13
-        self.sfs = 8
-        self.disptex = {
-            'id': 'id',
-            'u0': 'U_0',
-            'u1': 'U_1',
-            'u2': 'U_2',
-            'u3': 'U_3',
-            'x': 'X',
-            'y': 'Y',
-            'z': 'Z',
-            'h': 'H',
-            's': 'S',
-            'sdg': 'S^\\dagger',
-            't': 'T',
-            'tdg': 'T^\\dagger',
-            'rx': 'R_x',
-            'ry': 'R_y',
-            'rz': 'R_z',
-            'reset': '\\left|0\\right\\rangle'
-        }
-        self.dispcol = {
-            'id': '#ffffff',
-            'u0': '#ffffff',
-            'u1': '#ffffff',
-            'u2': '#ffffff',
-            'u3': '#ffffff',
-            'x': '#ffffff',
-            'y': '#ffffff',
-            'z': '#ffffff',
-            'h': '#ffffff',
-            's': '#ffffff',
-            'sdg': '#ffffff',
-            't': '#ffffff',
-            'tdg': '#ffffff',
-            'rx': '#ffffff',
-            'ry': '#ffffff',
-            'rz': '#ffffff',
-            'reset': '#ffffff',
-            'target': '#ffffff',
-            'meas': '#ffffff'
-        }
-        self.latexmode = True
-        self.pimode = False
-        self.fold = 20
-        self.bundle = False
-        self.barrier = False
-        self.index = False
-        self.compress = False
-        self.figwidth = -1
-        self.dpi = 150
-        self.margin = [2.0, 0.0, 0.0, 0.3]
-        self.cline = 'doublet'
-        self.reverse = False
-
-    def set_style(self, dic):
-        self.tc = dic.get('textcolor', self.tc)
-        self.sc = dic.get('subtextcolor', self.sc)
-        self.lc = dic.get('linecolor', self.lc)
-        self.cc = dic.get('creglinecolor', self.cc)
-        self.gt = dic.get('gatetextcolor', self.tc)
-        self.gc = dic.get('gatefacecolor', self.gc)
-        self.bc = dic.get('barrierfacecolor', self.bc)
-        self.bg = dic.get('backgroundcolor', self.bg)
-        self.fs = dic.get('fontsize', self.fs)
-        self.sfs = dic.get('subfontsize', self.sfs)
-        self.disptex = dic.get('displaytext', self.disptex)
-        for key in self.dispcol.keys():
-            self.dispcol[key] = self.gc
-        self.dispcol = dic.get('displaycolor', self.dispcol)
-        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
-        self.fold = dic.get('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
-        self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
-        self.index = dic.get('showindex', self.index)
-        self.compress = dic.get('compress', self.compress)
-        self.figwidth = dic.get('figwidth', self.figwidth)
-        self.dpi = dic.get('dpi', self.dpi)
-        self.margin = dic.get('margin', self.margin)
-        self.cline = dic.get('creglinestyle', self.cline)
-        self.reverse = dic.get('reversebits', self.reverse)
-
-
-def qx_color_scheme():
-    return {
-        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
-        "textcolor": "#000000",
-        "gatetextcolor": "#000000",
-        "subtextcolor": "#000000",
-        "linecolor": "#000000",
-        "creglinecolor": "#b9b9b9",
-        "gatefacecolor": "#ffffff",
-        "barrierfacecolor": "#bdbdbd",
-        "backgroundcolor": "#ffffff",
-        "fold": 20,
-        "fontsize": 13,
-        "subfontsize": 8,
-        "figwidth": -1,
-        "dpi": 150,
-        "displaytext": {
-            "id": "id",
-            "u0": "U_0",
-            "u1": "U_1",
-            "u2": "U_2",
-            "u3": "U_3",
-            "x": "X",
-            "y": "Y",
-            "z": "Z",
-            "h": "H",
-            "s": "S",
-            "sdg": "S^\\dagger",
-            "t": "T",
-            "tdg": "T^\\dagger",
-            "rx": "R_x",
-            "ry": "R_y",
-            "rz": "R_z",
-            "reset": "\\left|0\\right\\rangle"
-        },
-        "displaycolor": {
-            "id": "#ffca64",
-            "u0": "#f69458",
-            "u1": "#f69458",
-            "u2": "#f69458",
-            "u3": "#f69458",
-            "x": "#a6ce38",
-            "y": "#a6ce38",
-            "z": "#a6ce38",
-            "h": "#00bff2",
-            "s": "#00bff2",
-            "sdg": "#00bff2",
-            "t": "#ff6666",
-            "tdg": "#ff6666",
-            "rx": "#ffca64",
-            "ry": "#ffca64",
-            "rz": "#ffca64",
-            "reset": "#d7ddda",
-            "target": "#00bff2",
-            "meas": "#f070aa"
-        },
-        "latexdrawerstyle": True,
-        "usepiformat": False,
-        "cregbundle": False,
-        "plotbarrier": False,
-        "showindex": False,
-        "compress": False,
-        "margin": [2.0, 0.0, 0.0, 0.3],
-        "creglinestyle": "solid",
-        "reversebits": False
-    }
 
 
 class Anchor:
