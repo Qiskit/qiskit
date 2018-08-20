@@ -21,6 +21,8 @@ from qiskit.backends.ibmq import IBMQProvider
 from qiskit.backends.local import QasmSimulatorCpp
 from qiskit.wrapper.credentials import discover_credentials, get_account_name
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from .http_recorder import http_recorder
+from ._test_options import get_test_options
 
 
 class Path(Enum):
@@ -30,9 +32,11 @@ class Path(Enum):
     # test.python path: qiskit/test/python/
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
-    EXAMPLES = os.path.join(SDK, '../examples')
+    EXAMPLES = os.path.join(SDK, '..', 'examples')
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.join(SDK, 'schemas')
+    # VCR cassettes path: qiskit/test/cassettes/
+    CASSETTES = os.path.join(TEST, '..', 'cassettes')
 
 
 class QiskitTestCase(unittest.TestCase):
@@ -64,6 +68,7 @@ class QiskitTestCase(unittest.TestCase):
             level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'),
                                              logging.INFO)
             cls.log.setLevel(level)
+            cls.log.debug("QISKIT_TESTS: %s", str(TEST_OPTIONS))
 
     def tearDown(self):
         # Reset the default provider, as in practice it acts as a singleton
@@ -192,10 +197,7 @@ class JobTestCase(QiskitTestCase):
             time.sleep(wait)
             waited += wait
             if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
+                self.fail(msg="The JOB is still initializing after timeout ({}s)".format(timeout))
 
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
@@ -252,11 +254,63 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        if SKIP_SLOW_TESTS:
+        skip_slow = not TEST_OPTIONS['run_slow']
+        if skip_slow:
             raise unittest.SkipTest('Skipping slow tests')
+
         return func(*args, **kwargs)
 
     return _wrapper
+
+
+def _get_credentials(test_object, test_options):
+    """
+    Finds the credentials for a specific test and options.
+
+    Args:
+        test_object (QiskitTestCase): The test object asking for credentials
+        test_options (list): List of options after QISKIT_TESTS was parsed by get_test_options.
+
+    Returns:
+        dict: Credentials in a dictionary
+
+    Raises:
+        Exception: When the credential could not be set and they are needed for that set of options
+    """
+
+    dummy_credentials = {'qe_token': 'dummyapiusersloginWithTokenid01',
+                         'qe_url': 'https://quantumexperience.ng.bluemix.net/api'}
+
+    if test_options['mock_online']:
+        return dummy_credentials
+
+    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+        # Special case: instead of using the standard credentials mechanism,
+        # load them from different environment variables. This assumes they
+        # will always be in place, as is used by the Travis setup.
+        test_object.using_ibmq_credentials = True
+        return {'qe_token': os.getenv('IBMQ_TOKEN'),
+                'qe_url': os.getenv('IBMQ_URL')}
+    else:
+        # Attempt to read the standard credentials.
+        account_name = get_account_name(IBMQProvider)
+        discovered_credentials = discover_credentials()
+        if account_name in discovered_credentials.keys():
+            credentials = discovered_credentials[account_name]
+            if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
+                test_object.using_ibmq_credentials = True
+            return {'qe_token': credentials.get('token'),
+                    'qe_url': credentials.get('url')}
+
+    # No user credentials were found.
+
+    if test_options['rec']:
+        raise Exception('Could not locate valid credentials. You need them for recording '
+                        'tests against the remote API.')
+
+    test_object.log.warning("No user credentials were detected. Running with mocked data.")
+    test_options['mock_online'] = True
+    return dummy_credentials
 
 
 def is_cpp_simulator_available():
@@ -308,65 +362,32 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
-        if SKIP_ONLINE_TESTS:
+    def _wrapper(self, *args, **kwargs):
+        if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
         # Cleanup the credentials, as this file is shared by the tests.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
+        from qiskit.wrapper import _wrapper as qiskit_wrapper
+        qiskit_wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
+        kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
-        if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
-            # Special case: instead of using the standard credentials mechanism,
-            # load them from different environment variables. This assumes they
-            # will always be in place, as is used by the Travis setup.
-            kwargs.update({
-                'qe_token': os.getenv('IBMQ_TOKEN'),
-                'qe_url': os.getenv('IBMQ_URL')
-            })
-            args[0].using_ibmq_credentials = True
-        else:
-            # Attempt to read the standard credentials.
-            account_name = get_account_name(IBMQProvider)
-            discovered_credentials = discover_credentials()
-            if account_name in discovered_credentials.keys():
-                credentials = discovered_credentials[account_name]
+        decorated_func = func
+        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+            # For recording or for replaying existing cassettes, the test should be decorated with
+            # use_cassette.
+            decorated_func = VCR.use_cassette()(decorated_func)
 
-                kwargs.update({
-                    'qe_token': credentials.get('token'),
-                    'qe_url': credentials.get('url'),
-                })
-
-                if all(item in credentials.get('url') for
-                       item in ['Hubs', 'Groups', 'Projects']):
-                    args[0].using_ibmq_credentials = True
-            else:
-                raise Exception('Could not locate valid credentials')
-
-        return func(*args, **kwargs)
+        return decorated_func(self, *args, **kwargs)
 
     return _wrapper
 
 
-def _is_ci_fork_pull_request():
-    """
-    Check if the tests are being run in a CI environment and if it is a pull
-    request.
-
-    Returns:
-        bool: True if the tests are executed inside a CI tool, and the changes
-            are not against the "master" branch.
-    """
-    if os.getenv('TRAVIS'):
-        # Using Travis CI.
-        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
-            return True
-    elif os.getenv('APPVEYOR'):
-        # Using AppVeyor CI.
-        if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
-            return True
-    return False
+def _get_http_recorder(test_options):
+    vcr_mode = 'none'
+    if test_options['rec']:
+        vcr_mode = 'all'
+    return http_recorder(vcr_mode, Path.CASSETTES.value)
 
 
-SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
-SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
+TEST_OPTIONS = get_test_options()
+VCR = _get_http_recorder(TEST_OPTIONS)

@@ -214,8 +214,3 @@ Windows:
 
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
-
-Zusätzlich kann die Umgebungsvariable ``SKIP_ONLINE_TESTS`` verwendet werden
-zum An- und Ausschalten der Ausführung der Tests, die Netzwerk Zugang für die
-API benötigen, und ``SKIP_SLOW_TESTS`` zum An- und Ausschalten von Test, die
-besonders langsam sind (standardmäßig auf ``True`` gesetzt).
