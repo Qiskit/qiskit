@@ -10,7 +10,6 @@
 from concurrent import futures
 import logging
 import sys
-import os
 import functools
 
 from qiskit.backends import BaseJob, JobStatus, JobError
@@ -43,23 +42,17 @@ class LocalJob(BaseJob):
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
-    processes2executors = {}
+
+    if sys.platform in ['darwin', 'win32']:
+        _executor = futures.ThreadPoolExecutor()
+    else:
+        _executor = futures.ProcessPoolExecutor()
 
     def __init__(self, fn, qobj):
         super().__init__()
         self._fn = fn
         self._qobj = qobj
         self._backend_name = qobj.header.backend_name
-        pid = os.getpid()
-        if pid not in LocalJob.processes2executors:
-            if sys.platform in ['darwin', 'win32']:
-                self._executor = futures.ThreadPoolExecutor()
-            else:
-                self._executor = futures.ProcessPoolExecutor()
-            LocalJob.processes2executors[pid] = self._executor
-        else:
-            self._executor = LocalJob.processes2executors[pid]
-
         self._future = None
 
     def submit(self):
