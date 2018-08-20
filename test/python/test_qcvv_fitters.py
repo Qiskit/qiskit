@@ -7,12 +7,24 @@
 
 # pylint: disable=missing-docstring
 
+import unittest
+
 import numpy as np
 
-from qiskit.tools.qcvv import fitters
 from .common import QiskitTestCase
 
+try:
+    from qiskit.tools.qcvv import fitters
+    VALID_MATPLOTLIB = True
+except RuntimeError:
+    # Under some combinations (travis osx vms, or headless configurations)
+    # matplotlib might not be fully, raising:
+    # RuntimeError: Python is not installed as a framework.
+    # when importing. If that is the case, the full test is skipped.
+    VALID_MATPLOTLIB = False
 
+
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestQCVVFitters(QiskitTestCase):
 
     def test_exp_fit_fun(self):
@@ -21,7 +33,7 @@ class TestQCVVFitters(QiskitTestCase):
         tau_in = 4
         c_in = 1
         result = fitters.exp_fit_fun(x_in, a_in, tau_in, c_in)
-        self.assertEqual(1.9447331054820294, result)
+        self.assertAlmostEqual(1.9447331054820294, result)
 
     def test_osc_fit_fun(self):
         a_in = 2
