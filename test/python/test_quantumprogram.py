@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
+from qiskit.backends import JobTimeoutError
 from qiskit.qobj import Qobj
 from qiskit.tools import file_io
 from .common import requires_qe_access, QiskitTestCase, Path
@@ -1138,9 +1139,9 @@ class TestQuantumProgram(QiskitTestCase):
         qc.measure(qr, cr)
         shots = 1
         q_program.set_api(qe_token, qe_url)
-        result = q_program.execute(['qc'], backend=backend_name, shots=shots,
-                                   max_credits=3, seed=73846087)
-        self.assertRaises(QISKitError, result.get_data, 'qc')
+        with self.assertRaises(JobTimeoutError):
+            q_program.execute(['qc'], backend=backend_name, shots=shots,
+                              max_credits=3, seed=73846087)
 
     @requires_qe_access
     def test_execute_several_circuits_simulator_online(self, qe_token, qe_url):
