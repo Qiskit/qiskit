@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 """Quick program to test json backend
 """
@@ -23,15 +23,15 @@ class TestJsonOutput(QiskitTestCase):
     here for convenience.
     """
     def setUp(self):
-        self.QASM_FILE_PATH = self._get_resource_path(
+        self.qasm_file_path = self._get_resource_path(
             'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
-        qp = QuantumProgram()
-        qp.load_qasm_file(self.QASM_FILE_PATH, name="example")
+        qprogram = QuantumProgram()
+        qprogram.load_qasm_file(self.qasm_file_path, name="example")
 
         basis_gates = []  # unroll to base gates, change to test
-        unroller = unroll.Unroller(qasm.Qasm(data=qp.get_qasm("example")).parse(),
+        unroller = unroll.Unroller(qasm.Qasm(data=qprogram.get_qasm("example")).parse(),
                                    unroll.JsonBackend(basis_gates))
         circuit = unroller.execute()
         self.log.info('test_json_ouptut: %s', circuit)

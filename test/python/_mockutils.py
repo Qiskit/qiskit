@@ -103,15 +103,15 @@ class DummyJob(BaseJob):
         return self._future.cancel()
 
     def status(self):
-        if self.running:
+        if self._running:
             _status = JobStatus.RUNNING
-        elif not self.done:
+        elif not self._done:
             _status = JobStatus.QUEUED
-        elif self.cancelled:
+        elif self._cancelled:
             _status = JobStatus.CANCELLED
-        elif self.done:
+        elif self._done:
             _status = JobStatus.DONE
-        elif self.error:
+        elif self._error:
             _status = JobStatus.ERROR
         else:
             raise Exception('Unexpected state of {0}'.format(
@@ -121,25 +121,19 @@ class DummyJob(BaseJob):
                 'status_msg': _status_msg}
 
     @property
-    def cancelled(self):
+    def _cancelled(self):
         return self._future.cancelled()
 
     @property
-    def done(self):
+    def _done(self):
         return self._future.done()
 
     @property
-    def running(self):
+    def _running(self):
         return self._future.running()
 
     @property
-    def error(self):
-        """
-        Return Exception object if exception occured else None.
-
-        Returns:
-            Exception: exception raised by attempting to run job.
-        """
+    def _error(self):
         return self._future.exception(timeout=0)
 
 

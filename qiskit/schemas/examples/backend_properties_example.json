@@ -3,19 +3,17 @@
     "backend_version": "1.1.1",
     "last_update_date": "2018-04-02 15:00:00Z",
     "qubits": [
-        {
-            "parameters": [
-                {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
-                {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
-                {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "GHz", "value": 5.2}
-                            ]
-        },
-        {
-            "parameters": [
-                {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
-                {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
-                {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 5.2}]
-        }],
+        [
+            {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "GHz", "value": 5.2}
+        ],
+        [
+            {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 5.2}
+        ]
+    ],
     "gates": [
         {"qubits": [0], "gate": "u2", "parameters": [
                 {"name": "gateerr", "date": "2018-04-02 15:00:00Z", "unit": "None", "value": 0.002}]

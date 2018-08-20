@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 import unittest
 
@@ -14,7 +14,9 @@ from qiskit import (QuantumProgram, load_qasm_string, mapper, qasm, unroll)
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
-from qiskit.mapper._mapping import remove_last_measurements
+from qiskit.mapper._compiling import two_qubit_kak
+from qiskit.tools.qi.qi import random_unitary_matrix
+from qiskit.mapper._mapping import remove_last_measurements, MapperError
 from .common import QiskitTestCase
 
 
@@ -46,19 +48,20 @@ class MapperTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.qp = QuantumProgram()
+        self.qprogram = QuantumProgram()
 
     def test_mapper_overoptimization(self):
         """
         The mapper should not change the semantics of the input. An overoptimization introduced
         the issue #81: https://github.com/QISKit/qiskit-terra/issues/81
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'), name='test')
+        self.qprogram.load_qasm_file(
+            self._get_resource_path('qasm/overoptimization.qasm'), name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = self.qp.execute(["test"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map)
+        result1 = self.qprogram.execute(["test"], backend="local_qasm_simulator",
+                                        coupling_map=coupling_map)
         count1 = result1.get_counts("test")
-        result2 = self.qp.execute(["test"], backend="local_qasm_simulator", coupling_map=None)
+        result2 = self.qprogram.execute(["test"], backend="local_qasm_simulator", coupling_map=None)
         count2 = result2.get_counts("test")
         self.assertEqual(count1.keys(), count2.keys(), )
 
@@ -68,12 +71,13 @@ class MapperTest(QiskitTestCase):
         avoided.
         See: https://github.com/QISKit/qiskit-terra/issues/111
         """
-        self.qp.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'), name='test')
+        self.qprogram.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'),
+                                     name='test')
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        result = self.qp.execute("test", backend="local_qasm_simulator",
-                                 coupling_map=coupling_map,
-                                 seed=self.seed, shots=shots)
+        result = self.qprogram.execute("test", backend="local_qasm_simulator",
+                                       coupling_map=coupling_map,
+                                       seed=self.seed, shots=shots)
         counts = result.get_counts("test")
         target = {'0001': shots / 2, '0101':  shots / 2}
         threshold = 0.04 * shots
@@ -84,10 +88,10 @@ class MapperTest(QiskitTestCase):
 
         See: https://github.com/QISKit/qiskit-terra/issues/159
         """
-        self.qp = QuantumProgram()
-        qr = self.qp.create_quantum_register('qr', 2)
-        cr = self.qp.create_classical_register('cr', 2)
-        qc = self.qp.create_circuit('Bell', [qr], [cr])
+        self.qprogram = QuantumProgram()
+        qr = self.qprogram.create_quantum_register('qr', 2)
+        cr = self.qprogram.create_classical_register('cr', 2)
+        qc = self.qprogram.create_circuit('Bell', [qr], [cr])
         qc.h(qr[0])
         qc.cx(qr[1], qr[0])
         qc.cx(qr[1], qr[0])
@@ -97,18 +101,18 @@ class MapperTest(QiskitTestCase):
         backend = 'local_qasm_simulator'
         coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
         initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
-        qobj = self.qp.compile(["Bell"], backend=backend,
-                               initial_layout=initial_layout, coupling_map=coupling_map)
+        qobj = self.qprogram.compile(["Bell"], backend=backend,
+                                     initial_layout=initial_layout, coupling_map=coupling_map)
 
-        self.assertEqual(self.qp.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
+        self.assertEqual(self.qprogram.get_compiled_qasm(qobj, "Bell"), EXPECTED_QASM_1Q_GATES_3_5)
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
-        self.qp.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
+        self.qprogram.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'), name='rand')
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
-        result1 = self.qp.execute(["rand"], backend="local_qasm_simulator",
-                                  coupling_map=coupling_map, shots=shots, seed=self.seed)
+        result1 = self.qprogram.execute(["rand"], backend="local_qasm_simulator",
+                                        coupling_map=coupling_map, shots=shots, seed=self.seed)
         counts = result1.get_counts("rand")
         expected_probs = {
             '00000': 0.079239867254200971,
@@ -201,10 +205,10 @@ class MapperTest(QiskitTestCase):
 
         See: https://github.com/QISKit/qiskit-terra/issues/342
         """
-        self.qp = QuantumProgram()
-        qr = self.qp.create_quantum_register('qr', 16)
-        cr = self.qp.create_classical_register('cr', 16)
-        qc = self.qp.create_circuit('native_cx', [qr], [cr])
+        self.qprogram = QuantumProgram()
+        qr = self.qprogram.create_quantum_register('qr', 16)
+        cr = self.qprogram.create_classical_register('cr', 16)
+        qc = self.qprogram.create_circuit('native_cx', [qr], [cr])
         qc.cx(qr[3], qr[14])
         qc.cx(qr[5], qr[4])
         qc.h(qr[9])
@@ -220,7 +224,7 @@ class MapperTest(QiskitTestCase):
                         [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
                         [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
                         [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
-        qobj = self.qp.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
+        qobj = self.qprogram.compile(["native_cx"], backend=backend, coupling_map=coupling_map)
         cx_qubits = [x.qubits
                      for x in qobj.experiments[0].instructions
                      if x.name == "cx"]
@@ -233,10 +237,10 @@ class MapperTest(QiskitTestCase):
         See: https://github.com/QISKit/qiskit-terra/issues/607
         """
         backend = FakeQX4BackEnd()
-        circ1 = load_qasm_string(yzy_zyz_1)
+        circ1 = load_qasm_string(YZY_ZYZ_1)
         qobj1 = qiskit.wrapper.compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
-        circ2 = load_qasm_string(yzy_zyz_2)
+        circ2 = load_qasm_string(YZY_ZYZ_2)
         qobj2 = qiskit.wrapper.compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
@@ -257,6 +261,17 @@ class MapperTest(QiskitTestCase):
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))
+
+    def test_kak_decomposition(self):
+        """Verify KAK decomposition for random Haar unitaries.
+        """
+        for _ in range(100):
+            unitary = random_unitary_matrix(4)
+            with self.subTest(unitary=unitary):
+                try:
+                    two_qubit_kak(unitary, verify_gate_sequence=True)
+                except MapperError as ex:
+                    self.fail(str(ex))
 
 
 # QASMs expected by the tests.
@@ -324,7 +339,7 @@ u1(pi) qr[0];
 u1((0.3+(-pi))^2) qr[0];
 measure qr[0] -> cr[0];"""
 
-yzy_zyz_1 = """OPENQASM 2.0;
+YZY_ZYZ_1 = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr[2];
 cx qr[0],qr[1];
@@ -332,7 +347,7 @@ rz(0.7) qr[1];
 rx(1.570796) qr[1];
 """
 
-yzy_zyz_2 = """OPENQASM 2.0;
+YZY_ZYZ_2 = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr[2];
 y qr[0];

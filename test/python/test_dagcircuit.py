@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 """Test for the DAGCircuit object"""
 
@@ -17,8 +17,6 @@ from .common import QiskitTestCase
 
 class TestDagCircuit(QiskitTestCase):
     """QasmParser"""
-    def setUp(self):
-        self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
 
     def test_create(self):
         qubit0 = ('qr', 0)
