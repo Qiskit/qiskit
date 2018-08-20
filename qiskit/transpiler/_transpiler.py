@@ -9,7 +9,6 @@
 from copy import deepcopy
 import logging
 import uuid
-import sys
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -217,7 +216,7 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
         # TODO: after transition to qobj, we can drop this
         experiment.header.compiled_circuit_qasm = dag.qasm(qeflag=True, eval_symbols=True)
         # Step 3c: add the Experiment to the Qobj
-        qobj.experiments = exps
+        qobj.experiments.append(experiment)
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
