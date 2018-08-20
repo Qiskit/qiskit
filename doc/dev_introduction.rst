@@ -74,7 +74,7 @@ Several unroller backends and their outputs are summarized here:
 
 
 Logging
--------
+=======
 
 The SDK uses the `standard Python "logging" library
 <https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
@@ -125,7 +125,7 @@ the messages. For example, if the module is `qiskit/some/module.py`:
 
 
 Testing
--------
+=======
 
 The SDK uses the `standard Pyton "unittest" framework
 <https://docs.python.org/3/library/unittest.html>`_ for the testing of the
@@ -195,7 +195,20 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-Additionally, an environment variable ``SKIP_ONLINE_TESTS`` can be used for
-toggling the execution of the tests that require network access to the API and
-``SKIP_SLOW_TESTS`` can be used to toggling execution of tests that are
-particularly slow (default is ``True``).
+Testing options
+===============
+
+By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
+If user credentials are found, in that cases it use them to make the network requests.
+
+How and which tests are executed is controlled by a environment variable `QISKIT_TESTS`. The options are (where `uc_available = True` if the user credentials are available, and `False` otherwise): 
+
+| Option        | Description   | Default | If `True`, forces |
+| ------------- |--------------| -----| -----| 
+| `skip_online` | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | `False`| `rec = False` 
+| `mock_online` | It runs the online tests using mocked information. Does not require user credentials. | `not uc_available` |  `skip_online = False`
+| `run_slow`   | It runs tests tagged as *slow*. | `False` |  |
+| `rec`		   | It records the remote requests. It requires user credentials.  | `False` |`skip_online = False` `run_slow  = False`
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example, `QISKIT_TESTS=skip_online,rec` will set the options as `skip_online == False` and `rec == True`.	
