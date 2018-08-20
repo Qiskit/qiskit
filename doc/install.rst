@@ -82,16 +82,15 @@ To store your information, simply run:
 
 where `MY_API_TOKEN` should be replaced with your token.
 
-If you are on the IBM Q network, you must also pass `url`,
-`hub`, `group`, and `project` arguments to `store_credentials`:
-
+If you are on the IBM Q network, you must also pass the `url` 
+argument found on your q-console account page to `store_credentials`:
 
 .. code:: python
 
     from qiskit import store_credentials
 
-    store_credentials('MY_API_TOKEN', url='http://...', hub='HUB',
-                      group='GROUP', project='PROJECT')
+    store_credentials('MY_API_TOKEN', url='https://...')
+
 
 3.1.2 Load API credentials from environment variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -102,9 +101,6 @@ variables:
 
 * `QE_TOKEN`,
 * `QE_URL`
-* `QE_HUB`
-* `QE_GROUP`
-* `QE_PROJECT`.
 
 Note that if they are present in your environment, they will take precedence
 over the credentials stored in disk.

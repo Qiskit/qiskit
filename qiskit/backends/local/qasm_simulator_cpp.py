@@ -72,7 +72,9 @@ class QasmSimulatorCpp(BaseBackend):
 
     def run(self, qobj):
         """Run a qobj on the backend."""
-        return LocalJob(self._run_job, qobj)
+        local_job = LocalJob(self._run_job, qobj)
+        local_job.submit()
+        return local_job
 
     def _run_job(self, qobj):
         self._validate(qobj)
@@ -129,7 +131,9 @@ class CliffordSimulatorCpp(BaseBackend):
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, qobj)
+        local_job = LocalJob(self._run_job, qobj)
+        local_job.submit()
+        return local_job
 
     def _run_job(self, qobj):
         self._validate()

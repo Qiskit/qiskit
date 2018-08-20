@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 """Tests for visualization tools."""
 
@@ -61,14 +61,14 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 operands = random.sample(remaining_qubits, num_operands)
                 remaining_qubits = [q for q in remaining_qubits if q not in operands]
                 if num_operands == 1:
-                    op = random.choice(one_q_ops.split(','))
+                    operation = random.choice(one_q_ops.split(','))
                 elif num_operands == 2:
-                    op = random.choice(two_q_ops.split(','))
+                    operation = random.choice(two_q_ops.split(','))
                 elif num_operands == 3:
-                    op = random.choice(three_q_ops.split(','))
+                    operation = random.choice(three_q_ops.split(','))
                 # every gate is defined as a method of the QuantumCircuit class
                 # the code below is so we can call a gate by its name
-                gate = getattr(qiskit.QuantumCircuit, op)
+                gate = getattr(qiskit.QuantumCircuit, operation)
                 op_args = list(signature(gate).parameters.keys())
                 num_angles = len(op_args) - num_operands - 1    # -1 for the 'self' arg
                 angles = [random.uniform(0, 3.14) for x in range(num_angles)]
@@ -129,25 +129,25 @@ class TestLatexSourceGenerator(QiskitTestCase):
 
     def test_teleport(self):
         filename = self._get_resource_path('test_teleport.tex')
-        q = qiskit.QuantumRegister(3, 'q')
-        c = qiskit.ClassicalRegister(3, 'c')
-        qc = qiskit.QuantumCircuit(q, c)
+        qr = qiskit.QuantumRegister(3, 'q')
+        cr = qiskit.ClassicalRegister(3, 'c')
+        qc = qiskit.QuantumCircuit(qr, cr)
         # Prepare an initial state
-        qc.u3(0.3, 0.2, 0.1, q[0])
+        qc.u3(0.3, 0.2, 0.1, qr[0])
         # Prepare a Bell pair
-        qc.h(q[1])
-        qc.cx(q[1], q[2])
+        qc.h(qr[1])
+        qc.cx(qr[1], qr[2])
         # Barrier following state preparation
-        qc.barrier(q)
+        qc.barrier(qr)
         # Measure in the Bell basis
-        qc.cx(q[0], q[1])
-        qc.h(q[0])
-        qc.measure(q[0], c[0])
-        qc.measure(q[1], c[1])
+        qc.cx(qr[0], qr[1])
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
         # Apply a correction
-        qc.z(q[2]).c_if(c, 1)
-        qc.x(q[2]).c_if(c, 2)
-        qc.measure(q[2], c[2])
+        qc.z(qr[2]).c_if(cr, 1)
+        qc.x(qr[2]).c_if(cr, 2)
+        qc.measure(qr[2], cr[2])
         try:
             generate_latex_source(qc, filename)
             self.assertNotEqual(os.path.exists(filename), False)
