@@ -178,16 +178,19 @@ class TestQI(QiskitTestCase):
     def test_shannon_entropy(self):
         input_pvec = np.array([0.5, 0.3, 0.07, 0.1, 0.03])
         # Base 2
-        self.assertEqual(1.7736043871504037, shannon_entropy(input_pvec))
+        self.assertAlmostEqual(1.7736043871504037,
+                               shannon_entropy(input_pvec))
         # Base e
-        self.assertEqual(1.229368880382052, shannon_entropy(input_pvec, np.e))
+        self.assertAlmostEqual(1.229368880382052,
+                               shannon_entropy(input_pvec, np.e))
         # Base 10
-        self.assertEqual(0.533908120973504, shannon_entropy(input_pvec, 10))
+        self.assertAlmostEqual(0.533908120973504,
+                               shannon_entropy(input_pvec, 10))
 
     def test_entropy(self):
         input_density_matrix = np.array([[0.5, 0.0], [0.0, 0.5]])
         res = entropy(input_density_matrix)
-        self.assertEqual(0.6931471805599453, res)
+        self.assertAlmostEqual(0.6931471805599453, res)
 
     def test_entropy_1d(self):
         input_vector = np.array([0.5, 1, 0])
@@ -200,7 +203,7 @@ class TestQI(QiskitTestCase):
                                 [0.5, 0.5, 0.5, 0.5],
                                 [0, 1, 0, 1]])
         res = mutual_information(input_state, 2)
-        self.assertEqual(-0.15821825498448047, res)
+        self.assertAlmostEqual(-0.15821825498448047, res)
 
     def test_entanglement_of_formation(self):
         input_state = np.array([[0.5, 0.25, 0.75, 1],
@@ -208,12 +211,12 @@ class TestQI(QiskitTestCase):
                                 [0.5, 0.5, 0.5, 0.5],
                                 [0, 1, 0, 1]])
         res = entanglement_of_formation(input_state, 2)
-        self.assertAlmostEqual(0.6985340217364572, res, 5)
+        self.assertAlmostEqual(0.6985340217364572, res)
 
     def test_entanglement_of_formation_1d_input(self):
         input_state = np.array([0.5, 0.25, 0.75, 1])
         res = entanglement_of_formation(input_state, 2)
-        self.assertEqual(0.15687647805861626, res)
+        self.assertAlmostEqual(0.15687647805861626, res)
 
     def test_entanglement_of_formation_invalid_input(self):
         input_state = np.array([[0, 1], [1, 0]])
@@ -226,7 +229,7 @@ class TestQI(QiskitTestCase):
                               [0.5, 0.5, 0.5, 0.5],
                               [0, 1, 0, 1]])
         res = eof_qubit(input_rho)
-        self.assertAlmostEqual(0.6985340217364572, res, 5)
+        self.assertAlmostEqual(0.6985340217364572, res)
 
     def test_is_pos_def(self):
         input_x = np.array([[1, 0],
