@@ -68,6 +68,7 @@ class QiskitTestCase(unittest.TestCase):
             level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'),
                                              logging.INFO)
             cls.log.setLevel(level)
+            cls.log.debug("QISKIT_TESTS: %s", str(TEST_OPTIONS))
 
     def tearDown(self):
         # Reset the default provider, as in practice it acts as a singleton
@@ -362,7 +363,6 @@ def requires_qe_access(func):
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
-        self.log.debug("QISKIT_TESTS: %s", str(TEST_OPTIONS))
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
@@ -389,5 +389,4 @@ def _get_http_recorder(test_options):
 
 
 TEST_OPTIONS = get_test_options()
-print('QISKIT_TESTS: %s' % TEST_OPTIONS)
 VCR = _get_http_recorder(TEST_OPTIONS)
