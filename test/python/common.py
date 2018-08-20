@@ -381,6 +381,7 @@ def requires_qe_access(func):
 
     return _wrapper
 
+
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
