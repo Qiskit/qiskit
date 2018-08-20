@@ -26,11 +26,10 @@ from io import StringIO
 from itertools import groupby, zip_longest
 from math import fmod, isclose, ceil
 
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageChops
-from matplotlib import get_backend as get_matplotlib_backend
+from matplotlib import get_backend as get_matplotlib_backend, \
+    patches as patches, pyplot as plt
 
 from qiskit import QuantumCircuit, QISKitError, load_qasm_file
 from qiskit.qasm import Qasm
