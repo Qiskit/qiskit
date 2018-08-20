@@ -66,4 +66,26 @@ def get_test_options(option_var='QISKIT_TESTS'):
 
         set_flag(flag)
 
+    if _is_ci_fork_pull_request():
+        set_flag('skip_online')
+
     return tests_options
+
+def _is_ci_fork_pull_request():
+    """
+    Check if the tests are being run in a CI environment and if it is a pull
+    request.
+
+    Returns:
+        bool: True if the tests are executed inside a CI tool, and the changes
+            are not against the "master" branch.
+    """
+    if os.getenv('TRAVIS'):
+        # Using Travis CI.
+        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
+            return True
+    elif os.getenv('APPVEYOR'):
+        # Using AppVeyor CI.
+        if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
+            return True
+    return False
