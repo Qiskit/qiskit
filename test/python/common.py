@@ -370,13 +370,13 @@ def requires_qe_access(func):
         qiskit_wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
         kwargs.update(_get_credentials(self, TEST_OPTIONS))
 
-        decorated_item = func
+        decorated_func = func
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
             # For recording or for replaying existing cassettes, the test should be decorated with
             # use_cassette.
-            decorated_item = VCR.use_cassette()(decorated_item)
+            decorated_func = VCR.use_cassette()(decorated_func)
 
-        return decorated_item(self, *args, **kwargs)
+        return decorated_func(self, *args, **kwargs)
 
     return _wrapper
 
