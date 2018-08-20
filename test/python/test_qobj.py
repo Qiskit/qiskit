@@ -10,6 +10,7 @@ import unittest
 import json
 import jsonschema
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction)
+from qiskit.backends.local import localjob
 from .common import QiskitTestCase, Path
 
 
@@ -50,9 +51,9 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
-        file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
+        schema_file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
 
-        with open(file_path, 'r') as schema_file:
+        with open(schema_file_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
         try:
@@ -87,3 +88,6 @@ class TestQobj(QiskitTestCase):
         for qobj_class, (qobj, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
+
+    def test_ibmqobj_raises_when_sending_bad_qobj(self):
+        x = localjob.LocalJob(None, self.valid_qobj)
