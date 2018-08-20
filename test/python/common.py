@@ -32,9 +32,11 @@ class Path(Enum):
     # test.python path: qiskit/test/python/
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
-    EXAMPLES = os.path.join(SDK, '../examples')
+    EXAMPLES = os.path.join(SDK, '..', 'examples')
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.join(SDK, 'schemas')
+    # VCR cassettes path: qiskit/test/cassettes/
+    CASSETTES = os.path.join(TEST, '..', 'cassettes')
 
 
 class QiskitTestCase(unittest.TestCase):
@@ -403,7 +405,7 @@ def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
         vcr_mode = 'all'
-    return http_recorder(vcr_mode)
+    return http_recorder(vcr_mode, Path.CASSETTES.value)
 
 
 TEST_OPTIONS = get_test_options()

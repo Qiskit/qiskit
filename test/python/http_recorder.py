@@ -180,18 +180,19 @@ class IdRemoverPersister(FilesystemPersister):
                                                                     serializer)
 
 
-def http_recorder(vcr_mode):
+def http_recorder(vcr_mode, cassette_dir):
     """
     Creates a VCR object in vcr_mode mode.
 
     Args:
         vcr_mode (string): the parameter for record_mode.
+        cassette_dir (string): path to the cassettes.
 
     Returns:
         VCR: a VCR object.
     """
     my_vcr = VCR(
-        cassette_library_dir='test/cassettes',
+        cassette_library_dir=cassette_dir,
         record_mode=vcr_mode,
         match_on=['method', 'scheme', 'host', 'port', 'path', 'unordered_query'],
         filter_headers=['x-qx-client-application', 'User-Agent'],
