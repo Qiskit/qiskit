@@ -8,6 +8,7 @@
 """Utils for transpiler."""
 
 from ._passmanager import PassManager
+from ._propertyset import PropertySet
 from ._transpilererror import TranspilerError
 
 # pylint: disable=redefined-builtin
