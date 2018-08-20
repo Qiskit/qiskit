@@ -9,7 +9,6 @@
 
 from concurrent import futures
 import logging
-import sys
 import functools
 
 from qiskit.backends import BaseJob, JobStatus, JobError
@@ -43,10 +42,7 @@ class LocalJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    if sys.platform in ['darwin', 'win32']:
-        _executor = futures.ThreadPoolExecutor()
-    else:
-        _executor = futures.ProcessPoolExecutor()
+    _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, fn, qobj):
         super().__init__()
