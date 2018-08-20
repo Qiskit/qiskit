@@ -72,6 +72,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     print('QISKIT_TESTS: %s' % tests_options)
     return tests_options
 
+
 def _is_ci_fork_pull_request():
     """
     Check if the tests are being run in a CI environment and if it is a pull
