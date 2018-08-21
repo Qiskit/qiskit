@@ -198,17 +198,23 @@ Windows:
 Testing options
 ===============
 
-By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a `test/cassettes` and not real HTTP requests is generated.
+By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a ``test/cassettes`` and not real HTTP requests is generated.
 If user credentials are found, in that cases it use them to make the network requests.
 
-How and which tests are executed is controlled by a environment variable `QISKIT_TESTS`. The options are (where `uc_available = True` if the user credentials are available, and `False` otherwise): 
+How and which tests are executed is controlled by a environment variable ``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user credentials are available, and ``False`` otherwise): 
 
-| Option        | Description   | Default | If `True`, forces |
-| ------------- |--------------| -----| -----| 
-| `skip_online` | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | `False`| `rec = False` 
-| `mock_online` | It runs the online tests using mocked information. Does not require user credentials. | `not uc_available` |  `skip_online = False`
-| `run_slow`   | It runs tests tagged as *slow*. | `False` |  |
-| `rec`		   | It records the remote requests. It requires user credentials.  | `False` |`skip_online = False` `run_slow  = False`
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+|  Option           | Description                                                                                                        | Default               |  If ``True``, forces                             |
++===================+====================================================================================================================+=======================+==================================================+
+| ``skip_online``   | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False``             | ``rec = False``                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``mock_online``   | It runs the online tests using mocked information. Does not require user credentials.                              | ``not uc_available``  | ``skip_online = False``                          |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``run_slow``      | It runs tests tagged as *slow*.                                                                                    | ``False``             |                                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``rec``           | It records the remote requests. It requires user credentials.                                                      | ``False``             | ``skip_online = False``                          |
+|                   |                                                                                                                    |                       | ``run_slow = False``                             |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
 
 It is possible to provide more than one option separated with commas.
-The order of precedence in the options is right to left. For example, `QISKIT_TESTS=skip_online,rec` will set the options as `skip_online == False` and `rec == True`.	
+The order of precedence in the options is right to left. For example, ``QISKIT_TESTS=skip_online,rec`` will set the options as ``skip_online == False`` and ``rec == True``.	
