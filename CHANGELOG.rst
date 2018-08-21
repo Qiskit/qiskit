@@ -25,6 +25,7 @@ Added
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
 
 Changed
