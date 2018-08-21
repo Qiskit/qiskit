@@ -219,10 +219,15 @@ def _linux_hardware_info():
 def _win_hardware_info():
     """Returns system info on Windows.
     """
-    import comtypes
-    from comtypes.client import CoGetObject
     results = {'os': 'Windows'}
     try:
+        from comtypes.client import CoGetObject
+
+    except ImportError:
+        ncpus = int(multiprocessing.cpu_count())
+        results.update({'cpus': ncpus})
+
+    else:
         winmgmts_root = CoGetObject("winmgmts:root\\cimv2")
         cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
         ncpus = 0
@@ -232,18 +237,15 @@ def _win_hardware_info():
             if not freq:
                 freq = int(cpu.Properties_['MaxClockSpeed'].Value)
         results.update({'cpu_freq': freq})
-    except comtypes.COMError:
         ncpus = int(multiprocessing.cpu_count())
-    results.update({'cpus': ncpus})
-    try:
+        results.update({'cpus': ncpus})
         mem = winmgmts_root.ExecQuery("Select * from Win32_ComputerSystem")
         tot_mem = 0
         for item in mem:
             tot_mem += int(item.Properties_['TotalPhysicalMemory'].Value)
         tot_mem = int(tot_mem / 1024**2)
         results.update({'memsize': tot_mem})
-    except KeyError:
-        pass
+
     return results
 
 
