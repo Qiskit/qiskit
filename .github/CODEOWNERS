@@ -8,7 +8,7 @@
 
 # Generic rule for the repository. This pattern is actually the one that will
 # apply unless specialized by a later rule
-* @ajavadia @ewinston @atilag @delapuente @diego-plan9
+* @ajavadia @ewinston @atilag @delapuente @diego-plan9 @nonhermitian
 
 # Individual folders on root directory
 /cmake     @ajavadia @atilag @diego-plan9
