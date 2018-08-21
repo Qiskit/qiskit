@@ -25,6 +25,8 @@ Added
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- New interactive visualizations (#765).
+- Added option to reverse the qubit order when plotting a circuit. (#762, #786)
 
 Changed
 -------
@@ -36,6 +38,7 @@ Changed
     - update the local simulators for accepting ``Qobj`` as input. (#667)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
+- ``Jobs`` API simplification and breaking changes. (#686)
 
 Removed
 -------
@@ -50,6 +53,7 @@ Fixed
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
+- Fixed the issue with control lines spanning through several classical registers. (#762).
 
 `0.5.6`_ - 2018-07-06
 =====================
