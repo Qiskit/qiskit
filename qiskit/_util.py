@@ -16,8 +16,6 @@ import sys
 import warnings
 from collections import UserDict
 import multiprocessing
-import numpy as np
-from qiskit._qiskiterror import QISKitError
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
@@ -219,32 +217,28 @@ def _linux_hardware_info():
 def _win_hardware_info():
     """Returns system info on Windows.
     """
+    from comtypes.client import CoGetObject
+
     results = {'os': 'Windows'}
-    try:
-        from comtypes.client import CoGetObject
+    winmgmts_root = CoGetObject("winmgmts:root\\cimv2")
+    cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
+    ncpus = 0
+    freq = 0
 
-    except ImportError:
-        ncpus = int(multiprocessing.cpu_count())
-        results.update({'cpus': ncpus})
+    for cpu in cpus:
+        ncpus += int(cpu.Properties_['NumberOfCores'].Value)
+        if not freq:
+            freq = int(cpu.Properties_['MaxClockSpeed'].Value)
+    results.update({'cpu_freq': freq})
+    ncpus = int(multiprocessing.cpu_count())
+    results.update({'cpus': ncpus})
+    mem = winmgmts_root.ExecQuery("Select * from Win32_ComputerSystem")
+    tot_mem = 0
 
-    else:
-        winmgmts_root = CoGetObject("winmgmts:root\\cimv2")
-        cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
-        ncpus = 0
-        freq = 0
-        for cpu in cpus:
-            ncpus += int(cpu.Properties_['NumberOfCores'].Value)
-            if not freq:
-                freq = int(cpu.Properties_['MaxClockSpeed'].Value)
-        results.update({'cpu_freq': freq})
-        ncpus = int(multiprocessing.cpu_count())
-        results.update({'cpus': ncpus})
-        mem = winmgmts_root.ExecQuery("Select * from Win32_ComputerSystem")
-        tot_mem = 0
-        for item in mem:
-            tot_mem += int(item.Properties_['TotalPhysicalMemory'].Value)
-        tot_mem = int(tot_mem / 1024**2)
-        results.update({'memsize': tot_mem})
+    for item in mem:
+        tot_mem += int(item.Properties_['TotalPhysicalMemory'].Value)
+    tot_mem = int(tot_mem / 1024**2)
+    results.update({'memsize': tot_mem})
 
     return results
 
@@ -268,19 +262,3 @@ def local_hardware_info():
     else:
         out = {}
     return out
-
-
-def verify_qubit_number(num_qubits):
-    """Determines if an user can run a simulation
-    with a given number of qubits, as set by their
-    system hardware.
-    """
-    local_hardware = local_hardware_info()
-    if 'memsize' in local_hardware.keys():
-        # system memory in MB
-        sys_mem = local_hardware['memsize']
-    else:
-        raise QISKitError('Cannot determine local memory size.')
-    max_qubits = np.log2(sys_mem*(1024**2)/128)
-    if num_qubits > max_qubits:
-        raise QISKitError("Number of qubits exceeds local memory.")
