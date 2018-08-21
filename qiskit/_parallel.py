@@ -51,6 +51,7 @@ from qiskit._util import local_hardware_info
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
 
+
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
                  num_processes=CPU_COUNT):
     """
@@ -75,17 +76,18 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
                     each value in ``values``.
 
     Raises:
-        QISKitError: Invalid progress bar instance.
-
-        KeyboardInterrupt: If user interupts via keyboard.
+        QISKitError: If user interupts via keyboard.
     """
 
     def _callback(x):  # pylint: disable=W0613
         pass
 
-    #Run in parallel if not Win and not in parallel already and len(values) > 1
-    if platform.system() != 'Windows' and os.getenv('QISKIT_IN_PARALLEL') != 'TRUE' \
-        and len(values) > 1:
+    # len(values) == 1
+    if len(values) == 1:
+        return [task(values[0], *task_args, **task_kwargs)]
+
+    # Run in parallel if not Win and not in parallel already
+    if platform.system() != 'Windows' and os.getenv('QISKIT_IN_PARALLEL') != 'TRUE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             pool = Pool(processes=num_processes)

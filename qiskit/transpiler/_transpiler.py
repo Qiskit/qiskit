@@ -139,11 +139,11 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     values = list(zip(dags, initial_layouts))
     final_dags = parallel_map(_transpile_dags_parallel, values,
-                              task_kwargs={'basis_gates':basis_gates,
-                                           'coupling_map':coupling_map,
-                                           'get_layout':True,
-                                           'seed':seed,
-                                           'pass_manager':pass_manager})
+                              task_kwargs={'basis_gates': basis_gates,
+                                           'coupling_map': coupling_map,
+                                           'get_layout': True,
+                                           'seed': seed,
+                                           'pass_manager': pass_manager})
     return final_dags
 
 
@@ -208,28 +208,10 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
     if seed:
         qobj.config.seed = seed
 
-    for dag in dags:
-        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-        # Step 3a: create the Experiment based on json_circuit
-        experiment = QobjExperiment.from_dict(json_circuit)
-        # Step 3b: populate the Experiment configuration and header
-        experiment.header.name = dag.name
-        # TODO: place in header or config?
-        experiment_config = deepcopy(config or {})
-        experiment_config.update({
-            'coupling_map': coupling_map,
-            'basis_gates': basis_gates,
-            'layout': dag.layout,
-            'memory_slots': sum(dag.cregs.values()),
-            # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
-            'n_qubits': sum(dag.qregs.values())})
-        experiment.config = QobjItem(**experiment_config)
-
-        # set eval_symbols=True to evaluate each symbolic expression
-        # TODO: after transition to qobj, we can drop this
-        experiment.header.compiled_circuit_qasm = dag.qasm(qeflag=True, eval_symbols=True)
-        # Step 3c: add the Experiment to the Qobj
-        qobj.experiments.append(experiment)
+    qobj.experiments = parallel_map(_dags_2_qobj_parallel, dags,
+                                    task_kwargs={'basis_gates': basis_gates,
+                                                 'config': config,
+                                                 'coupling_map': coupling_map})
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
@@ -243,6 +225,34 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
                                experiment in qobj.experiments)
 
     return qobj
+
+
+def _dags_2_qobj_parallel(dag, config=None, basis_gates=None,
+                          coupling_map=None):
+    """Helper function for dags to qobj in parallel (if available).
+    """
+    json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
+    # Step 3a: create the Experiment based on json_circuit
+    experiment = QobjExperiment.from_dict(json_circuit)
+    # Step 3b: populate the Experiment configuration and header
+    experiment.header.name = dag.name
+    # TODO: place in header or config?
+    experiment_config = deepcopy(config or {})
+    experiment_config.update({
+        'coupling_map': coupling_map,
+        'basis_gates': basis_gates,
+        'layout': dag.layout,
+        'memory_slots': sum(dag.cregs.values()),
+        # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
+        'n_qubits': sum(dag.qregs.values())})
+    experiment.config = QobjItem(**experiment_config)
+
+    # set eval_symbols=True to evaluate each symbolic expression
+    # TODO: after transition to qobj, we can drop this
+    experiment.header.compiled_circuit_qasm = dag.qasm(
+        qeflag=True, eval_symbols=True)
+    # Step 3c: add the Experiment to the Qobj
+    return experiment
 
 
 def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
