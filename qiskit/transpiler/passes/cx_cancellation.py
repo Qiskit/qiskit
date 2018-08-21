@@ -7,18 +7,15 @@
 
 """Pass for peep-hole cancellation of consecutive CX gates.
 """
-from qiskit.transpiler._basepass import BasePass
+from qiskit.transpiler._basepasses import TransformationPass
 
 
-class CXCancellation(BasePass):
+class CXCancellation(TransformationPass):
     """Cancel back-to-back 'cx' gates in dag."""
 
-    def __init__(self):
-        pass
-
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
-        run one pass of cx cancellation on the circuit
+        Run one pass of cx cancellation on the circuit
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on
