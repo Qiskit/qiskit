@@ -16,6 +16,7 @@ import sys
 import functools
 
 from qiskit.backends import BaseJob, JobStatus, JobError
+from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class LocalJob(BaseJob):
         self._backend_name = qobj.header.backend_name
         self._future = None
 
-        '''
+        # verify the QObj is valid before making requests for computing resources
         sdk = qiskit_path[0]
         # Schemas path:     qiskit/backends/schemas
         schemas_path = os.path.join(sdk, 'schemas')
@@ -70,8 +71,7 @@ class LocalJob(BaseJob):
         try:
             jsonschema.validate(self._qobj.as_dict(), schema)
         except jsonschema.ValidationError as validation_error:
-            self.fail(str(validation_error))
-        '''
+            raise ValueError(validation_error)
 
     def submit(self):
         """Submit the job to the backend for running """
