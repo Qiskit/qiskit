@@ -3,7 +3,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-.PHONY: env env-dev lint test run doc
+.PHONY: env env-dev lint test run doc test_record test_mock
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -28,6 +28,13 @@ style:
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
 	python3 -m unittest discover -s test -v
+
+test_mock:
+	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
+
+test_recording:
+	-rm test/cassettes/*
+	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v

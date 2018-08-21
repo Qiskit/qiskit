@@ -7,3 +7,4 @@ sphinxcontrib-fulltoc==1.2.0
 coverage>=4.4.0
 jsonschema>=2.6,<2.7
 wheel
+vcrpy

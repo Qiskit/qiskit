@@ -39,7 +39,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
 
     def run(self, qobj):
         """Run a qobj on the the backend."""
-        return LocalJob(self._run_job, qobj)
+        local_job = LocalJob(self._run_job, qobj)
+        local_job.submit()
+        return local_job
 
     def _run_job(self, qobj):
         """Run a Qobj on the backend."""
