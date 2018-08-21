@@ -43,15 +43,23 @@ from the multiprocessing library.
 """
 
 import os
-from multiprocessing import Pool, cpu_count
+import platform
+from multiprocessing import Pool
+from qiskit._qiskiterror import QISKitError
+from qiskit._util import local_hardware_info
 
+# Number of local physical cpus
+CPU_COUNT = local_hardware_info()['cpus']
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-                 num_processes=cpu_count()):
+                 num_processes=CPU_COUNT):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
         result = [task(value, *task_args, **task_kwargs) for value in values]
+
+    On Windows this function defaults to a serial implimentation to avoid the
+    overhead from spawning processes in Windows.
 
     Parameters:
         task (func): Function that is to be called for each value in ``task_vec``.
@@ -72,30 +80,38 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         KeyboardInterrupt: If user interupts via keyboard.
     """
 
-    os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
-
-    def _update_progress_bar(xvar):  # pylint: disable=W0613
+    def _callback(x):  # pylint: disable=W0613
         pass
 
-    try:
-        pool = Pool(processes=num_processes)
+    #Run in parallel if not Win and not in parallel already and len(values) > 1
+    if platform.system() != 'Windows' and os.getenv('QISKIT_IN_PARALLEL') != 'TRUE' \
+        and len(values) > 1:
+        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
+        try:
+            pool = Pool(processes=num_processes)
 
-        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                      _update_progress_bar) for value in values]
+            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
+                                          _callback) for value in values]
 
-        while not all([item.ready() for item in async_res]):
-            for item in async_res:
-                item.wait(timeout=0.1)
+            while not all([item.ready() for item in async_res]):
+                for item in async_res:
+                    item.wait(timeout=0.1)
 
-        pool.terminate()
-        pool.join()
+            pool.terminate()
+            pool.join()
 
-    except KeyboardInterrupt as exept:
+        except KeyboardInterrupt as exept:
+            pool.terminate()
+            pool.join()
+            raise QISKitError(exept)
+
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-        pool.terminate()
-        pool.join()
-        raise exept
+        return [ar.get() for ar in async_res]
 
-    os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-
-    return [ar.get() for ar in async_res]
+    # Cannot do parallel on Windows , if another parallel_map is running in parallel,
+    # or len(values) == 1.
+    results = []
+    for _, value in enumerate(values):
+        result = task(value, *task_args, **task_kwargs)
+        results.append(result)
+    return results

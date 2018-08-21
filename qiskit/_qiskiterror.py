@@ -9,6 +9,8 @@
 Exception for errors raised by the QISKit SDK.
 """
 
+import os
+
 
 class QISKitError(Exception):
     """Base class for errors raised by the QISKit SDK."""
@@ -17,6 +19,8 @@ class QISKitError(Exception):
         """Set the error message."""
         super().__init__(' '.join(message))
         self.message = ' '.join(message)
+        # Reset the state of the parallel flag
+        os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
     def __str__(self):
         """Return the message."""

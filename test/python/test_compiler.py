@@ -405,13 +405,13 @@ class TestCompiler(QiskitTestCase):
         """Test parallel compile.
         """
         backend = FakeBackEnd()
-        q = qiskit.QuantumRegister(16)
-        c = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(q, c)
-        qc.h(q[0])
+        qr = qiskit.QuantumRegister(16)
+        cr = qiskit.ClassicalRegister(2)
+        qc = qiskit.QuantumCircuit(qr, cr)
+        qc.h(qr[0])
         for k in range(1, 15):
-            qc.cx(q[0], q[k])
-        qc.measure(q[5], c[0])
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr[5], cr[0])
         qlist = [qc for k in range(10)]
         qiskit.compile(qlist, backend=backend)
 

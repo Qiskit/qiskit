@@ -22,6 +22,7 @@ from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
+from qiskit._parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +111,7 @@ def _circuits_2_dags(circuits):
         list[DAGCircuit]: the dag representation of the circuits
         to be used in the transpiler
     """
-    dags = []
-    for circuit in circuits:
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
-        dags.append(dag)
+    dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
     return dags
 
 
@@ -138,20 +136,35 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         TranspilerError: if the format is not valid.
     """
-    # TODO: Parallelize this method
-    final_dags = []
-    for dag, initial_layout in zip(dags, initial_layouts):
-        final_dag, final_layout = transpile(
-            dag,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=initial_layout,
-            get_layout=True,
-            seed=seed,
-            pass_manager=pass_manager)
-        final_dag.layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-        final_dags.append(final_dag)
+
+    values = list(zip(dags, initial_layouts))
+    final_dags = parallel_map(_transpile_dags_parallel, values,
+                              task_kwargs={'basis_gates':basis_gates,
+                                           'coupling_map':coupling_map,
+                                           'get_layout':True,
+                                           'seed':seed,
+                                           'pass_manager':pass_manager})
     return final_dags
+
+
+def _transpile_dags_parallel(value, **kwargs):
+    """Helper function for transpiling in parallel (if available).
+
+    Here value is the list pair [dag, initial_layout].
+    """
+    dag = value[0]
+    initial_layout = value[1]
+    final_dag, final_layout = transpile(
+        dag,
+        basis_gates=kwargs['basis_gates'],
+        coupling_map=kwargs['coupling_map'],
+        initial_layout=initial_layout,
+        get_layout=kwargs['get_layout'],
+        seed=kwargs['seed'],
+        pass_manager=kwargs['pass_manager'])
+    final_dag.layout = [[k, v]
+                        for k, v in final_layout.items()] if final_layout else None
+    return final_dag
 
 
 def _dags_2_qobj(dags, backend_name, config=None, shots=None,
