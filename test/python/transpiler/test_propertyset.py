@@ -13,7 +13,7 @@ from ..common import QiskitTestCase
 
 
 class TestPropertySet(QiskitTestCase):
-
+    """ Tests for PropertySet methods. """
     def setUp(self):
         self.pset = PropertySet()
 
