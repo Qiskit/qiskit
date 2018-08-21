@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 from sys import version_info
 import unittest
@@ -21,7 +21,7 @@ class UnrollerTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.qp = QuantumProgram()
+        self.qprogram = QuantumProgram()
 
     @unittest.skipIf(version_info.minor == 5, "Python 3.5 dictionaries don't preserve \
                                                insertion order, so we need to skip this \

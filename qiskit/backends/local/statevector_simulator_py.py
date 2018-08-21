@@ -53,7 +53,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         Returns:
             LocalJob: derived from BaseJob
         """
-        return LocalJob(self._run_job, qobj)
+        local_job = LocalJob(self._run_job, qobj)
+        local_job.submit()
+        return local_job
 
     def _run_job(self, qobj):
         """Run a Qobj on the backend."""

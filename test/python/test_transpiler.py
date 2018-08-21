@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name
 
 # Copyright 2018, IBM.
 #
@@ -26,15 +25,15 @@ class TestTranspiler(QiskitTestCase):
 
         It should perform no transformations on the circuit.
         """
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q)
-        circ.h(q[0])
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        qr = QuantumRegister(2)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
         resources_before = dag_circuit.count_ops()
 
         pass_manager = PassManager()
@@ -50,24 +49,24 @@ class TestTranspiler(QiskitTestCase):
         unroll, swap_mapper, direction_mapper, cx cancellation, optimize_1q_gates
         and should be equivalent to using wrapper.compile
         """
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q)
-        circ.h(q[0])
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
+        qr = QuantumRegister(2)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
 
         coupling_map = [[1, 0]]
         basis_gates = 'u1,u2,u3,cx,id'
 
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
         dag_circuit = transpile(dag_circuit, coupling_map=coupling_map,
                                 basis_gates=basis_gates, pass_manager=None)
         transpiler_json = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
 
-        qobj = wrapper.compile(circ, backend='local_qasm_simulator',
+        qobj = wrapper.compile(circuit, backend='local_qasm_simulator',
                                coupling_map=coupling_map, basis_gates=basis_gates)
         compiler_json = qobj.experiments[0].as_dict()
 
@@ -83,17 +82,17 @@ class TestTranspiler(QiskitTestCase):
 
         It should cancel consecutive cx pairs on same qubits.
         """
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q)
-        circ.h(q[0])
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[0], q[1])
-        circ.cx(q[1], q[0])
-        circ.cx(q[1], q[0])
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        qr = QuantumRegister(2)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[1], qr[0])
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
 
         pass_manager = PassManager()
         pass_manager.add_pass(CXCancellation())

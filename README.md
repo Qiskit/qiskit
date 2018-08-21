@@ -4,7 +4,6 @@
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
 [![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
 
-
 The Quantum Information Science Kit (**Qiskit** for short) is a software development kit (SDK) for
 working with [OpenQASM](https://github.com/Qiskit/qiskit-openqasm) and the
 [IBM Q Experience (QX)](https://quantumexperience.ng.bluemix.net/).
@@ -42,11 +41,11 @@ In addition, a basic understanding of quantum information is very helpful when i
 Qiskit. If you're new to quantum, start with our
 [User Guides](https://github.com/Qiskit/ibmqx-user-guides)!
 
-### Installation
+### Instructions
 
 We encourage to install Qiskit via the PIP tool (a python package manager):
 
-```
+```bash
 pip install qiskit
 ```
 
@@ -61,7 +60,6 @@ PIP package comes with prebuilt binaries for these platforms:
 If your platform is not in the list, PIP will try to build from the sources at installation time. It will require to have CMake 3.5 or higher pre-installed and at least one of the [build environments supported by CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html).
 
 If during the installation PIP doesn't succeed to build, don't worry, you will have Qiskit installed at the end but you probably couldn't take advantage of some of the high-performance components. Anyway, we always provide a python, not-so-fast alternative as a fallback.
-
 
 #### Setup your environment
 
@@ -110,7 +108,7 @@ print(sim_result.get_counts(qc))
 
 In this case, the output will be:
 
-```
+```python
 COMPLETED
 {'counts': {'00': 512, '11': 512}}
 ```
@@ -124,7 +122,6 @@ You can also use Qiskit to execute your code on a
 [real quantum chip](https://github.com/Qiskit/ibmqx-backend-information).
 In order to do so, you need to configure the SDK for using the credentials in
 your IBM Q Experience account:
-
 
 #### Configure your API token and QX credentials
 
@@ -143,8 +140,7 @@ your IBM Q Experience account:
    ```
 
 4. If you have access to the IBM Q Network features, you also need to pass the
-   values for your url, hub, group, and project found on your IBM Q account
-   page to `store_credentials`.
+   url listed on your IBM Q account page to `store_credentials`.
 
 After calling `store_credentials()`, your credentials will be stored into disk.
 Once they are stored, Qiskit will automatically load and use them in your program
@@ -161,7 +157,6 @@ the IBM QX credentials, such as using environment variables, sending them
 explicitly and support for the `Qconfig.py` method available in previous
 versions, please check
 [our Qiskit documentation](https://www.qiskit.org/documentation/).
-
 
 ### Next Steps
 
