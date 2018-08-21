@@ -8,7 +8,9 @@
 """ A property set is handle by the PassManager to keep information about the current state of
 the  circuit """
 
+
 class PropertySet:
+    """ A dictionary-like object """
     def __init__(self):
         self._properties = {}
 
@@ -26,6 +28,14 @@ class PropertySet:
                 self._property_fixed_point[key] = self._properties[key] == value
             self._properties[key] = value
 
-    def fixed_point(self, property):
-        """Returns true when property reaches a fixed point"""
-        return self._property_fixed_point.get(property, False)
+    def fixed_point(self, property_):
+        """
+        Returns true when property_ reaches a fixed point
+
+        Args:
+            property_ (str): Property to check if reached the fixed point.
+
+        Returns:
+            Bool: If property_ reached a fixed point.
+        """
+        return self._property_fixed_point.get(property_, False)
