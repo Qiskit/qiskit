@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 import json
 import unittest
@@ -72,38 +72,38 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         self.backend = QasmSimulatorCpp()
 
     def test_x90_coherent_error_matrix(self):
-        X90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
-        U = x90_error_matrix(0., 0.).dot(X90)
-        target = X90
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10,
+        x90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
+        u_matrix = x90_error_matrix(0., 0.).dot(x90)
+        target = x90
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = x90_error_matrix(np.pi / 2., 0.).dot(X90)
+        u_matrix = x90_error_matrix(np.pi / 2., 0.).dot(x90)
         target = -1j * np.array([[0, 1], [1, 0]])
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = x90_error_matrix(0., np.pi / 2.).dot(X90)
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
+        u_matrix = x90_error_matrix(0., np.pi / 2.).dot(x90)
         target = np.array([[1., -1], [1, 1.]]) / np.sqrt(2.)
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = x90_error_matrix(np.pi / 2, np.pi / 2.).dot(X90)
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
+        u_matrix = x90_error_matrix(np.pi / 2, np.pi / 2.).dot(x90)
         target = np.array([[0., -1], [1, 0.]])
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = x90_error_matrix(0.02, -0.03)
-        self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(2)), 0.0,
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
+        u_matrix = x90_error_matrix(0.02, -0.03)
+        self.assertAlmostEqual(norm(u_matrix.dot(u_matrix.conj().T) - np.eye(2)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_cx_coherent_error_matrix(self):
-        CX = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
-        U = cx_error_matrix(0., 0.).dot(CX)
-        target = CX
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10,
+        cx_matrix = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
+        u_matrix = cx_error_matrix(0., 0.).dot(cx_matrix)
+        target = cx_matrix
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10,
                                msg="identity error matrix")
-        U = cx_error_matrix(np.pi / 2., 0.).dot(CX)
+        u_matrix = cx_error_matrix(np.pi / 2., 0.).dot(cx_matrix)
         target = np.array([[1, 0, 1j, 0],
                            [0, -1j, 0, 1],
                            [1j, 0, 1, 0],
                            [0, 1, 0, -1j]]) / np.sqrt(2)
-        self.assertAlmostEqual(norm(U - target), 0.0, places=10)
-        U = cx_error_matrix(0.03, -0.04)
-        self.assertAlmostEqual(norm(U.dot(U.conj().T) - np.eye(4)), 0.0,
+        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
+        u_matrix = cx_error_matrix(0.03, -0.04)
+        self.assertAlmostEqual(norm(u_matrix.dot(u_matrix.conj().T) - np.eye(4)), 0.0,
                                places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):

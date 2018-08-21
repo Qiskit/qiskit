@@ -88,7 +88,6 @@ class QiskitTestCase(unittest.TestCase):
         Context manager to test that no message is sent to the specified
         logger and level (the opposite of TestCase.assertLogs()).
         """
-        # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
@@ -115,7 +114,6 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -202,7 +200,6 @@ class JobTestCase(QiskitTestCase):
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
         if the shorthand method for that status returns `True`."""
-        # pylint: disable=invalid-name
         self.assertEqual(job.status['status'], status)
         if status == JobStatus.CANCELLED:
             self.assertTrue(job.cancelled)
@@ -254,12 +251,12 @@ def slow_test(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         if SKIP_SLOW_TESTS:
             raise unittest.SkipTest('Skipping slow tests')
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def is_cpp_simulator_available():
@@ -299,9 +296,9 @@ def requires_qe_access(func):
         * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
           set, it reads the credentials from an alternative set of environment
           variables.
-        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
+        * if the test is not skipped, it reads `qe_token` and `qe_url` from
             `Qconfig.py`, environment variables or qiskitrc.
-        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
+        * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
     Args:
         func (callable): test function to be decorated.
@@ -311,8 +308,7 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
-        # pylint: disable=invalid-name
+    def _wrapper(*args, **kwargs):
         if SKIP_ONLINE_TESTS:
             raise unittest.SkipTest('Skipping online tests')
 
@@ -325,8 +321,8 @@ def requires_qe_access(func):
             # load them from different environment variables. This assumes they
             # will always be in place, as is used by the Travis setup.
             kwargs.update({
-                'QE_TOKEN': os.getenv('IBMQ_TOKEN'),
-                'QE_URL': os.getenv('IBMQ_URL')
+                'qe_token': os.getenv('IBMQ_TOKEN'),
+                'qe_url': os.getenv('IBMQ_URL')
             })
             args[0].using_ibmq_credentials = True
         else:
@@ -337,8 +333,8 @@ def requires_qe_access(func):
                 credentials = discovered_credentials[account_name]
 
                 kwargs.update({
-                    'QE_TOKEN': credentials.get('token'),
-                    'QE_URL': credentials.get('url'),
+                    'qe_token': credentials.get('token'),
+                    'qe_url': credentials.get('url'),
                 })
 
                 if all(item in credentials.get('url') for
@@ -349,7 +345,7 @@ def requires_qe_access(func):
 
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
 
 
 def _is_ci_fork_pull_request():

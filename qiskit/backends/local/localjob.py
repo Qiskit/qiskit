@@ -13,13 +13,30 @@ import jsonschema
 import logging
 import os
 import sys
+import functools
 
-from qiskit.backends import BaseJob
-from qiskit.backends import JobStatus
-from qiskit import QISKitError
-from qiskit import __path__ as qiskit_path
+from qiskit.backends import BaseJob, JobStatus, JobError
 
 logger = logging.getLogger(__name__)
+
+
+def requires_submit(func):
+    """
+    Decorator to ensure that a submit has been performed before
+    calling the method.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+        return func(self, *args, **kwargs)
+    return _wrapper
 
 
 class LocalJob(BaseJob):
@@ -36,10 +53,12 @@ class LocalJob(BaseJob):
 
     def __init__(self, fn, qobj):
         super().__init__()
+        self._fn = fn
         self._qobj = qobj
-        print(qobj.header)
-        #self._backend_name = qobj.header.backend_name
+        self._backend_name = qobj.header.backend_name
+        self._future = None
 
+        '''
         sdk = qiskit_path[0]
         # Schemas path:     qiskit/backends/schemas
         schemas_path = os.path.join(sdk, 'schemas')
@@ -52,13 +71,19 @@ class LocalJob(BaseJob):
             jsonschema.validate(self._qobj.as_dict(), schema)
         except jsonschema.ValidationError as validation_error:
             self.fail(str(validation_error))
+        '''
 
-        self._future = self._executor.submit(fn, qobj)
+    def submit(self):
+        """Submit the job to the backend for running """
+        if self._future is not None:
+            raise JobError("We have already submitted the job!")
 
+        self._future = self._executor.submit(self._fn, self._qobj)
+
+    @requires_submit
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
-        """
-        Get job result. The behavior is the same as the underlying
+        """Get job result. The behavior is the same as the underlying
         concurrent Future objects,
 
         https://docs.python.org/3/library/concurrent.futures.html#future-objects
@@ -70,62 +95,37 @@ class LocalJob(BaseJob):
             Result: Result object
 
         Raises:
-            concurrent.futures.TimeoutError: if timeout occured.
+            concurrent.futures.TimeoutError: if timeout occurred.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
         return self._future.result(timeout=timeout)
 
+    @requires_submit
     def cancel(self):
         return self._future.cancel()
 
-    @property
+    @requires_submit
     def status(self):
-        _status_msg = None
-        # order is important here
-        if self.running:
-            _status = JobStatus.RUNNING
-        elif not self.done:
-            _status = JobStatus.QUEUED
-        elif self.cancelled:
-            _status = JobStatus.CANCELLED
-        elif self.done:
-            _status = JobStatus.DONE
-        elif self.exception:
-            _status = JobStatus.ERROR
-            _status_msg = str(self.exception)
-        else:
-            raise LocalJobError('Unexpected behavior of {0}'.format(
-                self.__class__.__name__))
-        return {'status': _status,
-                'status_msg': _status_msg}
-
-    @property
-    def running(self):
-        return self._future.running()
-
-    @property
-    def done(self):
-        """
-        Returns True if job successfully finished running.
-
-        Note behavior is slightly different than Future objects which would
-        also return true if successfully cancelled.
-        """
-        return self._future.done() and not self._future.cancelled()
-
-    @property
-    def cancelled(self):
-        return self._future.cancelled()
-
-    @property
-    def exception(self):
-        """
-        Return Exception object if exception occured else None.
+        """Gets the status of the job by querying the Python's future
 
         Returns:
-            Exception: exception raised by attempting to run job.
+            JobStatus: The current JobStatus
+
+        Raises:
+            JobError: If the future is in unexpected state
+            concurrent.futures.TimeoutError: if timeout occurred.
         """
-        return self._future.exception(timeout=0)
+        # The order is important here
+        if self._future.running():
+            _status = JobStatus.RUNNING
+        elif self._future.cancelled():
+            _status = JobStatus.CANCELLED
+        elif self._future.done():
+            _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
+        else:
+            raise JobError('Unexpected behavior of {0}'.format(
+                self.__class__.__name__))
+        return _status
 
     @property
     def backend_name(self):
@@ -133,8 +133,3 @@ class LocalJob(BaseJob):
         Return backend name used for this job
         """
         return self._backend_name
-
-
-class LocalJobError(QISKitError):
-    """class for Local Job errors"""
-    pass
