@@ -61,7 +61,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
 
     flag_string = os.getenv(option_var, '')
     for flag in flag_string.split(','):
-        if flag not in tests_options:
+        if flag and flag not in tests_options:
             logger.error('Testing option "%s" unknown.', flag)
 
         set_flag(flag)
