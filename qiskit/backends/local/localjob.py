@@ -9,11 +9,11 @@
 
 from concurrent import futures
 import json
-import jsonschema
 import logging
 import os
 import sys
 import functools
+import jsonschema
 
 from qiskit.backends import BaseJob, JobStatus, JobError
 from qiskit import __path__ as qiskit_path

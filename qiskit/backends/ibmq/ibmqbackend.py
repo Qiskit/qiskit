@@ -11,8 +11,8 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 import os
-import jsonschema
 import json
+import jsonschema
 
 from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
@@ -55,6 +55,9 @@ class IBMQBackend(BaseBackend):
         Args:
             qobj (dict): description of job
 
+        Raises:
+            ValueError: if qobj is invalid
+
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
@@ -72,7 +75,6 @@ class IBMQBackend(BaseBackend):
             jsonschema.validate(qobj.as_dict(), schema)
         except jsonschema.ValidationError as validation_error:
             raise ValueError(validation_error)
-            return None
 
         job = IBMQJob(self._api, not self.configuration['simulator'], qobj=qobj)
         job.submit()

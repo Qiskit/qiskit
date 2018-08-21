@@ -9,10 +9,10 @@
 import unittest
 import json
 import jsonschema
-from ._mockutils import FakeBackend, DummySimulator, new_fake_qobj
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader)
 from qiskit.backends.local import localjob
 from qiskit.backends.ibmq import IBMQBackend
+from ._mockutils import FakeBackend, DummySimulator
 from .common import QiskitTestCase, Path
 
 
@@ -94,7 +94,7 @@ class TestQobj(QiskitTestCase):
     def test_ibmqobj_raises_when_sending_bad_qobj(self):
         """Test IBMQobj is denied resource request access when invalid."""
         bad_qobj = self.valid_qobj
-        bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid against the schema
+        bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
 
         local_backend = FakeBackend()
         bad_qobj.header = QobjHeader(backend_name=local_backend.name)
