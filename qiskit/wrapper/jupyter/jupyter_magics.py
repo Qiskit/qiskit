@@ -63,23 +63,24 @@ class StatusMagic(Magics):
         _style = "font-size:16px;"
         _header = "<p style='{style}'>Job Status: %s </p>".format(style=_style)
         status = widgets.HTML(
-            value=_header % _job_var.status['status_msg'])
+            value=_header % _job_var.status().value)
         display(status)
 
         def _checker(status):
-            while _job_var.status['status'].name != 'DONE':
+            _status_name = _job_var.status().name
+            while _status_name != 'DONE':
                 time.sleep(args.interval)
-                _status = _job_var.status
-                _status_name = _status['status'].name
-                _status_msg = _status['status_msg']
+                _status = _job_var.status()
+                _status_name = _status.name
+                _status_msg = _status.value
                 if _status_name == 'ERROR':
                     break
                 else:
                     if _status_name == 'QUEUED':
-                        _status_msg += ' (%s)' % _status['queue_position']
+                        _status_msg += ' (%s)' % _job_var._queue_position
                     status.value = _header % _status_msg
 
-            status.value = _header % _job_var.status['status_msg']
+            status.value = _header % _status_msg
             # Explicitly stop the thread just to be safe.
             sys.exit()
 
