@@ -27,6 +27,7 @@ Added
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
+- New parallel_map function, and parallel circuit transpilation (#701).
 
 Changed
 -------
