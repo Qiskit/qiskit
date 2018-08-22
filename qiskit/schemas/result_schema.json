@@ -73,7 +73,6 @@
                         "counts": {
                             "type": "object",
                             "description": "Histogram of the memory over the indicated shots",
-                            "example": {"01011": 10, "10001": 102},
                             "patternProperties": {
                                 "^0x([0-9A-F])+$": {"type": "integer",
                                 "minimum": 0 }
