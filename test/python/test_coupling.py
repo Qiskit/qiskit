@@ -16,7 +16,7 @@ from .common import QiskitTestCase
 
 
 class TestCoupling(QiskitTestCase):
-    """QISKit Coupling Graph Tests."""
+    """Qiskit Coupling Graph Tests."""
 
     def test_distance_error(self):
         """Test distance method validation.
