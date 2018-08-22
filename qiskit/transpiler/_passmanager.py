@@ -10,9 +10,10 @@ from ._propertyset import PropertySet
 from ._basepasses import BasePass, AnalysisPass, TransformationPass
 from functools import partial
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
-
+from qiskit import QISKitError
 
 class PassManager():
+    """ A PassManager schedules the passes """
     def __init__(self):
         """Initialize an empty PassManager object (with no passes scheduled)."""
         self.working_list = WorkingList()
@@ -36,13 +37,15 @@ class PassManager():
             condition (callable property_set -> boolean): The pass (or passes) runs only if the
                callable returns True.
                Default: lambda x: True # i.e. pass_or_list_of_passes runs
+        Raises:
+            QISKitError: if pass_or_list_of_passes is not a proper pass.
         """
         if isinstance(pass_or_list_of_passes, BasePass):
             pass_or_list_of_passes = [pass_or_list_of_passes]
 
         for pass_ in pass_or_list_of_passes:
             if not isinstance(pass_, BasePass):
-                raise Exception('%s is not a pass instance' % pass_.__class__)
+                raise QISKitError('%s is not a pass instance' % pass_.__class__)
 
         if do_while:
             do_while = partial(do_while, self.property_set)
@@ -81,7 +84,7 @@ class PassManager():
             self._update_valid_passes(pass_)
 
     def _update_valid_passes(self, pass_):
-        if not isinstance(pass_, AnalysisPass): # Analysis passes preserve all
+        if not isinstance(pass_, AnalysisPass):  # Analysis passes preserve all
             self.valid_passes.intersection_update(set(pass_.preserves))
         self.valid_passes.add(pass_)
 

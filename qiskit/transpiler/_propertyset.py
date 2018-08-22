@@ -23,7 +23,7 @@ class PropertySet:
         return self._properties.get(key, None)
 
     def __setitem__(self, key, value):
-        if value:
+        if value is not None:
             if self._properties.get(key, None):
                 self._property_fixed_point[key] = self._properties[key] == value
             self._properties[key] = value
