@@ -1,6 +1,14 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+# pylint: disable=invalid-name
+
 """Tranpiler testing"""
 
-from ..common import QiskitTestCase
 import unittest.mock
 import logging
 
@@ -8,6 +16,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile, TransformationPass, AnalysisPass, \
     TranspilerAccessError
+from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
@@ -139,7 +148,7 @@ class PassI_Bad_AP(DummyAP):
     def run(self, dag, property_set):
         super().run(dag, property_set)
         cx_runs = dag.collect_runs(["cx"])
-        logging.getLogger(logger).info('cx_runs: %s' % cx_runs)
+        logging.getLogger(logger).info('cx_runs: %s', cx_runs)
         dag._remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
 
@@ -172,13 +181,14 @@ class TestUseCases(QiskitTestCase):
             dag (DAGCircuit): DAG circuit to transform via transpilation
             passmanager (PassManager): pass manager instance for the tranpilation process
             expected (list): List of things the passes are logging
-            expectation_type (Exception): Exception that is expected to be raised.
+            exception_type (Exception): Exception that is expected to be raised.
         """
         with self.assertLogs(logger, level='INFO') as cm:
             self.assertRaises(exception_type, transpile, dag, pass_manager=passmanager)
         self.assertEqual([record.message for record in cm.records], expected)
 
     def test_chain(self):
+        """ A single chain of passes, with Requests and Preserves."""
         self.passmanager.add_pass(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         self.passmanager.add_pass(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
         self.passmanager.add_pass(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
@@ -192,6 +202,7 @@ class TestUseCases(QiskitTestCase):
                                                           'run transformation pass PassB_TP_RA_PA'])
 
     def test_conditional_passes_true(self):
+        """ A pass set with a conditional parameter. The callable is True. """
         self.passmanager.add_pass(PassE_AP_NR_NP(True))
         self.passmanager.add_pass(PassA_TP_NR_NP(),
                                   condition=lambda property_set: property_set['property'])
@@ -200,6 +211,7 @@ class TestUseCases(QiskitTestCase):
                                                           'run transformation pass PassA_TP_NR_NP'])
 
     def test_conditional_passes_false(self):
+        """ A pass set with a conditional parameter. The callable is False. """
         self.passmanager.add_pass(PassE_AP_NR_NP(False))
         self.passmanager.add_pass(PassA_TP_NR_NP(),
                                   condition=lambda property_set: property_set['property'])
@@ -210,7 +222,7 @@ class TestUseCases(QiskitTestCase):
         self.passmanager.add_pass([
             PassF_reduce_dag_property(),
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
-            PassG_calculates_dag_property()],
+            PassG_calculates_dag_property()], \
             do_while=lambda property_set: not property_set.fixed_point('property'))
         self.assertScheduler(self.dag, self.passmanager,
                              ['run transformation pass PassF_reduce_dag_property',

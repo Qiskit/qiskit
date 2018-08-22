@@ -11,12 +11,12 @@ import wrapt
 
 class FencedPropertySet(wrapt.ObjectProxy):
     """ A property set that cannot be written (via __setitem__) """
-    def __setitem__(self, *args, **kwargs):
+    def __setitem__(self, _key, _item):
         raise TranspilerAccessError("A TransformationPass should not modify property_set.")
 
 class FencedDAGCircuit(wrapt.ObjectProxy):
     """ A dag circuit that cannot be modified. """
-    def _remove_op_node(self, *args, **kwargs):
+    def _remove_op_node(self, *_args, **_kwargs):
         raise TranspilerAccessError("An AnalysisPass should not modify DAGCircuit: _remove_op_node"
                                     "forbidden")
 
