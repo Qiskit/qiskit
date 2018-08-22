@@ -280,9 +280,12 @@ def latex_circuit_drawer(circuit,
                               scale=scale, style=style)
         im = None
         try:
-            subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
+
+            subprocess.run(["pdflatex", "-halt-on-error",
+                            "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                           check=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
@@ -290,18 +293,11 @@ def latex_circuit_drawer(circuit,
                                'Skipping latex circuit drawing...')
             raise
         except subprocess.CalledProcessError as e:
-            if "capacity exceeded" in str(e.stdout):
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Circuit too large for memory. '
-                               'Skipping latex circuit drawing...')
-            elif "Dimension too large." in str(e.stdout):
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Dimension too large for the beamer template. '
-                               'Skipping latex circuit drawing...')
-            else:
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Is the `Qcircuit` latex package installed? '
-                               'Skipping latex circuit drawing...')
+            with open('latex_error.log', 'wb') as error_file:
+                error_file.write(e.stdout)
+            logger.warning('WARNING Unable to complile latex. '
+                           'The output from the pdflatex command can '
+                           'be found in latex_error.log')
             raise
         else:
             try:

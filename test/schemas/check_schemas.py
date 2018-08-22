@@ -30,7 +30,8 @@ print(cur_file_path)
 schema_tests.append({"schema": "backend_configuration_schema.json",
                      "examples": [
                          "backend_configuration_openpulse_example.json",
-                         "backend_configuration_openqasm_example.json"
+                         "backend_configuration_openqasm_example.json",
+                         "backend_configuration_openqasm_simulator_example.json"
                          ]})
 schema_tests.append({"schema": "backend_properties_schema.json",
                      "examples": [
