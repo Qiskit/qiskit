@@ -43,7 +43,7 @@ class TestQCVVFitters(QiskitTestCase):
         f_in = 5
         phi_in = 90
         result = fitters.osc_fit_fun(x_in, a_in, tau_in, f_in, phi_in, c_in)
-        self.assertEqual(0.5766900211497354, result)
+        self.assertAlmostEqual(0.5766900211497354, result)
 
     def test_rb_fit_fun(self):
         a_in = 2
@@ -51,7 +51,7 @@ class TestQCVVFitters(QiskitTestCase):
         alpha_in = 4
         b_in = 1
         result = fitters.rb_fit_fun(x_in, a_in, alpha_in, b_in)
-        self.assertEqual(129, result)
+        self.assertAlmostEqual(129, result)
 
     def test_shape_rb_data(self):
         raw_data = np.zeros((2, 2, 2))
@@ -87,4 +87,10 @@ class TestQCVVFitters(QiskitTestCase):
                 'fiterr': [0, 0, 0],
                 'fit_calcs': {'epc': [0.5249999999999999, 0.0]}}
         }
-        self.assertEqual(expected, result)
+
+        for bit in fit:
+            for list_type in ['fit', 'fiterr']:
+                self.assertTrue(np.allclose(expected[bit][list_type],
+                                            result[bit][list_type]))
+            self.assertTrue(np.allclose(expected[bit]['fit_calcs']['epc'],
+                                        result[bit]['fit_calcs']['epc']))
