@@ -29,19 +29,19 @@
                 "$ref": "#/definitions/complex_array"
             }
         },
-        "gate_def": {
-            "description": "OpenPulse gate definition schema. Defines QASM gates in terms of pulses.",
+        "cmd_def": {
+            "description": "OpenPulse command definition schema. Defines QASM commands in terms of pulses.",
             "type": "object",
             "required": ["name"],
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "QASM pulse name"
+                    "description": "QASM command name"
                 },
                 "qubits": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Qubits to which this gate def applies", 
+                    "description": "Qubits to which this command def applies", 
                     "items": {"type": "integer", "minimum": 0}
                 },
                 "sequence": {
@@ -71,10 +71,10 @@
             "minimum": 0,
             "default": 1
         },
-        "gate_def": {
+        "cmd_def": {
             "type": "array",
             "description": "Backend calibrated QASM to Pulse definitions",
-            "items": {"$ref": "#/definitions/gate_def"}
+            "items": {"$ref": "#/definitions/cmd_def"}
         },
         "pulse_library": {
             "type": "array",
