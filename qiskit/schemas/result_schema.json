@@ -74,7 +74,7 @@
                             "type": "object",
                             "description": "Histogram of the memory over the indicated shots",
                             "patternProperties": {
-                                "^0x([0-9A-F])+$": {"type": "integer",
+                                "^0x([0-9A-Fa-f])+$": {"type": "integer",
                                 "minimum": 0 }
                             },
                             "additionalProperties": false
