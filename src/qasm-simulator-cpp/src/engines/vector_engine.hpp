@@ -76,7 +76,7 @@ public:
   std::map<std::string, rvector_t> snapshots_probs;
   std::map<std::string, std::map<std::string, double>> snapshots_probs_ket;
   std::map<std::string, std::vector<cvector_t>> snapshots_inprods;
-  std::map<std::string, rvector_t> snapshots_overlaps;
+  std::map<std::string, std::vector<rvector_t>> snapshots_overlaps;
 
   //============================================================================
   // Methods
@@ -148,7 +148,8 @@ void VectorEngine::add(const VectorEngine &eng) {
 
   // Add snapshots overlaps
   for (const auto &s : eng.snapshots_overlaps)
-    snapshots_overlaps[s.first] += s.second;
+    std::copy(s.second.begin(), s.second.end(),
+              back_inserter(snapshots_overlaps[s.first]));
 
   // copy snapshots inner prods
   for (const auto &s : eng.snapshots_inprods)
@@ -319,7 +320,7 @@ void VectorEngine::snapshot_inner_products(const std::map<std::string, QubitVect
           snapshots_inprods[psi.first].push_back(inprods);
         // Add output overlaps (needs renormalizing at output)
         if (show_snapshots_overlaps)
-          snapshots_overlaps[psi.first] += get_probs(inprods);
+          snapshots_overlaps[psi.first].push_back(get_probs(inprods));
       }
     }
 }
@@ -435,7 +436,6 @@ inline void to_json(json_t &js, const VectorEngine &eng) {
   if (eng.show_snapshots_overlaps && eng.snapshots_overlaps.empty() == false) {
     for (const auto &s : eng.snapshots_overlaps) {
       auto val = s.second;
-      val *= renorm;
       chop(val, eng.epsilon);
       js["snapshots"][s.first]["target_states_inner_overlaps"] = val;
     }
@@ -453,7 +453,7 @@ inline void from_json(const json_t &js, VectorEngine &eng) {
       to_lowercase(o);
       string_trim(o);
 
-      if (o == "quantumstateket" || o == "quantumstatesket")
+      if ((o == "quantumstateket" || o == "quantumstatesket") && o != "hidestatevector")
         eng.show_snapshots_ket = true;
       else if (o == "densitymatrix")
         eng.show_snapshots_density = true;
