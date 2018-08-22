@@ -10,6 +10,7 @@
 """Module for working with Results."""
 
 import logging
+import copy
 from collections import OrderedDict
 
 import numpy
@@ -123,23 +124,33 @@ class Result(object):
 
         Arg:
             other (Result): a Result object to append.
+        Returns:
+            Result: The current object with appended results.
         Raises:
             QISKitError: if the Results cannot be combined.
-            NotImplementedError: TODO
         """
-        # TODO: implement
-        raise NotImplementedError()
+        this_backend = self.backend_name
+        other_backend = other.backend_name
+        if this_backend != other_backend:
+            raise QISKitError('Result objects from different backends cannot be combined.')
+
+        if self._is_error() or other._is_error():
+            raise QISKitError('Can not combine a failed result with another result.')
+
+        self.results.update(other.results)
+        return self
 
     def __add__(self, other):
         """Combine Result objects.
 
         Arg:
             other (Result): a Result object to combine.
-        Raises:
-            NotImplementedError: TODO
+        Returns:
+            Result: A new Result object consisting of combined objects.
         """
-        # TODO: implement
-        raise NotImplementedError
+        copy_of_self = copy.deepcopy(self)
+        copy_of_self += other
+        return copy_of_self
 
     def _is_error(self):
         return self.status in ('ERROR', 'SUCCESS = False')

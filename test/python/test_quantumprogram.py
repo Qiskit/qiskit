@@ -18,7 +18,6 @@ import numpy as np
 from qiskit import (ClassicalRegister, QISKitError, QuantumCircuit,
                     QuantumRegister, QuantumProgram, Result)
 from qiskit.qobj import Qobj
-from qiskit.tools import file_io
 from .common import requires_qe_access, QiskitTestCase, Path
 
 
@@ -910,30 +909,6 @@ class TestQuantumProgram(QiskitTestCase):
         self.assertDictAlmostEqual(counts2, target2, threshold)
         self.assertDictAlmostEqual(counts3, target3, threshold)
 
-    @unittest.expectedFailure
-    def test_combine_results(self):
-        """Test run.
-
-        If all correct should the data.
-        """
-        q_program = QuantumProgram()
-        qr = q_program.create_quantum_register("qr", 1)
-        cr = q_program.create_classical_register("cr", 1)
-        qc1 = q_program.create_circuit("qc1", [qr], [cr])
-        qc2 = q_program.create_circuit("qc2", [qr], [cr])
-        qc1.measure(qr[0], cr[0])
-        qc2.x(qr[0])
-        qc2.measure(qr[0], cr[0])
-        shots = 1024
-        backend = 'local_qasm_simulator'
-        res1 = q_program.execute(['qc1'], backend=backend, shots=shots)
-        res2 = q_program.execute(['qc2'], backend=backend, shots=shots)
-        counts1 = res1.get_counts('qc1')
-        counts2 = res2.get_counts('qc2')
-        res1 += res2  # combine results
-        counts12 = [res1.get_counts('qc1'), res1.get_counts('qc2')]
-        self.assertEqual(counts12, [counts1, counts2])
-
     def test_local_qasm_simulator(self):
         """Test execute.
 
@@ -1409,48 +1384,6 @@ class TestQuantumProgram(QiskitTestCase):
         )
         # SDK will throw ConnectionError on every call that implies a connection
         self.assertRaises(QISKitError, qp.set_api, FAKE_TOKEN, FAKE_URL)
-
-    @unittest.expectedFailure
-    def test_results_save_load(self):
-        """Test saving and loading the results of a circuit.
-
-        Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
-        """
-        q_program = QuantumProgram()
-        metadata = {'testval': 5}
-        q = q_program.create_quantum_register("q", 2)
-        c = q_program.create_classical_register("c", 2)
-        qc1 = q_program.create_circuit("qc1", [q], [c])
-        qc2 = q_program.create_circuit("qc2", [q], [c])
-        qc1.h(q)
-        qc2.cx(q[0], q[1])
-        circuits = ['qc1', 'qc2']
-
-        result1 = q_program.execute(circuits, backend='local_unitary_simulator')
-        result2 = q_program.execute(circuits, backend='local_qasm_simulator')
-
-        test_1_path = self._get_resource_path('test_save_load1.json')
-        test_2_path = self._get_resource_path('test_save_load2.json')
-
-        # delete these files if they exist
-        if os.path.exists(test_1_path):
-            os.remove(test_1_path)
-
-        if os.path.exists(test_2_path):
-            os.remove(test_2_path)
-
-        file1 = file_io.save_result_to_file(result1, test_1_path, metadata=metadata)
-        file2 = file_io.save_result_to_file(result2, test_2_path, metadata=metadata)
-
-        _, metadata_loaded1 = file_io.load_result_from_file(file1)
-        _, metadata_loaded2 = file_io.load_result_from_file(file1)
-
-        self.assertAlmostEqual(metadata_loaded1['testval'], 5)
-        self.assertAlmostEqual(metadata_loaded2['testval'], 5)
-
-        # remove files to keep directory clean
-        os.remove(file1)
-        os.remove(file2)
 
     def test_qubitpol(self):
         """Test the results of the qubitpol function in Results. Do two 2Q circuits
