@@ -10,10 +10,9 @@
 """Quick program to test json backend
 """
 import unittest
-
-from qiskit import qasm, unroll, QuantumProgram
-
-from .common import QiskitTestCase, Path
+import qiskit
+from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.unroll import DagUnroller, JsonBackend
 
 
 class TestJsonOutput(QiskitTestCase):
@@ -24,14 +23,12 @@ class TestJsonOutput(QiskitTestCase):
             'qasm/entangled_registers.qasm', Path.EXAMPLES)
 
     def test_json_output(self):
-        qprogram = QuantumProgram()
-        qprogram.load_qasm_file(self.qasm_file_path, name="example")
+        circ = qiskit.load_qasm_file(self.QASM_FILE_PATH)
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        json_circuit = DagUnroller(dag_circuit,
+                                   JsonBackend(dag_circuit.basis)).execute()
 
-        basis_gates = []  # unroll to base gates, change to test
-        unroller = unroll.Unroller(qasm.Qasm(data=qprogram.get_qasm("example")).parse(),
-                                   unroll.JsonBackend(basis_gates))
-        circuit = unroller.execute()
-        self.log.info('test_json_ouptut: %s', circuit)
+    self.log.info('test_json_ouptut: %s', json_circuit)
 
 
 if __name__ == '__main__':

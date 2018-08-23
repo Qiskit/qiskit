@@ -14,12 +14,16 @@ import pstats
 import unittest
 import numpy as np
 
-from qiskit import (qasm, unroll, QuantumCircuit,
-                    QuantumRegister, ClassicalRegister, compile)
+from qiskit import qasm, unroll
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import compile
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
 from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
 from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
+
+
+DO_PROFILING = False
 
 
 class LocalUnitarySimulatorTest(QiskitTestCase):
@@ -117,7 +121,8 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         self.assertAlmostEqual(norm1, 4)
         self.assertAlmostEqual(norm2, 4)
 
-    def profile_unitary_simulator(self):
+    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
+    def test_profile_unitary_simulator(self):
         """Profile randomly generated circuits.
 
         Writes profile results to <this_module>.prof as well as recording
@@ -130,15 +135,16 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         n_circuits = 100
         max_depth = 40
         max_qubits = 5
+        backend = UnitarySimulatorPy()
         profile = cProfile.Profile()
-        random_circuits = RandomQasmGenerator(seed=self.seed,
-                                              max_depth=max_depth,
-                                              max_qubits=max_qubits)
-        random_circuits.add_circuits(n_circuits, do_measure=False)
-        qprogram = random_circuits.get_program()
+        random_circuit_generator = RandomQasmGenerator(seed=self.seed,
+                                                       max_depth=max_depth,
+                                                       max_qubits=max_qubits)
+        random_circuit_generator.add_circuits(n_circuits, do_measure=False)
+        random_circuits = random_circuit_generator.get_circuits()
+        qobj = compile(random_circuits, backend)
         profile.enable()
-        qprogram.execute(qprogram.get_circuit_names(),
-                         backend=UnitarySimulatorPy())
+        result = backend.run(qobj).result()
         profile.disable()
         sout = io.StringIO()
         profile_stats = pstats.Stats(profile, stream=sout).sort_stats('cumulative')
