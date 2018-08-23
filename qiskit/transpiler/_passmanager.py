@@ -7,7 +7,7 @@
 """PassManager class for the transpiler."""
 
 from ._propertyset import PropertySet
-from ._basepasses import BasePass, AnalysisPass, TransformationPass
+from ._basepasses import BasePass
 from functools import partial
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
 from qiskit import QISKitError
@@ -88,9 +88,9 @@ class PassManager():
 
         # Run the pass itself, if not already ran (exists in valid_passes)
         if not pass_ in self.valid_passes:
-            if isinstance(pass_, TransformationPass):
+            if pass_.isTransformationPass:
                 pass_.run(dag, self.ro_property_set)
-            elif isinstance(pass_, AnalysisPass):
+            elif pass_.isAnalysisPass:
                 pass_.run(FencedDAGCircuit(dag), self.property_set)
             else:
                 raise Exception("I dont know how to handle this type of pass")
@@ -99,7 +99,7 @@ class PassManager():
             self._update_valid_passes(pass_)
 
     def _update_valid_passes(self, pass_):
-        if not isinstance(pass_, AnalysisPass):  # Analysis passes preserve all
+        if not pass_.isAnalysisPass:  # Analysis passes preserve all
             if self.ignore_preserves:
                 self.valid_passes.clear()
             else:
