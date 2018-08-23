@@ -22,10 +22,15 @@
                     "description": "Backend version in the form X.X.X"
                     },
                 "n_qubits": {
+                    "oneOf":[{
                     "type": "integer",
                     "description": "Number of qubits",
                     "minimum": 1,
-                    "default": 1
+                    "default": 1},
+                    {"type": "integer",
+                    "description": "Number of qubits",
+                    "minimum": -1,
+                    "maximum": -1}]
                     },
                 "basis_gates": {
                     "type": "array",
@@ -113,7 +118,7 @@
             },
         "gateconfig": {
             "type": "object",
-            "required": ["name","parameters","coupling_map","qasm_def"],
+            "required": ["name","parameters","qasm_def"],
             "properties": {
                 "name": {
                     "type": "string",
@@ -169,10 +174,11 @@
                     "description": "The backend supports openPulse (true/false)"},
                 "n_uchannels": {
                     "type": "integer",
-                    "description": "Number of additional control channels", 
+                    "description": "Number of additional control channels",
                     "minimum": 0},
                 "hamiltonian": {
                     "type": "object",
+                    "required": ["h_latex"],
                     "description": "Hamiltonian of the backend",
                     "properties": {
                         "h_latex": {
@@ -183,9 +189,15 @@
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "The Hamiltonian in machine readable form"
-                            }
-                        }
-                    },
+                          },
+                        "vars": {
+                              "type": "object",
+                              "description": "Variables in the h_str"},
+                        "osc": {
+                            "type": "object",
+                            "description": "Number of levels for each oscillator mode"}
+                          }
+                        },
                 "u_channel_lo": {
                     "type": "array",
                     "minItems": 0,
@@ -219,11 +231,11 @@
                     "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
                 "dt": {
                     "type": "number",
-                    "description": "Time discretization for the drive and U channels", 
+                    "description": "Time discretization for the drive and U channels",
                     "minimum": 0},
                 "dtm": {
                     "type": "number",
-                    "description": "Time discretization for the measurement channels", 
+                    "description": "Time discretization for the measurement channels",
                     "minimum": 0},
                 "rep_rates": {
                     "type": "array",
@@ -267,6 +279,5 @@
     "properties": {
                 "open_pulse": {"enum": [ false ]}
                 }}]}
-                ]           
+                ]
 }
-
